@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Запускний модуль Taxo v8.29.
+"""Запускний модуль Taxo v8.36.
 
-Повний пакет програми знаходиться у releases/Taxo_v8_29_source.zip.
+Повний пакет програми знаходиться у releases/Taxo_v8_36_source.zip.
 Цей файл локально розпаковує пакет і запускає основну програму.
 """
 from pathlib import Path
@@ -10,8 +10,8 @@ import shutil
 import zipfile
 
 ROOT = Path(__file__).resolve().parent
-ARCHIVE = ROOT / "releases" / "Taxo_v8_29_source.zip"
-RUNTIME = ROOT / ".taxo_runtime_v8_29"
+ARCHIVE = ROOT / "releases" / "Taxo_v8_36_source.zip"
+RUNTIME = ROOT / ".taxo_runtime_v8_36"
 
 if not ARCHIVE.exists():
     raise FileNotFoundError(f"Не знайдено архів програми: {ARCHIVE}")
