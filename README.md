@@ -1,36 +1,70 @@
 # Taxo — v8.29
 
-Windows desktop application for driver worktime, timesheets, activity-confirmation forms, route planning and an experimental analog tachograph module.
+Локальна Windows-програма для обліку робочого часу водіїв, формування табелів, бланків підтвердження діяльності, планування маршрутів і роботи з аналоговими тахокартами.
 
-## Current version
+## Поточна версія
 
 **v8.29**
 
-Highlights:
-- driver selection directly on the Timesheet tab;
-- PDF/XLSX exports include every calendar day of the selected month;
-- wrapped PDF cells prevent route/vehicle text overlap;
-- monthly totals row in PDF/XLSX;
-- preliminary work-time compliance analysis based on Regulation №340, using the edition effective from 26.07.2026;
-- planned / actual schedule separation, with tachograph data flowing into the actual side;
-- tachograph scan recognition, candidate intervals, 24-hour timeline and summary statistics;
-- activity-confirmation DOCX generation with DD.MM.YYYY dates and improved Ukrainian-side formatting.
+### Основні можливості та зміни
 
-## Run on Windows
+- вибір водія безпосередньо на вкладці **«Табель»**;
+- експорт PDF/XLSX включає **всі календарні дні вибраного місяця**;
+- у PDF довгі значення маршруту, автомобіля та примітки переносяться в межах комірок і не повинні накладатися одне на одне;
+- у PDF/XLSX додано підсумковий рядок за місяць;
+- додано попередній автоматичний аналіз робочого часу за Положенням №340 у редакції, чинній з 26.07.2026;
+- графіки розділено на **планований** і **фактичний**, дані тахографа передаються у фактичний контур;
+- модуль тахографа підтримує імпорт сканів, пошук шайб, кандидатів інтервалів, 24-годинну шкалу та підсумкову статистику;
+- формування **«Бланка підтвердження діяльності»** з датами у форматі **ДД.ММ.РРРР** та скоригованим форматуванням української сторони;
+- база даних зберігається окремо від програми, тому оновлення версії не повинно вимагати повторного введення даних.
 
-1. Install Python 3.13.
-2. Run `START.bat`.
+## Запуск у Windows
 
-The repository root contains a small launcher. The full v8.29 program source is stored in `releases/Taxo_v8_29_source.zip`; the launcher extracts it locally and starts the application.
+1. Встановити **Python 3.13**.
+2. Запустити файл `START.bat`.
 
-## Data storage
+У корені репозиторію знаходиться невеликий запускний модуль. Повний код v8.29 збережено в:
 
-The repository does **not** contain the working database. User data stays outside the program folder under:
+`releases/Taxo_v8_29_source.zip`
+
+Під час запуску він автоматично розпаковується локально і запускає основну програму.
+
+## Де зберігаються дані
+
+Робоча база даних **не зберігається в GitHub**.
+
+Постійні дані користувача знаходяться у:
 
 `%USERPROFILE%\Documents\DriverWorktime\`
 
-including the main SQLite database, backups, output files and tachograph working data.
+Зокрема там зберігаються:
 
-## Notes
+- основна SQLite-база;
+- резервні копії;
+- сформовані документи та звіти;
+- робочі дані модуля тахографа.
 
-The tachograph recognition and Regulation №340 checks are assistance/verification tools. Recognition candidates should be reviewed before transferring them into the actual timesheet.
+## Модуль тахографа
+
+Модуль аналогових тахокарт поки що є тестовим і працює за схемою:
+
+**скан → знайдена шайба → кандидати інтервалів → ручна перевірка → передача у фактичний табель**.
+
+Автоматично розпізнані інтервали потрібно перевіряти перед перенесенням у робочий табель.
+
+## Контроль робочого часу
+
+Функція **«Підсумки / контроль»** виконує попередню автоматичну перевірку, зокрема:
+
+- щоденного та тижневого часу керування;
+- двотижневого ліміту керування;
+- тривалості робочого часу;
+- нічної роботи;
+- перерв;
+- відпочинку між змінами.
+
+Це допоміжний контроль, а не юридичний висновок. Застосування окремих норм залежить від виду перевезень та передбачених законодавством винятків.
+
+## Примітка
+
+SQLite-бази, резервні копії, робочі скани та сформовані користувачем документи не додаються до репозиторію.
