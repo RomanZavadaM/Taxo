@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.sqlite3
+*.sqlite3-*
+Data/
+Backups/
+Output/
+output/
+.taxo_runtime_v8_29/
+*.log

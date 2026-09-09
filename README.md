@@ -1,36 +1,36 @@
-# Taxo — облік робочого часу водіїв та тахограф
+# Taxo — v8.29
 
-Локальний Windows-додаток на Python/Tkinter + SQLite для:
-- водіїв і карток водіїв;
-- 48-місячної історії діяльності;
-- табеля робочого часу;
-- розділених змін і періодів роботи/відпочинку;
-- довідників автомобілів і маршрутів;
-- шаблонів маршрутів;
-- графічного графіка водіїв на 24 години;
-- формування «Бланка підтвердження діяльності»;
-- експорту XLSX/PDF;
-- резервного копіювання локальної БД.
+Windows desktop application for driver worktime, timesheets, activity-confirmation forms, route planning and an experimental analog tachograph module.
 
-## Остання локальна версія
+## Current version
 
-v7 — графік водіїв + попередні можливості v6.2.
+**v8.29**
 
-Постійні дані зберігаються у `%USERPROFILE%\\Documents\\DriverWorktime\\`.
+Highlights:
+- driver selection directly on the Timesheet tab;
+- PDF/XLSX exports include every calendar day of the selected month;
+- wrapped PDF cells prevent route/vehicle text overlap;
+- monthly totals row in PDF/XLSX;
+- preliminary work-time compliance analysis based on Regulation №340, using the edition effective from 26.07.2026;
+- planned / actual schedule separation, with tachograph data flowing into the actual side;
+- tachograph scan recognition, candidate intervals, 24-hour timeline and summary statistics;
+- activity-confirmation DOCX generation with DD.MM.YYYY dates and improved Ukrainian-side formatting.
 
-Тестові тахокарти поки що не змішуються з основною робочою базою. Модуль розпізнавання тахографа планується як окремий тестовий контур: скан → розпізнані періоди → ручне підтвердження → порівняння з графіком і табелем.
+## Run on Windows
 
-## Запуск Windows
+1. Install Python 3.13.
+2. Run `START.bat`.
 
-Встановити Python 3.13 і запустити `START.bat`.
+The repository root contains a small launcher. The full v8.29 program source is stored in `releases/Taxo_v8_29_source.zip`; the launcher extracts it locally and starts the application.
 
-Або:
+## Data storage
 
-```bat
-py -3.13 -m pip install -r requirements.txt
-py -3.13 main.py
-```
+The repository does **not** contain the working database. User data stays outside the program folder under:
 
-## Примітка
+`%USERPROFILE%\Documents\DriverWorktime\`
 
-SQLite-БД, резервні копії та результати роботи користувача не повинні зберігатися в Git-репозиторії. Вони створюються локально в Documents.
+including the main SQLite database, backups, output files and tachograph working data.
+
+## Notes
+
+The tachograph recognition and Regulation №340 checks are assistance/verification tools. Recognition candidates should be reviewed before transferring them into the actual timesheet.
