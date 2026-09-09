@@ -1,0 +1,450 @@
+--- main.py.v8.36
++++ main.py.v8.38
+@@ -1147,29 +1147,76 @@
+ }
+ 
+ 
++def _worklog_segments_consistency(row, segments):
++    """Перевіряє узгодженість головного запису табеля з його деталізацією.
++
++    Для місячного графіка головним джерелом є worklog — тобто той самий
++    запис, який показується у вкладці «Табель». work_segments не має
++    права непомітно підміняти підсумкові години або керування.
++    """
++    issues=[]
++    if row is None:
++        return issues
++
++    row_work=hours_value_to_minutes(row["work_hours"])
++    row_drive=hours_value_to_minutes(row["driving_hours"])
++
++    if segments:
++        try:
++            ordered=sorted(segments,key=lambda s:(s["segment_no"],time_to_minutes(s["start_time"])))
++            seg_work=sum(hours_value_to_minutes(s["work_hours"]) for s in ordered)
++            seg_drive=sum(hours_value_to_minutes(s["driving_hours"]) for s in ordered)
++            seg_start=(ordered[0]["start_time"] or "").strip()
++            seg_end=(ordered[-1]["end_time"] or "").strip()
++
++            if abs(seg_work-row_work)>1:
++                issues.append(
++                    f"робота: табель {minutes_hhmm(row_work)}, частини {minutes_hhmm(seg_work)}"
++                )
++            if abs(seg_drive-row_drive)>1:
++                issues.append(
++                    f"керування: табель {minutes_hhmm(row_drive)}, частини {minutes_hhmm(seg_drive)}"
++                )
++
++            row_start=(row["start_time"] or "").strip()
++            row_end=(row["end_time"] or "").strip()
++            if row_start and seg_start and row_start!=seg_start:
++                issues.append(f"початок: табель {row_start}, частини {seg_start}")
++            if row_end and seg_end and row_end!=seg_end:
++                issues.append(f"кінець: табель {row_end}, частини {seg_end}")
++        except Exception as e:
++            issues.append(f"не вдалося перевірити частини: {e}")
++
++    return issues
++
++
+ def _monthly_shift_cell(row, segments):
+-    """Короткий напис для клітинки місячного графіка."""
++    """Короткий напис для клітинки місячного графіка.
++
++    Початок і кінець беремо з worklog — того самого джерела, що видно
++    у вкладці «Табель». Частини використовуються тільки як деталізація.
++    """
+     if row is None:
+         return ""
+     day_type=(row["day_type"] or "").strip()
+     if day_type != "Робота":
+         return SHIFT_DAY_CODES.get(day_type, day_type[:4])
+ 
+-    if segments:
+-        ordered=sorted(segments,key=lambda s:(s["segment_no"],time_to_minutes(s["start_time"])))
+-        start=ordered[0]["start_time"]
+-        end=ordered[-1]["end_time"]
+-        parts=len(ordered)
++    start=(row["start_time"] or "").strip()
++    end=(row["end_time"] or "").strip()
++    parts=len(segments) if segments else (1 if start and end else 0)
++    issues=_worklog_segments_consistency(row,segments)
++
++    if not start and not end:
++        cell="Р"
++    elif parts>1:
++        cell=f"{start}\n{end}\n{parts}ч"
+     else:
+-        start=(row["start_time"] or "").strip()
+-        end=(row["end_time"] or "").strip()
+-        parts=1 if start and end else 0
+-
+-    if not start and not end:
+-        return "Р"
+-    if parts>1:
+-        return f"{start}\n{end}\n{parts}ч"
+-    return f"{start}\n{end}"
++        cell=f"{start}\n{end}"
++
++    if issues:
++        cell += "\n!"
++    return cell
+ 
+ 
+ def collect_monthly_shift_schedule(year, month, active_only=True):
+@@ -1211,6 +1258,7 @@
+ 
+     driver_rows=[]
+     details=[]
++    consistency_issues=[]
+     for dr in drivers:
+         cells=[]
+         work_days=0
+@@ -1225,30 +1273,42 @@
+             if r:
+                 if (r["day_type"] or "")=="Робота":
+                     work_days+=1
+-                if segs:
+-                    dm_work=sum(hours_value_to_minutes(s["work_hours"]) for s in segs)
+-                    dm_drive=sum(hours_value_to_minutes(s["driving_hours"]) for s in segs)
+-                else:
+-                    dm_work=hours_value_to_minutes(r["work_hours"])
+-                    dm_drive=hours_value_to_minutes(r["driving_hours"])
++
++                # ГОЛОВНЕ ДЖЕРЕЛО — worklog, як у вкладці «Табель».
++                dm_work=hours_value_to_minutes(r["work_hours"])
++                dm_drive=hours_value_to_minutes(r["driving_hours"])
+                 work_min+=dm_work
+                 drive_min+=dm_drive
+ 
++                issues=_worklog_segments_consistency(r,segs)
++                driver_name=f"{dr['last_name']} {dr['first_name']} {dr['middle_name']}".strip()
++                if issues:
++                    consistency_issues.append({
++                        "driver":driver_name,
++                        "date":d,
++                        "worklog_id":r["id"],
++                        "issues":issues,
++                    })
++
+                 if (r["day_type"] or "")=="Робота":
+-                    schedule=segments_summary(segs) if segs else (
+-                        f"{r['start_time']}-{r['end_time']}" if r["start_time"] else ""
++                    main_schedule=(
++                        f"{r['start_time']}-{r['end_time']}"
++                        if (r["start_time"] or r["end_time"]) else ""
+                     )
+                     details.append({
+-                        "driver": f"{dr['last_name']} {dr['first_name']} {dr['middle_name']}".strip(),
++                        "driver": driver_name,
+                         "date": d,
+                         "day_type": r["day_type"],
+-                        "schedule": schedule,
++                        "schedule": main_schedule,
++                        "parts_schedule": segments_summary(segs) if segs else "",
++                        "parts_count": len(segs),
+                         "breaks": gaps_summary(segs),
+                         "work_min": dm_work,
+                         "drive_min": dm_drive,
+                         "route": (r["route_name"] if "route_name" in r.keys() else "") or "",
+                         "vehicle": (r["vehicle"] if "vehicle" in r.keys() else "") or "",
+                         "notes": (r["notes"] if "notes" in r.keys() else "") or "",
++                        "consistency_issues": issues,
+                     })
+ 
+         driver_rows.append({
+@@ -1267,10 +1327,13 @@
+         "drivers":driver_rows,
+         "details":details,
+         "company":company,
++        "snapshot_at": datetime.now(),
++        "active_only": bool(active_only),
++        "consistency_issues": consistency_issues,
+     }
+ 
+ 
+-def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True):
++def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True, data=None):
+     """Друкований місячний графік змінності для всіх водіїв.
+ 
+     1) Перша частина - матриця всі водії x усі дні місяця.
+@@ -1288,7 +1351,10 @@
+     )
+     from xml.sax.saxutils import escape
+ 
+-    data=collect_monthly_shift_schedule(year,month,active_only=active_only)
++    # Якщо передано data, PDF будується ТОЧНО з того самого знімка,
++    # який уже показаний на екрані. Повторного читання БД немає.
++    if data is None:
++        data=collect_monthly_shift_schedule(year,month,active_only=active_only)
+ 
+     candidates=[
+         r"C:\Windows\Fonts\arial.ttf",
+@@ -1342,10 +1408,17 @@
+         title
+     ))
+     story.append(Paragraph(
+-        "У клітинці робочого дня: час початку, час завершення та, якщо зміна має кілька частин, їх кількість. "
+-        "Точні частини зміни, перерви та час керування наведені у деталізації після місячної таблиці.",
++        "У клітинці робочого дня: час початку і завершення з головного запису вкладки «Табель»; "
++        "якщо є частини — їх кількість. Знак ! означає, що деталізація частин не узгоджена з головним записом. "
++        "Підсумки роботи та керування завжди беруться з головного запису табеля.",
+         ParagraphStyle("Explain",parent=normal,fontSize=7.3,leading=9,alignment=TA_CENTER)
+     ))
++    snap=data.get("snapshot_at")
++    if snap:
++        story.append(Paragraph(
++            f"Стан даних: {snap.strftime('%d.%m.%Y %H:%M:%S')}",
++            ParagraphStyle("Snapshot",parent=normal,fontSize=6.8,leading=8,alignment=TA_CENTER,textColor=colors.grey)
++        ))
+     story.append(Spacer(1,6))
+ 
+     # --- Місячна матриця ---
+@@ -1374,6 +1447,8 @@
+                 kind="empty"
+             elif cell in ("В","Відп","Лік","Відпч","Гот","Інш"):
+                 kind=cell
++            elif cell.endswith("\n!"):
++                kind="inconsistent"
+             else:
+                 kind="work"
+             day_meta.append(kind)
+@@ -1410,6 +1485,7 @@
+     # Кольори клітинок.
+     palette={
+         "work":"#EAF2FF",
++        "inconsistent":"#FDE8E8",
+         "В":"#ECECEC",
+         "Відп":"#FFF4CC",
+         "Лік":"#FDE8E8",
+@@ -1429,9 +1505,22 @@
+     story.append(Paragraph(
+         "Умовні позначення: В - вихідний; Відп - відпустка; Лік - лікарняний; "
+         "Відпч - відпочинок; Гот - готовність/доступність. "
+-        "Позначка «3ч» означає три частини робочої зміни.",
++        "Позначка «3ч» означає три частини робочої зміни. Знак ! — частини не узгоджені з головним записом табеля.",
+         normal
+     ))
++
++    issue_count=len(data.get("consistency_issues") or [])
++    if issue_count:
++        story.append(Spacer(1,5))
++        story.append(Paragraph(
++            f"УВАГА: знайдено {issue_count} днів з неузгодженою деталізацією частин. "
++            "Такі клітинки позначені ! і червоним фоном. Підсумки взяті з головного запису вкладки «Табель».",
++            ParagraphStyle(
++                "ConsistencyWarning",parent=normal,fontSize=7.2,leading=9,
++                textColor=colors.HexColor("#8A1C1C"),backColor=colors.HexColor("#FDE8E8"),
++                borderPadding=4
++            )
++        ))
+ 
+     # --- Деталізація ---
+     story.append(PageBreak())
+@@ -1446,19 +1535,27 @@
+     ))
+     story.append(Spacer(1,6))
+ 
+-    dh=["Водій","Дата","Графік / частини","Перерви","Робота","Кер.","Маршрут","Авто","Примітка"]
++    dh=["Водій","Дата","Головний графік","Частини / перерви","Робота","Кер.","Маршрут","Авто","Примітка / перевірка"]
+     detail_rows=[[Paragraph(x,head) for x in dh]]
+     for item in data["details"]:
++        part_text=item.get("parts_schedule","")
++        if item["breaks"]:
++            part_text += ("; " if part_text else "") + "перерви: " + item["breaks"]
++        issue_text="; ".join(item.get("consistency_issues") or [])
++        note_text=item["notes"]
++        if issue_text:
++            note_text=(note_text + " | " if note_text else "") + "НЕУЗГОДЖЕНІ ДАНІ: " + issue_text
++
+         detail_rows.append([
+             Paragraph(escape(item["driver"]),detail),
+             Paragraph(item["date"].strftime("%d.%m.%Y"),center),
+             Paragraph(escape(item["schedule"]),detail),
+-            Paragraph(escape(item["breaks"]),center),
++            Paragraph(escape(part_text),detail),
+             Paragraph(minutes_hhmm(item["work_min"]),center),
+             Paragraph(minutes_hhmm(item["drive_min"]),center),
+             Paragraph(escape(item["route"]),detail),
+             Paragraph(escape(item["vehicle"]),detail),
+-            Paragraph(escape(item["notes"]),detail),
++            Paragraph(escape(note_text),detail),
+         ])
+ 
+     if len(detail_rows)==1:
+@@ -1482,7 +1579,7 @@
+ 
+     story.append(Spacer(1,10))
+     story.append(Paragraph(
+-        f"Сформовано: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
++        f"PDF сформовано: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}",
+         ParagraphStyle("Generated",parent=normal,fontSize=6.5,textColor=colors.grey)
+     ))
+ 
+@@ -2138,9 +2235,10 @@
+         ttk.Label(
+             win,
+             text=(
+-                "Місячна матриця формується з уже введених табелів і шаблонів маршрутів. "
+-                "У робочій клітинці показано початок - кінець; «3ч» означає три частини зміни. "
+-                "PDF додатково містить повну деталізацію частин, перерв і планового часу керування."
++                "Місячна матриця формується з головних записів вкладки «Табель». "
++                "Початок, кінець, робота та «Кер.» беруться саме з worklog; частини є деталізацією. "
++                "Знак ! означає, що частини не узгоджені з головним записом. "
++                "PDF та «Відкрити / друк» формуються з ТОГО САМОГО актуального знімка."
+             ),
+             foreground="gray",
+             wraplength=1350,
+@@ -2189,6 +2287,8 @@
+         data=collect_monthly_shift_schedule(
+             y,m,active_only=bool(self.monthly_shift_active_only.get())
+         )
++        self.monthly_shift_current_data=data
++        self.monthly_shift_current_key=(y,m,bool(self.monthly_shift_active_only.get()))
+         days=data["days"]
+ 
+         columns=["driver"]+[f"d{d.day}" for d in days]+["days","work","drive"]
+@@ -2235,12 +2335,41 @@
+         self.monthly_shift_tree.tag_configure("even",background="#FAFAFA")
+         self.monthly_shift_tree.tag_configure("odd",background="#FFFFFF")
+ 
++        snap=data.get("snapshot_at")
++        snap_text=snap.strftime("%d.%m.%Y %H:%M:%S") if snap else "—"
++        mismatch_count=len(data.get("consistency_issues") or [])
++        mismatch_text=f"    НЕУЗГОДЖЕНО ДНІВ: {mismatch_count}" if mismatch_count else ""
+         self.monthly_shift_summary_var.set(
+             f"Водіїв: {len(data['drivers'])}    "
+             f"Робочих днів сумарно: {total_work_days}    "
+             f"Робота: {minutes_hhmm(total_work_min)}    "
+             f"Керування: {minutes_hhmm(total_drive_min)}"
++            f"{mismatch_text}    "
++            f"Стан даних: {snap_text}"
+         )
++
++    def _refresh_monthly_shift_if_open(self):
++        if hasattr(self,"monthly_shift_win") and self.monthly_shift_win.winfo_exists():
++            try:
++                self.refresh_monthly_shift_schedule()
++            except Exception:
++                pass
++
++    def _monthly_shift_snapshot(self):
++        """Повертає саме той знімок, який показано на екрані.
++        Перед PDF примусово оновлюємо екран, тому preview/save не можуть
++        розійтися з матрицею.
++        """
++        self.refresh_monthly_shift_schedule()
++        data=getattr(self,"monthly_shift_current_data",None)
++        if not data:
++            y=int(self.monthly_shift_year.get())
++            m=int(self.monthly_shift_month.get())
++            data=collect_monthly_shift_schedule(
++                y,m,active_only=bool(self.monthly_shift_active_only.get())
++            )
++            self.monthly_shift_current_data=data
++        return data
+ 
+     def _monthly_shift_default_pdf(self):
+         y=int(self.monthly_shift_year.get())
+@@ -2250,6 +2379,7 @@
+     def save_monthly_shift_schedule_pdf(self):
+         y=int(self.monthly_shift_year.get())
+         m=int(self.monthly_shift_month.get())
++        data=self._monthly_shift_snapshot()
+         path=filedialog.asksaveasfilename(
+             parent=self.monthly_shift_win,
+             title="Зберегти місячний графік змінності",
+@@ -2262,7 +2392,9 @@
+             return
+         try:
+             export_monthly_shift_schedule_pdf(
+-                y,m,path,active_only=bool(self.monthly_shift_active_only.get())
++                y,m,path,
++                active_only=bool(self.monthly_shift_active_only.get()),
++                data=data
+             )
+             self.monthly_shift_last_pdf=Path(path)
+             messagebox.showinfo("Графік змінності",f"PDF створено:\n{path}",parent=self.monthly_shift_win)
+@@ -2272,14 +2404,31 @@
+     def open_monthly_shift_schedule_pdf(self):
+         y=int(self.monthly_shift_year.get())
+         m=int(self.monthly_shift_month.get())
+-        path=self.monthly_shift_last_pdf or self._monthly_shift_default_pdf()
+-        path=Path(path)
++        data=self._monthly_shift_snapshot()
++
++        # Не відкриваємо старий PDF повторно. Щоразу створюємо новий файл
++        # з унікальною назвою, щоб Windows/PDF-viewer не показав кешовану версію.
++        stamp=datetime.now().strftime("%Y%m%d_%H%M%S")
++        path=OUTPUT_DIR / f"Графік_змінності_{y}_{m:02d}_огляд_{stamp}.pdf"
++
+         try:
+-            if not path.exists():
+-                export_monthly_shift_schedule_pdf(
+-                    y,m,path,active_only=bool(self.monthly_shift_active_only.get())
+-                )
++            export_monthly_shift_schedule_pdf(
++                y,m,path,
++                active_only=bool(self.monthly_shift_active_only.get()),
++                data=data
++            )
++
++            # Спроба прибрати попередній огляд, якщо він не відкритий у viewer.
++            prev=getattr(self,"monthly_shift_preview_pdf",None)
++            if prev and Path(prev)!=path:
++                try:
++                    Path(prev).unlink(missing_ok=True)
++                except Exception:
++                    pass
++
++            self.monthly_shift_preview_pdf=path
+             self.monthly_shift_last_pdf=path
++
+             if os.name=="nt":
+                 os.startfile(str(path))
+             else:
+@@ -2287,7 +2436,7 @@
+         except Exception as e:
+             messagebox.showerror(
+                 "Графік змінності",
+-                f"Не вдалося відкрити PDF:\n{e}",
++                f"Не вдалося сформувати або відкрити актуальний PDF:\\n{e}",
+                 parent=self.monthly_shift_win
+             )
+ 
+@@ -2653,7 +2802,10 @@
+             con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wl,))
+             for i,r in enumerate(seg_data,1):
+                 con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?)",(wl,i,r["start_time"],r["end_time"],float(r["work_hours"]),float(r["driving_hours"]),r["activity_type"],r["note"]))
+-            con.commit(); con.close(); win.destroy(); self.refresh_month(); self.refresh_schedule()
++            con.commit(); con.close(); win.destroy()
++            self.refresh_month()
++            self.refresh_schedule()
++            self._refresh_monthly_shift_if_open()
+         ttk.Button(win,text="Зберегти запис",command=save).pack(side="right",padx=12,pady=10)
+ 
+     def _worklog_by_id(self, wid):
+@@ -2696,7 +2848,10 @@
+             con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wid,))
+             for i,r in enumerate(clip.get("segments",[]),1):
+                 con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?)",(wid,i,r["start_time"],r["end_time"],r["work_hours"],r["driving_hours"],r["activity_type"],r["note"]))
+-        con.commit(); con.close(); self.refresh_month()
++        con.commit(); con.close()
++        self.refresh_month()
++        self.refresh_schedule()
++        self._refresh_monthly_shift_if_open()
+ 
+     def save_work_row(self): self.edit_work_row()
+ 
+@@ -2724,7 +2879,10 @@
+                 wl=con.execute("SELECT id FROM worklog WHERE driver_id=? AND work_date=?",(self.driver_id,d.isoformat())).fetchone()[0]
+                 con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wl,))
+                 con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_hours,driving_hours,activity_type) VALUES(?,?,?,?,?,?,?)",(wl,1,"08:00","17:00",8,0,"Робота"))
+-        con.commit(); con.close(); self.refresh_month()
++        con.commit(); con.close()
++        self.refresh_month()
++        self.refresh_schedule()
++        self._refresh_monthly_shift_if_open()
+ 
+     def current_rows(self):
+         con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{int(self.year_var.get()):04d}-{int(self.month_var.get()):02d}")).fetchall(); con.close(); return rows
