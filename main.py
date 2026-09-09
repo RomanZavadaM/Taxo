@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Bootstrap launcher for Taxo v8.29.
+"""Запускний модуль Taxo v8.29.
 
-The full source package lives in releases/Taxo_v8_29_source.zip.
-This file extracts it locally and executes the real application entry point.
+Повний пакет програми знаходиться у releases/Taxo_v8_29_source.zip.
+Цей файл локально розпаковує пакет і запускає основну програму.
 """
 from pathlib import Path
 import runpy
@@ -14,9 +14,9 @@ ARCHIVE = ROOT / "releases" / "Taxo_v8_29_source.zip"
 RUNTIME = ROOT / ".taxo_runtime_v8_29"
 
 if not ARCHIVE.exists():
-    raise FileNotFoundError(f"Release archive not found: {ARCHIVE}")
+    raise FileNotFoundError(f"Не знайдено архів програми: {ARCHIVE}")
 
-# Refresh runtime if missing or older than the release archive.
+# Повторно розпаковуємо пакет, якщо локальна копія відсутня або застаріла.
 need_extract = not (RUNTIME / "main.py").exists()
 if not need_extract:
     try:
