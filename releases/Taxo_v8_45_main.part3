@@ -1,0 +1,229 @@
+eta,start=1):
+-            if kind in palette:
+-                ts.append(("BACKGROUND",(cc,rr),(cc,rr),colors.HexColor(palette[kind])))
+-
+-    table.setStyle(TableStyle(ts))
+-    story.append(table)
+-
+-    story.append(Spacer(1,6))
+-    story.append(Paragraph(
+-        "Умовні позначення: В - вихідний; Відп - відпустка; Лік - лікарняний; "
+-        "Відпч - відпочинок; Гот - готовність/доступність. "
+-        "Позначка «3ч» означає три частини робочої зміни.",
+-        normal
+-    ))
+-
+-    # --- Деталізація ---
+-    story.append(PageBreak())
+-    story.append(Paragraph(
+-        f"ДЕТАЛІЗАЦІЯ ГРАФІКА ЗМІННОСТІ - {data['month']:02d}.{data['year']}",
+-        title
+-    ))
+-    story.append(Paragraph(
+-        "Ця частина призначена для перевірки точних частин зміни, проміжків між ними "
+-        "та планового часу керування, що використовується у контролі Положення №340.",
+-        normal
+-    ))
+-    story.append(Spacer(1,6))
+-
+-    dh=["Водій","Дата","Графік / частини","Перерви","Робота","Кер.","Маршрут","Авто","Примітка"]
+-    detail_rows=[[Paragraph(x,head) for x in dh]]
+-    for item in data["details"]:
+-        detail_rows.append([
+-            Paragraph(escape(item["driver"]),detail),
+-            Paragraph(item["date"].strftime("%d.%m.%Y"),center),
+-            Paragraph(escape(item["schedule"]),detail),
+-            Paragraph(escape(item["breaks"]),center),
+-            Paragraph(minutes_hhmm(item["work_min"]),center),
+-            Paragraph(minutes_hhmm(item["drive_min"]),center),
+-            Paragraph(escape(item["route"]),detail),
+-            Paragraph(escape(item["vehicle"]),detail),
+-            Paragraph(escape(item["notes"]),detail),
+-        ])
+-
+-    if len(detail_rows)==1:
+-        detail_rows.append([
+-            Paragraph("Немає запланованих робочих змін за вибраний місяць.",normal)
+-        ] + [""]*8)
+-
+-    detail_widths=[125,55,175,80,48,48,235,115,170]
+-    dt=Table(detail_rows,colWidths=detail_widths,repeatRows=1,hAlign="CENTER")
+-    dt.setStyle(TableStyle([
+-        ("FONTNAME",(0,0),(-1,-1),font_name),
+-        ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#D9E6F2")),
+-        ("GRID",(0,0),(-1,-1),0.35,colors.HexColor("#888888")),
+-        ("VALIGN",(0,0),(-1,-1),"TOP"),
+-        ("LEFTPADDING",(0,0),(-1,-1),2),
+-        ("RIGHTPADDING",(0,0),(-1,-1),2),
+-        ("TOPPADDING",(0,0),(-1,-1),2.5),
+-        ("BOTTOMPADDING",(0,0),(-1,-1),2.5),
+-    ]))
+-    story.append(dt)
+-
+-    story.append(Spacer(1,10))
++                table_rows.append([
++                    Paragraph("За вибраний місяць робочих змін немає.",normal)
++                ] + [""]*7)
++
++            # Сумарна ширина < робочої ширини A4 landscape (~810 pt).
++            col_widths=[58,154,74,48,48,190,92,130]
++            table=Table(
++                table_rows,
++                colWidths=col_widths,
++                repeatRows=1,
++                hAlign="CENTER"
++            )
++            table.setStyle(TableStyle([
++                ("FONTNAME",(0,0),(-1,-1),font_name),
++                ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#D9E6F2")),
++                ("TEXTCOLOR",(0,0),(-1,0),colors.HexColor("#1F2937")),
++                ("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#777777")),
++                ("VALIGN",(0,0),(-1,-1),"TOP"),
++                ("ALIGN",(0,0),(-1,0),"CENTER"),
++                ("LEFTPADDING",(0,0),(-1,-1),3),
++                ("RIGHTPADDING",(0,0),(-1,-1),3),
++                ("TOPPADDING",(0,0),(-1,-1),3),
++                ("BOTTOMPADDING",(0,0),(-1,-1),3),
++                ("ROWBACKGROUNDS",(0,1),(-1,-1),[
++                    colors.white,
++                    colors.HexColor("#F8FAFC")
++                ]),
++            ]))
++            story.append(table)
++
++    story.append(Spacer(1,8))
+     story.append(Paragraph(
+         f"Сформовано: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
+-        ParagraphStyle("Generated",parent=normal,fontSize=6.5,textColor=colors.grey)
++        ParagraphStyle(
++            "ShiftDetailGenerated",
++            parent=small,
++            textColor=colors.HexColor("#666666"),
++            alignment=TA_LEFT,
++        )
+     ))
+ 
+     doc.build(story)
+     return data
+ 
++
++def export_monthly_shift_schedule_xlsx(year, month, out_path, active_only=True):
++    """Редагований Excel графіка змінності під стандартний A4.
++
++    Місяць ділиться на три аркуші/друковані частини, як і PDF.
++    Окремий аркуш «Деталізація» лишається для ручного редагування.
++    """
++    from openpyxl import Workbook
++    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
++    from openpyxl.utils import get_column_letter
++
++    data=collect_monthly_shift_schedule(year,month,active_only=active_only)
++    wb=Workbook()
++    wb.remove(wb.active)
++
++    thin=Side(style="thin",color="777777")
++    border=Border(left=thin,right=thin,top=thin,bottom=thin)
++    fills={
++        "header":PatternFill("solid",fgColor="D9E6F2"),
++        "weekend":PatternFill("solid",fgColor="ECECEC"),
++        "work":PatternFill("solid",fgColor="EAF2FF"),
++        "В":PatternFill("solid",fgColor="ECECEC"),
++        "Відп":PatternFill("solid",fgColor="FFF4CC"),
++        "Лік":PatternFill("solid",fgColor="FDE8E8"),
++        "Відпч":PatternFill("solid",fgColor="E6F4EA"),
++        "Гот":PatternFill("solid",fgColor="F4E8FF"),
++        "Інш":PatternFill("solid",fgColor="F4E8FF"),
++    }
++
++    days=data["days"]
++    chunks=_split_month_days_a4(days)
++    company_name=(data["company"]["name"] if data["company"] else "") or ""
++
++    for chunk in chunks:
++        if not chunk:
++            continue
++        ws=wb.create_sheet(f"{chunk[0].day}-{chunk[-1].day}")
++        ncols=1+len(chunk)+3
++
++        ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=ncols)
++        ws.cell(1,1,company_name)
++        ws.cell(1,1).font=Font(size=11,bold=True)
++        ws.cell(1,1).alignment=Alignment(horizontal="center")
++
++        ws.merge_cells(start_row=2,start_column=1,end_row=2,end_column=ncols)
++        ws.cell(
++            2,1,
++            f"ГРАФІК ЗМІННОСТІ ВОДІЇВ НА {month_name_ua(data['month']).upper()} {data['year']} РОКУ "
++            f"— ДНІ {chunk[0].day}–{chunk[-1].day}"
++        )
++        ws.cell(2,1).font=Font(size=14,bold=True)
++        ws.cell(2,1).alignment=Alignment(horizontal="center")
++
++        headers=["Водій"]
++        for d in chunk:
++            headers.append(f"{d.day}\n{['Пн','Вт','Ср','Чт','Пт','Сб','Нд'][d.weekday()]}")
++        headers += ["Роб. днів","Робота","Кер."]
++
++        for c,h in enumerate(headers,1):
++            cell=ws.cell(4,c,h)
++            cell.font=Font(size=10,bold=True)
++            cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
++            cell.fill=fills["header"]
++            cell.border=border
++
++        for col,d in enumerate(chunk,2):
++            if d.weekday()>=5:
++                ws.cell(4,col).fill=fills["weekend"]
++
++        start_row=5
++        day_indexes=[d.day-1 for d in chunk]
++
++        for r_idx,dr in enumerate(data["drivers"],start_row):
++            ws.cell(r_idx,1,dr["name"])
++            ws.cell(r_idx,1).font=Font(size=10,bold=True)
++            ws.cell(r_idx,1).alignment=Alignment(vertical="center",wrap_text=True)
++            ws.cell(r_idx,1).border=border
++
++            for offset,day_index in enumerate(day_indexes,2):
++                raw=dr["cells"][day_index]
++                value=_monthly_shift_print_cell(raw)
++                c=ws.cell(r_idx,offset,value)
++                c.font=Font(size=10)
++                c.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
++                c.border=border
++
++                if not raw:
++                    pass
++                elif raw in ("В","Відп","Лік","Відпч","Гот","Інш"):
++                    c.fill=fills.get(raw,fills["work"])
++                else:
++                    c.fill=fills["work"]
++
++            summary_col=2+len(chunk)
++            values=[
++                dr["work_days"],
++                minutes_hhmm(dr["work_min"]),
++                minutes_hhmm(dr["drive_min"]),
++            ]
++            for j,val in enumerate(values,summary_col):
++                c=ws.cell(r_idx,j,val)
++                c.font=Font(size=10,bold=(j==summary_col))
++                c.alignment=Alignment(horizontal="center",vertical="center")
++                c.border=border
++
++            ws.row_dimensions[r_idx].height=42
++
++        ws.column_dimensions["A"].width=25
++        for col in range(2,2+len(chunk)):
++            ws.column_dimensions[get_column_letter(col)].width=10.5
++        for col in range(2+len(chunk),2+len(chunk)+3):
++            ws.column_dimensions[get_column_letter(col)].width=11
++
++        ws.row_dimensions[4].height=30
++        ws.freeze_panes="B5"
++        ws.sheet_view.showGridLines=False
++
++        ws.page_setup.orientation="landscape"
++        ws.page_setup.paperSize=ws.PAPERSIZE_A4
++        ws.page_setup.fitToWidth=1
++        ws.page_
