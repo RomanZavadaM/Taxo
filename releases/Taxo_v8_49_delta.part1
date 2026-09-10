@@ -1,0 +1,411 @@
+--- main.py
++++ main.py
+@@ -731,6 +731,9 @@
+     number=(driver["license_number"] or "").strip()
+     license_number_en=" ".join(x for x in [series,number] if x).strip()
+     form_date_fmt=fmt_date(form_date)
++    # Єдине джерело місця в бланку — місце директора/представника перевізника.
++    # Поле водія завжди автоматично дублює саме це значення.
++    director_place=(place or "").strip()
+ 
+     doc = Document(str(TEMPLATE_PATH))
+     if len(doc.tables) < 2:
+@@ -837,7 +840,7 @@
+     if len(up) > 29:
+         _att_set_runs(up[28], [
+             ("20. Місце ", False),
+-            (place, True),
++            (director_place, True),
+             ("    Дата ", False),
+             (form_date_fmt, True),
+         ])
+@@ -911,11 +914,31 @@
+         _att_set_checkbox(ep[28],19,activity_no==19,"was available;")
+         _att_set_runs(ep[29], [
+             ("20. Place ", False),
+-            (place, True),
++            (director_place, True),
+             ("    Date ", False),
+             (form_date_fmt, True),
+         ])
+         _att_set_text(ep[30], "Signature ______________________________")
++
++    # Окремі поля місця і дати для ВОДІЯ розташовані нижче основної таблиці.
++    # Використовуємо ті самі місце та дату бланка, які вводяться користувачем.
++    # Підпис водія не заповнюємо.
++    for p in doc.paragraphs:
++        t=(p.text or "").strip()
++        if t.startswith("Місце ") and "Дата" in t:
++            _att_set_runs(p, [
++                ("Місце ", False),
++                (director_place, True),
++                ("    Дата ", False),
++                (form_date_fmt, True),
++            ])
++        elif t.startswith("Place ") and "Date" in t:
++            _att_set_runs(p, [
++                ("Place ", False),
++                (director_place, True),
++                ("    Date ", False),
++                (form_date_fmt, True),
++            ])
+ 
+     doc.save(str(out_path))
+ 
+@@ -1407,6 +1430,348 @@
+     if parts>1:
+         return f"{start}\n{end}\n{parts}ч"
+     return f"{start}\n{end}"
++
++
++
++def _work_balance_cell(row, day):
++    """Клітинка місячного робочого табеля: тільки години або код дня."""
++    if row is None:
++        return "В" if day.weekday() >= 5 else ""
++
++    day_type=(row["day_type"] or "").strip()
++    if day_type and day_type != "Робота":
++        return SHIFT_DAY_CODES.get(day_type, day_type[:4])
++
++    work_min=hours_value_to_minutes(row["work_hours"])
++    if work_min <= 0:
++        return ""
++    return minutes_hhmm(work_min)
++
++
++def collect_monthly_work_balance(year, month, active_only=True):
++    """Місячний робочий табель / баланс часу по всіх водіях."""
++    y=int(year); m=int(month)
++    days=month_dates(y,m)
++    con=db()
++
++    if active_only:
++        drivers=con.execute(
++            "SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name,middle_name"
++        ).fetchall()
++    else:
++        drivers=con.execute(
++            "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
++        ).fetchall()
++
++    rows=con.execute(
++        """SELECT * FROM worklog
++           WHERE work_date BETWEEN ? AND ?
++           ORDER BY driver_id,work_date""",
++        (days[0].isoformat(),days[-1].isoformat())
++    ).fetchall()
++    company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
++    con.close()
++
++    row_by={(r["driver_id"],r["work_date"]):r for r in rows}
++    out=[]
++    for dr in drivers:
++        cells=[]
++        total_work_min=0
++        total_over_min=0
++        work_days=0
++        for d in days:
++            r=row_by.get((dr["id"],d.isoformat()))
++            cells.append(_work_balance_cell(r,d))
++            if r is not None:
++                wm=hours_value_to_minutes(r["work_hours"])
++                om=hours_value_to_minutes(r["overtime_hours"])
++                total_work_min += wm
++                total_over_min += om
++                if wm > 0:
++                    work_days += 1
++
++        out.append({
++            "driver_id":dr["id"],
++            "name":" ".join(
++                x for x in [dr["last_name"],dr["first_name"],dr["middle_name"]] if x
++            ).strip(),
++            "cells":cells,
++            "work_days":work_days,
++            "work_min":total_work_min,
++            "over_min":total_over_min,
++        })
++
++    return {
++        "year":y,
++        "month":m,
++        "days":days,
++        "drivers":out,
++        "company":company,
++    }
++
++
++def export_monthly_work_balance_pdf(year, month, out_path, active_only=True):
++    """Місячний табель робочого часу на A4 landscape.
++
++    У клітинках робочих днів друкуються ТІЛЬКИ години.
++    Місяць ділиться на три читабельні частини.
++    """
++    from reportlab.lib.pagesizes import A4, landscape
++    from reportlab.lib import colors
++    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
++    from reportlab.lib.enums import TA_CENTER, TA_LEFT
++    from reportlab.pdfbase import pdfmetrics
++    from reportlab.pdfbase.ttfonts import TTFont
++    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
++    from xml.sax.saxutils import escape
++
++    data=collect_monthly_work_balance(year,month,active_only=active_only)
++
++    candidates=[
++        r"C:\Windows\Fonts\arial.ttf",
++        r"C:\Windows\Fonts\calibri.ttf",
++        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
++    ]
++    font_path=next((p for p in candidates if os.path.exists(p)),None)
++    font_name="Helvetica"
++    if font_path:
++        try:
++            if "WorkBalanceFont" not in pdfmetrics.getRegisteredFontNames():
++                pdfmetrics.registerFont(TTFont("WorkBalanceFont",font_path))
++            font_name="WorkBalanceFont"
++        except Exception:
++            pass
++
++    doc=SimpleDocTemplate(
++        str(out_path),pagesize=landscape(A4),
++        leftMargin=14,rightMargin=14,topMargin=14,bottomMargin=14,
++        title=f"Табель робочого часу {month_name_ua(data['month'])} {data['year']}"
++    )
++    styles=getSampleStyleSheet()
++    title=ParagraphStyle(
++        "BalanceTitle",parent=styles["Title"],fontName=font_name,
++        fontSize=14,leading=16,alignment=TA_CENTER,spaceAfter=4
++    )
++    normal=ParagraphStyle(
++        "BalanceNormal",parent=styles["Normal"],fontName=font_name,
++        fontSize=8.8,leading=10.2,alignment=TA_LEFT
++    )
++    center=ParagraphStyle(
++        "BalanceCenter",parent=normal,alignment=TA_CENTER,fontSize=9.2,leading=10.5
++    )
++    head=ParagraphStyle(
++        "BalanceHead",parent=center,fontSize=9.1,leading=10.2
++    )
++    driver_style=ParagraphStyle(
++        "BalanceDriver",parent=normal,fontSize=9.2,leading=10.5
++    )
++
++    story=[]
++    company_name=(data["company"]["name"] if data["company"] else "") or ""
++    chunks=_split_month_days_a4(data["days"])
++
++    for page_no,chunk in enumerate(chunks,1):
++        if page_no>1:
++            story.append(PageBreak())
++
++        if company_name:
++            story.append(Paragraph(
++                f"<b>{escape(company_name)}</b>",
++                ParagraphStyle(
++                    f"BalanceCompany{page_no}",parent=normal,
++                    fontSize=16.5,leading=19,alignment=TA_CENTER,
++                    spaceAfter=2
++                )
++            ))
++
++        story.append(Paragraph(
++            f"ТАБЕЛЬ РОБОЧОГО ЧАСУ — {month_name_ua(data['month']).upper()} "
++            f"{data['year']} РОКУ — ДНІ {chunk[0].day}–{chunk[-1].day}",
++            title
++        ))
++        story.append(Spacer(1,4))
++
++        header1=[Paragraph("Водій",head)]
++        header2=[Paragraph("",head)]
++        for d in chunk:
++            header1.append(Paragraph(str(d.day),head))
++            header2.append(Paragraph(
++                ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],head
++            ))
++        header1 += [
++            Paragraph("Роб.<br/>днів",head),
++            Paragraph("Відпрацьовано",head),
++            Paragraph("Надурочні",head),
++        ]
++        header2 += [
++            Paragraph("",head),
++            Paragraph("год:хв",head),
++            Paragraph("год:хв",head),
++        ]
++
++        rows=[header1,header2]
++        day_indexes=[d.day-1 for d in chunk]
++
++        for dr in data["drivers"]:
++            row=[Paragraph(escape(dr["name"]),driver_style)]
++            for idx in day_indexes:
++                row.append(Paragraph(escape(dr["cells"][idx]),center))
++            row += [
++                Paragraph(str(dr["work_days"]),center),
++                Paragraph(minutes_hhmm(dr["work_min"]),center),
++                Paragraph(minutes_hhmm(dr["over_min"]),center),
++            ]
++            rows.append(row)
++
++        day_width=min(52,545/max(1,len(chunk)))
++        col_widths=[128]+[day_width]*len(chunk)+[42,68,58]
++        table=Table(rows,colWidths=col_widths,repeatRows=2,hAlign="CENTER")
++        ts=[
++            ("FONTNAME",(0,0),(-1,-1),font_name),
++            ("GRID",(0,0),(-1,-1),0.45,colors.HexColor("#666666")),
++            ("BACKGROUND",(0,0),(-1,1),colors.HexColor("#D9E6F2")),
++            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
++            ("ALIGN",(1,0),(-1,-1),"CENTER"),
++            ("LEFTPADDING",(0,0),(-1,-1),2),
++            ("RIGHTPADDING",(0,0),(-1,-1),2),
++            ("TOPPADDING",(0,0),(-1,-1),4),
++            ("BOTTOMPADDING",(0,0),(-1,-1),4),
++        ]
++
++        for i,d in enumerate(chunk,start=1):
++            if d.weekday()>=5:
++                ts.append(("BACKGROUND",(i,0),(i,1),colors.HexColor("#ECECEC")))
++
++        for rr,dr in enumerate(data["drivers"],start=2):
++            for cc,idx in enumerate(day_indexes,start=1):
++                val=dr["cells"][idx]
++                if val=="В":
++                    ts.append(("BACKGROUND",(cc,rr),(cc,rr),colors.HexColor("#F2F2F2")))
++                elif val in ("Відп","Лік","Відпч","Гот","Інш"):
++                    ts.append(("BACKGROUND",(cc,rr),(cc,rr),colors.HexColor("#FFF7D6")))
++
++        table.setStyle(TableStyle(ts))
++        story.append(table)
++        story.append(Spacer(1,6))
++        story.append(Paragraph(
++            "У робочій клітинці: тільки фактично відпрацьований час. "
++            "В — вихідний; Відп — відпустка; Лік — лікарняний; "
++            "Відпч — відпочинок; Гот — готовність; Інш — інша робота.",
++            normal
++        ))
++
++    doc.build(story)
++    return data
++
++
++def export_monthly_work_balance_xlsx(year, month, out_path, active_only=True):
++    """Редагований місячний табель/баланс на A4 landscape."""
++    from openpyxl import Workbook
++    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
++    from openpyxl.utils import get_column_letter
++
++    data=collect_monthly_work_balance(year,month,active_only=active_only)
++    wb=Workbook()
++    wb.remove(wb.active)
++
++    thin=Side(style="thin",color="777777")
++    border=Border(left=thin,right=thin,top=thin,bottom=thin)
++    header_fill=PatternFill("solid",fgColor="D9E6F2")
++    weekend_fill=PatternFill("solid",fgColor="F2F2F2")
++    nonwork_fill=PatternFill("solid",fgColor="FFF7D6")
++
++    chunks=_split_month_days_a4(data["days"])
++    company_name=(data["company"]["name"] if data["company"] else "") or ""
++
++    for chunk in chunks:
++        ws=wb.create_sheet(f"{chunk[0].day}-{chunk[-1].day}")
++        ncols=1+len(chunk)+3
++
++        ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=ncols)
++        ws.cell(1,1,company_name)
++        ws.cell(1,1).font=Font(size=16,bold=True)
++        ws.cell(1,1).alignment=Alignment(horizontal="center",vertical="center")
++        ws.row_dimensions[1].height=24
++
++        ws.merge_cells(start_row=2,start_column=1,end_row=2,end_column=ncols)
++        ws.cell(
++            2,1,
++            f"ТАБЕЛЬ РОБОЧОГО ЧАСУ — {month_name_ua(data['month']).upper()} "
++            f"{data['year']} РОКУ — ДНІ {chunk[0].day}–{chunk[-1].day}"
++        )
++        ws.cell(2,1).font=Font(size=14,bold=True)
++        ws.cell(2,1).alignment=Alignment(horizontal="center")
++
++        headers=["Водій"]
++        for d in chunk:
++            headers.append(f"{d.day}\n{['Пн','Вт','Ср','Чт','Пт','Сб','Нд'][d.weekday()]}")
++        headers += ["Роб. днів","Відпрацьовано","Надурочні"]
++
++        for c,h in enumerate(headers,1):
++            cell=ws.cell(4,c,h)
++            cell.font=Font(size=10,bold=True)
++            cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
++            cell.fill=header_fill
++            cell.border=border
++
++        day_indexes=[d.day-1 for d in chunk]
++        for r_idx,dr in enumerate(data["drivers"],5):
++            c=ws.cell(r_idx,1,dr["name"])
++            c.font=Font(size=10,bold=True)
++            c.alignment=Alignment(vertical="center",wrap_text=True)
++            c.border=border
++
++            for offset,idx in enumerate(day_indexes,2):
++                val=dr["cells"][idx]
++                c=ws.cell(r_idx,offset,val)
++                c.font=Font(size=10)
++                c.alignment=Alignment(horizontal="center",vertical="center")
++                c.border=border
++                if val=="В":
++                    c.fill=weekend_fill
++                elif val in ("Відп","Лік","Відпч","Гот","Інш"):
++                    c.fill=nonwork_fill
++
++            summary_col=2+len(chunk)
++            for j,val in enumerate([
++                dr["work_days"],
++                minutes_hhmm(dr["work_min"]),
++                minutes_hhmm(dr["over_min"]),
++            ],summary_col):
++                c=ws.cell(r_idx,j,val)
++                c.font=Font(size=10,bold=True)
++                c.alignment=Alignment(horizontal="center",vertical="center")
++                c.border=border
++
++            ws.row_dimensions[r_idx].height=28
++
++        ws.column_dimensions["A"].width=25
++        for col in range(2,2+len(chunk)):
++            ws.column_dimensions[get_column_letter(col)].width=9
++        for col in range(2+len(chunk),2+len(chunk)+3):
++            ws.column_dimensions[get_column_letter(col)].width=13
++
++        ws.row_dimensions[4].height=30
++        ws.freeze_panes="B5"
++        ws.sheet_view.showGridLines=False
++
++        ws.page_setup.orientation="landscape"
++        ws.page_setup.paperSize=ws.PAPERSIZE_A4
++        ws.page_setup.fitToWidth=1
++        ws.page_setup.fitToHeight=0
++        ws.sheet_properties.pageSetUpPr.fitToPage=True
++        ws.print_title_rows="1:4"
++        ws.print_options.horizontalCentered=True
++        ws.page_margins.left=0.25
++        ws.page_margins.right=0.25
++        ws.page_margins.top=0.35
++        ws.page_margins.bottom=0.35
++
++        last_row=max(5,4+len(data["drivers"]))
++        ws.print_area=f"A1:{get_column_letter(ncols)}{last_row}"
++
++    wb.save(str(out_path))
++    return data
+ 
+ 
+ def collect_monthly_shift_schedule(year, month, active_only=True):
+@@ -2267,6 +2632,7 @@
+         service_menu.add_command(label="Оновити табель", command=self.refresh_month)
+         service_menu.add_command(label="Графік водіїв", command=lambda: self.show_tab(self.tab_schedule))
+         service_menu.add_command(label="Місячний графік змінності", command=self.show_monthly_shift_schedule)
++        service_menu.add_command(label="Місячний табель / баланс часу", command=self.show_monthly_work_balance)
+         service_menu.add_command(label="Маршрути", command=lambda: self.show_tab(self.tab_route_catalog))
+         service_menu.add_command(label="Шаблони маршрутів", command=lambda: self.show_tab(self.tab_routes))
+         service_menu.add_command(label="Автомобілі", command=lambda: self.show_tab(self.tab_vehicles))
