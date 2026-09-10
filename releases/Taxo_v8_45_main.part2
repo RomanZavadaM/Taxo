@@ -1,0 +1,250 @@
+build(story)
++    return data
++
++
++def export_monthly_shift_detail_pdf(year, month, out_path, active_only=True):
++    """Окремий читабельний PDF деталізації графіка змінності.
++
++    Формат: A4 landscape.
++    Дані згруповані по водіях. Для кожного водія показуємо:
++    дата, частини зміни, перерви, робочий час, час керування,
++    маршрут, автомобіль і примітку.
++    """
++    from reportlab.lib.pagesizes import A4, landscape
++    from reportlab.lib import colors
++    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
++    from reportlab.lib.enums import TA_CENTER, TA_LEFT
++    from reportlab.pdfbase import pdfmetrics
++    from reportlab.pdfbase.ttfonts import TTFont
++    from reportlab.platypus import (
++        SimpleDocTemplate, Table, TableStyle, Paragraph,
++        Spacer, PageBreak, KeepTogether
++    )
++    from xml.sax.saxutils import escape
++
++    data=collect_monthly_shift_schedule(year,month,active_only=active_only)
++
++    candidates=[
++        r"C:\Windows\Fonts\arial.ttf",
++        r"C:\Windows\Fonts\calibri.ttf",
++        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
++    ]
++    font_path=next((p for p in candidates if os.path.exists(p)),None)
++    font_name="Helvetica"
++    if font_path:
++        try:
++            if "ShiftDetailFont" not in pdfmetrics.getRegisteredFontNames():
++                pdfmetrics.registerFont(TTFont("ShiftDetailFont",font_path))
++            font_name="ShiftDetailFont"
++        except Exception:
++            pass
++
++    page=landscape(A4)
++    doc=SimpleDocTemplate(
++        str(out_path),
++        pagesize=page,
++        leftMargin=16,rightMargin=16,topMargin=16,bottomMargin=16,
++        title=f"Деталізація графіка змінності {month_name_ua(data['month'])} {data['year']}"
++    )
++
++    styles=getSampleStyleSheet()
++    title=ParagraphStyle(
++        "ShiftDetailTitle",
++        parent=styles["Title"],
++        fontName=font_name,
++        fontSize=14,
++        leading=17,
++        alignment=TA_CENTER,
++        spaceAfter=5,
++    )
++    normal=ParagraphStyle(
++        "ShiftDetailNormal",
++        parent=styles["Normal"],
++        fontName=font_name,
++        fontSize=8.8,
++        leading=10.5,
++        alignment=TA_LEFT,
++    )
++    head=ParagraphStyle(
++        "ShiftDetailHead",
++        parent=normal,
++        fontSize=8.5,
++        leading=9.5,
++        alignment=TA_CENTER,
++    )
++    center=ParagraphStyle(
++        "ShiftDetailCenter",
++        parent=normal,
++        fontSize=8.6,
++        leading=10,
++        alignment=TA_CENTER,
++    )
++    driver_head=ParagraphStyle(
++        "ShiftDetailDriver",
++        parent=normal,
++        fontSize=10.5,
++        leading=13,
++        spaceBefore=4,
++        spaceAfter=4,
++    )
++    small=ParagraphStyle(
++        "ShiftDetailSmall",
++        parent=normal,
++        fontSize=7.7,
++        leading=9,
++    )
++
++    story=[]
++    company_name=(data["company"]["name"] if data["company"] else "") or ""
++
+     if company_name:
+-        story.append(Paragraph(escape(company_name),ParagraphStyle(
+-            "Company",parent=normal,fontSize=9,leading=11,alignment=TA_CENTER
+-        )))
++        story.append(Paragraph(
++            escape(company_name),
++            ParagraphStyle(
++                "ShiftDetailCompany",
++                parent=normal,
++                fontSize=10.5,
++                leading=12,
++                alignment=TA_CENTER,
++            )
++        ))
+     story.append(Paragraph(
+-        f"ГРАФІК ЗМІННОСТІ ВОДІЇВ НА {data['month']:02d}.{data['year']}",
++        f"ДЕТАЛІЗАЦІЯ ГРАФІКА ЗМІННОСТІ - {month_name_ua(data['month']).upper()} {data['year']} РОКУ",
+         title
+     ))
+     story.append(Paragraph(
+-        "У клітинці робочого дня: час початку, час завершення та, якщо зміна має кілька частин, їх кількість. "
+-        "Точні частини зміни, перерви та час керування наведені у деталізації після місячної таблиці.",
+-        ParagraphStyle("Explain",parent=normal,fontSize=7.3,leading=9,alignment=TA_CENTER)
++        "Точні частини зміни, проміжки між частинами, робочий час і плановий час керування.",
++        ParagraphStyle(
++            "ShiftDetailIntro",
++            parent=normal,
++            alignment=TA_CENTER,
++            fontSize=8.6,
++        )
+     ))
+-    story.append(Spacer(1,6))
+-
+-    # --- Місячна матриця ---
+-    days=data["days"]
+-    header1=[Paragraph("Водій",head)]
+-    header2=[Paragraph("",head)]
+-    for d in days:
+-        header1.append(Paragraph(str(d.day),head))
+-        header2.append(Paragraph(["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],head))
+-    header1 += [Paragraph("Роб.<br/>днів",head),Paragraph("Робота",head),Paragraph("Кер.",head)]
+-    header2 += [Paragraph("",head),Paragraph("год:хв",head),Paragraph("год:хв",head)]
+-
+-    matrix=[header1,header2]
+-    cell_meta=[]
+-    for r_index,dr in enumerate(data["drivers"],start=2):
+-        row=[Paragraph(escape(dr["name"]),ParagraphStyle(
+-            f"Driver{r_index}",parent=normal,fontSize=6.6,leading=7.6
+-        ))]
+-        day_meta=[]
+-        for i,cell in enumerate(dr["cells"]):
+-            p=Paragraph(escape(cell).replace("\n","<br/>"),center)
+-            row.append(p)
+-            d=days[i]
+-            # status by actual worklog text encoded in cell
+-            if not cell:
+-                kind="empty"
+-            elif cell in ("В","Відп","Лік","Відпч","Гот","Інш"):
+-                kind=cell
++    story.append(Spacer(1,7))
++
++    details_by_driver={}
++    for item in data["details"]:
++        details_by_driver.setdefault(item["driver"],[]).append(item)
++
++    drivers_by_name={d["name"]:d for d in data["drivers"]}
++
++    if not data["drivers"]:
++        story.append(Paragraph("Немає водіїв для формування деталізації.",normal))
++    else:
++        first_driver=True
++        for driver in data["drivers"]:
++            name=driver["name"]
++            rows=details_by_driver.get(name,[])
++
++            if not first_driver:
++                story.append(Spacer(1,6))
++            first_driver=False
++
++            # Заголовок водія + підсумок.
++            story.append(Paragraph(
++                f"<b>{escape(name)}</b> &nbsp;&nbsp; "
++                f"Робочих днів: <b>{driver['work_days']}</b> &nbsp;&nbsp; "
++                f"Робота: <b>{escape(minutes_hhmm(driver['work_min']))}</b> &nbsp;&nbsp; "
++                f"Керування: <b>{escape(minutes_hhmm(driver['drive_min']))}</b>",
++                driver_head
++            ))
++
++            headers=[
++                "Дата","Графік / частини","Перерви",
++                "Робота","Кер.","Маршрут","Авто","Примітка"
++            ]
++            table_rows=[[Paragraph(h,head) for h in headers]]
++
++            if rows:
++                for item in rows:
++                    table_rows.append([
++                        Paragraph(item["date"].strftime("%d.%m.%Y"),center),
++                        Paragraph(escape(item["schedule"]).replace("\n","<br/>"),normal),
++                        Paragraph(escape(item["breaks"]).replace("\n","<br/>"),center),
++                        Paragraph(minutes_hhmm(item["work_min"]),center),
++                        Paragraph(minutes_hhmm(item["drive_min"]),center),
++                        Paragraph(escape(item["route"]).replace("\n","<br/>"),small),
++                        Paragraph(escape(item["vehicle"]).replace("\n","<br/>"),small),
++                        Paragraph(escape(item["notes"]).replace("\n","<br/>"),small),
++                    ])
+             else:
+-                kind="work"
+-            day_meta.append(kind)
+-
+-        row += [
+-            Paragraph(str(dr["work_days"]),center),
+-            Paragraph(minutes_hhmm(dr["work_min"]),center),
+-            Paragraph(minutes_hhmm(dr["drive_min"]),center),
+-        ]
+-        matrix.append(row)
+-        cell_meta.append(day_meta)
+-
+-    # 31 днів мають поміститись на A3 landscape.
+-    day_width=27
+-    col_widths=[128]+[day_width]*len(days)+[35,44,44]
+-    table=Table(matrix,colWidths=col_widths,repeatRows=2,hAlign="CENTER")
+-    ts=[
+-        ("FONTNAME",(0,0),(-1,-1),font_name),
+-        ("GRID",(0,0),(-1,-1),0.35,colors.HexColor("#777777")),
+-        ("BACKGROUND",(0,0),(-1,1),colors.HexColor("#D9E6F2")),
+-        ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+-        ("ALIGN",(1,0),(-1,-1),"CENTER"),
+-        ("LEFTPADDING",(0,0),(-1,-1),1.5),
+-        ("RIGHTPADDING",(0,0),(-1,-1),1.5),
+-        ("TOPPADDING",(0,0),(-1,-1),2),
+-        ("BOTTOMPADDING",(0,0),(-1,-1),2),
+-    ]
+-
+-    # Вихідні в заголовку.
+-    for i,d in enumerate(days,start=1):
+-        if d.weekday()>=5:
+-            ts.append(("BACKGROUND",(i,0),(i,1),colors.HexColor("#ECECEC")))
+-
+-    # Кольори клітинок.
+-    palette={
+-        "work":"#EAF2FF",
+-        "В":"#ECECEC",
+-        "Відп":"#FFF4CC",
+-        "Лік":"#FDE8E8",
+-        "Відпч":"#E6F4EA",
+-        "Гот":"#F4E8FF",
+-        "Інш":"#F4E8FF",
+-    }
+-    for rr,day_meta in enumerate(cell_meta,start=2):
+-        for cc,kind in enumerate(day_m
