@@ -1,0 +1,256 @@
+--- main.py
++++ main.py
+@@ -1507,22 +1507,75 @@
+     }
+ 
+ 
++MONTH_NAMES_UA = [
++    "Січень","Лютий","Березень","Квітень","Травень","Червень",
++    "Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"
++]
++
++
++def month_name_ua(month):
++    try:
++        return MONTH_NAMES_UA[int(month)-1]
++    except Exception:
++        return str(month)
++
++
++def _monthly_shift_print_cell(cell):
++    """Читабельний друк клітинки.
++
++    Час навмисно ставимо у два окремі рядки:
++        06:30
++        20:00
++        3ч
++    Так цифри не стискаються і не переносяться посеред часу.
++    """
++    if not cell:
++        return ""
++    parts=str(cell).splitlines()
++    if len(parts)>=2 and ":" in parts[0] and ":" in parts[1]:
++        out=[parts[0],parts[1]]
++        if len(parts)>=3 and parts[2]:
++            out.append(parts[2])
++        return "\n".join(out)
++    return str(cell)
++
++
++def _split_month_days_a4(days):
++    """Ділить місяць на 3 читабельні частини для A4 landscape.
++
++    31 день -> 11 + 10 + 10
++    30 днів -> 10 + 10 + 10
++    29 днів -> 10 + 10 + 9
++    28 днів -> 10 + 9 + 9
++    """
++    days=list(days)
++    if not days:
++        return []
++    q, r = divmod(len(days), 3)
++    sizes=[q + (1 if i < r else 0) for i in range(3)]
++    out=[]
++    pos=0
++    for size in sizes:
++        if size:
++            out.append(days[pos:pos+size])
++            pos += size
++    return out
++
++
+ def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True):
+-    """Друкований місячний графік змінності для всіх водіїв.
+-
+-    1) Перша частина - матриця всі водії x усі дні місяця.
+-    2) Далі - деталізація робочих змін з точними частинами, перервами,
+-       робочим часом і часом керування.
++    """Читабельний PDF графіка змінності на звичайному офісному A4.
++
++    Місяць ділиться на 3 частини, щоб не стискати шрифт:
++    31 день -> 11 + 10 + 10; 30 днів -> 10 + 10 + 10.
++    Орієнтація A4 — альбомна.
+     """
+-    from reportlab.lib.pagesizes import A3, landscape
++    from reportlab.lib.pagesizes import A4, landscape
+     from reportlab.lib import colors
+     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+     from reportlab.lib.enums import TA_CENTER, TA_LEFT
+     from reportlab.pdfbase import pdfmetrics
+     from reportlab.pdfbase.ttfonts import TTFont
+-    from reportlab.platypus import (
+-        SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+-    )
++    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+     from xml.sax.saxutils import escape
+ 
+     data=collect_monthly_shift_schedule(year,month,active_only=active_only)
+@@ -1542,190 +1595,554 @@
+         except Exception:
+             pass
+ 
+-    page=landscape(A3)
++    page=landscape(A4)
+     doc=SimpleDocTemplate(
+         str(out_path),pagesize=page,
+-        leftMargin=18,rightMargin=18,topMargin=18,bottomMargin=18,
+-        title=f"Графік змінності {data['month']:02d}.{data['year']}"
++        leftMargin=14,rightMargin=14,topMargin=14,bottomMargin=14,
++        title=f"Графік змінності {month_name_ua(data['month'])} {data['year']}"
+     )
+ 
+     styles=getSampleStyleSheet()
+     title=ParagraphStyle(
+-        "ShiftTitle",parent=styles["Title"],fontName=font_name,
+-        fontSize=15,leading=18,alignment=TA_CENTER,spaceAfter=4
++        "ShiftTitleReadable",parent=styles["Title"],fontName=font_name,
++        fontSize=14,leading=16,alignment=TA_CENTER,spaceAfter=3
+     )
+     normal=ParagraphStyle(
+-        "ShiftNormal",parent=styles["Normal"],fontName=font_name,
+-        fontSize=7.5,leading=9,alignment=TA_LEFT
++        "ShiftNormalReadable",parent=styles["Normal"],fontName=font_name,
++        fontSize=8.8,leading=10.5,alignment=TA_LEFT
+     )
+     center=ParagraphStyle(
+-        "ShiftCenter",parent=normal,alignment=TA_CENTER,fontSize=6,leading=6.7
++        "ShiftCenterReadable",parent=normal,alignment=TA_CENTER,
++        fontSize=9.0,leading=10.2
+     )
+     head=ParagraphStyle(
+-        "ShiftHead",parent=center,fontSize=6.3,leading=7.2
++        "ShiftHeadReadable",parent=center,fontSize=9.1,leading=10.2
++    )
++    driver_style=ParagraphStyle(
++        "ShiftDriverReadable",parent=normal,fontSize=9.1,leading=10.5
+     )
+     detail=ParagraphStyle(
+-        "ShiftDetail",parent=normal,fontSize=6.6,leading=7.7
++        "ShiftDetailReadable",parent=normal,fontSize=8.3,leading=9.8
+     )
+ 
+     story=[]
+     company_name=(data["company"]["name"] if data["company"] else "") or ""
++    days=data["days"]
++    chunks=_split_month_days_a4(days)
++
++    def add_matrix(chunk, page_no):
++        if company_name:
++            story.append(Paragraph(
++                escape(company_name),
++                ParagraphStyle(
++                    f"Company{page_no}",parent=normal,fontSize=10.5,
++                    leading=12.5,alignment=TA_CENTER
++                )
++            ))
++        story.append(Paragraph(
++            f"ГРАФІК ЗМІННОСТІ ВОДІЇВ НА {month_name_ua(data['month']).upper()} {data['year']} РОКУ "
++            f"— ДНІ {chunk[0].day}–{chunk[-1].day}",
++            title
++        ))
++        story.append(Spacer(1,5))
++
++        header1=[Paragraph("Водій",head)]
++        header2=[Paragraph("",head)]
++        for d in chunk:
++            header1.append(Paragraph(str(d.day),head))
++            header2.append(Paragraph(
++                ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],head
++            ))
++        header1 += [
++            Paragraph("Роб.<br/>днів",head),
++            Paragraph("Робота",head),
++            Paragraph("Кер.",head),
++        ]
++        header2 += [
++            Paragraph("",head),
++            Paragraph("год:хв",head),
++            Paragraph("год:хв",head),
++        ]
++
++        matrix=[header1,header2]
++        cell_meta=[]
++        day_indexes=[d.day-1 for d in chunk]
++
++        for r_index,dr in enumerate(data["drivers"],start=2):
++            row=[Paragraph(escape(dr["name"]),driver_style)]
++            meta=[]
++            for idx in day_indexes:
++                cell=dr["cells"][idx]
++                printed=_monthly_shift_print_cell(cell)
++                row.append(Paragraph(escape(printed).replace("\n","<br/>"),center))
++                if not cell:
++                    kind="empty"
++                elif cell in ("В","Відп","Лік","Відпч","Гот","Інш"):
++                    kind=cell
++                else:
++                    kind="work"
++                meta.append(kind)
++            row += [
++                Paragraph(str(dr["work_days"]),center),
++                Paragraph(minutes_hhmm(dr["work_min"]),center),
++                Paragraph(minutes_hhmm(dr["drive_min"]),center),
++            ]
++            matrix.append(row)
++            cell_meta.append(meta)
++
++        # A4 landscape: після ПІБ та підсумків залишається приблизно
++        # 545 pt на дні. При 11 днях це майже 50 pt на один день.
++        day_width=min(52, 545/max(1,len(chunk)))
++        col_widths=[128]+[day_width]*len(chunk)+[42,48,48]
++
++        table=Table(
++            matrix,colWidths=col_widths,repeatRows=2,hAlign="CENTER",
++            rowHeights=None
++        )
++        ts=[
++            ("FONTNAME",(0,0),(-1,-1),font_name),
++            ("GRID",(0,0),(-1,-1),0.45,colors.HexColor("#666666")),
++            ("BACKGROUND",(0,0),(-1,1),colors.HexColor("#D9E6F2")),
++            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
++            ("ALIGN",(1,0),(-1,-1),"CENTER"),
++            ("LEFTPADDING",(0,0),(-1,-1),2),
++            ("RIGHTPADDING",(0,0),(-1,-1),2),
++            ("TOPPADDING",(0,0),(-1,-1),3),
++            ("BOTTOMPADDING",(0,0),(-1,-1),3),
++        ]
++
++        for i,d in enumerate(chunk,start=1):
++            if d.weekday()>=5:
++                ts.append(("BACKGROUND",(i,0),(i,1),colors.HexColor("#ECECEC")))
++
++        palette={
++            "work":"#EAF2FF",
++            "В":"#ECECEC",
++            "Відп":"#FFF4CC",
++            "Лік":"#FDE8E8",
++            "Відпч":"#E6F4EA",
++            "Гот":"#F4E8FF",
++            "Інш":"#F4E8FF",
++        }
++        for rr,meta in enumerate(cell_meta,start=2):
++            for cc,kind in enumerate(meta,start=1):
++                if kind in palette:
++                    ts.append(("BACKGROUND",(cc,rr),(cc,rr),colors.HexColor(palette[kind])))
++
++        table.setStyle(TableStyle(ts))
++        story.append(table)
++        story.append(Spacer(1,7))
++        story.append(Paragraph(
++            "У клітинці робочого дня: початок–кінець зміни; «3ч» — три частини зміни. "
++            "В — вихідний; Відп — відпустка; Лік — лікарняний; "
++            "Відпч — відпочинок; Гот — готовність.",
++            normal
++        ))
++
++    for i,chunk in enumerate(chunks,1):
++        if not chunk:
++            continue
++        if story:
++            story.append(PageBreak())
++        add_matrix(chunk,i)
++
++    # Деталізацію навмисно не додаємо до друкованого PDF.
++    # Вона доступна в редагованому Excel на окремому аркуші «Деталізація».
++
++    doc.
