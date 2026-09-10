@@ -1,0 +1,182 @@
+setup.fitToHeight=0
++        ws.sheet_properties.pageSetUpPr.fitToPage=True
++        ws.print_title_rows="1:4"
++        ws.print_options.horizontalCentered=True
++        ws.page_margins.left=0.25
++        ws.page_margins.right=0.25
++        ws.page_margins.top=0.35
++        ws.page_margins.bottom=0.35
++
++        last_row=max(5,start_row+len(data["drivers"])-1)
++        ws.print_area=f"A1:{get_column_letter(ncols)}{last_row}"
++
++    # Повна редагована деталізація.
++    ws=wb.create_sheet("Деталізація")
++    headers=["Водій","Дата","Графік / частини","Перерви","Робота","Кер.","Маршрут","Авто","Примітка"]
++    for c,h in enumerate(headers,1):
++        cell=ws.cell(1,c,h)
++        cell.font=Font(size=10,bold=True)
++        cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
++        cell.fill=fills["header"]
++        cell.border=border
++
++    for r,item in enumerate(data["details"],2):
++        vals=[
++            item["driver"],
++            item["date"].strftime("%d.%m.%Y"),
++            item["schedule"],
++            item["breaks"],
++            minutes_hhmm(item["work_min"]),
++            minutes_hhmm(item["drive_min"]),
++            item["route"],
++            item["vehicle"],
++            item["notes"],
++        ]
++        for c,val in enumerate(vals,1):
++            cell=ws.cell(r,c,val)
++            cell.font=Font(size=10)
++            cell.alignment=Alignment(
++                horizontal="center" if c in (2,4,5,6) else "left",
++                vertical="top",
++                wrap_text=True
++            )
++            cell.border=border
++        ws.row_dimensions[r].height=30
++
++    widths=[28,12,28,16,10,10,36,20,28]
++    for i,w in enumerate(widths,1):
++        ws.column_dimensions[get_column_letter(i)].width=w
++    ws.freeze_panes="A2"
++    ws.sheet_view.showGridLines=False
++    ws.auto_filter.ref=f"A1:I{max(1,len(data['details'])+1)}"
++    ws.page_setup.orientation="landscape"
++    ws.page_setup.paperSize=ws.PAPERSIZE_A4
++    ws.page_setup.fitToWidth=1
++    ws.page_setup.fitToHeight=0
++    ws.sheet_properties.pageSetUpPr.fitToPage=True
++
++    wb.save(str(out_path))
++    return data
+ 
+ 
+ UA_MONTHS = ["Січень","Лютий","Березень","Квітень","Травень","Червень",
+@@ -2468,6 +2885,8 @@
+         )
+         self.monthly_shift_active_only=tk.BooleanVar(value=True)
+         self.monthly_shift_last_pdf=None
++        self.monthly_shift_last_detail_pdf=None
++        self.monthly_shift_last_xlsx=None
+ 
+         ttk.Label(top,text="Рік:").pack(side="left")
+         ttk.Spinbox(
+@@ -2491,18 +2910,27 @@
+             top,text="Оновити",command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=3)
+         ttk.Button(
+-            top,text="Зберегти PDF",command=self.save_monthly_shift_schedule_pdf
++            top,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
++        ).pack(side="left",padx=(12,3))
++        ttk.Button(
++            top,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
+         ).pack(side="left",padx=3)
+         ttk.Button(
+-            top,text="Відкрити / друк",command=self.open_monthly_shift_schedule_pdf
++            top,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
++        ).pack(side="left",padx=3)
++        ttk.Button(
++            top,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
+         ).pack(side="left",padx=3)
+ 
+         ttk.Label(
+             win,
+             text=(
+-                "Місячна матриця формується з уже введених табелів і шаблонів маршрутів. "
+-                "У робочій клітинці показано початок - кінець; «3ч» означає три частини зміни. "
+-                "PDF додатково містить повну деталізацію частин, перерв і планового часу керування."
++                "Місячна матриця формується з уже введених табелів. "
++                "Графік розрахований на стандартний офісний папір A4, альбомна орієнтація. "
++                "PDF графіка автоматично ділить місяць на три читабельні частини (для 31 дня: 1–11, 12–21, 22–31). "
++                "«PDF — деталізація» формує окремий A4-документ з точними частинами змін, перервами, "
++                "робочим часом, часом керування, маршрутом та автомобілем. "
++                "Для ручного редагування використовуйте «Excel — редагувати»."
+             ),
+             foreground="gray",
+             wraplength=1350,
+@@ -2512,7 +2940,10 @@
+         frame=ttk.Frame(win)
+         frame.pack(fill="both",expand=True,padx=10,pady=5)
+ 
+-        self.monthly_shift_tree=ttk.Treeview(frame,show="headings")
++        style=ttk.Style(win)
++        style.configure("MonthlyShift.Treeview",font=("TkDefaultFont",10),rowheight=30)
++        style.configure("MonthlyShift.Treeview.Heading",font=("TkDefaultFont",10,"bold"))
++        self.monthly_shift_tree=ttk.Treeview(frame,show="headings",style="MonthlyShift.Treeview")
+         ybar=ttk.Scrollbar(frame,orient="vertical",command=self.monthly_shift_tree.yview)
+         xbar=ttk.Scrollbar(frame,orient="horizontal",command=self.monthly_shift_tree.xview)
+         self.monthly_shift_tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+@@ -2603,6 +3034,65 @@
+             f"Робота: {minutes_hhmm(total_work_min)}    "
+             f"Керування: {minutes_hhmm(total_drive_min)}"
+         )
++
++    def save_monthly_shift_schedule_xlsx(self):
++        y=int(self.monthly_shift_year.get())
++        m=int(self.monthly_shift_month.get())
++        path=filedialog.asksaveasfilename(
++            parent=self.monthly_shift_win,
++            title="Зберегти редагований графік змінності",
++            initialdir=str(OUTPUT_DIR),
++            initialfile=f"Графік_змінності_{y}_{m:02d}.xlsx",
++            defaultextension=".xlsx",
++            filetypes=[("Excel","*.xlsx")]
++        )
++        if not path:
++            return
++        try:
++            export_monthly_shift_schedule_xlsx(
++                y,m,path,active_only=bool(self.monthly_shift_active_only.get())
++            )
++            self.monthly_shift_last_xlsx=Path(path)
++            if os.name=="nt":
++                os.startfile(str(path))
++            else:
++                open_external(path)
++        except Exception as e:
++            messagebox.showerror(
++                "Помилка Excel",
++                str(e),
++                parent=self.monthly_shift_win
++            )
++
++    def save_monthly_shift_detail_pdf(self):
++        y=int(self.monthly_shift_year.get())
++        m=int(self.monthly_shift_month.get())
++        path=filedialog.asksaveasfilename(
++            parent=self.monthly_shift_win,
++            title="Зберегти деталізацію графіка змінності",
++            initialdir=str(OUTPUT_DIR),
++            initialfile=f"Деталізація_графіка_змінності_{y}_{m:02d}.pdf",
++            defaultextension=".pdf",
++            filetypes=[("PDF","*.pdf")]
++        )
++        if not path:
++            return
++        try:
++            export_monthly_shift_detail_pdf(
++                y,m,path,active_only=bool(self.monthly_shift_active_only.get())
++            )
++            self.monthly_shift_last_detail_pdf=Path(path)
++            messagebox.showinfo(
++                "Деталізація графіка",
++                f"PDF деталізації створено:\n{path}",
++                parent=self.monthly_shift_win
++            )
++        except Exception as e:
++            messagebox.showerror(
++                "Помилка PDF деталізації",
++                str(e),
++                parent=self.monthly_shift_win
++            )
+ 
+     def _monthly_shift_default_pdf(self):
+         y=int(self.monthly_shift_year.get())
