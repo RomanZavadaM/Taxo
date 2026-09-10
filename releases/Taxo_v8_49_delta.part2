@@ -1,0 +1,354 @@
+@@ -2565,6 +2931,17 @@
+         if not sel: return None
+         did=int(self.driver_tree.item(sel[0],"values")[0])
+         con=db(); d=con.execute("SELECT * FROM drivers WHERE id=?",(did,)).fetchone(); con.close(); return d
++
++    def driver_by_id(self, driver_id):
++        """Повертає водія за ID незалежно від виділення у вкладці «Водії»."""
++        if not driver_id:
++            return None
++        con=db()
++        try:
++            return con.execute("SELECT * FROM drivers WHERE id=?",(int(driver_id),)).fetchone()
++        finally:
++            con.close()
++
+     def driver_full_name(self, d):
+         if not d: return ""
+         return " ".join(x for x in (d["last_name"], d["first_name"], d["middle_name"]) if x).strip()
+@@ -2795,6 +3172,10 @@
+         ttk.Button(bar,text="PDF",command=lambda:self.export_current("pdf")).pack(side="left",padx=5)
+         ttk.Button(bar,text="Підсумки / контроль",command=self.show_work_analysis).pack(side="left",padx=5)
+         ttk.Button(
++            bar,text="Місячний табель / баланс",
++            command=self.show_monthly_work_balance
++        ).pack(side="left",padx=5)
++        ttk.Button(
+             bar,
+             text="⚠ Заповнити робочі дні 8 год",
+             command=self.autofill
+@@ -2819,6 +3200,264 @@
+         self.work_tree.bind("<Control-c>",lambda e:self.copy_work_day())
+         self.work_tree.bind("<Control-v>",lambda e:self.paste_work_day())
+         self.work_clipboard=None
++
++    def show_monthly_work_balance(self):
++        """Місячний робочий табель / баланс часу по всіх водіях."""
++        if hasattr(self,"monthly_balance_win") and self.monthly_balance_win.winfo_exists():
++            self.monthly_balance_win.lift()
++            self.refresh_monthly_work_balance()
++            return
++
++        win=tk.Toplevel(self)
++        self.monthly_balance_win=win
++        win.title("Місячний табель / баланс робочого часу")
++        win.geometry("1450x760")
++        win.minsize(950,520)
++        win.resizable(True,True)
++
++        top=ttk.Frame(win,padding=8)
++        top.pack(fill="x")
++
++        today=date.today()
++        self.monthly_balance_year=tk.IntVar(
++            value=int(self.year_var.get()) if hasattr(self,"year_var") else today.year
++        )
++        self.monthly_balance_month=tk.IntVar(
++            value=int(self.month_var.get()) if hasattr(self,"month_var") else today.month
++        )
++        self.monthly_balance_active_only=tk.BooleanVar(value=True)
++        self.monthly_balance_last_pdf=None
++        self.monthly_balance_last_xlsx=None
++
++        ttk.Label(top,text="Рік:").pack(side="left")
++        ttk.Spinbox(
++            top,from_=2020,to=2100,textvariable=self.monthly_balance_year,width=7,
++            command=self.refresh_monthly_work_balance
++        ).pack(side="left",padx=(3,8))
++
++        ttk.Label(top,text="Місяць:").pack(side="left")
++        ttk.Spinbox(
++            top,from_=1,to=12,textvariable=self.monthly_balance_month,width=4,
++            command=self.refresh_monthly_work_balance
++        ).pack(side="left",padx=(3,8))
++
++        ttk.Checkbutton(
++            top,text="Тільки активні водії",
++            variable=self.monthly_balance_active_only,
++            command=self.refresh_monthly_work_balance
++        ).pack(side="left",padx=(4,10))
++
++        ttk.Button(
++            top,text="Оновити",command=self.refresh_monthly_work_balance
++        ).pack(side="left",padx=3)
++        ttk.Button(
++            top,text="Excel — редагувати",command=self.save_monthly_work_balance_xlsx
++        ).pack(side="left",padx=(12,3))
++        ttk.Button(
++            top,text="PDF — друк",command=self.save_monthly_work_balance_pdf
++        ).pack(side="left",padx=3)
++        ttk.Button(
++            top,text="Відкрити PDF",command=self.open_monthly_work_balance_pdf
++        ).pack(side="left",padx=3)
++
++        ttk.Label(
++            win,
++            text=(
++                "У клітинках робочих днів показуються тільки фактично відпрацьовані години "
++                "(наприклад 8:00 або 7:30). Без часу початку/закінчення зміни. "
++                "PDF та Excel розраховані на A4, альбомна орієнтація, з поділом місяця на три частини."
++            ),
++            foreground="gray",
++            wraplength=1350,
++            justify="left"
++        ).pack(fill="x",padx=10,pady=(0,6))
++
++        frame=ttk.Frame(win)
++        frame.pack(fill="both",expand=True,padx=10,pady=5)
++
++        style=ttk.Style(win)
++        style.configure("MonthlyBalance.Treeview",font=("TkDefaultFont",10),rowheight=28)
++        style.configure("MonthlyBalance.Treeview.Heading",font=("TkDefaultFont",10,"bold"))
++
++        self.monthly_balance_tree=ttk.Treeview(
++            frame,show="headings",style="MonthlyBalance.Treeview"
++        )
++        ybar=ttk.Scrollbar(frame,orient="vertical",command=self.monthly_balance_tree.yview)
++        xbar=ttk.Scrollbar(frame,orient="horizontal",command=self.monthly_balance_tree.xview)
++        self.monthly_balance_tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
++
++        self.monthly_balance_tree.grid(row=0,column=0,sticky="nsew")
++        ybar.grid(row=0,column=1,sticky="ns")
++        xbar.grid(row=1,column=0,sticky="ew")
++        frame.rowconfigure(0,weight=1)
++        frame.columnconfigure(0,weight=1)
++
++        self.monthly_balance_summary_var=tk.StringVar()
++        ttk.Label(
++            win,textvariable=self.monthly_balance_summary_var,
++            font=("TkDefaultFont",9,"bold")
++        ).pack(fill="x",padx=10,pady=(2,2))
++
++        ttk.Label(
++            win,
++            text="Позначення: В - вихідний; Відп - відпустка; Лік - лікарняний; Відпч - відпочинок; Гот - готовність; Інш - інша робота.",
++            foreground="gray"
++        ).pack(fill="x",padx=10,pady=(0,8))
++
++        self.refresh_monthly_work_balance()
++
++    def refresh_monthly_work_balance(self):
++        if not hasattr(self,"monthly_balance_tree") or not self.monthly_balance_tree.winfo_exists():
++            return
++        try:
++            y=int(self.monthly_balance_year.get())
++            m=int(self.monthly_balance_month.get())
++            if not 1<=m<=12:
++                raise ValueError
++        except Exception:
++            return
++
++        data=collect_monthly_work_balance(
++            y,m,active_only=bool(self.monthly_balance_active_only.get())
++        )
++        days=data["days"]
++
++        columns=["driver"]+[f"d{d.day}" for d in days]+["days","work","over"]
++        self.monthly_balance_tree["columns"]=columns
++
++        self.monthly_balance_tree.heading("driver",text="Водій")
++        self.monthly_balance_tree.column(
++            "driver",width=220,minwidth=170,anchor="w",stretch=False
++        )
++
++        for d in days:
++            c=f"d{d.day}"
++            wd=["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()]
++            self.monthly_balance_tree.heading(c,text=f"{d.day} {wd}")
++            self.monthly_balance_tree.column(
++                c,width=66,minwidth=58,anchor="center",stretch=False
++            )
++
++        for c,label,width in [
++            ("days","Роб. днів",75),
++            ("work","Відпрацьовано",100),
++            ("over","Надурочні",90),
++        ]:
++            self.monthly_balance_tree.heading(c,text=label)
++            self.monthly_balance_tree.column(
++                c,width=width,minwidth=width,anchor="center",stretch=False
++            )
++
++        for item in self.monthly_balance_tree.get_children():
++            self.monthly_balance_tree.delete(item)
++
++        total_work_days=0
++        total_work_min=0
++        total_over_min=0
++        for idx,dr in enumerate(data["drivers"]):
++            vals=[dr["name"]]+dr["cells"]+[
++                dr["work_days"],
++                minutes_hhmm(dr["work_min"]),
++                minutes_hhmm(dr["over_min"]),
++            ]
++            tag="even" if idx%2==0 else "odd"
++            self.monthly_balance_tree.insert("","end",values=vals,tags=(tag,))
++            total_work_days += dr["work_days"]
++            total_work_min += dr["work_min"]
++            total_over_min += dr["over_min"]
++
++        self.monthly_balance_tree.tag_configure("even",background="#FAFAFA")
++        self.monthly_balance_tree.tag_configure("odd",background="#FFFFFF")
++
++        self.monthly_balance_summary_var.set(
++            f"{month_name_ua(m)} {y}: водіїв {len(data['drivers'])}    "
++            f"Робочих днів сумарно: {total_work_days}    "
++            f"Відпрацьовано: {minutes_hhmm(total_work_min)}    "
++            f"Надурочні: {minutes_hhmm(total_over_min)}"
++        )
++
++    def save_monthly_work_balance_pdf(self):
++        y=int(self.monthly_balance_year.get())
++        m=int(self.monthly_balance_month.get())
++        path=filedialog.asksaveasfilename(
++            parent=self.monthly_balance_win,
++            title="Зберегти місячний табель робочого часу",
++            initialdir=str(OUTPUT_DIR),
++            initialfile=f"Табель_робочого_часу_{y}_{m:02d}.pdf",
++            defaultextension=".pdf",
++            filetypes=[("PDF","*.pdf")]
++        )
++        if not path:
++            return
++        try:
++            export_monthly_work_balance_pdf(
++                y,m,path,active_only=bool(self.monthly_balance_active_only.get())
++            )
++            self.monthly_balance_last_pdf=Path(path)
++            messagebox.showinfo(
++                "Місячний табель",
++                f"PDF створено:\n{path}",
++                parent=self.monthly_balance_win
++            )
++        except Exception as e:
++            messagebox.showerror(
++                "Помилка PDF",
++                str(e),
++                parent=self.monthly_balance_win
++            )
++
++    def open_monthly_work_balance_pdf(self):
++        path=getattr(self,"monthly_balance_last_pdf",None)
++        if not path or not Path(path).exists():
++            y=int(self.monthly_balance_year.get())
++            m=int(self.monthly_balance_month.get())
++            path=OUTPUT_DIR/f"Табель_робочого_часу_{y}_{m:02d}.pdf"
++            try:
++                export_monthly_work_balance_pdf(
++                    y,m,path,active_only=bool(self.monthly_balance_active_only.get())
++                )
++                self.monthly_balance_last_pdf=Path(path)
++            except Exception as e:
++                messagebox.showerror(
++                    "Помилка PDF",str(e),parent=self.monthly_balance_win
++                )
++                return
++        try:
++            if os.name=="nt":
++                os.startfile(str(path))
++            else:
++                open_external(path)
++        except Exception as e:
++            messagebox.showerror(
++                "Помилка",str(e),parent=self.monthly_balance_win
++            )
++
++    def save_monthly_work_balance_xlsx(self):
++        y=int(self.monthly_balance_year.get())
++        m=int(self.monthly_balance_month.get())
++        path=filedialog.asksaveasfilename(
++            parent=self.monthly_balance_win,
++            title="Зберегти редагований місячний табель",
++            initialdir=str(OUTPUT_DIR),
++            initialfile=f"Табель_робочого_часу_{y}_{m:02d}.xlsx",
++            defaultextension=".xlsx",
++            filetypes=[("Excel","*.xlsx")]
++        )
++        if not path:
++            return
++        try:
++            export_monthly_work_balance_xlsx(
++                y,m,path,active_only=bool(self.monthly_balance_active_only.get())
++            )
++            self.monthly_balance_last_xlsx=Path(path)
++            if os.name=="nt":
++                os.startfile(str(path))
++            else:
++                open_external(path)
++        except Exception as e:
++            messagebox.showerror(
++                "Помилка Excel",str(e),parent=self.monthly_balance_win
++            )
+ 
+     def build_schedule(self):
+         """Графічний планувальник одного календарного дня по всіх активних водіях."""
+@@ -3582,13 +4221,35 @@
+         con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{int(self.year_var.get()):04d}-{int(self.month_var.get()):02d}")).fetchall(); con.close(); return rows
+ 
+     def export_current(self,kind):
+-        if not self.driver_id: messagebox.showwarning("Увага","Спочатку виберіть водія."); return
+-        d=self.selected_driver(); rows=self.current_rows(); y,m=int(self.year_var.get()),int(self.month_var.get()); name=f"Табель_{d['last_name']}_{y}_{m:02d}"; path=OUTPUT_DIR/(name+(".xlsx" if kind=="xlsx" else ".pdf"))
++        if not self.driver_id:
++            messagebox.showwarning("Увага","Спочатку виберіть водія.")
++            return
++
++        # Водій у вкладці «Табель» вибирається власним списком.
++        # Тому не можна залежати від того, чи виділений той самий рядок
++        # у вкладці «Водії»: на старті driver_id вже може бути заданий,
++        # а Treeview ще не має selection().
++        d=self.driver_by_id(self.driver_id)
++        if not d:
++            messagebox.showerror(
++                "Помилка",
++                "Не вдалося знайти вибраного водія у базі. Оновіть список водіїв."
++            )
++            return
++
++        rows=self.current_rows()
++        y,m=int(self.year_var.get()),int(self.month_var.get())
++        safe_last=(d["last_name"] or "Водій").strip()
++        name=f"Табель_{safe_last}_{y}_{m:02d}"
++        path=OUTPUT_DIR/(name+(".xlsx" if kind=="xlsx" else ".pdf"))
+         try:
+-            if kind=="xlsx": export_xlsx(d,y,m,rows,path)
+-            else: export_pdf(d,y,m,rows,path)
++            if kind=="xlsx":
++                export_xlsx(d,y,m,rows,path)
++            else:
++                export_pdf(d,y,m,rows,path)
+             messagebox.showinfo("Готово",f"Файл створено:\n{path}")
+-        except Exception as e: messagebox.showerror("Помилка",str(e))
++        except Exception as e:
++            messagebox.showerror("Помилка",str(e))
+ 
+     def _analysis_segments_map(self, con, rows):
+         ids=[r["id"] for r in rows if r and r["id"]]
+@@ -4378,12 +5039,17 @@
+         self.att_place=tk.StringVar(value=get_setting("attestation_place", ""))
+         self.att_date=tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
+         self.att_activity=tk.StringVar(value="16 — Відсутність / відпочинок")
+-        fields=[("Період з (година/дата/місяць/рік)",self.att_from),("Період по (година/дата/місяць/рік)",self.att_to),("Місце",self.att_place),("Дата бланка (ДД.ММ.РРРР)",self.att_date)]
++        fields=[("Період з (година/дата/місяць/рік)",self.att_from),("Період по (година/дата/місяць/рік)",self.att_to),("Місце директора / представника",self.att_place),("Дата бланка (ДД.ММ.РРРР)",self.att_date)]
+         for i,(l,v) in enumerate(fields,1):
+             ttk.Label(f,text=l).grid(row=i,column=0,sticky="w",padx=6,pady=6)
+             ttk.Entry(f,textvariable=v,width=45).grid(row=i,column=1,sticky="w",padx=6,pady=6)
+             if v in (self.att_from, self.att_to, self.att_date):
+                 calendar_button(f,v).grid(row=i,column=2,sticky="w",padx=(2,6),pady=6)
++        ttk.Label(
++            f,
++            text="Місце водія в нижньому блоці заповнюється автоматично тим самим місцем, що й у директора.",
++            foreground="gray"
++        ).grid(row=4,column=3,sticky="w",padx=(8,6),pady=6)
+         ttk.Label(f,text="Позиція 14–19").grid(row=5,column=0,sticky="w",padx=6,pady=6)
+         cb=ttk.Combobox(f,state="readonly",width=55,textvariable=self.att_activity,
+                         values=[f"{n} — {ACTIVITIES[n]}" for n in ACTIVITIES])
