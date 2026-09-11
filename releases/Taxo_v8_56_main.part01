@@ -1,0 +1,224 @@
+--- main.py.v8.49
++++ main.py.v8.56
+@@ -205,6 +205,22 @@
+ }
+ DAY_TYPES = ["Робота", "Вихідний", "Відпустка", "Лікарняний", "Відпочинок", "Інша робота", "Доступний", "Інше"]
+ 
++WORK_MODE_TACHO = "tacho"
++WORK_MODE_NO_TACHO = "no_tacho_8h"
++WORK_MODE_MANUAL = "manual"
++
++WORK_MODE_LABELS = {
++    WORK_MODE_TACHO: "ТАХО — маршрут / шаблон",
++    WORK_MODE_NO_TACHO: "Без тахо — стандартні 8 год",
++    WORK_MODE_MANUAL: "Інше / ручний облік",
++}
++WORK_MODE_BY_LABEL = {v:k for k,v in WORK_MODE_LABELS.items()}
++
++
++def work_mode_label(value):
++    return WORK_MODE_LABELS.get((value or "").strip(), WORK_MODE_LABELS[WORK_MODE_MANUAL])
++
++
+ TRANSPORT_PROFILES = [
+     "Регулярні пасажирські перевезення",
+     "Нерегулярні пасажирські перевезення",
+@@ -363,9 +379,33 @@
+     """)
+     # Безпечна міграція старої БД v5: додаємо лише нові поля, не видаляючи старі.
+     cols = {r[1] for r in con.execute("PRAGMA table_info(worklog)").fetchall()}
+-    for name, ddl in [("route_name", "TEXT DEFAULT ''"), ("route_id", "INTEGER"), ("template_id", "INTEGER"), ("shift_type", "TEXT DEFAULT 'Безперервна'"), ("vehicle_id", "INTEGER")]:
++    for name, ddl in [
++        ("route_name", "TEXT DEFAULT ''"),
++        ("route_id", "INTEGER"),
++        ("template_id", "INTEGER"),
++        ("shift_type", "TEXT DEFAULT 'Безперервна'"),
++        ("vehicle_id", "INTEGER"),
++        ("accounting_mode", "TEXT DEFAULT 'manual'"),
++    ]:
+         if name not in cols:
+             con.execute(f"ALTER TABLE worklog ADD COLUMN {name} {ddl}")
++
++    # v8.50: старі явно розділені маршрутні записи трактуємо як тахографний режим.
++    # Це відповідає нашому внутрішньому правилу: шаблонні поділені зміни
++    # мають повне покриття тахокартою + бланками поза інтервалами маршруту.
++    con.execute("""
++        UPDATE worklog
++           SET accounting_mode=?
++         WHERE COALESCE(accounting_mode,'') IN ('','manual')
++           AND COALESCE(route_name,'') <> ''
++           AND COALESCE(shift_type,'')='Розділена на частини'
++           AND id IN (
++               SELECT worklog_id
++                 FROM work_segments
++                GROUP BY worklog_id
++               HAVING COUNT(*) > 1
++           )
++    """,(WORK_MODE_TACHO,))
+     # v8.39: окреме поле дати видачі посвідчення.
+     dcols = {r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+     if "license_issue_date" not in dcols:
+@@ -1430,6 +1470,402 @@
+     if parts>1:
+         return f"{start}\n{end}\n{parts}ч"
+     return f"{start}\n{end}"
++
++
++
++
++def parse_attestation_period(value):
++    """Розбирає дату/час періоду бланка у відомих форматах."""
++    raw=(value or "").strip()
++    if not raw:
++        return None
++    for fmt in (
++        "%H:%M %d.%m.%Y",
++        "%d.%m.%Y %H:%M",
++        "%Y-%m-%d %H:%M",
++        "%d.%m.%Y",
++        "%Y-%m-%d",
++    ):
++        try:
++            return datetime.strptime(raw,fmt)
++        except ValueError:
++            pass
++    return None
++
++
++def format_attestation_period(value):
++    return value.strftime("%H:%M %d.%m.%Y")
++
++
++def _merge_dt_intervals(intervals):
++    cleaned=sorted(
++        [(a,b) for a,b in intervals if a is not None and b is not None and b>a],
++        key=lambda x:x[0]
++    )
++    if not cleaned:
++        return []
++    out=[list(cleaned[0])]
++    for a,b in cleaned[1:]:
++        if a <= out[-1][1]:
++            if b > out[-1][1]:
++                out[-1][1]=b
++        else:
++            out.append([a,b])
++    return [(a,b) for a,b in out]
++
++
++def _subtract_dt_intervals(base_start, base_end, covered):
++    """Повертає частини base, які не перекриті covered."""
++    pieces=[(base_start,base_end)]
++    for ca,cb in _merge_dt_intervals(covered):
++        new=[]
++        for a,b in pieces:
++            if cb<=a or ca>=b:
++                new.append((a,b))
++                continue
++            if ca>a:
++                new.append((a,min(ca,b)))
++            if cb<b:
++                new.append((max(cb,a),b))
++        pieces=[x for x in new if x[1]>x[0]]
++        if not pieces:
++            break
++    return pieces
++
++
++def _worklog_route_intervals(row, segments):
++    """Інтервали, які в режимі ТАХО закриваються маршрутом/тахокартою."""
++    work_day=datetime.strptime(row["work_date"],"%Y-%m-%d").date()
++    out=[]
++    source=segments
++    if not source and (row["start_time"] or "").strip() and (row["end_time"] or "").strip():
++        source=[row]
++    for s in source:
++        try:
++            sm=time_to_minutes(s["start_time"])
++            em=time_to_minutes(s["end_time"])
++        except Exception:
++            continue
++        start=datetime.combine(work_day,datetime.min.time())+timedelta(minutes=sm)
++        end=datetime.combine(work_day,datetime.min.time())+timedelta(minutes=em)
++        if em<=sm:
++            end += timedelta(days=1)
++        if end>start:
++            out.append((start,end))
++    return out
++
++
++def _attestation_activity_for_calendar_day(row):
++    """Автоматична позиція 14–19 для календарного дня без ТАХО.
++
++    Це внутрішня політика підприємства для автоматичного формування бланків.
++    Користувач завжди може вручну змінити запропоновану позицію перед друком.
++    """
++    if row is None:
++        return 16
++
++    mode=(row["accounting_mode"] if "accounting_mode" in row.keys() else WORK_MODE_MANUAL) or WORK_MODE_MANUAL
++    day_type=(row["day_type"] or "").strip()
++
++    if mode==WORK_MODE_NO_TACHO:
++        return 18
++
++    if day_type=="Лікарняний":
++        return 14
++    if day_type=="Відпустка":
++        return 15
++    if day_type in ("Вихідний","Відпочинок"):
++        return 16
++    if day_type in ("Інша робота","Робота","Інше"):
++        return 18
++    if day_type=="Доступний":
++        return 19
++
++    return 16
++
++
++def _build_attestation_required_segments(prev_block, next_block, row_by_day):
++    """Будує лише ті частини між двома ТАХО-днями, які треба закрити бланком.
++
++    Правило v8.54:
++    - між двома послідовними календарними ТАХО-днями бланк не потрібен;
++      міжзмінний відпочинок видно з двох добових тахокарт;
++    - якщо між ТАХО-днями є хоча б один інший календарний день, бланк
++      починається від завершення попереднього ТАХО-блоку і закінчується
++      початком наступного;
++    - усередині такого проміжку код визначається за видом календарного дня;
++      однакові сусідні коди об'єднуються в один бланк.
++    """
++    prev_day=prev_block["work_date"]
++    next_day=next_block["work_date"]
++    if next_day <= prev_day + timedelta(days=1):
++        return []
++
++    ga=prev_block["end"]
++    gb=next_block["start"]
++    if gb<=ga:
++        return []
++
++    pieces=[]
++    cursor=ga
++    while cursor < gb:
++        day=cursor.date()
++        midnight=datetime.combine(day+timedelta(days=1),datetime.min.time())
++        piece_end=min(midnight,gb)
++
++        # Після завершення ТАХО в його календарний день і перед початком
++        # наступного ТАХО в його календарний день це відпочинок (позиція 16).
++        if day==prev_day or day==next_day:
++            activity_no=16
++        else:
++            activity_no=_attestation_activity_for_calendar_day(row_by_day.get(day))
++
++        if pieces and pieces[-1][2]==activity_no and pieces[-1][1]==cursor:
++            pieces[-1]=(pieces[-1][0],piece_end,activity_no)
++        else:
++            pieces.append((cursor,piece_end,activity_no))
++        cursor=piece_end
++
++    return [(a,b,n) for a,b,n in pieces if b>a]
++
++
++def collect_attestation_gap_control(driver_id, control_date=None, previous_days=56):
