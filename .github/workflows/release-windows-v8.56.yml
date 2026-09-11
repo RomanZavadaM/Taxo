@@ -45,17 +45,27 @@ jobs:
       - name: Verify v8.56 source hashes
         shell: pwsh
         run: |
-          $checks = @{
+          $utf8 = [System.Text.UTF8Encoding]::new($false)
+          $sha = [System.Security.Cryptography.SHA256]::Create()
+
+          $textChecks = @{
             'main.py' = $env:MAIN_SHA256
             'tachograph.py' = $env:TACHO_SHA256
-            'Бланк підтвердження.docx' = $env:TEMPLATE_SHA256
           }
-          foreach ($file in $checks.Keys) {
+          foreach ($file in $textChecks.Keys) {
             if (!(Test-Path $file)) { throw "Missing required file: $file" }
-            $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($actual -ne $checks[$file]) { throw "SHA-256 mismatch for $file : $actual" }
+            $text = [IO.File]::ReadAllText($file, $utf8).Replace("`r`n", "`n")
+            $bytes = $utf8.GetBytes($text)
+            $actual = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+            if ($actual -ne $textChecks[$file]) { throw "SHA-256 mismatch for $file : $actual" }
             Write-Host "OK $file $actual"
           }
+
+          $template = 'Бланк підтвердження.docx'
+          if (!(Test-Path $template)) { throw "Missing required file: $template" }
+          $templateHash = (Get-FileHash $template -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($templateHash -ne $env:TEMPLATE_SHA256) { throw "SHA-256 mismatch for $template : $templateHash" }
+          Write-Host "OK $template $templateHash"
 
       - name: Compile source
         shell: pwsh
