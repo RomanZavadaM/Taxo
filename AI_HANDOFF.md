@@ -27,7 +27,7 @@
 - JPG page1 + page2,
 - команда «Створити все».
 Бажано PDF/JPG без залежності від встановленого Microsoft Word.
-Не починати v8.61 від v8.56 або від помилкової проміжної збірки — тільки від відновленої v8.60.
+Не починати v8.61 від v8.56 або від помилкової проміжної збірки — тільки від перевіреної v8.60.
 
 ## Контрольні копії в ChatGPT Library
 - `/Taxo/Releases/Taxo_v8_57_TEST.zip`
@@ -39,11 +39,13 @@
 
 ## GitHub
 Repository: `RomanZavadaM/Taxo`
-- `main`: контрольна v8.56 до завершення публікації відновленої v8.60.
-- `release-v8.60`: гілка відновлення/страхування v8.60; у ній опубліковані recovery-документи, контрольні SHA-256 і cumulative patch для `main.py`.
-- ВАЖЛИВО: кореневий `main.py` у `release-v8.60` наразі не підтверджений як byte-for-byte копія точного v8.60; джерело істини — `/Taxo/Releases/Taxo_v8_60_source.zip` з SHA-256 `edb7c7c87df0c320bbe091daadbd6b8263072835de1c66b4f6f20ad6683f2664`.
-- Не починати v8.61 з кореневого GitHub `main.py`, доки він не синхронізований/перевірений проти контрольного архіву.
-Не переводити `main` на TEST-версію без явного рішення, що v8.60 прийнята як стабільна.
+- `main`: контрольна v8.56 до окремого рішення про переведення v8.60 у стабільний реліз.
+- `release-v8.60`: повністю синхронізована і перевірена контрольна v8.60.
+- Кореневий `main.py` у `release-v8.60` тепер byte-for-byte збігається з контрольним v8.60: SHA-256 `bb11ecc39e2f7b54fd9926d4023d72b282556efa869922b1e0b7abfc98f31a8c`, Git blob `8d19b94d7fea2d8f77ccb2e40fccbad0465bf214`.
+- Синхронізаційний commit: `7edc68314a5570cab2fbcadd6d0e44c15072f1da`.
+- Так само перевірені `tachograph.py`, `START.bat`, `requirements.txt`, `VERSION.txt` і `Бланк підтвердження.docx`.
+- v8.61 можна починати з `release-v8.60` або з `/Taxo/Releases/Taxo_v8_60_source.zip`.
+Не переводити `main` на v8.60 без явного рішення, що v8.60 прийнята як стабільна.
 
 ## Незмінні правила проєкту
 - Основну БД користувача не класти в ZIP і GitHub.
@@ -59,4 +61,4 @@ Repository: `RomanZavadaM/Taxo`
 1. локальний ZIP користувача;
 2. ChatGPT Library `/Taxo/Releases/`;
 3. GitHub окрема гілка/commit.
-Після кожної версії оновлювати `PROJECT_STATE.md`, `RECOVERY_INDEX.md`, цей `TAXO_AI_HANDOFF.md`, `VERSION.txt` і SHA-256.
+Після кожної версії оновлювати `PROJECT_STATE.md`, `RECOVERY_INDEX.md`, цей `AI_HANDOFF.md`, `VERSION.txt` і SHA-256.
