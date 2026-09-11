@@ -1,0 +1,165 @@
+--- tachograph.py.v8.49
++++ tachograph.py.v8.56
+@@ -1,6 +1,9 @@
+ # -*- coding: utf-8 -*-
+-"""Тестовий модуль аналогових тахографічних шайб.
+-Окрема SQLite-БД: не змінює основний облік робочого часу.
++"""Контрольний модуль аналогових тахографічних шайб.
++
++Окрема SQLite-БД. Модуль НІКОЛИ не змінює основний графік,
++табель або worklog. Результат вибіркової перевірки фіксується
++тільки у протоколі контролю тахокарти.
+ """
+ import math
+ import os
+@@ -71,6 +74,27 @@
+         note TEXT DEFAULT ''
+     );
+     CREATE INDEX IF NOT EXISTS idx_intervals_disc ON intervals(disc_id);
++
++    CREATE TABLE IF NOT EXISTS control_protocols (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        disc_id INTEGER NOT NULL REFERENCES discs(id) ON DELETE CASCADE,
++        driver_id INTEGER,
++        vehicle_id INTEGER,
++        disc_date TEXT DEFAULT '',
++        scan_name TEXT DEFAULT '',
++        interval_count INTEGER DEFAULT 0,
++        driving_min INTEGER DEFAULT 0,
++        other_work_min INTEGER DEFAULT 0,
++        rest_min INTEGER DEFAULT 0,
++        availability_min INTEGER DEFAULT 0,
++        undefined_min INTEGER DEFAULT 0,
++        max_speed_est INTEGER,
++        status TEXT DEFAULT 'Контрольний протокол',
++        snapshot_text TEXT DEFAULT '',
++        created_at TEXT NOT NULL
++    );
++    CREATE INDEX IF NOT EXISTS idx_control_protocols_disc
++        ON control_protocols(disc_id);
+     """)
+     con.commit(); con.close()
+ 
+@@ -179,7 +203,9 @@
+         self.parent=parent
+         self.drivers_provider=drivers_provider
+         self.vehicles_provider=vehicles_provider
+-        self.send_callback=send_callback
++        # send_callback лишено тільки для сумісності старого виклику.
++        # Навіть якщо його передадуть, модуль v8.53 його не викликає.
++        self.send_callback=None
+         self.driver_map={}
+         self.vehicle_map={}
+         # parent вже є вкладкою Notebook; будуємо інтерфейс безпосередньо в ній.
+@@ -198,7 +224,11 @@
+         ttk.Button(top,text="Відкрити скан",command=self.open_scan).pack(side="left",padx=3)
+         ttk.Button(top,text="Видалити тест",command=self.delete_selected).pack(side="left",padx=3)
+         ttk.Button(top,text="Оновити",command=self.load).pack(side="left",padx=3)
+-        ttk.Label(top,text="Окрема тестова БД: тахографічні шайби не змінюють основний табель",foreground="gray").pack(side="right")
++        ttk.Label(
++            top,
++            text="КОНТРОЛЬНИЙ режим: тахокарта не змінює графік/табель",
++            foreground="gray"
++        ).pack(side="right")
+         ttk.Label(self.tab,text="Тестовий модуль аналогових шайб. Оберіть запис зліва або імпортуйте свій скан.",foreground="gray").pack_forget()
+ 
+         pan=ttk.Panedwindow(self.tab,orient="horizontal"); pan.pack(fill="both",expand=True,padx=10,pady=5)
+@@ -262,14 +292,26 @@
+         ttk.Button(ib,text="Додати інтервал",command=self.add_interval).pack(side="left",padx=3)
+         ttk.Button(ib,text="Редагувати",command=self.edit_interval).pack(side="left",padx=3)
+         ttk.Button(ib,text="Видалити",command=self.delete_interval).pack(side="left",padx=3)
+-        ttk.Button(ib,text="Передати в табель",command=self.send_to_worklog).pack(side="right",padx=3)
++        ttk.Button(
++            ib,text="Протоколи контролю",command=self.show_control_protocols
++        ).pack(side="right",padx=3)
++        ttk.Button(
++            ib,text="Зберегти протокол контролю",command=self.save_control_protocol
++        ).pack(side="right",padx=3)
+         icols=("id","start","end","activity","confidence","source")
+         self.itree=ttk.Treeview(result_frame,columns=icols,show="headings",height=6)
+         ih={"id":"ID","start":"Початок","end":"Кінець","activity":"Активність","confidence":"Впевненість","source":"Джерело"}
+         for c in icols:
+             self.itree.heading(c,text=ih[c]); self.itree.column(c,width=85 if c in ("id","confidence") else 120)
+         self.itree.pack(fill="both",expand=True,pady=5)
+-        ttk.Label(result_frame,text="Автоматичне розпізнавання — лише чернетка. Перед передачею в основний табель інтервали треба перевірити.",foreground="gray",wraplength=700).pack(anchor="w")
++        ttk.Label(
++            result_frame,
++            text=(
++                "Автоматичне розпізнавання — лише чернетка. Перевірте/відредагуйте інтервали "
++                "і збережіть «Протокол контролю». Основний графік та табель не змінюються."
++            ),
++            foreground="gray",wraplength=760
++        ).pack(anchor="w")
+ 
+         self.stats_var=tk.StringVar(value="Оберіть шайбу")
+ 
+@@ -668,22 +710,241 @@
+         except Exception as e:
+             messagebox.showerror("Скан",str(e),parent=self.parent)
+ 
+-    def send_to_worklog(self):
+-        if not self.current_id:return
+-        rows=tdb().execute("SELECT * FROM intervals WHERE disc_id=? ORDER BY start_min",(self.current_id,)).fetchall()
++    @staticmethod
++    def _duration_minutes(row):
++        start=int(row["start_min"])
++        end=int(row["end_min"])
++        dur=(end-start)%1440
++        return dur if dur else 0
++
++    def _protocol_snapshot(self, disc_row, rows):
++        totals={
++            "Керування":0,
++            "Інша робота":0,
++            "Відпочинок":0,
++            "Готовність":0,
++            "Невизначено":0,
++        }
++        lines=[]
++        for x in rows:
++            dur=self._duration_minutes(x)
++            totals[x["activity"]]=totals.get(x["activity"],0)+dur
++            lines.append(
++                f"{self.fm(x['start_min'])}–{self.fm(x['end_min'])} | "
++                f"{x['activity']} | {dur//60}:{dur%60:02d} | "
++                f"джерело: {x['source']} | впевненість: {x['confidence']}"
++            )
++
++        max_speed=estimate_max_speed(
++            disc_row["source_path"],disc_row["cx"],disc_row["cy"],
++            disc_row["radius"],float(disc_row["rotation_deg"] or 0)
++        ) if disc_row["radius"] else None
++
++        driver_name=self.v_driver.get().strip()
++        vehicle_name=self.v_vehicle.get().strip()
++        disc_date=self.v_date.get().strip()
++
++        header=[
++            "ПРОТОКОЛ КОНТРОЛЮ ТАХОКАРТИ",
++            f"Скан: {disc_row['scan_name']} / шайба №{disc_row['disc_no']}",
++            f"Водій: {driver_name or 'не вказано'}",
++            f"Автомобіль: {vehicle_name or 'не вказано'}",
++            f"Дата тахокарти: {disc_date or 'не вказано'}",
++            "",
++            f"Інтервалів: {len(rows)}",
++            f"Керування: {totals.get('Керування',0)//60}:{totals.get('Керування',0)%60:02d}",
++            f"Інша робота: {totals.get('Інша робота',0)//60}:{totals.get('Інша робота',0)%60:02d}",
++            f"Відпочинок: {totals.get('Відпочинок',0)//60}:{totals.get('Відпочинок',0)%60:02d}",
++            f"Готовність: {totals.get('Готовність',0)//60}:{totals.get('Готовність',0)%60:02d}",
++            f"Невизначено: {totals.get('Невизначено',0)//60}:{totals.get('Невизначено',0)%60:02d}",
++            f"Максимальна швидкість: {max_speed if max_speed is not None else 'не визначено'}"
++                + (" км/год (орієнтовно)" if max_speed is not None else ""),
++            "",
++            "ІНТЕРВАЛИ:",
++        ]
++        snapshot="\n".join(header+lines)
++        return totals,max_speed,snapshot
++
++    def save_control_protocol(self):
++        """Зберігає контрольний знімок тахокарти. Основний графік не змінює."""
++        if not self.current_id:
++            messagebox.showwarning(
++                "Протокол контролю","Оберіть тахокарту.",parent=self.parent
++            )
++            return
++
