@@ -1,0 +1,186 @@
+--- a/main.py
++++ b/main.py
+@@ -15,7 +15,7 @@
+ from decimal import Decimal, ROUND_HALF_UP
+ from pathlib import Path
+ import tkinter as tk
+-from tkinter import ttk, messagebox, filedialog
++from tkinter import ttk, messagebox, filedialog, simpledialog
+ 
+ try:
+     from docx.shared import Pt
+@@ -36,10 +36,13 @@
+ DATA_DIR = DATA_ROOT / "Data"
+ BACKUP_DIR = DATA_ROOT / "Backups"
+ OUTPUT_DIR = DATA_ROOT / "Output"
++ATT_ARCHIVE_DIR = OUTPUT_DIR / "AttestationArchive"
++ATT_REPLACED_DIR = ATT_ARCHIVE_DIR / "Replaced"
++ATT_DELETED_DIR = ATT_ARCHIVE_DIR / "Deleted"
+ DB_PATH = DATA_DIR / "driver_worktime.sqlite3"
+ TEMPLATE_PATH = APP_DIR / "Бланк підтвердження.docx"
+ 
+-for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR):
++for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR, ATT_ARCHIVE_DIR, ATT_REPLACED_DIR, ATT_DELETED_DIR):
+     _p.mkdir(parents=True, exist_ok=True)
+ 
+ 
+@@ -272,7 +275,12 @@
+         fax TEXT DEFAULT '',
+         email TEXT DEFAULT '',
+         signer_name TEXT DEFAULT '',
+-        signer_position TEXT DEFAULT ''
++        signer_position TEXT DEFAULT '',
++        name_en TEXT DEFAULT '',
++        address_en TEXT DEFAULT '',
++        signer_name_en TEXT DEFAULT '',
++        signer_position_en TEXT DEFAULT '',
++        place_en TEXT DEFAULT ''
+     );
+     INSERT OR IGNORE INTO company(id) VALUES (1);
+ 
+@@ -292,6 +300,9 @@
+         last_name TEXT NOT NULL,
+         first_name TEXT NOT NULL,
+         middle_name TEXT DEFAULT '',
++        last_name_en TEXT DEFAULT '',
++        first_name_en TEXT DEFAULT '',
++        middle_name_en TEXT DEFAULT '',
+         birth_date TEXT DEFAULT '',
+         license_series TEXT DEFAULT '',
+         license_number TEXT DEFAULT '',
+@@ -374,8 +385,31 @@
+         place TEXT DEFAULT '',
+         form_date TEXT DEFAULT '',
+         file_path TEXT DEFAULT '',
++        status TEXT NOT NULL DEFAULT 'active',
++        revision INTEGER NOT NULL DEFAULT 1,
++        updated_at TEXT DEFAULT '',
++        deleted_at TEXT DEFAULT '',
++        delete_reason TEXT DEFAULT '',
+         created_at TEXT NOT NULL
+     );
++
++    CREATE TABLE IF NOT EXISTS attestation_audit (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        attestation_id INTEGER NOT NULL,
++        action TEXT NOT NULL,
++        revision INTEGER NOT NULL DEFAULT 1,
++        period_from TEXT NOT NULL,
++        period_to TEXT NOT NULL,
++        activity_no INTEGER NOT NULL,
++        place TEXT DEFAULT '',
++        form_date TEXT DEFAULT '',
++        file_path TEXT DEFAULT '',
++        status TEXT DEFAULT 'active',
++        note TEXT DEFAULT '',
++        created_at TEXT NOT NULL
++    );
++    CREATE INDEX IF NOT EXISTS idx_attestation_audit_attestation
++        ON attestation_audit(attestation_id, id);
+     """)
+     # Безпечна міграція старої БД v5: додаємо лише нові поля, не видаляючи старі.
+     cols = {r[1] for r in con.execute("PRAGMA table_info(worklog)").fetchall()}
+@@ -407,7 +441,27 @@
+            )
+     """,(WORK_MODE_TACHO,))
+     # v8.39: окреме поле дати видачі посвідчення.
++    # v8.58: окремі англомовні реквізити підприємства для зворотного боку бланка.
++    # Порожнє англійське поле означає автоматичний fallback на українське.
++    ccols = {r[1] for r in con.execute("PRAGMA table_info(company)").fetchall()}
++    for name, ddl in [
++        ("name_en", "TEXT DEFAULT ''"),
++        ("address_en", "TEXT DEFAULT ''"),
++        ("signer_name_en", "TEXT DEFAULT ''"),
++        ("signer_position_en", "TEXT DEFAULT ''"),
++        ("place_en", "TEXT DEFAULT ''"),
++    ]:
++        if name not in ccols:
++            con.execute(f"ALTER TABLE company ADD COLUMN {name} {ddl}")
++
+     dcols = {r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
++    for name, ddl in [
++        ("last_name_en", "TEXT DEFAULT ''"),
++        ("first_name_en", "TEXT DEFAULT ''"),
++        ("middle_name_en", "TEXT DEFAULT ''"),
++    ]:
++        if name not in dcols:
++            con.execute(f"ALTER TABLE drivers ADD COLUMN {name} {ddl}")
+     if "license_issue_date" not in dcols:
+         con.execute("ALTER TABLE drivers ADD COLUMN license_issue_date TEXT DEFAULT ''")
+ 
+@@ -439,6 +493,22 @@
+         con.execute("ALTER TABLE route_templates ADD COLUMN vehicle_id INTEGER")
+     if "route_id" not in rcols:
+         con.execute("ALTER TABLE route_templates ADD COLUMN route_id INTEGER")
++
++    # v8.57: Бланки підтвердження мають керований життєвий цикл.
++    # Старі записи автоматично вважаються активними ревізії 1.
++    acols = {r[1] for r in con.execute("PRAGMA table_info(attestations)").fetchall()}
++    for name, ddl in [
++        ("status", "TEXT NOT NULL DEFAULT 'active'"),
++        ("revision", "INTEGER NOT NULL DEFAULT 1"),
++        ("updated_at", "TEXT DEFAULT ''"),
++        ("deleted_at", "TEXT DEFAULT ''"),
++        ("delete_reason", "TEXT DEFAULT ''"),
++    ]:
++        if name not in acols:
++            con.execute(f"ALTER TABLE attestations ADD COLUMN {name} {ddl}")
++    con.execute("UPDATE attestations SET status='active' WHERE COALESCE(status,'')=''")
++    con.execute("UPDATE attestations SET revision=1 WHERE COALESCE(revision,0)<1")
++
+     con.commit()
+     con.close()
+     purge_old()
+@@ -453,10 +523,23 @@
+     y, m = today.year, today.month
+     total = y * 12 + (m - 1) - 47
+     min_y, min_m = divmod(total, 12)
+-    cutoff = date(min_y, min_m + 1, 1).isoformat()
++    cutoff_date = date(min_y, min_m + 1, 1)
++    cutoff = cutoff_date.isoformat()
+     con = db()
+     con.execute("DELETE FROM worklog WHERE work_date < ?", (cutoff,))
+-    con.execute("DELETE FROM attestations WHERE period_to < ?", (cutoff,))
++
++    # period_to зберігається як "ГГ:ХХ ДД.ММ.РРРР", тому SQL-порівняння
++    # з ISO-датою було ненадійним. Видаляємо тільки записи, чия реальна
++    # дата завершення старша за 48-місячне вікно, разом з аудитом.
++    old_ids=[]
++    for row in con.execute("SELECT id, period_to FROM attestations").fetchall():
++        en=parse_attestation_period(row["period_to"])
++        if en and en.date() < cutoff_date:
++            old_ids.append(row["id"])
++    if old_ids:
++        q=",".join("?" for _ in old_ids)
++        con.execute(f"DELETE FROM attestation_audit WHERE attestation_id IN ({q})", old_ids)
++        con.execute(f"DELETE FROM attestations WHERE id IN ({q})", old_ids)
+     con.commit()
+     con.close()
+ 
+@@ -764,6 +847,12 @@
+     driver_full = " ".join(
+         x for x in [driver["last_name"], driver["first_name"], driver["middle_name"]] if x
+     ).strip()
++    # v8.60: англійська сторона використовує англійські ПІБ водія,
++    # якщо вони заповнені. Кожне поле має окремий fallback на українське.
++    driver_last_en=((driver["last_name_en"] or "").strip() or (driver["last_name"] or "").strip())
++    driver_first_en=((driver["first_name_en"] or "").strip() or (driver["first_name"] or "").strip())
++    driver_middle_en=((driver["middle_name_en"] or "").strip() or (driver["middle_name"] or "").strip())
++    driver_full_en=" ".join(x for x in [driver_last_en,driver_first_en,driver_middle_en] if x).strip()
+     license_issue_date = fmt_date(driver["license_issue_date"])
+     employment = fmt_date(driver["employment_date"])
+     birth_date = fmt_date(driver["birth_date"])
+@@ -775,6 +864,14 @@
+     # Поле водія завжди автоматично дублює саме це значення.
+     director_place=(place or "").strip()
+ 
++    # v8.58: англійська сторона має власні реквізити підприємства.
++    # Якщо конкретне англійське поле порожнє, беремо українське значення.
++    company_name_en=((company["name_en"] or "").strip() or (company["name"] or "").strip())
++    company_address_en=((company["address_en"] or "").strip() or (company["address"] or "").strip())
++    signer_name_en=((company["signer_name_en"] or "").strip() or (company["signer_name"] or "").strip())
++    signer_position_en=((company["signer_position_en"] or "").strip() or (company["signer_position"] or "").strip())
++    director_place_en=((company["place_en"] or "").strip() or director_place)
++
+     doc = Document(str(TEMPLATE_PATH))
+     if l
