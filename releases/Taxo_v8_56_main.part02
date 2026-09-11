@@ -1,0 +1,201 @@
++    """Контроль Бланків підтвердження за внутрішнім правилом v8.56.
++
++    Ключові правила:
++    - усі частини одного маршрутного ТАХО-дня = один ТАХО-блок від першого
++      виїзду до останнього повернення;
++    - якщо наступний ТАХО-день є наступним календарним днем, міжзмінний
++      відпочинок окремим бланком НЕ закриваємо;
++    - якщо між двома ТАХО-днями є один або більше інших календарних днів,
++      проміжок від кінця попереднього ТАХО до початку наступного закриваємо
++      бланком(ами);
++    - крім історичних «аварійних» пропусків, контроль показує ПОТОЧНИЙ
++      період відпочинку до найближчого наступного виїзду, якщо цей виїзд уже
++      є у графіку. Такий бланк можна підготувати ДО виїзду;
++    - автоматичні позиції: лікарняний=14, відпустка=15,
++      вихідний/відпочинок=16, «Без тахо — 8 год»/інша робота=18,
++      доступний=19;
++    - сусідні частини з однаковою позицією об'єднуються;
++    - 56 днів — лише вікно контролю минулих записів. Для поточного періоду
++      додатково дивимось уперед у графік, щоб знайти найближчий виїзд.
++    """
++    if isinstance(control_date,str):
++        try:
++            control_date=datetime.strptime(control_date,"%d.%m.%Y").date()
++        except ValueError:
++            control_date=datetime.strptime(control_date,"%Y-%m-%d").date()
++    if control_date is None:
++        control_date=date.today()
++
++    start_day=control_date-timedelta(days=int(previous_days))
++    end_day=control_date
++    range_start=datetime.combine(start_day,datetime.min.time())
++    range_end=datetime.combine(end_day+timedelta(days=1),datetime.min.time())
++
++    # Для сьогоднішнього контролю «поточний» означає фактичний момент зараз.
++    # Для довільної контрольної дати беремо кінець вибраного дня — так можна
++    # відтворити стан контролю на минулу дату без залежності від годинника ПК.
++    if control_date==date.today():
++        reference_moment=datetime.now()
++    else:
++        reference_moment=range_end-timedelta(microseconds=1)
++
++    con=db()
++
++    # Назад потрібен запас для зв'язку першого ТАХО-дня у 56-денному вікні.
++    # Уперед дивимось лише для пошуку найближчого запланованого виїзду.
++    query_start=start_day-timedelta(days=62)
++    query_end=end_day+timedelta(days=62)
++    rows=con.execute(
++        """SELECT * FROM worklog
++           WHERE driver_id=? AND work_date BETWEEN ? AND ?
++           ORDER BY work_date""",
++        (int(driver_id),query_start.isoformat(),query_end.isoformat())
++    ).fetchall()
++
++    seg_by={}
++    if rows:
++        ids=[r["id"] for r in rows]
++        q=",".join("?" for _ in ids)
++        segs=con.execute(
++            f"""SELECT * FROM work_segments
++                WHERE worklog_id IN ({q})
++                ORDER BY worklog_id,segment_no""",
++            ids
++        ).fetchall()
++        for s in segs:
++            seg_by.setdefault(s["worklog_id"],[]).append(s)
++
++    att_rows=con.execute(
++        """SELECT * FROM attestations
++           WHERE driver_id=?
++           ORDER BY id""",
++        (int(driver_id),)
++    ).fetchall()
++    con.close()
++
++    row_by_day={
++        datetime.strptime(r["work_date"],"%Y-%m-%d").date():r
++        for r in rows
++    }
++
++    duty_blocks=[]
++    no_tacho_days=[]
++    for r in rows:
++        mode=(r["accounting_mode"] if "accounting_mode" in r.keys() else WORK_MODE_MANUAL) or WORK_MODE_MANUAL
++        d=datetime.strptime(r["work_date"],"%Y-%m-%d").date()
++
++        if mode==WORK_MODE_NO_TACHO and start_day<=d<=end_day:
++            no_tacho_days.append(d)
++
++        if mode!=WORK_MODE_TACHO:
++            continue
++
++        route_parts=_worklog_route_intervals(r,seg_by.get(r["id"],[]))
++        if not route_parts:
++            continue
++
++        block_start=min(a for a,b in route_parts)
++        block_end=max(b for a,b in route_parts)
++        duty_blocks.append({
++            "work_date":d,
++            "start":block_start,
++            "end":block_end,
++            "worklog_id":r["id"],
++        })
++
++    duty_blocks.sort(key=lambda x:x["start"])
++
++    required_segments=[]
++    ignored_consecutive_minutes=0
++    current_pair_found=False
++    current_departure=None
++
++    for prev,nxt in zip(duty_blocks,duty_blocks[1:]):
++        ga=prev["end"]
++        gb=nxt["start"]
++        if gb<=ga:
++            continue
++
++        is_current=(ga <= reference_moment < gb)
++        is_historical=(range_start <= gb < range_end)
++        if not is_current and not is_historical:
++            continue
++
++        segs=_build_attestation_required_segments(prev,nxt,row_by_day)
++        if not segs:
++            ignored_consecutive_minutes += max(0,int((gb-ga).total_seconds()//60))
++            continue
++
++        if is_current:
++            current_pair_found=True
++            current_departure=gb
++
++        for a,b,n in segs:
++            required_segments.append((a,b,n,is_current))
++
++    att_intervals=[]
++    invalid_attestations=[]
++    for a in att_rows:
++        st=parse_attestation_period(a["period_from"])
++        en=parse_attestation_period(a["period_to"])
++        if not st or not en or en<=st:
++            invalid_attestations.append(a["id"])
++            continue
++        att_intervals.append((st,en,a["id"],a["activity_no"]))
++
++    # Наявний бланк вважаємо свідомим рішенням користувача незалежно від коду.
++    # Автоматичний код використовується для НОВИХ бланків і може бути змінений вручну.
++    att_merged=_merge_dt_intervals([(a,b) for a,b,_,_ in att_intervals])
++
++    rows_out=[]
++    required_minutes=0
++    covered_minutes=0
++    missing_minutes=0
++    current_required_minutes=0
++    current_missing_minutes=0
++
++    for ga,gb,suggested_no,is_current in required_segments:
++        dur=max(0,int((gb-ga).total_seconds()//60))
++        required_minutes += dur
++        if is_current:
++            current_required_minutes += dur
++
++        missing=_subtract_dt_intervals(ga,gb,att_merged)
++        miss=sum(max(0,int((b-a).total_seconds()//60)) for a,b in missing)
++        missing_minutes += miss
++        covered_minutes += max(0,dur-miss)
++        if is_current:
++            current_missing_minutes += miss
++
++        if not missing:
++            rows_out.append({
++                "kind":"covered",
++                "status":"ПОТОЧНИЙ — БЛАНК ГОТОВИЙ" if is_current else "ЗАКРИТО БЛАНКОМ",
++                "from":ga,
++                "to":gb,
++                "minutes":dur,
++                "activity_no":suggested_no,
++                "is_current":is_current,
++                "reason":(
++                    f"Поточний період до виїзду за графіком уже перекритий бланком. Автокод: {suggested_no}."
++                    if is_current else
++                    f"Проміжок перекритий наявним бланком. Автокод для цього виду дня: {suggested_no}."
++                ),
++            })
++        else:
++            if is_current:
++                status="ПОТОЧНИЙ — ПІДГОТУВАТИ"
++            else:
++                status="НЕМАЄ БЛАНКА" if miss==dur else "ЧАСТКОВО НЕ ЗАКРИТО"
++            for ma,mb in missing:
++                mdur=max(0,int((mb-ma).total_seconds()//60))
++                rows_out.append({
++                    "kind":"missing",
++                    "status":status,
++                    "from":ma,
++                    "to":mb,
++                    "minutes":mdur,
++                    "activity_no":suggested_no,
++                    "is_current":is_current,
++                    "reason":(
++                        f"Поточний період відпочинку/діяльності до наступного виїзду за графіком. "
