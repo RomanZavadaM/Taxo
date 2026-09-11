@@ -1,0 +1,84 @@
++            messagebox.showwarning(
++                "Контроль бланків",
++                "Бланк можна сформувати тільки для незакритого проміжку.",
++                parent=self.att_gap_win
++            )
++            return
++
++        suggested_no=int(r.get("activity_no") or 16)
++        try:
++            activity_no=int(self.att_gap_activity.get().split(" ",1)[0])
++        except Exception:
++            activity_no=suggested_no
++
++        period_from=format_attestation_period(r["from"])
++        period_to=format_attestation_period(r["to"])
++
++        try:
++            # Одразу синхронізуємо і основну форму — користувач бачить,
++            # які саме дані пішли в DOCX.
++            self.att_from.set(period_from)
++            self.att_to.set(period_to)
++            self.att_activity.set(f"{activity_no} — {ACTIVITIES[activity_no]}")
++            # Дата документа всередині _create_attestation_record буде
++            # автоматично взята з period_to (правило v8.55).
++            out=self._create_attestation_record(
++                period_from,period_to,activity_no,
++                parent=self.att_gap_win,
++                show_message=False
++            )
++            self.refresh_attestation_gap_control()
++            messagebox.showinfo(
++                "Бланк сформовано",
++                f"Створено бланк на вибрану частину проміжку:\n\n"
++                f"{period_from}\n→ {period_to}\n\n"
++                f"Позиція: {activity_no}\n\nФайл:\n{out}",
++                parent=self.att_gap_win
++            )
++        except Exception as e:
++            messagebox.showerror(
++                "Помилка",str(e),parent=self.att_gap_win
++            )
++
+     def create_attestation(self):
+         if not self.att_driver_id:
+-            messagebox.showwarning("Увага","Виберіть водія у спадному меню «Водій»."); return
+-        con=db(); d=con.execute("SELECT * FROM drivers WHERE id=?",(self.att_driver_id,)).fetchone(); con.close()
+-        if not d:
+-            messagebox.showwarning("Увага","Водія не знайдено."); return
++            messagebox.showwarning(
++                "Увага","Виберіть водія у спадному меню «Водій»."
++            )
++            return
+         try:
+-            dt=datetime.strptime(self.att_date.get().strip(),"%d.%m.%Y").date()
+             activity_text=self.att_activity_text.get()
+             activity_no=int(activity_text.split(" ",1)[0])
+-        except Exception:
+-            messagebox.showerror("Помилка","Перевірте дату у форматі ДД.ММ.РРРР та позицію 14–19."); return
+-        safe=f"{d['last_name']}_{d['first_name']}".replace(" ","_")
+-        out=OUTPUT_DIR/f"Підтвердження_{safe}_{dt.isoformat()}.docx"
+-        try:
+-            place_value=self.att_place.get().strip()
+-            if place_value:
+-                set_setting("attestation_place", place_value)
+-            fill_attestation(d,self.att_from.get().strip(),self.att_to.get().strip(),activity_no,place_value,self.att_date.get().strip(),out)
+-            con=db()
+-            con.execute("""INSERT INTO attestations(driver_id,period_from,period_to,activity_no,place,form_date,file_path,created_at)
+-                VALUES(?,?,?,?,?,?,?,?)""",(d["id"],self.att_from.get().strip(),self.att_to.get().strip(),activity_no,self.att_place.get().strip(),dt.isoformat(),str(out),datetime.now().isoformat(timespec="seconds")))
+-            con.commit(); con.close(); self.load_att_history()
+-            messagebox.showinfo("Готово",f"Бланк створено:\n{out}")
++            self._create_attestation_record(
++                self.att_from.get().strip(),
++                self.att_to.get().strip(),
++                activity_no,
++                parent=self,
++                show_message=True
++            )
+         except Exception as e:
+             messagebox.showerror("Помилка",str(e))
++
++
+ 
+     def load_att_history(self):
+         if not hasattr(self,"att_tree"): return

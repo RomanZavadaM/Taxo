@@ -1,0 +1,199 @@
++                parent=self.att_gap_win
++            )
++            return
++
++        data=collect_attestation_gap_control(
++            self.att_driver_id,control_day,previous_days=56
++        )
++        for x in self.att_gap_tree.get_children():
++            self.att_gap_tree.delete(x)
++        self.att_gap_items={}
++
++        for idx,r in enumerate(data["rows"],1):
++            iid=f"g{idx}"
++            self.att_gap_items[iid]=r
++            self.att_gap_tree.insert(
++                "","end",iid=iid,
++                values=(
++                    r["status"],
++                    format_attestation_period(r["from"]),
++                    format_attestation_period(r["to"]),
++                    minutes_hhmm(r["minutes"]),
++                    str(r["activity_no"]) if r["activity_no"] else "",
++                    r["reason"],
++                ),
++                tags=(("current_"+r["kind"]) if r.get("is_current") else r["kind"],)
++            )
++
++        bad=""
++        if data["invalid_attestations"]:
++            bad=f"    ⚠ Нечитабельні періоди бланків ID: {', '.join(map(str,data['invalid_attestations']))}"
++
++        current_text=(
++            f"    ПОТОЧНИЙ до виїзду {data['current_departure'].strftime('%d.%m.%Y %H:%M')}: "
++            f"{minutes_hhmm(data['current_required_minutes'])}, не закрито {minutes_hhmm(data['current_missing_minutes'])}"
++            if data.get("current_pair_found") and data.get("current_departure") else
++            "    ПОТОЧНИЙ: бланк до найближчого виїзду за графіком не потрібен/не визначений"
++        )
++        self.att_gap_summary.set(
++            f"Період історичного контролю: {data['start_day'].strftime('%d.%m.%Y')}–{data['end_day'].strftime('%d.%m.%Y')}    "
++            f"ТАХО-днів: {data['tacho_days']}    Без тахо 8 год: {data['no_tacho_days']}    "
++            f"Усього потрібно: {minutes_hhmm(data['required_minutes'])}    "
++            f"Закрито: {minutes_hhmm(data['covered_minutes'])}    "
++            f"НЕ ЗАКРИТО: {minutes_hhmm(data['missing_minutes'])}{current_text}{bad}"
++        )
++
++    def on_attestation_gap_select(self, _=None):
++        if not hasattr(self,"att_gap_tree"):
++            return
++        sel=self.att_gap_tree.selection()
++        if not sel:
++            return
++        r=self.att_gap_items.get(sel[0])
++        if not r or r.get("kind")!="missing":
++            return
++        suggested=int(r.get("activity_no") or 16)
++        self.att_gap_activity.set(f"{suggested} — {ACTIVITIES[suggested]}")
++
++    def use_selected_attestation_gap(self):
++        if not hasattr(self,"att_gap_tree"):
++            return
++        sel=self.att_gap_tree.selection()
++        if not sel:
++            messagebox.showwarning(
++                "Контроль бланків","Виберіть незакритий проміжок (минулий або поточний).",
++                parent=self.att_gap_win
++            )
++            return
++        r=self.att_gap_items.get(sel[0])
++        if not r or r.get("kind")!="missing":
++            messagebox.showwarning(
++                "Контроль бланків",
++                "Для підстановки виберіть незакритий рядок: минулий або «ПОТОЧНИЙ — ПІДГОТУВАТИ».",
++                parent=self.att_gap_win
++            )
++            return
++
++        self.att_from.set(format_attestation_period(r["from"]))
++        self.att_to.set(format_attestation_period(r["to"]))
++        # v8.55: бланк датується днем, яким закінчується саме цей період,
++        # а не днем перевірки 56-денного вікна.
++        self.att_date.set(r["to"].strftime("%d.%m.%Y"))
++
++        # За замовчуванням беремо автокод рядка, але залишаємо можливість
++        # вручну змінити його у спадному списку перед підстановкою.
++        suggested_no=int(r.get("activity_no") or 16)
++        try:
++            chosen_no=int(self.att_gap_activity.get().split(" ",1)[0])
++        except Exception:
++            chosen_no=suggested_no
++        self.att_activity.set(f"{chosen_no} — {ACTIVITIES[chosen_no]}")
++
++        # Закриваємо контрольне вікно, щоб користувач одразу бачив реально
++        # заповнені поля основної форми.
++        try:
++            self.att_gap_win.destroy()
++        except Exception:
++            pass
++
++        messagebox.showinfo(
++            "Проміжок підставлено",
++            "Поля «Період з / по» та позиція 14–19 вже заповнені у формі "
++            "«Підтвердження діяльності». Перевірте їх і натисніть «Створити DOCX».",
++            parent=self
++        )
++
++    def _create_attestation_record(
++        self, period_from, period_to, activity_no, form_date_text=None,
++        parent=None, show_message=True
++    ):
++        if not self.att_driver_id:
++            raise ValueError("Виберіть водія.")
++
++        con=db()
++        d=con.execute(
++            "SELECT * FROM drivers WHERE id=?",(self.att_driver_id,)
++        ).fetchone()
++        con.close()
++        if not d:
++            raise ValueError("Водія не знайдено.")
++
++        st=parse_attestation_period(period_from)
++        en=parse_attestation_period(period_to)
++        if not st or not en or en<=st:
++            raise ValueError("Невірний період бланка.")
++
++        # v8.55 — жорстке правило: дата Бланка підтвердження завжди є
++        # датою закінчення періоду. Будь-яке передане/введене значення
++        # form_date_text навмисно ігноруємо, щоб усі шляхи створення
++        # (ручний, 56-денний контроль, автокод) давали однаковий результат.
++        dt=en.date()
++        form_date_text=dt.strftime("%d.%m.%Y")
++        if hasattr(self,"att_date"):
++            self.att_date.set(form_date_text)
++
++        safe=f"{d['last_name']}_{d['first_name']}".replace(" ","_")
++        stamp_from=st.strftime("%Y%m%d_%H%M")
++        stamp_to=en.strftime("%Y%m%d_%H%M")
++        out=OUTPUT_DIR/f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}.docx"
++
++        # Якщо такий файл уже існує, не перезаписуємо попередній документ.
++        if out.exists():
++            n=2
++            while True:
++                candidate=OUTPUT_DIR/f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}_v{n}.docx"
++                if not candidate.exists():
++                    out=candidate
++                    break
++                n+=1
++
++        place_value=self.att_place.get().strip()
++        if place_value:
++            set_setting("attestation_place",place_value)
++
++        fill_attestation(
++            d,period_from,period_to,int(activity_no),
++            place_value,form_date_text,out
++        )
++
++        con=db()
++        con.execute(
++            """INSERT INTO attestations(
++                driver_id,period_from,period_to,activity_no,place,
++                form_date,file_path,created_at
++            ) VALUES(?,?,?,?,?,?,?,?)""",
++            (
++                d["id"],period_from,period_to,int(activity_no),
++                place_value,dt.isoformat(),str(out),
++                datetime.now().isoformat(timespec="seconds")
++            )
++        )
++        con.commit()
++        con.close()
++
++        self.load_att_history()
++        if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
++            self.refresh_attestation_gap_control()
++
++        if show_message:
++            messagebox.showinfo(
++                "Готово",
++                f"Бланк створено:\n{out}",
++                parent=parent or self
++            )
++        return out
++
++    def create_selected_gap_attestation(self):
++        if not hasattr(self,"att_gap_tree"):
++            return
++        sel=self.att_gap_tree.selection()
++        if not sel:
++            messagebox.showwarning(
++                "Контроль бланків",
++                "Виберіть незакритий проміжок (минулий або поточний).",
++                parent=self.att_gap_win
++            )
++            return
++
++        r=self.att_gap_items.get(sel[0])
++        if not r or r.get("kind")!="missing":

@@ -1,0 +1,156 @@
+-        fields=[("Період з (година/дата/місяць/рік)",self.att_from),("Період по (година/дата/місяць/рік)",self.att_to),("Місце директора / представника",self.att_place),("Дата бланка (ДД.ММ.РРРР)",self.att_date)]
++
++        # v8.55: дата Бланка підтвердження завжди дорівнює календарній
++        # даті завершення періоду. Поле лише показує розраховане значення.
++        def _sync_attestation_date(*_):
++            en=parse_attestation_period(self.att_to.get().strip())
++            if en:
++                self.att_date.set(en.strftime("%d.%m.%Y"))
++
++        self.att_to.trace_add("write", _sync_attestation_date)
++        _sync_attestation_date()
++
++        fields=[("Період з (година/дата/місяць/рік)",self.att_from),("Період по (година/дата/місяць/рік)",self.att_to),("Місце директора / представника",self.att_place),("Дата бланка (авто = дата завершення періоду)",self.att_date)]
+         for i,(l,v) in enumerate(fields,1):
+             ttk.Label(f,text=l).grid(row=i,column=0,sticky="w",padx=6,pady=6)
+-            ttk.Entry(f,textvariable=v,width=45).grid(row=i,column=1,sticky="w",padx=6,pady=6)
+-            if v in (self.att_from, self.att_to, self.att_date):
++            state="readonly" if v is self.att_date else "normal"
++            ttk.Entry(f,textvariable=v,width=45,state=state).grid(row=i,column=1,sticky="w",padx=6,pady=6)
++            if v in (self.att_from, self.att_to):
+                 calendar_button(f,v).grid(row=i,column=2,sticky="w",padx=(2,6),pady=6)
+         ttk.Label(
+             f,
+@@ -5057,6 +5616,10 @@
+         # Зручніше зберігати номер у прихованому/текстовому комбобоксі.
+         self.att_activity_text=cb
+         ttk.Button(f,text="Створити DOCX",command=self.create_attestation).grid(row=6,column=1,sticky="w",padx=6,pady=12)
++        ttk.Button(
++            f,text="Контроль бланків — 56 днів + поточний",
++            command=self.show_attestation_gap_control
++        ).grid(row=6,column=2,sticky="w",padx=6,pady=12)
+ 
+         hist=ttk.LabelFrame(self.tab_att,text="Історія сформованих бланків")
+         hist.pack(fill="both",expand=True,padx=12,pady=8)
+@@ -5069,32 +5632,385 @@
+         self.att_tree.pack(fill="both",expand=True,padx=6,pady=6)
+         ttk.Button(hist,text="Відкрити файл",command=self.open_att_file).pack(anchor="e",padx=6,pady=6)
+ 
++    def show_attestation_gap_control(self):
++        if not getattr(self,"att_driver_id",None):
++            messagebox.showwarning(
++                "Контроль бланків",
++                "Спочатку виберіть водія у вкладці «Підтвердження діяльності».",
++                parent=self
++            )
++            return
++
++        if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
++            self.att_gap_win.lift()
++            self.refresh_attestation_gap_control()
++            return
++
++        win=tk.Toplevel(self)
++        self.att_gap_win=win
++        win.title("Контроль бланків — 56 днів + поточний період до виїзду")
++        win.geometry("1250x650")
++        win.minsize(900,500)
++        win.resizable(True,True)
++
++        top=ttk.Frame(win,padding=8)
++        top.pack(fill="x")
++
++        self.att_gap_control_date=tk.StringVar(
++            value=self.att_date.get().strip() if hasattr(self,"att_date") else date.today().strftime("%d.%m.%Y")
++        )
++        ttk.Label(top,text="День контролю:").pack(side="left")
++        ttk.Entry(top,textvariable=self.att_gap_control_date,width=13).pack(side="left",padx=5)
++        calendar_button(top,self.att_gap_control_date).pack(side="left",padx=2)
++        ttk.Button(
++            top,text="Перевірити",command=self.refresh_attestation_gap_control
++        ).pack(side="left",padx=8)
++        ttk.Button(
++            top,text="Підставити у форму",
++            command=self.use_selected_attestation_gap
++        ).pack(side="left",padx=8)
++
++        self.att_gap_activity=tk.StringVar(value=f"16 — {ACTIVITIES[16]}")
++        ttk.Label(top,text="Позиція:").pack(side="left",padx=(8,3))
++        ttk.Combobox(
++            top,textvariable=self.att_gap_activity,state="readonly",width=31,
++            values=[f"{n} — {ACTIVITIES[n]}" for n in ACTIVITIES]
++        ).pack(side="left",padx=3)
++
++        ttk.Button(
++            top,text="Сформувати Бланк підтвердження",
++            command=self.create_selected_gap_attestation
++        ).pack(side="left",padx=8)
++
++        ttk.Label(
++            win,
++            text=(
++                "Правило v8.56: минулі незакриті проміжки показуються як аварійний контроль. "
++                "Окремо програма дивиться вперед у графік і показує ПОТОЧНИЙ період відпочинку/діяльності "
++                "до найближчого наступного виїзду — такий бланк треба підготувати до виїзду. Між двома "
++                "ТАХО-робочими днями підряд окремий бланк не потрібен. Автокоди: 14 лікарняний, "
++                "15 відпустка, 16 вихідний/відпочинок, 18 «Без тахо — 8 год»/інша робота, 19 доступний. "
++                "Сусідні частини з однаковим кодом об'єднуються; код можна змінити вручну. Дата кожного "
++                "бланка автоматично дорівнює даті закінчення його періоду, навіть якщо бланк друкується заздалегідь."
++            ),
++            foreground="gray",wraplength=1200,justify="left"
++        ).pack(fill="x",padx=10,pady=(0,6))
++
++        frame=ttk.Frame(win)
++        frame.pack(fill="both",expand=True,padx=10,pady=5)
++
++        cols=("status","from","to","duration","suggest","reason")
++        self.att_gap_tree=ttk.Treeview(frame,columns=cols,show="headings",selectmode="browse")
++        heads={
++            "status":"Статус","from":"З","to":"По","duration":"Тривалість",
++            "suggest":"Позиція","reason":"Пояснення"
++        }
++        widths={
++            "status":220,"from":145,"to":145,"duration":90,
++            "suggest":75,"reason":520
++        }
++        for c in cols:
++            self.att_gap_tree.heading(c,text=heads[c])
++            self.att_gap_tree.column(c,width=widths[c],anchor="w",stretch=(c=="reason"))
++
++        ybar=ttk.Scrollbar(frame,orient="vertical",command=self.att_gap_tree.yview)
++        xbar=ttk.Scrollbar(frame,orient="horizontal",command=self.att_gap_tree.xview)
++        self.att_gap_tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
++        self.att_gap_tree.grid(row=0,column=0,sticky="nsew")
++        self.att_gap_tree.bind("<<TreeviewSelect>>",self.on_attestation_gap_select)
++        ybar.grid(row=0,column=1,sticky="ns")
++        xbar.grid(row=1,column=0,sticky="ew")
++        frame.rowconfigure(0,weight=1)
++        frame.columnconfigure(0,weight=1)
++
++        self.att_gap_tree.tag_configure("missing",background="#FDE8E8")
++        self.att_gap_tree.tag_configure("covered",background="#E6F4EA")
++        self.att_gap_tree.tag_configure("current_missing",background="#FFF2CC")
++        self.att_gap_tree.tag_configure("current_covered",background="#DDEBF7")
++        self.att_gap_tree.tag_configure("no_tacho",background="#EAF2FF")
++
++        self.att_gap_summary=tk.StringVar()
++        ttk.Label(
++            win,textvariable=self.att_gap_summary,
++            font=("TkDefaultFont",9,"bold")
++        ).pack(fill="x",padx=10,pady=(2,8))
++
++        self.att_gap_items={}
++        self.refresh_attestation_gap_control()
++
++    def refresh_attestation_gap_control(self):
++        if not getattr(self,"att_driver_id",None):
++            return
++        if not hasattr(self,"att_gap_tree") or not self.att_gap_tree.winfo_exists():
++            return
++        try:
++            control_day=datetime.strptime(
++                self.att_gap_control_date.get().strip(),"%d.%m.%Y"
++            ).date()
++        except ValueError:
++            messagebox.showerror(
++                "Контроль бланків","Дата має бути у форматі ДД.ММ.РРРР.",

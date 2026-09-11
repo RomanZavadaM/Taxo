@@ -1,0 +1,121 @@
++                driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,
++                overtime_hours,vehicle,notes,route_name,route_id,template_id,shift_type,
++                vehicle_id,accounting_mode
++            )
++                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
++                ON CONFLICT(driver_id,work_date) DO UPDATE SET
++                    day_type=excluded.day_type,start_time=excluded.start_time,end_time=excluded.end_time,
++                    work_hours=excluded.work_hours,driving_hours=excluded.driving_hours,
++                    overtime_hours=excluded.overtime_hours,vehicle=excluded.vehicle,
++                    notes=excluded.notes,route_name=excluded.route_name,route_id=excluded.route_id,
++                    template_id=excluded.template_id,shift_type=excluded.shift_type,
++                    vehicle_id=excluded.vehicle_id,accounting_mode=excluded.accounting_mode""",
++                (
++                    self.driver_id,wd,clip.get("day_type","Робота"),clip.get("start_time",""),
++                    clip.get("end_time",""),clip.get("work_hours",0),clip.get("driving_hours",0),
++                    clip.get("overtime_hours",0),clip.get("vehicle",""),clip.get("notes",""),
++                    clip.get("route_name",""),clip.get("route_id"),clip.get("template_id"),
++                    clip.get("shift_type","Безперервна"),clip.get("vehicle_id"),
++                    clip.get("accounting_mode",WORK_MODE_MANUAL)
++                ))
+             wid=con.execute("SELECT id FROM worklog WHERE driver_id=? AND work_date=?",(self.driver_id,wd)).fetchone()[0]
+             con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wid,))
+             for i,r in enumerate(clip.get("segments",[]),1):
+@@ -4200,7 +4747,8 @@
+ 
+         if not messagebox.askyesno(
+             "Небезпечна масова дія",
+-            f"Заповнити робочі дні {m:02d}.{y} стандартним графіком 08:00–17:00 / 8 год?\n\n"
++            f"Позначити робочі дні {m:02d}.{y} як «Без тахо — стандартні 8 год»?\n\n"
++            "Час маршруту/керування не задається: у табелі буде лише 8:00.\n"
+             "УВАГА: існуючі записи робочих днів цього водія можуть бути змінені.\n"
+             "Продовжити?",
+             parent=self
+@@ -4210,11 +4758,30 @@
+         con=db()
+         for d in month_dates(y,m):
+             if d.weekday()<5:
+-                con.execute("""INSERT INTO worklog(driver_id,work_date,day_type,start_time,end_time,work_hours,shift_type) VALUES(?,?,?,?,?,?,?)
+-                    ON CONFLICT(driver_id,work_date) DO UPDATE SET day_type=excluded.day_type,start_time=excluded.start_time,end_time=excluded.end_time,work_hours=excluded.work_hours,shift_type=excluded.shift_type""",(self.driver_id,d.isoformat(),"Робота","08:00","17:00",8,"Безперервна"))
+-                wl=con.execute("SELECT id FROM worklog WHERE driver_id=? AND work_date=?",(self.driver_id,d.isoformat())).fetchone()[0]
++                con.execute("""INSERT INTO worklog(
++                    driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,
++                    route_name,route_id,template_id,shift_type,accounting_mode
++                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
++                    ON CONFLICT(driver_id,work_date) DO UPDATE SET
++                        day_type=excluded.day_type,
++                        start_time=excluded.start_time,
++                        end_time=excluded.end_time,
++                        work_hours=excluded.work_hours,
++                        driving_hours=excluded.driving_hours,
++                        route_name=excluded.route_name,
++                        route_id=excluded.route_id,
++                        template_id=excluded.template_id,
++                        shift_type=excluded.shift_type,
++                        accounting_mode=excluded.accounting_mode""",
++                    (
++                        self.driver_id,d.isoformat(),"Робота","","",8,0,
++                        "",None,None,"Безперервна",WORK_MODE_NO_TACHO
++                    ))
++                wl=con.execute(
++                    "SELECT id FROM worklog WHERE driver_id=? AND work_date=?",
++                    (self.driver_id,d.isoformat())
++                ).fetchone()[0]
+                 con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wl,))
+-                con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_hours,driving_hours,activity_type) VALUES(?,?,?,?,?,?,?)",(wl,1,"08:00","17:00",8,0,"Робота"))
+         con.commit(); con.close(); self.refresh_month()
+ 
+     def current_rows(self):
+@@ -4995,37 +5562,17 @@
+         con=db(); rows=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name").fetchall(); con.close(); return rows
+ 
+     def tacho_to_worklog(self, driver_id, vehicle_id, work_date, intervals):
+-        """Передає підтверджені/відредаговані інтервали з тестової БД у основний табель."""
+-        datetime.strptime(work_date, "%Y-%m-%d")
+-        con=db()
+-        try:
+-            row=con.execute("SELECT id FROM worklog WHERE driver_id=? AND work_date=?",(driver_id,work_date)).fetchone()
+-            if row:
+-                wid=row["id"]
+-                con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wid,))
+-            else:
+-                cur=con.execute("INSERT INTO worklog(driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,overtime_hours,vehicle,vehicle_id,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)",(driver_id,work_date,"Робота","","",0,0,0,"",vehicle_id,"Джерело: тахографічна шайба")); wid=cur.lastrowid
+-            total_work=0.0; total_drive=0.0; starts=[]; ends=[]
+-            for i,r in enumerate(intervals,1):
+-                a=int(r["start_min"]); b=int(r["end_min"]);
+-                # Інтервал, що переходить через 00:00, у табелі зберігаємо в межах доби.
+-                st=f"{(a%1440)//60:02d}:{a%60:02d}"; en=f"{(b%1440)//60:02d}:{b%60:02d}"
+-                dur=((b-a)%1440)/60.0 if b!=a else 24.0
+-                act=r["activity"]
+-                drive=dur if act=="Керування" else 0.0
+-                work=dur if act in ("Керування","Інша робота") else 0.0
+-                total_drive += drive; total_work += work; starts.append(a); ends.append(b)
+-                con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?)",(wid,i,st,en,round(work,2),round(drive,2),act,"Імпорт із тестового модуля тахографа"))
+-            st=self.tacho_module.fm(min(starts)) if starts else ""
+-            en=self.tacho_module.fm(max(ends)) if ends else ""
+-            con.execute("UPDATE worklog SET start_time=?,end_time=?,work_hours=?,driving_hours=?,vehicle_id=?,notes=? WHERE id=?",(st,en,round(total_work,2),round(total_drive,2),vehicle_id,"Джерело: тахографічна шайба; перевірено користувачем",wid))
+-            con.commit()
+-            self.refresh_month()
+-            return len(intervals)
+-        except Exception:
+-            con.rollback(); raise
+-        finally:
+-            con.close()
++        """Застарілий канал імпорту відключено.
++
++        Починаючи з v8.53 тахокарти використовуються тільки як вибірковий
++        контроль. Результат розпізнавання зберігається у протоколі контролю
++        окремої тахографічної БД і НІКОЛИ не змінює worklog/work_segments.
++        """
++        raise RuntimeError(
++            "Передача тахокарти в основний графік/табель відключена. "
++            "Використовуйте «Зберегти протокол контролю»."
++        )
++
+ 
+     def build_attestation(self):
+         f=ttk.Frame(self.tab_att); f.pack(fill="x",padx=12,pady=12)
+@@ -5039,11 +5586,23 @@
+         self.att_place=tk.StringVar(value=get_setting("attestation_place", ""))
+         self.att_date=tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
+         self.att_activity=tk.StringVar(value="16 — Відсутність / відпочинок")

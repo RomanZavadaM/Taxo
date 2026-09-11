@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Запускний модуль Taxo v8.49.
+"""Запускний модуль Taxo v8.56.
 
-Базовий пакет v8.41 знаходиться у releases/Taxo_v8_41_source.zip.
-Під час запуску спочатку застосовується перевірений патч v8.45,
-потім оновлення v8.49, після чого запускається актуальна програма.
+GitHub-збірка відновлюється з перевіреної бази v8.41 та текстових патчів:
+v8.45 -> v8.49 -> v8.56. Така схема не вимагає зберігати БД користувача
+або великий двійковий реліз у репозиторії.
 """
 from pathlib import Path
 import hashlib
@@ -24,10 +24,16 @@ PATCH_V849 = [
     ROOT / "releases" / "Taxo_v8_49_delta.part1",
     ROOT / "releases" / "Taxo_v8_49_delta.part2",
 ]
-RUNTIME = ROOT / ".taxo_runtime_v8_49"
-MARKER = RUNTIME / ".v8_49_source_sha256"
+PATCH_V856_MAIN = [
+    ROOT / "releases" / f"Taxo_v8_56_main.part{i:02d}" for i in range(1, 9)
+]
+PATCH_V856_TACHO = [
+    ROOT / "releases" / f"Taxo_v8_56_tachograph.part{i:02d}" for i in range(1, 3)
+]
+RUNTIME = ROOT / ".taxo_runtime_v8_56"
+MARKER = RUNTIME / ".v8_56_source_sha256"
 
-for required in [ARCHIVE, *PATCH_V845, *PATCH_V849]:
+for required in [ARCHIVE, *PATCH_V845, *PATCH_V849, *PATCH_V856_MAIN, *PATCH_V856_TACHO]:
     if not required.exists():
         raise FileNotFoundError(f"Не знайдено файл програми: {required}")
 
@@ -66,12 +72,12 @@ def apply_unified_diff_text(original_text, patch_text):
             payload = line[1:]
             if tag == " ":
                 if source_index >= len(original) or original[source_index] != payload:
-                    raise RuntimeError(f"Патч не відповідає main.py біля рядка {source_index + 1}")
+                    raise RuntimeError(f"Патч не відповідає файлу біля рядка {source_index + 1}")
                 out.append(original[source_index])
                 source_index += 1
             elif tag == "-":
                 if source_index >= len(original) or original[source_index] != payload:
-                    raise RuntimeError(f"Патч не відповідає main.py біля рядка {source_index + 1}")
+                    raise RuntimeError(f"Патч не відповідає файлу біля рядка {source_index + 1}")
                 source_index += 1
             elif tag == "+":
                 out.append(payload)
@@ -85,12 +91,16 @@ def apply_unified_diff_text(original_text, patch_text):
 
 patch_845 = "".join(p.read_text(encoding="utf-8") for p in PATCH_V845)
 patch_849 = "".join(p.read_text(encoding="utf-8") for p in PATCH_V849)
+patch_856_main = "".join(p.read_text(encoding="utf-8") for p in PATCH_V856_MAIN)
+patch_856_tacho = "".join(p.read_text(encoding="utf-8") for p in PATCH_V856_TACHO)
 source_hash = hashlib.sha256(
     ARCHIVE.read_bytes()
     + patch_845.encode("utf-8")
     + patch_849.encode("utf-8")
+    + patch_856_main.encode("utf-8")
+    + patch_856_tacho.encode("utf-8")
 ).hexdigest()
-need_extract = not (RUNTIME / "main.py").exists()
+need_extract = not (RUNTIME / "main.py").exists() or not (RUNTIME / "tachograph.py").exists()
 
 if not need_extract:
     try:
@@ -110,7 +120,26 @@ if need_extract:
     text = runtime_main.read_text(encoding="utf-8")
     text = apply_unified_diff_text(text, patch_845)
     text = apply_unified_diff_text(text, patch_849)
+    text = apply_unified_diff_text(text, patch_856_main)
     runtime_main.write_text(text, encoding="utf-8")
+
+    runtime_tacho = RUNTIME / "tachograph.py"
+    text = runtime_tacho.read_text(encoding="utf-8")
+    text = apply_unified_diff_text(text, patch_856_tacho)
+    runtime_tacho.write_text(text, encoding="utf-8")
+
+    # Контрольні SHA-256 перевірено на еталонному ZIP Taxo_v8_56.
+    expected = {
+        "main.py": "30c5d46974964be86ee3a0d72130f20ef7c63893c7e82e30b8484abda014815f",
+        "tachograph.py": "6018a71b4a283dbbba640e1daa313eff9f26cdde931aa4cba77884a5141d20cc",
+    }
+    for name, digest in expected.items():
+        actual = hashlib.sha256((RUNTIME / name).read_bytes()).hexdigest()
+        if actual != digest:
+            raise RuntimeError(
+                f"Контроль SHA-256 не пройдено для {name}: {actual} != {digest}"
+            )
+
     MARKER.write_text(source_hash, encoding="utf-8")
 
 runpy.run_path(str(RUNTIME / "main.py"), run_name="__main__")
