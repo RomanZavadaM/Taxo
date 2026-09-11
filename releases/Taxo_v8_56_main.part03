@@ -1,0 +1,139 @@
++                        f"Підготувати бланк ДО виїзду. Автопозиція {suggested_no}: {ACTIVITIES[suggested_no]}."
++                        if is_current else
++                        f"Автоматично запропонована позиція {suggested_no}: {ACTIVITIES[suggested_no]}."
++                    ),
++                })
++
++    rank={"missing":0,"covered":1}
++    rows_out.sort(key=lambda r:(r["from"],0 if r.get("is_current") else 1,rank.get(r["kind"],9),r.get("activity_no",0)))
++
++    tacho_days_in_window={
++        b["work_date"] for b in duty_blocks if start_day<=b["work_date"]<=end_day
++    }
++
++    return {
++        "driver_id":int(driver_id),
++        "control_date":control_date,
++        "start_day":start_day,
++        "end_day":end_day,
++        "previous_days":int(previous_days),
++        "tacho_days":len(tacho_days_in_window),
++        "tacho_blocks":len([
++            b for b in duty_blocks if start_day<=b["work_date"]<=end_day
++        ]),
++        "no_tacho_days":len(set(no_tacho_days)),
++        "required_minutes":required_minutes,
++        "covered_minutes":covered_minutes,
++        "missing_minutes":missing_minutes,
++        "current_pair_found":current_pair_found,
++        "current_departure":current_departure,
++        "current_required_minutes":current_required_minutes,
++        "current_missing_minutes":current_missing_minutes,
++        "ignored_consecutive_minutes":ignored_consecutive_minutes,
++        "invalid_attestations":invalid_attestations,
++        "rows":rows_out,
++    }
+ 
+ 
+ 
+@@ -2633,6 +3069,7 @@
+         service_menu.add_command(label="Графік водіїв", command=lambda: self.show_tab(self.tab_schedule))
+         service_menu.add_command(label="Місячний графік змінності", command=self.show_monthly_shift_schedule)
+         service_menu.add_command(label="Місячний табель / баланс часу", command=self.show_monthly_work_balance)
++        service_menu.add_command(label="Контроль бланків — 56 днів + поточний", command=self.show_attestation_gap_control)
+         service_menu.add_command(label="Маршрути", command=lambda: self.show_tab(self.tab_route_catalog))
+         service_menu.add_command(label="Шаблони маршрутів", command=lambda: self.show_tab(self.tab_routes))
+         service_menu.add_command(label="Автомобілі", command=lambda: self.show_tab(self.tab_vehicles))
+@@ -2692,7 +3129,11 @@
+         self.build_route_catalog()
+         self.build_attestation()
+         if TachographModule:
+-            self.tacho_module = TachographModule(self.tab_tacho, self.tacho_drivers, self.tacho_vehicles, self.tacho_to_worklog)
++            # v8.53: тахокарти — тільки контроль. Модуль не отримує callback,
++            # який міг би змінювати основний графік/табель.
++            self.tacho_module = TachographModule(
++                self.tab_tacho, self.tacho_drivers, self.tacho_vehicles
++            )
+             self.tacho_module.seed_examples([APP_DIR / "tachograph_test_scan_01.jpg", APP_DIR / "tachograph_test_scan_02.jpg"])
+         else:
+             ttk.Label(self.tab_tacho, text="Модуль тахографа не завантажено. Запустіть START.bat для встановлення залежностей.").pack(padx=20, pady=20)
+@@ -3177,7 +3618,7 @@
+         ).pack(side="left",padx=5)
+         ttk.Button(
+             bar,
+-            text="⚠ Заповнити робочі дні 8 год",
++            text="⚠ Без тахо — робочі дні 8 год",
+             command=self.autofill
+         ).pack(side="left",padx=(18,5))
+         ttk.Label(
+@@ -3189,10 +3630,10 @@
+             ),
+             foreground="gray"
+         ).pack(anchor="w",padx=12)
+-        cols=("id","date","weekday","type","schedule","breaks","work","drive","over","route","vehicle","notes")
++        cols=("id","date","weekday","type","schedule","breaks","work","drive","over","route","vehicle","notes","mode")
+         self.work_tree=ttk.Treeview(self.tab_work,columns=cols,show="headings",height=24,selectmode="extended")
+-        heads={"id":"ID","date":"Дата","weekday":"День","type":"Вид","schedule":"Графік","breaks":"Перерви","work":"Робота","drive":"Кер.","over":"Надуроч.","route":"Маршрут","vehicle":"Авто","notes":"Примітка"}
+-        widths={"id":40,"date":85,"weekday":55,"type":120,"schedule":170,"breaks":90,"work":65,"drive":65,"over":75,"route":150,"vehicle":100,"notes":180}
++        heads={"id":"ID","date":"Дата","weekday":"День","type":"Вид","schedule":"Графік","breaks":"Перерви","work":"Робота","drive":"Кер.","over":"Надуроч.","route":"Маршрут","vehicle":"Авто","notes":"Примітка","mode":"Режим"}
++        widths={"id":40,"date":85,"weekday":55,"type":120,"schedule":170,"breaks":90,"work":65,"drive":65,"over":75,"route":150,"vehicle":100,"notes":180,"mode":190}
+         for c in cols:
+             self.work_tree.heading(c,text=heads[c]); self.work_tree.column(c,width=widths[c],anchor="w")
+         self.work_tree.pack(fill="both",expand=True,padx=10,pady=5)
+@@ -3948,7 +4389,8 @@
+                   hours_value_hhmm(r["work_hours"]) if r else "0:00",
+                   hours_value_hhmm(r["driving_hours"]) if r else "0:00",
+                   hours_value_hhmm(r["overtime_hours"]) if r else "0:00",
+-                  r["route_name"] if r and "route_name" in r.keys() else "",r["vehicle"] if r else "",r["notes"] if r else "")
++                  r["route_name"] if r and "route_name" in r.keys() else "",r["vehicle"] if r else "",r["notes"] if r else "",
++                  work_mode_label(r["accounting_mode"] if r and "accounting_mode" in r.keys() else WORK_MODE_MANUAL))
+             self.work_tree.insert("","end",values=vals)
+ 
+     def edit_work_row(self,_=None):
+@@ -3976,6 +4418,9 @@
+         vehicle_label_var=tk.StringVar(value=next((self.vehicle_label(v) for v in vehicles if v["id"]==existing_vehicle_id), vehicle_var.get()))
+         notes_var=tk.StringVar(value=(existing["notes"] if existing else vals[11]))
+         shift_var=tk.StringVar(value=(existing["shift_type"] if existing and "shift_type" in existing.keys() else ("Розділена на частини" if len(old_segments)>1 else "Безперервна")))
++        existing_mode=(existing["accounting_mode"] if existing and "accounting_mode" in existing.keys() else WORK_MODE_MANUAL) or WORK_MODE_MANUAL
++        mode_var=tk.StringVar(value=work_mode_label(existing_mode))
++        template_id_var=tk.IntVar(value=(existing["template_id"] if existing and "template_id" in existing.keys() and existing["template_id"] else 0))
+         ttk.Label(top,text="Дата").grid(row=0,column=0,padx=4,pady=4,sticky="w")
+         ttk.Entry(top,textvariable=day_var,width=14).grid(row=0,column=1,padx=4,sticky="w")
+         calendar_button(top,day_var).grid(row=0,column=2,padx=(0,8),sticky="w")
+@@ -4006,6 +4451,18 @@
+ 
+         ttk.Label(top,text="Примітка").grid(row=1,column=5,padx=(8,4),sticky="w")
+         ttk.Entry(top,textvariable=notes_var,width=28).grid(row=1,column=6,padx=4,sticky="ew")
++
++        ttk.Label(top,text="Режим обліку").grid(row=2,column=0,padx=4,pady=4,sticky="w")
++        ttk.Combobox(
++            top,textvariable=mode_var,
++            values=list(WORK_MODE_BY_LABEL.keys()),
++            state="readonly",width=34
++        ).grid(row=2,column=1,columnspan=2,padx=4,sticky="w")
++        ttk.Label(
++            top,
++            text="ТАХО: весь час поза інтервалами маршруту контролюється бланками. Без тахо: лише 8 год у табелі.",
++            foreground="gray"
++        ).grid(row=2,column=3,columnspan=4,padx=(8,4),sticky="w")
+ 
+         top.columnconfigure(1,weight=1)
+         top.columnconfigure(4,weight=1)
+@@ -4105,8 +4562,25 @@
+             vehicle_label_var.set(self.vehicle_label(tv) if tv else (t["vehicle"] or ""))
+             vehicle_var.set(t["vehicle"] or "")
+             shift_var.set(t["shift_type"] or ("Розділена на частини" if len(ts)>1 else "Безперервна"))
++            template_id_var.set(t["id"])
++            mode_var.set(WORK_MODE_LABELS[WORK_MODE_TACHO])
+             load_segments(ts)
+-        ttk.Button(apply_frame,text="Застосувати",command=apply_template).pack(side="left")
++
++        def set_no_tacho_8h():
++            mode_var.set(WORK_MODE_LABELS[WORK_MODE_NO_TACHO])
++            type_var.set("Робота")
++            template_id_var.set(0)
++            template_var.set("")
++            route_var.set("")
++            shift_var.set("Безперервна")
++            seg_data.clear()
++            redraw()
