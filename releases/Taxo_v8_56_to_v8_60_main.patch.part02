@@ -1,0 +1,207 @@
+en(doc.tables) < 2:
+         raise RuntimeError("Шаблон бланка пошкоджений: очікується лицьова та зворотна таблиця.")
+@@ -892,11 +989,11 @@
+     if len(ep) > 1:
+         _att_set_runs(ep[1], [
+             ("1. Name of the undertaking: ", False),
+-            (company["name"] or "", True),
++            (company_name_en, True),
+         ])
+ 
+     if len(ep) > 4:
+-        _att_set_text(ep[3], company["address"] or "", bold=True)
++        _att_set_text(ep[3], company_address_en, bold=True)
+         _att_set_text(ep[4], "")
+ 
+     if len(ep) > 9:
+@@ -911,15 +1008,15 @@
+     if len(ep) > 18:
+         _att_set_runs(ep[11], [
+             ("6. Name and first name: ", False),
+-            (company["signer_name"] or "", True),
++            (signer_name_en, True),
+         ])
+         _att_set_runs(ep[12], [
+             ("7. Position in the undertaking: ", False),
+-            (company["signer_position"] or "", True),
++            (signer_position_en, True),
+         ])
+         _att_set_runs(ep[14], [
+             ("8. Name and first name: ", False),
+-            (driver_full, True),
++            (driver_full_en, True),
+         ])
+         _att_set_text(ep[16], birth_date, bold=True)
+         _att_set_runs(ep[17], [
+@@ -954,7 +1051,7 @@
+         _att_set_checkbox(ep[28],19,activity_no==19,"was available;")
+         _att_set_runs(ep[29], [
+             ("20. Place ", False),
+-            (director_place, True),
++            (director_place_en, True),
+             ("    Date ", False),
+             (form_date_fmt, True),
+         ])
+@@ -975,7 +1072,7 @@
+         elif t.startswith("Place ") and "Date" in t:
+             _att_set_runs(p, [
+                 ("Place ", False),
+-                (director_place, True),
++                (director_place_en, True),
+                 ("    Date ", False),
+                 (form_date_fmt, True),
+             ])
+@@ -1497,6 +1594,84 @@
+     return value.strftime("%H:%M %d.%m.%Y")
+ 
+ 
++def _attestation_is_active(row):
++    if row is None:
++        return False
++    try:
++        value=row["status"]
++    except Exception:
++        value="active"
++    return (value or "active").strip().lower()=="active"
++
++
++def _audit_attestation_snapshot(con, row, action, note="", file_path_override=None):
++    """Фіксує стан бланка в журналі змін. Працює і зі старими sqlite.Row."""
++    if row is None:
++        return
++    keys=set(row.keys()) if hasattr(row,"keys") else set()
++    def g(name, default=""):
++        return row[name] if name in keys and row[name] is not None else default
++    con.execute(
++        """INSERT INTO attestation_audit(
++            attestation_id,action,revision,period_from,period_to,activity_no,
++            place,form_date,file_path,status,note,created_at
++        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
++        (
++            g("id",0),action,int(g("revision",1) or 1),g("period_from"),g("period_to"),
++            int(g("activity_no",16) or 16),g("place"),g("form_date"),
++            file_path_override if file_path_override is not None else g("file_path"),
++            g("status","active") or "active",note,datetime.now().isoformat(timespec="seconds")
++        )
++    )
++
++
++def _ensure_attestation_audit_baseline(con, row):
++    if row is None:
++        return
++    exists=con.execute(
++        "SELECT 1 FROM attestation_audit WHERE attestation_id=? LIMIT 1",
++        (row["id"],)
++    ).fetchone()
++    if not exists:
++        _audit_attestation_snapshot(con,row,"BASELINE","Стан до першої зміни у v8.57")
++
++
++def _safe_archive_file(path_text, target_dir, label):
++    """Переміщує старий DOCX у контрольний архів без перезапису."""
++    raw=(path_text or "").strip()
++    if not raw:
++        return raw
++    src=Path(raw)
++    if not src.exists() or not src.is_file():
++        return raw
++    target_dir.mkdir(parents=True,exist_ok=True)
++    stamp=datetime.now().strftime("%Y%m%d_%H%M%S")
++    stem=src.stem
++    suffix=src.suffix or ".docx"
++    target=target_dir/f"{stem}_{label}_{stamp}{suffix}"
++    n=2
++    while target.exists():
++        target=target_dir/f"{stem}_{label}_{stamp}_{n}{suffix}"
++        n+=1
++    shutil.move(str(src),str(target))
++    return str(target)
++
++
++def _unique_attestation_output_path(driver, st, en, activity_no):
++    safe=f"{driver['last_name']}_{driver['first_name']}".replace(" ","_")
++    stamp_from=st.strftime("%Y%m%d_%H%M")
++    stamp_to=en.strftime("%Y%m%d_%H%M")
++    base=OUTPUT_DIR/f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}.docx"
++    if not base.exists():
++        return base
++    n=2
++    while True:
++        candidate=OUTPUT_DIR/f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}_v{n}.docx"
++        if not candidate.exists():
++            return candidate
++        n+=1
++
++
+ def _merge_dt_intervals(intervals):
+     cleaned=sorted(
+         [(a,b) for a,b in intervals if a is not None and b is not None and b>a],
+@@ -1630,7 +1805,7 @@
+ 
+ 
+ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=56):
+-    """Контроль Бланків підтвердження за внутрішнім правилом v8.56.
++    """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
+ 
+     Ключові правила:
+     - усі частини одного маршрутного ТАХО-дня = один ТАХО-блок від першого
+@@ -1699,7 +1874,7 @@
+ 
+     att_rows=con.execute(
+         """SELECT * FROM attestations
+-           WHERE driver_id=?
++           WHERE driver_id=? AND COALESCE(status,'active')='active'
+            ORDER BY id""",
+         (int(driver_id),)
+     ).fetchall()
+@@ -3040,7 +3215,7 @@
+ class App(tk.Tk):
+     def __init__(self):
+         super().__init__()
+-        self.title("Облік водіїв — 48 місяців")
++        self.title("Taxo v8.59 — Облік водіїв — 48 місяців")
+         self.geometry("1200x760")
+         self.minsize(1050, 650)
+         self.protocol("WM_DELETE_WINDOW", self.exit_app)
+@@ -3139,8 +3314,8 @@
+             ttk.Label(self.tab_tacho, text="Модуль тахографа не завантажено. Запустіть START.bat для встановлення залежностей.").pack(padx=20, pady=20)
+ 
+     def build_company(self):
+-        f = ttk.LabelFrame(self.tab_company, text="Реквізити підприємства")
+-        f.pack(fill="x", padx=12, pady=12)
++        f = ttk.LabelFrame(self.tab_company, text="Реквізити підприємства — українською")
++        f.pack(fill="x", padx=12, pady=(12,6))
+         self.company_vars = {}
+         labels = [
+             ("name", "Найменування / ПІБ суб'єкта господарювання"),
+@@ -3158,6 +3333,48 @@
+             ttk.Entry(f, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
+         f.columnconfigure(1, weight=1)
+ 
++        en_box = ttk.LabelFrame(self.tab_company, text="Реквізити для англійської сторони Бланка")
++        en_box.pack(fill="x", padx=12, pady=(0,10))
++        self.company_en_vars = {}
++        en_labels = [
++            ("name_en", "Name of the undertaking"),
++            ("address_en", "Address"),
++            ("signer_name_en", "Name and first name of representative"),
++            ("signer_position_en", "Position in the undertaking"),
++            ("place_en", "Place (місце у бланку)"),
++        ]
++        ttk.Label(
++            en_box,
++            text=(
++                "Заповнюйте тільки ті поля, для яких потрібен окремий англійський текст. "
++                "Якщо поле порожнє — в англійську сторону автоматично підставляється українське значення. "
++                "Телефон, факс та E-mail копіюються без змін."
++            ),
++            foreground="gray", wraplength=1050, justify="left"
++        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(7,4))
++        for i, (key, label) in enumerate(en_labels, start=1):
++            ttk.Label(en_box, text=label).grid(row=i, column=0, sticky="w", padx=8, pady=5)
++            v = tk.StringVar()
++            self.company_en_vars[key] = v
++            ttk.Entry(en_box, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
++        en_box.columnconfigure(1, weight=1)
++
++        c
