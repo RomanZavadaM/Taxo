@@ -1,22 +1,21 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
 echo ==============================================
-echo   Taxo - запуск програми
+echo   Driver Worktime App - START
 echo ==============================================
 echo.
 py -3.13 -m pip install -r requirements.txt
 if errorlevel 1 (
     echo.
-    echo ПОМИЛКА: не вдалося встановити необхідні пакети.
+    echo ERROR: package installation failed.
     pause
     exit /b 1
 )
 echo.
-echo Запуск програми...
+echo Starting application...
 py -3.13 main.py
 if errorlevel 1 (
     echo.
-    echo ПОМИЛКА: програма завершила роботу з помилкою.
+    echo ERROR: application stopped with an error.
     pause
 )
