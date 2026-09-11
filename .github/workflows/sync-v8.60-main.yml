@@ -1,0 +1,57 @@
+name: Sync recovered v8.60 main.py
+
+on:
+  push:
+    branches:
+      - release-v8.60
+    paths:
+      - releases/Taxo_v8_56_to_v8_60_EXACT.patch.part04
+
+permissions:
+  contents: write
+
+jobs:
+  sync-main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release-v8.60
+        uses: actions/checkout@v4
+        with:
+          ref: release-v8.60
+          fetch-depth: 0
+
+      - name: Verify v8.56 base
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(sha256sum main.py | awk '{print $1}')" = "30c5d46974964be86ee3a0d72130f20ef7c63893c7e82e30b8484abda014815f"
+
+      - name: Rebuild exact patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            releases/Taxo_v8_56_to_v8_60_EXACT.patch.part01 \
+            releases/Taxo_v8_56_to_v8_60_EXACT.patch.part02 \
+            releases/Taxo_v8_56_to_v8_60_EXACT.patch.part03 \
+            releases/Taxo_v8_56_to_v8_60_EXACT.patch.part04 \
+            > /tmp/v860.patch
+          test "$(sha256sum /tmp/v860.patch | awk '{print $1}')" = "42e4b7e85dee500d0fe85047213792ba48d929d89c54310c846a72d7c5bfa455"
+
+      - name: Apply exact recovered v8.60 main.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply /tmp/v860.patch
+          test "$(sha256sum main.py | awk '{print $1}')" = "bb11ecc39e2f7b54fd9926d4023d72b282556efa869922b1e0b7abfc98f31a8c"
+          python -m py_compile main.py tachograph.py
+
+      - name: Commit synchronized main.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.py
+          git commit -m "Synchronize exact recovered v8.60 main.py"
+          git push origin HEAD:release-v8.60
