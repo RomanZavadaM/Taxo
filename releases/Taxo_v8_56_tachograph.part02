@@ -1,0 +1,185 @@
++        disc=tdb().execute(
++            "SELECT * FROM discs WHERE id=?",(self.current_id,)
++        ).fetchone()
++        rows=tdb().execute(
++            "SELECT * FROM intervals WHERE disc_id=? ORDER BY start_min",
++            (self.current_id,)
++        ).fetchall()
++
+         if not rows:
+-            messagebox.showwarning("Табель","Спочатку створіть/перевірте інтервали.",parent=self.parent);return
+-        if not self.send_callback:
+-            messagebox.showinfo("Табель","Інтервали підготовлено. Для передачі потрібен вибраний водій і дата.",parent=self.parent); return
+-        did=self.driver_map.get(self.v_driver.get()); vid=self.vehicle_map.get(self.v_vehicle.get())
++            messagebox.showwarning(
++                "Протокол контролю",
++                "Спочатку створіть/перевірте інтервали тахокарти.",
++                parent=self.parent
++            )
++            return
++
++        did=self.driver_map.get(self.v_driver.get()) or None
++        vid=self.vehicle_map.get(self.v_vehicle.get()) or None
++
+         if not did or not self.v_date.get().strip():
+-            messagebox.showwarning("Табель","Виберіть водія та вкажіть дату шайби.",parent=self.parent); return
++            messagebox.showwarning(
++                "Протокол контролю",
++                "Для протоколу виберіть водія та вкажіть дату тахокарти.",
++                parent=self.parent
++            )
++            return
++
++        # Спочатку зберігаємо метадані самої шайби.
+         try:
+-            work_date=self.pdate(self.v_date.get())
+-            count=self.send_callback(int(did), vid, work_date, rows)
+-            messagebox.showinfo("Табель",f"Передано інтервалів у основний табель: {count}.",parent=self.parent)
+-        except Exception as e:
+-            messagebox.showerror("Помилка передачі",str(e),parent=self.parent)
++            disc_date=self.pdate(self.v_date.get())
++        except ValueError:
++            messagebox.showerror(
++                "Протокол контролю",
++                "Дата тахокарти має бути у форматі ДД.ММ.РРРР.",
++                parent=self.parent
++            )
++            return
++
++        auto_count=sum(1 for x in rows if (x["source"] or "")=="auto")
++        if auto_count:
++            if not messagebox.askyesno(
++                "Протокол контролю",
++                f"У протоколі ще є автоматично розпізнані інтервали: {auto_count}.\n\n"
++                "Вони є чернетковими. Зберегти контрольний протокол у такому вигляді?",
++                parent=self.parent
++            ):
++                return
++
++        totals,max_speed,snapshot=self._protocol_snapshot(disc,rows)
++
++        con=tdb()
++        try:
++            con.execute(
++                """UPDATE discs
++                      SET driver_id=?,vehicle_id=?,disc_date=?,
++                          status='Контрольний протокол збережено'
++                    WHERE id=?""",
++                (did,vid,disc_date,self.current_id)
++            )
++            cur=con.execute(
++                """INSERT INTO control_protocols(
++                    disc_id,driver_id,vehicle_id,disc_date,scan_name,
++                    interval_count,driving_min,other_work_min,rest_min,
++                    availability_min,undefined_min,max_speed_est,status,
++                    snapshot_text,created_at
++                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
++                (
++                    self.current_id,did,vid,disc_date,disc["scan_name"],
++                    len(rows),
++                    totals.get("Керування",0),
++                    totals.get("Інша робота",0),
++                    totals.get("Відпочинок",0),
++                    totals.get("Готовність",0),
++                    totals.get("Невизначено",0),
++                    max_speed,
++                    "Контрольний — без зміни графіка",
++                    snapshot,
++                    datetime.now().isoformat(timespec="seconds")
++                )
++            )
++            protocol_id=cur.lastrowid
++            con.commit()
++        finally:
++            con.close()
++
++        self.load()
++        messagebox.showinfo(
++            "Протокол контролю",
++            f"Протокол №{protocol_id} збережено.\n\n"
++            "Основний графік і табель НЕ змінювалися.",
++            parent=self.parent
++        )
++
++    def show_control_protocols(self):
++        win=tk.Toplevel(self.parent)
++        win.title("Протоколи контролю тахокарт")
++        win.geometry("1000x560")
++        win.transient(self.parent)
++        win.resizable(True,True)
++
++        outer=ttk.Frame(win,padding=8)
++        outer.pack(fill="both",expand=True)
++
++        cols=("id","created","date","scan","intervals","drive","speed","status")
++        tree=ttk.Treeview(outer,columns=cols,show="headings",selectmode="browse")
++        heads={
++            "id":"№","created":"Створено","date":"Дата тахокарти","scan":"Скан",
++            "intervals":"Інтервали","drive":"Керування","speed":"Max швидк.",
++            "status":"Статус"
++        }
++        widths={
++            "id":55,"created":145,"date":105,"scan":200,
++            "intervals":80,"drive":90,"speed":100,"status":210
++        }
++        for c in cols:
++            tree.heading(c,text=heads[c])
++            tree.column(c,width=widths[c],anchor="w")
++
++        y=ttk.Scrollbar(outer,orient="vertical",command=tree.yview)
++        tree.configure(yscrollcommand=y.set)
++        tree.grid(row=0,column=0,sticky="nsew")
++        y.grid(row=0,column=1,sticky="ns")
++        outer.rowconfigure(0,weight=1)
++        outer.columnconfigure(0,weight=1)
++
++        con=tdb()
++        protocols=con.execute(
++            "SELECT * FROM control_protocols ORDER BY id DESC"
++        ).fetchall()
++        con.close()
++
++        by_id={}
++        for p in protocols:
++            by_id[str(p["id"])]=p
++            created=(p["created_at"] or "").replace("T"," ")[:19]
++            drive=f"{int(p['driving_min'] or 0)//60}:{int(p['driving_min'] or 0)%60:02d}"
++            speed=(f"{p['max_speed_est']} км/год" if p["max_speed_est"] is not None else "")
++            tree.insert(
++                "","end",iid=str(p["id"]),
++                values=(
++                    p["id"],created,self.fdate(p["disc_date"] or ""),
++                    p["scan_name"],p["interval_count"],drive,speed,p["status"]
++                )
++            )
++
++        detail=tk.Text(outer,wrap="word",height=11)
++        detail.grid(row=1,column=0,columnspan=2,sticky="nsew",pady=(8,0))
++        outer.rowconfigure(1,weight=1)
++
++        def show_selected(event=None):
++            sel=tree.selection()
++            if not sel:
++                return
++            p=by_id.get(sel[0])
++            detail.configure(state="normal")
++            detail.delete("1.0","end")
++            detail.insert(
++                "1.0",
++                (p["snapshot_text"] or "Немає тексту протоколу.")
++                + "\n\nРезультат контрольний. Основний графік/табель не змінювався."
++            )
++            detail.configure(state="disabled")
++
++        tree.bind("<<TreeviewSelect>>",show_selected)
++        if protocols:
++            tree.selection_set(str(protocols[0]["id"]))
++            show_selected()
++
++        ttk.Button(
++            outer,text="Закрити",command=win.destroy
++        ).grid(row=2,column=0,columnspan=2,sticky="e",pady=(8,0))
++
+ 
+     def seed_examples(self, paths):
+         """Додає лише наявні тестові скани, не дублюючи їх за ім'ям."""
