@@ -8,7 +8,8 @@
 1. `/Taxo/PROJECT_STATE.md` у ChatGPT Library.
 2. `/Taxo/RECOVERY_INDEX.md` у ChatGPT Library.
 3. Контрольні ZIP у `/Taxo/Releases/`.
-4. GitHub `RomanZavadaM/Taxo`, гілки `main` та актуальна `release-*`.
+4. `/Taxo/GITHUB_RECOVERY_STATUS_v8_60.md` у ChatGPT Library.
+5. GitHub `RomanZavadaM/Taxo`, гілки `main` та актуальна `release-*`.
 Якщо є суперечність — контрольний ZIP користувача + SHA-256 мають пріоритет над пам'яттю чату.
 
 ## Актуальна відновлена лінія
@@ -39,12 +40,14 @@
 ## GitHub
 Repository: `RomanZavadaM/Taxo`
 - `main`: контрольна v8.56 до завершення публікації відновленої v8.60.
-- `release-v8.60`: гілка для повного збереження відновленого стану v8.60.
+- `release-v8.60`: гілка відновлення/страхування v8.60; у ній опубліковані recovery-документи, контрольні SHA-256 і cumulative patch для `main.py`.
+- ВАЖЛИВО: кореневий `main.py` у `release-v8.60` наразі не підтверджений як byte-for-byte копія точного v8.60; джерело істини — `/Taxo/Releases/Taxo_v8_60_source.zip` з SHA-256 `edb7c7c87df0c320bbe091daadbd6b8263072835de1c66b4f6f20ad6683f2664`.
+- Не починати v8.61 з кореневого GitHub `main.py`, доки він не синхронізований/перевірений проти контрольного архіву.
 Не переводити `main` на TEST-версію без явного рішення, що v8.60 прийнята як стабільна.
 
 ## Незмінні правила проєкту
 - Основну БД користувача не класти в ZIP і GitHub.
-- Постійні дані: `%USERPROFILE%\Documents\DriverWorktime\`.
+- Постійні дані: `%USERPROFILE%\\Documents\\DriverWorktime\\`.
 - Дати UI: ДД.ММ.РРРР.
 - Офісний друк: A4; широкі місячні таблиці — A4 landscape.
 - Денна клітинка місячного табеля/балансу — тільки години.
@@ -56,4 +59,4 @@ Repository: `RomanZavadaM/Taxo`
 1. локальний ZIP користувача;
 2. ChatGPT Library `/Taxo/Releases/`;
 3. GitHub окрема гілка/commit.
-Після кожної версії оновлювати `PROJECT_STATE.md`, `RECOVERY_INDEX.md`, цей `AI_HANDOFF.md`, `VERSION.txt` і SHA-256.
+Після кожної версії оновлювати `PROJECT_STATE.md`, `RECOVERY_INDEX.md`, цей `TAXO_AI_HANDOFF.md`, `VERSION.txt` і SHA-256.
