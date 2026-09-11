@@ -1,0 +1,270 @@
++    )
++
++
++def _ensure_attestation_audit_baseline(con, row):
++    if row is None:
++        return
++    exists=con.execute(
++        "SELECT 1 FROM attestation_audit WHERE attestation_id=? LIMIT 1",
++        (row["id"],)
++    ).fetchone()
++    if not exists:
++        _audit_attestation_snapshot(con,row,"BASELINE","Стан до першої зміни у v8.57")
++
++
++def _safe_archive_file(path_text, target_dir, label):
++    """Переміщує старий DOCX у контрольний архів без перезапису."""
++    raw=(path_text or "").strip()
++    if not raw:
++        return raw
++    src=Path(raw)
++    if not src.exists() or not src.is_file():
++        return raw
++    target_dir.mkdir(parents=True,exist_ok=True)
++    stamp=datetime.now().strftime("%Y%m%d_%H%M%S")
++    stem=src.stem
++    suffix=src.suffix or ".docx"
++    target=target_dir/f"{stem}_{label}_{stamp}{suffix}"
++    n=2
++    while target.exists():
++        target=target_dir/f"{stem}_{label}_{stamp}_{n}{suffix}"
++        n+=1
++    shutil.move(str(src),str(target))
++    return str(target)
++
++
++def _unique_attestation_output_path(driver, st, en, activity_no):
++    safe=f"{driver['last_name']}_{driver['first_name']}".replace(" ","_")
++    stamp_from=st.strftime("%Y%m%d_%H%M")
++    stamp_to=en.strftime("%Y%m%d_%H%M")
++    base=OUTPUT_DIR/f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}.docx"
++    if not base.exists():
++        return base
++    n=2
++    while True:
++        candidate=OUTPUT_DIR/f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}_v{n}.docx"
++        if not candidate.exists():
++            return candidate
++        n+=1
++
++
+ def _merge_dt_intervals(intervals):
+     cleaned=sorted(
+         [(a,b) for a,b in intervals if a is not None and b is not None and b>a],
+@@ -1630,7 +1805,7 @@
+ 
+ 
+ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=56):
+-    """Контроль Бланків підтвердження за внутрішнім правилом v8.56.
++    """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
+ 
+     Ключові правила:
+     - усі частини одного маршрутного ТАХО-дня = один ТАХО-блок від першого
+@@ -1699,7 +1874,7 @@
+ 
+     att_rows=con.execute(
+         """SELECT * FROM attestations
+-           WHERE driver_id=?
++           WHERE driver_id=? AND COALESCE(status,'active')='active'
+            ORDER BY id""",
+         (int(driver_id),)
+     ).fetchall()
+@@ -3040,7 +3215,7 @@
+ class App(tk.Tk):
+     def __init__(self):
+         super().__init__()
+-        self.title("Облік водіїв — 48 місяців")
++        self.title("Taxo v8.59 — Облік водіїв — 48 місяців")
+         self.geometry("1200x760")
+         self.minsize(1050, 650)
+         self.protocol("WM_DELETE_WINDOW", self.exit_app)
+@@ -3139,8 +3314,8 @@
+             ttk.Label(self.tab_tacho, text="Модуль тахографа не завантажено. Запустіть START.bat для встановлення залежностей.").pack(padx=20, pady=20)
+ 
+     def build_company(self):
+-        f = ttk.LabelFrame(self.tab_company, text="Реквізити підприємства")
+-        f.pack(fill="x", padx=12, pady=12)
++        f = ttk.LabelFrame(self.tab_company, text="Реквізити підприємства — українською")
++        f.pack(fill="x", padx=12, pady=(12,6))
+         self.company_vars = {}
+         labels = [
+             ("name", "Найменування / ПІБ суб'єкта господарювання"),
+@@ -3158,6 +3333,48 @@
+             ttk.Entry(f, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
+         f.columnconfigure(1, weight=1)
+ 
++        en_box = ttk.LabelFrame(self.tab_company, text="Реквізити для англійської сторони Бланка")
++        en_box.pack(fill="x", padx=12, pady=(0,10))
++        self.company_en_vars = {}
++        en_labels = [
++            ("name_en", "Name of the undertaking"),
++            ("address_en", "Address"),
++            ("signer_name_en", "Name and first name of representative"),
++            ("signer_position_en", "Position in the undertaking"),
++            ("place_en", "Place (місце у бланку)"),
++        ]
++        ttk.Label(
++            en_box,
++            text=(
++                "Заповнюйте тільки ті поля, для яких потрібен окремий англійський текст. "
++                "Якщо поле порожнє — в англійську сторону автоматично підставляється українське значення. "
++                "Телефон, факс та E-mail копіюються без змін."
++            ),
++            foreground="gray", wraplength=1050, justify="left"
++        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(7,4))
++        for i, (key, label) in enumerate(en_labels, start=1):
++            ttk.Label(en_box, text=label).grid(row=i, column=0, sticky="w", padx=8, pady=5)
++            v = tk.StringVar()
++            self.company_en_vars[key] = v
++            ttk.Entry(en_box, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
++        en_box.columnconfigure(1, weight=1)
++
++        company_save_bar = ttk.Frame(self.tab_company)
++        company_save_bar.pack(fill="x", padx=12, pady=(0,10))
++        ttk.Button(
++            company_save_bar,
++            text="Зберегти реквізити підприємства",
++            command=self.save_company
++        ).pack(side="left")
++        ttk.Label(
++            company_save_bar,
++            text=(
++                "Під час створення або редагування Бланка поточні реквізити "
++                "також зберігаються автоматично."
++            ),
++            foreground="gray"
++        ).pack(side="left", padx=(12,0))
++
+         transport_box = ttk.LabelFrame(
+             self.tab_company,
+             text="Профіль перевезень для контролю Положення №340"
+@@ -3308,19 +3525,59 @@
+     def driver_form(self, driver=None):
+         win = tk.Toplevel(self)
+         win.title("Картка водія")
+-        win.geometry("620x560")
++        win.geometry("760x720")
++        win.minsize(700,650)
+         win.transient(self)
+-        fields = [
++
++        outer=ttk.Frame(win,padding=10)
++        outer.pack(fill="both",expand=True)
++
++        ua=ttk.LabelFrame(outer,text="Дані водія — українською",padding=8)
++        ua.pack(fill="x",pady=(0,8))
++        en=ttk.LabelFrame(outer,text="Дані для англійської сторони Бланка",padding=8)
++        en.pack(fill="x",pady=(0,8))
++        extra=ttk.LabelFrame(outer,text="Інші дані",padding=8)
++        extra.pack(fill="x",pady=(0,8))
++
++        vars_={}
++
++        ua_fields=[
+             ("last_name","Прізвище"),("first_name","Ім'я"),("middle_name","По батькові"),
++        ]
++        for i,(k,lbl) in enumerate(ua_fields):
++            ttk.Label(ua,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
++            v=tk.StringVar(value=(driver[k] if driver else ""))
++            vars_[k]=v
++            ttk.Entry(ua,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
++        ua.columnconfigure(1,weight=1)
++
++        en_fields=[
++            ("last_name_en","Surname / прізвище англійською"),
++            ("first_name_en","First name / ім'я англійською"),
++            ("middle_name_en","Middle name / по батькові англійською"),
++        ]
++        for i,(k,lbl) in enumerate(en_fields):
++            ttk.Label(en,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
++            raw=(driver[k] if driver and k in driver.keys() else "")
++            v=tk.StringVar(value=raw or "")
++            vars_[k]=v
++            ttk.Entry(en,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
++        ttk.Label(
++            en,
++            text="Якщо англійське поле порожнє, у англійську сторону Бланка автоматично підставляється відповідне українське поле.",
++            foreground="gray",wraplength=680,justify="left"
++        ).grid(row=len(en_fields),column=0,columnspan=2,sticky="w",padx=6,pady=(5,2))
++        en.columnconfigure(1,weight=1)
++
++        other_fields=[
+             ("birth_date","Дата народження (ДД.ММ.РРРР)"),
+             ("license_series","Серія посвідчення"),("license_number","Номер посвідчення"),
+             ("license_issue_date","Дата видачі посвідчення (ДД.ММ.РРРР)"),
+             ("employment_date","Дата прийняття (ДД.ММ.РРРР)"),
+             ("notes","Примітка")
+         ]
+-        vars_ = {}
+-        for i,(k,lbl) in enumerate(fields):
+-            ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=7)
++        for i,(k,lbl) in enumerate(other_fields):
++            ttk.Label(extra,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
+             raw=(driver[k] if driver else "")
+             if k in ("birth_date","license_issue_date","employment_date") and raw:
+                 try:
+@@ -3329,34 +3586,58 @@
+                     pass
+             v=tk.StringVar(value=raw)
+             vars_[k]=v
+-            ttk.Entry(win,textvariable=v,width=60).grid(row=i,column=1,sticky="ew",padx=10,pady=7)
++            ttk.Entry(extra,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
+             if k in ("birth_date","license_issue_date","employment_date"):
+-                calendar_button(win,v).grid(row=i,column=2,sticky="w",padx=(0,10),pady=7)
++                calendar_button(extra,v).grid(row=i,column=2,sticky="w",padx=(0,6),pady=5)
++        extra.columnconfigure(1,weight=1)
++
+         active=tk.BooleanVar(value=bool(driver["active"]) if driver else True)
+-        ttk.Checkbutton(win,text="Активний водій",variable=active).grid(row=len(fields),column=1,sticky="w",padx=10,pady=7)
++        ttk.Checkbutton(outer,text="Активний водій",variable=active).pack(anchor="w",padx=8,pady=5)
++
+         def save():
+-            vals=[vars_[k].get().strip() for k,_ in fields]
+-            for idx,(k,_) in enumerate(fields):
+-                if k in ("birth_date","license_issue_date","employment_date") and vals[idx]:
++            order=[
++                "last_name","first_name","middle_name",
++                "last_name_en","first_name_en","middle_name_en",
++                "birth_date","license_series","license_number",
++                "license_issue_date","employment_date","notes"
++            ]
++            vals={k:vars_[k].get().strip() for k in order}
++            for k in ("birth_date","license_issue_date","employment_date"):
++                if vals[k]:
+                     try:
+-                        vals[idx]=datetime.strptime(vals[idx],"%d.%m.%Y").strftime("%Y-%m-%d")
++                        vals[k]=datetime.strptime(vals[k],"%d.%m.%Y").strftime("%Y-%m-%d")
+                     except ValueError:
+-                        messagebox.showerror("Помилка",f"Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
++                        messagebox.showerror("Помилка","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
+                         return
+-            if not vals[0] or not vals[1]:
+-                messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win); return
++            if not vals["last_name"] or not vals["first_name"]:
++                messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win)
++                return
+             con=db()
+             if driver:
+-                con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,birth_date=?,
+-                    license_series=?,license_number=?,license_issue_date=?,employment_date=?,notes=?,active=? WHERE id=?""",
+-                    (*vals, int(active.get()), driver["id"]))
++                con.execute("""UPDATE drivers SET
++                    last_name=?,first_name=?,middle_name=?,
++                    last_name_en=?,first_name_en=?,middle_name_en=?,
++                    birth_date=?,license_series=?,license_number=?,license_issue_date=?,
++                    employment_date=?,notes=?,active=? WHERE id=?""",
++                    (vals["last_name"],vals["first_name"],vals["middle_name"],
++                     vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
++                     vals["birth_date"],vals["license_series"],vals["license_number"],
++                     vals["license_issue_date"],vals["employment_date"],vals["notes"],
++                     int(active.get()),driver["id"]))
+             else:
+-                con.execute("""INSERT INTO drivers(last_name,first_name,middle_name,birth_date,license_series,
+-                    license_number,license_issue_date,employment_date,notes,active,created_at)
+-                    VALUES(?,?,?,?,?,?,?,?,?,?,?)""", (*vals,int(active.get()),datetime.now().isoformat(timespec="seconds")))
++                con.execute("""INSERT INTO drivers(
++                    last_name,first_name,middle_name,last_name_en,first_name_en,middle_name_en,
++                    birth_date,license_series,license_number,license_issue_date,employment_date,
++                    notes,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
++                    (vals["last_name"],vals["first_name"],vals["middle_name"],
++                     vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
