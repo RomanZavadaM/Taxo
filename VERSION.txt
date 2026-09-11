@@ -1,5 +1,7 @@
-Taxo v8.56
-Built/verified: 11.09.2026
-Baseline: Taxo v8.55
-Main change: current attestation period is prepared before the next scheduled departure
-Next development version: v8.57
+Taxo v8.60
+Built/tested: 11.09.2026
+Recovered/reverified: 11.09.2026
+Baseline: Taxo v8.59
+Main change: optional English driver name fields with per-field fallback to Ukrainian values on the English side of the Attestation form
+Recovery status: authoritative candidate restored from user-supplied Taxo_v8_60_TEST archive; source code unchanged during recovery
+Next development version: v8.61
