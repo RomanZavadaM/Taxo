@@ -1,0 +1,29 @@
+Taxo v8.60 — recovered authoritative candidate
+Recovered/reverified: 2026-09-11
+Source supplied by user: Taxo_v8_60_TEST(1).zip
+Baseline chain: v8.56 -> v8.57 -> v8.58 -> v8.59 -> v8.60
+
+Authoritative runtime files:
+  main.py
+  tachograph.py
+  Бланк підтвердження.docx
+  requirements.txt
+  START.bat
+
+Recovery facts:
+- v8.57 adds controlled attestation edit / soft-delete / restore / audit trail.
+- v8.58 adds separate English company details with per-field Ukrainian fallback.
+- v8.59 adds visible company Save and auto-save before creating/editing an attestation.
+- v8.60 adds optional English driver surname/first/middle names with per-field Ukrainian fallback.
+- Existing v8.56 data migrate in place; no manual DB migration is required.
+- User SQLite databases are NOT included in release archives or GitHub.
+- START.bat runs main.py. Historical main_github.py and part1..part4 are not runtime files.
+
+Verification during recovery:
+- All four user-supplied archives v8.57..v8.60 pass ZIP integrity checks.
+- Internal SHA256SUMS of v8.57, v8.58 and v8.59 pass in full.
+- Internal SHA256SUMS of v8.60 pass for all listed authoritative files.
+- v8.60 main.py and tachograph.py pass Python py_compile.
+- No .sqlite/.sqlite3/.db/.pyc or __pycache__ is present in the supplied archives.
+
+The source code in this RECOVERED package is byte-for-byte the same as the user-supplied v8.60 TEST archive; only project/recovery metadata was corrected and completed.
