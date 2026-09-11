@@ -1,35 +1,59 @@
-# AI_HANDOFF — Taxo
+# TAXO — AI HANDOFF / НЕ ВТРАЧАТИ СТАН
 
-This file exists specifically to prevent loss of project state across long chats.
+Оновлено: 11.09.2026
 
-## Current checkpoint
+## КРИТИЧНЕ ПРАВИЛО
+Перед будь-якою зміною Taxo НЕ покладатися на пам'ять чату і НЕ визначати версію зі старих повідомлень.
+Спочатку перевірити, у такому порядку:
+1. `/Taxo/PROJECT_STATE.md` у ChatGPT Library.
+2. `/Taxo/RECOVERY_INDEX.md` у ChatGPT Library.
+3. Контрольні ZIP у `/Taxo/Releases/`.
+4. GitHub `RomanZavadaM/Taxo`, гілки `main` та актуальна `release-*`.
+Якщо є суперечність — контрольний ZIP користувача + SHA-256 мають пріоритет над пам'яттю чату.
 
-- **Current control version:** v8.60
-- **Next version:** v8.61
-- **Do not resume from v8.56/v8.57 just because a chat memory says so.**
-- Primary truth: `RECOVERY_INDEX.md` + `PROJECT_STATE.md` + control ZIP/source snapshot.
+## Актуальна відновлена лінія
+- v8.56 — остання стабільна версія на GitHub `main` перед відновленням.
+- v8.57 TEST — редагування Бланків, soft-delete, відновлення, ревізії, `attestation_audit`, архівування замінених/вилучених DOCX, backup БД перед EDIT/DELETE/RESTORE.
+- v8.58 TEST — окремі англійські реквізити підприємства з fallback на українські.
+- v8.59 TEST — видима кнопка збереження реквізитів + автозбереження перед створенням/редагуванням Бланка.
+- v8.60 TEST — окремі англійські ПІБ водія: `last_name_en`, `first_name_en`, `middle_name_en`, поелементний fallback на українські, автоматична міграція старої БД.
+- НАСТУПНА версія для розробки: v8.61.
 
-## v8.57 → v8.60 changes that must not be lost
+## Наступна узгоджена задача v8.61
+Для Бланка підтвердження діяльності додати формування:
+- DOCX (залишається),
+- PDF,
+- JPG page1 + page2,
+- команда «Створити все».
+Бажано PDF/JPG без залежності від встановленого Microsoft Word.
+Не починати v8.61 від v8.56 або від помилкової проміжної збірки — тільки від відновленої v8.60.
 
-- v8.57: edit existing Attestations; soft delete; restore; revision number; `attestation_audit`; archive replaced/deleted DOCX; automatic DB backup before EDIT/DELETE/RESTORE; fixed 48-month attestation purge.
-- v8.58: English company fields `name_en`, `address_en`, `signer_name_en`, `signer_position_en`, `place_en`; per-field fallback to Ukrainian.
-- v8.59: visible `Зберегти реквізити підприємства`; auto-save current company fields before create/edit/regenerate of Attestation.
-- v8.60: English driver fields `last_name_en`, `first_name_en`, `middle_name_en`; per-field fallback; automatic old-DB schema migration.
+## Контрольні копії в ChatGPT Library
+- `/Taxo/Releases/Taxo_v8_57_TEST.zip`
+- `/Taxo/Releases/Taxo_v8_58_TEST.zip`
+- `/Taxo/Releases/Taxo_v8_59_TEST.zip`
+- `/Taxo/Releases/Taxo_v8_60_TEST.zip`
+- `/Taxo/Releases/Taxo_v8_60_RECOVERED.zip`
+- `/Taxo/Releases/Taxo_v8_60_source.zip`
 
-## Non-negotiable project rules
+## GitHub
+Repository: `RomanZavadaM/Taxo`
+- `main`: контрольна v8.56 до завершення публікації відновленої v8.60.
+- `release-v8.60`: гілка для повного збереження відновленого стану v8.60.
+Не переводити `main` на TEST-версію без явного рішення, що v8.60 прийнята як стабільна.
 
-- Never include the user's main SQLite DB in ZIP/GitHub.
-- Dates in UI: `ДД.ММ.РРРР`.
-- A4 for office documents; A4 landscape for wide monthly schedules/timesheets.
-- Monthly timesheet day cells show hours only.
-- Attestation default activity = 16; exactly one activity 14–19 per period.
-- Attestation document date = calendar date of `Період по`.
-- Tachograph scans are selective control only; they must not auto-correct the main work schedule.
+## Незмінні правила проєкту
+- Основну БД користувача не класти в ZIP і GitHub.
+- Постійні дані: `%USERPROFILE%\Documents\DriverWorktime\`.
+- Дати UI: ДД.ММ.РРРР.
+- Офісний друк: A4; широкі місячні таблиці — A4 landscape.
+- Денна клітинка місячного табеля/балансу — тільки години.
+- Тахокарти — вибірковий контроль, не автоматичне переписування основного графіка.
+- Бланк підтвердження: дата документа = дата завершення періоду; за один період одна позиція 14–19.
 
-## Next agreed work
-
-Start v8.61 from an untouched copy of v8.60. Add Attestation output in PDF and JPG in addition to DOCX, preferably without requiring Microsoft Word.
-
-## Recovery procedure
-
-If chat context is missing, stop coding. First obtain v8.60 from Library/GitHub, verify SHA-256, then continue. Never recreate a guessed version from an older checkpoint.
+## Антиаварійне правило релізу
+Кожну наступну версію зберігати мінімум у трьох місцях:
+1. локальний ZIP користувача;
+2. ChatGPT Library `/Taxo/Releases/`;
+3. GitHub окрема гілка/commit.
+Після кожної версії оновлювати `PROJECT_STATE.md`, `RECOVERY_INDEX.md`, цей `AI_HANDOFF.md`, `VERSION.txt` і SHA-256.
