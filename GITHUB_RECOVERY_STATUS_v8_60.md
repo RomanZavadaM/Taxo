@@ -17,6 +17,8 @@ Verified byte-for-byte against `/Taxo/Releases/Taxo_v8_60_source.zip`:
 
 The exact recovered `main.py` was synchronized by GitHub Actions commit `7edc68314a5570cab2fbcadd6d0e44c15072f1da`. Before committing, the workflow verified the v8.56 base hash, reconstructed the exact recovery patch, verified the final v8.60 SHA-256, and ran `python -m py_compile main.py tachograph.py` successfully.
 
+The one-shot synchronization workflow was removed after success. The exact patch parts remain only as recovery artifacts.
+
 ## Recovery copies
 
 - Authoritative source archive in ChatGPT Library: `/Taxo/Releases/Taxo_v8_60_source.zip`.
