@@ -1,0 +1,109 @@
++            summary_var.set("Без тахографа: стандартний робочий день 8:00. Час маршруту та керування не деталізуються.")
++
++        ttk.Button(apply_frame,text="Застосувати шаблон",command=apply_template).pack(side="left")
++        ttk.Button(
++            apply_frame,text="Без тахо — 8 год",command=set_no_tacho_8h
++        ).pack(side="left",padx=(10,3))
+         if old_segments:
+             load_segments(old_segments)
+         elif existing and existing["start_time"]:
+@@ -4122,11 +4596,26 @@
+                         time_to_minutes(r["start_time"]); time_to_minutes(r["end_time"])
+                         hours_value_to_minutes(r["work_hours"]); hours_value_to_minutes(r["driving_hours"])
+                 except Exception: messagebox.showerror("Помилка","Перевірте частини зміни.",parent=win); return
+-            total_work_min=sum(hours_value_to_minutes(r["work_hours"]) for r in seg_data)
+-            total_drive_min=sum(hours_value_to_minutes(r["driving_hours"]) for r in seg_data)
++            mode_code=WORK_MODE_BY_LABEL.get(mode_var.get(),WORK_MODE_MANUAL)
++            if mode_code==WORK_MODE_NO_TACHO:
++                # Без тахографа — не вигадуємо години маршруту.
++                # У табелі зберігаємо лише стандартні 8 год роботи.
++                seg_data.clear()
++                total_work_min=8*60
++                total_drive_min=0
++                start=""
++                end=""
++                type_var.set("Робота")
++                template_id_var.set(0)
++                shift_var.set("Безперервна")
++            else:
++                total_work_min=sum(hours_value_to_minutes(r["work_hours"]) for r in seg_data)
++                total_drive_min=sum(hours_value_to_minutes(r["driving_hours"]) for r in seg_data)
++                start=seg_data[0]["start_time"] if seg_data else ""
++                end=seg_data[-1]["end_time"] if seg_data else ""
++
+             total_work=minutes_to_db_hours(total_work_min)
+             total_drive=minutes_to_db_hours(total_drive_min)
+-            start=seg_data[0]["start_time"] if seg_data else ""; end=seg_data[-1]["end_time"] if seg_data else ""
+             selected_vehicle=vehicle_map.get(vehicle_label_var.get())
+             vehicle_text=self.vehicle_label(selected_vehicle) if selected_vehicle else vehicle_label_var.get().strip()
+             vehicle_id=selected_vehicle["id"] if selected_vehicle else None
+@@ -4137,9 +4626,37 @@
+             overtime_value=(existing["overtime_hours"] if existing else 0) or 0
+ 
+             con=db()
+-            con.execute("""INSERT INTO worklog(driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,overtime_hours,vehicle,notes,route_name,route_id,shift_type,vehicle_id)
+-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(driver_id,work_date) DO UPDATE SET day_type=excluded.day_type,start_time=excluded.start_time,end_time=excluded.end_time,work_hours=excluded.work_hours,driving_hours=excluded.driving_hours,overtime_hours=excluded.overtime_hours,vehicle=excluded.vehicle,notes=excluded.notes,route_name=excluded.route_name,route_id=excluded.route_id,shift_type=excluded.shift_type,vehicle_id=excluded.vehicle_id""",
+-                (self.driver_id,work_date,type_var.get(),start,end,total_work,total_drive,overtime_value,vehicle_text,notes_var.get().strip(),route_var.get().strip(),route_map[route_var.get()]["id"] if route_var.get() in route_map else None,shift_var.get(),vehicle_id))
++            route_text=route_var.get().strip() if mode_code!=WORK_MODE_NO_TACHO else ""
++            route_id_value=(route_map[route_var.get()]["id"] if route_var.get() in route_map else None) if mode_code!=WORK_MODE_NO_TACHO else None
++            vehicle_text=vehicle_text if mode_code!=WORK_MODE_NO_TACHO else vehicle_text
++
++            con.execute("""INSERT INTO worklog(
++                driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,
++                overtime_hours,vehicle,notes,route_name,route_id,template_id,shift_type,
++                vehicle_id,accounting_mode
++            )
++                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
++                ON CONFLICT(driver_id,work_date) DO UPDATE SET
++                    day_type=excluded.day_type,
++                    start_time=excluded.start_time,
++                    end_time=excluded.end_time,
++                    work_hours=excluded.work_hours,
++                    driving_hours=excluded.driving_hours,
++                    overtime_hours=excluded.overtime_hours,
++                    vehicle=excluded.vehicle,
++                    notes=excluded.notes,
++                    route_name=excluded.route_name,
++                    route_id=excluded.route_id,
++                    template_id=excluded.template_id,
++                    shift_type=excluded.shift_type,
++                    vehicle_id=excluded.vehicle_id,
++                    accounting_mode=excluded.accounting_mode""",
++                (
++                    self.driver_id,work_date,type_var.get(),start,end,total_work,total_drive,
++                    overtime_value,vehicle_text,notes_var.get().strip(),route_text,
++                    route_id_value,template_id_var.get() or None,shift_var.get(),
++                    vehicle_id,mode_code
++                ))
+             wl=con.execute("SELECT id FROM worklog WHERE driver_id=? AND work_date=?",(self.driver_id,work_date)).fetchone()[0]
+             con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wl,))
+             for i,r in enumerate(seg_data,1):
+@@ -4162,7 +4679,19 @@
+             self.work_clipboard={"empty":True,"day_type":vals[3]}
+         else:
+             segs=self.get_work_segments(wid)
+-            self.work_clipboard={"day_type":r["day_type"],"start_time":r["start_time"],"end_time":r["end_time"],"work_hours":r["work_hours"],"driving_hours":r["driving_hours"],"overtime_hours":r["overtime_hours"],"vehicle":r["vehicle"],"vehicle_id":r["vehicle_id"] if "vehicle_id" in r.keys() else None,"notes":r["notes"],"route_name":r["route_name"] if "route_name" in r.keys() else "","route_id":r["route_id"] if "route_id" in r.keys() else None,"shift_type":r["shift_type"] if "shift_type" in r.keys() else "Безперервна","segments":[dict(x) for x in segs]}
++            self.work_clipboard={
++                "day_type":r["day_type"],"start_time":r["start_time"],"end_time":r["end_time"],
++                "work_hours":r["work_hours"],"driving_hours":r["driving_hours"],
++                "overtime_hours":r["overtime_hours"],"vehicle":r["vehicle"],
++                "vehicle_id":r["vehicle_id"] if "vehicle_id" in r.keys() else None,
++                "notes":r["notes"],
++                "route_name":r["route_name"] if "route_name" in r.keys() else "",
++                "route_id":r["route_id"] if "route_id" in r.keys() else None,
++                "template_id":r["template_id"] if "template_id" in r.keys() else None,
++                "shift_type":r["shift_type"] if "shift_type" in r.keys() else "Безперервна",
++                "accounting_mode":r["accounting_mode"] if "accounting_mode" in r.keys() else WORK_MODE_MANUAL,
++                "segments":[dict(x) for x in segs]
++            }
+         self.clipboard_clear(); self.clipboard_append("driver_worktime_day")
+         messagebox.showinfo("Копіювання","День скопійовано. Виберіть одну або кілька дат і натисніть Ctrl+V / «Вставити день».")
+ 
+@@ -4180,9 +4709,27 @@
+         for date_text in dates:
+             try: wd=datetime.strptime(date_text,"%d.%m.%Y").strftime("%Y-%m-%d")
+             except ValueError: continue
+-            con.execute("""INSERT INTO worklog(driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,overtime_hours,vehicle,notes,route_name,route_id,shift_type,vehicle_id)
+-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(driver_id,work_date) DO UPDATE SET day_type=excluded.day_type,start_time=excluded.start_time,end_time=excluded.end_time,work_hours=excluded.work_hours,driving_hours=excluded.driving_hours,overtime_hours=excluded.overtime_hours,vehicle=excluded.vehicle,notes=excluded.notes,route_name=excluded.route_name,route_id=excluded.route_id,shift_type=excluded.shift_type,vehicle_id=excluded.vehicle_id""",
+-                (self.driver_id,wd,clip.get("day_type","Робота"),clip.get("start_time",""),clip.get("end_time",""),clip.get("work_hours",0),clip.get("driving_hours",0),clip.get("overtime_hours",0),clip.get("vehicle",""),clip.get("notes",""),clip.get("route_name",""),clip.get("route_id"),clip.get("shift_type","Безперервна"),clip.get("vehicle_id")))
++            con.execute("""INSERT INTO worklog(
