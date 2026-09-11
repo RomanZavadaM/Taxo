@@ -8,6 +8,7 @@ Updated: 11.09.2026
 - SHA-256 of that exact archive: `edb7c7c87df0c320bbe091daadbd6b8263072835de1c66b4f6f20ad6683f2664`.
 - Additional independent Library copies exist as `Taxo_v8_60_TEST.zip`, `Taxo_v8_60_CONTROL.zip`, and `Taxo_v8_60_RECOVERED.zip`.
 - This branch contains the recovery metadata, version history, recovery rules and cumulative `main.py` patch artifacts from v8.56 to v8.60.
+- `SOURCE_MANIFEST_v8_60.sha256` records the authoritative hashes of the recovered runtime source files.
 
 ## Important limitation
 
@@ -15,7 +16,7 @@ The root `main.py` on `release-v8.60` is NOT yet guaranteed to be byte-for-byte 
 
 Do not reconstruct v8.61 from chat memory and do not start it from the branch root `main.py` until the exact recovered source has been synchronized or independently verified.
 
-The Base64 file `releases/Taxo_v8_60_source.zip.b64.p00` is only a partial archival experiment and MUST NOT be treated as a complete source archive.
+An incomplete Base64 archive experiment was removed from the branch so it cannot be mistaken for a complete backup.
 
 ## Branch policy
 
@@ -25,4 +26,4 @@ The Base64 file `releases/Taxo_v8_60_source.zip.b64.p00` is only a partial archi
 
 ## Startup order for future work
 
-Read `RECOVERY_INDEX.md`, `AI_HANDOFF.md`, `PROJECT_STATE.md`, `VERSION.txt`, and this file before changing Taxo.
+Read `RECOVERY_INDEX.md`, `AI_HANDOFF.md`, `PROJECT_STATE.md`, `VERSION.txt`, `SOURCE_MANIFEST_v8_60.sha256`, and this file before changing Taxo.
