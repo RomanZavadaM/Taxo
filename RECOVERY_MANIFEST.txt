@@ -1,0 +1,22 @@
+Taxo recovery manifest
+Current candidate: v8.64
+Date: 2026-09-12
+Stable GitHub main: v8.56
+Next version after confirmation: v8.65
+
+Source of truth:
+- CHECKPOINT_CURRENT.md
+- PROJECT_STATE.md
+- Taxo_v8_64_TEST.zip
+- Taxo_v8_64_source.zip
+
+Critical v8.64 rule:
+PDF/JPG attestation generation must NOT require Microsoft Word or LibreOffice.
+Runtime path: official bundled visual PDF template + PyMuPDF overlay -> PDF -> JPG.
+DOCX remains separate and generated with python-docx.
+
+Retained critical rules:
+- user DB never bundled; data lives under Documents\DriverWorktime;
+- attestation records/audit are not purged by 48-month cleanup;
+- active/deleted/all filter and permanent delete remain;
+- Company and Attestation whole tabs keep vertical + horizontal scrolling.

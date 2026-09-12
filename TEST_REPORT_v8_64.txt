@@ -1,0 +1,16 @@
+Taxo v8.64 test report
+Date: 2026-09-12
+
+1. main.py / tachograph.py / attestation_render.py py_compile: OK.
+2. Runtime PDF path uses PyMuPDF + bundled visual PDF template only: OK.
+3. Microsoft Word / LibreOffice are NOT called by _generate_attestation_files for PDF/JPG: verified by code path.
+4. Isolated integration: DOCX + PDF + JPG1 + JPG2 created successfully: OK.
+5. PDF page count: 2; page size: A4: OK.
+6. DOCX rendered with canonical DOCX renderer: 2 pages, visually clean.
+7. Autonomous PDF rendered with PDF renderer: 2 pages, visually clean.
+8. Visual inspection: official frame, headings, notes, dynamic bold values, activity checkbox, dates and places align with DOCX layout.
+9. Runtime visual template contains no user data: OK.
+10. pywin32 removed from requirements and PyInstaller COM hidden imports removed: OK.
+11. v8.63 whole-tab scrolling and v8.62 archive/permanent-delete changes retained by source inheritance: OK.
+
+Windows local check still required before promoting v8.64 to main/release.

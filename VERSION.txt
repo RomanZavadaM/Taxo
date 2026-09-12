@@ -1,5 +1,5 @@
-Taxo v8.56
-Built/verified: 11.09.2026
-Baseline: Taxo v8.55
-Main change: current attestation period is prepared before the next scheduled departure
-Next development version: v8.57
+Taxo / Driver Worktime
+Version: 8.64
+Date: 2026-09-12
+Main changes: autonomous Word-free PDF/JPG attestation rendering from the official visual template; whole-tab scrolling and archive controls retained from v8.63
+Next candidate: 8.65

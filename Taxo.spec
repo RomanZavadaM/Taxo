@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.56 — Windows onedir build.
+# Taxo v8.64 — Windows onedir build.
 # User databases are NOT bundled; Taxo stores them under
 # %USERPROFILE%\Documents\DriverWorktime\.
 
@@ -8,8 +8,8 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('Бланк підтвердження.docx', '.')],
-    hiddenimports=['tachograph'],
+    datas=[('Бланк підтвердження.docx', '.'), ('attestation_visual_template.pdf', '.')],
+    hiddenimports=['tachograph', 'attestation_render', 'fitz', 'pymupdf'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
