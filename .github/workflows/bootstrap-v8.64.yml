@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reconstruct previously uploaded v8.64 archive
+      - name: Recover verified v8.64 files from uploaded archive
         shell: pwsh
         run: |
           $ordered = @()
@@ -43,18 +43,44 @@ jobs:
           $b64 = ($ordered | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
           if ($b64.Length -ne 248624) { throw "Unexpected Base64 length: $($b64.Length)" }
           [IO.File]::WriteAllBytes('Taxo_v8_64_source.tar.xz', [Convert]::FromBase64String($b64))
-          Write-Host "Reconstructed archive SHA-256: $((Get-FileHash 'Taxo_v8_64_source.tar.xz' -Algorithm SHA256).Hash.ToLowerInvariant())"
+          Write-Host "Recovered partial archive SHA-256: $((Get-FileHash 'Taxo_v8_64_source.tar.xz' -Algorithm SHA256).Hash.ToLowerInvariant())"
           if (Test-Path '_v864_unpack') { Remove-Item '_v864_unpack' -Recurse -Force }
           New-Item -ItemType Directory -Path '_v864_unpack' | Out-Null
           tar -xJf 'Taxo_v8_64_source.tar.xz' -C '_v864_unpack'
-          if ($LASTEXITCODE -ne 0) { throw "tar extraction failed: $LASTEXITCODE" }
+          $tarExit = $LASTEXITCODE
+          Write-Host "tar exit code: $tarExit (a truncated tail is expected from the old transport)"
           $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
-          if (!(Test-Path (Join-Path $src 'main.py'))) { throw 'Reconstructed source is invalid' }
+          if (!(Test-Path (Join-Path $src 'main.py'))) { throw 'Recovered source does not contain main.py' }
+          $checks = @{
+            'main.py' = $env:MAIN_SHA256
+            'attestation_render.py' = $env:RENDER_SHA256
+            'attestation_visual_template.pdf' = $env:VISUAL_TEMPLATE_SHA256
+          }
+          foreach ($file in $checks.Keys) {
+            $full = Join-Path $src $file
+            if (!(Test-Path $full)) { throw "Missing recovered file: $file" }
+            $actual = (Get-FileHash $full -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $checks[$file]) { throw "SHA-256 mismatch for recovered $file : $actual" }
+            Write-Host "RECOVERED OK $file $actual"
+          }
 
-      - name: Verify exact v8.64 source files
+      - name: Overlay recovered source and repair truncated tail
         shell: pwsh
         run: |
           $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
+          robocopy $src $PWD /E /R:2 /W:1 /XF tachograph.py /XD __pycache__ | Out-Host
+          if ($LASTEXITCODE -ge 8) { throw "robocopy failed: $LASTEXITCODE" }
+          git apply --whitespace=nowarn '.release_payload/v8.64/tachograph.patch'
+          Remove-Item 'TEST_REPORT_v8_54.txt','TEST_REPORT_v8_55.txt','TEST_REPORT_v8_56.txt' -Force -ErrorAction SilentlyContinue
+          Remove-Item '.github/workflows/release-windows-v8.56.yml' -Force -ErrorAction SilentlyContinue
+          Remove-Item '.github/workflows/bootstrap-v8.64.yml' -Force -ErrorAction SilentlyContinue
+          Remove-Item '.release_payload' -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item 'Taxo_v8_64_source.tar.xz' -Force -ErrorAction SilentlyContinue
+          Remove-Item '_v864_unpack' -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: Verify final canonical v8.64 tree
+        shell: pwsh
+        run: |
           $checks = @{
             'main.py' = $env:MAIN_SHA256
             'tachograph.py' = $env:TACHO_SHA256
@@ -63,23 +89,18 @@ jobs:
             'attestation_visual_template.pdf' = $env:VISUAL_TEMPLATE_SHA256
           }
           foreach ($file in $checks.Keys) {
-            $full = Join-Path $src $file
-            if (!(Test-Path $full)) { throw "Missing required file: $file" }
-            $actual = (Get-FileHash $full -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($actual -ne $checks[$file]) { throw "SHA-256 mismatch for $file : $actual" }
-            Write-Host "OK $file $actual"
+            if (!(Test-Path $file)) { throw "Missing final file: $file" }
+            $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actual -ne $checks[$file]) { throw "FINAL SHA-256 mismatch for $file : $actual" }
+            Write-Host "FINAL OK $file $actual"
           }
-          python -m py_compile (Join-Path $src 'main.py') (Join-Path $src 'tachograph.py') (Join-Path $src 'attestation_render.py')
+          if ((Get-Content 'VERSION.txt' -Raw) -notmatch 'v8\.64') { throw 'VERSION.txt is not v8.64' }
+          python -m py_compile main.py tachograph.py attestation_render.py
+          if (!(Test-Path '.github/workflows/build-windows-v8.64-candidate.yml')) { throw 'v8.64 Windows build workflow missing' }
 
-      - name: Publish canonical v8.64 source to candidate branch
+      - name: Commit canonical v8.64 source
         shell: pwsh
         run: |
-          $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
-          Get-ChildItem -Force | Where-Object { $_.Name -notin @('.git','_v864_unpack','Taxo_v8_64_source.tar.xz') } | Remove-Item -Recurse -Force
-          Copy-Item (Join-Path $src '*') $PWD -Recurse -Force
-          Copy-Item (Join-Path $src '.github') $PWD -Recurse -Force
-          Remove-Item 'Taxo_v8_64_source.tar.xz' -Force
-          Remove-Item '_v864_unpack' -Recurse -Force
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
