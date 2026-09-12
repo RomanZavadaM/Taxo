@@ -29,6 +29,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify preserved DOCX template
+        shell: pwsh
+        run: |
+          $template = 'Бланк підтвердження.docx'
+          if (!(Test-Path $template)) { throw 'DOCX template is missing before bootstrap' }
+          $actual = (Get-FileHash $template -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:TEMPLATE_SHA256) { throw "DOCX template SHA-256 mismatch: $actual" }
+
       - name: Reconstruct and verify source archive
         shell: pwsh
         run: |
@@ -61,7 +69,6 @@ jobs:
             'main.py' = $env:MAIN_SHA256
             'tachograph.py' = $env:TACHO_SHA256
             'attestation_render.py' = $env:RENDER_SHA256
-            'Бланк підтвердження.docx' = $env:TEMPLATE_SHA256
             'attestation_visual_template.pdf' = $env:VISUAL_TEMPLATE_SHA256
           }
           foreach ($file in $checks.Keys) {
@@ -77,14 +84,18 @@ jobs:
         shell: pwsh
         run: |
           $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
-          robocopy $src $PWD /E /R:2 /W:1 /XD .git | Out-Host
+          robocopy $src $PWD /E /R:2 /W:1 /XF *.docx /XD .git | Out-Host
           if ($LASTEXITCODE -ge 8) { throw "robocopy failed: $LASTEXITCODE" }
           Remove-Item '.github/workflows/release-windows-v8.56.yml' -Force -ErrorAction SilentlyContinue
           Remove-Item '.github/workflows/bootstrap-v8.64.yml' -Force -ErrorAction SilentlyContinue
           Remove-Item '.release_payload' -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item 'Taxo_v8_64_source.tar.xz' -Force -ErrorAction SilentlyContinue
           Remove-Item '_v864_unpack' -Recurse -Force -ErrorAction SilentlyContinue
+          $template = 'Бланк підтвердження.docx'
+          $templateHash = (Get-FileHash $template -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($templateHash -ne $env:TEMPLATE_SHA256) { throw "Final DOCX template mismatch: $templateHash" }
           python -m py_compile main.py tachograph.py attestation_render.py
+          if (!(Test-Path '.github/workflows/publish-windows-v8.64.yml')) { throw 'Final publish workflow missing' }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
