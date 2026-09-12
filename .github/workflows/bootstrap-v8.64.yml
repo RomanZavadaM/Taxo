@@ -169,3 +169,5 @@ jobs:
             SHA256SUMS_WINDOWS.txt
           if-no-files-found: error
           retention-days: 30
+
+# payload-ready 2026-09-12
