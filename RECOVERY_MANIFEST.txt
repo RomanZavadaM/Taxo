@@ -2,7 +2,8 @@ Taxo recovery manifest — 2026-09-12
 Stable published: v8.65
 Release source: verified candidate r3
 Previous stable: v8.64
-Next development: v8.66
+Current development: v8.66 candidate r1
+Candidate scope: interface usability; tachograph recognition unchanged
 
 v8.65 theme:
 - existing route/schedule data = planned driving time;
@@ -13,3 +14,5 @@ v8.65 theme:
 r3 fixes: locked/open output file handler + adaptive schedule labels.
 Primary recovery file: CHECKPOINT_CURRENT.md
 Release notes: RELEASE_NOTES_v8_65.md
+Candidate notes: RELEASE_NOTES_v8_66.md
+Candidate tests: TEST_REPORT_v8_66.txt

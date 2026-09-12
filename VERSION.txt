@@ -1,11 +1,12 @@
 Taxo / Driver Worktime
-Version: 8.65
-Release date: 2026-09-12
-Promoted from verified candidate r3.
+Version: 8.66 candidate r1
+Candidate date: 2026-09-12
+Stable published baseline: 8.65
 
-Time model: each segment has separate planned WORK start/end and DRIVING start/end; durations are derived from those boundaries.
-Legacy route start/end are treated as planned driving boundaries and initially copied to working boundaries.
-Tachograph principle: future recognized tachograph data is FACTUAL driving and remains separate from PLAN.
+Scope: interface usability before the next tachograph-reading development stage.
+Clipboard: Edit menu, right-click menu, Ukrainian-layout Ctrl shortcuts, and table-row copying.
+Visibility: multi-row toolbars, screen-fitted windows, remembered main-window geometry, and visible tachograph day timeline/statistics.
+Navigation: double-click/Enter editing in the main catalogs and direct interval selection from the tachograph timeline.
+macOS work branch: native arm64/x86_64 Taxo.app builds with Command shortcuts and platform-native file opening.
 
-r3 release fixes: centralized output-file exception handling for locked/open PDF/XLSX files; schedule timeline labels are never silently hidden for short edited intervals.
-Next development version: 8.66
+The tachograph recognition algorithm is intentionally unchanged in this candidate.

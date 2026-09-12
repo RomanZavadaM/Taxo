@@ -2,11 +2,18 @@
 
 Date: 2026-09-12
 
+## Current candidate
+- Version: **v8.66 candidate r1**
+- Base: stable v8.65, GitHub `main` commit `f9101c1a41d7c036bade5ce66989171399189d4b`.
+- Scope: UI usability only; tachograph recognition logic is postponed and unchanged.
+- Main fixes: reliable clipboard actions, visible multi-row toolbars, screen-fitted windows, restored application menu, permanently visible tachograph day timeline and statistics button.
+- macOS work branch: `work/v8.66-macos-executable`; native `Taxo.app` candidates for Apple Silicon and Intel, built separately from the Windows package.
+
 ## Stable release
 - Version: **v8.65**
 - Promoted from verified candidate **r3**.
 - Previous stable: v8.64 (`c2ebee7bb832680e1c98a447cb90ebd115349fed`).
-- Next development version: **v8.66**.
+- Stable v8.65 remains untouched while v8.66 is tested separately.
 
 ## v8.65 time model
 - Existing schedule intervals are PLAN driving intervals.

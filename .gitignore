@@ -7,3 +7,8 @@ __pycache__/
 *.db-wal
 *.db-shm
 .taxo_runtime*/
+.venv-macos/
+build/
+dist/
+Taxo_v8_66_TEST_r1_macOS_*_Portable.zip
+SHA256SUMS_v8_66_macOS_*.txt

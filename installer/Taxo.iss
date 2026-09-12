@@ -1,5 +1,5 @@
 #define MyAppName "Taxo"
-#define MyAppVersion "8.65"
+#define MyAppVersion "8.66 TEST r1"
 #define MyAppPublisher "RomanZavadaM"
 #define MyAppExeName "Taxo.exe"
 
@@ -16,7 +16,7 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release_out
-OutputBaseFilename=Taxo_v8_65_Setup_Windows_x64
+OutputBaseFilename=Taxo_v8_66_TEST_r1_Setup_Windows_x64
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern

@@ -7,6 +7,7 @@
 """
 import calendar
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -54,6 +55,35 @@ ATT_VISUAL_TEMPLATE_PATH = APP_DIR / "attestation_visual_template.pdf"
 
 for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR, LOG_DIR, ATT_ARCHIVE_DIR, ATT_REPLACED_DIR, ATT_DELETED_DIR):
     _p.mkdir(parents=True, exist_ok=True)
+
+
+def open_external(path):
+    """Open a file or directory with the platform's default application."""
+    target = str(path)
+    if os.name == "nt":
+        os.startfile(target)
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", target])
+    else:
+        subprocess.Popen(["xdg-open", target])
+
+
+def report_font_candidates():
+    """System fonts suitable for Ukrainian text in generated PDF reports."""
+    candidates = [
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\calibri.ttf",
+    ]
+    if sys.platform == "darwin":
+        candidates.extend([
+            str(Path.home() / "Library/Fonts/Arial.ttf"),
+            "/Library/Fonts/Arial.ttf",
+            "/Library/Fonts/Arial Unicode.ttf",
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+        ])
+    candidates.append("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    return candidates
 
 
 def _append_error_log(context, exc, tb=None):
@@ -1700,7 +1730,7 @@ def export_pdf(driver, year, month, rows, out_path):
     from reportlab.lib.enums import TA_LEFT, TA_CENTER
     from xml.sax.saxutils import escape
 
-    candidates = [r"C:\Windows\Fonts\arial.ttf", r"C:\Windows\Fonts\calibri.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    candidates = report_font_candidates()
     font_path = next((p for p in candidates if os.path.exists(p)), None)
     font_name = "Helvetica"
     if font_path:
@@ -1949,11 +1979,7 @@ def export_work_analysis_pdf(data, driver_name, out_path):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
     from xml.sax.saxutils import escape
 
-    candidates=[
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+    candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
     font_name="Helvetica"
     if font_path:
@@ -2715,11 +2741,7 @@ def export_monthly_work_balance_pdf(year, month, out_path, active_only=True):
 
     data=collect_monthly_work_balance(year,month,active_only=active_only)
 
-    candidates=[
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+    candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
     font_name="Helvetica"
     if font_path:
@@ -3133,11 +3155,7 @@ def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True):
 
     data=collect_monthly_shift_schedule(year,month,active_only=active_only)
 
-    candidates=[
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+    candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
     font_name="Helvetica"
     if font_path:
@@ -3328,11 +3346,7 @@ def export_monthly_shift_detail_pdf(year, month, out_path, active_only=True):
 
     data=collect_monthly_shift_schedule(year,month,active_only=active_only)
 
-    candidates=[
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+    candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
     font_name="Helvetica"
     if font_path:
@@ -3789,6 +3803,44 @@ def calendar_button(parent, variable):
     return ttk.Button(parent, text="Дата…", width=7,
                       command=lambda: show_calendar_picker(parent, variable))
 
+
+def fit_window_to_screen(win, width, height, min_width=420, min_height=260):
+    """Не дозволяє діалогам виходити за межі робочого екрана.
+
+    На невеликих ноутбуках старі фіксовані розміри 1450x760 або 980x760
+    ховали нижні кнопки за панеллю Windows. Вікно лишається змінюваним.
+    """
+    win.update_idletasks()
+    screen_w=max(640, int(win.winfo_screenwidth()))
+    screen_h=max(480, int(win.winfo_screenheight()))
+    max_w=max(520, screen_w-80)
+    max_h=max(360, screen_h-120)
+    final_w=max(420, min(int(width), max_w))
+    final_h=max(260, min(int(height), max_h))
+    win.geometry(f"{final_w}x{final_h}")
+    win.minsize(min(int(min_width), final_w), min(int(min_height), final_h))
+    win.resizable(True, True)
+
+
+def ctrl_shortcut_action(keysym, keycode=None):
+    """Розпізнає Ctrl-команди також при українській розкладці клавіатури."""
+    key=(keysym or "").lower()
+    aliases={
+        "c":"copy", "с":"copy", "cyrillic_es":"copy",
+        "v":"paste", "м":"paste", "cyrillic_em":"paste",
+        "x":"cut", "ч":"cut", "cyrillic_che":"cut",
+        "a":"select_all", "ф":"select_all", "cyrillic_ef":"select_all",
+        "z":"undo", "я":"undo", "cyrillic_ya":"undo",
+        "y":"redo", "н":"redo", "cyrillic_en":"redo",
+    }
+    action=aliases.get(key)
+    if action:
+        return action
+    # На Windows keycode є кодом фізичної клавіші й не залежить від розкладки.
+    if sys.platform.startswith("win"):
+        return {65:"select_all",67:"copy",86:"paste",88:"cut",89:"redo",90:"undo"}.get(keycode)
+    return None
+
 class App(tk.Tk):
     def report_callback_exception(self, exc_type, exc_value, exc_tb):
         """Остання лінія захисту для неперехоплених помилок Tkinter callback-ів."""
@@ -3817,22 +3869,186 @@ class App(tk.Tk):
         except Exception:
             pass
 
+    @staticmethod
+    def _is_text_input(widget):
+        return widget is not None and widget.winfo_class() in {
+            "Entry", "TEntry", "Text", "Spinbox", "TSpinbox", "TCombobox"
+        }
+
+    @staticmethod
+    def _widget_is_readonly(widget):
+        try:
+            return str(widget.cget("state")) in {"disabled", "readonly"}
+        except (tk.TclError, AttributeError):
+            return False
+
+    def _select_all_widget(self, widget):
+        try:
+            if widget.winfo_class()=="Text":
+                widget.tag_add("sel", "1.0", "end-1c")
+                widget.mark_set("insert", "end-1c")
+                widget.see("insert")
+            else:
+                widget.selection_range(0, "end")
+                widget.icursor("end")
+            return True
+        except (tk.TclError, AttributeError):
+            return False
+
+    def _copy_tree_rows(self, tree):
+        selected=list(tree.selection())
+        if not selected and tree.focus():
+            selected=[tree.focus()]
+        if not selected:
+            return False
+        lines=[]
+        for item in selected:
+            values=tree.item(item, "values")
+            lines.append("\t".join(str(value) for value in values))
+        self.clipboard_clear()
+        self.clipboard_append("\n".join(lines))
+        self.update_idletasks()
+        if hasattr(self, "ui_status_var"):
+            self.ui_status_var.set(f"Скопійовано рядків: {len(lines)}")
+        return True
+
+    def _run_edit_action(self, widget, action):
+        if widget is None:
+            return False
+        if isinstance(widget, ttk.Treeview):
+            if widget is getattr(self, "work_tree", None):
+                if action=="copy":
+                    self.copy_work_day()
+                    return True
+                if action=="paste":
+                    self.paste_work_day()
+                    return True
+            if action=="copy":
+                return self._copy_tree_rows(widget)
+            if action=="select_all":
+                widget.selection_set(widget.get_children())
+                return True
+            return False
+        if not self._is_text_input(widget):
+            return False
+        if action=="select_all":
+            return self._select_all_widget(widget)
+        if action in {"cut", "paste", "undo", "redo"} and self._widget_is_readonly(widget):
+            return False
+        virtual={
+            "cut":"<<Cut>>", "copy":"<<Copy>>", "paste":"<<Paste>>",
+            "undo":"<<Undo>>", "redo":"<<Redo>>",
+        }.get(action)
+        if not virtual:
+            return False
+        try:
+            widget.event_generate(virtual)
+            return True
+        except tk.TclError:
+            return False
+
+    def _edit_focused(self, action):
+        self._run_edit_action(self.focus_get(), action)
+
+    def _global_ctrl_shortcut(self, event):
+        action=ctrl_shortcut_action(getattr(event, "keysym", ""), getattr(event, "keycode", None))
+        if not action:
+            return None
+        widget=getattr(event, "widget", None)
+        key=(getattr(event, "keysym", "") or "").lower()
+        # Латинські Ctrl+C/V/X/A/Z/Y уже правильно обробляє стандартний клас Tk.
+        # Тут втручаємося для таблиць і для фізичних клавіш в українській розкладці.
+        if self._is_text_input(widget) and key in {"a", "c", "v", "x", "y", "z"}:
+            return None
+        if self._run_edit_action(widget, action):
+            return "break"
+        return None
+
+    def _show_context_menu(self, event):
+        widget=getattr(event, "widget", None)
+        if not (self._is_text_input(widget) or isinstance(widget, ttk.Treeview)):
+            return None
+        if isinstance(widget, ttk.Treeview):
+            row=widget.identify_row(event.y)
+            if row and row not in widget.selection():
+                widget.selection_set(row)
+                widget.focus(row)
+        menu=tk.Menu(self, tearoff=0)
+        if isinstance(widget, ttk.Treeview):
+            copy_label="Копіювати день" if widget is getattr(self, "work_tree", None) else "Копіювати рядок(и)"
+            menu.add_command(label=copy_label, command=lambda:self._run_edit_action(widget,"copy"))
+            if widget is getattr(self, "work_tree", None):
+                menu.add_command(label="Вставити день", command=lambda:self._run_edit_action(widget,"paste"))
+            menu.add_separator()
+            menu.add_command(label="Виділити все", command=lambda:self._run_edit_action(widget,"select_all"))
+        else:
+            readonly=self._widget_is_readonly(widget)
+            menu.add_command(label="Вирізати", state="disabled" if readonly else "normal", command=lambda:self._run_edit_action(widget,"cut"))
+            menu.add_command(label="Копіювати", command=lambda:self._run_edit_action(widget,"copy"))
+            menu.add_command(label="Вставити", state="disabled" if readonly else "normal", command=lambda:self._run_edit_action(widget,"paste"))
+            menu.add_separator()
+            menu.add_command(label="Виділити все", command=lambda:self._run_edit_action(widget,"select_all"))
+        try:
+            x_root=getattr(event,"x_root",0) or widget.winfo_rootx()+12
+            y_root=getattr(event,"y_root",0) or widget.winfo_rooty()+widget.winfo_height()
+            menu.tk_popup(x_root, y_root)
+        finally:
+            menu.grab_release()
+        return "break"
+
+    def _install_ui_accessibility(self):
+        # bind_all поширює меню та українські Ctrl/Cmd-команди на поля у всіх Toplevel.
+        self.bind_all("<Control-KeyPress>", self._global_ctrl_shortcut, add="+")
+        if sys.platform == "darwin":
+            self.bind_all("<Command-KeyPress>", self._global_ctrl_shortcut, add="+")
+            # На Mac контекстне меню відкривається також Control-click.
+            self.bind_all("<Control-Button-1>", self._show_context_menu, add="+")
+        self.bind_all("<Button-3>", self._show_context_menu, add="+")
+        self.bind_all("<Shift-F10>", self._show_context_menu, add="+")
+
+    def _restore_main_window(self):
+        saved=get_setting("main_window_geometry", "")
+        match=re.fullmatch(r"(\d+)x(\d+)([+-]\d+)([+-]\d+)", saved or "")
+        if match:
+            try:
+                screen_w=max(640,self.winfo_screenwidth())
+                screen_h=max(480,self.winfo_screenheight())
+                width=min(int(match.group(1)),max(520,screen_w-80))
+                height=min(int(match.group(2)),max(360,screen_h-120))
+                x=max(0,min(int(match.group(3)),screen_w-width))
+                y=max(0,min(int(match.group(4)),screen_h-height))
+                self.geometry(f"{width}x{height}+{x}+{y}")
+            except tk.TclError:
+                pass
+        if get_setting("main_window_state", "normal")=="zoomed":
+            def apply_zoomed():
+                try:
+                    self.state("zoomed")
+                except tk.TclError:
+                    pass
+            self.after_idle(apply_zoomed)
+
     def __init__(self):
         super().__init__()
-        self.title("Taxo v8.65 — Облік водіїв — 48 місяців")
-        self.geometry("1200x760")
-        self.minsize(1050, 650)
+        self.title("Taxo v8.66 — Облік водіїв — 48 місяців")
+        fit_window_to_screen(self,1200,760,900,600)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
         self.bind("<Control-q>", lambda e: self.exit_app())
+        if sys.platform == "darwin":
+            self.bind("<Command-q>", lambda e: self.exit_app())
         self.driver_id = None
         self.att_driver_id = None
         self.att_driver_map = {}
+        self._install_ui_accessibility()
         self.build_ui()
+        self.build_menu()
+        self._restore_main_window()
         self.load_company()
         self.load_drivers()
         self.refresh_month()
 
     def build_menu(self):
+        shortcut = "Command+" if sys.platform == "darwin" else "Ctrl+"
         menubar = tk.Menu(self)
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="Зберегти реквізити підприємства", command=self.save_company)
@@ -3843,6 +4059,13 @@ class App(tk.Tk):
         file_menu.add_separator()
         file_menu.add_command(label="Вийти", command=self.exit_app)
         menubar.add_cascade(label="Файл", menu=file_menu)
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        edit_menu.add_command(label="Вирізати", accelerator=f"{shortcut}X", command=lambda:self._edit_focused("cut"))
+        edit_menu.add_command(label="Копіювати", accelerator=f"{shortcut}C", command=lambda:self._edit_focused("copy"))
+        edit_menu.add_command(label="Вставити", accelerator=f"{shortcut}V", command=lambda:self._edit_focused("paste"))
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Виділити все", accelerator=f"{shortcut}A", command=lambda:self._edit_focused("select_all"))
+        menubar.add_cascade(label="Правка", menu=edit_menu)
         service_menu = tk.Menu(menubar, tearoff=0)
         service_menu.add_command(label="Оновити табель", command=self.refresh_month)
         service_menu.add_command(label="Графік водіїв", command=lambda: self.show_tab(self.tab_schedule))
@@ -3856,7 +4079,16 @@ class App(tk.Tk):
             service_menu.add_command(label="Тахограф — шайби", command=lambda: self.show_tab(self.tab_tacho))
         menubar.add_cascade(label="Сервіс", menu=service_menu)
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="Про програму", command=lambda: messagebox.showinfo("Облік водіїв", "Облік водіїв та робочого часу — 48 місяців."))
+        help_menu.add_command(
+            label="Про програму",
+            command=lambda: messagebox.showinfo(
+                "Taxo v8.66 candidate r1",
+                "Облік водіїв та робочого часу — 48 місяців.\n\n"
+                "Кандидат інтерфейсу на базі стабільної v8.65.\n"
+                "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
+                parent=self
+            )
+        )
         menubar.add_cascade(label="Довідка", menu=help_menu)
         self.config(menu=menubar)
 
@@ -3868,6 +4100,14 @@ class App(tk.Tk):
 
     def exit_app(self):
         if messagebox.askyesno("Вихід", "Вийти з програми?", parent=self):
+            try:
+                state=self.state()
+                if state in {"normal", "zoomed"}:
+                    set_setting("main_window_state", state)
+                if state=="normal":
+                    set_setting("main_window_geometry", self.geometry())
+            except Exception:
+                pass
             self.destroy()
 
     def build_ui(self):
@@ -3877,8 +4117,24 @@ class App(tk.Tk):
         except Exception:
             pass
 
+        style.configure("TButton", padding=(8, 4))
+        style.configure("Treeview", rowheight=24)
+
+        modifier="Command" if sys.platform=="darwin" else "Ctrl"
+        self.ui_status_var=tk.StringVar(
+            value=f"Підказка: контекстне меню у полі — Вирізати / Копіювати / Вставити; {modifier}-команди працюють і в українській розкладці."
+        )
+        ttk.Label(
+            self,
+            textvariable=self.ui_status_var,
+            anchor="w",
+            relief="sunken",
+            padding=(8, 3)
+        ).pack(side="bottom", fill="x")
+
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=8, pady=8)
+        self.notebook=nb
 
         self.tab_company = ttk.Frame(nb)
         self.tab_drivers = ttk.Frame(nb)
@@ -3953,30 +4209,39 @@ class App(tk.Tk):
         body.bind("<Configure>", sync_region, add="+")
         canvas.bind("<Configure>", fit_minimum_width, add="+")
 
+        def owns_event(event):
+            widget=getattr(event, "widget", None)
+            while widget is not None:
+                if widget in (body, canvas):
+                    return True
+                widget=getattr(widget, "master", None)
+            return False
+
         def wheel(event):
+            if not owns_event(event):
+                return None
+            if event.widget.winfo_class() in {"Treeview", "Text", "Canvas"} and event.widget is not canvas:
+                return None
             delta=getattr(event, "delta", 0)
             if delta:
                 canvas.yview_scroll(int(-delta/120) or (-1 if delta>0 else 1), "units")
             return "break"
 
         def shift_wheel(event):
+            if not owns_event(event):
+                return None
+            if event.widget.winfo_class() in {"Treeview", "Text", "Canvas"} and event.widget is not canvas:
+                return None
             delta=getattr(event, "delta", 0)
             if delta:
                 canvas.xview_scroll(int(-delta/120) or (-1 if delta>0 else 1), "units")
             return "break"
 
-        def bind_wheel(_event=None):
-            canvas.bind_all("<MouseWheel>", wheel)
-            canvas.bind_all("<Shift-MouseWheel>", shift_wheel)
-
-        def unbind_wheel(_event=None):
-            canvas.unbind_all("<MouseWheel>")
-            canvas.unbind_all("<Shift-MouseWheel>")
-
-        canvas.bind("<Enter>", bind_wheel)
-        canvas.bind("<Leave>", unbind_wheel)
-        body.bind("<Enter>", bind_wheel)
-        body.bind("<Leave>", unbind_wheel)
+        # Не використовуємо небезпечне глобальне зняття: старий варіант міг зняти
+        # прив'язки інших вкладок. Безпечний глобальний обробник перевіряє,
+        # чи подія справді належить цій вкладці, і не забирає колесо у таблиць.
+        canvas.bind_all("<MouseWheel>", wheel, add="+")
+        canvas.bind_all("<Shift-MouseWheel>", shift_wheel, add="+")
 
         setattr(self, f"_{key}_scroll_canvas", canvas)
         return body
@@ -4095,7 +4360,7 @@ class App(tk.Tk):
 
     def open_data_folder(self):
         try:
-            os.startfile(DATA_ROOT) if os.name == "nt" else subprocess.Popen(["xdg-open", str(DATA_ROOT)])
+            open_external(DATA_ROOT)
         except Exception as e:
             messagebox.showerror("Помилка", str(e))
 
@@ -4195,12 +4460,13 @@ class App(tk.Tk):
         driver_y.pack(side="right",fill="y",pady=5)
         self.driver_tree.pack(side="left",fill="both", expand=True, padx=(10,0), pady=5)
         self.driver_tree.bind("<<TreeviewSelect>>", self.on_driver_select)
+        self.driver_tree.bind("<Double-1>",lambda _event:self.edit_driver())
+        self.driver_tree.bind("<Return>",lambda _event:self.edit_driver())
 
     def driver_form(self, driver=None):
         win = tk.Toplevel(self)
         win.title("Картка водія")
-        win.geometry("760x720")
-        win.minsize(700,650)
+        fit_window_to_screen(win,760,720,700,540)
         win.transient(self)
 
         outer=ttk.Frame(win,padding=10)
@@ -4516,6 +4782,8 @@ class App(tk.Tk):
         vehicle_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
         vehicle_y.pack(side="right",fill="y",pady=5)
         self.vehicle_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
+        self.vehicle_tree.bind("<Double-1>",lambda _event:self.edit_vehicle())
+        self.vehicle_tree.bind("<Return>",lambda _event:self.edit_vehicle())
         self.load_vehicles()
 
     def load_vehicles(self):
@@ -4538,7 +4806,7 @@ class App(tk.Tk):
         return " — ".join(x for x in parts if x)
 
     def vehicle_form(self, vehicle=None):
-        win=tk.Toplevel(self); win.title("Автомобіль"); win.geometry("620x430"); win.transient(self); win.grab_set()
+        win=tk.Toplevel(self); win.title("Автомобіль"); fit_window_to_screen(win,620,430,520,360); win.transient(self); win.grab_set()
         fields=[("name","Назва / інвентарний номер"),("plate","Державний номер"),("make_model","Марка / модель"),("year","Рік"),("notes","Примітка")]
         vv={}
         for i,(k,lbl) in enumerate(fields):
@@ -4576,12 +4844,15 @@ class App(tk.Tk):
         con=db(); con.execute("UPDATE vehicles SET active=0 WHERE id=?",(v["id"],)); con.commit(); con.close(); self.load_vehicles()
 
     def build_work(self):
-        bar=ttk.Frame(self.tab_work); bar.pack(fill="x",padx=10,pady=8)
+        controls=ttk.Frame(self.tab_work)
+        controls.pack(fill="x",padx=10,pady=(8,3))
+        select_bar=ttk.Frame(controls)
+        select_bar.pack(fill="x")
         self.work_driver_var=tk.StringVar(value="")
         self.work_driver_map={}
-        ttk.Label(bar,text="Водій:").pack(side="left")
+        ttk.Label(select_bar,text="Водій:").pack(side="left")
         self.work_driver_cb=ttk.Combobox(
-            bar,
+            select_bar,
             textvariable=self.work_driver_var,
             state="readonly",
             width=34
@@ -4590,23 +4861,33 @@ class App(tk.Tk):
         self.work_driver_cb.bind("<<ComboboxSelected>>", self.on_work_driver_change)
         self.year_var=tk.IntVar(value=date.today().year)
         self.month_var=tk.IntVar(value=date.today().month)
-        ttk.Spinbox(bar,from_=2020,to=2100,textvariable=self.year_var,width=7,command=self.refresh_month).pack(side="left",padx=4)
-        ttk.Spinbox(bar,from_=1,to=12,textvariable=self.month_var,width=4,command=self.refresh_month).pack(side="left",padx=4)
-        ttk.Button(bar,text="Новий / редагувати",command=self.save_work_row).pack(side="left",padx=5)
-        ttk.Button(bar,text="Копіювати день",command=self.copy_work_day).pack(side="left",padx=5)
-        ttk.Button(bar,text="Вставити день",command=self.paste_work_day).pack(side="left",padx=5)
-        ttk.Button(bar,text="Excel",command=lambda:self.export_current("xlsx")).pack(side="left",padx=5)
-        ttk.Button(bar,text="PDF",command=lambda:self.export_current("pdf")).pack(side="left",padx=5)
-        ttk.Button(bar,text="Підсумки / контроль",command=self.show_work_analysis).pack(side="left",padx=5)
+        ttk.Label(select_bar,text="Рік:").pack(side="left",padx=(8,2))
+        ttk.Spinbox(select_bar,from_=2020,to=2100,textvariable=self.year_var,width=7,command=self.refresh_month).pack(side="left",padx=(0,4))
+        ttk.Label(select_bar,text="Місяць:").pack(side="left",padx=(8,2))
+        ttk.Spinbox(select_bar,from_=1,to=12,textvariable=self.month_var,width=4,command=self.refresh_month).pack(side="left",padx=(0,8))
+        ttk.Button(select_bar,text="Оновити",command=self.refresh_month).pack(side="left",padx=4)
+
+        edit_bar=ttk.Frame(controls)
+        edit_bar.pack(fill="x",pady=(5,0))
+        ttk.Button(edit_bar,text="Новий / редагувати день",command=self.save_work_row).pack(side="left",padx=(0,5))
+        ttk.Button(edit_bar,text="Копіювати день",command=self.copy_work_day).pack(side="left",padx=5)
+        ttk.Button(edit_bar,text="Вставити день",command=self.paste_work_day).pack(side="left",padx=5)
+
+        report_bar=ttk.Frame(controls)
+        report_bar.pack(fill="x",pady=(5,0))
+        ttk.Label(report_bar,text="Звіти:").pack(side="left",padx=(0,3))
+        ttk.Button(report_bar,text="Excel",command=lambda:self.export_current("xlsx")).pack(side="left",padx=4)
+        ttk.Button(report_bar,text="PDF",command=lambda:self.export_current("pdf")).pack(side="left",padx=4)
+        ttk.Button(report_bar,text="Підсумки / контроль",command=self.show_work_analysis).pack(side="left",padx=4)
         ttk.Button(
-            bar,text="Місячний табель / баланс",
+            report_bar,text="Місячний табель / баланс",
             command=self.show_monthly_work_balance
-        ).pack(side="left",padx=5)
+        ).pack(side="left",padx=4)
         ttk.Button(
-            bar,
+            report_bar,
             text="⚠ Без тахо — робочі дні 8 год",
             command=self.autofill
-        ).pack(side="left",padx=(18,5))
+        ).pack(side="right",padx=(18,0))
         ttk.Label(
             self.tab_work,
             text=(
@@ -4615,8 +4896,8 @@ class App(tk.Tk):
                 "робочий час дорівнює керуванню; далі його можна збільшити/уточнити окремо. "
                 "Проміжки між частинами використовуються для контролю перерв у керуванні 4:30 → 45 хв або 15+30."
             ),
-            foreground="gray"
-        ).pack(anchor="w",padx=12)
+            foreground="gray",wraplength=1080,justify="left"
+        ).pack(anchor="w",padx=12,pady=(2,0))
         cols=("id","date","weekday","type","schedule","breaks","work","drive","over","route","vehicle","notes","mode")
         self.work_tree=ttk.Treeview(self.tab_work,columns=cols,show="headings",height=24,selectmode="extended")
         heads={"id":"ID","date":"Дата","weekday":"День","type":"Вид","schedule":"Графік","breaks":"Перерви","work":"Робота (план)","drive":"Керування (план)","over":"Надуроч.","route":"Маршрут","vehicle":"Авто","notes":"Примітка","mode":"Режим"}
@@ -4632,6 +4913,9 @@ class App(tk.Tk):
         self.work_tree.bind("<Double-1>",self.edit_work_row)
         self.work_tree.bind("<Control-c>",lambda e:self.copy_work_day())
         self.work_tree.bind("<Control-v>",lambda e:self.paste_work_day())
+        if sys.platform=="darwin":
+            self.work_tree.bind("<Command-c>",lambda e:self.copy_work_day())
+            self.work_tree.bind("<Command-v>",lambda e:self.paste_work_day())
         self.work_clipboard=None
 
     def show_monthly_work_balance(self):
@@ -4644,9 +4928,7 @@ class App(tk.Tk):
         win=tk.Toplevel(self)
         self.monthly_balance_win=win
         win.title("Місячний табель / баланс робочого часу")
-        win.geometry("1450x760")
-        win.minsize(950,520)
-        win.resizable(True,True)
+        fit_window_to_screen(win,1450,760,900,500)
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
@@ -4860,10 +5142,7 @@ class App(tk.Tk):
             path=actual
             self.monthly_balance_last_pdf=actual
         try:
-            if os.name=="nt":
-                os.startfile(str(path))
-            else:
-                open_external(path)
+            open_external(path)
         except Exception as e:
             messagebox.showerror(
                 "Помилка",str(e),parent=self.monthly_balance_win
@@ -4895,10 +5174,7 @@ class App(tk.Tk):
             return
         self.monthly_balance_last_xlsx=actual
         try:
-            if os.name=="nt":
-                os.startfile(str(actual))
-            else:
-                subprocess.Popen(["xdg-open",str(actual)])
+            open_external(actual)
         except Exception as exc:
             messagebox.showwarning(
                 "Файл створено",
@@ -4908,22 +5184,29 @@ class App(tk.Tk):
 
     def build_schedule(self):
         """Графічний планувальник одного календарного дня по всіх активних водіях."""
-        top=ttk.Frame(self.tab_schedule); top.pack(fill="x",padx=10,pady=8)
+        top=ttk.Frame(self.tab_schedule); top.pack(fill="x",padx=10,pady=(8,3))
+        nav=ttk.Frame(top); nav.pack(fill="x")
         self.schedule_date_var=tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
-        ttk.Label(top,text="Дата:").pack(side="left")
-        ttk.Entry(top,textvariable=self.schedule_date_var,width=13).pack(side="left",padx=5)
-        calendar_button(top,self.schedule_date_var).pack(side="left",padx=2)
-        ttk.Button(top,text="◀ День",command=lambda:self.shift_schedule_day(-1)).pack(side="left",padx=3)
-        ttk.Button(top,text="Сьогодні",command=self.schedule_today).pack(side="left",padx=3)
-        ttk.Button(top,text="День ▶",command=lambda:self.shift_schedule_day(1)).pack(side="left",padx=3)
-        ttk.Button(top,text="Оновити",command=self.refresh_schedule).pack(side="left",padx=5)
-        ttk.Button(top,text="Додати / редагувати період",command=self.schedule_add_period).pack(side="left",padx=5)
+        ttk.Label(nav,text="Дата:").pack(side="left")
+        ttk.Entry(nav,textvariable=self.schedule_date_var,width=13).pack(side="left",padx=5)
+        calendar_button(nav,self.schedule_date_var).pack(side="left",padx=2)
+        ttk.Button(nav,text="◀ День",command=lambda:self.shift_schedule_day(-1)).pack(side="left",padx=3)
+        ttk.Button(nav,text="Сьогодні",command=self.schedule_today).pack(side="left",padx=3)
+        ttk.Button(nav,text="День ▶",command=lambda:self.shift_schedule_day(1)).pack(side="left",padx=3)
+        ttk.Button(nav,text="Оновити",command=self.refresh_schedule).pack(side="left",padx=5)
+
+        actions=ttk.Frame(top); actions.pack(fill="x",pady=(5,0))
+        ttk.Button(actions,text="Додати / редагувати період",command=self.schedule_add_period).pack(side="left")
         ttk.Button(
-            top,
+            actions,
             text="Місячний графік змінності",
             command=self.show_monthly_shift_schedule
         ).pack(side="left",padx=5)
-        ttk.Label(self.tab_schedule,text="План дня по всіх активних водіях. Періоди відпочинку, роботи, керування та готовності відображаються на одній часовій шкалі.",foreground="gray").pack(anchor="w",padx=12)
+        ttk.Label(
+            self.tab_schedule,
+            text="План дня по всіх активних водіях. Подвійний клік по смузі або рядку відкриває день для редагування.",
+            foreground="gray",wraplength=1080,justify="left"
+        ).pack(anchor="w",padx=12)
 
         legend=ttk.Frame(self.tab_schedule); legend.pack(fill="x",padx=12,pady=(4,2))
         for txt in ("Робота","Керування","Відпочинок","Готовність","Інше"):
@@ -4955,9 +5238,7 @@ class App(tk.Tk):
         win=tk.Toplevel(self)
         self.monthly_shift_win=win
         win.title("Місячний графік змінності водіїв")
-        win.geometry("1450x760")
-        win.minsize(950,520)
-        win.resizable(True,True)
+        fit_window_to_screen(win,1450,760,900,500)
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
@@ -5147,10 +5428,7 @@ class App(tk.Tk):
             return
         self.monthly_shift_last_xlsx=actual
         try:
-            if os.name=="nt":
-                os.startfile(str(actual))
-            else:
-                subprocess.Popen(["xdg-open",str(actual)])
+            open_external(actual)
         except Exception as exc:
             messagebox.showwarning(
                 "Файл створено",
@@ -5241,10 +5519,7 @@ class App(tk.Tk):
                     return
                 path=actual
             self.monthly_shift_last_pdf=Path(path)
-            if os.name=="nt":
-                os.startfile(str(path))
-            else:
-                open_external(path)
+            open_external(path)
         except Exception as e:
             messagebox.showerror(
                 "Графік змінності",
@@ -5416,7 +5691,7 @@ class App(tk.Tk):
         con=db(); drivers=con.execute("SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name").fetchall(); con.close()
         if not drivers:
             messagebox.showwarning("Графік","Спочатку додайте активного водія.",parent=self); return
-        win=tk.Toplevel(self); win.title("Вибір водія"); win.geometry("430x170"); win.transient(self); win.grab_set()
+        win=tk.Toplevel(self); win.title("Вибір водія"); fit_window_to_screen(win,430,170,400,170); win.transient(self); win.grab_set()
         var=tk.StringVar(value=self.driver_full_name(drivers[0])); labels=[self.driver_full_name(x) for x in drivers]; mapping={self.driver_full_name(x):x["id"] for x in drivers}
         ttk.Label(win,text="Водій").pack(anchor="w",padx=12,pady=(15,5)); ttk.Combobox(win,textvariable=var,values=labels,state="readonly",width=42).pack(padx=12)
         def go():
@@ -5468,7 +5743,7 @@ class App(tk.Tk):
         vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall()
         con.close()
         old_segments=self.get_work_segments(work_id) if work_id else []
-        win=tk.Toplevel(self); win.title("Запис робочого часу"); win.geometry("1180x650"); win.transient(self); win.grab_set()
+        win=tk.Toplevel(self); win.title("Запис робочого часу"); fit_window_to_screen(win,1180,650,900,520); win.transient(self); win.grab_set()
         top=ttk.Frame(win); top.pack(fill="x",padx=10,pady=8)
         day_var=tk.StringVar(value=date_text); type_var=tk.StringVar(value=(existing["day_type"] if existing else vals[3]))
         existing_route_id=(existing["route_id"] if existing and "route_id" in existing.keys() else None)
@@ -5598,7 +5873,7 @@ class App(tk.Tk):
             )
 
         def segment_form(item=None, index=None):
-            sw=tk.Toplevel(win); sw.title("Частина робочої зміни"); sw.geometry("570x455"); sw.transient(win); sw.grab_set()
+            sw=tk.Toplevel(win); sw.title("Частина робочої зміни"); fit_window_to_screen(sw,570,455,520,410); sw.transient(win); sw.grab_set()
             vals=item or {
                 "work_start_time":"08:00","work_end_time":"09:00",
                 "start_time":"08:00","end_time":"09:00",
@@ -6510,10 +6785,8 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         win.title("Підсумки та контроль №340")
-        win.geometry("980x760")
-        win.minsize(760,520)
+        fit_window_to_screen(win,980,760,760,500)
         win.transient(self)
-        win.resizable(True,True)
 
         head=ttk.Frame(win,padding=10)
         head.pack(fill="x")
@@ -6622,6 +6895,8 @@ class App(tk.Tk):
         routecat_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
         routecat_y.pack(side="right",fill="y",pady=5)
         self.route_catalog_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
+        self.route_catalog_tree.bind("<Double-1>",lambda _event:self.edit_route_catalog())
+        self.route_catalog_tree.bind("<Return>",lambda _event:self.edit_route_catalog())
         self.load_route_catalog()
 
     def route_label(self,r):
@@ -6640,7 +6915,7 @@ class App(tk.Tk):
         con=db(); r=con.execute("SELECT * FROM routes WHERE id=?",(rid,)).fetchone(); con.close(); return r
 
     def route_catalog_form(self,route=None):
-        win=tk.Toplevel(self); win.title("Маршрут"); win.geometry("650x350"); win.transient(self); win.grab_set()
+        win=tk.Toplevel(self); win.title("Маршрут"); fit_window_to_screen(win,650,350,540,320); win.transient(self); win.grab_set()
         fields=[("name","Назва маршруту"),("code","Код / № маршруту"),("description","Опис / напрямок")]
         vv={k:tk.StringVar(value=str(route[k] or "") if route else "") for k,_ in fields}
         for i,(k,lbl) in enumerate(fields):
@@ -6687,6 +6962,8 @@ class App(tk.Tk):
         route_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
         route_y.pack(side="right",fill="y",pady=5)
         self.route_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
+        self.route_tree.bind("<Double-1>",lambda _event:self.edit_route_template())
+        self.route_tree.bind("<Return>",lambda _event:self.edit_route_template())
         self.load_route_templates()
 
     def load_route_templates(self):
@@ -6710,7 +6987,7 @@ class App(tk.Tk):
         rid=int(self.route_tree.item(sel[0],"values")[0]); con=db(); t=con.execute("SELECT * FROM route_templates WHERE id=?",(rid,)).fetchone(); segs=con.execute("SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no",(rid,)).fetchall(); con.close(); return t,segs
 
     def route_template_form(self, existing=None):
-        win=tk.Toplevel(self); win.title("Шаблон маршруту"); win.geometry("1080x590"); win.transient(self); win.grab_set()
+        win=tk.Toplevel(self); win.title("Шаблон маршруту"); fit_window_to_screen(win,1080,590,820,500); win.transient(self); win.grab_set()
         vals={k:(existing[0][k] if existing else "") for k in ["name","route_name","vehicle","shift_type","notes"]}
         existing_route_id=(existing[0]["route_id"] if existing and "route_id" in existing[0].keys() else None)
         con=db(); routes=con.execute("SELECT * FROM routes WHERE active=1 ORDER BY name").fetchall(); vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall(); con.close()
@@ -6761,7 +7038,7 @@ class App(tk.Tk):
                     r["activity_type"],r["note"]
                 ))
         def edit_seg(index=None):
-            sw=tk.Toplevel(win); sw.title("Частина шаблону"); sw.geometry("560x445"); sw.transient(win); sw.grab_set()
+            sw=tk.Toplevel(win); sw.title("Частина шаблону"); fit_window_to_screen(sw,560,445,510,400); sw.transient(win); sw.grab_set()
             base=seg_data[index] if index is not None else {
                 "work_start_time":"08:00","work_end_time":"09:00",
                 "start_time":"08:00","end_time":"09:00",
@@ -6938,16 +7215,23 @@ class App(tk.Tk):
 
         hbar=ttk.Frame(hist)
         hbar.pack(fill="x",padx=6,pady=(6,2))
-        ttk.Button(hbar,text="DOCX",command=lambda:self.open_att_file("docx")).pack(side="left",padx=3)
-        ttk.Button(hbar,text="PDF",command=lambda:self.open_att_file("pdf")).pack(side="left",padx=3)
-        ttk.Button(hbar,text="JPG",command=lambda:self.open_att_file("jpg")).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Папка файла",command=self.open_att_folder).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Архів файлів",command=self.open_att_archive_folder).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Редагувати",command=self.edit_selected_attestation).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Вилучити з контролю",command=self.delete_selected_attestation).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Відновити",command=self.restore_selected_attestation).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Видалити назавжди",command=self.purge_selected_attestation).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Історія змін",command=self.show_attestation_audit).pack(side="left",padx=3)
+        open_bar=ttk.Frame(hbar)
+        open_bar.pack(fill="x")
+        ttk.Label(open_bar,text="Відкрити:").pack(side="left",padx=(3,1))
+        ttk.Button(open_bar,text="DOCX",command=lambda:self.open_att_file("docx")).pack(side="left",padx=3)
+        ttk.Button(open_bar,text="PDF",command=lambda:self.open_att_file("pdf")).pack(side="left",padx=3)
+        ttk.Button(open_bar,text="JPG",command=lambda:self.open_att_file("jpg")).pack(side="left",padx=3)
+        ttk.Button(open_bar,text="Папка файла",command=self.open_att_folder).pack(side="left",padx=3)
+        ttk.Button(open_bar,text="Архів файлів",command=self.open_att_archive_folder).pack(side="left",padx=3)
+
+        manage_bar=ttk.Frame(hbar)
+        manage_bar.pack(fill="x",pady=(4,0))
+        ttk.Label(manage_bar,text="Дії:").pack(side="left",padx=(3,1))
+        ttk.Button(manage_bar,text="Редагувати",command=self.edit_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(manage_bar,text="Вилучити з контролю",command=self.delete_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(manage_bar,text="Відновити",command=self.restore_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(manage_bar,text="Видалити назавжди",command=self.purge_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(manage_bar,text="Історія змін",command=self.show_attestation_audit).pack(side="left",padx=3)
 
         filter_bar=ttk.Frame(hist)
         filter_bar.pack(fill="x",padx=6,pady=(2,4))
@@ -7007,36 +7291,38 @@ class App(tk.Tk):
         win=tk.Toplevel(self)
         self.att_gap_win=win
         win.title("Контроль бланків — 56 днів + поточний період до виїзду")
-        win.geometry("1250x650")
-        win.minsize(900,500)
-        win.resizable(True,True)
+        fit_window_to_screen(win,1250,650,900,500)
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
+        control_bar=ttk.Frame(top)
+        control_bar.pack(fill="x")
 
         self.att_gap_control_date=tk.StringVar(
             value=self.att_date.get().strip() if hasattr(self,"att_date") else date.today().strftime("%d.%m.%Y")
         )
-        ttk.Label(top,text="День контролю:").pack(side="left")
-        ttk.Entry(top,textvariable=self.att_gap_control_date,width=13).pack(side="left",padx=5)
-        calendar_button(top,self.att_gap_control_date).pack(side="left",padx=2)
+        ttk.Label(control_bar,text="День контролю:").pack(side="left")
+        ttk.Entry(control_bar,textvariable=self.att_gap_control_date,width=13).pack(side="left",padx=5)
+        calendar_button(control_bar,self.att_gap_control_date).pack(side="left",padx=2)
         ttk.Button(
-            top,text="Перевірити",command=self.refresh_attestation_gap_control
-        ).pack(side="left",padx=8)
-        ttk.Button(
-            top,text="Підставити у форму",
-            command=self.use_selected_attestation_gap
+            control_bar,text="Перевірити",command=self.refresh_attestation_gap_control
         ).pack(side="left",padx=8)
 
         self.att_gap_activity=tk.StringVar(value=f"16 — {ACTIVITIES[16]}")
-        ttk.Label(top,text="Позиція:").pack(side="left",padx=(8,3))
+        ttk.Label(control_bar,text="Позиція:").pack(side="left",padx=(8,3))
         ttk.Combobox(
-            top,textvariable=self.att_gap_activity,state="readonly",width=31,
+            control_bar,textvariable=self.att_gap_activity,state="readonly",width=31,
             values=[f"{n} — {ACTIVITIES[n]}" for n in ACTIVITIES]
         ).pack(side="left",padx=3)
 
+        action_bar=ttk.Frame(top)
+        action_bar.pack(fill="x",pady=(5,0))
         ttk.Button(
-            top,text="Сформувати Бланк підтвердження",
+            action_bar,text="Підставити у форму",
+            command=self.use_selected_attestation_gap
+        ).pack(side="left",padx=(0,8))
+        ttk.Button(
+            action_bar,text="Сформувати Бланк підтвердження",
             command=self.create_selected_gap_attestation
         ).pack(side="left",padx=8)
 
@@ -7465,7 +7751,7 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         win.title(f"Редагування Бланка підтвердження №{att_id}")
-        win.geometry("760x390")
+        fit_window_to_screen(win,760,390,650,360)
         win.transient(self)
         win.grab_set()
 
@@ -7636,10 +7922,7 @@ class App(tk.Tk):
 
     def open_att_archive_folder(self):
         ATT_ARCHIVE_DIR.mkdir(parents=True,exist_ok=True)
-        if os.name=="nt":
-            os.startfile(str(ATT_ARCHIVE_DIR))
-        else:
-            subprocess.Popen(["xdg-open",str(ATT_ARCHIVE_DIR)])
+        open_external(ATT_ARCHIVE_DIR)
 
     def purge_selected_attestation(self):
         """Фізично видаляє вже вилучений бланк, його аудит і файли.
@@ -7737,7 +8020,7 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         win.title(f"Історія змін Бланка №{att_id}")
-        win.geometry("1350x520")
+        fit_window_to_screen(win,1350,520,850,440)
         win.transient(self)
 
         cols=("when","action","revision","from","to","activity","status","note","files")
@@ -7852,7 +8135,7 @@ class App(tk.Tk):
         if not path or not os.path.exists(path):
             messagebox.showerror("Помилка","Файл не знайдено.",parent=self)
             return
-        os.startfile(path) if os.name=="nt" else subprocess.Popen(["xdg-open",path])
+        open_external(path)
 
     def open_att_file(self, kind=None):
         row=self._selected_attestation_row()
@@ -7882,10 +8165,7 @@ class App(tk.Tk):
             messagebox.showinfo("Бланки","Для цього запису немає збереженого файлу.",parent=self)
             return
         folder=str(Path(path).parent)
-        if os.name=="nt":
-            os.startfile(folder)
-        else:
-            subprocess.Popen(["xdg-open",folder])
+        open_external(folder)
 
 if __name__ == "__main__":
     migrated, old_db = init_db()

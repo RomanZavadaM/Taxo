@@ -1,0 +1,100 @@
+name: Build Taxo v8.66 macOS candidate r1
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'main.py'
+      - 'tachograph.py'
+      - 'attestation_render.py'
+      - 'Бланк підтвердження.docx'
+      - 'attestation_visual_template.pdf'
+      - 'requirements.txt'
+      - 'requirements-build-macos.txt'
+      - 'Taxo_macos.spec'
+      - 'BUILD_MACOS.sh'
+      - 'tests/**'
+      - '.github/workflows/build-macos-v8.66.yml'
+  push:
+    branches:
+      - work/v8.66-macos-executable
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos:
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+
+    env:
+      PYTHONUTF8: '1'
+
+    steps:
+      - name: Checkout candidate source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Verify runner architecture
+        shell: bash
+        run: |
+          test "$(uname -m)" = "${{ matrix.arch }}"
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-build-macos.txt
+
+      - name: Compile and test source
+        shell: bash
+        run: |
+          python -m py_compile main.py tachograph.py attestation_render.py
+          python -m unittest discover -s tests -v
+
+      - name: Build native Taxo.app
+        shell: bash
+        run: python -m PyInstaller --noconfirm --clean Taxo_macos.spec
+
+      - name: Verify application bundle
+        shell: bash
+        run: |
+          test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
+          find 'dist/Taxo.app' -name 'Бланк підтвердження.docx' -print -quit | grep -q .
+          find 'dist/Taxo.app' -name 'attestation_visual_template.pdf' -print -quit | grep -q .
+          if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then
+            echo 'Database unexpectedly bundled in Taxo.app' >&2
+            exit 1
+          fi
+          file 'dist/Taxo.app/Contents/MacOS/Taxo' | grep -q "${{ matrix.arch }}"
+          codesign --verify --deep --strict 'dist/Taxo.app'
+
+      - name: Create portable ZIP and checksum
+        shell: bash
+        run: |
+          zip_name="Taxo_v8_66_TEST_r1_macOS_${{ matrix.arch }}_Portable.zip"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent 'dist/Taxo.app' "${zip_name}"
+          shasum -a 256 "${zip_name}" > "SHA256SUMS_v8_66_macOS_${{ matrix.arch }}.txt"
+          cat "SHA256SUMS_v8_66_macOS_${{ matrix.arch }}.txt"
+
+      - name: Upload macOS candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v8.66-macOS-${{ matrix.arch }}-candidate-r1
+          path: |
+            Taxo_v8_66_TEST_r1_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v8_66_macOS_${{ matrix.arch }}.txt
+          if-no-files-found: error
+          retention-days: 30
