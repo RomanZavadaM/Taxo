@@ -33,12 +33,16 @@ jobs:
       - name: Reconstruct v8.64 source from protected payload
         shell: pwsh
         run: |
-          $base = Get-ChildItem '.release_payload/v8.64/part*.b64' | Sort-Object Name
-          $rem  = Get-ChildItem '.release_payload/v8.64/rem*.b64' | Sort-Object Name
-          if ($base.Count -ne 13) { throw "Expected 13 base payload files, got $($base.Count)" }
-          if ($rem.Count -ne 18) { throw "Expected 18 remainder payload files, got $($rem.Count)" }
-          $all = @($base) + @($rem)
-          $b64 = ($all | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
+          $ordered = @()
+          $ordered += 0..8 | ForEach-Object { Get-Item ('.release_payload/v8.64/part{0:D2}.b64' -f $_) }
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem09_*.b64' | Sort-Object Name
+          $ordered += 10..12 | ForEach-Object { Get-Item ('.release_payload/v8.64/part{0:D2}.b64' -f $_) }
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem13_*.b64' | Sort-Object Name
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem14_*.b64' | Sort-Object Name
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem15_*.b64' | Sort-Object Name
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem16_*.b64' | Sort-Object Name
+          if ($ordered.Count -ne 35) { throw "Expected 35 ordered payload files, got $($ordered.Count)" }
+          $b64 = ($ordered | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
           if ($b64.Length -ne 248624) { throw "Unexpected Base64 length: $($b64.Length)" }
           [IO.File]::WriteAllBytes('Taxo_v8_64_source.tar.xz', [Convert]::FromBase64String($b64))
           $archiveHash = (Get-FileHash 'Taxo_v8_64_source.tar.xz' -Algorithm SHA256).Hash.ToLowerInvariant()
