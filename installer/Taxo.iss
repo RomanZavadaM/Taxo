@@ -1,5 +1,5 @@
 #define MyAppName "Taxo"
-#define MyAppVersion "8.56"
+#define MyAppVersion "8.64"
 #define MyAppPublisher "RomanZavadaM"
 #define MyAppExeName "Taxo.exe"
 
@@ -16,7 +16,7 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release_out
-OutputBaseFilename=Taxo_v8_56_Setup_Windows_x64
+OutputBaseFilename=Taxo_v8_64_Setup_Windows_x64
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -45,5 +45,4 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Запустити Taxo"; Flags
 
 [UninstallDelete]
 ; Навмисно НЕ видаляємо %USERPROFILE%\Documents\DriverWorktime.
-; Там зберігаються база, резервні копії та документи користувача.
 Type: filesandordirs; Name: "{app}"

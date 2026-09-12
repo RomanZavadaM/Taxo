@@ -11,11 +11,12 @@ import sqlite3
 import subprocess
 import sys
 import shutil
+import tempfile
 from datetime import date, datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 
 try:
     from docx.shared import Pt
@@ -27,6 +28,12 @@ try:
 except ImportError:
     TachographModule = None
 
+try:
+    from attestation_render import build_attestation_pdf, pdf_to_jpg_pages
+except ImportError:
+    build_attestation_pdf = None
+    pdf_to_jpg_pages = None
+
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне сховище даних НЕ залежить від версії програми.
@@ -36,10 +43,14 @@ DATA_ROOT = DOCUMENTS_DIR / "DriverWorktime"
 DATA_DIR = DATA_ROOT / "Data"
 BACKUP_DIR = DATA_ROOT / "Backups"
 OUTPUT_DIR = DATA_ROOT / "Output"
+ATT_ARCHIVE_DIR = OUTPUT_DIR / "AttestationArchive"
+ATT_REPLACED_DIR = ATT_ARCHIVE_DIR / "Replaced"
+ATT_DELETED_DIR = ATT_ARCHIVE_DIR / "Deleted"
 DB_PATH = DATA_DIR / "driver_worktime.sqlite3"
 TEMPLATE_PATH = APP_DIR / "Бланк підтвердження.docx"
+ATT_VISUAL_TEMPLATE_PATH = APP_DIR / "attestation_visual_template.pdf"
 
-for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR):
+for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR, ATT_ARCHIVE_DIR, ATT_REPLACED_DIR, ATT_DELETED_DIR):
     _p.mkdir(parents=True, exist_ok=True)
 
 
@@ -272,7 +283,12 @@ def init_db():
         fax TEXT DEFAULT '',
         email TEXT DEFAULT '',
         signer_name TEXT DEFAULT '',
-        signer_position TEXT DEFAULT ''
+        signer_position TEXT DEFAULT '',
+        name_en TEXT DEFAULT '',
+        address_en TEXT DEFAULT '',
+        signer_name_en TEXT DEFAULT '',
+        signer_position_en TEXT DEFAULT '',
+        place_en TEXT DEFAULT ''
     );
     INSERT OR IGNORE INTO company(id) VALUES (1);
 
@@ -292,6 +308,9 @@ def init_db():
         last_name TEXT NOT NULL,
         first_name TEXT NOT NULL,
         middle_name TEXT DEFAULT '',
+        last_name_en TEXT DEFAULT '',
+        first_name_en TEXT DEFAULT '',
+        middle_name_en TEXT DEFAULT '',
         birth_date TEXT DEFAULT '',
         license_series TEXT DEFAULT '',
         license_number TEXT DEFAULT '',
@@ -374,8 +393,37 @@ def init_db():
         place TEXT DEFAULT '',
         form_date TEXT DEFAULT '',
         file_path TEXT DEFAULT '',
+        pdf_path TEXT DEFAULT '',
+        jpg_page1_path TEXT DEFAULT '',
+        jpg_page2_path TEXT DEFAULT '',
+        status TEXT NOT NULL DEFAULT 'active',
+        revision INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT DEFAULT '',
+        deleted_at TEXT DEFAULT '',
+        delete_reason TEXT DEFAULT '',
         created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS attestation_audit (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        attestation_id INTEGER NOT NULL,
+        action TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 1,
+        period_from TEXT NOT NULL,
+        period_to TEXT NOT NULL,
+        activity_no INTEGER NOT NULL,
+        place TEXT DEFAULT '',
+        form_date TEXT DEFAULT '',
+        file_path TEXT DEFAULT '',
+        pdf_path TEXT DEFAULT '',
+        jpg_page1_path TEXT DEFAULT '',
+        jpg_page2_path TEXT DEFAULT '',
+        status TEXT DEFAULT 'active',
+        note TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_attestation_audit_attestation
+        ON attestation_audit(attestation_id, id);
     """)
     # Безпечна міграція старої БД v5: додаємо лише нові поля, не видаляючи старі.
     cols = {r[1] for r in con.execute("PRAGMA table_info(worklog)").fetchall()}
@@ -407,7 +455,27 @@ def init_db():
            )
     """,(WORK_MODE_TACHO,))
     # v8.39: окреме поле дати видачі посвідчення.
+    # v8.58: окремі англомовні реквізити підприємства для зворотного боку бланка.
+    # Порожнє англійське поле означає автоматичний fallback на українське.
+    ccols = {r[1] for r in con.execute("PRAGMA table_info(company)").fetchall()}
+    for name, ddl in [
+        ("name_en", "TEXT DEFAULT ''"),
+        ("address_en", "TEXT DEFAULT ''"),
+        ("signer_name_en", "TEXT DEFAULT ''"),
+        ("signer_position_en", "TEXT DEFAULT ''"),
+        ("place_en", "TEXT DEFAULT ''"),
+    ]:
+        if name not in ccols:
+            con.execute(f"ALTER TABLE company ADD COLUMN {name} {ddl}")
+
     dcols = {r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+    for name, ddl in [
+        ("last_name_en", "TEXT DEFAULT ''"),
+        ("first_name_en", "TEXT DEFAULT ''"),
+        ("middle_name_en", "TEXT DEFAULT ''"),
+    ]:
+        if name not in dcols:
+            con.execute(f"ALTER TABLE drivers ADD COLUMN {name} {ddl}")
     if "license_issue_date" not in dcols:
         con.execute("ALTER TABLE drivers ADD COLUMN license_issue_date TEXT DEFAULT ''")
 
@@ -439,6 +507,35 @@ def init_db():
         con.execute("ALTER TABLE route_templates ADD COLUMN vehicle_id INTEGER")
     if "route_id" not in rcols:
         con.execute("ALTER TABLE route_templates ADD COLUMN route_id INTEGER")
+
+    # v8.57: Бланки підтвердження мають керований життєвий цикл.
+    # Старі записи автоматично вважаються активними ревізії 1.
+    acols = {r[1] for r in con.execute("PRAGMA table_info(attestations)").fetchall()}
+    for name, ddl in [
+        ("status", "TEXT NOT NULL DEFAULT 'active'"),
+        ("revision", "INTEGER NOT NULL DEFAULT 1"),
+        ("updated_at", "TEXT DEFAULT ''"),
+        ("deleted_at", "TEXT DEFAULT ''"),
+        ("delete_reason", "TEXT DEFAULT ''"),
+        ("pdf_path", "TEXT DEFAULT ''"),
+        ("jpg_page1_path", "TEXT DEFAULT ''"),
+        ("jpg_page2_path", "TEXT DEFAULT ''"),
+    ]:
+        if name not in acols:
+            con.execute(f"ALTER TABLE attestations ADD COLUMN {name} {ddl}")
+    con.execute("UPDATE attestations SET status='active' WHERE COALESCE(status,'')=''")
+    con.execute("UPDATE attestations SET revision=1 WHERE COALESCE(revision,0)<1")
+
+    # v8.61: журнал змін зберігає шляхи всіх форматів Бланка.
+    audit_cols = {r[1] for r in con.execute("PRAGMA table_info(attestation_audit)").fetchall()}
+    for name, ddl in [
+        ("pdf_path", "TEXT DEFAULT ''"),
+        ("jpg_page1_path", "TEXT DEFAULT ''"),
+        ("jpg_page2_path", "TEXT DEFAULT ''"),
+    ]:
+        if name not in audit_cols:
+            con.execute(f"ALTER TABLE attestation_audit ADD COLUMN {name} {ddl}")
+
     con.commit()
     con.close()
     purge_old()
@@ -453,10 +550,15 @@ def purge_old():
     y, m = today.year, today.month
     total = y * 12 + (m - 1) - 47
     min_y, min_m = divmod(total, 12)
-    cutoff = date(min_y, min_m + 1, 1).isoformat()
+    cutoff_date = date(min_y, min_m + 1, 1)
+    cutoff = cutoff_date.isoformat()
     con = db()
     con.execute("DELETE FROM worklog WHERE work_date < ?", (cutoff,))
-    con.execute("DELETE FROM attestations WHERE period_to < ?", (cutoff,))
+
+    # v8.62: Бланки підтвердження та їх журнал більше НЕ очищаються автоматично.
+    # 48-місячне вікно лишається для робочого табеля, але юридичні/архівні
+    # документи зберігаються безстроково, доки користувач сам не натисне
+    # «Видалити назавжди». Це усуває непомітне зникнення старих бланків.
     con.commit()
     con.close()
 
@@ -764,6 +866,12 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
     driver_full = " ".join(
         x for x in [driver["last_name"], driver["first_name"], driver["middle_name"]] if x
     ).strip()
+    # v8.60: англійська сторона використовує англійські ПІБ водія,
+    # якщо вони заповнені. Кожне поле має окремий fallback на українське.
+    driver_last_en=((driver["last_name_en"] or "").strip() or (driver["last_name"] or "").strip())
+    driver_first_en=((driver["first_name_en"] or "").strip() or (driver["first_name"] or "").strip())
+    driver_middle_en=((driver["middle_name_en"] or "").strip() or (driver["middle_name"] or "").strip())
+    driver_full_en=" ".join(x for x in [driver_last_en,driver_first_en,driver_middle_en] if x).strip()
     license_issue_date = fmt_date(driver["license_issue_date"])
     employment = fmt_date(driver["employment_date"])
     birth_date = fmt_date(driver["birth_date"])
@@ -774,6 +882,14 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
     # Єдине джерело місця в бланку — місце директора/представника перевізника.
     # Поле водія завжди автоматично дублює саме це значення.
     director_place=(place or "").strip()
+
+    # v8.58: англійська сторона має власні реквізити підприємства.
+    # Якщо конкретне англійське поле порожнє, беремо українське значення.
+    company_name_en=((company["name_en"] or "").strip() or (company["name"] or "").strip())
+    company_address_en=((company["address_en"] or "").strip() or (company["address"] or "").strip())
+    signer_name_en=((company["signer_name_en"] or "").strip() or (company["signer_name"] or "").strip())
+    signer_position_en=((company["signer_position_en"] or "").strip() or (company["signer_position"] or "").strip())
+    director_place_en=((company["place_en"] or "").strip() or director_place)
 
     doc = Document(str(TEMPLATE_PATH))
     if len(doc.tables) < 2:
@@ -892,11 +1008,11 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
     if len(ep) > 1:
         _att_set_runs(ep[1], [
             ("1. Name of the undertaking: ", False),
-            (company["name"] or "", True),
+            (company_name_en, True),
         ])
 
     if len(ep) > 4:
-        _att_set_text(ep[3], company["address"] or "", bold=True)
+        _att_set_text(ep[3], company_address_en, bold=True)
         _att_set_text(ep[4], "")
 
     if len(ep) > 9:
@@ -911,15 +1027,15 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
     if len(ep) > 18:
         _att_set_runs(ep[11], [
             ("6. Name and first name: ", False),
-            (company["signer_name"] or "", True),
+            (signer_name_en, True),
         ])
         _att_set_runs(ep[12], [
             ("7. Position in the undertaking: ", False),
-            (company["signer_position"] or "", True),
+            (signer_position_en, True),
         ])
         _att_set_runs(ep[14], [
             ("8. Name and first name: ", False),
-            (driver_full, True),
+            (driver_full_en, True),
         ])
         _att_set_text(ep[16], birth_date, bold=True)
         _att_set_runs(ep[17], [
@@ -954,7 +1070,7 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
         _att_set_checkbox(ep[28],19,activity_no==19,"was available;")
         _att_set_runs(ep[29], [
             ("20. Place ", False),
-            (director_place, True),
+            (director_place_en, True),
             ("    Date ", False),
             (form_date_fmt, True),
         ])
@@ -975,13 +1091,122 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
         elif t.startswith("Place ") and "Date" in t:
             _att_set_runs(p, [
                 ("Place ", False),
-                (director_place, True),
+                (director_place_en, True),
                 ("    Date ", False),
                 (form_date_fmt, True),
             ])
 
     doc.save(str(out_path))
 
+
+def _attestation_render_context(driver, period_from, period_to, activity_no, place, form_date):
+    """Готує єдиний набір даних для PDF/JPG без залежності від Word."""
+    con=db()
+    company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
+    con.close()
+    keys=set(driver.keys()) if hasattr(driver,"keys") else set()
+    def dg(name):
+        return (driver[name] or "").strip() if name in keys and driver[name] is not None else ""
+    ckeys=set(company.keys()) if company is not None and hasattr(company,"keys") else set()
+    def cg(name):
+        return (company[name] or "").strip() if company is not None and name in ckeys and company[name] is not None else ""
+
+    driver_last=dg("last_name")
+    driver_first=dg("first_name")
+    driver_middle=dg("middle_name")
+    driver_full=" ".join(x for x in (driver_last,driver_first,driver_middle) if x)
+    driver_full_en=" ".join(x for x in (
+        dg("last_name_en") or driver_last,
+        dg("first_name_en") or driver_first,
+        dg("middle_name_en") or driver_middle,
+    ) if x)
+    series=dg("license_series")
+    number=dg("license_number")
+    director_place=(place or "").strip()
+    return {
+        "company_name": cg("name"),
+        "company_address": cg("address"),
+        "phone": cg("phone"),
+        "fax": cg("fax"),
+        "email": cg("email"),
+        "signer_name": cg("signer_name"),
+        "signer_position": cg("signer_position"),
+        "company_name_en": cg("name_en") or cg("name"),
+        "company_address_en": cg("address_en") or cg("address"),
+        "signer_name_en": cg("signer_name_en") or cg("signer_name"),
+        "signer_position_en": cg("signer_position_en") or cg("signer_position"),
+        "director_place": director_place,
+        "director_place_en": cg("place_en") or director_place,
+        "driver_full": driver_full,
+        "driver_full_en": driver_full_en,
+        "birth_date": fmt_date(dg("birth_date")),
+        "employment": fmt_date(dg("employment_date")),
+        "license_series": series,
+        "license_number": number,
+        "license_number_en": " ".join(x for x in (series,number) if x),
+        "license_issue_date": fmt_date(dg("license_issue_date")),
+        "period_from": period_from,
+        "period_to": period_to,
+        "activity_no": int(activity_no),
+        "form_date": fmt_date(form_date),
+    }
+
+
+def _generate_attestation_files(driver, period_from, period_to, activity_no, place, form_date, paths, formats):
+    """Генерує вибрані формати одного Бланка та повертає фактичні шляхи.
+
+    v8.64: DOCX і PDF/JPG формуються паралельно з одних даних. PDF більше НЕ
+    конвертується через Microsoft Word або LibreOffice. Статичний макет PDF —
+    точний двосторінковий знімок нашого офіційного DOCX-шаблона, а Taxo накладає
+    лише змінні поля. JPG створюється з цього PDF. Тому PDF/JPG працюють навіть
+    на комп'ютері, де взагалі немає програми для DOCX.
+    """
+    formats=tuple(dict.fromkeys(str(x).lower() for x in formats))
+    unknown=set(formats)-{"docx","pdf","jpg"}
+    if unknown:
+        raise ValueError(f"Невідомий формат Бланка: {', '.join(sorted(unknown))}")
+    created={"file_path":"","pdf_path":"","jpg_page1_path":"","jpg_page2_path":""}
+
+    # DOCX — окремий формат. Для його створення Word не потрібен.
+    if "docx" in formats:
+        fill_attestation(driver,period_from,period_to,int(activity_no),place,form_date,paths["docx"])
+        created["file_path"]=str(paths["docx"])
+
+    need_visual=("pdf" in formats or "jpg" in formats)
+    if not need_visual:
+        return created
+    if build_attestation_pdf is None:
+        raise RuntimeError("Не завантажено автономний модуль формування PDF/JPG.")
+    if not ATT_VISUAL_TEMPLATE_PATH.exists():
+        raise FileNotFoundError(f"Не знайдено візуальний шаблон Бланка: {ATT_VISUAL_TEMPLATE_PATH}")
+
+    context=_attestation_render_context(
+        driver,period_from,period_to,int(activity_no),place,form_date
+    )
+    temporary_pdf=False
+    pdf_source=paths["pdf"]
+    try:
+        if "pdf" not in formats and "jpg" in formats:
+            pdf_source=paths["pdf"].with_name(paths["pdf"].stem+"_jpg_source.pdf")
+            temporary_pdf=True
+
+        build_attestation_pdf(context,pdf_source,ATT_VISUAL_TEMPLATE_PATH)
+        if "pdf" in formats:
+            created["pdf_path"]=str(paths["pdf"])
+
+        if "jpg" in formats:
+            if pdf_to_jpg_pages is None:
+                raise RuntimeError("Не завантажено модуль формування JPG. Перевстановіть залежності Taxo.")
+            pdf_to_jpg_pages(pdf_source,paths["jpg1"],paths["jpg2"])
+            created["jpg_page1_path"]=str(paths["jpg1"])
+            created["jpg_page2_path"]=str(paths["jpg2"])
+    finally:
+        if temporary_pdf:
+            try:
+                pdf_source.unlink()
+            except OSError:
+                pass
+    return created
 
 
 def _month_export_items(year, month, rows):
@@ -1497,6 +1722,142 @@ def format_attestation_period(value):
     return value.strftime("%H:%M %d.%m.%Y")
 
 
+def _attestation_is_active(row):
+    if row is None:
+        return False
+    try:
+        value=row["status"]
+    except Exception:
+        value="active"
+    return (value or "active").strip().lower()=="active"
+
+
+def _audit_attestation_snapshot(con, row, action, note="", file_path_override=None):
+    """Фіксує стан бланка в журналі змін. Працює і зі старими sqlite.Row."""
+    if row is None:
+        return
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    def g(name, default=""):
+        return row[name] if name in keys and row[name] is not None else default
+    con.execute(
+        """INSERT INTO attestation_audit(
+            attestation_id,action,revision,period_from,period_to,activity_no,
+            place,form_date,file_path,pdf_path,jpg_page1_path,jpg_page2_path,
+            status,note,created_at
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (
+            g("id",0),action,int(g("revision",1) or 1),g("period_from"),g("period_to"),
+            int(g("activity_no",16) or 16),g("place"),g("form_date"),
+            file_path_override if file_path_override is not None else g("file_path"),
+            g("pdf_path"),g("jpg_page1_path"),g("jpg_page2_path"),
+            g("status","active") or "active",note,datetime.now().isoformat(timespec="seconds")
+        )
+    )
+
+
+def _ensure_attestation_audit_baseline(con, row):
+    if row is None:
+        return
+    exists=con.execute(
+        "SELECT 1 FROM attestation_audit WHERE attestation_id=? LIMIT 1",
+        (row["id"],)
+    ).fetchone()
+    if not exists:
+        _audit_attestation_snapshot(con,row,"BASELINE","Стан до першої зміни у v8.57")
+
+
+def _safe_archive_file(path_text, target_dir, label):
+    """Переміщує файл Бланка у контрольний архів без перезапису."""
+    raw=(path_text or "").strip()
+    if not raw:
+        return raw
+    src=Path(raw)
+    if not src.exists() or not src.is_file():
+        return raw
+    target_dir.mkdir(parents=True,exist_ok=True)
+    stamp=datetime.now().strftime("%Y%m%d_%H%M%S")
+    stem=src.stem
+    suffix=src.suffix or ".dat"
+    target=target_dir/f"{stem}_{label}_{stamp}{suffix}"
+    n=2
+    while target.exists():
+        target=target_dir/f"{stem}_{label}_{stamp}_{n}{suffix}"
+        n+=1
+    shutil.move(str(src),str(target))
+    return str(target)
+
+
+def _unique_attestation_output_paths(driver, st, en, activity_no):
+    """Повертає один узгоджений набір імен DOCX/PDF/JPG для ревізії Бланка."""
+    safe=f"{driver['last_name']}_{driver['first_name']}".replace(" ","_")
+    stamp_from=st.strftime("%Y%m%d_%H%M")
+    stamp_to=en.strftime("%Y%m%d_%H%M")
+    stem=f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}"
+    candidate=OUTPUT_DIR/stem
+    n=1
+    while any((OUTPUT_DIR/f"{candidate.name}{ext}").exists() for ext in (".docx",".pdf","_page1.jpg","_page2.jpg")):
+        n+=1
+        candidate=OUTPUT_DIR/f"{stem}_v{n}"
+    return {
+        "docx": OUTPUT_DIR/f"{candidate.name}.docx",
+        "pdf": OUTPUT_DIR/f"{candidate.name}.pdf",
+        "jpg1": OUTPUT_DIR/f"{candidate.name}_page1.jpg",
+        "jpg2": OUTPUT_DIR/f"{candidate.name}_page2.jpg",
+    }
+
+
+def _unique_attestation_output_path(driver, st, en, activity_no):
+    # Сумісність зі старим кодом/тестами: основний шлях лишається DOCX.
+    return _unique_attestation_output_paths(driver,st,en,activity_no)["docx"]
+
+
+def _archive_attestation_files(row, target_dir, label):
+    """Архівує всі наявні формати одного Бланка та повертає нові шляхи."""
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    result={}
+    for field in ("file_path","pdf_path","jpg_page1_path","jpg_page2_path"):
+        raw=row[field] if field in keys and row[field] is not None else ""
+        result[field]=_safe_archive_file(raw,target_dir,label) if raw else ""
+    return result
+
+
+def _attestation_existing_formats(row):
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    out=[]
+    if "file_path" in keys and (row["file_path"] or "").strip():
+        out.append("docx")
+    if "pdf_path" in keys and (row["pdf_path"] or "").strip():
+        out.append("pdf")
+    if (("jpg_page1_path" in keys and (row["jpg_page1_path"] or "").strip()) or
+        ("jpg_page2_path" in keys and (row["jpg_page2_path"] or "").strip())):
+        out.append("jpg")
+    return tuple(out) or ("docx",)
+
+
+def _restore_attestation_files(row):
+    """Повертає всі архівовані файли Бланка в Output, не перезаписуючи наявні."""
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    result={}
+    for field in ("file_path","pdf_path","jpg_page1_path","jpg_page2_path"):
+        raw=row[field] if field in keys and row[field] is not None else ""
+        raw=(raw or "").strip()
+        if not raw:
+            result[field]=""
+            continue
+        src=Path(raw)
+        if not src.exists() or not src.is_file() or src.parent.resolve()==OUTPUT_DIR.resolve():
+            result[field]=raw
+            continue
+        target=OUTPUT_DIR/src.name
+        n=2
+        while target.exists():
+            target=OUTPUT_DIR/f"{src.stem}_restored_{n}{src.suffix}"
+            n+=1
+        shutil.move(str(src),str(target))
+        result[field]=str(target)
+    return result
+
+
 def _merge_dt_intervals(intervals):
     cleaned=sorted(
         [(a,b) for a,b in intervals if a is not None and b is not None and b>a],
@@ -1630,7 +1991,7 @@ def _build_attestation_required_segments(prev_block, next_block, row_by_day):
 
 
 def collect_attestation_gap_control(driver_id, control_date=None, previous_days=56):
-    """Контроль Бланків підтвердження за внутрішнім правилом v8.56.
+    """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
 
     Ключові правила:
     - усі частини одного маршрутного ТАХО-дня = один ТАХО-блок від першого
@@ -1699,7 +2060,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
 
     att_rows=con.execute(
         """SELECT * FROM attestations
-           WHERE driver_id=?
+           WHERE driver_id=? AND COALESCE(status,'active')='active'
            ORDER BY id""",
         (int(driver_id),)
     ).fetchall()
@@ -3040,7 +3401,7 @@ def calendar_button(parent, variable):
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Облік водіїв — 48 місяців")
+        self.title("Taxo v8.64 — Облік водіїв — 48 місяців")
         self.geometry("1200x760")
         self.minsize(1050, 650)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
@@ -3138,9 +3499,74 @@ class App(tk.Tk):
         else:
             ttk.Label(self.tab_tacho, text="Модуль тахографа не завантажено. Запустіть START.bat для встановлення залежностей.").pack(padx=20, pady=20)
 
+    def _make_scrollable_tab_body(self, tab, key):
+        """Створює двонапрямно прокручувану область для всього вмісту вкладки."""
+        shell = ttk.Frame(tab)
+        shell.pack(fill="both", expand=True)
+        shell.rowconfigure(0, weight=1)
+        shell.columnconfigure(0, weight=1)
+
+        canvas = tk.Canvas(shell, highlightthickness=0, borderwidth=0)
+        ybar = ttk.Scrollbar(shell, orient="vertical", command=canvas.yview)
+        xbar = ttk.Scrollbar(shell, orient="horizontal", command=canvas.xview)
+        canvas.configure(yscrollcommand=ybar.set, xscrollcommand=xbar.set)
+        canvas.grid(row=0, column=0, sticky="nsew")
+        ybar.grid(row=0, column=1, sticky="ns")
+        xbar.grid(row=1, column=0, sticky="ew")
+
+        body = ttk.Frame(canvas)
+        window_id = canvas.create_window((0, 0), window=body, anchor="nw")
+
+        def sync_region(_event=None):
+            try:
+                canvas.configure(scrollregion=canvas.bbox("all"))
+            except tk.TclError:
+                pass
+
+        def fit_minimum_width(event):
+            try:
+                body.update_idletasks()
+                requested=max(1, body.winfo_reqwidth())
+                canvas.itemconfigure(window_id, width=max(event.width, requested))
+                sync_region()
+            except tk.TclError:
+                pass
+
+        body.bind("<Configure>", sync_region, add="+")
+        canvas.bind("<Configure>", fit_minimum_width, add="+")
+
+        def wheel(event):
+            delta=getattr(event, "delta", 0)
+            if delta:
+                canvas.yview_scroll(int(-delta/120) or (-1 if delta>0 else 1), "units")
+            return "break"
+
+        def shift_wheel(event):
+            delta=getattr(event, "delta", 0)
+            if delta:
+                canvas.xview_scroll(int(-delta/120) or (-1 if delta>0 else 1), "units")
+            return "break"
+
+        def bind_wheel(_event=None):
+            canvas.bind_all("<MouseWheel>", wheel)
+            canvas.bind_all("<Shift-MouseWheel>", shift_wheel)
+
+        def unbind_wheel(_event=None):
+            canvas.unbind_all("<MouseWheel>")
+            canvas.unbind_all("<Shift-MouseWheel>")
+
+        canvas.bind("<Enter>", bind_wheel)
+        canvas.bind("<Leave>", unbind_wheel)
+        body.bind("<Enter>", bind_wheel)
+        body.bind("<Leave>", unbind_wheel)
+
+        setattr(self, f"_{key}_scroll_canvas", canvas)
+        return body
+
     def build_company(self):
-        f = ttk.LabelFrame(self.tab_company, text="Реквізити підприємства")
-        f.pack(fill="x", padx=12, pady=12)
+        host = self._make_scrollable_tab_body(self.tab_company, "company")
+        f = ttk.LabelFrame(host, text="Реквізити підприємства — українською")
+        f.pack(fill="x", padx=12, pady=(12,6))
         self.company_vars = {}
         labels = [
             ("name", "Найменування / ПІБ суб'єкта господарювання"),
@@ -3158,8 +3584,50 @@ class App(tk.Tk):
             ttk.Entry(f, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
         f.columnconfigure(1, weight=1)
 
+        en_box = ttk.LabelFrame(host, text="Реквізити для англійської сторони Бланка")
+        en_box.pack(fill="x", padx=12, pady=(0,10))
+        self.company_en_vars = {}
+        en_labels = [
+            ("name_en", "Name of the undertaking"),
+            ("address_en", "Address"),
+            ("signer_name_en", "Name and first name of representative"),
+            ("signer_position_en", "Position in the undertaking"),
+            ("place_en", "Place (місце у бланку)"),
+        ]
+        ttk.Label(
+            en_box,
+            text=(
+                "Заповнюйте тільки ті поля, для яких потрібен окремий англійський текст. "
+                "Якщо поле порожнє — в англійську сторону автоматично підставляється українське значення. "
+                "Телефон, факс та E-mail копіюються без змін."
+            ),
+            foreground="gray", wraplength=1050, justify="left"
+        ).grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(7,4))
+        for i, (key, label) in enumerate(en_labels, start=1):
+            ttk.Label(en_box, text=label).grid(row=i, column=0, sticky="w", padx=8, pady=5)
+            v = tk.StringVar()
+            self.company_en_vars[key] = v
+            ttk.Entry(en_box, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
+        en_box.columnconfigure(1, weight=1)
+
+        company_save_bar = ttk.Frame(host)
+        company_save_bar.pack(fill="x", padx=12, pady=(0,10))
+        ttk.Button(
+            company_save_bar,
+            text="Зберегти реквізити підприємства",
+            command=self.save_company
+        ).pack(side="left")
+        ttk.Label(
+            company_save_bar,
+            text=(
+                "Під час створення або редагування Бланка поточні реквізити "
+                "також зберігаються автоматично."
+            ),
+            foreground="gray"
+        ).pack(side="left", padx=(12,0))
+
         transport_box = ttk.LabelFrame(
-            self.tab_company,
+            host,
             text="Профіль перевезень для контролю Положення №340"
         )
         transport_box.pack(fill="x", padx=12, pady=(0, 10))
@@ -3189,15 +3657,15 @@ class App(tk.Tk):
         ).grid(row=1, column=0, columnspan=2, sticky="w", padx=8, pady=(0, 8))
         transport_box.columnconfigure(1, weight=1)
 
-        btns = ttk.Frame(self.tab_company)
+        btns = ttk.Frame(host)
         btns.pack(fill="x", padx=12, pady=(0, 8))
         ttk.Button(btns, text="Резервна копія", command=self.manual_backup).pack(side="left", padx=(0, 6))
         ttk.Button(btns, text="Відновити з копії…", command=self.restore_backup).pack(side="left", padx=(0, 6))
         ttk.Button(btns, text="Відкрити папку даних", command=self.open_data_folder).pack(side="left")
         ttk.Button(btns, text="Вийти", command=self.exit_app).pack(side="right")
-        ttk.Label(self.tab_company, text=f"База: {DB_PATH}", foreground="gray").pack(anchor="w", padx=12)
-        ttk.Label(self.tab_company, text=f"Резервні копії: {BACKUP_DIR}", foreground="gray").pack(anchor="w", padx=12)
-        ttk.Label(self.tab_company, text="Дані зберігаються окремо від програми. Оновлення версій не потребують перенесення бази.", foreground="gray").pack(anchor="w", padx=12)
+        ttk.Label(host, text=f"База: {DB_PATH}", foreground="gray").pack(anchor="w", padx=12)
+        ttk.Label(host, text=f"Резервні копії: {BACKUP_DIR}", foreground="gray").pack(anchor="w", padx=12)
+        ttk.Label(host, text="Дані зберігаються окремо від програми. Оновлення версій не потребують перенесення бази.", foreground="gray").pack(anchor="w", padx=12)
 
     def manual_backup(self):
         try:
@@ -3302,25 +3770,70 @@ class App(tk.Tk):
         for c in cols:
             self.driver_tree.heading(c, text=headings[c])
             self.driver_tree.column(c, width=widths[c], anchor="w")
-        self.driver_tree.pack(fill="both", expand=True, padx=10, pady=5)
+        driver_y=ttk.Scrollbar(self.tab_drivers,orient="vertical",command=self.driver_tree.yview)
+        driver_x=ttk.Scrollbar(self.tab_drivers,orient="horizontal",command=self.driver_tree.xview)
+        self.driver_tree.configure(yscrollcommand=driver_y.set,xscrollcommand=driver_x.set)
+        driver_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
+        driver_y.pack(side="right",fill="y",pady=5)
+        self.driver_tree.pack(side="left",fill="both", expand=True, padx=(10,0), pady=5)
         self.driver_tree.bind("<<TreeviewSelect>>", self.on_driver_select)
 
     def driver_form(self, driver=None):
         win = tk.Toplevel(self)
         win.title("Картка водія")
-        win.geometry("620x560")
+        win.geometry("760x720")
+        win.minsize(700,650)
         win.transient(self)
-        fields = [
+
+        outer=ttk.Frame(win,padding=10)
+        outer.pack(fill="both",expand=True)
+
+        ua=ttk.LabelFrame(outer,text="Дані водія — українською",padding=8)
+        ua.pack(fill="x",pady=(0,8))
+        en=ttk.LabelFrame(outer,text="Дані для англійської сторони Бланка",padding=8)
+        en.pack(fill="x",pady=(0,8))
+        extra=ttk.LabelFrame(outer,text="Інші дані",padding=8)
+        extra.pack(fill="x",pady=(0,8))
+
+        vars_={}
+
+        ua_fields=[
             ("last_name","Прізвище"),("first_name","Ім'я"),("middle_name","По батькові"),
+        ]
+        for i,(k,lbl) in enumerate(ua_fields):
+            ttk.Label(ua,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
+            v=tk.StringVar(value=(driver[k] if driver else ""))
+            vars_[k]=v
+            ttk.Entry(ua,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
+        ua.columnconfigure(1,weight=1)
+
+        en_fields=[
+            ("last_name_en","Surname / прізвище англійською"),
+            ("first_name_en","First name / ім'я англійською"),
+            ("middle_name_en","Middle name / по батькові англійською"),
+        ]
+        for i,(k,lbl) in enumerate(en_fields):
+            ttk.Label(en,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
+            raw=(driver[k] if driver and k in driver.keys() else "")
+            v=tk.StringVar(value=raw or "")
+            vars_[k]=v
+            ttk.Entry(en,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
+        ttk.Label(
+            en,
+            text="Якщо англійське поле порожнє, у англійську сторону Бланка автоматично підставляється відповідне українське поле.",
+            foreground="gray",wraplength=680,justify="left"
+        ).grid(row=len(en_fields),column=0,columnspan=2,sticky="w",padx=6,pady=(5,2))
+        en.columnconfigure(1,weight=1)
+
+        other_fields=[
             ("birth_date","Дата народження (ДД.ММ.РРРР)"),
             ("license_series","Серія посвідчення"),("license_number","Номер посвідчення"),
             ("license_issue_date","Дата видачі посвідчення (ДД.ММ.РРРР)"),
             ("employment_date","Дата прийняття (ДД.ММ.РРРР)"),
             ("notes","Примітка")
         ]
-        vars_ = {}
-        for i,(k,lbl) in enumerate(fields):
-            ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=7)
+        for i,(k,lbl) in enumerate(other_fields):
+            ttk.Label(extra,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
             raw=(driver[k] if driver else "")
             if k in ("birth_date","license_issue_date","employment_date") and raw:
                 try:
@@ -3329,34 +3842,58 @@ class App(tk.Tk):
                     pass
             v=tk.StringVar(value=raw)
             vars_[k]=v
-            ttk.Entry(win,textvariable=v,width=60).grid(row=i,column=1,sticky="ew",padx=10,pady=7)
+            ttk.Entry(extra,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
             if k in ("birth_date","license_issue_date","employment_date"):
-                calendar_button(win,v).grid(row=i,column=2,sticky="w",padx=(0,10),pady=7)
+                calendar_button(extra,v).grid(row=i,column=2,sticky="w",padx=(0,6),pady=5)
+        extra.columnconfigure(1,weight=1)
+
         active=tk.BooleanVar(value=bool(driver["active"]) if driver else True)
-        ttk.Checkbutton(win,text="Активний водій",variable=active).grid(row=len(fields),column=1,sticky="w",padx=10,pady=7)
+        ttk.Checkbutton(outer,text="Активний водій",variable=active).pack(anchor="w",padx=8,pady=5)
+
         def save():
-            vals=[vars_[k].get().strip() for k,_ in fields]
-            for idx,(k,_) in enumerate(fields):
-                if k in ("birth_date","license_issue_date","employment_date") and vals[idx]:
+            order=[
+                "last_name","first_name","middle_name",
+                "last_name_en","first_name_en","middle_name_en",
+                "birth_date","license_series","license_number",
+                "license_issue_date","employment_date","notes"
+            ]
+            vals={k:vars_[k].get().strip() for k in order}
+            for k in ("birth_date","license_issue_date","employment_date"):
+                if vals[k]:
                     try:
-                        vals[idx]=datetime.strptime(vals[idx],"%d.%m.%Y").strftime("%Y-%m-%d")
+                        vals[k]=datetime.strptime(vals[k],"%d.%m.%Y").strftime("%Y-%m-%d")
                     except ValueError:
-                        messagebox.showerror("Помилка",f"Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
+                        messagebox.showerror("Помилка","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
                         return
-            if not vals[0] or not vals[1]:
-                messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win); return
+            if not vals["last_name"] or not vals["first_name"]:
+                messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win)
+                return
             con=db()
             if driver:
-                con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,birth_date=?,
-                    license_series=?,license_number=?,license_issue_date=?,employment_date=?,notes=?,active=? WHERE id=?""",
-                    (*vals, int(active.get()), driver["id"]))
+                con.execute("""UPDATE drivers SET
+                    last_name=?,first_name=?,middle_name=?,
+                    last_name_en=?,first_name_en=?,middle_name_en=?,
+                    birth_date=?,license_series=?,license_number=?,license_issue_date=?,
+                    employment_date=?,notes=?,active=? WHERE id=?""",
+                    (vals["last_name"],vals["first_name"],vals["middle_name"],
+                     vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
+                     vals["birth_date"],vals["license_series"],vals["license_number"],
+                     vals["license_issue_date"],vals["employment_date"],vals["notes"],
+                     int(active.get()),driver["id"]))
             else:
-                con.execute("""INSERT INTO drivers(last_name,first_name,middle_name,birth_date,license_series,
-                    license_number,license_issue_date,employment_date,notes,active,created_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?)""", (*vals,int(active.get()),datetime.now().isoformat(timespec="seconds")))
+                con.execute("""INSERT INTO drivers(
+                    last_name,first_name,middle_name,last_name_en,first_name_en,middle_name_en,
+                    birth_date,license_series,license_number,license_issue_date,employment_date,
+                    notes,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (vals["last_name"],vals["first_name"],vals["middle_name"],
+                     vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
+                     vals["birth_date"],vals["license_series"],vals["license_number"],
+                     vals["license_issue_date"],vals["employment_date"],vals["notes"],
+                     int(active.get()),datetime.now().isoformat(timespec="seconds")))
             con.commit(); con.close()
             self.load_drivers(); win.destroy()
-        ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+1,column=1,sticky="e",padx=10,pady=14)
+
+        ttk.Button(outer,text="Зберегти",command=save).pack(anchor="e",padx=8,pady=8)
 
     def new_driver(self): self.driver_form()
     def edit_driver(self):
@@ -3497,14 +4034,38 @@ class App(tk.Tk):
         if r:
             for k in self.company_vars:
                 self.company_vars[k].set(r[k] or "")
+            for k in getattr(self,"company_en_vars",{}):
+                self.company_en_vars[k].set(r[k] or "")
         if hasattr(self,"transport_profile_var"):
             self.transport_profile_var.set(current_transport_profile())
 
-    def save_company(self):
+    def save_company(self, show_message=True):
+        """Зберігає українські та англійські реквізити підприємства.
+
+        v8.59: цей метод викликається не лише кнопкою/меню, а й автоматично
+        перед створенням або редагуванням Бланка підтвердження. Це гарантує,
+        що щойно введені англійські поля потрапляють у DOCX навіть якщо
+        користувач не натиснув окремо «Зберегти реквізити».
+        """
+        ua={k:v.get().strip() for k,v in self.company_vars.items()}
+        en={k:v.get().strip() for k,v in getattr(self,"company_en_vars",{}).items()}
         con=db()
-        con.execute("""UPDATE company SET name=?,address=?,phone=?,fax=?,email=?,signer_name=?,signer_position=? WHERE id=1""",
-                    tuple(self.company_vars[k].get().strip() for k in self.company_vars))
-        con.commit(); con.close()
+        try:
+            con.execute(
+                """UPDATE company SET
+                       name=?,address=?,phone=?,fax=?,email=?,signer_name=?,signer_position=?,
+                       name_en=?,address_en=?,signer_name_en=?,signer_position_en=?,place_en=?
+                   WHERE id=1""",
+                (
+                    ua.get("name",""),ua.get("address",""),ua.get("phone",""),ua.get("fax",""),
+                    ua.get("email",""),ua.get("signer_name",""),ua.get("signer_position",""),
+                    en.get("name_en",""),en.get("address_en",""),en.get("signer_name_en",""),
+                    en.get("signer_position_en",""),en.get("place_en","")
+                )
+            )
+            con.commit()
+        finally:
+            con.close()
 
         if hasattr(self,"transport_profile_var"):
             profile=self.transport_profile_var.get().strip()
@@ -3513,7 +4074,9 @@ class App(tk.Tk):
                 self.transport_profile_var.set(profile)
             set_setting("transport_profile", profile)
 
-        messagebox.showinfo("Готово","Реквізити підприємства та профіль перевезень збережено.")
+        if show_message:
+            messagebox.showinfo("Готово","Реквізити підприємства та профіль перевезень збережено.")
+        return True
 
     def build_vehicles(self):
         top = ttk.Frame(self.tab_vehicles)
@@ -3529,7 +4092,12 @@ class App(tk.Tk):
         widths={"id":45,"name":180,"plate":120,"make":180,"year":70,"active":80,"notes":300}
         for c in cols:
             self.vehicle_tree.heading(c,text=heads[c]); self.vehicle_tree.column(c,width=widths[c],anchor="w")
-        self.vehicle_tree.pack(fill="both",expand=True,padx=10,pady=5)
+        vehicle_y=ttk.Scrollbar(self.tab_vehicles,orient="vertical",command=self.vehicle_tree.yview)
+        vehicle_x=ttk.Scrollbar(self.tab_vehicles,orient="horizontal",command=self.vehicle_tree.xview)
+        self.vehicle_tree.configure(yscrollcommand=vehicle_y.set,xscrollcommand=vehicle_x.set)
+        vehicle_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
+        vehicle_y.pack(side="right",fill="y",pady=5)
+        self.vehicle_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
         self.load_vehicles()
 
     def load_vehicles(self):
@@ -3636,7 +4204,12 @@ class App(tk.Tk):
         widths={"id":40,"date":85,"weekday":55,"type":120,"schedule":170,"breaks":90,"work":65,"drive":65,"over":75,"route":150,"vehicle":100,"notes":180,"mode":190}
         for c in cols:
             self.work_tree.heading(c,text=heads[c]); self.work_tree.column(c,width=widths[c],anchor="w")
-        self.work_tree.pack(fill="both",expand=True,padx=10,pady=5)
+        work_y=ttk.Scrollbar(self.tab_work,orient="vertical",command=self.work_tree.yview)
+        work_x=ttk.Scrollbar(self.tab_work,orient="horizontal",command=self.work_tree.xview)
+        self.work_tree.configure(yscrollcommand=work_y.set,xscrollcommand=work_x.set)
+        work_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
+        work_y.pack(side="right",fill="y",pady=5)
+        self.work_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
         self.work_tree.bind("<Double-1>",self.edit_work_row)
         self.work_tree.bind("<Control-c>",lambda e:self.copy_work_day())
         self.work_tree.bind("<Control-v>",lambda e:self.paste_work_day())
@@ -5371,7 +5944,12 @@ class App(tk.Tk):
         heads={"id":"ID","code":"Код / №","name":"Маршрут","description":"Опис / напрямок","active":"Статус"}
         widths={"id":45,"code":110,"name":230,"description":450,"active":90}
         for c in cols: self.route_catalog_tree.heading(c,text=heads[c]); self.route_catalog_tree.column(c,width=widths[c],anchor="w")
-        self.route_catalog_tree.pack(fill="both",expand=True,padx=10,pady=5)
+        routecat_y=ttk.Scrollbar(self.tab_route_catalog,orient="vertical",command=self.route_catalog_tree.yview)
+        routecat_x=ttk.Scrollbar(self.tab_route_catalog,orient="horizontal",command=self.route_catalog_tree.xview)
+        self.route_catalog_tree.configure(yscrollcommand=routecat_y.set,xscrollcommand=routecat_x.set)
+        routecat_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
+        routecat_y.pack(side="right",fill="y",pady=5)
+        self.route_catalog_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
         self.load_route_catalog()
 
     def route_label(self,r):
@@ -5431,7 +6009,12 @@ class App(tk.Tk):
         self.route_tree=ttk.Treeview(self.tab_routes,columns=cols,show="headings",height=25)
         heads={"id":"ID","name":"Назва шаблону","route":"Маршрут","vehicle":"Автомобіль","shift":"Тип зміни","segments":"Частини","notes":"Примітка"}
         for c in cols: self.route_tree.heading(c,text=heads[c]); self.route_tree.column(c,width={"id":45,"name":190,"route":180,"vehicle":130,"shift":150,"segments":260,"notes":250}[c],anchor="w")
-        self.route_tree.pack(fill="both",expand=True,padx=10,pady=5)
+        route_y=ttk.Scrollbar(self.tab_routes,orient="vertical",command=self.route_tree.yview)
+        route_x=ttk.Scrollbar(self.tab_routes,orient="horizontal",command=self.route_tree.xview)
+        self.route_tree.configure(yscrollcommand=route_y.set,xscrollcommand=route_x.set)
+        route_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
+        route_y.pack(side="right",fill="y",pady=5)
+        self.route_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
         self.load_route_templates()
 
     def load_route_templates(self):
@@ -5575,7 +6158,8 @@ class App(tk.Tk):
 
 
     def build_attestation(self):
-        f=ttk.Frame(self.tab_att); f.pack(fill="x",padx=12,pady=12)
+        host=self._make_scrollable_tab_body(self.tab_att, "attestation")
+        f=ttk.Frame(host); f.pack(fill="x",padx=12,pady=12)
         self.att_driver_var=tk.StringVar()
         ttk.Label(f,text="Водій:").grid(row=0,column=0,sticky="w",padx=6,pady=6)
         self.att_driver_cb=ttk.Combobox(f,textvariable=self.att_driver_var,state="readonly",width=45)
@@ -5615,22 +6199,73 @@ class App(tk.Tk):
         cb.current(2); cb.grid(row=5,column=1,sticky="w",padx=6,pady=6)
         # Зручніше зберігати номер у прихованому/текстовому комбобоксі.
         self.att_activity_text=cb
-        ttk.Button(f,text="Створити DOCX",command=self.create_attestation).grid(row=6,column=1,sticky="w",padx=6,pady=12)
+        format_bar=ttk.Frame(f)
+        format_bar.grid(row=6,column=1,columnspan=2,sticky="w",padx=6,pady=12)
+        ttk.Button(format_bar,text="Створити DOCX",command=lambda:self.create_attestation(("docx",))).pack(side="left",padx=(0,4))
+        ttk.Button(format_bar,text="Створити PDF",command=lambda:self.create_attestation(("pdf",))).pack(side="left",padx=4)
+        ttk.Button(format_bar,text="Створити JPG",command=lambda:self.create_attestation(("jpg",))).pack(side="left",padx=4)
+        ttk.Button(format_bar,text="Створити все",command=lambda:self.create_attestation(("docx","pdf","jpg"))).pack(side="left",padx=4)
         ttk.Button(
             f,text="Контроль бланків — 56 днів + поточний",
             command=self.show_attestation_gap_control
-        ).grid(row=6,column=2,sticky="w",padx=6,pady=12)
+        ).grid(row=7,column=1,columnspan=2,sticky="w",padx=6,pady=(0,12))
 
-        hist=ttk.LabelFrame(self.tab_att,text="Історія сформованих бланків")
+        hist=ttk.LabelFrame(host,text="Історія та контроль сформованих бланків")
         hist.pack(fill="both",expand=True,padx=12,pady=8)
-        cols=("id","driver","from","to","activity","place","date","file")
-        self.att_tree=ttk.Treeview(hist,columns=cols,show="headings")
-        heads={"id":"ID","driver":"Водій","from":"З","to":"По","activity":"Позиція","place":"Місце","date":"Дата","file":"Файл"}
+
+        hbar=ttk.Frame(hist)
+        hbar.pack(fill="x",padx=6,pady=(6,2))
+        ttk.Button(hbar,text="DOCX",command=lambda:self.open_att_file("docx")).pack(side="left",padx=3)
+        ttk.Button(hbar,text="PDF",command=lambda:self.open_att_file("pdf")).pack(side="left",padx=3)
+        ttk.Button(hbar,text="JPG",command=lambda:self.open_att_file("jpg")).pack(side="left",padx=3)
+        ttk.Button(hbar,text="Папка файла",command=self.open_att_folder).pack(side="left",padx=3)
+        ttk.Button(hbar,text="Архів файлів",command=self.open_att_archive_folder).pack(side="left",padx=3)
+        ttk.Button(hbar,text="Редагувати",command=self.edit_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(hbar,text="Вилучити з контролю",command=self.delete_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(hbar,text="Відновити",command=self.restore_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(hbar,text="Видалити назавжди",command=self.purge_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(hbar,text="Історія змін",command=self.show_attestation_audit).pack(side="left",padx=3)
+
+        filter_bar=ttk.Frame(hist)
+        filter_bar.pack(fill="x",padx=6,pady=(2,4))
+        ttk.Label(filter_bar,text="Показати:").pack(side="left",padx=(0,4))
+        self.att_filter=tk.StringVar(value="Активні")
+        att_filter_cb=ttk.Combobox(
+            filter_bar,textvariable=self.att_filter,state="readonly",width=15,
+            values=("Активні","Вилучені","Усі")
+        )
+        att_filter_cb.pack(side="left")
+        att_filter_cb.bind("<<ComboboxSelected>>",lambda e:self.load_att_history())
+        ttk.Button(filter_bar,text="Оновити список",command=self.load_att_history).pack(side="left",padx=6)
+        self.att_list_summary=tk.StringVar(value="")
+        ttk.Label(filter_bar,textvariable=self.att_list_summary,foreground="gray").pack(side="right",padx=6)
+
+        cols=("id","driver","from","to","activity","place","date","status","revision","formats","file")
+        tree_frame=ttk.Frame(hist)
+        tree_frame.pack(fill="both",expand=True,padx=6,pady=6)
+        self.att_tree=ttk.Treeview(tree_frame,columns=cols,show="headings",selectmode="browse")
+        heads={
+            "id":"ID","driver":"Водій","from":"З","to":"По","activity":"Позиція",
+            "place":"Місце","date":"Дата","status":"Статус","revision":"Ред.",
+            "formats":"Формати","file":"Основний файл"
+        }
+        widths={
+            "id":55,"driver":205,"from":140,"to":140,"activity":65,"place":140,
+            "date":90,"status":95,"revision":50,"formats":105,"file":270
+        }
         for c in cols:
-            self.att_tree.heading(c,text=heads[c]); self.att_tree.column(c,width=120)
-        self.att_tree.column("driver",width=220); self.att_tree.column("file",width=330)
-        self.att_tree.pack(fill="both",expand=True,padx=6,pady=6)
-        ttk.Button(hist,text="Відкрити файл",command=self.open_att_file).pack(anchor="e",padx=6,pady=6)
+            self.att_tree.heading(c,text=heads[c])
+            self.att_tree.column(c,width=widths[c],anchor="w",stretch=(c=="file"))
+        self.att_tree.tag_configure("deleted",foreground="gray")
+        att_y=ttk.Scrollbar(tree_frame,orient="vertical",command=self.att_tree.yview)
+        att_x=ttk.Scrollbar(tree_frame,orient="horizontal",command=self.att_tree.xview)
+        self.att_tree.configure(yscrollcommand=att_y.set,xscrollcommand=att_x.set)
+        self.att_tree.grid(row=0,column=0,sticky="nsew")
+        att_y.grid(row=0,column=1,sticky="ns")
+        att_x.grid(row=1,column=0,sticky="ew")
+        tree_frame.rowconfigure(0,weight=1)
+        tree_frame.columnconfigure(0,weight=1)
+        self.att_tree.bind("<Double-1>",lambda e:self.edit_selected_attestation())
 
     def show_attestation_gap_control(self):
         if not getattr(self,"att_driver_id",None):
@@ -5685,7 +6320,7 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text=(
-                "Правило v8.56: минулі незакриті проміжки показуються як аварійний контроль. "
+                "Правило v8.58: контроль враховує лише активні бланки; відредаговані та вилучені ревізії зберігаються в журналі. "
                 "Окремо програма дивиться вперед у графік і показує ПОТОЧНИЙ період відпочинку/діяльності "
                 "до найближчого наступного виїзду — такий бланк треба підготувати до виїзду. Між двома "
                 "ТАХО-робочими днями підряд окремий бланк не потрібен. Автокоди: 14 лікарняний, "
@@ -5851,13 +6486,13 @@ class App(tk.Tk):
         messagebox.showinfo(
             "Проміжок підставлено",
             "Поля «Період з / по» та позиція 14–19 вже заповнені у формі "
-            "«Підтвердження діяльності». Перевірте їх і натисніть «Створити DOCX».",
+            "«Підтвердження діяльності». Перевірте їх і виберіть потрібний формат: DOCX, PDF, JPG або «Створити все».",
             parent=self
         )
 
     def _create_attestation_record(
         self, period_from, period_to, activity_no, form_date_text=None,
-        parent=None, show_message=True
+        parent=None, show_message=True, formats=("docx",)
     ):
         if not self.att_driver_id:
             raise ValueError("Виберіть водія.")
@@ -5875,51 +6510,43 @@ class App(tk.Tk):
         if not st or not en or en<=st:
             raise ValueError("Невірний період бланка.")
 
-        # v8.55 — жорстке правило: дата Бланка підтвердження завжди є
-        # датою закінчення періоду. Будь-яке передане/введене значення
-        # form_date_text навмисно ігноруємо, щоб усі шляхи створення
-        # (ручний, 56-денний контроль, автокод) давали однаковий результат.
+        # v8.55 — дата завжди дорівнює даті завершення періоду.
         dt=en.date()
         form_date_text=dt.strftime("%d.%m.%Y")
         if hasattr(self,"att_date"):
             self.att_date.set(form_date_text)
 
-        safe=f"{d['last_name']}_{d['first_name']}".replace(" ","_")
-        stamp_from=st.strftime("%Y%m%d_%H%M")
-        stamp_to=en.strftime("%Y%m%d_%H%M")
-        out=OUTPUT_DIR/f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}.docx"
-
-        # Якщо такий файл уже існує, не перезаписуємо попередній документ.
-        if out.exists():
-            n=2
-            while True:
-                candidate=OUTPUT_DIR/f"Підтвердження_{safe}_{stamp_from}-{stamp_to}_п{int(activity_no)}_v{n}.docx"
-                if not candidate.exists():
-                    out=candidate
-                    break
-                n+=1
-
         place_value=self.att_place.get().strip()
         if place_value:
             set_setting("attestation_place",place_value)
 
-        fill_attestation(
-            d,period_from,period_to,int(activity_no),
-            place_value,form_date_text,out
+        # v8.59/v8.60 — перед формуванням використовуємо актуальні
+        # англійські реквізити підприємства та водія.
+        self.save_company(show_message=False)
+
+        paths=_unique_attestation_output_paths(d,st,en,activity_no)
+        created=_generate_attestation_files(
+            d,period_from,period_to,int(activity_no),place_value,form_date_text,paths,formats
         )
 
         con=db()
-        con.execute(
+        now=datetime.now().isoformat(timespec="seconds")
+        cur=con.execute(
             """INSERT INTO attestations(
-                driver_id,period_from,period_to,activity_no,place,
-                form_date,file_path,created_at
-            ) VALUES(?,?,?,?,?,?,?,?)""",
+                driver_id,period_from,period_to,activity_no,place,form_date,
+                file_path,pdf_path,jpg_page1_path,jpg_page2_path,
+                status,revision,updated_at,deleted_at,delete_reason,created_at
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
-                d["id"],period_from,period_to,int(activity_no),
-                place_value,dt.isoformat(),str(out),
-                datetime.now().isoformat(timespec="seconds")
+                d["id"],period_from,period_to,int(activity_no),place_value,dt.isoformat(),
+                created["file_path"],created["pdf_path"],created["jpg_page1_path"],created["jpg_page2_path"],
+                "active",1,now,"","",now
             )
         )
+        att_id=cur.lastrowid
+        row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+        fmt_note=", ".join(x.upper() for x in formats)
+        _audit_attestation_snapshot(con,row,"CREATE",f"Створено бланк: {fmt_note}")
         con.commit()
         con.close()
 
@@ -5927,13 +6554,14 @@ class App(tk.Tk):
         if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
             self.refresh_attestation_gap_control()
 
+        paths_created=[v for v in created.values() if v]
         if show_message:
             messagebox.showinfo(
                 "Готово",
-                f"Бланк створено:\n{out}",
+                "Бланк створено:\n"+"\n".join(paths_created),
                 parent=parent or self
             )
-        return out
+        return created
 
     def create_selected_gap_attestation(self):
         if not hasattr(self,"att_gap_tree"):
@@ -5973,11 +6601,13 @@ class App(tk.Tk):
             self.att_activity.set(f"{activity_no} — {ACTIVITIES[activity_no]}")
             # Дата документа всередині _create_attestation_record буде
             # автоматично взята з period_to (правило v8.55).
-            out=self._create_attestation_record(
+            created=self._create_attestation_record(
                 period_from,period_to,activity_no,
                 parent=self.att_gap_win,
-                show_message=False
+                show_message=False,
+                formats=("docx",)
             )
+            out=created.get("file_path") or created.get("pdf_path") or created.get("jpg_page1_path") or ""
             self.refresh_attestation_gap_control()
             messagebox.showinfo(
                 "Бланк сформовано",
@@ -5991,7 +6621,7 @@ class App(tk.Tk):
                 "Помилка",str(e),parent=self.att_gap_win
             )
 
-    def create_attestation(self):
+    def create_attestation(self, formats=("docx",)):
         if not self.att_driver_id:
             messagebox.showwarning(
                 "Увага","Виберіть водія у спадному меню «Водій»."
@@ -6005,31 +6635,534 @@ class App(tk.Tk):
                 self.att_to.get().strip(),
                 activity_no,
                 parent=self,
-                show_message=True
+                show_message=True,
+                formats=formats
             )
         except Exception as e:
             messagebox.showerror("Помилка",str(e))
 
 
 
-    def load_att_history(self):
-        if not hasattr(self,"att_tree"): return
-        for x in self.att_tree.get_children(): self.att_tree.delete(x)
-        con=db()
-        rows=con.execute("""SELECT a.*, d.last_name||' '||d.first_name AS driver_name
-                            FROM attestations a JOIN drivers d ON d.id=a.driver_id ORDER BY a.id DESC""").fetchall()
-        con.close()
-        for r in rows:
-            self.att_tree.insert("", "end", values=(r["id"],r["driver_name"],r["period_from"],r["period_to"],r["activity_no"],r["place"],r["form_date"],r["file_path"]))
-
-    def open_att_file(self):
+    def _selected_attestation_id(self):
+        if not hasattr(self,"att_tree"):
+            return None
         sel=self.att_tree.selection()
-        if not sel: return
-        path=self.att_tree.item(sel[0],"values")[-1]
-        if os.path.exists(path):
-            os.startfile(path) if os.name=="nt" else subprocess.Popen(["xdg-open",path])
+        if not sel:
+            return None
+        vals=self.att_tree.item(sel[0],"values")
+        try:
+            return int(vals[0])
+        except Exception:
+            return None
+
+    def _update_attestation_record(self, attestation_id, period_from, period_to, activity_no, place):
+        st=parse_attestation_period(period_from)
+        en=parse_attestation_period(period_to)
+        if not st or not en or en<=st:
+            raise ValueError("Невірний період бланка.")
+        if int(activity_no) not in ACTIVITIES:
+            raise ValueError("Позиція має бути від 14 до 19.")
+
+        con=db()
+        current=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
+        if not current:
+            con.close(); raise ValueError("Бланк не знайдено.")
+        if not _attestation_is_active(current):
+            con.close(); raise ValueError("Вилучений бланк спочатку треба відновити.")
+        driver=con.execute("SELECT * FROM drivers WHERE id=?",(current["driver_id"],)).fetchone()
+        con.close()
+        if not driver:
+            raise ValueError("Водія не знайдено.")
+
+        form_date_text=en.strftime("%d.%m.%Y")
+        formats=_attestation_existing_formats(current)
+        paths=_unique_attestation_output_paths(driver,st,en,activity_no)
+
+        # v8.59/v8.60: перед перегенерацією використовуємо поточні реквізити.
+        self.save_company(show_message=False)
+        created=_generate_attestation_files(
+            driver,period_from,period_to,int(activity_no),place,form_date_text,paths,formats
+        )
+
+        backup_database("before_attestation_edit")
+        archived_old=_archive_attestation_files(current,ATT_REPLACED_DIR,"replaced")
+        now=datetime.now().isoformat(timespec="seconds")
+
+        con=db()
+        try:
+            current=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
+            _ensure_attestation_audit_baseline(con,current)
+            new_revision=int(current["revision"] or 1)+1
+            con.execute(
+                """UPDATE attestations
+                       SET period_from=?,period_to=?,activity_no=?,place=?,form_date=?,
+                           file_path=?,pdf_path=?,jpg_page1_path=?,jpg_page2_path=?,
+                           status='active',revision=?,updated_at=?,deleted_at='',delete_reason=''
+                     WHERE id=?""",
+                (period_from,period_to,int(activity_no),place,en.date().isoformat(),
+                 created["file_path"],created["pdf_path"],created["jpg_page1_path"],created["jpg_page2_path"],
+                 new_revision,now,int(attestation_id))
+            )
+            updated=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
+            moved=[v for k,v in archived_old.items() if v and v != ((current[k] or "") if k in current.keys() else "")]
+            note="Відредаговано після зміни графіка/періоду; перегенеровано: " + ", ".join(x.upper() for x in formats)
+            if moved:
+                note += ". Попередні файли перенесено в архів."
+            _audit_attestation_snapshot(con,updated,"EDIT",note)
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
+
+        if place:
+            set_setting("attestation_place",place)
+        self.load_att_history()
+        if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
+            self.refresh_attestation_gap_control()
+        return (created.get("pdf_path") or created.get("file_path") or
+                created.get("jpg_page1_path") or created.get("jpg_page2_path") or "")
+
+    def edit_selected_attestation(self):
+        att_id=self._selected_attestation_id()
+        if not att_id:
+            messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
+            return
+        con=db()
+        r=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+        con.close()
+        if not r:
+            return
+        if not _attestation_is_active(r):
+            messagebox.showwarning(
+                "Бланки","Цей бланк вилучений. Спочатку натисніть «Відновити».",parent=self
+            )
+            return
+
+        win=tk.Toplevel(self)
+        win.title(f"Редагування Бланка підтвердження №{att_id}")
+        win.geometry("760x390")
+        win.transient(self)
+        win.grab_set()
+
+        from_var=tk.StringVar(value=r["period_from"])
+        to_var=tk.StringVar(value=r["period_to"])
+        place_var=tk.StringVar(value=r["place"] or "")
+        activity_var=tk.StringVar(value=f"{int(r['activity_no'])} — {ACTIVITIES.get(int(r['activity_no']),'')}")
+        date_var=tk.StringVar()
+
+        def sync_date(*_):
+            en=parse_attestation_period(to_var.get().strip())
+            date_var.set(en.strftime("%d.%m.%Y") if en else "")
+        to_var.trace_add("write",sync_date)
+        sync_date()
+
+        ttk.Label(win,text="Період з").grid(row=0,column=0,sticky="w",padx=12,pady=10)
+        ttk.Entry(win,textvariable=from_var,width=32).grid(row=0,column=1,sticky="w",padx=6,pady=10)
+        calendar_button(win,from_var).grid(row=0,column=2,sticky="w",padx=4,pady=10)
+        ttk.Label(win,text="Період по").grid(row=1,column=0,sticky="w",padx=12,pady=10)
+        ttk.Entry(win,textvariable=to_var,width=32).grid(row=1,column=1,sticky="w",padx=6,pady=10)
+        calendar_button(win,to_var).grid(row=1,column=2,sticky="w",padx=4,pady=10)
+        ttk.Label(win,text="Позиція 14–19").grid(row=2,column=0,sticky="w",padx=12,pady=10)
+        ttk.Combobox(
+            win,textvariable=activity_var,state="readonly",width=48,
+            values=[f"{n} — {ACTIVITIES[n]}" for n in ACTIVITIES]
+        ).grid(row=2,column=1,columnspan=2,sticky="w",padx=6,pady=10)
+        ttk.Label(win,text="Місце директора / представника").grid(row=3,column=0,sticky="w",padx=12,pady=10)
+        ttk.Entry(win,textvariable=place_var,width=52).grid(row=3,column=1,columnspan=2,sticky="ew",padx=6,pady=10)
+        ttk.Label(win,text="Дата бланка").grid(row=4,column=0,sticky="w",padx=12,pady=10)
+        ttk.Entry(win,textvariable=date_var,state="readonly",width=18).grid(row=4,column=1,sticky="w",padx=6,pady=10)
+        ttk.Label(
+            win,
+            text=(
+                "Після збереження старий DOCX не знищується: він переноситься у контрольний архів, "
+                "а в журналі змін залишається попередня ревізія. Контроль 56 днів одразу перерахується."
+            ),
+            foreground="gray",wraplength=700,justify="left"
+        ).grid(row=5,column=0,columnspan=3,sticky="w",padx=12,pady=(8,12))
+
+        def save_edit():
+            try:
+                activity_no=int(activity_var.get().split(" ",1)[0])
+                out=self._update_attestation_record(
+                    att_id,from_var.get().strip(),to_var.get().strip(),activity_no,place_var.get().strip()
+                )
+                win.destroy()
+                messagebox.showinfo(
+                    "Бланк оновлено",
+                    f"Створено нову ревізію бланка №{att_id}.\n\nНовий файл:\n{out}",
+                    parent=self
+                )
+            except Exception as e:
+                messagebox.showerror("Помилка редагування",str(e),parent=win)
+
+        buttons=ttk.Frame(win)
+        buttons.grid(row=6,column=0,columnspan=3,sticky="e",padx=12,pady=12)
+        ttk.Button(buttons,text="Скасувати",command=win.destroy).pack(side="right",padx=4)
+        ttk.Button(buttons,text="Зберегти зміни",command=save_edit).pack(side="right",padx=4)
+        win.columnconfigure(1,weight=1)
+
+    def delete_selected_attestation(self):
+        att_id=self._selected_attestation_id()
+        if not att_id:
+            messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
+            return
+        con=db(); r=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone(); con.close()
+        if not r:
+            return
+        if not _attestation_is_active(r):
+            messagebox.showinfo("Бланки","Цей бланк уже вилучений.",parent=self)
+            return
+
+        reason=simpledialog.askstring(
+            "Причина вилучення",
+            "Вкажіть причину (наприклад: змінено графік / помилковий початковий графік).\nПоле можна залишити порожнім.",
+            parent=self
+        )
+        if reason is None:
+            return
+        if not messagebox.askyesno(
+            "Вилучити бланк",
+            f"Вилучити Бланк підтвердження №{att_id} з активного контролю?\n\n"
+            "Запис не буде фізично стертий: він залишиться у журналі, а всі наявні DOCX/PDF/JPG буде перенесено в архів. "
+            "Після цього контроль проміжків перерахується.",
+            parent=self
+        ):
+            return
+
+        backup_database("before_attestation_delete")
+        archived=_archive_attestation_files(r,ATT_DELETED_DIR,"deleted")
+        now=datetime.now().isoformat(timespec="seconds")
+        con=db()
+        try:
+            r=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+            _ensure_attestation_audit_baseline(con,r)
+            rev=int(r["revision"] or 1)+1
+            con.execute(
+                """UPDATE attestations
+                       SET status='deleted',revision=?,updated_at=?,deleted_at=?,delete_reason=?,
+                           file_path=?,pdf_path=?,jpg_page1_path=?,jpg_page2_path=?
+                     WHERE id=?""",
+                (rev,now,now,(reason or "").strip(),
+                 archived["file_path"],archived["pdf_path"],archived["jpg_page1_path"],archived["jpg_page2_path"],att_id)
+            )
+            deleted=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+            _audit_attestation_snapshot(con,deleted,"DELETE",(reason or "").strip())
+            con.commit()
+        except Exception:
+            con.rollback(); raise
+        finally:
+            con.close()
+
+        self.load_att_history()
+        if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
+            self.refresh_attestation_gap_control()
+        messagebox.showinfo(
+            "Бланк вилучено",
+            "Бланк вилучено з активного контролю. Запис і всі його файли збережені в архіві; за потреби його можна відновити.",
+            parent=self
+        )
+
+    def restore_selected_attestation(self):
+        att_id=self._selected_attestation_id()
+        if not att_id:
+            messagebox.showwarning("Бланки","Виберіть вилучений бланк у таблиці.",parent=self)
+            return
+        con=db(); r=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone(); con.close()
+        if not r:
+            return
+        if _attestation_is_active(r):
+            messagebox.showinfo("Бланки","Цей бланк уже активний.",parent=self)
+            return
+        if not messagebox.askyesno(
+            "Відновити бланк",
+            f"Повернути Бланк підтвердження №{att_id} до активного контролю?",
+            parent=self
+        ):
+            return
+
+        restored=_restore_attestation_files(r)
+        backup_database("before_attestation_restore")
+        now=datetime.now().isoformat(timespec="seconds")
+        con=db()
+        try:
+            r=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+            _ensure_attestation_audit_baseline(con,r)
+            rev=int(r["revision"] or 1)+1
+            con.execute(
+                """UPDATE attestations
+                       SET status='active',revision=?,updated_at=?,deleted_at='',delete_reason='',
+                           file_path=?,pdf_path=?,jpg_page1_path=?,jpg_page2_path=?
+                     WHERE id=?""",
+                (rev,now,restored["file_path"],restored["pdf_path"],
+                 restored["jpg_page1_path"],restored["jpg_page2_path"],att_id)
+            )
+            restored_row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+            _audit_attestation_snapshot(con,restored_row,"RESTORE","Відновлено користувачем")
+            con.commit()
+        except Exception:
+            con.rollback(); raise
+        finally:
+            con.close()
+
+        self.load_att_history()
+        if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
+            self.refresh_attestation_gap_control()
+        messagebox.showinfo("Бланки","Бланк і всі наявні формати повернуто до активного контролю.",parent=self)
+
+    def open_att_archive_folder(self):
+        ATT_ARCHIVE_DIR.mkdir(parents=True,exist_ok=True)
+        if os.name=="nt":
+            os.startfile(str(ATT_ARCHIVE_DIR))
         else:
-            messagebox.showerror("Помилка","Файл не знайдено.")
+            subprocess.Popen(["xdg-open",str(ATT_ARCHIVE_DIR)])
+
+    def purge_selected_attestation(self):
+        """Фізично видаляє вже вилучений бланк, його аудит і файли.
+
+        Це окрема дія від «Вилучити з контролю». Для безпеки активний бланк
+        спочатку треба вилучити з контролю, а перед очищенням створюється backup БД.
+        """
+        att_id=self._selected_attestation_id()
+        if not att_id:
+            messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
+            return
+        con=db()
+        row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+        audits=con.execute("SELECT * FROM attestation_audit WHERE attestation_id=?",(att_id,)).fetchall()
+        con.close()
+        if not row:
+            return
+        if _attestation_is_active(row):
+            messagebox.showwarning(
+                "Видалення назавжди",
+                "Активний бланк не можна стерти одразу. Спочатку натисніть «Вилучити з контролю», "
+                "перевірте результат, а потім — «Видалити назавжди».",parent=self
+            )
+            return
+        if not messagebox.askyesno(
+            "Видалити назавжди",
+            f"Бланк №{att_id} буде ФІЗИЧНО видалено з бази, журналу змін та архіву файлів.\n\n"
+            "Після цього він не відображатиметься навіть у режимі «Усі». Перед видаленням Taxo створить резервну копію БД.\n\nПродовжити?",
+            icon="warning",parent=self
+        ):
+            return
+        token=simpledialog.askstring(
+            "Підтвердження остаточного видалення",
+            "Для остаточного видалення введіть слово ВИДАЛИТИ:",parent=self
+        )
+        if (token or "").strip().upper()!="ВИДАЛИТИ":
+            messagebox.showinfo("Скасовано","Остаточне видалення скасовано.",parent=self)
+            return
+
+        backup_database("before_attestation_purge")
+        root=DATA_ROOT.resolve()
+        paths=set()
+        for r in [row,*audits]:
+            keys=set(r.keys()) if hasattr(r,"keys") else set()
+            for field in ("file_path","pdf_path","jpg_page1_path","jpg_page2_path"):
+                raw=(r[field] or "").strip() if field in keys else ""
+                if raw:
+                    paths.add(raw)
+
+        removed_files=0
+        for raw in sorted(paths):
+            try:
+                fp=Path(raw)
+                if not fp.exists() or not fp.is_file():
+                    continue
+                resolved=fp.resolve()
+                # Ніколи не стираємо файл за межами каталогу даних Taxo.
+                if resolved==root or root not in resolved.parents:
+                    continue
+                fp.unlink()
+                removed_files+=1
+            except OSError:
+                pass
+
+        con=db()
+        try:
+            con.execute("DELETE FROM attestation_audit WHERE attestation_id=?",(att_id,))
+            con.execute("DELETE FROM attestations WHERE id=?",(att_id,))
+            con.commit()
+        except Exception:
+            con.rollback(); raise
+        finally:
+            con.close()
+
+        self.load_att_history()
+        if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
+            self.refresh_attestation_gap_control()
+        messagebox.showinfo(
+            "Видалено назавжди",
+            f"Бланк №{att_id} повністю видалено. Файлів стерто: {removed_files}.\n"
+            "Страхова резервна копія БД створена перед операцією.",parent=self
+        )
+
+    def show_attestation_audit(self):
+        att_id=self._selected_attestation_id()
+        if not att_id:
+            messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
+            return
+        con=db()
+        current=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+        rows=con.execute(
+            "SELECT * FROM attestation_audit WHERE attestation_id=? ORDER BY id",(att_id,)
+        ).fetchall()
+        con.close()
+
+        win=tk.Toplevel(self)
+        win.title(f"Історія змін Бланка №{att_id}")
+        win.geometry("1350x520")
+        win.transient(self)
+
+        cols=("when","action","revision","from","to","activity","status","note","files")
+        audit_frame=ttk.Frame(win)
+        audit_frame.pack(fill="both",expand=True,padx=10,pady=10)
+        tree=ttk.Treeview(audit_frame,columns=cols,show="headings")
+        heads={
+            "when":"Коли","action":"Дія","revision":"Ред.","from":"З","to":"По",
+            "activity":"Позиція","status":"Статус","note":"Примітка","files":"Файли"
+        }
+        widths={
+            "when":145,"action":95,"revision":55,"from":145,"to":145,"activity":70,
+            "status":90,"note":250,"files":430
+        }
+        for c in cols:
+            tree.heading(c,text=heads[c]); tree.column(c,width=widths[c],anchor="w",stretch=(c in ("note","files")))
+        audit_y=ttk.Scrollbar(audit_frame,orient="vertical",command=tree.yview)
+        audit_x=ttk.Scrollbar(audit_frame,orient="horizontal",command=tree.xview)
+        tree.configure(yscrollcommand=audit_y.set,xscrollcommand=audit_x.set)
+        tree.grid(row=0,column=0,sticky="nsew")
+        audit_y.grid(row=0,column=1,sticky="ns")
+        audit_x.grid(row=1,column=0,sticky="ew")
+        audit_frame.rowconfigure(0,weight=1)
+        audit_frame.columnconfigure(0,weight=1)
+
+        def paths_text(row):
+            keys=set(row.keys()) if hasattr(row,"keys") else set()
+            parts=[]
+            for label,field in (("DOCX","file_path"),("PDF","pdf_path"),("JPG1","jpg_page1_path"),("JPG2","jpg_page2_path")):
+                val=(row[field] or "") if field in keys else ""
+                if val:
+                    parts.append(f"{label}: {val}")
+            return " | ".join(parts)
+
+        if rows:
+            for a in rows:
+                tree.insert("","end",values=(
+                    (a["created_at"] or "").replace("T"," "),a["action"],a["revision"],
+                    a["period_from"],a["period_to"],a["activity_no"],a["status"],a["note"],paths_text(a)
+                ))
+        elif current:
+            tree.insert("","end",values=(
+                (current["created_at"] or "").replace("T"," "),"CURRENT",current["revision"],
+                current["period_from"],current["period_to"],current["activity_no"],current["status"],
+                "Старий запис: змін ще не було",paths_text(current)
+            ))
+
+        ttk.Button(win,text="Закрити",command=win.destroy).pack(anchor="e",padx=10,pady=(0,10))
+
+    def load_att_history(self):
+        if not hasattr(self,"att_tree"):
+            return
+        selected_id=self._selected_attestation_id() if self.att_tree.selection() else None
+        for x in self.att_tree.get_children():
+            self.att_tree.delete(x)
+
+        mode=(self.att_filter.get().strip() if hasattr(self,"att_filter") else "Активні")
+        con=db()
+        total=con.execute("SELECT COUNT(*) FROM attestations").fetchone()[0]
+        active_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')='active'").fetchone()[0]
+        deleted_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')<>'active'").fetchone()[0]
+        sql="""SELECT a.*, d.last_name||' '||d.first_name AS driver_name
+                 FROM attestations a JOIN drivers d ON d.id=a.driver_id"""
+        params=[]
+        if mode=="Активні":
+            sql += " WHERE COALESCE(a.status,'active')='active'"
+        elif mode=="Вилучені":
+            sql += " WHERE COALESCE(a.status,'active')<>'active'"
+        # mode == "Усі": жодного прихованого фільтра і жодного LIMIT.
+        sql += " ORDER BY a.id DESC"
+        rows=con.execute(sql,params).fetchall()
+        con.close()
+
+        if hasattr(self,"att_list_summary"):
+            self.att_list_summary.set(
+                f"Показано: {len(rows)} з {total} | активних: {active_count} | вилучених: {deleted_count}"
+            )
+
+        selected_iid=None
+        for r in rows:
+            active=_attestation_is_active(r)
+            status_text="Активний" if active else "Вилучений"
+            tags=() if active else ("deleted",)
+            formats=[]
+            if (r["file_path"] or "").strip(): formats.append("DOCX")
+            if (r["pdf_path"] or "").strip(): formats.append("PDF")
+            if (r["jpg_page1_path"] or "").strip() or (r["jpg_page2_path"] or "").strip(): formats.append("JPG")
+            primary=(r["pdf_path"] or r["file_path"] or r["jpg_page1_path"] or r["jpg_page2_path"] or "")
+            iid=self.att_tree.insert(
+                "","end",
+                values=(
+                    r["id"],r["driver_name"],r["period_from"],r["period_to"],r["activity_no"],
+                    r["place"],r["form_date"],status_text,r["revision"]," / ".join(formats),primary
+                ),
+                tags=tags
+            )
+            if selected_id and int(r["id"])==int(selected_id):
+                selected_iid=iid
+        if selected_iid:
+            self.att_tree.selection_set(selected_iid)
+            self.att_tree.see(selected_iid)
+
+    def _selected_attestation_row(self):
+        att_id=self._selected_attestation_id()
+        if not att_id:
+            return None
+        con=db(); row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone(); con.close()
+        return row
+
+    def _open_path(self, path):
+        path=(path or "").strip()
+        if not path or not os.path.exists(path):
+            messagebox.showerror("Помилка","Файл не знайдено.",parent=self)
+            return
+        os.startfile(path) if os.name=="nt" else subprocess.Popen(["xdg-open",path])
+
+    def open_att_file(self, kind=None):
+        row=self._selected_attestation_row()
+        if row is None:
+            messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
+            return
+        if kind=="docx":
+            path=row["file_path"]
+        elif kind=="pdf":
+            path=row["pdf_path"]
+        elif kind=="jpg":
+            path=row["jpg_page1_path"] or row["jpg_page2_path"]
+        else:
+            path=row["pdf_path"] or row["file_path"] or row["jpg_page1_path"] or row["jpg_page2_path"]
+        if not (path or "").strip():
+            messagebox.showinfo("Бланки",f"Для цього запису формат {str(kind or '').upper()} не створювався.",parent=self)
+            return
+        self._open_path(path)
+
+    def open_att_folder(self):
+        row=self._selected_attestation_row()
+        if row is None:
+            messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
+            return
+        path=row["pdf_path"] or row["file_path"] or row["jpg_page1_path"] or row["jpg_page2_path"]
+        if not (path or "").strip():
+            messagebox.showinfo("Бланки","Для цього запису немає збереженого файлу.",parent=self)
+            return
+        folder=str(Path(path).parent)
+        if os.name=="nt":
+            os.startfile(folder)
+        else:
+            subprocess.Popen(["xdg-open",folder])
 
 if __name__ == "__main__":
     migrated, old_db = init_db()
