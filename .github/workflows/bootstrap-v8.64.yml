@@ -59,12 +59,6 @@ jobs:
           tar -xJf 'Taxo_v8_64_source.tar.xz' -C '_v864_unpack'
           if ($LASTEXITCODE -ne 0) { throw "tar extraction failed: $LASTEXITCODE" }
           $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
-          if (!(Test-Path (Join-Path $src 'main.py'))) { throw 'Reconstructed source is invalid' }
-
-      - name: Verify reconstructed runtime files
-        shell: pwsh
-        run: |
-          $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
           $checks = @{
             'main.py' = $env:MAIN_SHA256
             'tachograph.py' = $env:TACHO_SHA256
@@ -76,28 +70,23 @@ jobs:
             if (!(Test-Path $full)) { throw "Missing reconstructed file: $file" }
             $actual = (Get-FileHash $full -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($actual -ne $checks[$file]) { throw "SHA-256 mismatch for $file : $actual" }
-            Write-Host "OK $file $actual"
           }
-          if (!(Test-Path (Join-Path $src '.github/workflows/publish-windows-v8.64.yml'))) { throw 'v8.64 publish workflow missing' }
+          if (!(Test-Path (Join-Path $src '.github/workflows/publish-windows-v8.64.yml'))) { throw 'v8.64 publish workflow missing in source archive' }
 
-      - name: Publish canonical source to candidate branch
+      - name: Publish canonical non-workflow source
         shell: pwsh
         run: |
           $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
-          robocopy $src $PWD /E /R:2 /W:1 /XF *.docx /XD .git | Out-Host
+          robocopy $src $PWD /E /R:2 /W:1 /XF *.docx /XD .git .github | Out-Host
           if ($LASTEXITCODE -ge 8) { throw "robocopy failed: $LASTEXITCODE" }
-          Remove-Item '.github/workflows/release-windows-v8.56.yml' -Force -ErrorAction SilentlyContinue
-          Remove-Item '.github/workflows/bootstrap-v8.64.yml' -Force -ErrorAction SilentlyContinue
           Remove-Item '.release_payload' -Recurse -Force -ErrorAction SilentlyContinue
           Remove-Item 'Taxo_v8_64_source.tar.xz' -Force -ErrorAction SilentlyContinue
           Remove-Item '_v864_unpack' -Recurse -Force -ErrorAction SilentlyContinue
-          $template = 'Бланк підтвердження.docx'
-          $templateHash = (Get-FileHash $template -Algorithm SHA256).Hash.ToLowerInvariant()
+          $templateHash = (Get-FileHash 'Бланк підтвердження.docx' -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($templateHash -ne $env:TEMPLATE_SHA256) { throw "Final DOCX template mismatch: $templateHash" }
           python -m py_compile main.py tachograph.py attestation_render.py
-          if (!(Test-Path '.github/workflows/publish-windows-v8.64.yml')) { throw 'Final publish workflow missing' }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git commit -m 'Publish canonical Taxo v8.64 source'
+          git commit -m 'Publish canonical Taxo v8.64 source files'
           git push origin HEAD:candidate-v8.64
