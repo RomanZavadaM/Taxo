@@ -17,6 +17,7 @@ jobs:
     runs-on: windows-latest
     env:
       PYTHONUTF8: '1'
+      ARCHIVE_SHA256: 6635bd9e065e836378f455cebe7c97d381d6e1356d0efc038d882660471aba0c
       MAIN_SHA256: 2f23301d651372d06b6a39f0edb03b009b23a61e919c98b2123c855835f8483c
       TACHO_SHA256: 83c916457c6602e9ed93a55fdc0578e91775e073dad12da94ccd31d1e81fa108
       RENDER_SHA256: b65178e0bf18207e75e10ebfb6c2896397e685184228ece70efb7615d4215c88
@@ -32,17 +33,25 @@ jobs:
       - name: Reconstruct v8.64 source from protected payload
         shell: pwsh
         run: |
-          $parts = Get-ChildItem '.release_payload/v8.64/part*.b64' | Sort-Object Name
-          if ($parts.Count -ne 12) { throw "Expected 12 payload parts, got $($parts.Count)" }
-          $b64 = ($parts | ForEach-Object { Get-Content $_.FullName -Raw }) -join ''
-          [IO.File]::WriteAllBytes('Taxo_v8_64_source.zip', [Convert]::FromBase64String($b64))
+          $base = Get-ChildItem '.release_payload/v8.64/part*.b64' | Sort-Object Name
+          $rem  = Get-ChildItem '.release_payload/v8.64/rem*.b64' | Sort-Object Name
+          if ($base.Count -ne 13) { throw "Expected 13 base payload files, got $($base.Count)" }
+          if ($rem.Count -ne 18) { throw "Expected 18 remainder payload files, got $($rem.Count)" }
+          $all = @($base) + @($rem)
+          $b64 = ($all | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
+          if ($b64.Length -ne 248624) { throw "Unexpected Base64 length: $($b64.Length)" }
+          [IO.File]::WriteAllBytes('Taxo_v8_64_source.tar.xz', [Convert]::FromBase64String($b64))
+          $archiveHash = (Get-FileHash 'Taxo_v8_64_source.tar.xz' -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($archiveHash -ne $env:ARCHIVE_SHA256) { throw "Archive SHA-256 mismatch: $archiveHash" }
           if (Test-Path '_v864_unpack') { Remove-Item '_v864_unpack' -Recurse -Force }
-          Expand-Archive 'Taxo_v8_64_source.zip' '_v864_unpack' -Force
+          New-Item -ItemType Directory -Path '_v864_unpack' | Out-Null
+          tar -xJf 'Taxo_v8_64_source.tar.xz' -C '_v864_unpack'
+          if ($LASTEXITCODE -ne 0) { throw "tar extraction failed: $LASTEXITCODE" }
           $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
           if (!(Test-Path (Join-Path $src 'main.py'))) { throw 'Reconstructed source is invalid' }
           robocopy $src $PWD /E /R:2 /W:1 /XD .git .release_payload _v864_unpack | Out-Host
           if ($LASTEXITCODE -ge 8) { throw "robocopy failed: $LASTEXITCODE" }
-          Remove-Item 'Taxo_v8_64_source.zip' -Force
+          Remove-Item 'Taxo_v8_64_source.tar.xz' -Force
           Remove-Item '_v864_unpack' -Recurse -Force
 
       - name: Verify reconstructed source hashes
