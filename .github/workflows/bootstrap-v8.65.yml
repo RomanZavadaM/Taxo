@@ -45,22 +45,15 @@ jobs:
           Path('/tmp/v865.patch').write_bytes(patch)
           print('verified patch', patch_sha, len(patch))
           PY
-          # SHA256SUMS.txt in the repository was regenerated during the v8.64 release,
-          # so its historical hunk is intentionally excluded and rebuilt below.
           git apply --check --exclude=SHA256SUMS.txt /tmp/v865.patch
           git apply --exclude=SHA256SUMS.txt /tmp/v865.patch
 
-      - name: Install v8.65 workflows and clean staging payload
+      - name: Clean source staging payload
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .github/workflows
-          cp .release_payload/v8.65/build-candidate.yml.txt .github/workflows/build-windows-v8.65-candidate.yml
-          cp .release_payload/v8.65/publish.yml.txt .github/workflows/publish-windows-v8.65.yml
-          rm -f .github/workflows/publish-windows-v8.64.yml
           rm -f CANDIDATE_V8_65_R2.md CANDIDATE_V8_65_R3.md
           rm -rf .release_payload
-          rm -f .github/workflows/bootstrap-v8.65.yml
 
       - name: Verify release source and push
         shell: bash
