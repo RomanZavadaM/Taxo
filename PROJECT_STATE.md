@@ -1,3 +1,13 @@
+# Taxo — поточний стан v8.65
+
+Стабільний опублікований реліз: **v8.65** (перевірений candidate r3).  
+Наступна розробка: **v8.66**.  
+Тема: **ПЛАН керування ≠ ПЛАН робочого часу; майбутній тахограф = окремий ФАКТ керування**.
+
+Ключова міграція v8.65: старі маршрутні/шаблонні дані один раз нормалізуються як час керування; робочий час спочатку копіюється 1:1. Перед цим створюється резервна копія. `no_tacho_8h` не змінюється.
+
+---
+
 # Taxo — стан проєкту
 
 Контрольна опублікована версія: **v8.56**  
@@ -352,3 +362,17 @@
 - Поточний кандидат: **v8.64**.
 - GitHub `main` до локальної Windows-перевірки не змінювати.
 - Наступні нові зміни після підтвердження: **v8.65**.
+
+
+## v8.65 r2 time-boundary model
+
+The r1 duration-only separation was corrected. Every work/route segment now stores separate `work_start_time/work_end_time` and legacy `start_time/end_time` (defined as planned driving boundaries). `work_hours` and `driving_hours` are derived. Existing route schedule boundaries are driving boundaries; work boundaries initialize 1:1 and can then be edited independently.
+
+
+## 2026-09-12 — v8.65 candidate r3
+- r2 frozen, not overwritten.
+- Added centralized output-file handling for PermissionError / locked Windows files with Retry / Create copy / Cancel.
+- Added local GUI exception log under `Documents/DriverWorktime/Logs/Taxo_errors.log`.
+- Fixed schedule timeline label disappearance after manual edits: root cause was the hard 95 px display threshold, not lost interval data.
+- Short schedule bands now get adaptive compact labels.
+- Stable GitHub main remains v8.64.

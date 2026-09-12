@@ -12,6 +12,7 @@ import subprocess
 import sys
 import shutil
 import tempfile
+import traceback
 from datetime import date, datetime, timedelta
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
@@ -43,6 +44,7 @@ DATA_ROOT = DOCUMENTS_DIR / "DriverWorktime"
 DATA_DIR = DATA_ROOT / "Data"
 BACKUP_DIR = DATA_ROOT / "Backups"
 OUTPUT_DIR = DATA_ROOT / "Output"
+LOG_DIR = DATA_ROOT / "Logs"
 ATT_ARCHIVE_DIR = OUTPUT_DIR / "AttestationArchive"
 ATT_REPLACED_DIR = ATT_ARCHIVE_DIR / "Replaced"
 ATT_DELETED_DIR = ATT_ARCHIVE_DIR / "Deleted"
@@ -50,8 +52,172 @@ DB_PATH = DATA_DIR / "driver_worktime.sqlite3"
 TEMPLATE_PATH = APP_DIR / "Бланк підтвердження.docx"
 ATT_VISUAL_TEMPLATE_PATH = APP_DIR / "attestation_visual_template.pdf"
 
-for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR, ATT_ARCHIVE_DIR, ATT_REPLACED_DIR, ATT_DELETED_DIR):
+for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR, LOG_DIR, ATT_ARCHIVE_DIR, ATT_REPLACED_DIR, ATT_DELETED_DIR):
     _p.mkdir(parents=True, exist_ok=True)
+
+
+def _append_error_log(context, exc, tb=None):
+    """Записує технічні подробиці локально, не засмічуючи діалог користувача traceback-ом."""
+    try:
+        LOG_DIR.mkdir(parents=True,exist_ok=True)
+        log_path=LOG_DIR / "Taxo_errors.log"
+        stamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        if tb is None:
+            details="".join(traceback.format_exception(type(exc),exc,exc.__traceback__))
+        else:
+            details="".join(traceback.format_exception(type(exc),exc,tb))
+        with log_path.open("a",encoding="utf-8") as fh:
+            fh.write(f"\n[{stamp}] {context}\n{details}\n")
+        return log_path
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Єдина обробка помилок під час створення/перезапису вихідних файлів.
+# На Windows PDF/Excel часто блокують файл, поки він відкритий у переглядачі.
+# Замість сирого [Errno 13] користувач отримує зрозумілий вибір:
+# повторити, створити копію з новою назвою або скасувати операцію.
+# ---------------------------------------------------------------------------
+
+def _is_file_access_error(exc, path=None):
+    """Повертає True для типових помилок блокування/доступу до файла."""
+    if isinstance(exc, PermissionError):
+        return True
+    if not isinstance(exc, OSError):
+        return False
+    if getattr(exc, "winerror", None) in (5, 32, 33):
+        return True
+    if getattr(exc, "errno", None) in (1, 13, 16):
+        return True
+    return False
+
+
+def _next_output_copy_path(path):
+    """Підбирає вільну назву поруч із зайнятим файлом."""
+    path=Path(path)
+    stamp=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    candidate=path.with_name(f"{path.stem}_{stamp}{path.suffix}")
+    if not candidate.exists():
+        return candidate
+    for n in range(2,1000):
+        candidate=path.with_name(f"{path.stem}_{stamp}_{n}{path.suffix}")
+        if not candidate.exists():
+            return candidate
+    raise RuntimeError("Не вдалося підібрати вільну назву вихідного файла.")
+
+
+def _ask_locked_file_action(parent, path, kind="файл"):
+    """Модальний діалог: retry / copy / cancel."""
+    result={"value":"cancel"}
+    win=tk.Toplevel(parent) if parent is not None else tk.Toplevel()
+    win.title("Файл використовується іншою програмою")
+    win.resizable(False,False)
+    if parent is not None:
+        try:
+            win.transient(parent)
+        except Exception:
+            pass
+    body=ttk.Frame(win,padding=16)
+    body.pack(fill="both",expand=True)
+    ttk.Label(
+        body,
+        text=f"Не вдалося перезаписати {kind}:",
+        font=("TkDefaultFont",10,"bold")
+    ).pack(anchor="w")
+    ttk.Label(
+        body,
+        text=str(path),
+        wraplength=620,
+        justify="left"
+    ).pack(anchor="w",pady=(6,10))
+    ttk.Label(
+        body,
+        text=(
+            "Найчастіше це означає, що файл зараз відкритий у PDF-переглядачі, "
+            "Excel або іншій програмі. Закрийте його і натисніть «Повторити».\n\n"
+            "Якщо не хочете закривати відкритий файл, Taxo може створити нову копію "
+            "поруч із ним з унікальною назвою."
+        ),
+        wraplength=620,
+        justify="left"
+    ).pack(anchor="w")
+
+    buttons=ttk.Frame(body)
+    buttons.pack(fill="x",pady=(16,0))
+
+    def choose(value):
+        result["value"]=value
+        win.destroy()
+
+    ttk.Button(buttons,text="Скасувати",command=lambda:choose("cancel")).pack(side="right",padx=(6,0))
+    ttk.Button(buttons,text="Створити копію",command=lambda:choose("copy")).pack(side="right",padx=6)
+    ttk.Button(buttons,text="Повторити",command=lambda:choose("retry")).pack(side="right")
+    win.protocol("WM_DELETE_WINDOW",lambda:choose("cancel"))
+    try:
+        win.grab_set()
+        win.update_idletasks()
+        if parent is not None:
+            x=parent.winfo_rootx()+max(0,(parent.winfo_width()-win.winfo_reqwidth())//2)
+            y=parent.winfo_rooty()+max(0,(parent.winfo_height()-win.winfo_reqheight())//2)
+            win.geometry(f"+{x}+{y}")
+    except Exception:
+        pass
+    win.wait_window()
+    return result["value"]
+
+
+def _friendly_file_error(exc, path, kind="файл"):
+    path=Path(path)
+    if isinstance(exc, FileNotFoundError):
+        return f"Не знайдено файл або папку для створення {kind}:\n{path}"
+    if isinstance(exc, IsADirectoryError):
+        return f"Замість файла вибрано папку:\n{path}"
+    if isinstance(exc, OSError) and getattr(exc, "errno", None)==28:
+        return f"Недостатньо вільного місця для створення {kind}:\n{path}"
+    if _is_file_access_error(exc,path):
+        return (
+            f"Немає доступу до {kind}:\n{path}\n\n"
+            "Перевірте права доступу до папки або закрийте програму, яка використовує файл."
+        )
+    return f"Не вдалося створити {kind}:\n{path}\n\n{type(exc).__name__}: {exc}"
+
+
+def write_output_file(writer, target_path, parent=None, kind="файл", error_title="Помилка файла"):
+    """Виконує writer(path) з нормальною обробкою блокування файла.
+
+    Повертає фактичний Path. Якщо користувач скасував операцію — None.
+    Інші помилки показуються один раз у зрозумілому вигляді і теж повертають None.
+    """
+    current=Path(target_path)
+    while True:
+        try:
+            current.parent.mkdir(parents=True,exist_ok=True)
+            writer(current)
+            return current
+        except Exception as exc:
+            # Відкритий існуючий файл — найтиповіший випадок на Windows.
+            # Якщо файла ще немає, PermissionError швидше означає права на папку,
+            # тому не пропонуємо безглуздо створювати копію в тій самій папці.
+            locked_existing=(current.exists() and _is_file_access_error(exc,current))
+            if locked_existing:
+                action=_ask_locked_file_action(parent,current,kind)
+                if action=="retry":
+                    continue
+                if action=="copy":
+                    current=_next_output_copy_path(current)
+                    continue
+                return None
+            log_path=_append_error_log(f"Створення {kind}: {current}",exc)
+            msg=_friendly_file_error(exc,current,kind)
+            if log_path is not None:
+                msg += f"\n\nТехнічні подробиці записано у:\n{log_path}"
+            messagebox.showerror(
+                error_title,
+                msg,
+                parent=parent
+            )
+            return None
 
 
 def find_legacy_database():
@@ -221,7 +387,7 @@ WORK_MODE_NO_TACHO = "no_tacho_8h"
 WORK_MODE_MANUAL = "manual"
 
 WORK_MODE_LABELS = {
-    WORK_MODE_TACHO: "ТАХО — маршрут / шаблон",
+    WORK_MODE_TACHO: "Маршрут / шаблон — план керування",
     WORK_MODE_NO_TACHO: "Без тахо — стандартні 8 год",
     WORK_MODE_MANUAL: "Інше / ручний облік",
 }
@@ -327,8 +493,10 @@ def init_db():
         driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
         work_date TEXT NOT NULL,
         day_type TEXT NOT NULL DEFAULT 'Робота',
-        start_time TEXT DEFAULT '',
-        end_time TEXT DEFAULT '',
+        start_time TEXT DEFAULT '', -- план керування: початок (legacy name)
+        end_time TEXT DEFAULT '',   -- план керування: кінець (legacy name)
+        work_start_time TEXT DEFAULT '',
+        work_end_time TEXT DEFAULT '',
         work_hours REAL DEFAULT 0,
         driving_hours REAL DEFAULT 0,
         overtime_hours REAL DEFAULT 0,
@@ -362,8 +530,10 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         template_id INTEGER NOT NULL REFERENCES route_templates(id) ON DELETE CASCADE,
         segment_no INTEGER NOT NULL,
-        start_time TEXT DEFAULT '',
-        end_time TEXT DEFAULT '',
+        start_time TEXT DEFAULT '', -- план керування: початок (legacy name)
+        end_time TEXT DEFAULT '',   -- план керування: кінець (legacy name)
+        work_start_time TEXT DEFAULT '',
+        work_end_time TEXT DEFAULT '',
         work_hours REAL DEFAULT 0,
         driving_hours REAL DEFAULT 0,
         activity_type TEXT DEFAULT 'Робота',
@@ -375,8 +545,10 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         worklog_id INTEGER NOT NULL REFERENCES worklog(id) ON DELETE CASCADE,
         segment_no INTEGER NOT NULL,
-        start_time TEXT DEFAULT '',
-        end_time TEXT DEFAULT '',
+        start_time TEXT DEFAULT '', -- план керування: початок (legacy name)
+        end_time TEXT DEFAULT '',   -- план керування: кінець (legacy name)
+        work_start_time TEXT DEFAULT '',
+        work_end_time TEXT DEFAULT '',
         work_hours REAL DEFAULT 0,
         driving_hours REAL DEFAULT 0,
         activity_type TEXT DEFAULT 'Робота',
@@ -434,6 +606,8 @@ def init_db():
         ("shift_type", "TEXT DEFAULT 'Безперервна'"),
         ("vehicle_id", "INTEGER"),
         ("accounting_mode", "TEXT DEFAULT 'manual'"),
+        ("work_start_time", "TEXT DEFAULT ''"),
+        ("work_end_time", "TEXT DEFAULT ''"),
     ]:
         if name not in cols:
             con.execute(f"ALTER TABLE worklog ADD COLUMN {name} {ddl}")
@@ -507,6 +681,165 @@ def init_db():
         con.execute("ALTER TABLE route_templates ADD COLUMN vehicle_id INTEGER")
     if "route_id" not in rcols:
         con.execute("ALTER TABLE route_templates ADD COLUMN route_id INTEGER")
+
+    # v8.65 r2: кожен інтервал має окрему пару початок/кінець для
+    # робочого часу та для керування. Старі start_time/end_time НЕ
+    # перейменовуємо у БД для сумісності: відтепер це саме інтервал
+    # КЕРУВАННЯ. Для роботи додаємо work_start_time/work_end_time.
+    for table in ("work_segments", "route_template_segments"):
+        scols={r[1] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}
+        if "work_start_time" not in scols:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN work_start_time TEXT DEFAULT ''")
+        if "work_end_time" not in scols:
+            con.execute(f"ALTER TABLE {table} ADD COLUMN work_end_time TEXT DEFAULT ''")
+
+    # v8.65: розділяємо ПЛАНОВИЙ час керування та робочий час.
+    # Історично інтервали маршрутних графіків вводилися саме як час керування,
+    # хоча поле/підсумки могли називати його робочим часом. Одноразово
+    # нормалізуємо старі записи: джерелом вважаємо driving_hours, якщо воно
+    # вже було заповнене, інакше старе work_hours. На старті нового обліку
+    # робочий час = часу керування; надалі користувач редагує work_hours
+    # незалежно, додаючи іншу роботу. Режим «Без тахо — 8 год» не чіпаємо:
+    # там 8 год — саме робочий час, а не керування.
+    tm_key="time_model_v8_65_migrated"
+    tm_row=con.execute("SELECT value FROM app_settings WHERE key=?",(tm_key,)).fetchone()
+    if not tm_row:
+        old_count=con.execute("SELECT COUNT(*) FROM worklog").fetchone()[0]
+        con.commit()
+        if old_count:
+            try:
+                backup_database("before_v8_65_time_model")
+            except Exception:
+                # Міграцію не блокуємо через проблему лише з резервною копією;
+                # штатний auto-backup усе одно виконується нижче.
+                pass
+
+        for table in ("work_segments","route_template_segments"):
+            con.execute(f"""
+                UPDATE {table}
+                   SET driving_hours = CASE
+                         WHEN COALESCE(driving_hours,0) > 0 THEN driving_hours
+                         ELSE COALESCE(work_hours,0)
+                       END,
+                       work_hours = CASE
+                         WHEN COALESCE(driving_hours,0) > 0 THEN driving_hours
+                         ELSE COALESCE(work_hours,0)
+                       END
+            """)
+
+        # Записи без тахографа лишаються 8 год робочого часу / 0 год керування.
+        con.execute("""
+            UPDATE worklog
+               SET driving_hours = CASE
+                     WHEN COALESCE(driving_hours,0) > 0 THEN driving_hours
+                     ELSE COALESCE(work_hours,0)
+                   END,
+                   work_hours = CASE
+                     WHEN COALESCE(driving_hours,0) > 0 THEN driving_hours
+                     ELSE COALESCE(work_hours,0)
+                   END
+             WHERE COALESCE(accounting_mode,'manual') <> ?
+        """,(WORK_MODE_NO_TACHO,))
+
+        # Якщо день має деталізацію, денні підсумки повинні точно дорівнювати
+        # сумі його частин після нормалізації.
+        con.execute("""
+            UPDATE worklog
+               SET work_hours = COALESCE((
+                       SELECT SUM(ws.work_hours) FROM work_segments ws
+                        WHERE ws.worklog_id=worklog.id
+                   ),work_hours),
+                   driving_hours = COALESCE((
+                       SELECT SUM(ws.driving_hours) FROM work_segments ws
+                        WHERE ws.worklog_id=worklog.id
+                   ),driving_hours)
+             WHERE id IN (SELECT DISTINCT worklog_id FROM work_segments)
+        """)
+        con.execute(
+            "INSERT INTO app_settings(key,value) VALUES(?,?)",
+            (tm_key,datetime.now().isoformat(timespec="seconds"))
+        )
+        con.execute(
+            "INSERT INTO app_settings(key,value) VALUES('time_model_version','2') "
+            "ON CONFLICT(key) DO UPDATE SET value=excluded.value"
+        )
+
+    # v8.65 r2: часові межі є первинними, тривалості — похідними.
+    # Історичні start_time/end_time користувач вводив з графіків саме як
+    # час КЕРУВАННЯ. На старті робочі межі копіюємо з них 1:1; надалі
+    # користувач розширює/змінює робочий інтервал незалежно.
+    interval_key="time_interval_model_v8_65_r2_migrated"
+    interval_row=con.execute("SELECT value FROM app_settings WHERE key=?",(interval_key,)).fetchone()
+    if not interval_row:
+        con.commit()
+        try:
+            backup_database("before_v8_65_interval_model")
+        except Exception:
+            pass
+
+        def _legacy_duration_minutes(a,b):
+            a=(a or "").strip(); b=(b or "").strip()
+            if not a or not b:
+                return 0
+            try:
+                ah,am=map(int,a.split(":")); bh,bm=map(int,b.split(":"))
+                x=ah*60+am; y=bh*60+bm
+                if y<=x: y+=1440
+                return max(0,y-x)
+            except Exception:
+                return 0
+
+        for table in ("work_segments","route_template_segments"):
+            rows_i=con.execute(f"SELECT id,start_time,end_time,work_start_time,work_end_time FROM {table}").fetchall()
+            for rr in rows_i:
+                ds=(rr["start_time"] or "").strip(); de=(rr["end_time"] or "").strip()
+                ws=(rr["work_start_time"] or "").strip() or ds
+                we=(rr["work_end_time"] or "").strip() or de
+                dm=_legacy_duration_minutes(ds,de)
+                wm=_legacy_duration_minutes(ws,we)
+                con.execute(
+                    f"UPDATE {table} SET work_start_time=?,work_end_time=?,work_hours=?,driving_hours=? WHERE id=?",
+                    (ws,we,round(wm/60.0,6),round(dm/60.0,6),rr["id"])
+                )
+
+        # Денний запис: для маршрутного обліку старі start/end = керування;
+        # робочі межі спочатку ті самі. Для «Без тахо — 8 год» start/end
+        # лишаємо legacy-полями, а нові робочі межі заповнюємо лише якщо вони
+        # були відомі.
+        day_rows=con.execute("SELECT * FROM worklog").fetchall()
+        for rr in day_rows:
+            wid=rr["id"]
+            segs_i=con.execute("SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(wid,)).fetchall()
+            if segs_i:
+                drive_segs=[x for x in segs_i if (x["start_time"] or "").strip() and (x["end_time"] or "").strip()]
+                work_segs=[x for x in segs_i if (x["work_start_time"] or "").strip() and (x["work_end_time"] or "").strip()]
+                ds=drive_segs[0]["start_time"] if drive_segs else ""
+                de=drive_segs[-1]["end_time"] if drive_segs else ""
+                ws=work_segs[0]["work_start_time"] if work_segs else ""
+                we=work_segs[-1]["work_end_time"] if work_segs else ""
+                wm=sum(_legacy_duration_minutes(x["work_start_time"],x["work_end_time"]) for x in work_segs)
+                dm=sum(_legacy_duration_minutes(x["start_time"],x["end_time"]) for x in drive_segs)
+                con.execute("UPDATE worklog SET start_time=?,end_time=?,work_start_time=?,work_end_time=?,work_hours=?,driving_hours=? WHERE id=?",
+                            (ds,de,ws,we,round(wm/60.0,6),round(dm/60.0,6),wid))
+            else:
+                ds=(rr["start_time"] or "").strip(); de=(rr["end_time"] or "").strip()
+                ws=(rr["work_start_time"] or "").strip() or ds
+                we=(rr["work_end_time"] or "").strip() or de
+                if (rr["accounting_mode"] or "manual")==WORK_MODE_NO_TACHO:
+                    # Стандартні 8 год не перетворюємо на керування.
+                    wm=_legacy_duration_minutes(ws,we)
+                    con.execute("UPDATE worklog SET work_start_time=?,work_end_time=?,work_hours=CASE WHEN ?>0 THEN ? ELSE work_hours END,driving_hours=0 WHERE id=?",
+                                (ws,we,wm,round(wm/60.0,6),wid))
+                else:
+                    dm=_legacy_duration_minutes(ds,de)
+                    wm=_legacy_duration_minutes(ws,we)
+                    con.execute("UPDATE worklog SET work_start_time=?,work_end_time=?,work_hours=?,driving_hours=? WHERE id=?",
+                                (ws,we,round(wm/60.0,6),round(dm/60.0,6),wid))
+
+        con.execute("INSERT INTO app_settings(key,value) VALUES(?,?)",
+                    (interval_key,datetime.now().isoformat(timespec="seconds")))
+        con.execute("INSERT INTO app_settings(key,value) VALUES('time_model_version','3') "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value")
 
     # v8.57: Бланки підтвердження мають керований життєвий цикл.
     # Старі записи автоматично вважаються активними ревізії 1.
@@ -605,6 +938,27 @@ def segment_duration(start, end):
     return round(duration_minutes(start, end) / 60.0, 2)
 
 
+def interval_within(inner_start, inner_end, outer_start, outer_end):
+    """True, якщо внутрішній HH:MM-інтервал повністю лежить у зовнішньому.
+
+    Коректно працює і для переходу через північ. Порожній внутрішній
+    інтервал означає відсутність керування і теж є допустимим.
+    """
+    if not (inner_start or "").strip() and not (inner_end or "").strip():
+        return True
+    if not (inner_start or "").strip() or not (inner_end or "").strip():
+        return False
+    os=time_to_minutes(outer_start); oe=time_to_minutes(outer_end)
+    if oe<=os: oe+=1440
+    ins=time_to_minutes(inner_start); ine=time_to_minutes(inner_end)
+    if ine<=ins: ine+=1440
+    for shift in (0,1440,-1440):
+        a=ins+shift; b=ine+shift
+        if os <= a and b <= oe:
+            return True
+    return False
+
+
 def hours_value_to_minutes(value):
     """Єдина внутрішня міра тривалості — цілі хвилини.
 
@@ -671,20 +1025,42 @@ def format_hours(value):
         return "0"
 
 
+def _segment_work_pair(r):
+    ws=(r["work_start_time"] if "work_start_time" in r.keys() else "") or r["start_time"]
+    we=(r["work_end_time"] if "work_end_time" in r.keys() else "") or r["end_time"]
+    return ws,we
+
+
 def segments_summary(segments):
     if not segments:
         return ""
-    return " / ".join(f"{r['start_time']}-{r['end_time']}" for r in segments)
+    parts=[]
+    for r in segments:
+        ws,we=_segment_work_pair(r)
+        ds=(r["start_time"] or "").strip(); de=(r["end_time"] or "").strip()
+        work=f"роб. {ws}-{we}" if ws and we else "роб. —"
+        drive=f"кер. {ds}-{de}" if ds and de else "кер. —"
+        parts.append(f"{work}; {drive}")
+    return " / ".join(parts)
 
 
-def gaps_minutes(segments):
+def gaps_minutes(segments, pair="work"):
     if len(segments) < 2:
         return []
     out=[]
-    ordered=sorted(segments, key=lambda r: time_to_minutes(r['start_time']))
-    for a,b in zip(ordered, ordered[1:]):
-        end=time_to_minutes(a['end_time'])
-        start=time_to_minutes(b['start_time'])
+    prepared=[]
+    for r in segments:
+        if pair=="drive":
+            a=(r["start_time"] or "").strip(); b=(r["end_time"] or "").strip()
+        else:
+            a,b=_segment_work_pair(r); a=(a or "").strip(); b=(b or "").strip()
+        if not a or not b:
+            continue
+        prepared.append((time_to_minutes(a),a,b))
+    ordered=prepared  # порядок segment_no / порядок у редакторі є часовим порядком
+    for left,right in zip(ordered,ordered[1:]):
+        end=time_to_minutes(left[2])
+        start=time_to_minutes(right[1])
         if start <= end:
             start += 24*60
         gap=start-end
@@ -693,8 +1069,8 @@ def gaps_minutes(segments):
     return out
 
 
-def gaps_summary(segments):
-    return ", ".join(minutes_hhmm(x) for x in gaps_minutes(segments))
+def gaps_summary(segments, pair="work"):
+    return ", ".join(minutes_hhmm(x) for x in gaps_minutes(segments,pair=pair))
 
 
 def month_dates(year, month):
@@ -1242,9 +1618,15 @@ def _row_segments(con, row):
 
 def _export_row_values(con, d, r):
     segs = _row_segments(con, r)
-    schedule = segments_summary(segs) if segs else (
-        f"{r['start_time']}-{r['end_time']}" if r is not None and r["start_time"] else ""
-    )
+    if segs:
+        schedule=segments_summary(segs)
+    elif r is not None:
+        ws=(r["work_start_time"] if "work_start_time" in r.keys() else "") or r["start_time"]
+        we=(r["work_end_time"] if "work_end_time" in r.keys() else "") or r["end_time"]
+        drive=f"кер. {r['start_time']}-{r['end_time']}" if r["start_time"] and r["end_time"] else "кер. —"
+        schedule=f"роб. {ws}-{we}; {drive}" if ws and we else drive
+    else:
+        schedule=""
     return {
         "date": d.strftime("%d.%m.%Y"),
         "weekday": ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],
@@ -1363,7 +1745,7 @@ def export_pdf(driver, year, month, rows, out_path):
         Spacer(1, 7)
     ]
 
-    headers = ["Дата","Вид","Графік","Перерви","Робота","Кер.","Надуроч.","Маршрут","Авто","Примітка"]
+    headers = ["Дата","Вид","Графік","Перерви","Робота (план)","Керування (план)","Надуроч.","Маршрут","Авто","Примітка"]
     data = [[P(x, head_style) for x in headers]]
 
     con = db()
@@ -1442,6 +1824,15 @@ def build_work_analysis_report_items(data):
             "Спеціальні винятки та додаткові правила цього виду перевезень "
             "ще не підключені до автоматичного висновку."
         ))
+
+    items.append(("heading","МОДЕЛЬ ДАНИХ v8.65 — ПЛАН / ФАКТ"))
+    items.append((
+        "note",
+        "Поля «Керування» і «Робота» у цьому звіті зараз є ПЛАНОВИМИ. "
+        "Після переходу на v8.65 старі маршрутні дані одноразово трактуються як план керування, "
+        "а план робочого часу спочатку копіюється з них. Надалі робочий час редагується окремо. "
+        "Майбутні дані тахокарт мають відображатися як ФАКТИЧНЕ керування окремим шаром і не перезаписувати план."
+    ))
 
     items.append(("heading","ПОТРЕБУЄ УВАГИ"))
     if data["warnings"]:
@@ -1615,8 +2006,8 @@ def export_work_analysis_pdf(data, driver_name, out_path):
         Paragraph(
             f"Період: {data['month']:02d}.{data['year']} &nbsp;&nbsp; "
             f"Робочих днів: {data['work_days']} &nbsp;&nbsp; "
-            f"Робота: {escape(minutes_dual(data['total_work_min']))} &nbsp;&nbsp; "
-            f"Керування: {escape(minutes_dual(data['total_drive_min']))} &nbsp;&nbsp; "
+            f"Робота, план: {escape(minutes_dual(data['total_work_min']))} &nbsp;&nbsp; "
+            f"Керування, план: {escape(minutes_dual(data['total_drive_min']))} &nbsp;&nbsp; "
             f"Надурочні: {escape(minutes_dual(data['total_over_min']))}",
             summary_style
         ),
@@ -3182,7 +3573,7 @@ def export_monthly_shift_schedule_xlsx(year, month, out_path, active_only=True):
         headers=["Водій"]
         for d in chunk:
             headers.append(f"{d.day}\n{['Пн','Вт','Ср','Чт','Пт','Сб','Нд'][d.weekday()]}")
-        headers += ["Роб. днів","Робота","Кер."]
+        headers += ["Роб. днів","Робота, план","Керування, план"]
 
         for c,h in enumerate(headers,1):
             cell=ws.cell(4,c,h)
@@ -3260,7 +3651,7 @@ def export_monthly_shift_schedule_xlsx(year, month, out_path, active_only=True):
 
     # Повна редагована деталізація.
     ws=wb.create_sheet("Деталізація")
-    headers=["Водій","Дата","Графік / частини","Перерви","Робота","Кер.","Маршрут","Авто","Примітка"]
+    headers=["Водій","Дата","Графік / частини","Перерви","Робота, план","Керування, план","Маршрут","Авто","Примітка"]
     for c,h in enumerate(headers,1):
         cell=ws.cell(1,c,h)
         cell.font=Font(size=10,bold=True)
@@ -3399,9 +3790,36 @@ def calendar_button(parent, variable):
                       command=lambda: show_calendar_picker(parent, variable))
 
 class App(tk.Tk):
+    def report_callback_exception(self, exc_type, exc_value, exc_tb):
+        """Остання лінія захисту для неперехоплених помилок Tkinter callback-ів."""
+        log_path=_append_error_log("Неперехоплена помилка інтерфейсу",exc_value,exc_tb)
+        if _is_file_access_error(exc_value):
+            filename=getattr(exc_value,"filename",None)
+            if filename:
+                msg=(
+                    f"Не вдалося отримати доступ до файла:\n{filename}\n\n"
+                    "Ймовірно, файл відкритий в іншій програмі або папка недоступна для запису."
+                )
+            else:
+                msg=(
+                    "Не вдалося отримати доступ до файла або папки. "
+                    "Перевірте, чи файл не відкритий в іншій програмі, та права доступу."
+                )
+        else:
+            text=str(exc_value).strip()
+            msg="Сталася неочікувана помилка у вікні програми."
+            if text:
+                msg += f"\n\n{text}"
+        if log_path is not None:
+            msg += f"\n\nТехнічні подробиці збережено у:\n{log_path}"
+        try:
+            messagebox.showerror("Помилка Taxo",msg,parent=self)
+        except Exception:
+            pass
+
     def __init__(self):
         super().__init__()
-        self.title("Taxo v8.64 — Облік водіїв — 48 місяців")
+        self.title("Taxo v8.65 — Облік водіїв — 48 місяців")
         self.geometry("1200x760")
         self.minsize(1050, 650)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
@@ -4193,15 +4611,16 @@ class App(tk.Tk):
             self.tab_work,
             text=(
                 "«Частини зміни» в програмі — наш технічний поділ дня: для кожної частини задаємо "
-                "точний час роботи та «Кер.». Проміжки між частинами використовуються для контролю "
-                "перерв у керуванні 4:30 → 45 хв або 15+30."
+                "окремо ПЛАНОВИЙ час керування і ПЛАНОВИЙ робочий час. На старті v8.65 "
+                "робочий час дорівнює керуванню; далі його можна збільшити/уточнити окремо. "
+                "Проміжки між частинами використовуються для контролю перерв у керуванні 4:30 → 45 хв або 15+30."
             ),
             foreground="gray"
         ).pack(anchor="w",padx=12)
         cols=("id","date","weekday","type","schedule","breaks","work","drive","over","route","vehicle","notes","mode")
         self.work_tree=ttk.Treeview(self.tab_work,columns=cols,show="headings",height=24,selectmode="extended")
-        heads={"id":"ID","date":"Дата","weekday":"День","type":"Вид","schedule":"Графік","breaks":"Перерви","work":"Робота","drive":"Кер.","over":"Надуроч.","route":"Маршрут","vehicle":"Авто","notes":"Примітка","mode":"Режим"}
-        widths={"id":40,"date":85,"weekday":55,"type":120,"schedule":170,"breaks":90,"work":65,"drive":65,"over":75,"route":150,"vehicle":100,"notes":180,"mode":190}
+        heads={"id":"ID","date":"Дата","weekday":"День","type":"Вид","schedule":"Графік","breaks":"Перерви","work":"Робота (план)","drive":"Керування (план)","over":"Надуроч.","route":"Маршрут","vehicle":"Авто","notes":"Примітка","mode":"Режим"}
+        widths={"id":40,"date":85,"weekday":55,"type":120,"schedule":170,"breaks":90,"work":105,"drive":125,"over":75,"route":150,"vehicle":100,"notes":180,"mode":190}
         for c in cols:
             self.work_tree.heading(c,text=heads[c]); self.work_tree.column(c,width=widths[c],anchor="w")
         work_y=ttk.Scrollbar(self.tab_work,orient="vertical",command=self.work_tree.yview)
@@ -4403,22 +4822,23 @@ class App(tk.Tk):
         )
         if not path:
             return
-        try:
-            export_monthly_work_balance_pdf(
-                y,m,path,active_only=bool(self.monthly_balance_active_only.get())
-            )
-            self.monthly_balance_last_pdf=Path(path)
-            messagebox.showinfo(
-                "Місячний табель",
-                f"PDF створено:\n{path}",
-                parent=self.monthly_balance_win
-            )
-        except Exception as e:
-            messagebox.showerror(
-                "Помилка PDF",
-                str(e),
-                parent=self.monthly_balance_win
-            )
+        actual=write_output_file(
+            lambda out: export_monthly_work_balance_pdf(
+                y,m,out,active_only=bool(self.monthly_balance_active_only.get())
+            ),
+            path,
+            parent=self.monthly_balance_win,
+            kind="PDF місячного табеля",
+            error_title="Помилка PDF"
+        )
+        if actual is None:
+            return
+        self.monthly_balance_last_pdf=actual
+        messagebox.showinfo(
+            "Місячний табель",
+            f"PDF створено:\n{actual}",
+            parent=self.monthly_balance_win
+        )
 
     def open_monthly_work_balance_pdf(self):
         path=getattr(self,"monthly_balance_last_pdf",None)
@@ -4426,16 +4846,19 @@ class App(tk.Tk):
             y=int(self.monthly_balance_year.get())
             m=int(self.monthly_balance_month.get())
             path=OUTPUT_DIR/f"Табель_робочого_часу_{y}_{m:02d}.pdf"
-            try:
-                export_monthly_work_balance_pdf(
-                    y,m,path,active_only=bool(self.monthly_balance_active_only.get())
-                )
-                self.monthly_balance_last_pdf=Path(path)
-            except Exception as e:
-                messagebox.showerror(
-                    "Помилка PDF",str(e),parent=self.monthly_balance_win
-                )
+            actual=write_output_file(
+                lambda out: export_monthly_work_balance_pdf(
+                    y,m,out,active_only=bool(self.monthly_balance_active_only.get())
+                ),
+                path,
+                parent=self.monthly_balance_win,
+                kind="PDF місячного табеля",
+                error_title="Помилка PDF"
+            )
+            if actual is None:
                 return
+            path=actual
+            self.monthly_balance_last_pdf=actual
         try:
             if os.name=="nt":
                 os.startfile(str(path))
@@ -4459,18 +4882,28 @@ class App(tk.Tk):
         )
         if not path:
             return
+        actual=write_output_file(
+            lambda out: export_monthly_work_balance_xlsx(
+                y,m,out,active_only=bool(self.monthly_balance_active_only.get())
+            ),
+            path,
+            parent=self.monthly_balance_win,
+            kind="Excel-файл місячного табеля",
+            error_title="Помилка Excel"
+        )
+        if actual is None:
+            return
+        self.monthly_balance_last_xlsx=actual
         try:
-            export_monthly_work_balance_xlsx(
-                y,m,path,active_only=bool(self.monthly_balance_active_only.get())
-            )
-            self.monthly_balance_last_xlsx=Path(path)
             if os.name=="nt":
-                os.startfile(str(path))
+                os.startfile(str(actual))
             else:
-                open_external(path)
-        except Exception as e:
-            messagebox.showerror(
-                "Помилка Excel",str(e),parent=self.monthly_balance_win
+                subprocess.Popen(["xdg-open",str(actual)])
+        except Exception as exc:
+            messagebox.showwarning(
+                "Файл створено",
+                f"Excel-файл створено, але не вдалося відкрити його автоматично:\n{actual}\n\n{exc}",
+                parent=self.monthly_balance_win
             )
 
     def build_schedule(self):
@@ -4684,8 +5117,8 @@ class App(tk.Tk):
         self.monthly_shift_summary_var.set(
             f"Водіїв: {len(data['drivers'])}    "
             f"Робочих днів сумарно: {total_work_days}    "
-            f"Робота: {minutes_hhmm(total_work_min)}    "
-            f"Керування: {minutes_hhmm(total_drive_min)}"
+            f"Робота, план: {minutes_hhmm(total_work_min)}    "
+            f"Керування, план: {minutes_hhmm(total_drive_min)}"
         )
 
     def save_monthly_shift_schedule_xlsx(self):
@@ -4701,19 +5134,27 @@ class App(tk.Tk):
         )
         if not path:
             return
+        actual=write_output_file(
+            lambda out: export_monthly_shift_schedule_xlsx(
+                y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+            ),
+            path,
+            parent=self.monthly_shift_win,
+            kind="Excel-файл графіка змінності",
+            error_title="Помилка Excel"
+        )
+        if actual is None:
+            return
+        self.monthly_shift_last_xlsx=actual
         try:
-            export_monthly_shift_schedule_xlsx(
-                y,m,path,active_only=bool(self.monthly_shift_active_only.get())
-            )
-            self.monthly_shift_last_xlsx=Path(path)
             if os.name=="nt":
-                os.startfile(str(path))
+                os.startfile(str(actual))
             else:
-                open_external(path)
-        except Exception as e:
-            messagebox.showerror(
-                "Помилка Excel",
-                str(e),
+                subprocess.Popen(["xdg-open",str(actual)])
+        except Exception as exc:
+            messagebox.showwarning(
+                "Файл створено",
+                f"Excel-файл створено, але не вдалося відкрити його автоматично:\n{actual}\n\n{exc}",
                 parent=self.monthly_shift_win
             )
 
@@ -4730,22 +5171,23 @@ class App(tk.Tk):
         )
         if not path:
             return
-        try:
-            export_monthly_shift_detail_pdf(
-                y,m,path,active_only=bool(self.monthly_shift_active_only.get())
-            )
-            self.monthly_shift_last_detail_pdf=Path(path)
-            messagebox.showinfo(
-                "Деталізація графіка",
-                f"PDF деталізації створено:\n{path}",
-                parent=self.monthly_shift_win
-            )
-        except Exception as e:
-            messagebox.showerror(
-                "Помилка PDF деталізації",
-                str(e),
-                parent=self.monthly_shift_win
-            )
+        actual=write_output_file(
+            lambda out: export_monthly_shift_detail_pdf(
+                y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+            ),
+            path,
+            parent=self.monthly_shift_win,
+            kind="PDF деталізації графіка змінності",
+            error_title="Помилка PDF деталізації"
+        )
+        if actual is None:
+            return
+        self.monthly_shift_last_detail_pdf=actual
+        messagebox.showinfo(
+            "Деталізація графіка",
+            f"PDF деталізації створено:\n{actual}",
+            parent=self.monthly_shift_win
+        )
 
     def _monthly_shift_default_pdf(self):
         y=int(self.monthly_shift_year.get())
@@ -4765,14 +5207,19 @@ class App(tk.Tk):
         )
         if not path:
             return
-        try:
-            export_monthly_shift_schedule_pdf(
-                y,m,path,active_only=bool(self.monthly_shift_active_only.get())
-            )
-            self.monthly_shift_last_pdf=Path(path)
-            messagebox.showinfo("Графік змінності",f"PDF створено:\n{path}",parent=self.monthly_shift_win)
-        except Exception as e:
-            messagebox.showerror("Помилка PDF",str(e),parent=self.monthly_shift_win)
+        actual=write_output_file(
+            lambda out: export_monthly_shift_schedule_pdf(
+                y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+            ),
+            path,
+            parent=self.monthly_shift_win,
+            kind="PDF графіка змінності",
+            error_title="Помилка PDF"
+        )
+        if actual is None:
+            return
+        self.monthly_shift_last_pdf=actual
+        messagebox.showinfo("Графік змінності",f"PDF створено:\n{actual}",parent=self.monthly_shift_win)
 
     def open_monthly_shift_schedule_pdf(self):
         y=int(self.monthly_shift_year.get())
@@ -4781,10 +5228,19 @@ class App(tk.Tk):
         path=Path(path)
         try:
             if not path.exists():
-                export_monthly_shift_schedule_pdf(
-                    y,m,path,active_only=bool(self.monthly_shift_active_only.get())
+                actual=write_output_file(
+                    lambda out: export_monthly_shift_schedule_pdf(
+                        y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+                    ),
+                    path,
+                    parent=self.monthly_shift_win,
+                    kind="PDF графіка змінності",
+                    error_title="Помилка PDF"
                 )
-            self.monthly_shift_last_pdf=path
+                if actual is None:
+                    return
+                path=actual
+            self.monthly_shift_last_pdf=Path(path)
             if os.name=="nt":
                 os.startfile(str(path))
             else:
@@ -4861,23 +5317,49 @@ class App(tk.Tk):
             c.create_text(12,y+row_h/2,text=full,anchor="w",font=("TkDefaultFont",9,"bold"))
             wl=by_driver.get(dr["id"])
             segs=seg_by.get(wl["id"],[]) if wl else []
-            if not segs and wl and wl["start_time"] and wl["end_time"]:
-                segs=[{"start_time":wl["start_time"],"end_time":wl["end_time"],"activity_type":wl["day_type"],"work_hours":wl["work_hours"],"driving_hours":wl["driving_hours"],"note":wl["notes"]}]
+            if not segs and wl and ((wl["work_start_time"] or "") or (wl["start_time"] or "")):
+                segs=[{
+                    "start_time":wl["start_time"],"end_time":wl["end_time"],
+                    "work_start_time":wl["work_start_time"],"work_end_time":wl["work_end_time"],
+                    "activity_type":wl["day_type"],"work_hours":wl["work_hours"],
+                    "driving_hours":wl["driving_hours"],"note":wl["notes"]
+                }]
             for seg in segs:
-                try: sm=time_to_minutes(seg["start_time"]); em=time_to_minutes(seg["end_time"])
-                except Exception: continue
-                if em<=sm: em+=1440
-                # For a day view, show only the part intersecting 00:00–24:00.
-                for base_sm,base_em in ((sm,em),(sm-1440,em-1440)):
-                    vis_s=max(0,base_sm); vis_e=min(1440,base_em)
-                    if vis_e<=vis_s: continue
-                    x1=left+vis_s/60*hour_w; x2=left+vis_e/60*hour_w
-                    group=self._schedule_activity_group(seg["activity_type"])
-                    c.create_rectangle(x1,y+9,x2,y+row_h-9,fill=self._schedule_fill(group),outline="#777")
-                    label=f"{seg['start_time']}–{seg['end_time']} {group}"
-                    if x2-x1>95: c.create_text((x1+x2)/2,y+row_h/2,text=label,anchor="center",font=("TkDefaultFont",8))
-                    seg_id = seg["id"] if "id" in seg.keys() else None
-                    self.schedule_hitboxes.append((x1,y+9,x2,y+row_h-9,dr["id"],d,seg_id,wl["id"] if wl else None))
+                seg_id = seg["id"] if "id" in seg.keys() else None
+                ws,we=_segment_work_pair(seg)
+                bands=[("Робота",ws,we,y+6,y+25)]
+                ds=(seg["start_time"] or "").strip(); de=(seg["end_time"] or "").strip()
+                if ds and de:
+                    bands.append(("Керування",ds,de,y+29,y+48))
+                for group,a,b,y1,y2 in bands:
+                    if not a or not b: continue
+                    try: sm=time_to_minutes(a); em=time_to_minutes(b)
+                    except Exception: continue
+                    if em<=sm: em+=1440
+                    for base_sm,base_em in ((sm,em),(sm-1440,em-1440)):
+                        vis_s=max(0,base_sm); vis_e=min(1440,base_em)
+                        if vis_e<=vis_s: continue
+                        x1=left+vis_s/60*hour_w; x2=left+vis_e/60*hour_w
+                        c.create_rectangle(x1,y1,x2,y2,fill=self._schedule_fill(group),outline="#777")
+                        band_w=x2-x1
+                        # Підпис не можна просто ховати для коротких інтервалів:
+                        # саме після ручного редагування частини часто стають коротшими
+                        # за старий поріг 95 px, через що здавалося, що дані не збереглись.
+                        # Вибираємо компактніший текст, але підписуємо КОЖНУ смугу.
+                        if band_w>=125:
+                            label=f"{a}–{b} {group}"
+                            font=("TkDefaultFont",8)
+                        elif band_w>=72:
+                            label=f"{a}–{b}"
+                            font=("TkDefaultFont",8)
+                        elif band_w>=38:
+                            label="Роб." if group=="Робота" else ("Кер." if group=="Керування" else group[:4]+".")
+                            font=("TkDefaultFont",8)
+                        else:
+                            label="Р" if group=="Робота" else ("К" if group=="Керування" else "•")
+                            font=("TkDefaultFont",8,"bold")
+                        c.create_text((x1+x2)/2,(y1+y2)/2,text=label,anchor="center",font=font)
+                        self.schedule_hitboxes.append((x1,y1,x2,y2,dr["id"],d,seg_id,wl["id"] if wl else None))
         c.create_line(0,top+len(drivers)*row_h,width,top+len(drivers)*row_h,fill="#999")
 
     def _schedule_hit(self,event):
@@ -4956,7 +5438,15 @@ class App(tk.Tk):
         for d in month_dates(y,m):
             r=existing.get(d.isoformat())
             segs=self.get_work_segments(r["id"]) if r else []
-            schedule=segments_summary(segs) if segs else (f"{r['start_time']}-{r['end_time']}" if r and r["start_time"] else "")
+            if segs:
+                schedule=segments_summary(segs)
+            elif r:
+                ws=(r["work_start_time"] if "work_start_time" in r.keys() else "") or r["start_time"]
+                we=(r["work_end_time"] if "work_end_time" in r.keys() else "") or r["end_time"]
+                drive=(f"кер. {r['start_time']}-{r['end_time']}" if r["start_time"] and r["end_time"] else "кер. —")
+                schedule=(f"роб. {ws}-{we}; {drive}" if ws and we else drive)
+            else:
+                schedule=""
             breaks=gaps_summary(segs)
             vals=(r["id"] if r else "",d.strftime("%d.%m.%Y"),["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],r["day_type"] if r else ("Вихідний" if d.weekday()>=5 else "Робота"),schedule,breaks,
                   hours_value_hhmm(r["work_hours"]) if r else "0:00",
@@ -4978,7 +5468,7 @@ class App(tk.Tk):
         vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall()
         con.close()
         old_segments=self.get_work_segments(work_id) if work_id else []
-        win=tk.Toplevel(self); win.title("Запис робочого часу"); win.geometry("930x600"); win.transient(self); win.grab_set()
+        win=tk.Toplevel(self); win.title("Запис робочого часу"); win.geometry("1180x650"); win.transient(self); win.grab_set()
         top=ttk.Frame(win); top.pack(fill="x",padx=10,pady=8)
         day_var=tk.StringVar(value=date_text); type_var=tk.StringVar(value=(existing["day_type"] if existing else vals[3]))
         existing_route_id=(existing["route_id"] if existing and "route_id" in existing.keys() else None)
@@ -5033,7 +5523,7 @@ class App(tk.Tk):
         ).grid(row=2,column=1,columnspan=2,padx=4,sticky="w")
         ttk.Label(
             top,
-            text="ТАХО: весь час поза інтервалами маршруту контролюється бланками. Без тахо: лише 8 год у табелі.",
+            text="Маршрут/шаблон = ПЛАН. Тахокарта надалі дає окремий ФАКТ керування і не перезаписує цей план. Без тахо: лише 8 год у табелі.",
             foreground="gray"
         ).grid(row=2,column=3,columnspan=4,padx=(8,4),sticky="w")
 
@@ -5046,75 +5536,156 @@ class App(tk.Tk):
         ttk.Label(apply_frame,text="Шаблон маршруту:").pack(side="left")
         tcb=ttk.Combobox(apply_frame,textvariable=template_var,values=template_names,state="readonly",width=34); tcb.pack(side="left",padx=6)
 
-        cols=("no","start","end","work","drive","activity","note")
+        cols=("no","work_start","work_end","drive_start","drive_end","work","drive","activity","note")
         tree=ttk.Treeview(win,columns=cols,show="headings",height=11)
-        heads={"no":"№","start":"Початок","end":"Кінець","work":"Робота, год","drive":"Керування, год","activity":"Тип","note":"Примітка"}
-        widths={"no":40,"start":90,"end":90,"work":100,"drive":110,"activity":150,"note":280}
+        heads={
+            "no":"№",
+            "work_start":"Робота від", "work_end":"Робота до",
+            "drive_start":"Керування від", "drive_end":"Керування до",
+            "work":"Робота", "drive":"Керування",
+            "activity":"Тип", "note":"Примітка"
+        }
+        widths={"no":36,"work_start":82,"work_end":82,"drive_start":92,"drive_end":92,"work":78,"drive":82,"activity":135,"note":220}
         for c in cols: tree.heading(c,text=heads[c]); tree.column(c,width=widths[c],anchor="w")
         tree.pack(fill="both",expand=True,padx=10,pady=5)
         summary_var=tk.StringVar(value="")
         ttk.Label(win,textvariable=summary_var,foreground="gray").pack(anchor="w",padx=12,pady=3)
 
         seg_data=[]
+        def _value(r,key,default=""):
+            try:
+                return r[key] if key in r.keys() else default
+            except Exception:
+                return r.get(key,default) if isinstance(r,dict) else default
+
         def load_segments(items):
             seg_data.clear()
             for r in items:
-                seg_data.append({"start_time":r["start_time"],"end_time":r["end_time"],"work_hours":r["work_hours"],"driving_hours":r["driving_hours"],"activity_type":r["activity_type"],"note":r["note"]})
+                ds=(_value(r,"start_time","") or "").strip()
+                de=(_value(r,"end_time","") or "").strip()
+                ws=(_value(r,"work_start_time","") or "").strip() or ds
+                we=(_value(r,"work_end_time","") or "").strip() or de
+                try: wh=minutes_to_db_hours(duration_minutes(ws,we)) if ws and we else float(_value(r,"work_hours",0) or 0)
+                except Exception: wh=float(_value(r,"work_hours",0) or 0)
+                try: dh=minutes_to_db_hours(duration_minutes(ds,de)) if ds and de else 0.0
+                except Exception: dh=float(_value(r,"driving_hours",0) or 0)
+                seg_data.append({
+                    "start_time":ds,"end_time":de,
+                    "work_start_time":ws,"work_end_time":we,
+                    "work_hours":wh,"driving_hours":dh,
+                    "activity_type":_value(r,"activity_type","Робота") or "Робота",
+                    "note":_value(r,"note","") or ""
+                })
             redraw()
+
         def redraw():
             for x in tree.get_children(): tree.delete(x)
             total_min=0; drive_min=0
             for i,r in enumerate(seg_data,1):
-                tree.insert("","end",values=(i,r["start_time"],r["end_time"],
+                tree.insert("","end",values=(
+                    i,r.get("work_start_time",""),r.get("work_end_time",""),
+                    r.get("start_time",""),r.get("end_time",""),
                     hours_value_hhmm(r["work_hours"]),hours_value_hhmm(r["driving_hours"]),
-                    r["activity_type"],r["note"]))
+                    r["activity_type"],r["note"]
+                ))
                 total_min += hours_value_to_minutes(r["work_hours"])
                 drive_min += hours_value_to_minutes(r["driving_hours"])
-            br=gaps_summary(seg_data)
+            br=gaps_summary(seg_data,pair="work")
             summary_var.set(
-                f"Всього роботи: {minutes_dual(total_min)} | "
-                f"керування: {minutes_dual(drive_min)} | "
-                f"перерви між частинами: {br or '—'}"
+                f"План роботи: {minutes_dual(total_min)} | "
+                f"план керування: {minutes_dual(drive_min)} | "
+                f"перерви між робочими частинами: {br or '—'}"
             )
+
         def segment_form(item=None, index=None):
-            sw=tk.Toplevel(win); sw.title("Частина робочої зміни"); sw.geometry("520x390"); sw.transient(win); sw.grab_set()
-            vals=item or {"start_time":"08:00","end_time":"17:00","work_hours":"8","driving_hours":"0","activity_type":"Робота","note":""}
+            sw=tk.Toplevel(win); sw.title("Частина робочої зміни"); sw.geometry("570x455"); sw.transient(win); sw.grab_set()
+            vals=item or {
+                "work_start_time":"08:00","work_end_time":"09:00",
+                "start_time":"08:00","end_time":"09:00",
+                "activity_type":"Робота","note":""
+            }
             vv={}
-            for k in ["start_time","end_time","work_hours","driving_hours","activity_type","note"]:
-                val=vals.get(k,"")
-                if k in ("work_hours","driving_hours"):
-                    val=hours_value_hhmm(val)
-                vv[k]=tk.StringVar(value=str(val))
-            fields=[("Початок (ГГ:ХХ)","start_time"),("Кінець (ГГ:ХХ)","end_time"),
-                    ("Робота (ГГ:ХХ або десяткові)","work_hours"),
-                    ("Керування (ГГ:ХХ або десяткові)","driving_hours"),
-                    ("Тип роботи","activity_type"),("Примітка","note")]
+            defaults={
+                "work_start_time":vals.get("work_start_time") or vals.get("start_time", ""),
+                "work_end_time":vals.get("work_end_time") or vals.get("end_time", ""),
+                "start_time":vals.get("start_time", ""), "end_time":vals.get("end_time", ""),
+                "activity_type":vals.get("activity_type","Робота"), "note":vals.get("note","")
+            }
+            for k,val in defaults.items(): vv[k]=tk.StringVar(value=str(val or ""))
+
+            fields=[
+                ("Робочий час — початок (ГГ:ХХ)","work_start_time"),
+                ("Робочий час — кінець (ГГ:ХХ)","work_end_time"),
+                ("Керування — початок (ГГ:ХХ)","start_time"),
+                ("Керування — кінець (ГГ:ХХ)","end_time"),
+                ("Тип роботи","activity_type"),("Примітка","note")
+            ]
             for i,(lbl,key) in enumerate(fields):
                 ttk.Label(sw,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=7)
-                w=ttk.Combobox(sw,textvariable=vv[key],values=DAY_TYPES,state="readonly",width=34) if key=="activity_type" else ttk.Entry(sw,textvariable=vv[key],width=36)
-                w.grid(row=i,column=1,padx=10,pady=7)
-            def calc(_=None):
-                try: vv["work_hours"].set(minutes_hhmm(duration_minutes(vv["start_time"].get(),vv["end_time"].get())))
-                except Exception: pass
-            ttk.Button(sw,text="Розрахувати години з часу",command=calc).grid(row=6,column=1,sticky="w",padx=10,pady=6)
-            def save_seg():
+                w=ttk.Combobox(sw,textvariable=vv[key],values=DAY_TYPES,state="readonly",width=36) if key=="activity_type" else ttk.Entry(sw,textvariable=vv[key],width=38)
+                w.grid(row=i,column=1,padx=10,pady=7,sticky="ew")
+
+            duration_var=tk.StringVar(value="")
+            ttk.Label(sw,textvariable=duration_var,foreground="gray").grid(row=6,column=0,columnspan=2,sticky="w",padx=10,pady=(3,5))
+            def refresh_durations(*_):
                 try:
-                    time_to_minutes(vv["start_time"].get()); time_to_minutes(vv["end_time"].get())
-                    wh_min=hours_value_to_minutes(vv["work_hours"].get())
-                    dh_min=hours_value_to_minutes(vv["driving_hours"].get())
+                    wm=duration_minutes(vv["work_start_time"].get(),vv["work_end_time"].get())
+                    wtxt=minutes_hhmm(wm)
+                except Exception: wtxt="—"
+                ds=vv["start_time"].get().strip(); de=vv["end_time"].get().strip()
+                if not ds and not de: dtxt="0:00"
+                else:
+                    try: dtxt=minutes_hhmm(duration_minutes(ds,de))
+                    except Exception: dtxt="—"
+                duration_var.set(f"Похідні тривалості: робота {wtxt}; керування {dtxt}")
+            for v in (vv["work_start_time"],vv["work_end_time"],vv["start_time"],vv["end_time"]):
+                v.trace_add("write",refresh_durations)
+            refresh_durations()
+
+            def copy_drive_to_work():
+                vv["work_start_time"].set(vv["start_time"].get())
+                vv["work_end_time"].set(vv["end_time"].get())
+            def copy_work_to_drive():
+                vv["start_time"].set(vv["work_start_time"].get())
+                vv["end_time"].set(vv["work_end_time"].get())
+            calcbar=ttk.Frame(sw); calcbar.grid(row=7,column=0,columnspan=2,sticky="w",padx=10,pady=5)
+            ttk.Button(calcbar,text="Керування → робочий інтервал",command=copy_drive_to_work).pack(side="left")
+            ttk.Button(calcbar,text="Робочий інтервал → керування",command=copy_work_to_drive).pack(side="left",padx=(6,0))
+
+            def save_seg():
+                ws=vv["work_start_time"].get().strip(); we=vv["work_end_time"].get().strip()
+                ds=vv["start_time"].get().strip(); de=vv["end_time"].get().strip()
+                try:
+                    if not ws or not we:
+                        raise ValueError
+                    wh_min=duration_minutes(ws,we)
+                    if bool(ds) != bool(de):
+                        raise ValueError
+                    dh_min=duration_minutes(ds,de) if ds and de else 0
                 except Exception:
                     messagebox.showerror(
                         "Помилка",
-                        "Перевірте час і тривалість. Можна вводити 2:30 або 2.5.",
+                        "Для робочого часу вкажіть початок і кінець. Для керування — або обидва поля, або обидва порожні.",
                         parent=sw
                     ); return
-                data={k:vv[k].get().strip() for k in vv}
-                data["work_hours"]=minutes_to_db_hours(wh_min)
-                data["driving_hours"]=minutes_to_db_hours(dh_min)
+                if ds and not interval_within(ds,de,ws,we):
+                    messagebox.showerror(
+                        "Помилка",
+                        "Інтервал керування повинен повністю міститися в робочому інтервалі цієї частини.",
+                        parent=sw
+                    ); return
+                data={
+                    "work_start_time":ws,"work_end_time":we,
+                    "start_time":ds,"end_time":de,
+                    "work_hours":minutes_to_db_hours(wh_min),
+                    "driving_hours":minutes_to_db_hours(dh_min),
+                    "activity_type":vv["activity_type"].get().strip(),
+                    "note":vv["note"].get().strip()
+                }
                 if index is None: seg_data.append(data)
                 else: seg_data[index]=data
                 redraw(); sw.destroy()
-            ttk.Button(sw,text="Зберегти",command=save_seg).grid(row=7,column=1,sticky="e",padx=10,pady=12)
+            ttk.Button(sw,text="Зберегти",command=save_seg).grid(row=8,column=1,sticky="e",padx=10,pady=12)
         def selected_seg_index():
             s=tree.selection()
             return int(tree.item(s[0],"values")[0])-1 if s else None
@@ -5148,7 +5719,7 @@ class App(tk.Tk):
             shift_var.set("Безперервна")
             seg_data.clear()
             redraw()
-            summary_var.set("Без тахографа: стандартний робочий день 8:00. Час маршруту та керування не деталізуються.")
+            summary_var.set("Без тахографа: стандартний робочий день 8:00. План керування не задається; це саме робочий час.")
 
         ttk.Button(apply_frame,text="Застосувати шаблон",command=apply_template).pack(side="left")
         ttk.Button(
@@ -5156,8 +5727,13 @@ class App(tk.Tk):
         ).pack(side="left",padx=(10,3))
         if old_segments:
             load_segments(old_segments)
-        elif existing and existing["start_time"]:
-            load_segments([{"start_time":existing["start_time"],"end_time":existing["end_time"],"work_hours":existing["work_hours"],"driving_hours":existing["driving_hours"],"activity_type":existing["day_type"],"note":existing["notes"]}])
+        elif existing and ((existing["start_time"] or "") or (existing["work_start_time"] or "")):
+            load_segments([{
+                "start_time":existing["start_time"],"end_time":existing["end_time"],
+                "work_start_time":existing["work_start_time"],"work_end_time":existing["work_end_time"],
+                "work_hours":existing["work_hours"],"driving_hours":existing["driving_hours"],
+                "activity_type":existing["day_type"],"note":existing["notes"]
+            }])
         else:
             redraw()
         def save():
@@ -5166,9 +5742,15 @@ class App(tk.Tk):
             if seg_data:
                 try:
                     for r in seg_data:
-                        time_to_minutes(r["start_time"]); time_to_minutes(r["end_time"])
-                        hours_value_to_minutes(r["work_hours"]); hours_value_to_minutes(r["driving_hours"])
-                except Exception: messagebox.showerror("Помилка","Перевірте частини зміни.",parent=win); return
+                        ws=r.get("work_start_time",""); we=r.get("work_end_time","")
+                        ds=r.get("start_time",""); de=r.get("end_time","")
+                        if not ws or not we: raise ValueError
+                        r["work_hours"]=minutes_to_db_hours(duration_minutes(ws,we))
+                        if bool(ds) != bool(de): raise ValueError
+                        r["driving_hours"]=minutes_to_db_hours(duration_minutes(ds,de)) if ds and de else 0.0
+                        if ds and not interval_within(ds,de,ws,we): raise ValueError
+                except Exception:
+                    messagebox.showerror("Помилка","Перевірте пари початок/кінець для роботи і керування.",parent=win); return
             mode_code=WORK_MODE_BY_LABEL.get(mode_var.get(),WORK_MODE_MANUAL)
             if mode_code==WORK_MODE_NO_TACHO:
                 # Без тахографа — не вигадуємо години маршруту.
@@ -5178,14 +5760,25 @@ class App(tk.Tk):
                 total_drive_min=0
                 start=""
                 end=""
+                work_start=""
+                work_end=""
                 type_var.set("Робота")
                 template_id_var.set(0)
                 shift_var.set("Безперервна")
             else:
                 total_work_min=sum(hours_value_to_minutes(r["work_hours"]) for r in seg_data)
                 total_drive_min=sum(hours_value_to_minutes(r["driving_hours"]) for r in seg_data)
-                start=seg_data[0]["start_time"] if seg_data else ""
-                end=seg_data[-1]["end_time"] if seg_data else ""
+                if total_drive_min > total_work_min:
+                    messagebox.showerror(
+                        "Помилка",
+                        "Сумарний плановий час керування не може перевищувати плановий робочий час.",
+                        parent=win
+                    ); return
+                drive_parts=[r for r in seg_data if r.get("start_time") and r.get("end_time")]
+                start=drive_parts[0]["start_time"] if drive_parts else ""
+                end=drive_parts[-1]["end_time"] if drive_parts else ""
+                work_start=seg_data[0]["work_start_time"] if seg_data else ""
+                work_end=seg_data[-1]["work_end_time"] if seg_data else ""
 
             total_work=minutes_to_db_hours(total_work_min)
             total_drive=minutes_to_db_hours(total_drive_min)
@@ -5204,15 +5797,17 @@ class App(tk.Tk):
             vehicle_text=vehicle_text if mode_code!=WORK_MODE_NO_TACHO else vehicle_text
 
             con.execute("""INSERT INTO worklog(
-                driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,
+                driver_id,work_date,day_type,start_time,end_time,work_start_time,work_end_time,work_hours,driving_hours,
                 overtime_hours,vehicle,notes,route_name,route_id,template_id,shift_type,
                 vehicle_id,accounting_mode
             )
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(driver_id,work_date) DO UPDATE SET
                     day_type=excluded.day_type,
                     start_time=excluded.start_time,
                     end_time=excluded.end_time,
+                    work_start_time=excluded.work_start_time,
+                    work_end_time=excluded.work_end_time,
                     work_hours=excluded.work_hours,
                     driving_hours=excluded.driving_hours,
                     overtime_hours=excluded.overtime_hours,
@@ -5225,7 +5820,7 @@ class App(tk.Tk):
                     vehicle_id=excluded.vehicle_id,
                     accounting_mode=excluded.accounting_mode""",
                 (
-                    self.driver_id,work_date,type_var.get(),start,end,total_work,total_drive,
+                    self.driver_id,work_date,type_var.get(),start,end,work_start,work_end,total_work,total_drive,
                     overtime_value,vehicle_text,notes_var.get().strip(),route_text,
                     route_id_value,template_id_var.get() or None,shift_var.get(),
                     vehicle_id,mode_code
@@ -5233,7 +5828,8 @@ class App(tk.Tk):
             wl=con.execute("SELECT id FROM worklog WHERE driver_id=? AND work_date=?",(self.driver_id,work_date)).fetchone()[0]
             con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wl,))
             for i,r in enumerate(seg_data,1):
-                con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?)",(wl,i,r["start_time"],r["end_time"],float(r["work_hours"]),float(r["driving_hours"]),r["activity_type"],r["note"]))
+                con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_start_time,work_end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                            (wl,i,r["start_time"],r["end_time"],r["work_start_time"],r["work_end_time"],float(r["work_hours"]),float(r["driving_hours"]),r["activity_type"],r["note"]))
             con.commit(); con.close(); win.destroy(); self.refresh_month(); self.refresh_schedule()
         ttk.Button(win,text="Зберегти запис",command=save).pack(side="right",padx=12,pady=10)
 
@@ -5254,6 +5850,8 @@ class App(tk.Tk):
             segs=self.get_work_segments(wid)
             self.work_clipboard={
                 "day_type":r["day_type"],"start_time":r["start_time"],"end_time":r["end_time"],
+                "work_start_time":r["work_start_time"] if "work_start_time" in r.keys() else r["start_time"],
+                "work_end_time":r["work_end_time"] if "work_end_time" in r.keys() else r["end_time"],
                 "work_hours":r["work_hours"],"driving_hours":r["driving_hours"],
                 "overtime_hours":r["overtime_hours"],"vehicle":r["vehicle"],
                 "vehicle_id":r["vehicle_id"] if "vehicle_id" in r.keys() else None,
@@ -5283,13 +5881,14 @@ class App(tk.Tk):
             try: wd=datetime.strptime(date_text,"%d.%m.%Y").strftime("%Y-%m-%d")
             except ValueError: continue
             con.execute("""INSERT INTO worklog(
-                driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,
+                driver_id,work_date,day_type,start_time,end_time,work_start_time,work_end_time,work_hours,driving_hours,
                 overtime_hours,vehicle,notes,route_name,route_id,template_id,shift_type,
                 vehicle_id,accounting_mode
             )
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(driver_id,work_date) DO UPDATE SET
                     day_type=excluded.day_type,start_time=excluded.start_time,end_time=excluded.end_time,
+                    work_start_time=excluded.work_start_time,work_end_time=excluded.work_end_time,
                     work_hours=excluded.work_hours,driving_hours=excluded.driving_hours,
                     overtime_hours=excluded.overtime_hours,vehicle=excluded.vehicle,
                     notes=excluded.notes,route_name=excluded.route_name,route_id=excluded.route_id,
@@ -5297,7 +5896,8 @@ class App(tk.Tk):
                     vehicle_id=excluded.vehicle_id,accounting_mode=excluded.accounting_mode""",
                 (
                     self.driver_id,wd,clip.get("day_type","Робота"),clip.get("start_time",""),
-                    clip.get("end_time",""),clip.get("work_hours",0),clip.get("driving_hours",0),
+                    clip.get("end_time",""),clip.get("work_start_time",clip.get("start_time","")),
+                    clip.get("work_end_time",clip.get("end_time","")),clip.get("work_hours",0),clip.get("driving_hours",0),
                     clip.get("overtime_hours",0),clip.get("vehicle",""),clip.get("notes",""),
                     clip.get("route_name",""),clip.get("route_id"),clip.get("template_id"),
                     clip.get("shift_type","Безперервна"),clip.get("vehicle_id"),
@@ -5306,7 +5906,8 @@ class App(tk.Tk):
             wid=con.execute("SELECT id FROM worklog WHERE driver_id=? AND work_date=?",(self.driver_id,wd)).fetchone()[0]
             con.execute("DELETE FROM work_segments WHERE worklog_id=?",(wid,))
             for i,r in enumerate(clip.get("segments",[]),1):
-                con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?)",(wid,i,r["start_time"],r["end_time"],r["work_hours"],r["driving_hours"],r["activity_type"],r["note"]))
+                con.execute("INSERT INTO work_segments(worklog_id,segment_no,start_time,end_time,work_start_time,work_end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                            (wid,i,r.get("start_time",""),r.get("end_time",""),r.get("work_start_time",r.get("start_time","")),r.get("work_end_time",r.get("end_time","")),r.get("work_hours",0),r.get("driving_hours",0),r.get("activity_type","Робота"),r.get("note","")))
         con.commit(); con.close(); self.refresh_month()
 
     def save_work_row(self): self.edit_work_row()
@@ -5382,14 +5983,24 @@ class App(tk.Tk):
         safe_last=(d["last_name"] or "Водій").strip()
         name=f"Табель_{safe_last}_{y}_{m:02d}"
         path=OUTPUT_DIR/(name+(".xlsx" if kind=="xlsx" else ".pdf"))
-        try:
-            if kind=="xlsx":
-                export_xlsx(d,y,m,rows,path)
-            else:
-                export_pdf(d,y,m,rows,path)
-            messagebox.showinfo("Готово",f"Файл створено:\n{path}")
-        except Exception as e:
-            messagebox.showerror("Помилка",str(e))
+        if kind=="xlsx":
+            actual=write_output_file(
+                lambda out: export_xlsx(d,y,m,rows,out),
+                path,
+                parent=self,
+                kind="Excel-файл табеля",
+                error_title="Помилка Excel"
+            )
+        else:
+            actual=write_output_file(
+                lambda out: export_pdf(d,y,m,rows,out),
+                path,
+                parent=self,
+                kind="PDF табеля",
+                error_title="Помилка PDF"
+            )
+        if actual is not None:
+            messagebox.showinfo("Готово",f"Файл створено:\n{actual}")
 
     def _analysis_segments_map(self, con, rows):
         ids=[r["id"] for r in rows if r and r["id"]]
@@ -5405,15 +6016,16 @@ class App(tk.Tk):
         return result
 
     def _row_start_end_dt(self, row, segments):
+        """Початок/кінець саме РОБОЧОГО дня для контролю відпочинку."""
         if row is None:
             return None, None
         d=datetime.strptime(row["work_date"], "%Y-%m-%d").date()
         pieces=[]
         if segments:
             for s in segments:
+                ws,we=_segment_work_pair(s)
                 try:
-                    sm=time_to_minutes(s["start_time"])
-                    em=time_to_minutes(s["end_time"])
+                    sm=time_to_minutes(ws); em=time_to_minutes(we)
                 except Exception:
                     continue
                 st=datetime.combine(d, datetime.min.time()) + timedelta(minutes=sm)
@@ -5421,16 +6033,19 @@ class App(tk.Tk):
                 if em <= sm:
                     en += timedelta(days=1)
                 pieces.append((st,en))
-        elif row["start_time"] and row["end_time"]:
-            try:
-                sm=time_to_minutes(row["start_time"]); em=time_to_minutes(row["end_time"])
-                st=datetime.combine(d, datetime.min.time()) + timedelta(minutes=sm)
-                en=datetime.combine(d, datetime.min.time()) + timedelta(minutes=em)
-                if em <= sm:
-                    en += timedelta(days=1)
-                pieces.append((st,en))
-            except Exception:
-                pass
+        else:
+            ws=(row["work_start_time"] if "work_start_time" in row.keys() else "") or row["start_time"]
+            we=(row["work_end_time"] if "work_end_time" in row.keys() else "") or row["end_time"]
+            if ws and we:
+                try:
+                    sm=time_to_minutes(ws); em=time_to_minutes(we)
+                    st=datetime.combine(d, datetime.min.time()) + timedelta(minutes=sm)
+                    en=datetime.combine(d, datetime.min.time()) + timedelta(minutes=em)
+                    if em <= sm:
+                        en += timedelta(days=1)
+                    pieces.append((st,en))
+                except Exception:
+                    pass
         if not pieces:
             return None, None
         return min(x[0] for x in pieces), max(x[1] for x in pieces)
@@ -5458,13 +6073,25 @@ class App(tk.Tk):
         return "керув" in a
 
     def _row_minutes_exact(self, row, segments=None):
+        """Тривалості завжди виводимо з часових меж, якщо вони є."""
         segments = segments or []
         if segments:
-            work=sum(hours_value_to_minutes(s["work_hours"]) for s in segments)
-            drive=sum(hours_value_to_minutes(s["driving_hours"]) for s in segments)
+            work=0; drive=0
+            for s in segments:
+                ws,we=_segment_work_pair(s)
+                try: work += duration_minutes(ws,we) if ws and we else hours_value_to_minutes(s["work_hours"])
+                except Exception: work += hours_value_to_minutes(s["work_hours"])
+                ds=(s["start_time"] or "").strip(); de=(s["end_time"] or "").strip()
+                try: drive += duration_minutes(ds,de) if ds and de else 0
+                except Exception: drive += hours_value_to_minutes(s["driving_hours"])
         else:
-            work=hours_value_to_minutes(row["work_hours"])
-            drive=hours_value_to_minutes(row["driving_hours"])
+            ws=(row["work_start_time"] if "work_start_time" in row.keys() else "") or ""
+            we=(row["work_end_time"] if "work_end_time" in row.keys() else "") or ""
+            ds=(row["start_time"] or "").strip(); de=(row["end_time"] or "").strip()
+            try: work=duration_minutes(ws,we) if ws and we else hours_value_to_minutes(row["work_hours"])
+            except Exception: work=hours_value_to_minutes(row["work_hours"])
+            try: drive=duration_minutes(ds,de) if ds and de and (row["accounting_mode"] if "accounting_mode" in row.keys() else "")!=WORK_MODE_NO_TACHO else hours_value_to_minutes(row["driving_hours"])
+            except Exception: drive=hours_value_to_minutes(row["driving_hours"])
         over=hours_value_to_minutes(row["overtime_hours"])
         return work,drive,over
 
@@ -5472,79 +6099,109 @@ class App(tk.Tk):
         return gaps_minutes(segments)
 
     def _driving_break_control_for_row(self, row, segments):
-        """Контроль перерв у КЕРУВАННІ за нашими частинами зміни.
+        """Контроль 4:30 за КЕРУВАННЯМ із урахуванням ІНШОЇ РОБОТИ.
 
-        Наші частини — технічний спосіб розбити день на відрізки,
-        щоб задати точний час керування та проміжки між відрізками.
-        Вони НЕ означають автоматично "розділений щоденний відпочинок"
-        у термінах Положення №340.
+        Ключове правило v8.65 r2: сама відсутність керування ще не є
+        перервою. Якщо між двома інтервалами керування водій продовжує
+        працювати, цей час НЕ скидає накопичене керування. Для 45 хв або
+        15+30 враховуємо лише реальний проміжок ПОЗА робочими інтервалами.
         """
         if not segments:
             drive=hours_value_to_minutes(row["driving_hours"])
             return {"max_continuous_drive":drive,"warnings":[],"breaks":[]}
 
-        ordered=sorted(segments,key=lambda s:time_to_minutes(s["start_time"]))
+        driving_segments=[s for s in segments if (s["start_time"] or "").strip() and (s["end_time"] or "").strip()]
+        if not driving_segments:
+            return {"max_continuous_drive":0,"warnings":[],"breaks":[]}
+
+        def abs_interval(a,b,anchor=None):
+            sm=time_to_minutes(a); em=time_to_minutes(b)
+            if em<=sm: em+=1440
+            if anchor is None:
+                return sm,em
+            candidates=[]
+            for shift in (-2880,-1440,0,1440,2880):
+                x=sm+shift; y=em+shift
+                if x <= anchor <= y:
+                    return x,y
+                candidates.append((abs(x-anchor),x,y))
+            _,x,y=min(candidates,key=lambda z:z[0])
+            return x,y
+
+        timeline=[]
+        prev_drive_start=None
+        for s in driving_segments:
+            ds=time_to_minutes(s["start_time"]); de=time_to_minutes(s["end_time"])
+            if prev_drive_start is not None:
+                while ds < prev_drive_start:
+                    ds += 1440
+            while de <= ds:
+                de += 1440
+            ws,we=_segment_work_pair(s)
+            try:
+                was,wae=abs_interval(ws,we,ds)
+            except Exception:
+                # Старий/неповний запис: консервативно вважаємо, що весь
+                # проміжок керування є робочим.
+                was,wae=ds,de
+            timeline.append((s,ds,de,was,wae))
+            prev_drive_start=ds
+
         accumulated=0
         max_accum=0
         split15=False
         warnings=[]
         break_rows=[]
 
-        for i,s in enumerate(ordered):
+        for i,(s,ds,de,ws,we) in enumerate(timeline):
             if i>0:
-                prev=ordered[i-1]
-                prev_end=time_to_minutes(prev["end_time"])
-                cur_start=time_to_minutes(s["start_time"])
-                if cur_start<=prev_end:
-                    cur_start+=24*60
-                gap=cur_start-prev_end
+                prev,pds,pde,pws,pwe=timeline[i-1]
+                drive_gap=max(0,ds-pde)
+                rest_gap=max(0,ws-pwe)
 
-                status="не зараховуємо"
+                status="немає кваліфікованої перерви"
                 resets=False
-                if gap>=45:
-                    status="повна перерва у керуванні ≥45 хв"
+                if rest_gap>=45:
+                    status="перерва поза роботою ≥45 хв"
                     accumulated=0
                     split15=False
                     resets=True
-                elif split15 and gap>=30:
-                    status="друга частина ≥30 хв; схема 15+30 виконана"
+                elif split15 and rest_gap>=30:
+                    status="друга частина перерви поза роботою ≥30 хв; 15+30 виконано"
                     accumulated=0
                     split15=False
                     resets=True
-                elif gap>=15:
+                elif rest_gap>=15:
                     if not split15:
-                        status="перша частина перерви ≥15 хв"
+                        status="перша частина перерви поза роботою ≥15 хв"
                         split15=True
                     else:
                         status="ще одна перерва 15–29 хв; 15+30 ще не завершено"
+                elif drive_gap>=15 and rest_gap<15:
+                    status=f"без керування {minutes_hhmm(drive_gap)}, але поза роботою лише {minutes_hhmm(rest_gap)} — це не перерва 340"
                 else:
-                    status="<15 хв; для перерви у керуванні не зараховується"
+                    status=f"поза роботою {minutes_hhmm(rest_gap)} (<15 хв)"
 
+                pws_txt,pwe_txt=_segment_work_pair(prev)
+                ws_txt,we_txt=_segment_work_pair(s)
                 break_rows.append({
-                    "after":prev["end_time"],
-                    "before":s["start_time"],
-                    "minutes":gap,
+                    "after":pwe_txt,
+                    "before":ws_txt,
+                    "minutes":rest_gap,
+                    "driving_gap_minutes":drive_gap,
                     "status":status,
                     "resets":resets,
                 })
 
-            drive_min=hours_value_to_minutes(s["driving_hours"])
-            span=duration_minutes(s["start_time"],s["end_time"])
-            if drive_min>span:
-                warnings.append(
-                    f"{row['work_date']}: у частині {s['start_time']}–{s['end_time']} "
-                    f"керування {minutes_hhmm(drive_min)} більше тривалості самої частини "
-                    f"{minutes_hhmm(span)}."
-                )
-
+            drive_min=max(0,de-ds)
             accumulated+=drive_min
             max_accum=max(max_accum,accumulated)
 
             if accumulated>270:
                 warnings.append(
                     f"{row['work_date']}: накопичено {minutes_hhmm(accumulated)} керування "
-                    f"до/в межах частини {s['start_time']}–{s['end_time']} без завершеної "
-                    "перерви 45 хв або 15+30."
+                    f"до/в межах {s['start_time']}–{s['end_time']} без завершеної "
+                    "перерви поза роботою 45 хв або 15+30."
                 )
 
         return {
@@ -5554,8 +6211,12 @@ class App(tk.Tk):
         }
 
     def calculate_work_analysis(self):
-        """Попередній автоматичний контроль за Положенням №340.
-        Розрахунки виконуються у хвилинах, а не у сотих частках години.
+        """Попередній автоматичний контроль за чинною моделлю Положення №340.
+
+        v8.65 принципово розділяє ПЛАНОВИЙ час керування та ПЛАНОВИЙ
+        робочий час. Тахографічні дані надалі мають бути окремим фактичним
+        шаром і не повинні перезаписувати план. Розрахунки виконуються у
+        хвилинах, а не у сотих частках години.
         """
         if not self.driver_id:
             return None
@@ -5605,6 +6266,12 @@ class App(tk.Tk):
             w["work"]+=work_min
             w["drive"]+=drive_min
 
+            if drive_min > work_min and work_min >= 0:
+                warnings.append(
+                    f"{d.strftime('%d.%m.%Y')}: план керування {minutes_hhmm(drive_min)} "
+                    f"перевищує план робочого часу {minutes_hhmm(work_min)} — перевірити графік."
+                )
+
             if drive_min>600:
                 warnings.append(f"{d.strftime('%d.%m.%Y')}: керування {minutes_hhmm(drive_min)} — понад 10:00.")
             elif drive_min>540:
@@ -5613,7 +6280,7 @@ class App(tk.Tk):
 
             night=any(
                 self._segment_is_work(s["activity_type"]) and
-                self._segment_overlaps_night(s["start_time"],s["end_time"])
+                self._segment_overlaps_night(*_segment_work_pair(s))
                 for s in segs
             )
             if night and work_min>600:
@@ -5625,14 +6292,15 @@ class App(tk.Tk):
             for s in segs:
                 if not self._segment_is_work(s["activity_type"]):
                     continue
+                ws,we=_segment_work_pair(s)
                 try:
-                    dur=duration_minutes(s["start_time"],s["end_time"])
+                    dur=duration_minutes(ws,we)
                 except Exception:
                     continue
                 if dur>360:
                     warnings.append(
                         f"{d.strftime('%d.%m.%Y')}: безперервний робочий відрізок "
-                        f"{s['start_time']}–{s['end_time']} = {minutes_hhmm(dur)} (>6:00); перевірити перерву."
+                        f"{ws}–{we} = {minutes_hhmm(dur)} (>6:00); перевірити перерву."
                     )
 
             # Контроль 4:30 ведемо за числом у полі «Кер.» кожної
@@ -5871,11 +6539,15 @@ class App(tk.Tk):
             )
             if not path:
                 return
-            try:
-                export_work_analysis_pdf(data,driver_name,path)
-                messagebox.showinfo("PDF",f"Збережено:\n{path}",parent=win)
-            except Exception as e:
-                messagebox.showerror("Помилка PDF",str(e),parent=win)
+            actual=write_output_file(
+                lambda out: export_work_analysis_pdf(data,driver_name,out),
+                path,
+                parent=win,
+                kind="PDF аналізу №340",
+                error_title="Помилка PDF"
+            )
+            if actual is not None:
+                messagebox.showinfo("PDF",f"Збережено:\n{actual}",parent=win)
 
         ttk.Button(title_frame,text="Зберегти PDF",command=save_pdf).pack(side="right",padx=(8,0))
 
@@ -5885,8 +6557,8 @@ class App(tk.Tk):
                 f"Водій: {driver_name}    "
                 f"Профіль: {data.get('transport_profile', DEFAULT_TRANSPORT_PROFILE)}    "
                 f"Робочих днів: {data['work_days']}    "
-                f"Робота: {minutes_dual(data['total_work_min'])}    "
-                f"Керування: {minutes_dual(data['total_drive_min'])}    "
+                f"Робота, план: {minutes_dual(data['total_work_min'])}    "
+                f"Керування, план: {minutes_dual(data['total_drive_min'])}    "
                 f"Надурочні: {minutes_dual(data['total_over_min'])}    "
                 f"Середнє за 4 міс.: {minutes_hhmm(data['avg4_min'])}/тиж."
             )
@@ -6023,7 +6695,12 @@ class App(tk.Tk):
         con=db(); ts=con.execute("SELECT * FROM route_templates WHERE active=1 ORDER BY name").fetchall()
         for t in ts:
             segs=con.execute("SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no",(t["id"],)).fetchall()
-            summary=" / ".join(f"{r['start_time']}-{r['end_time']} ({format_hours(r['work_hours'])} год)" for r in segs)
+            summary=" / ".join(
+                f"роб. {(r['work_start_time'] or r['start_time'])}-{(r['work_end_time'] or r['end_time'])}; "
+                f"кер. {r['start_time']}-{r['end_time']} "
+                f"({hours_value_hhmm(r['work_hours'])} / {hours_value_hhmm(r['driving_hours'])})"
+                for r in segs
+            )
             self.route_tree.insert("","end",values=(t["id"],t["name"],t["route_name"],t["vehicle"],t["shift_type"],summary,t["notes"]))
         con.close()
 
@@ -6033,7 +6710,7 @@ class App(tk.Tk):
         rid=int(self.route_tree.item(sel[0],"values")[0]); con=db(); t=con.execute("SELECT * FROM route_templates WHERE id=?",(rid,)).fetchone(); segs=con.execute("SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no",(rid,)).fetchall(); con.close(); return t,segs
 
     def route_template_form(self, existing=None):
-        win=tk.Toplevel(self); win.title("Шаблон маршруту"); win.geometry("850x540"); win.transient(self); win.grab_set()
+        win=tk.Toplevel(self); win.title("Шаблон маршруту"); win.geometry("1080x590"); win.transient(self); win.grab_set()
         vals={k:(existing[0][k] if existing else "") for k in ["name","route_name","vehicle","shift_type","notes"]}
         existing_route_id=(existing[0]["route_id"] if existing and "route_id" in existing[0].keys() else None)
         con=db(); routes=con.execute("SELECT * FROM routes WHERE active=1 ORDER BY name").fetchall(); vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall(); con.close()
@@ -6054,51 +6731,95 @@ class App(tk.Tk):
         ttk.Combobox(win,textvariable=vehicle_select,values=list(vehicle_map.keys()),state="readonly",width=57).grid(row=3,column=1,columnspan=2,sticky="ew",padx=10,pady=6)
         ttk.Label(win,text="Тип зміни").grid(row=4,column=0,sticky="w",padx=10,pady=6); ttk.Combobox(win,textvariable=vv["shift_type"],values=["Безперервна","Розділена на частини"],state="readonly",width=30).grid(row=4,column=1,sticky="w",padx=10)
         ttk.Label(win,text="Частини робочої зміни").grid(row=5,column=0,sticky="nw",padx=10,pady=8)
-        cols=("no","start","end","work","drive","activity","note")
+        cols=("no","work_start","work_end","drive_start","drive_end","work","drive","activity","note")
         tree=ttk.Treeview(win,columns=cols,show="headings",height=10)
-        for c,h,w in [("no","№",40),("start","Поч.",75),("end","Кін.",75),("work","Робота",80),("drive","Кер.",80),("activity","Тип",120),("note","Примітка",240)]: tree.heading(c,text=h); tree.column(c,width=w)
+        for c,h,w in [
+            ("no","№",35),("work_start","Роб. від",75),("work_end","Роб. до",75),
+            ("drive_start","Кер. від",75),("drive_end","Кер. до",75),
+            ("work","Робота",75),("drive","Керування",80),
+            ("activity","Тип",110),("note","Примітка",180)
+        ]: tree.heading(c,text=h); tree.column(c,width=w)
         tree.grid(row=5,column=1,columnspan=2,sticky="nsew",padx=10,pady=8)
         seg_data=[]
         if existing:
-            for r in existing[1]: seg_data.append({"start_time":r["start_time"],"end_time":r["end_time"],"work_hours":r["work_hours"],"driving_hours":r["driving_hours"],"activity_type":r["activity_type"],"note":r["note"]})
+            for r in existing[1]:
+                ds=(r["start_time"] or "").strip(); de=(r["end_time"] or "").strip()
+                ws=(r["work_start_time"] or "").strip() or ds
+                we=(r["work_end_time"] or "").strip() or de
+                seg_data.append({
+                    "start_time":ds,"end_time":de,"work_start_time":ws,"work_end_time":we,
+                    "work_hours":minutes_to_db_hours(duration_minutes(ws,we)) if ws and we else 0,
+                    "driving_hours":minutes_to_db_hours(duration_minutes(ds,de)) if ds and de else 0,
+                    "activity_type":r["activity_type"],"note":r["note"]
+                })
         def redraw():
             for x in tree.get_children(): tree.delete(x)
             for i,r in enumerate(seg_data,1):
-                tree.insert("","end",values=(i,r["start_time"],r["end_time"],
+                tree.insert("","end",values=(
+                    i,r["work_start_time"],r["work_end_time"],r["start_time"],r["end_time"],
                     hours_value_hhmm(r["work_hours"]),hours_value_hhmm(r["driving_hours"]),
-                    r["activity_type"],r["note"]))
+                    r["activity_type"],r["note"]
+                ))
         def edit_seg(index=None):
-            sw=tk.Toplevel(win); sw.title("Частина шаблону"); sw.geometry("500x360"); sw.transient(win); sw.grab_set()
-            base=seg_data[index] if index is not None else {"start_time":"08:00","end_time":"17:00","work_hours":8,"driving_hours":0,"activity_type":"Робота","note":""}
+            sw=tk.Toplevel(win); sw.title("Частина шаблону"); sw.geometry("560x445"); sw.transient(win); sw.grab_set()
+            base=seg_data[index] if index is not None else {
+                "work_start_time":"08:00","work_end_time":"09:00",
+                "start_time":"08:00","end_time":"09:00",
+                "activity_type":"Робота","note":""
+            }
             x={}
-            for k in base:
-                val=base[k]
-                if k in ("work_hours","driving_hours"):
-                    val=hours_value_hhmm(val)
-                x[k]=tk.StringVar(value=str(val))
-            for i,(lbl,key) in enumerate([("Початок","start_time"),("Кінець","end_time"),
-                ("Робота (ГГ:ХХ або десяткові)","work_hours"),
-                ("Керування (ГГ:ХХ або десяткові)","driving_hours"),
-                ("Тип","activity_type"),("Примітка","note")]):
-                ttk.Label(sw,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=6); w=ttk.Combobox(sw,textvariable=x[key],values=DAY_TYPES,state="readonly",width=32) if key=="activity_type" else ttk.Entry(sw,textvariable=x[key],width=34); w.grid(row=i,column=1,padx=10,pady=6)
-            def calc():
-                try: x["work_hours"].set(minutes_hhmm(duration_minutes(x["start_time"].get(),x["end_time"].get())))
-                except Exception: pass
-            ttk.Button(sw,text="Розрахувати години",command=calc).grid(row=6,column=1,sticky="w",padx=10,pady=5)
+            defaults={
+                "work_start_time":base.get("work_start_time") or base.get("start_time",""),
+                "work_end_time":base.get("work_end_time") or base.get("end_time",""),
+                "start_time":base.get("start_time",""),"end_time":base.get("end_time",""),
+                "activity_type":base.get("activity_type","Робота"),"note":base.get("note","")
+            }
+            for k,v in defaults.items(): x[k]=tk.StringVar(value=str(v or ""))
+            for i,(lbl,key) in enumerate([
+                ("Робота — початок","work_start_time"),("Робота — кінець","work_end_time"),
+                ("Керування — початок","start_time"),("Керування — кінець","end_time"),
+                ("Тип","activity_type"),("Примітка","note")
+            ]):
+                ttk.Label(sw,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=6)
+                w=ttk.Combobox(sw,textvariable=x[key],values=DAY_TYPES,state="readonly",width=34) if key=="activity_type" else ttk.Entry(sw,textvariable=x[key],width=36)
+                w.grid(row=i,column=1,padx=10,pady=6)
+            duration_var=tk.StringVar()
+            ttk.Label(sw,textvariable=duration_var,foreground="gray").grid(row=6,column=0,columnspan=2,sticky="w",padx=10,pady=4)
+            def refresh(*_):
+                try: wt=minutes_hhmm(duration_minutes(x["work_start_time"].get(),x["work_end_time"].get()))
+                except Exception: wt="—"
+                ds=x["start_time"].get().strip(); de=x["end_time"].get().strip()
+                if not ds and not de: dt="0:00"
+                else:
+                    try: dt=minutes_hhmm(duration_minutes(ds,de))
+                    except Exception: dt="—"
+                duration_var.set(f"Тривалість: робота {wt}; керування {dt}")
+            for v in (x["work_start_time"],x["work_end_time"],x["start_time"],x["end_time"]): v.trace_add("write",refresh)
+            refresh()
+            bar=ttk.Frame(sw); bar.grid(row=7,column=0,columnspan=2,sticky="w",padx=10,pady=5)
+            ttk.Button(bar,text="Керування → робота",command=lambda:(x["work_start_time"].set(x["start_time"].get()),x["work_end_time"].set(x["end_time"].get()))).pack(side="left")
+            ttk.Button(bar,text="Робота → керування",command=lambda:(x["start_time"].set(x["work_start_time"].get()),x["end_time"].set(x["work_end_time"].get()))).pack(side="left",padx=(6,0))
             def save_seg():
+                ws=x["work_start_time"].get().strip(); we=x["work_end_time"].get().strip()
+                ds=x["start_time"].get().strip(); de=x["end_time"].get().strip()
                 try:
-                    time_to_minutes(x["start_time"].get()); time_to_minutes(x["end_time"].get())
-                    wh_min=hours_value_to_minutes(x["work_hours"].get())
-                    dh_min=hours_value_to_minutes(x["driving_hours"].get())
+                    if not ws or not we: raise ValueError
+                    wh_min=duration_minutes(ws,we)
+                    if bool(ds)!=bool(de): raise ValueError
+                    dh_min=duration_minutes(ds,de) if ds and de else 0
                 except Exception:
-                    messagebox.showerror("Помилка","Перевірте час. Тривалість можна вводити як 2:30 або 2.5.",parent=sw); return
-                item={k:x[k].get().strip() for k in x}
-                item["work_hours"]=minutes_to_db_hours(wh_min)
-                item["driving_hours"]=minutes_to_db_hours(dh_min)
+                    messagebox.showerror("Помилка","Перевірте пари початок/кінець для роботи і керування.",parent=sw); return
+                if ds and not interval_within(ds,de,ws,we):
+                    messagebox.showerror("Помилка","Інтервал керування повинен міститися всередині робочого інтервалу.",parent=sw); return
+                item={
+                    "work_start_time":ws,"work_end_time":we,"start_time":ds,"end_time":de,
+                    "work_hours":minutes_to_db_hours(wh_min),"driving_hours":minutes_to_db_hours(dh_min),
+                    "activity_type":x["activity_type"].get().strip(),"note":x["note"].get().strip()
+                }
                 if index is None: seg_data.append(item)
                 else: seg_data[index]=item
                 redraw(); sw.destroy()
-            ttk.Button(sw,text="Зберегти",command=save_seg).grid(row=7,column=1,sticky="e",padx=10,pady=10)
+            ttk.Button(sw,text="Зберегти",command=save_seg).grid(row=8,column=1,sticky="e",padx=10,pady=10)
         b=ttk.Frame(win); b.grid(row=6,column=1,columnspan=2,sticky="w",padx=10,pady=5)
         ttk.Button(b,text="Додати частину",command=lambda:edit_seg()).pack(side="left",padx=3)
         def edit_selected():
@@ -6120,7 +6841,9 @@ class App(tk.Tk):
                     con.execute("DELETE FROM route_template_segments WHERE template_id=?",(tid,))
                 else:
                     cur=con.execute("INSERT INTO route_templates(name,route_name,route_id,vehicle,vehicle_id,shift_type,notes,created_at) VALUES(?,?,?,?,?,?,?,?)",(vv["name"].get().strip(),route_select.get().strip(),route_map[route_select.get()]["id"] if route_select.get() in route_map else None,vehicle_select.get().strip(),vehicle_map[vehicle_select.get()]["id"] if vehicle_select.get() in vehicle_map else None,vv["shift_type"].get(),vv["notes"].get().strip(),datetime.now().isoformat(timespec="seconds"))); tid=cur.lastrowid
-                for i,r in enumerate(seg_data,1): con.execute("INSERT INTO route_template_segments(template_id,segment_no,start_time,end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?)",(tid,i,r["start_time"],r["end_time"],r["work_hours"],r["driving_hours"],r["activity_type"],r["note"]))
+                for i,r in enumerate(seg_data,1):
+                    con.execute("INSERT INTO route_template_segments(template_id,segment_no,start_time,end_time,work_start_time,work_end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                                (tid,i,r["start_time"],r["end_time"],r["work_start_time"],r["work_end_time"],r["work_hours"],r["driving_hours"],r["activity_type"],r["note"]))
                 con.commit()
             except sqlite3.IntegrityError as e:
                 con.rollback(); messagebox.showerror("Помилка",f"Не вдалося зберегти шаблон. Назва має бути унікальною.\n{e}",parent=win); return

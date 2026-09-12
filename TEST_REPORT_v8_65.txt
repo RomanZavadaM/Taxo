@@ -1,0 +1,15 @@
+Taxo v8.65 — release verification (candidate r3 promoted)
+Date: 2026-09-12
+
+PASS: main.py / tachograph.py / attestation_render.py py_compile.
+PASS: GUI smoke test under Xvfb; Taxo v8.65 window and schedule canvas initialized.
+PASS: r2 time model retained — separate WORK start/end and DRIVING start/end.
+PASS: output writer success path.
+PASS: simulated locked existing output: PermissionError -> `Створити копію` path -> unique file created; original remains unchanged.
+PASS: PermissionError classification covers standard Windows/Python access errors.
+PASS: local technical error logger writes to Documents/DriverWorktime/Logs/Taxo_errors.log.
+PASS: all primary PDF/XLSX creation entry points use the centralized output-file handler.
+PASS: graphical schedule test with three edited segments, including 15/30/50-minute bands, produced a visible text label for all six WORK/DRIVING bands.
+PASS: old `if width > 95` label suppression removed; short intervals now use adaptive compact labels.
+
+Windows GUI confirmation completed by user; candidate r3 approved for release.

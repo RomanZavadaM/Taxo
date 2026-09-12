@@ -1,36 +1,29 @@
 # Taxo — CURRENT CHECKPOINT
 
-Дата: 12.09.2026
-Поточний кандидат: **v8.64**
-Стабільний GitHub main: **v8.56**
-Наступна версія після підтвердження: **v8.65**
+Date: 2026-09-12
 
-## Причина v8.64
+## Stable release
+- Version: **v8.65**
+- Promoted from verified candidate **r3**.
+- Previous stable: v8.64 (`c2ebee7bb832680e1c98a447cb90ebd115349fed`).
+- Next development version: **v8.66**.
 
-Мета PDF/JPG — дати користувачу формат, який можна відкрити навіть без Word/LibreOffice. v8.63 суперечила цій меті, бо вимагала офісний рушій для DOCX → PDF.
+## v8.65 time model
+- Existing schedule intervals are PLAN driving intervals.
+- Each segment has explicit WORK start/end plus DRIVING start/end.
+- Durations are derived from boundaries.
+- Legacy driving boundaries initially copy 1:1 into working boundaries.
+- `Без тахо — стандартні 8 год`: work=8h, drive=0h.
+- Tachograph future data = FACTUAL driving; it must not overwrite PLAN automatically.
 
-## Реалізація
+## r3 release fixes
+- Centralized output-file exception handler for locked/open PDF/XLSX files.
+- On locked existing file: Retry / Create copy / Cancel.
+- Nonhandled GUI exceptions are logged locally to `Documents/DriverWorktime/Logs/Taxo_errors.log`.
+- Graphical schedule no longer hides labels of short bands; every work/driving band receives an adaptive label.
 
-- DOCX створюється як раніше через `python-docx`; Microsoft Word для цього не потрібен.
-- PDF формується автономно через PyMuPDF на базі `attestation_visual_template.pdf`, який є двосторінковим візуальним знімком того самого офіційного DOCX-шаблона.
-- У PDF накладаються тільки змінні жирні поля, реквізити, дати, період, місце і позначка 14–19.
-- JPG1/JPG2 формуються безпосередньо з автономного PDF.
-- Word COM, PowerShell COM і LibreOffice у runtime-шляху PDF/JPG не використовуються.
-- `pywin32` вилучено з `requirements.txt` і з PyInstaller hidden imports.
-- `attestation_visual_template.pdf` включено до PyInstaller `datas`.
-- Прокрутки всього вмісту вкладок та виправлення архіву/остаточного видалення з v8.62–v8.63 збережені.
-
-## Перевірено
-
-- `main.py`, `tachograph.py`, `attestation_render.py`: `py_compile` — OK.
-- Ізольований інтеграційний тест створив одночасно DOCX + PDF + JPG1 + JPG2 без Word/LibreOffice.
-- PDF = 2 сторінки A4.
-- DOCX і автономний PDF відрендерені та візуально звірені: структура, рамка, статичні написи, поля і сторінки збігаються; немає обрізання/накладання.
-- Візуальний шаблон зберігається разом із програмою і не містить даних користувача.
-
-## Контрольні файли
-
-- `/Taxo/Releases/Taxo_v8_64_TEST.zip`
-- `/Taxo/Releases/Taxo_v8_64_source.zip`
-
-GitHub `main` не просувати до локальної перевірки v8.64 на Windows.
+## Release assets expected
+- `Taxo_v8_65_Setup_Windows_x64.exe`
+- `Taxo_v8_65_Windows_x64_Portable.zip`
+- `Taxo_v8_65_source.zip`
+- `SHA256SUMS_v8_65.txt`

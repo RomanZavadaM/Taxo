@@ -1,5 +1,11 @@
 Taxo / Driver Worktime
-Version: 8.64
-Date: 2026-09-12
-Main changes: autonomous Word-free PDF/JPG attestation rendering from the official visual template; whole-tab scrolling and archive controls retained from v8.63
-Next candidate: 8.65
+Version: 8.65
+Release date: 2026-09-12
+Promoted from verified candidate r3.
+
+Time model: each segment has separate planned WORK start/end and DRIVING start/end; durations are derived from those boundaries.
+Legacy route start/end are treated as planned driving boundaries and initially copied to working boundaries.
+Tachograph principle: future recognized tachograph data is FACTUAL driving and remains separate from PLAN.
+
+r3 release fixes: centralized output-file exception handling for locked/open PDF/XLSX files; schedule timeline labels are never silently hidden for short edited intervals.
+Next development version: 8.66
