@@ -49,17 +49,29 @@ jobs:
       - name: Verify release source hashes
         shell: pwsh
         run: |
-          $checks = @{
+          $utf8 = [System.Text.UTF8Encoding]::new($false)
+          $sha = [System.Security.Cryptography.SHA256]::Create()
+          $textChecks = @{
             'main.py' = $env:MAIN_SHA256
             'tachograph.py' = $env:TACHO_SHA256
             'attestation_render.py' = $env:RENDER_SHA256
+          }
+          foreach ($file in $textChecks.Keys) {
+            if (!(Test-Path $file)) { throw "Missing required file: $file" }
+            $text = [IO.File]::ReadAllText($file, $utf8).Replace("`r`n", "`n")
+            $bytes = $utf8.GetBytes($text)
+            $actual = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').ToLowerInvariant()
+            if ($actual -ne $textChecks[$file]) { throw "SHA-256 mismatch for $file : $actual" }
+            Write-Host "OK $file $actual"
+          }
+          $binaryChecks = @{
             'Бланк підтвердження.docx' = $env:TEMPLATE_SHA256
             'attestation_visual_template.pdf' = $env:VISUAL_TEMPLATE_SHA256
           }
-          foreach ($file in $checks.Keys) {
+          foreach ($file in $binaryChecks.Keys) {
             if (!(Test-Path $file)) { throw "Missing required file: $file" }
             $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
-            if ($actual -ne $checks[$file]) { throw "SHA-256 mismatch for $file : $actual" }
+            if ($actual -ne $binaryChecks[$file]) { throw "SHA-256 mismatch for $file : $actual" }
             Write-Host "OK $file $actual"
           }
 
