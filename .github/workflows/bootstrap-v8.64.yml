@@ -6,7 +6,6 @@ on:
     branches:
       - candidate-v8.64
     paths:
-      - '.release_payload/v8.64/READY_V864.txt'
       - '.github/workflows/bootstrap-v8.64.yml'
 
 permissions:
@@ -17,7 +16,6 @@ jobs:
     runs-on: windows-latest
     env:
       PYTHONUTF8: '1'
-      SOURCE_ZIP_SHA256: 1fffdadd03cb6118f6aaeece557b323f1cd1f130fa081e35659fb14b339d480f
       MAIN_SHA256: 2f23301d651372d06b6a39f0edb03b009b23a61e919c98b2123c855835f8483c
       TACHO_SHA256: 83c916457c6602e9ed93a55fdc0578e91775e073dad12da94ccd31d1e81fa108
       RENDER_SHA256: b65178e0bf18207e75e10ebfb6c2896397e685184228ece70efb7615d4215c88
@@ -30,20 +28,33 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reconstruct verified v8.64 source ZIP
+      - name: Reconstruct previously uploaded v8.64 archive
         shell: pwsh
         run: |
-          $parts = Get-ChildItem '.release_payload/v8.64/zip*.b64' | Sort-Object Name
-          if ($parts.Count -ne 20) { throw "Expected 20 source ZIP chunks, got $($parts.Count)" }
-          $b64 = ($parts | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
-          if ($b64.Length -ne 296596) { throw "Unexpected Base64 length: $($b64.Length)" }
-          [IO.File]::WriteAllBytes('Taxo_v8_64_source.zip', [Convert]::FromBase64String($b64))
-          $zipHash = (Get-FileHash 'Taxo_v8_64_source.zip' -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($zipHash -ne $env:SOURCE_ZIP_SHA256) { throw "Source ZIP SHA-256 mismatch: $zipHash" }
+          $ordered = @()
+          $ordered += 0..8 | ForEach-Object { Get-Item ('.release_payload/v8.64/part{0:D2}.b64' -f $_) }
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem09_*.b64' | Sort-Object Name
+          $ordered += 10..12 | ForEach-Object { Get-Item ('.release_payload/v8.64/part{0:D2}.b64' -f $_) }
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem13_*.b64' | Sort-Object Name
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem14_*.b64' | Sort-Object Name
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem15_*.b64' | Sort-Object Name
+          $ordered += Get-ChildItem '.release_payload/v8.64/rem16_*.b64' | Sort-Object Name
+          if ($ordered.Count -ne 35) { throw "Expected 35 payload files, got $($ordered.Count)" }
+          $b64 = ($ordered | ForEach-Object { (Get-Content $_.FullName -Raw).Trim() }) -join ''
+          if ($b64.Length -ne 248624) { throw "Unexpected Base64 length: $($b64.Length)" }
+          [IO.File]::WriteAllBytes('Taxo_v8_64_source.tar.xz', [Convert]::FromBase64String($b64))
+          Write-Host "Reconstructed archive SHA-256: $((Get-FileHash 'Taxo_v8_64_source.tar.xz' -Algorithm SHA256).Hash.ToLowerInvariant())"
           if (Test-Path '_v864_unpack') { Remove-Item '_v864_unpack' -Recurse -Force }
-          Expand-Archive 'Taxo_v8_64_source.zip' '_v864_unpack' -Force
+          New-Item -ItemType Directory -Path '_v864_unpack' | Out-Null
+          tar -xJf 'Taxo_v8_64_source.tar.xz' -C '_v864_unpack'
+          if ($LASTEXITCODE -ne 0) { throw "tar extraction failed: $LASTEXITCODE" }
           $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
           if (!(Test-Path (Join-Path $src 'main.py'))) { throw 'Reconstructed source is invalid' }
+
+      - name: Verify exact v8.64 source files
+        shell: pwsh
+        run: |
+          $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
           $checks = @{
             'main.py' = $env:MAIN_SHA256
             'tachograph.py' = $env:TACHO_SHA256
@@ -58,15 +69,16 @@ jobs:
             if ($actual -ne $checks[$file]) { throw "SHA-256 mismatch for $file : $actual" }
             Write-Host "OK $file $actual"
           }
+          python -m py_compile (Join-Path $src 'main.py') (Join-Path $src 'tachograph.py') (Join-Path $src 'attestation_render.py')
 
       - name: Publish canonical v8.64 source to candidate branch
         shell: pwsh
         run: |
           $src = Join-Path $PWD '_v864_unpack/Taxo_v8_64_source'
-          Get-ChildItem -Force | Where-Object { $_.Name -notin @('.git','_v864_unpack','Taxo_v8_64_source.zip') } | Remove-Item -Recurse -Force
+          Get-ChildItem -Force | Where-Object { $_.Name -notin @('.git','_v864_unpack','Taxo_v8_64_source.tar.xz') } | Remove-Item -Recurse -Force
           Copy-Item (Join-Path $src '*') $PWD -Recurse -Force
           Copy-Item (Join-Path $src '.github') $PWD -Recurse -Force
-          Remove-Item 'Taxo_v8_64_source.zip' -Force
+          Remove-Item 'Taxo_v8_64_source.tar.xz' -Force
           Remove-Item '_v864_unpack' -Recurse -Force
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
