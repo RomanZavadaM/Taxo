@@ -63,6 +63,18 @@ def fit_window_to_screen(win, width, height, min_width=420, min_height=260):
     win.resizable(True,True)
 
 
+def preview_dimensions(image_width, image_height, canvas_width, canvas_height, fit=True):
+    """Return a readable preview size without enlarging the source image."""
+    image_width=max(1,int(image_width))
+    image_height=max(1,int(image_height))
+    if not fit:
+        return image_width,image_height,1.0
+    available_width=max(120,int(canvas_width)-20)
+    available_height=max(100,int(canvas_height)-20)
+    scale=min(1.0,available_width/image_width,available_height/image_height)
+    return max(1,round(image_width*scale)),max(1,round(image_height*scale)),scale
+
+
 def tdb():
     con = sqlite3.connect(TACHO_DB)
     con.row_factory = sqlite3.Row
@@ -237,6 +249,9 @@ class TachographModule:
         self.tab=parent
         self.current_id=None
         self.photo=None
+        self.preview_image=None
+        self.preview_zoom_mode="fit"
+        self._preview_resize_after=None
         init_tacho_db()
         self.build()
         self.load()
@@ -313,10 +328,28 @@ class TachographModule:
         body=ttk.Panedwindow(right,orient="vertical")
         body.pack(fill="both",expand=True,pady=5)
         self.detail_paned=body
-        image_frame=ttk.Frame(body)
-        result_frame=ttk.Frame(body)
+        image_frame=ttk.LabelFrame(
+            body,text="Перегляд тахокарти — подвійний клік відкриває велике вікно"
+        )
+        result_frame=ttk.LabelFrame(body,text="Результати розпізнавання та контроль")
         body.add(image_frame,weight=3)
         body.add(result_frame,weight=1)
+
+        preview_bar=ttk.Frame(image_frame)
+        preview_bar.pack(fill="x",padx=4,pady=(3,2))
+        ttk.Button(
+            preview_bar,text="Вмістити",command=lambda:self.set_preview_zoom("fit")
+        ).pack(side="left",padx=2)
+        ttk.Button(
+            preview_bar,text="100%",command=lambda:self.set_preview_zoom("actual")
+        ).pack(side="left",padx=2)
+        ttk.Button(
+            preview_bar,text="Відкрити велике вікно",command=self.open_scan
+        ).pack(side="left",padx=2)
+        self.preview_status=tk.StringVar(value="Оберіть скан")
+        ttk.Label(preview_bar,textvariable=self.preview_status,foreground="gray").pack(
+            side="left",padx=(12,2)
+        )
 
         image_wrap=ttk.Frame(image_frame)
         image_wrap.pack(fill="both",expand=True)
@@ -328,6 +361,8 @@ class TachographModule:
         self.image_hbar.pack(side="bottom",fill="x")
         self.image_canvas.pack(side="left",fill="both",expand=True)
         self.image_canvas.create_text(20,20,anchor="nw",text="Оберіть скан",fill="gray")
+        self.image_canvas.bind("<Double-1>",lambda _event:self.open_scan())
+        self.image_canvas.bind("<Configure>",self._schedule_preview_render)
 
         ib=ttk.Frame(result_frame); ib.pack(fill="x")
         self.candidate_var=tk.StringVar(value="Кандидатів: 0")
@@ -376,13 +411,22 @@ class TachographModule:
 
         def set_readable_sashes():
             try:
+                if not body.winfo_ismapped() or body.winfo_height()<220:
+                    return
                 pan.update_idletasks()
                 pan.sashpos(0,max(240,min(340,int(pan.winfo_width()*0.30))))
                 body.update_idletasks()
-                body.sashpos(0,max(150,int(body.winfo_height()*0.56)))
+                total=body.winfo_height()
+                # Гарантуємо видиму область і для скану, і для інтервалів.
+                desired=max(170,int(total*0.62))
+                desired=min(desired,max(120,total-130))
+                body.sashpos(0,desired)
             except tk.TclError:
                 pass
-        self.parent.after(120,set_readable_sashes)
+        self._set_readable_sashes=set_readable_sashes
+        body.bind("<Map>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
+        right.bind("<Map>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
+        self.parent.after_idle(set_readable_sashes)
 
     def refresh_catalogs(self):
         if self.drivers_provider:
@@ -436,26 +480,63 @@ class TachographModule:
         self.candidate_var.set(f"Кандидатів: {len(self.itree.get_children())}")
         if hasattr(self,"stats_var"): self.update_stats()
 
+    def _schedule_preview_render(self,_event=None):
+        if self.preview_zoom_mode!="fit" or self.preview_image is None:
+            return
+        if self._preview_resize_after is not None:
+            try:self.parent.after_cancel(self._preview_resize_after)
+            except tk.TclError:pass
+        self._preview_resize_after=self.parent.after(120,self._render_image_preview)
+
+    def set_preview_zoom(self,mode):
+        self.preview_zoom_mode="actual" if mode=="actual" else "fit"
+        self._render_image_preview()
+
+    def _render_image_preview(self):
+        self._preview_resize_after=None
+        if self.preview_image is None:
+            return
+        canvas_width=self.image_canvas.winfo_width()
+        canvas_height=self.image_canvas.winfo_height()
+        if self.preview_zoom_mode=="fit" and (canvas_width<40 or canvas_height<40):
+            self._schedule_preview_render()
+            return
+        fit=self.preview_zoom_mode=="fit"
+        width,height,scale=preview_dimensions(
+            self.preview_image.width,self.preview_image.height,
+            canvas_width,canvas_height,fit=fit
+        )
+        shown=self.preview_image
+        if (width,height)!=(shown.width,shown.height):
+            shown=shown.resize((width,height),Image.Resampling.LANCZOS)
+        self.photo=ImageTk.PhotoImage(shown)
+        self.image_canvas.delete("all")
+        self.image_canvas.create_image(0,0,anchor="nw",image=self.photo)
+        self.image_canvas.configure(scrollregion=(0,0,width,height))
+        self.image_canvas.xview_moveto(0)
+        self.image_canvas.yview_moveto(0)
+        self.preview_status.set(
+            "100% — доступна прокрутка" if not fit else f"Вміщено у вікно — {round(scale*100)}%"
+        )
+
     def show_image(self,r):
-        if Image is None: return
+        if Image is None:
+            self.preview_status.set("Перегляд недоступний: не встановлено Pillow")
+            return
         try:
             im=Image.open(r["source_path"]).convert("RGB")
-            # Не зменшуємо скан до фіксованої області: для великих сканів
-            # користувач отримує вертикальну і горизонтальну прокрутку.
             draw=ImageDraw.Draw(im)
             if r["cx"] and r["radius"]:
                 draw.ellipse((r["cx"]-r["radius"],r["cy"]-r["radius"],
                               r["cx"]+r["radius"],r["cy"]+r["radius"]),
                              outline=(220,30,30),width=max(3,int(r["radius"]*0.01)))
-            self.photo=ImageTk.PhotoImage(im)
-            self.image_canvas.delete("all")
-            self.image_canvas.create_image(0,0,anchor="nw",image=self.photo)
-            self.image_canvas.configure(scrollregion=(0,0,im.width,im.height))
-            # Починаємо з верхнього лівого кута; нижче можна вільно рухатись
-            # обома бігунками, коли на скані декілька шайб.
-            self.image_canvas.xview_moveto(0)
-            self.image_canvas.yview_moveto(0)
+            self.preview_image=im
+            self.preview_zoom_mode="fit"
+            self.preview_status.set("Завантаження перегляду…")
+            self.parent.after_idle(self._render_image_preview)
         except Exception as e:
+            self.preview_image=None
+            self.preview_status.set("Не вдалося відкрити скан")
             self.image_canvas.delete("all")
             self.image_canvas.create_text(20,20,anchor="nw",text=str(e),fill="red")
 

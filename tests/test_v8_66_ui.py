@@ -126,6 +126,20 @@ class UiInfrastructureTests(unittest.TestCase):
         self.assertLess(source.index("self.timeline_box=timeline_box"), source.index("body=ttk.Panedwindow"))
         self.assertIn('text="Підсумкова статистика"', source)
 
+    def test_tachograph_preview_is_visible_and_opens_full_scan(self):
+        source = inspect.getsource(tachograph.TachographModule.build)
+        self.assertIn('text="Перегляд тахокарти — подвійний клік відкриває велике вікно"', source)
+        self.assertIn('text="Вмістити"', source)
+        self.assertIn('text="100%"', source)
+        self.assertIn('body.bind("<Map>"', source)
+
+    def test_large_tachograph_scan_fits_preview_without_enlarging(self):
+        width,height,scale=tachograph.preview_dimensions(4000,3000,820,520,fit=True)
+        self.assertEqual((width,height),(667,500))
+        self.assertAlmostEqual(scale,1/6)
+        self.assertEqual(tachograph.preview_dimensions(640,480,1200,900,fit=True),(640,480,1.0))
+        self.assertEqual(tachograph.preview_dimensions(4000,3000,820,520,fit=False),(4000,3000,1.0))
+
     def test_v8_65_time_schema_is_preserved(self):
         main.init_db()
         con = main.db()
@@ -160,6 +174,13 @@ class UiInfrastructureTests(unittest.TestCase):
         self.assertIn("bundle_identifier='com.romanzavadam.taxo'", spec)
         self.assertIn("runner: macos-15\n            arch: arm64", workflow)
         self.assertIn("runner: macos-15-intel\n            arch: x86_64", workflow)
+
+    def test_windows_r2_candidate_build_is_available_for_preview_check(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/build-windows-v8.66.yml").read_text(encoding="utf-8")
+        self.assertIn("Taxo_v8_66_TEST_r2_Windows_x64_Portable.zip", workflow)
+        self.assertIn("python -m unittest discover -s tests -v", workflow)
+        self.assertIn("Database unexpectedly bundled", workflow)
 
 
 if __name__ == "__main__":

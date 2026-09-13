@@ -1,0 +1,94 @@
+name: Build Taxo v8.66 Windows candidate r2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - work/v8.66-macos-executable
+    paths:
+      - 'main.py'
+      - 'tachograph.py'
+      - 'attestation_render.py'
+      - 'Бланк підтвердження.docx'
+      - 'attestation_visual_template.pdf'
+      - 'requirements.txt'
+      - 'Taxo.spec'
+      - 'tests/**'
+      - '.github/workflows/build-windows-v8.66.yml'
+      - 'VERSION.txt'
+  pull_request:
+    paths:
+      - 'main.py'
+      - 'tachograph.py'
+      - 'attestation_render.py'
+      - 'Бланк підтвердження.docx'
+      - 'attestation_visual_template.pdf'
+      - 'requirements.txt'
+      - 'Taxo.spec'
+      - 'tests/**'
+      - '.github/workflows/build-windows-v8.66.yml'
+      - 'VERSION.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+
+    steps:
+      - name: Checkout candidate source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: 'x64'
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller==6.22.2
+
+      - name: Compile and test source
+        shell: pwsh
+        run: |
+          python -m py_compile main.py tachograph.py attestation_render.py
+          python -m unittest discover -s tests -v
+
+      - name: Build Windows portable application
+        shell: pwsh
+        run: python -m PyInstaller --noconfirm --clean Taxo.spec
+
+      - name: Verify portable bundle
+        shell: pwsh
+        run: |
+          if (!(Test-Path 'dist/Taxo/Taxo.exe')) { throw 'Taxo.exe not found' }
+          if (!(Test-Path 'dist/Taxo/_internal/Бланк підтвердження.docx')) { throw 'DOCX template not found' }
+          if (!(Test-Path 'dist/Taxo/_internal/attestation_visual_template.pdf')) { throw 'PDF template not found' }
+          $db = Get-ChildItem 'dist/Taxo' -Recurse -File -Include *.db,*.sqlite,*.sqlite3
+          if ($db) { throw "Database unexpectedly bundled: $($db.FullName -join ', ')" }
+
+      - name: Create portable ZIP and checksum
+        shell: pwsh
+        run: |
+          $zip = 'Taxo_v8_66_TEST_r2_Windows_x64_Portable.zip'
+          Compress-Archive -Path 'dist/Taxo' -DestinationPath $zip -Force
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $zip" | Set-Content -Encoding ascii 'SHA256SUMS_v8_66_TEST_r2_Windows_x64.txt'
+          Get-Content 'SHA256SUMS_v8_66_TEST_r2_Windows_x64.txt'
+
+      - name: Upload Windows candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v8.66-Windows-x64-candidate-r2
+          path: |
+            Taxo_v8_66_TEST_r2_Windows_x64_Portable.zip
+            SHA256SUMS_v8_66_TEST_r2_Windows_x64.txt
+          if-no-files-found: error
+          retention-days: 30

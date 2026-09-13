@@ -1,6 +1,6 @@
 Taxo / Driver Worktime
-Version: 8.66 candidate r1
-Candidate date: 2026-09-12
+Version: 8.66 candidate r2
+Candidate date: 2026-09-13
 Stable published baseline: 8.65
 
 Scope: interface usability before the next tachograph-reading development stage.
@@ -8,5 +8,6 @@ Clipboard: Edit menu, right-click menu, Ukrainian-layout Ctrl shortcuts, and tab
 Visibility: multi-row toolbars, screen-fitted windows, remembered main-window geometry, and visible tachograph day timeline/statistics.
 Navigation: double-click/Enter editing in the main catalogs and direct interval selection from the tachograph timeline.
 macOS work branch: native arm64/x86_64 Taxo.app builds with Command shortcuts and platform-native file opening.
+Tachograph preview r2: mapped-tab sizing, fit-to-window by default, 100% scrolling, and full-window view.
 
 The tachograph recognition algorithm is intentionally unchanged in this candidate.

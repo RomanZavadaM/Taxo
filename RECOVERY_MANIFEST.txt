@@ -1,8 +1,8 @@
-Taxo recovery manifest — 2026-09-12
+Taxo recovery manifest — 2026-09-13
 Stable published: v8.65
 Release source: verified candidate r3
 Previous stable: v8.64
-Current development: v8.66 candidate r1
+Current development: v8.66 candidate r2
 Candidate scope: interface usability; tachograph recognition unchanged
 
 v8.65 theme:
