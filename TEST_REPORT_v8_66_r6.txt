@@ -1,0 +1,20 @@
+Taxo v8.66 candidate r6 — UI regression and tachograph layout verification
+Date: 2026-09-13
+
+PASS: Python syntax compilation for main.py, tachograph.py, and attestation_render.py.
+PASS: full application smoke start under a clean HOME without callback startup errors.
+PASS: all 9 main tabs can be selected sequentially at 900x600 and 1024x700.
+PASS: new Sections menu provides direct access to all 9 tabs when Notebook headers do not fit.
+PASS: last selected main tab is persisted in settings and restored when valid.
+PASS: tachograph initial horizontal sash reserves ~70% for the work/preview area after the hidden tab receives a real size.
+PASS: manual sash movement is not continuously overwritten after initial placement.
+PASS: tachograph metadata remains compact and Save remains visible.
+PASS: timeline remains permanently above preview/results and uses reduced vertical height.
+PASS: critical tachograph controls remain mapped and inside the window at 900x600.
+PASS: critical tachograph controls remain mapped and inside the window at 1024x700.
+PASS: critical tachograph controls remain mapped and inside the window at 1200x760.
+PASS: full application smoke test passes at 900x600 and 1024x700.
+PASS: database schema unchanged.
+PASS: tachograph recognition algorithm unchanged.
+
+Critical tachograph controls checked: Import scan, Recognize disc, Open scan, Recognize all, Delete test, Refresh, Save metadata, Fit, 100%, Open large window, Expand preview, Summary statistics, Control protocols, Save protocol.
