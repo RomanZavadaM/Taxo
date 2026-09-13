@@ -1,5 +1,5 @@
 Taxo / Driver Worktime
-Version: 8.66 candidate r7
+Version: 8.66 candidate r8
 Candidate date: 2026-09-13
 Stable published baseline: 8.65
 
@@ -13,3 +13,5 @@ Personnel r5: scrollable driver card and employment-date filtering in daily/mont
 Distribution: intermediate versions use START.bat; Windows/macOS executables are published together every fifth product version (next: v8.70).
 
 The tachograph recognition algorithm is intentionally unchanged in this candidate.
+
+Monthly schedule r8: responsive two-row controls; opens on the month from the current schedule date; Refresh invalidates stale PDFs; Open schedule PDF regenerates the current month when needed.

@@ -1,0 +1,179 @@
+--- a/main.py
++++ b/main.py
+@@ -4201,7 +4201,7 @@
+         help_menu.add_command(
+             label="Про програму",
+             command=lambda: messagebox.showinfo(
+-                "Taxo v8.66 candidate r7",
++                "Taxo v8.66 candidate r8",
+                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
+                 "Кандидат інтерфейсу на базі стабільної v8.65.\n"
+                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
+@@ -5446,9 +5446,26 @@
+         self.schedule_driver_rows=[]
+         self.after(100,self.refresh_schedule)
+ 
++    def _monthly_shift_source_date(self):
++        """Дата, від якої відкриваємо місячний графік змінності."""
++        try:
++            return datetime.strptime(self.schedule_date_var.get().strip(),"%d.%m.%Y").date()
++        except Exception:
++            return date.today()
++
++    def _sync_monthly_shift_period_from_schedule(self):
++        d=self._monthly_shift_source_date()
++        if hasattr(self,"monthly_shift_year"):
++            self.monthly_shift_year.set(d.year)
++        if hasattr(self,"monthly_shift_month"):
++            self.monthly_shift_month.set(d.month)
++        if hasattr(self,"monthly_shift_pdf_dirty"):
++            self.monthly_shift_pdf_dirty=True
++
+     def show_monthly_shift_schedule(self):
+         """Місячний графік змінності по всіх активних водіях."""
+         if hasattr(self,"monthly_shift_win") and self.monthly_shift_win.winfo_exists():
++            self._sync_monthly_shift_period_from_schedule()
+             self.monthly_shift_win.lift()
+             self.refresh_monthly_shift_schedule()
+             return
+@@ -5460,51 +5477,54 @@
+ 
+         top=ttk.Frame(win,padding=8)
+         top.pack(fill="x")
+-
+-        today=date.today()
+-        self.monthly_shift_year=tk.IntVar(
+-            value=int(self.year_var.get()) if hasattr(self,"year_var") else today.year
+-        )
+-        self.monthly_shift_month=tk.IntVar(
+-            value=int(self.month_var.get()) if hasattr(self,"month_var") else today.month
+-        )
++        filters=ttk.Frame(top)
++        filters.pack(fill="x")
++        exports=ttk.Frame(top)
++        exports.pack(fill="x",pady=(6,0))
++
++        source_date=self._monthly_shift_source_date()
++        self.monthly_shift_year=tk.IntVar(value=source_date.year)
++        self.monthly_shift_month=tk.IntVar(value=source_date.month)
+         self.monthly_shift_active_only=tk.BooleanVar(value=True)
+         self.monthly_shift_last_pdf=None
++        self.monthly_shift_last_pdf_key=None
++        self.monthly_shift_pdf_dirty=True
+         self.monthly_shift_last_detail_pdf=None
+         self.monthly_shift_last_xlsx=None
+ 
+-        ttk.Label(top,text="Рік:").pack(side="left")
++        ttk.Label(filters,text="Рік:").pack(side="left")
+         ttk.Spinbox(
+-            top,from_=2020,to=2100,textvariable=self.monthly_shift_year,width=7,
++            filters,from_=2020,to=2100,textvariable=self.monthly_shift_year,width=7,
+             command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=(3,8))
+ 
+-        ttk.Label(top,text="Місяць:").pack(side="left")
++        ttk.Label(filters,text="Місяць:").pack(side="left")
+         ttk.Spinbox(
+-            top,from_=1,to=12,textvariable=self.monthly_shift_month,width=4,
++            filters,from_=1,to=12,textvariable=self.monthly_shift_month,width=4,
+             command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=(3,8))
+ 
+         ttk.Checkbutton(
+-            top,text="Тільки активні водії",
++            filters,text="Тільки активні водії",
+             variable=self.monthly_shift_active_only,
+             command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=(4,10))
+ 
+         ttk.Button(
+-            top,text="Оновити",command=self.refresh_monthly_shift_schedule
++            filters,text="Оновити",command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=3)
++
+         ttk.Button(
+-            top,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
+-        ).pack(side="left",padx=(12,3))
++            exports,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
++        ).pack(side="left",padx=(0,3))
+         ttk.Button(
+-            top,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
++            exports,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
+         ).pack(side="left",padx=3)
+         ttk.Button(
+-            top,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
++            exports,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
+         ).pack(side="left",padx=3)
+         ttk.Button(
+-            top,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
++            exports,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
+         ).pack(side="left",padx=3)
+ 
+         ttk.Label(
+@@ -5619,6 +5639,10 @@
+             f"Робота, план: {minutes_hhmm(total_work_min)}    "
+             f"Керування, план: {minutes_hhmm(total_drive_min)}"
+         )
++        # Матриця могла змінитися після редагування табеля/графіка або просто
++        # після натискання «Оновити». Старий PDF більше не вважаємо актуальним.
++        if hasattr(self,"monthly_shift_pdf_dirty"):
++            self.monthly_shift_pdf_dirty=True
+ 
+     def save_monthly_shift_schedule_xlsx(self):
+         y=int(self.monthly_shift_year.get())
+@@ -5690,6 +5714,13 @@
+         m=int(self.monthly_shift_month.get())
+         return OUTPUT_DIR / f"Графік_змінності_{y}_{m:02d}.pdf"
+ 
++    def _monthly_shift_pdf_key(self):
++        return (
++            int(self.monthly_shift_year.get()),
++            int(self.monthly_shift_month.get()),
++            bool(self.monthly_shift_active_only.get()),
++        )
++
+     def save_monthly_shift_schedule_pdf(self):
+         y=int(self.monthly_shift_year.get())
+         m=int(self.monthly_shift_month.get())
+@@ -5714,16 +5745,24 @@
+         )
+         if actual is None:
+             return
+-        self.monthly_shift_last_pdf=actual
++        self.monthly_shift_last_pdf=Path(actual)
++        self.monthly_shift_last_pdf_key=self._monthly_shift_pdf_key()
++        self.monthly_shift_pdf_dirty=False
+         messagebox.showinfo("Графік змінності",f"PDF створено:\n{actual}",parent=self.monthly_shift_win)
+ 
+     def open_monthly_shift_schedule_pdf(self):
+         y=int(self.monthly_shift_year.get())
+         m=int(self.monthly_shift_month.get())
+-        path=self.monthly_shift_last_pdf or self._monthly_shift_default_pdf()
+-        path=Path(path)
++        key=self._monthly_shift_pdf_key()
++        use_last=(
++            self.monthly_shift_last_pdf is not None
++            and self.monthly_shift_last_pdf_key==key
++            and not self.monthly_shift_pdf_dirty
++            and Path(self.monthly_shift_last_pdf).exists()
++        )
++        path=Path(self.monthly_shift_last_pdf) if use_last else self._monthly_shift_default_pdf()
+         try:
+-            if not path.exists():
++            if not use_last:
+                 actual=write_output_file(
+                     lambda out: export_monthly_shift_schedule_pdf(
+                         y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+@@ -5735,8 +5774,10 @@
+                 )
+                 if actual is None:
+                     return
+-                path=actual
+-            self.monthly_shift_last_pdf=Path(path)
++                path=Path(actual)
++                self.monthly_shift_last_pdf=path
++                self.monthly_shift_last_pdf_key=key
++                self.monthly_shift_pdf_dirty=False
+             open_external(path)
+         except Exception as e:
+             messagebox.showerror(
