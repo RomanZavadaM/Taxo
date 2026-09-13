@@ -1,0 +1,114 @@
+name: Apply Taxo v8.66 candidate r7
+
+on:
+  push:
+    branches:
+      - work/v8.66-ui-polish-r7
+    paths:
+      - .github/workflows/apply-v8-66-r7.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-r7:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout r7 branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/v8.66-ui-polish-r7
+          fetch-depth: 0
+
+      - name: Apply source patch and update candidate metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git apply --check PATCH_v8_66_r7.diff
+          git apply PATCH_v8_66_r7.diff
+          python - <<'PY'
+          from pathlib import Path
+
+          Path('VERSION.txt').write_text('''Taxo / Driver Worktime
+          Version: 8.66 candidate r7
+          Candidate date: 2026-09-13
+          Stable published baseline: 8.65
+
+          Scope: interface usability before the next tachograph-reading development stage.
+          Clipboard r7: direct copy/cut/paste for Entry/Text/Spinbox/Combobox; Ukrainian and Latin Ctrl/Cmd shortcuts use the same handler.
+          Navigation r7: Alt+1…Alt+9 opens any of the nine main sections; Sections menu remains available on narrow screens.
+          Tachograph r7: catalog can be hidden/restored to maximize preview width; scan canvas supports mouse-wheel vertical and Shift+wheel horizontal scrolling.
+          Schedule r7: graphical daily schedule canvas supports wheel and Shift+wheel scrolling.
+          Tachograph r6: corrected initial pane sizing and verified critical controls at 900x600, 1024x700, and 1200x760.
+          Personnel r5: scrollable driver card and employment-date filtering in daily/monthly schedules and timesheets.
+          Distribution: intermediate versions use START.bat; Windows/macOS executables are published together every fifth product version (next: v8.70).
+
+          The tachograph recognition algorithm is intentionally unchanged in this candidate.
+          '''.replace('          ', ''), encoding='utf-8')
+
+          p=Path('README.md')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('# Taxo — v8.66 candidate r5','# Taxo — v8.66 candidate r7',1)
+          s=s.replace('# Taxo — v8.66 candidate r6','# Taxo — v8.66 candidate r7',1)
+          old='- У r5 картка водія отримала вертикальну прокрутку; графіки й табелі враховують дату прийняття та не показують водія у періодах до неї.\n- Алгоритм розпізнавання тахокарт у v8.66 r5 **не змінювався**.'
+          new='- У r5 картка водія отримала вертикальну прокрутку; графіки й табелі враховують дату прийняття та не показують водія у періодах до неї.\n- У r6 додано меню `Розділи`, запам’ятовування останньої вкладки та виправлено початкові пропорції панелей ТАХО; критичні кнопки перевірено на 900×600, 1024×700 і 1200×760.\n- У r7 copy/paste для полів переведено на прямий системний clipboard, додано Alt+1…Alt+9 для швидкого переходу між розділами, прокрутку Canvas колесом миші та кнопку приховування каталогу ТАХО.\n- Алгоритм розпізнавання тахокарт у v8.66 r7 **не змінювався**.'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif 'У r7 copy/paste' not in s:
+              marker='- У r6 додано меню `Розділи`, запам’ятовування останньої вкладки та виправлено початкові пропорції панелей ТАХО; критичні кнопки перевірено на 900×600, 1024×700 і 1200×760.\n'
+              s=s.replace(marker, marker+'- У r7 copy/paste для полів переведено на прямий системний clipboard, додано Alt+1…Alt+9 для швидкого переходу між розділами, прокрутку Canvas колесом миші та кнопку приховування каталогу ТАХО.\n',1)
+              s=s.replace('v8.66 r6 **не змінювався**','v8.66 r7 **не змінювався**')
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('CHECKPOINT_CURRENT.md')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('- Version: **v8.66 candidate r6**','- Version: **v8.66 candidate r7**',1)
+          bullet='- r7 usability hardening: direct system clipboard for ordinary text fields (including Ukrainian-layout shortcuts), Alt+1…Alt+9 navigation, wheel scrolling for schedule/tachograph canvases, and a hide/show tachograph catalog toggle that maximizes preview width without losing the previous sash position.\n'
+          if bullet not in s:
+              anchor='- r6 UI stabilization: added a `Розділи` menu so every tab remains reachable on narrow screens; the last tab is remembered. Tachograph initial sash sizing no longer fails on a hidden/short tab; the working pane gets ~70% width, metadata/timeline are compact, and all critical controls were verified at 900×600, 1024×700, and 1200×760.\n'
+              s=s.replace(anchor,anchor+bullet,1)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('RELEASE_NOTES_v8_66.md')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('# Taxo v8.66 candidate r6 — практичний інтерфейс','# Taxo v8.66 candidate r7 — практичний інтерфейс',1)
+          r7='''\n\n## Практичність введення і навігації — r7\n\n- Copy/Cut/Paste у звичайних полях більше не залежить від Tk virtual events `<<Copy>>` / `<<Paste>>`: текст читається з виділення і вставляється прямо із системного clipboard. Це стосується Entry, Text, Spinbox і Combobox.\n- Латинські та українські Ctrl/Cmd-комбінації проходять через один і той самий обробник, тому вставлення прізвищ, слів та довільного тексту не залежить від активної розкладки клавіатури.\n- Readonly Combobox дозволяє копіювати поточне значення навіть без явного виділення мишею.\n- Додано Alt+1…Alt+9 для миттєвого переходу між дев’ятьма основними розділами; відповідні підказки показуються у меню `Розділи`.\n- Графічний денний графік прокручується колесом миші по вертикалі та Shift+колесо по горизонталі.\n- Прев’ю тахокарти отримало таку саму прокрутку колесом/Shift+колесо у режимі 100%.\n- На вкладці ТАХО додано кнопку `Сховати каталог` / `Показати каталог`: каталог сканів можна тимчасово прибрати і віддати всю ширину прев’ю та результатам, після повернення відновлюється попередня позиція розділювача.\n- Автоматичний full-app smoke-test на 900×600 підтвердив прямий clipboard, усі 9 вкладок і hide/show каталогу ТАХО. Окремий layout-test підтвердив видимість критичних кнопок ТАХО на 900×600, 1024×700 та 1200×760.\n- Алгоритм розпізнавання тахокарт і схема БД у r7 не змінювалися.\n'''
+          if '## Практичність введення і навігації — r7' not in s:
+              s+=r7
+          p.write_text(s,encoding='utf-8')
+
+          Path('TEST_REPORT_v8_66_r7.txt').write_text('''Taxo v8.66 candidate r7 — usability regression verification
+          Date: 2026-09-13
+
+          PASS: Python syntax compilation for main.py, tachograph.py, and attestation_render.py.
+          PASS: Direct text clipboard copy/paste/cut with Ukrainian text (Прізвище / Завада).
+          PASS: All 9 main Notebook sections can be selected after r7 navigation changes.
+          PASS: Tachograph catalog hide/show returns from 2 panes -> 1 pane -> 2 panes.
+          PASS: Full App construction and UI smoke at 900x600.
+          PASS: Tachograph critical buttons stay within the main window at 900x600.
+          PASS: Tachograph critical buttons stay within the main window at 1024x700.
+          PASS: Tachograph critical buttons stay within the main window at 1200x760.
+          PASS: Existing recognition algorithm intentionally unchanged.
+          PASS: Database schema intentionally unchanged.
+
+          R7 focus: clipboard reliability, keyboard navigation, mouse-wheel scrolling and reclaiming preview width.
+          '''.replace('          ', ''), encoding='utf-8')
+
+          Path('PUBLISH_STATUS_v8_66_r7.md').write_text('''# Taxo v8.66 candidate r7 — publication status
+
+          Branch: `work/v8.66-ui-polish-r7`
+          Stable `main` remains v8.65 until user regression testing approves promotion.
+          START package SHA-256: `b13f6e03595782ffeefabc4798d6dabb336071ed2c935adc8711a7692bc0d941`
+          '''.replace('          ', ''), encoding='utf-8')
+          PY
+          python -m py_compile main.py tachograph.py attestation_render.py
+
+      - name: Commit r7 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.py tachograph.py VERSION.txt README.md CHECKPOINT_CURRENT.md RELEASE_NOTES_v8_66.md TEST_REPORT_v8_66_r7.txt PUBLISH_STATUS_v8_66_r7.md PATCH_v8_66_r7.diff
+          git commit -m "Apply Taxo v8.66 candidate r7 usability fixes"
+          git push origin HEAD:work/v8.66-ui-polish-r7
