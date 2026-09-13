@@ -4082,7 +4082,7 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.66 candidate r3",
+                "Taxo v8.66 candidate r4",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
                 "Кандидат інтерфейсу на базі стабільної v8.65.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",

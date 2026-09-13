@@ -188,12 +188,23 @@ class UiInfrastructureTests(unittest.TestCase):
         self.assertIn("runner: macos-15\n            arch: arm64", workflow)
         self.assertIn("runner: macos-15-intel\n            arch: x86_64", workflow)
 
-    def test_windows_r3_candidate_build_is_available_for_preview_check(self):
+    def test_windows_r4_candidate_build_is_available_for_preview_check(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/build-windows-v8.66.yml").read_text(encoding="utf-8")
-        self.assertIn("Taxo_v8_66_TEST_r3_Windows_x64_Portable.zip", workflow)
+        self.assertIn("Taxo_v8_66_TEST_r4_Windows_x64_Portable.zip", workflow)
         self.assertIn("python -m unittest discover -s tests -v", workflow)
         self.assertIn("Database unexpectedly bundled", workflow)
+
+    def test_portable_archives_have_unique_versioned_top_level_folders(self):
+        root = Path(__file__).resolve().parents[1]
+        windows = (root / ".github/workflows/build-windows-v8.66.yml").read_text(encoding="utf-8")
+        macos = (root / ".github/workflows/build-macos-v8.66.yml").read_text(encoding="utf-8")
+        installer = (root / "installer/Taxo.iss").read_text(encoding="utf-8")
+        self.assertIn("dist/Taxo_v8_66_TEST_r4_Windows_x64", windows)
+        self.assertIn("Compress-Archive -Path $bundle", windows)
+        self.assertIn('bundle_dir="Taxo_v8_66_TEST_r4_macOS_${{ matrix.arch }}"', macos)
+        self.assertIn('keepParent "${bundle_dir}"', macos)
+        self.assertIn("dist\\Taxo_v8_66_TEST_r4_Windows_x64\\*", installer)
 
 
 if __name__ == "__main__":
