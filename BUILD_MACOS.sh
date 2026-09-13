@@ -18,7 +18,7 @@ taxo_venv="${TAXO_MACOS_VENV:-.venv-macos}"
 taxo_app="dist/Taxo.app"
 taxo_executable="${taxo_app}/Contents/MacOS/Taxo"
 taxo_arch="$(uname -m)"
-taxo_zip="Taxo_v8_66_TEST_r2_macOS_${taxo_arch}_Portable.zip"
+taxo_zip="Taxo_v8_66_TEST_r3_macOS_${taxo_arch}_Portable.zip"
 
 [[ -x "${taxo_executable}" ]] || { echo "Не знайдено ${taxo_executable}" >&2; exit 1; }
 find "${taxo_app}" -name 'Бланк підтвердження.docx' -print -quit | grep -q .
@@ -30,7 +30,7 @@ fi
 
 codesign --verify --deep --strict "${taxo_app}"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${taxo_app}" "${taxo_zip}"
-taxo_sums="SHA256SUMS_v8_66_TEST_r2_macOS_${taxo_arch}.txt"
+taxo_sums="SHA256SUMS_v8_66_TEST_r3_macOS_${taxo_arch}.txt"
 shasum -a 256 "${taxo_zip}" > "${taxo_sums}"
 
 echo "Готово: ${taxo_zip}"

@@ -131,7 +131,20 @@ class UiInfrastructureTests(unittest.TestCase):
         self.assertIn('text="Перегляд тахокарти — подвійний клік відкриває велике вікно"', source)
         self.assertIn('text="Вмістити"', source)
         self.assertIn('text="100%"', source)
+        self.assertIn('text="Збільшити перегляд"', source)
         self.assertIn('body.bind("<Map>"', source)
+
+    def test_full_scan_window_starts_fitted_and_keeps_actual_size_mode(self):
+        source = inspect.getsource(tachograph.TachographModule.open_scan)
+        self.assertIn('view_mode=tk.StringVar(value="fit")', source)
+        self.assertIn('text="Вмістити повністю"', source)
+        self.assertIn('text="100%"', source)
+        self.assertIn('canvas.bind("<Configure>",schedule_render)', source)
+
+    def test_preview_can_expand_without_closing_recognition_results(self):
+        source = inspect.getsource(tachograph.TachographModule.toggle_preview_space)
+        self.assertIn('text="Показати результати"', source)
+        self.assertIn('self.detail_paned.sashpos(0,desired)', source)
 
     def test_large_tachograph_scan_fits_preview_without_enlarging(self):
         width,height,scale=tachograph.preview_dimensions(4000,3000,820,520,fit=True)
@@ -175,10 +188,10 @@ class UiInfrastructureTests(unittest.TestCase):
         self.assertIn("runner: macos-15\n            arch: arm64", workflow)
         self.assertIn("runner: macos-15-intel\n            arch: x86_64", workflow)
 
-    def test_windows_r2_candidate_build_is_available_for_preview_check(self):
+    def test_windows_r3_candidate_build_is_available_for_preview_check(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/build-windows-v8.66.yml").read_text(encoding="utf-8")
-        self.assertIn("Taxo_v8_66_TEST_r2_Windows_x64_Portable.zip", workflow)
+        self.assertIn("Taxo_v8_66_TEST_r3_Windows_x64_Portable.zip", workflow)
         self.assertIn("python -m unittest discover -s tests -v", workflow)
         self.assertIn("Database unexpectedly bundled", workflow)
 

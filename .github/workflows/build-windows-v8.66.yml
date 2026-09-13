@@ -1,4 +1,4 @@
-name: Build Taxo v8.66 Windows candidate r2
+name: Build Taxo v8.66 Windows candidate r3
 
 on:
   workflow_dispatch:
@@ -77,18 +77,18 @@ jobs:
       - name: Create portable ZIP and checksum
         shell: pwsh
         run: |
-          $zip = 'Taxo_v8_66_TEST_r2_Windows_x64_Portable.zip'
+          $zip = 'Taxo_v8_66_TEST_r3_Windows_x64_Portable.zip'
           Compress-Archive -Path 'dist/Taxo' -DestinationPath $zip -Force
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  $zip" | Set-Content -Encoding ascii 'SHA256SUMS_v8_66_TEST_r2_Windows_x64.txt'
-          Get-Content 'SHA256SUMS_v8_66_TEST_r2_Windows_x64.txt'
+          "$hash  $zip" | Set-Content -Encoding ascii 'SHA256SUMS_v8_66_TEST_r3_Windows_x64.txt'
+          Get-Content 'SHA256SUMS_v8_66_TEST_r3_Windows_x64.txt'
 
       - name: Upload Windows candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v8.66-Windows-x64-candidate-r2
+          name: Taxo-v8.66-Windows-x64-candidate-r3
           path: |
-            Taxo_v8_66_TEST_r2_Windows_x64_Portable.zip
-            SHA256SUMS_v8_66_TEST_r2_Windows_x64.txt
+            Taxo_v8_66_TEST_r3_Windows_x64_Portable.zip
+            SHA256SUMS_v8_66_TEST_r3_Windows_x64.txt
           if-no-files-found: error
           retention-days: 30

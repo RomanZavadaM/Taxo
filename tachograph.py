@@ -251,6 +251,7 @@ class TachographModule:
         self.photo=None
         self.preview_image=None
         self.preview_zoom_mode="fit"
+        self.preview_expanded=False
         self._preview_resize_after=None
         init_tacho_db()
         self.build()
@@ -346,6 +347,10 @@ class TachographModule:
         ttk.Button(
             preview_bar,text="Відкрити велике вікно",command=self.open_scan
         ).pack(side="left",padx=2)
+        self.preview_space_button=ttk.Button(
+            preview_bar,text="Збільшити перегляд",command=self.toggle_preview_space
+        )
+        self.preview_space_button.pack(side="left",padx=2)
         self.preview_status=tk.StringVar(value="Оберіть скан")
         ttk.Label(preview_bar,textvariable=self.preview_status,foreground="gray").pack(
             side="left",padx=(12,2)
@@ -417,9 +422,10 @@ class TachographModule:
                 pan.sashpos(0,max(240,min(340,int(pan.winfo_width()*0.30))))
                 body.update_idletasks()
                 total=body.winfo_height()
-                # Гарантуємо видиму область і для скану, і для інтервалів.
-                desired=max(170,int(total*0.62))
-                desired=min(desired,max(120,total-130))
+                # На невисокому екрані залишаємо видимими кнопки результатів,
+                # але віддаємо прев'ю достатньо місця для читабельної мініатюри.
+                desired=max(160,int(total*0.70))
+                desired=min(desired,max(120,total-95))
                 body.sashpos(0,desired)
             except tk.TclError:
                 pass
@@ -492,6 +498,25 @@ class TachographModule:
         self.preview_zoom_mode="actual" if mode=="actual" else "fit"
         self._render_image_preview()
 
+    def toggle_preview_space(self):
+        """Temporarily maximize the scan pane without losing result controls."""
+        try:
+            total=self.detail_paned.winfo_height()
+            if total<160:
+                return
+            if self.preview_expanded:
+                desired=max(160,min(int(total*0.70),max(120,total-95)))
+                self.preview_expanded=False
+                self.preview_space_button.configure(text="Збільшити перегляд")
+            else:
+                desired=max(160,total-48)
+                self.preview_expanded=True
+                self.preview_space_button.configure(text="Показати результати")
+            self.detail_paned.sashpos(0,desired)
+            self.parent.after_idle(self._render_image_preview)
+        except tk.TclError:
+            pass
+
     def _render_image_preview(self):
         self._preview_resize_after=None
         if self.preview_image is None:
@@ -511,8 +536,10 @@ class TachographModule:
             shown=shown.resize((width,height),Image.Resampling.LANCZOS)
         self.photo=ImageTk.PhotoImage(shown)
         self.image_canvas.delete("all")
-        self.image_canvas.create_image(0,0,anchor="nw",image=self.photo)
-        self.image_canvas.configure(scrollregion=(0,0,width,height))
+        x=0 if not fit else max(0,(canvas_width-width)//2)
+        y=0 if not fit else max(0,(canvas_height-height)//2)
+        self.image_canvas.create_image(x,y,anchor="nw",image=self.photo)
+        self.image_canvas.configure(scrollregion=(0,0,max(width,canvas_width),max(height,canvas_height)))
         self.image_canvas.xview_moveto(0)
         self.image_canvas.yview_moveto(0)
         self.preview_status.set(
@@ -864,8 +891,14 @@ class TachographModule:
             win.title(f"Скан шайби — {r['scan_name']} №{r['disc_no']}")
             fit_window_to_screen(win,1000,800,700,500)
             win.transient(self.parent)
-            outer=ttk.Frame(win); outer.pack(fill="both",expand=True,padx=8,pady=8)
-            canvas=tk.Canvas(outer,background="white")
+            toolbar=ttk.Frame(win)
+            toolbar.pack(fill="x",padx=8,pady=(8,2))
+            view_mode=tk.StringVar(value="fit")
+            view_status=tk.StringVar(value="Завантаження…")
+
+            outer=ttk.Frame(win)
+            outer.pack(fill="both",expand=True,padx=8,pady=(2,6))
+            canvas=tk.Canvas(outer,background="white",highlightthickness=1)
             vs=ttk.Scrollbar(outer,orient="vertical",command=canvas.yview)
             hs=ttk.Scrollbar(outer,orient="horizontal",command=canvas.xview)
             canvas.configure(yscrollcommand=vs.set,xscrollcommand=hs.set)
@@ -874,11 +907,48 @@ class TachographModule:
             draw=ImageDraw.Draw(im)
             if r["cx"] and r["radius"]:
                 draw.ellipse((r["cx"]-r["radius"],r["cy"]-r["radius"],r["cx"]+r["radius"],r["cy"]+r["radius"]),outline=(220,30,30),width=max(3,int(r["radius"]*0.01)))
-            photo=ImageTk.PhotoImage(im)
-            canvas.create_image(0,0,anchor="nw",image=photo)
-            canvas.configure(scrollregion=(0,0,im.width,im.height))
-            canvas.image=photo
+            render_after={"id":None}
+
+            def render():
+                render_after["id"]=None
+                fit=view_mode.get()=="fit"
+                cw=max(120,canvas.winfo_width())
+                ch=max(100,canvas.winfo_height())
+                width,height,scale=preview_dimensions(im.width,im.height,cw,ch,fit=fit)
+                shown=im if (width,height)==(im.width,im.height) else im.resize(
+                    (width,height),Image.Resampling.LANCZOS
+                )
+                photo=ImageTk.PhotoImage(shown)
+                canvas.delete("all")
+                x=0 if not fit else max(0,(cw-width)//2)
+                y=0 if not fit else max(0,(ch-height)//2)
+                canvas.create_image(x,y,anchor="nw",image=photo)
+                canvas.configure(scrollregion=(0,0,max(width,cw),max(height,ch)))
+                canvas.xview_moveto(0); canvas.yview_moveto(0)
+                canvas.image=photo
+                view_status.set(
+                    "100% — використовуйте прокрутку" if not fit
+                    else f"Вміщено повністю — {round(scale*100)}%"
+                )
+
+            def schedule_render(_event=None):
+                if view_mode.get()!="fit":
+                    return
+                if render_after["id"] is not None:
+                    try:win.after_cancel(render_after["id"])
+                    except tk.TclError:pass
+                render_after["id"]=win.after(100,render)
+
+            def set_mode(mode):
+                view_mode.set(mode)
+                render()
+
+            ttk.Button(toolbar,text="Вмістити повністю",command=lambda:set_mode("fit")).pack(side="left",padx=2)
+            ttk.Button(toolbar,text="100%",command=lambda:set_mode("actual")).pack(side="left",padx=2)
+            ttk.Label(toolbar,textvariable=view_status,foreground="gray").pack(side="left",padx=(12,2))
+            canvas.bind("<Configure>",schedule_render)
             ttk.Button(win,text="Закрити",command=win.destroy).pack(pady=(0,6))
+            win.after_idle(render)
         except Exception as e:
             messagebox.showerror("Скан",str(e),parent=self.parent)
 

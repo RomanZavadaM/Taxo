@@ -1,4 +1,4 @@
-name: Build Taxo v8.66 macOS candidate r2
+name: Build Taxo v8.66 macOS candidate r3
 
 on:
   workflow_dispatch:
@@ -84,17 +84,17 @@ jobs:
       - name: Create portable ZIP and checksum
         shell: bash
         run: |
-          zip_name="Taxo_v8_66_TEST_r2_macOS_${{ matrix.arch }}_Portable.zip"
+          zip_name="Taxo_v8_66_TEST_r3_macOS_${{ matrix.arch }}_Portable.zip"
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent 'dist/Taxo.app' "${zip_name}"
-          shasum -a 256 "${zip_name}" > "SHA256SUMS_v8_66_TEST_r2_macOS_${{ matrix.arch }}.txt"
-          cat "SHA256SUMS_v8_66_TEST_r2_macOS_${{ matrix.arch }}.txt"
+          shasum -a 256 "${zip_name}" > "SHA256SUMS_v8_66_TEST_r3_macOS_${{ matrix.arch }}.txt"
+          cat "SHA256SUMS_v8_66_TEST_r3_macOS_${{ matrix.arch }}.txt"
 
       - name: Upload macOS candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v8.66-macOS-${{ matrix.arch }}-candidate-r2
+          name: Taxo-v8.66-macOS-${{ matrix.arch }}-candidate-r3
           path: |
-            Taxo_v8_66_TEST_r2_macOS_${{ matrix.arch }}_Portable.zip
-            SHA256SUMS_v8_66_TEST_r2_macOS_${{ matrix.arch }}.txt
+            Taxo_v8_66_TEST_r3_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v8_66_TEST_r3_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30

@@ -3,12 +3,12 @@
 Date: 2026-09-13
 
 ## Current candidate
-- Version: **v8.66 candidate r2**
+- Version: **v8.66 candidate r3**
 - Base: stable v8.65, GitHub `main` commit `f9101c1a41d7c036bade5ce66989171399189d4b`.
 - Scope: UI usability only; tachograph recognition logic is postponed and unchanged.
 - Main fixes: reliable clipboard actions, visible multi-row toolbars, screen-fitted windows, restored application menu, permanently visible tachograph day timeline and statistics button.
 - macOS work branch: `work/v8.66-macos-executable`; native `Taxo.app` candidates for Apple Silicon and Intel, built separately from the Windows package.
-- r2 tachograph preview fix: the image pane is sized only after the tab is mapped; full scan fits initially, with explicit Fit / 100% / full-window controls.
+- r3 tachograph preview fix: more default height, centered image, expandable preview pane, and a separate scan window that starts fitted with its own Fit / 100% controls.
 
 ## Stable release
 - Version: **v8.65**
