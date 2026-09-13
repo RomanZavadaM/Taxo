@@ -1,0 +1,56 @@
+name: Finalize Taxo v8.66 r8 docs
+
+on:
+  push:
+    branches:
+      - work/v8.66-ui-polish-r8
+    paths:
+      - .github/workflows/finalize-v8-66-r8-docs.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v8.66-ui-polish-r8
+          fetch-depth: 0
+
+      - name: Sync README and release notes to r8
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('README.md')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('# Taxo — v8.66 candidate r7', '# Taxo — v8.66 candidate r8', 1)
+          old = '- Алгоритм розпізнавання тахокарт у v8.66 r7 **не змінювався**.'
+          new = '- У r8 виправлено місячний графік змінності: панель керування розбито на два рядки, місяць/рік синхронізуються з поточною датою графіка, а `Відкрити графік PDF` більше не відкриває застарілий файл після `Оновити`.\n- Алгоритм розпізнавання тахокарт у v8.66 r8 **не змінювався**.'
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8')
+
+          p = Path('RELEASE_NOTES_v8_66.md')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('# Taxo v8.66 candidate r7 — практичний інтерфейс', '# Taxo v8.66 candidate r8 — практичний інтерфейс', 1)
+          if '## Місячний графік змінності — r8' not in s:
+              s = s.rstrip() + '''\n\n## Місячний графік змінності — r8\n\n- Верхню панель місячного графіка розділено на два рядки, щоб усі кнопки залишались доступними на екранах 900×600, 1024×700 і 1200×760.\n- Вікно місячного графіка тепер відкривається на місяці та році, що відповідають поточній даті на вкладці `Графік водіїв`; повторне відкриття вже створеного вікна повторно синхронізує дату.\n- `Оновити` позначає попередньо сформований PDF графіка як застарілий.\n- `Відкрити графік PDF` перевіряє актуальність і, за потреби, спочатку формує PDF для поточного вибраного місяця, а вже потім відкриває його.\n- Regression-test підтвердив видимість кнопок та правильну синхронізацію для дати `13.09.2026` → вересень 2026.\n- Алгоритм розпізнавання тахокарт і схема БД у r8 не змінювалися.\n'''
+          p.write_text(s, encoding='utf-8')
+          PY
+          python -m py_compile main.py tachograph.py attestation_render.py
+
+      - name: Commit documentation sync
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md RELEASE_NOTES_v8_66.md
+          if git diff --cached --quiet; then
+            echo "No documentation changes"
+          else
+            git commit -m "Finalize Taxo v8.66 r8 documentation"
+            git push origin HEAD:work/v8.66-ui-polish-r8
+          fi
