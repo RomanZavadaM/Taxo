@@ -1,0 +1,91 @@
+name: Publish Taxo v8.66 r8 final START archive
+
+on:
+  push:
+    branches:
+      - work/v8.66-ui-polish-r8
+    paths:
+      - .github/workflows/publish-v8-66-r8-final-archive.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish-archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v8.66-ui-polish-r8
+          fetch-depth: 0
+
+      - name: Build clean r8 START archive
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile, hashlib
+
+          files = [
+              '#U0411#U043b#U0430#U043d#U043a #U043f#U0456#U0434#U0442#U0432#U0435#U0440#U0434#U0436#U0435#U043d#U043d#U044f.docx',
+              'CHECKPOINT_CURRENT.md',
+              'CHECKPOINT_v8_66_r8.md',
+              'PATCH_v8_66_r8.diff',
+              'PUBLISH_STATUS_v8_66_r8.md',
+              'README.md',
+              'RELEASE_NOTES_v8_66.md',
+              'START.bat',
+              'TEST_REPORT_v8_66_r8.txt',
+              'VERSION.txt',
+              'attestation_render.py',
+              'attestation_visual_template.pdf',
+              'main.py',
+              'requirements.txt',
+              'tachograph.py',
+          ]
+          for name in files:
+              p=Path(name)
+              if not p.is_file():
+                  raise SystemExit(f'Missing required file: {name}')
+              low=name.lower()
+              if low.endswith(('.db','.sqlite','.sqlite3')):
+                  raise SystemExit(f'Database file forbidden in package: {name}')
+
+          outdir=Path('candidate_artifacts/v8.66-r8')
+          outdir.mkdir(parents=True, exist_ok=True)
+          out=outdir/'Taxo_v8_66_TEST_r8_FINAL_START.zip'
+          fixed=(2026,9,13,20,15,0)
+          prefix='Taxo_v8_66_TEST_r8_FINAL_START/'
+          with zipfile.ZipFile(out,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+              zi=zipfile.ZipInfo(prefix,fixed)
+              zi.external_attr=(0o40755 << 16) | 0x10
+              zi.create_system=3
+              z.writestr(zi,b'')
+              for name in sorted(files,key=str.casefold):
+                  zi=zipfile.ZipInfo(prefix+name,fixed)
+                  zi.compress_type=zipfile.ZIP_DEFLATED
+                  zi.external_attr=(0o100644 << 16)
+                  zi.create_system=3
+                  z.writestr(zi,Path(name).read_bytes(),compress_type=zipfile.ZIP_DEFLATED,compresslevel=9)
+
+          digest=hashlib.sha256(out.read_bytes()).hexdigest()
+          (outdir/'Taxo_v8_66_TEST_r8_FINAL_START.sha256').write_text(
+              f'{digest}  {out.name}\n', encoding='utf-8')
+          (outdir/'MANIFEST.md').write_text(
+              '# Taxo v8.66 candidate r8 — final START artifact\n\n'
+              f'- SHA-256: `{digest}`\n'
+              '- Contains source code, templates, checkpoint, release notes and r8 regression report.\n'
+              '- Contains no SQLite/database files or user data.\n'
+              '- Stable `main` remains v8.65; this artifact belongs to `work/v8.66-ui-polish-r8`.\n',
+              encoding='utf-8')
+          print(digest)
+          PY
+
+      - name: Commit final candidate archive
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add candidate_artifacts/v8.66-r8/
+          git commit -m "Publish Taxo v8.66 r8 final START archive"
+          git push origin HEAD:work/v8.66-ui-polish-r8
