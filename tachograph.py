@@ -259,13 +259,16 @@ class TachographModule:
 
     def build(self):
         top=ttk.Frame(self.tab); top.pack(fill="x",padx=10,pady=(8,3))
-        actions=ttk.Frame(top); actions.pack(fill="x")
-        ttk.Button(actions,text="Імпортувати скан",command=self.import_scan).pack(side="left",padx=3)
-        ttk.Button(actions,text="Розпізнати шайбу",command=self.recognize_selected).pack(side="left",padx=3)
-        ttk.Button(actions,text="Розпізнати всі",command=self.recognize_all).pack(side="left",padx=3)
-        ttk.Button(actions,text="Відкрити скан",command=self.open_scan).pack(side="left",padx=3)
-        ttk.Button(actions,text="Видалити тест",command=self.delete_selected).pack(side="left",padx=3)
-        ttk.Button(actions,text="Оновити",command=self.load).pack(side="left",padx=3)
+        # Дві короткі лінійки керування замість одного довгого рядка.
+        # Це лишає всі кнопки доступними на 900–1024 px та при масштабуванні Windows.
+        actions1=ttk.Frame(top); actions1.pack(fill="x")
+        actions2=ttk.Frame(top); actions2.pack(fill="x",pady=(3,0))
+        ttk.Button(actions1,text="Імпортувати скан",command=self.import_scan).pack(side="left",padx=3)
+        ttk.Button(actions1,text="Розпізнати шайбу",command=self.recognize_selected).pack(side="left",padx=3)
+        ttk.Button(actions1,text="Відкрити скан",command=self.open_scan).pack(side="left",padx=3)
+        ttk.Button(actions2,text="Розпізнати всі",command=self.recognize_all).pack(side="left",padx=3)
+        ttk.Button(actions2,text="Видалити тест",command=self.delete_selected).pack(side="left",padx=3)
+        ttk.Button(actions2,text="Оновити",command=self.load).pack(side="left",padx=3)
         ttk.Label(
             top,
             text="КОНТРОЛЬНИЙ режим: тахокарта не змінює графік/табель",
@@ -297,17 +300,20 @@ class TachographModule:
         meta.pack(side="top",fill="x",pady=(0,5))
         meta.pack_propagate(True)
         self.v_driver=tk.StringVar(); self.v_vehicle=tk.StringVar(); self.v_date=tk.StringVar(); self.v_rot=tk.StringVar(value="0")
+        # При штатній ширині правої панелі метадані займають лише два рядки.
+        # Комбобокси можуть стискатися, тому кнопка збереження не зникає.
         ttk.Label(meta,text="Водій").grid(row=0,column=0,sticky="w",padx=6,pady=4)
-        self.driver_cb=ttk.Combobox(meta,textvariable=self.v_driver,state="readonly",width=28)
+        self.driver_cb=ttk.Combobox(meta,textvariable=self.v_driver,state="readonly",width=20)
         self.driver_cb.grid(row=0,column=1,sticky="ew",padx=6,pady=4)
-        ttk.Label(meta,text="Автомобіль").grid(row=0,column=2,sticky="w",padx=(12,6),pady=4)
-        self.vehicle_cb=ttk.Combobox(meta,textvariable=self.v_vehicle,state="readonly",width=28)
-        self.vehicle_cb.grid(row=0,column=3,sticky="ew",padx=6,pady=4)
-        ttk.Label(meta,text="Дата шайби").grid(row=1,column=0,sticky="w",padx=6,pady=4)
-        ttk.Entry(meta,textvariable=self.v_date,width=18).grid(row=1,column=1,sticky="w",padx=6,pady=4)
-        ttk.Label(meta,text="Поворот 0 год, °").grid(row=1,column=2,sticky="w",padx=(12,6),pady=4)
-        ttk.Entry(meta,textvariable=self.v_rot,width=10).grid(row=1,column=3,sticky="w",padx=6,pady=4)
-        ttk.Button(meta,text="Зберегти дані / поворот",command=self.save_meta).grid(row=1,column=4,padx=6,pady=4)
+        ttk.Label(meta,text="Автомобіль").grid(row=0,column=2,sticky="w",padx=(8,4),pady=4)
+        self.vehicle_cb=ttk.Combobox(meta,textvariable=self.v_vehicle,state="readonly",width=20)
+        self.vehicle_cb.grid(row=0,column=3,sticky="ew",padx=4,pady=4)
+        ttk.Label(meta,text="Дата").grid(row=1,column=0,sticky="w",padx=6,pady=4)
+        ttk.Entry(meta,textvariable=self.v_date,width=13).grid(row=1,column=1,sticky="ew",padx=6,pady=4)
+        ttk.Label(meta,text="Поворот, °").grid(row=1,column=2,sticky="e",padx=(8,4),pady=4)
+        rot_wrap=ttk.Frame(meta); rot_wrap.grid(row=1,column=3,sticky="ew",padx=4,pady=4)
+        ttk.Entry(rot_wrap,textvariable=self.v_rot,width=7).pack(side="left")
+        ttk.Button(rot_wrap,text="Зберегти",command=self.save_meta).pack(side="left",padx=(6,0))
         meta.columnconfigure(1,weight=1)
         meta.columnconfigure(3,weight=1)
         self.refresh_catalogs()
@@ -317,7 +323,7 @@ class TachographModule:
         timeline_box=ttk.LabelFrame(right,text="Шкала дня — 24 години")
         timeline_box.pack(side="top",fill="x",pady=(0,5))
         self.timeline_box=timeline_box
-        self.timeline_canvas=tk.Canvas(timeline_box,height=115,background="white",highlightthickness=1)
+        self.timeline_canvas=tk.Canvas(timeline_box,height=78,background="white",highlightthickness=1)
         self.timeline_canvas.pack(fill="x",padx=4,pady=4)
         self.timeline_canvas.bind("<Button-1>",self._timeline_click)
         self.timeline_canvas.bind("<Double-1>",self._timeline_double_click)
@@ -338,22 +344,23 @@ class TachographModule:
 
         preview_bar=ttk.Frame(image_frame)
         preview_bar.pack(fill="x",padx=4,pady=(3,2))
+        preview_controls=ttk.Frame(preview_bar); preview_controls.pack(fill="x")
         ttk.Button(
-            preview_bar,text="Вмістити",command=lambda:self.set_preview_zoom("fit")
+            preview_controls,text="Вмістити",command=lambda:self.set_preview_zoom("fit")
         ).pack(side="left",padx=2)
         ttk.Button(
-            preview_bar,text="100%",command=lambda:self.set_preview_zoom("actual")
+            preview_controls,text="100%",command=lambda:self.set_preview_zoom("actual")
         ).pack(side="left",padx=2)
         ttk.Button(
-            preview_bar,text="Відкрити велике вікно",command=self.open_scan
+            preview_controls,text="Відкрити велике вікно",command=self.open_scan
         ).pack(side="left",padx=2)
         self.preview_space_button=ttk.Button(
-            preview_bar,text="Збільшити перегляд",command=self.toggle_preview_space
+            preview_controls,text="Збільшити перегляд",command=self.toggle_preview_space
         )
         self.preview_space_button.pack(side="left",padx=2)
         self.preview_status=tk.StringVar(value="Оберіть скан")
         ttk.Label(preview_bar,textvariable=self.preview_status,foreground="gray").pack(
-            side="left",padx=(12,2)
+            anchor="w",padx=4,pady=(2,0)
         )
 
         image_wrap=ttk.Frame(image_frame)
@@ -369,25 +376,27 @@ class TachographModule:
         self.image_canvas.bind("<Double-1>",lambda _event:self.open_scan())
         self.image_canvas.bind("<Configure>",self._schedule_preview_render)
 
+        # Дві компактні постійні лінійки: редагування та контроль.
+        # За ширини правої панелі >= ~600 px вони не ховаються по вертикалі.
         ib=ttk.Frame(result_frame); ib.pack(fill="x")
         self.candidate_var=tk.StringVar(value="Кандидатів: 0")
-        ttk.Label(ib,textvariable=self.candidate_var,foreground="gray").pack(side="left",padx=(0,10))
-        ttk.Button(ib,text="Розпізнати / оновити",command=self.recognize_selected).pack(side="left",padx=3)
-        ttk.Button(ib,text="Додати інтервал",command=self.add_interval).pack(side="left",padx=3)
-        ttk.Button(ib,text="Редагувати",command=self.edit_interval).pack(side="left",padx=3)
-        ttk.Button(ib,text="Видалити",command=self.delete_interval).pack(side="left",padx=3)
+        ttk.Label(ib,textvariable=self.candidate_var,foreground="gray").pack(side="left",padx=(3,8))
+        ttk.Button(ib,text="Розпізнати / оновити",command=self.recognize_selected).pack(side="left",padx=2)
+        ttk.Button(ib,text="Додати",command=self.add_interval).pack(side="left",padx=2)
+        ttk.Button(ib,text="Редагувати",command=self.edit_interval).pack(side="left",padx=2)
+        ttk.Button(ib,text="Видалити",command=self.delete_interval).pack(side="left",padx=2)
 
         protocol_bar=ttk.Frame(result_frame)
-        protocol_bar.pack(fill="x",pady=(4,0))
+        protocol_bar.pack(fill="x",pady=(3,0))
         ttk.Button(
             protocol_bar,text="Підсумкова статистика",command=self.show_stats_popup
-        ).pack(side="left",padx=3)
+        ).pack(side="left",padx=2)
         ttk.Button(
             protocol_bar,text="Протоколи контролю",command=self.show_control_protocols
-        ).pack(side="left",padx=3)
+        ).pack(side="left",padx=2)
         ttk.Button(
-            protocol_bar,text="Зберегти протокол контролю",command=self.save_control_protocol
-        ).pack(side="left",padx=3)
+            protocol_bar,text="Зберегти протокол",command=self.save_control_protocol
+        ).pack(side="left",padx=2)
         icols=("id","start","end","activity","confidence","source")
         itree_wrap=ttk.Frame(result_frame)
         itree_wrap.pack(fill="both",expand=True,pady=5)
@@ -414,24 +423,37 @@ class TachographModule:
 
         self.stats_var=tk.StringVar(value="Оберіть шайбу")
 
+        self._initial_sashes_done=False
         def set_readable_sashes():
             try:
-                if not body.winfo_ismapped() or body.winfo_height()<220:
+                if self._initial_sashes_done or not pan.winfo_ismapped():
                     return
                 pan.update_idletasks()
-                pan.sashpos(0,max(240,min(340,int(pan.winfo_width()*0.30))))
+                total_w=pan.winfo_width()
+                total_h=body.winfo_height()
+                if total_w<500 or total_h<90:
+                    return
+                # Каталог займає близько 30%, робоча частина ТАХО — 70%.
+                # Раніше ранній return через малу висоту лишав sash по центру,
+                # і правій частині бракувало ширини навіть на 1024 px.
+                pan.sashpos(0,max(190,min(330,int(total_w*0.30))))
                 body.update_idletasks()
-                total=body.winfo_height()
-                # На невисокому екрані залишаємо видимими кнопки результатів,
-                # але віддаємо прев'ю достатньо місця для читабельної мініатюри.
-                desired=max(160,int(total*0.70))
-                desired=min(desired,max(120,total-95))
+                total_h=body.winfo_height()
+                # На малих екранах гарантовано лишаємо видимими обидва pane.
+                result_min=95 if total_h>=190 else max(45,int(total_h*0.45))
+                image_min=70 if total_h>=170 else max(40,int(total_h*0.45))
+                desired=max(image_min,int(total_h*0.62))
+                desired=min(desired,max(image_min,total_h-result_min))
                 body.sashpos(0,desired)
+                self._initial_sashes_done=True
             except tk.TclError:
                 pass
         self._set_readable_sashes=set_readable_sashes
+        # Hidden Notebook tabs report 1x1 on Map. Configure retries once the tab
+        # has a real size, then stops so manual sash movement is respected.
         body.bind("<Map>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
-        right.bind("<Map>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
+        body.bind("<Configure>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
+        right.bind("<Configure>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
         self.parent.after_idle(set_readable_sashes)
 
     def refresh_catalogs(self):

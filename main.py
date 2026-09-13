@@ -4098,6 +4098,23 @@ class App(tk.Tk):
         edit_menu.add_separator()
         edit_menu.add_command(label="Виділити все", accelerator=f"{shortcut}A", command=lambda:self._edit_focused("select_all"))
         menubar.add_cascade(label="Правка", menu=edit_menu)
+        # Notebook не має штатної прокрутки заголовків вкладок у Tk. На вузьких
+        # екранах крайні вкладки можуть фізично не вміститись, тому всі розділи
+        # дублюємо у меню й робимо їх доступними незалежно від ширини вікна.
+        sections_menu = tk.Menu(menubar, tearoff=0)
+        for label, tab in (
+            ("Підприємство", self.tab_company),
+            ("Водії", self.tab_drivers),
+            ("Автомобілі", self.tab_vehicles),
+            ("Табель", self.tab_work),
+            ("Графік водіїв", self.tab_schedule),
+            ("Шаблони маршрутів", self.tab_routes),
+            ("Маршрути", self.tab_route_catalog),
+            ("Підтвердження діяльності", self.tab_att),
+            ("Тахограф — шайби", self.tab_tacho),
+        ):
+            sections_menu.add_command(label=label, command=lambda t=tab:self.show_tab(t))
+        menubar.add_cascade(label="Розділи", menu=sections_menu)
         service_menu = tk.Menu(menubar, tearoff=0)
         service_menu.add_command(label="Оновити табель", command=self.refresh_month)
         service_menu.add_command(label="Графік водіїв", command=lambda: self.show_tab(self.tab_schedule))
@@ -4114,7 +4131,7 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.66 candidate r5",
+                "Taxo v8.66 candidate r6",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
                 "Кандидат інтерфейсу на базі стабільної v8.65.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
@@ -4186,6 +4203,19 @@ class App(tk.Tk):
         nb.add(self.tab_route_catalog, text="Маршрути")
         nb.add(self.tab_att, text="Підтвердження діяльності")
         nb.add(self.tab_tacho, text="Тахограф — шайби")
+
+        def remember_tab(_event=None):
+            try:
+                set_setting("main_last_tab", str(nb.index(nb.select())))
+            except (tk.TclError, ValueError):
+                pass
+        nb.bind("<<NotebookTabChanged>>", remember_tab, add="+")
+        try:
+            saved_tab=int(get_setting("main_last_tab", "0") or 0)
+            if 0 <= saved_tab < nb.index("end"):
+                nb.select(saved_tab)
+        except (ValueError, tk.TclError):
+            pass
 
         self.build_company()
         self.build_drivers()
