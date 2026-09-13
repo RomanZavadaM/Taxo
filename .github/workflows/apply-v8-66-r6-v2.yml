@@ -1,0 +1,84 @@
+name: Apply Taxo v8.66 candidate r6 patch v2
+
+on:
+  push:
+    branches:
+      - work/v8.66-ui-polish-r6
+    paths:
+      - .github/workflows/apply-v8-66-r6-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-r6:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout candidate branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/v8.66-ui-polish-r6
+          fetch-depth: 0
+
+      - name: Repair diff counts and apply r6 source changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          src = Path('PATCH_v8_66_r6.diff')
+          dst = Path('/tmp/PATCH_v8_66_r6.fixed.diff')
+          lines = src.read_text(encoding='utf-8').splitlines(keepends=True)
+          out = []
+          i = 0
+          header = re.compile(r'^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*?)(\r?\n)?$')
+          while i < len(lines):
+              m = header.match(lines[i])
+              if not m:
+                  out.append(lines[i])
+                  i += 1
+                  continue
+              old_start = int(m.group(1))
+              new_start = int(m.group(2))
+              suffix = m.group(3)
+              j = i + 1
+              old_count = 0
+              new_count = 0
+              while j < len(lines):
+                  line = lines[j]
+                  if line.startswith('@@ ') or line.startswith('--- a/'):
+                      break
+                  if line.startswith(' '):
+                      old_count += 1
+                      new_count += 1
+                  elif line.startswith('-'):
+                      old_count += 1
+                  elif line.startswith('+'):
+                      new_count += 1
+                  elif line.startswith('\\ No newline at end of file'):
+                      pass
+                  else:
+                      break
+                  j += 1
+              out.append(f'@@ -{old_start},{old_count} +{new_start},{new_count} @@{suffix}\n')
+              out.extend(lines[i+1:j])
+              i = j
+          dst.write_text(''.join(out), encoding='utf-8')
+          PY
+
+          FIXED=/tmp/PATCH_v8_66_r6.fixed.diff
+          git apply --check "$FIXED"
+          git apply "$FIXED"
+          python -m py_compile main.py tachograph.py attestation_render.py
+
+      - name: Commit r6 source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.py tachograph.py
+          git commit -m "Apply Taxo v8.66 candidate r6 UI fixes"
+          git push origin HEAD:work/v8.66-ui-polish-r6
