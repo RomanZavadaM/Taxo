@@ -3,7 +3,7 @@
 Date: 2026-09-13
 
 ## Current candidate
-- Version: **v8.66 candidate r6**
+- Version: **v8.66 candidate r7**
 - Base: stable v8.65, GitHub `main` commit `f9101c1a41d7c036bade5ce66989171399189d4b`.
 - Scope: UI usability only; tachograph recognition logic is postponed and unchanged.
 - Main fixes: reliable clipboard actions, visible multi-row toolbars, screen-fitted windows, restored application menu, permanently visible tachograph day timeline and statistics button.
@@ -12,6 +12,7 @@ Date: 2026-09-13
 - r4 packaging fix: every Windows/macOS portable archive extracts into a versioned, platform-specific top-level directory.
 - r5 personnel-period fix: scrollable driver form; work schedules and timesheets exclude dates before the driver's employment date.
 - r6 UI stabilization: added a `Розділи` menu so every tab remains reachable on narrow screens; the last tab is remembered. Tachograph initial sash sizing no longer fails on a hidden/short tab; the working pane gets ~70% width, metadata/timeline are compact, and all critical controls were verified at 900×600, 1024×700, and 1200×760.
+- r7 usability hardening: direct system clipboard for ordinary text fields (including Ukrainian-layout shortcuts), Alt+1…Alt+9 navigation, wheel scrolling for schedule/tachograph canvases, and a hide/show tachograph catalog toggle that maximizes preview width without losing the previous sash position.
 
 ## Distribution cadence
 - Intermediate development versions are delivered as lightweight source archives and tested on Windows through `START.bat`.

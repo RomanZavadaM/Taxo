@@ -1,15 +1,14 @@
 Taxo / Driver Worktime
-Version: 8.66 candidate r6
+Version: 8.66 candidate r7
 Candidate date: 2026-09-13
 Stable published baseline: 8.65
 
 Scope: interface usability before the next tachograph-reading development stage.
-Clipboard: Edit menu, right-click menu, Ukrainian-layout Ctrl shortcuts, and table-row copying.
-Visibility: multi-row toolbars, screen-fitted windows, remembered main-window geometry, and visible tachograph day timeline/statistics.
-Navigation: dedicated Sections menu keeps every main tab reachable on narrow screens; the last selected tab is remembered.
-Tachograph r6: corrected initial pane sizing, 70/30 working-area split, compact metadata/timeline, and verified critical controls at 900x600, 1024x700, and 1200x760.
-macOS work branch: native arm64/x86_64 Taxo.app builds with Command shortcuts and platform-native file opening.
-Packaging r4: portable ZIPs contain unique versioned top-level folders on Windows and macOS.
+Clipboard r7: direct copy/cut/paste for Entry/Text/Spinbox/Combobox; Ukrainian and Latin Ctrl/Cmd shortcuts use the same handler.
+Navigation r7: Alt+1…Alt+9 opens any of the nine main sections; Sections menu remains available on narrow screens.
+Tachograph r7: catalog can be hidden/restored to maximize preview width; scan canvas supports mouse-wheel vertical and Shift+wheel horizontal scrolling.
+Schedule r7: graphical daily schedule canvas supports wheel and Shift+wheel scrolling.
+Tachograph r6: corrected initial pane sizing and verified critical controls at 900x600, 1024x700, and 1200x760.
 Personnel r5: scrollable driver card and employment-date filtering in daily/monthly schedules and timesheets.
 Distribution: intermediate versions use START.bat; Windows/macOS executables are published together every fifth product version (next: v8.70).
 

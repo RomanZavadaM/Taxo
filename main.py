@@ -3944,6 +3944,69 @@ class App(tk.Tk):
             self.ui_status_var.set(f"Скопійовано рядків: {len(lines)}")
         return True
 
+    def _text_selection(self, widget):
+        """Повертає виділений текст без залежності від стандартних Tk virtual events."""
+        try:
+            if widget.winfo_class()=="Text":
+                if not widget.tag_ranges("sel"):
+                    return ""
+                return widget.get("sel.first", "sel.last")
+            if hasattr(widget, "selection_present") and widget.selection_present():
+                return widget.get()[widget.index("sel.first"):widget.index("sel.last")]
+        except (tk.TclError, AttributeError):
+            pass
+        return ""
+
+    def _copy_text_widget(self, widget):
+        try:
+            text=self._text_selection(widget)
+            # Для readonly Combobox корисніше скопіювати поточне значення,
+            # навіть якщо користувач не зміг явно виділити його мишею.
+            if not text and widget.winfo_class()=="TCombobox":
+                text=widget.get()
+            if not text:
+                return False
+            self.clipboard_clear()
+            self.clipboard_append(text)
+            self.update_idletasks()
+            if hasattr(self, "ui_status_var"):
+                self.ui_status_var.set("Скопійовано в буфер обміну")
+            return True
+        except tk.TclError:
+            return False
+
+    def _delete_text_selection(self, widget):
+        try:
+            if widget.winfo_class()=="Text":
+                if widget.tag_ranges("sel"):
+                    widget.delete("sel.first", "sel.last")
+                    return True
+                return False
+            if hasattr(widget, "selection_present") and widget.selection_present():
+                widget.delete("sel.first", "sel.last")
+                return True
+        except (tk.TclError, AttributeError):
+            return False
+        return False
+
+    def _paste_text_widget(self, widget):
+        try:
+            text=self.clipboard_get()
+        except tk.TclError:
+            return False
+        try:
+            self._delete_text_selection(widget)
+            if widget.winfo_class()=="Text":
+                widget.insert("insert", text)
+                widget.see("insert")
+            else:
+                widget.insert("insert", text)
+            if hasattr(self, "ui_status_var"):
+                self.ui_status_var.set("Вставлено з буфера обміну")
+            return True
+        except (tk.TclError, AttributeError):
+            return False
+
     def _run_edit_action(self, widget, action):
         if widget is None:
             return False
@@ -3965,12 +4028,17 @@ class App(tk.Tk):
             return False
         if action=="select_all":
             return self._select_all_widget(widget)
+        if action=="copy":
+            return self._copy_text_widget(widget)
         if action in {"cut", "paste", "undo", "redo"} and self._widget_is_readonly(widget):
             return False
-        virtual={
-            "cut":"<<Cut>>", "copy":"<<Copy>>", "paste":"<<Paste>>",
-            "undo":"<<Undo>>", "redo":"<<Redo>>",
-        }.get(action)
+        if action=="cut":
+            if not self._copy_text_widget(widget):
+                return False
+            return self._delete_text_selection(widget)
+        if action=="paste":
+            return self._paste_text_widget(widget)
+        virtual={"undo":"<<Undo>>", "redo":"<<Redo>>"}.get(action)
         if not virtual:
             return False
         try:
@@ -3988,10 +4056,9 @@ class App(tk.Tk):
             return None
         widget=getattr(event, "widget", None)
         key=(getattr(event, "keysym", "") or "").lower()
-        # Латинські Ctrl+C/V/X/A/Z/Y уже правильно обробляє стандартний клас Tk.
-        # Тут втручаємося для таблиць і для фізичних клавіш в українській розкладці.
-        if self._is_text_input(widget) and key in {"a", "c", "v", "x", "y", "z"}:
-            return None
+        # r7: і латинські, і українські Ctrl/Cmd-команди йдуть через один
+        # прямий обробник. Це прибирає залежність від нестабільних <<Paste>>/<<Copy>>
+        # у ttk.Entry/Spinbox/Combobox на Windows.
         if self._run_edit_action(widget, action):
             return "break"
         return None
@@ -4102,7 +4169,7 @@ class App(tk.Tk):
         # екранах крайні вкладки можуть фізично не вміститись, тому всі розділи
         # дублюємо у меню й робимо їх доступними незалежно від ширини вікна.
         sections_menu = tk.Menu(menubar, tearoff=0)
-        for label, tab in (
+        for section_index, (label, tab) in enumerate((
             ("Підприємство", self.tab_company),
             ("Водії", self.tab_drivers),
             ("Автомобілі", self.tab_vehicles),
@@ -4112,8 +4179,11 @@ class App(tk.Tk):
             ("Маршрути", self.tab_route_catalog),
             ("Підтвердження діяльності", self.tab_att),
             ("Тахограф — шайби", self.tab_tacho),
-        ):
-            sections_menu.add_command(label=label, command=lambda t=tab:self.show_tab(t))
+        ), start=1):
+            sections_menu.add_command(
+                label=label, accelerator=f"Alt+{section_index}",
+                command=lambda t=tab:self.show_tab(t)
+            )
         menubar.add_cascade(label="Розділи", menu=sections_menu)
         service_menu = tk.Menu(menubar, tearoff=0)
         service_menu.add_command(label="Оновити табель", command=self.refresh_month)
@@ -4131,7 +4201,7 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.66 candidate r6",
+                "Taxo v8.66 candidate r7",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
                 "Кандидат інтерфейсу на базі стабільної v8.65.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
@@ -4210,6 +4280,15 @@ class App(tk.Tk):
             except (tk.TclError, ValueError):
                 pass
         nb.bind("<<NotebookTabChanged>>", remember_tab, add="+")
+        self.main_notebook=nb
+        # Alt+1…Alt+9 — швидкий перехід між розділами, навіть якщо вкладка
+        # фізично не помістилась у рядку Notebook.
+        for tab_index in range(9):
+            self.bind_all(
+                f"<Alt-Key-{tab_index+1}>",
+                lambda _event, idx=tab_index: (nb.select(idx), "break")[1],
+                add="+"
+            )
         try:
             saved_tab=int(get_setting("main_last_tab", "0") or 0)
             if 0 <= saved_tab < nb.index("end"):
@@ -5347,6 +5426,22 @@ class App(tk.Tk):
         self.schedule_canvas.bind("<Configure>",lambda e:self.refresh_schedule())
         self.schedule_canvas.bind("<Double-1>",self.schedule_double_click)
         self.schedule_canvas.bind("<Button-1>",self.schedule_click)
+        def schedule_wheel(event):
+            delta=getattr(event,"delta",0)
+            if delta:
+                self.schedule_canvas.yview_scroll(int(-delta/120) or (-1 if delta>0 else 1),"units")
+            elif getattr(event,"num",None) in (4,5):
+                self.schedule_canvas.yview_scroll(-1 if event.num==4 else 1,"units")
+            return "break"
+        def schedule_shift_wheel(event):
+            delta=getattr(event,"delta",0)
+            if delta:
+                self.schedule_canvas.xview_scroll(int(-delta/120) or (-1 if delta>0 else 1),"units")
+            return "break"
+        self.schedule_canvas.bind("<MouseWheel>",schedule_wheel,add="+")
+        self.schedule_canvas.bind("<Shift-MouseWheel>",schedule_shift_wheel,add="+")
+        self.schedule_canvas.bind("<Button-4>",schedule_wheel,add="+")
+        self.schedule_canvas.bind("<Button-5>",schedule_wheel,add="+")
         self.schedule_hitboxes=[]
         self.schedule_driver_rows=[]
         self.after(100,self.refresh_schedule)

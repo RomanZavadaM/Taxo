@@ -253,6 +253,8 @@ class TachographModule:
         self.preview_zoom_mode="fit"
         self.preview_expanded=False
         self._preview_resize_after=None
+        self.catalog_collapsed=False
+        self._catalog_sash_pos=260
         init_tacho_db()
         self.build()
         self.load()
@@ -279,6 +281,10 @@ class TachographModule:
         pan=ttk.Panedwindow(self.tab,orient="horizontal"); pan.pack(fill="both",expand=True,padx=10,pady=5)
         self.main_paned=pan
         left=ttk.Frame(pan); right=ttk.Frame(pan); pan.add(left,weight=1); pan.add(right,weight=2)
+        self.catalog_pane=left
+        self.detail_pane=right
+        self.catalog_button=ttk.Button(actions2,text="Сховати каталог",command=self.toggle_catalog)
+        self.catalog_button.pack(side="left",padx=3)
         cols=("id","name","disc","date","status")
         self.tree=ttk.Treeview(left,columns=cols,show="headings",selectmode="browse")
         heads={"id":"ID","name":"Скан","disc":"Шайба","date":"Дата","status":"Стан"}
@@ -375,6 +381,10 @@ class TachographModule:
         self.image_canvas.create_text(20,20,anchor="nw",text="Оберіть скан",fill="gray")
         self.image_canvas.bind("<Double-1>",lambda _event:self.open_scan())
         self.image_canvas.bind("<Configure>",self._schedule_preview_render)
+        self.image_canvas.bind("<MouseWheel>",self._preview_mousewheel,add="+")
+        self.image_canvas.bind("<Shift-MouseWheel>",self._preview_shift_mousewheel,add="+")
+        self.image_canvas.bind("<Button-4>",self._preview_mousewheel,add="+")
+        self.image_canvas.bind("<Button-5>",self._preview_mousewheel,add="+")
 
         # Дві компактні постійні лінійки: редагування та контроль.
         # За ширини правої панелі >= ~600 px вони не ховаються по вертикалі.
@@ -455,6 +465,50 @@ class TachographModule:
         body.bind("<Configure>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
         right.bind("<Configure>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
         self.parent.after_idle(set_readable_sashes)
+
+    def toggle_catalog(self):
+        """Ховає/повертає каталог сканів, звільняючи максимум місця для прев'ю."""
+        try:
+            if not self.catalog_collapsed:
+                try:
+                    self._catalog_sash_pos=max(150,self.main_paned.sashpos(0))
+                except tk.TclError:
+                    pass
+                self.main_paned.forget(self.catalog_pane)
+                self.catalog_collapsed=True
+                self.catalog_button.configure(text="Показати каталог")
+            else:
+                self.main_paned.insert(0,self.catalog_pane,weight=1)
+                self.catalog_collapsed=False
+                self.catalog_button.configure(text="Сховати каталог")
+                self.parent.after_idle(
+                    lambda: self.main_paned.sashpos(0,self._catalog_sash_pos)
+                )
+        except tk.TclError:
+            pass
+
+    def _preview_mousewheel(self,event):
+        try:
+            delta=getattr(event,"delta",0)
+            if delta:
+                step=int(-delta/120) or (-1 if delta>0 else 1)
+            else:
+                step=-1 if getattr(event,"num",None)==4 else 1
+            self.image_canvas.yview_scroll(step,"units")
+            return "break"
+        except tk.TclError:
+            return None
+
+    def _preview_shift_mousewheel(self,event):
+        try:
+            delta=getattr(event,"delta",0)
+            if delta:
+                step=int(-delta/120) or (-1 if delta>0 else 1)
+                self.image_canvas.xview_scroll(step,"units")
+                return "break"
+        except tk.TclError:
+            pass
+        return None
 
     def refresh_catalogs(self):
         if self.drivers_provider:
