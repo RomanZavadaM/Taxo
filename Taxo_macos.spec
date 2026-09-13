@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.66 candidate r4 — native macOS onedir application bundle.
+# Taxo v8.66 candidate r5 — native macOS onedir application bundle.
 # Build separately on Apple Silicon and Intel; bundled user databases are forbidden.
 
 a = Analysis(

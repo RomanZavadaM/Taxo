@@ -1108,6 +1108,28 @@ def month_dates(year, month):
     return [date(year, month, d) for d in range(1, days + 1)]
 
 
+def driver_employment_start(driver):
+    """Повертає дату прийняття; порожня/стара некоректна дата не ламає історію."""
+    if not driver:
+        return None
+    try:
+        value=(driver["employment_date"] or "").strip()
+    except (KeyError, TypeError, AttributeError):
+        return None
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value,"%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def driver_employed_on(driver, work_day):
+    """Чи вже був водій прийнятий на роботу у вказаний календарний день."""
+    start=driver_employment_start(driver)
+    return start is None or work_day>=start
+
+
 def set_paragraph_text(p, new_text):
     # Імпорт тут теж робимо явно: це гарантує роботу навіть якщо python-docx
     # завантажився нестандартно у середовищі користувача.
@@ -2676,6 +2698,9 @@ def collect_monthly_work_balance(year, month, active_only=True):
         drivers=con.execute(
             "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
         ).fetchall()
+    # Водій з майбутньою датою прийняття не належить до табеля за цей місяць.
+    # Порожню дату лишаємо сумісною зі старими базами: вона означає "дата невідома".
+    drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
 
     rows=con.execute(
         """SELECT * FROM worklog
@@ -2694,6 +2719,9 @@ def collect_monthly_work_balance(year, month, active_only=True):
         total_over_min=0
         work_days=0
         for d in days:
+            if not driver_employed_on(dr,d):
+                cells.append("")
+                continue
             r=row_by.get((dr["id"],d.isoformat()))
             cells.append(_work_balance_cell(r,d))
             if r is not None:
@@ -2998,6 +3026,7 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         drivers=con.execute(
             "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
         ).fetchall()
+    drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
 
     rows=con.execute(
         """SELECT * FROM worklog
@@ -3029,6 +3058,9 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         work_min=0
         drive_min=0
         for d in days:
+            if not driver_employed_on(dr,d):
+                cells.append("")
+                continue
             r=row_by.get((dr["id"],d.isoformat()))
             segs=seg_by.get(r["id"],[]) if r else []
             cell=_monthly_shift_cell(r,segs)
@@ -4082,7 +4114,7 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.66 candidate r4",
+                "Taxo v8.66 candidate r5",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
                 "Кандидат інтерфейсу на базі стабільної v8.65.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
@@ -4469,8 +4501,53 @@ class App(tk.Tk):
         fit_window_to_screen(win,760,720,700,540)
         win.transient(self)
 
-        outer=ttk.Frame(win,padding=10)
-        outer.pack(fill="both",expand=True)
+        # Картка містить багато полів і на ноутбучному екрані не вміщується
+        # по висоті. Весь вміст, включно з прапорцем і кнопкою збереження,
+        # розміщуємо у вертикально прокручуваному полотні.
+        shell=ttk.Frame(win)
+        shell.pack(fill="both",expand=True)
+        shell.rowconfigure(0,weight=1)
+        shell.columnconfigure(0,weight=1)
+        form_canvas=tk.Canvas(shell,highlightthickness=0,borderwidth=0)
+        form_scroll=ttk.Scrollbar(shell,orient="vertical",command=form_canvas.yview)
+        form_canvas.configure(yscrollcommand=form_scroll.set)
+        form_canvas.grid(row=0,column=0,sticky="nsew")
+        form_scroll.grid(row=0,column=1,sticky="ns")
+
+        outer=ttk.Frame(form_canvas,padding=10)
+        form_window=form_canvas.create_window((0,0),window=outer,anchor="nw")
+
+        def sync_driver_form(_event=None):
+            try:
+                form_canvas.configure(scrollregion=form_canvas.bbox("all"))
+            except tk.TclError:
+                pass
+
+        def fit_driver_form_width(event):
+            try:
+                form_canvas.itemconfigure(form_window,width=max(1,event.width))
+                sync_driver_form()
+            except tk.TclError:
+                pass
+
+        def scroll_driver_form(event):
+            if getattr(event,"num",None)==4:
+                step=-1
+            elif getattr(event,"num",None)==5:
+                step=1
+            else:
+                delta=getattr(event,"delta",0)
+                if not delta:
+                    return None
+                step=int(-delta/120) or (-1 if delta>0 else 1)
+            form_canvas.yview_scroll(step,"units")
+            return "break"
+
+        outer.bind("<Configure>",sync_driver_form,add="+")
+        form_canvas.bind("<Configure>",fit_driver_form_width,add="+")
+        win.bind("<MouseWheel>",scroll_driver_form,add="+")
+        win.bind("<Button-4>",scroll_driver_form,add="+")
+        win.bind("<Button-5>",scroll_driver_form,add="+")
 
         ua=ttk.LabelFrame(outer,text="Дані водія — українською",padding=8)
         ua.pack(fill="x",pady=(0,8))
@@ -4612,9 +4689,10 @@ class App(tk.Tk):
         d=self.selected_driver()
         if d:
             self.driver_id=d["id"]
-            if hasattr(self, "work_driver_map"):
-                label=next((k for k,v in self.work_driver_map.items() if v==d["id"]), self.driver_full_name(d))
-                self.work_driver_var.set(label)
+            if hasattr(self,"work_driver_cb"):
+                # Список табеля залежить від вибраного місяця: водій до дати
+                # прийняття не може бути примусово підставлений з каталогу.
+                self.refresh_work_driver_choices()
             else:
                 self.work_driver_var.set(self.driver_full_name(d))
             self.att_driver_id=d["id"]
@@ -4631,6 +4709,17 @@ class App(tk.Tk):
         ).fetchall()
         con.close()
 
+        try:
+            period_end=month_dates(int(self.year_var.get()),int(self.month_var.get()))[-1]
+        except Exception:
+            period_end=date.today()
+        rows=[d for d in rows if driver_employed_on(d,period_end)]
+
+        available_ids={d["id"] for d in rows}
+        if self.driver_id not in available_ids:
+            self.driver_id=None
+            self.work_driver_var.set("")
+
         self.work_driver_map={}
         values=[]
         name_counts={}
@@ -4638,7 +4727,6 @@ class App(tk.Tk):
             base=self.driver_full_name(d)
             name_counts[base]=name_counts.get(base,0)+1
 
-        used={}
         for d in rows:
             base=self.driver_full_name(d)
             if name_counts.get(base,0)>1:
@@ -4659,6 +4747,11 @@ class App(tk.Tk):
             if label:
                 self.driver_id=first["id"]
                 self.work_driver_var.set(label)
+
+    def refresh_work_period(self):
+        """Оновлює список водіїв і табель після зміни місяця або року."""
+        self.refresh_work_driver_choices()
+        self.refresh_month()
 
     def on_work_driver_change(self, _=None):
         label=self.work_driver_var.get().strip()
@@ -4862,10 +4955,10 @@ class App(tk.Tk):
         self.year_var=tk.IntVar(value=date.today().year)
         self.month_var=tk.IntVar(value=date.today().month)
         ttk.Label(select_bar,text="Рік:").pack(side="left",padx=(8,2))
-        ttk.Spinbox(select_bar,from_=2020,to=2100,textvariable=self.year_var,width=7,command=self.refresh_month).pack(side="left",padx=(0,4))
+        ttk.Spinbox(select_bar,from_=2020,to=2100,textvariable=self.year_var,width=7,command=self.refresh_work_period).pack(side="left",padx=(0,4))
         ttk.Label(select_bar,text="Місяць:").pack(side="left",padx=(8,2))
-        ttk.Spinbox(select_bar,from_=1,to=12,textvariable=self.month_var,width=4,command=self.refresh_month).pack(side="left",padx=(0,8))
-        ttk.Button(select_bar,text="Оновити",command=self.refresh_month).pack(side="left",padx=4)
+        ttk.Spinbox(select_bar,from_=1,to=12,textvariable=self.month_var,width=4,command=self.refresh_work_period).pack(side="left",padx=(0,8))
+        ttk.Button(select_bar,text="Оновити",command=self.refresh_work_period).pack(side="left",padx=4)
 
         edit_bar=ttk.Frame(controls)
         edit_bar.pack(fill="x",pady=(5,0))
@@ -5565,6 +5658,7 @@ class App(tk.Tk):
         c=self.schedule_canvas; c.delete("all"); self.schedule_hitboxes=[]; self.schedule_driver_rows=[]
         con=db()
         drivers=con.execute("SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name,middle_name").fetchall()
+        drivers=[dr for dr in drivers if driver_employed_on(dr,d)]
         rows=con.execute("SELECT * FROM worklog WHERE work_date=?",(d.isoformat(),)).fetchall()
         by_driver={r["driver_id"]:r for r in rows}
         seg_by={}
@@ -5669,10 +5763,17 @@ class App(tk.Tk):
         con=db()
         d=con.execute("SELECT * FROM drivers WHERE id=?",(driver_id,)).fetchone()
         con.close()
-        if d:
-            label=next((k for k,v in getattr(self,"work_driver_map",{}).items() if v==driver_id), self.driver_full_name(d))
-            self.work_driver_var.set(label)
         self.year_var.set(work_date.year); self.month_var.set(work_date.month)
+        self.refresh_work_driver_choices()
+        if not d or not bool(d["active"]) or not driver_employed_on(d,work_date):
+            messagebox.showwarning(
+                "Графік","Водій не був прийнятий як активний працівник на цю дату.",parent=self
+            )
+            self.refresh_month()
+            return
+        label=next((k for k,v in getattr(self,"work_driver_map",{}).items() if v==driver_id), self.driver_full_name(d))
+        self.driver_id=driver_id
+        self.work_driver_var.set(label)
         self.refresh_month()
         target=work_date.strftime("%d.%m.%Y")
         for item in self.work_tree.get_children():
@@ -5686,11 +5787,14 @@ class App(tk.Tk):
         if not d: return
         # If a driver is currently selected, use it; otherwise ask from active drivers.
         if self.driver_id:
-            self.open_schedule_worklog(self.driver_id,d)
-            return
+            selected=self.driver_by_id(self.driver_id)
+            if selected and bool(selected["active"]) and driver_employed_on(selected,d):
+                self.open_schedule_worklog(self.driver_id,d)
+                return
         con=db(); drivers=con.execute("SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name").fetchall(); con.close()
+        drivers=[dr for dr in drivers if driver_employed_on(dr,d)]
         if not drivers:
-            messagebox.showwarning("Графік","Спочатку додайте активного водія.",parent=self); return
+            messagebox.showwarning("Графік","На цю дату немає прийнятих активних водіїв.",parent=self); return
         win=tk.Toplevel(self); win.title("Вибір водія"); fit_window_to_screen(win,430,170,400,170); win.transient(self); win.grab_set()
         var=tk.StringVar(value=self.driver_full_name(drivers[0])); labels=[self.driver_full_name(x) for x in drivers]; mapping={self.driver_full_name(x):x["id"] for x in drivers}
         ttk.Label(win,text="Водій").pack(anchor="w",padx=12,pady=(15,5)); ttk.Combobox(win,textvariable=var,values=labels,state="readonly",width=42).pack(padx=12)
@@ -5705,12 +5809,18 @@ class App(tk.Tk):
         return rows
 
     def refresh_month(self):
-        if not hasattr(self,"work_tree") or not self.driver_id: return
+        if not hasattr(self,"work_tree"): return
         for x in self.work_tree.get_children(): self.work_tree.delete(x)
+        if not self.driver_id: return
         y,m=int(self.year_var.get()),int(self.month_var.get())
+        driver=self.driver_by_id(self.driver_id)
+        if not driver or not driver_employed_on(driver,month_dates(y,m)[-1]):
+            return
         con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{y:04d}-{m:02d}")).fetchall(); con.close()
         existing={r["work_date"]:r for r in rows}
         for d in month_dates(y,m):
+            if not driver_employed_on(driver,d):
+                continue
             r=existing.get(d.isoformat())
             segs=self.get_work_segments(r["id"]) if r else []
             if segs:
@@ -6193,6 +6303,12 @@ class App(tk.Tk):
             return
 
         y,m=int(self.year_var.get()),int(self.month_var.get())
+        driver=self.driver_by_id(self.driver_id)
+        if not driver or not driver_employed_on(driver,month_dates(y,m)[-1]):
+            messagebox.showwarning(
+                "Увага","Водій ще не прийнятий на роботу в обраному місяці.",parent=self
+            )
+            return
 
         if not messagebox.askyesno(
             "Небезпечна масова дія",
@@ -6206,7 +6322,7 @@ class App(tk.Tk):
 
         con=db()
         for d in month_dates(y,m):
-            if d.weekday()<5:
+            if d.weekday()<5 and driver_employed_on(driver,d):
                 con.execute("""INSERT INTO worklog(
                     driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,
                     route_name,route_id,template_id,shift_type,accounting_mode
@@ -6234,7 +6350,11 @@ class App(tk.Tk):
         con.commit(); con.close(); self.refresh_month()
 
     def current_rows(self):
-        con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{int(self.year_var.get()):04d}-{int(self.month_var.get()):02d}")).fetchall(); con.close(); return rows
+        con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{int(self.year_var.get()):04d}-{int(self.month_var.get()):02d}")).fetchall(); con.close()
+        driver=self.driver_by_id(self.driver_id)
+        if not driver:
+            return []
+        return [r for r in rows if driver_employed_on(driver,date.fromisoformat(r["work_date"]))]
 
     def export_current(self,kind):
         if not self.driver_id:
@@ -6253,8 +6373,14 @@ class App(tk.Tk):
             )
             return
 
-        rows=self.current_rows()
         y,m=int(self.year_var.get()),int(self.month_var.get())
+        if not driver_employed_on(d,month_dates(y,m)[-1]):
+            messagebox.showwarning(
+                "Увага","Водій ще не був прийнятий на роботу в обраному місяці.",parent=self
+            )
+            return
+
+        rows=self.current_rows()
         safe_last=(d["last_name"] or "Водій").strip()
         name=f"Табель_{safe_last}_{y}_{m:02d}"
         path=OUTPUT_DIR/(name+(".xlsx" if kind=="xlsx" else ".pdf"))

@@ -1,6 +1,7 @@
 import inspect
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 from unittest import mock
 
@@ -113,6 +114,61 @@ class UiInfrastructureTests(unittest.TestCase):
         self.assertEqual(win.minimum, (900, 500))
         self.assertEqual(win.resize_value, (True, True))
 
+    def test_driver_form_has_vertical_scrollbar_and_mouse_wheel(self):
+        source = inspect.getsource(main.App.driver_form)
+        self.assertIn('orient="vertical",command=form_canvas.yview', source)
+        self.assertIn('win.bind("<MouseWheel>",scroll_driver_form', source)
+        self.assertIn('form_canvas.configure(scrollregion=form_canvas.bbox("all"))', source)
+
+    def test_driver_employment_date_controls_work_period_visibility(self):
+        future={"employment_date":"2026-10-01"}
+        current={"employment_date":"2026-09-15"}
+        legacy={"employment_date":""}
+        self.assertFalse(main.driver_employed_on(future,date(2026,9,30)))
+        self.assertTrue(main.driver_employed_on(future,date(2026,10,1)))
+        self.assertFalse(main.driver_employed_on(current,date(2026,9,14)))
+        self.assertTrue(main.driver_employed_on(current,date(2026,9,15)))
+        self.assertTrue(main.driver_employed_on(legacy,date(2020,1,1)))
+
+    def test_monthly_reports_exclude_not_yet_hired_drivers(self):
+        main.init_db()
+        con=main.db()
+        marker="test-employment-filter"
+        try:
+            con.execute(
+                "INSERT INTO drivers(last_name,first_name,employment_date,active,created_at) VALUES(?,?,?,?,?)",
+                ("FutureTest","Driver","2026-10-01",1,marker)
+            )
+            con.execute(
+                "INSERT INTO drivers(last_name,first_name,employment_date,active,created_at) VALUES(?,?,?,?,?)",
+                ("CurrentTest","Driver","2026-09-15",1,marker)
+            )
+            con.commit()
+            balance=main.collect_monthly_work_balance(2026,9)
+            schedule=main.collect_monthly_shift_schedule(2026,9)
+            balance_names={d["name"] for d in balance["drivers"]}
+            schedule_names={d["name"] for d in schedule["drivers"]}
+            self.assertNotIn("FutureTest Driver",balance_names)
+            self.assertNotIn("FutureTest Driver",schedule_names)
+            self.assertIn("CurrentTest Driver",balance_names)
+            current=next(d for d in balance["drivers"] if d["name"]=="CurrentTest Driver")
+            self.assertEqual(current["cells"][4],"")
+            self.assertEqual(current["cells"][18],"В")
+        finally:
+            con.execute("DELETE FROM drivers WHERE created_at=?",(marker,))
+            con.commit()
+            con.close()
+
+    def test_daily_schedule_and_autofill_use_employment_boundary(self):
+        schedule_source=inspect.getsource(main.App.refresh_schedule)
+        add_source=inspect.getsource(main.App.schedule_add_period)
+        fill_source=inspect.getsource(main.App.autofill)
+        month_source=inspect.getsource(main.App.refresh_month)
+        self.assertIn("driver_employed_on(dr,d)",schedule_source)
+        self.assertIn("driver_employed_on(dr,d)",add_source)
+        self.assertIn("driver_employed_on(driver,d)",fill_source)
+        self.assertIn("driver_employed_on(driver,d)",month_source)
+
     def test_main_menu_is_really_built(self):
         source = inspect.getsource(main.App.__init__)
         self.assertIn("self.build_menu()", source)
@@ -188,10 +244,10 @@ class UiInfrastructureTests(unittest.TestCase):
         self.assertIn("runner: macos-15\n            arch: arm64", workflow)
         self.assertIn("runner: macos-15-intel\n            arch: x86_64", workflow)
 
-    def test_windows_r4_candidate_build_is_available_for_preview_check(self):
+    def test_windows_r5_candidate_build_is_available_for_preview_check(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/build-windows-v8.66.yml").read_text(encoding="utf-8")
-        self.assertIn("Taxo_v8_66_TEST_r4_Windows_x64_Portable.zip", workflow)
+        self.assertIn("Taxo_v8_66_TEST_r5_Windows_x64_Portable.zip", workflow)
         self.assertIn("python -m unittest discover -s tests -v", workflow)
         self.assertIn("Database unexpectedly bundled", workflow)
 
@@ -200,11 +256,11 @@ class UiInfrastructureTests(unittest.TestCase):
         windows = (root / ".github/workflows/build-windows-v8.66.yml").read_text(encoding="utf-8")
         macos = (root / ".github/workflows/build-macos-v8.66.yml").read_text(encoding="utf-8")
         installer = (root / "installer/Taxo.iss").read_text(encoding="utf-8")
-        self.assertIn("dist/Taxo_v8_66_TEST_r4_Windows_x64", windows)
+        self.assertIn("dist/Taxo_v8_66_TEST_r5_Windows_x64", windows)
         self.assertIn("Compress-Archive -Path $bundle", windows)
-        self.assertIn('bundle_dir="Taxo_v8_66_TEST_r4_macOS_${{ matrix.arch }}"', macos)
+        self.assertIn('bundle_dir="Taxo_v8_66_TEST_r5_macOS_${{ matrix.arch }}"', macos)
         self.assertIn('keepParent "${bundle_dir}"', macos)
-        self.assertIn("dist\\Taxo_v8_66_TEST_r4_Windows_x64\\*", installer)
+        self.assertIn("dist\\Taxo_v8_66_TEST_r5_Windows_x64\\*", installer)
 
 
 if __name__ == "__main__":

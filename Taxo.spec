@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.66 candidate r4 — Windows onedir build.
+# Taxo v8.66 candidate r5 — Windows onedir build.
 # User databases are NOT bundled; Taxo stores them under
 # %USERPROFILE%\Documents\DriverWorktime\.
 

@@ -3,13 +3,14 @@
 Date: 2026-09-13
 
 ## Current candidate
-- Version: **v8.66 candidate r4**
+- Version: **v8.66 candidate r5**
 - Base: stable v8.65, GitHub `main` commit `f9101c1a41d7c036bade5ce66989171399189d4b`.
 - Scope: UI usability only; tachograph recognition logic is postponed and unchanged.
 - Main fixes: reliable clipboard actions, visible multi-row toolbars, screen-fitted windows, restored application menu, permanently visible tachograph day timeline and statistics button.
 - macOS work branch: `work/v8.66-macos-executable`; native `Taxo.app` candidates for Apple Silicon and Intel, built separately from the Windows package.
 - r3 tachograph preview fix: more default height, centered image, expandable preview pane, and a separate scan window that starts fitted with its own Fit / 100% controls.
 - r4 packaging fix: every Windows/macOS portable archive extracts into a versioned, platform-specific top-level directory.
+- r5 personnel-period fix: scrollable driver form; work schedules and timesheets exclude dates before the driver's employment date.
 
 ## Stable release
 - Version: **v8.65**

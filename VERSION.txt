@@ -1,5 +1,5 @@
 Taxo / Driver Worktime
-Version: 8.66 candidate r4
+Version: 8.66 candidate r5
 Candidate date: 2026-09-13
 Stable published baseline: 8.65
 
@@ -10,5 +10,6 @@ Navigation: double-click/Enter editing in the main catalogs and direct interval 
 macOS work branch: native arm64/x86_64 Taxo.app builds with Command shortcuts and platform-native file opening.
 Tachograph preview r3: more height, centered and expandable preview, plus fitted/100% modes in the full-window view.
 Packaging r4: portable ZIPs contain unique versioned top-level folders on Windows and macOS.
+Personnel r5: scrollable driver card and employment-date filtering in daily/monthly schedules and timesheets.
 
 The tachograph recognition algorithm is intentionally unchanged in this candidate.

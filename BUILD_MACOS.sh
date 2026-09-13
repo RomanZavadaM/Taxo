@@ -18,7 +18,7 @@ taxo_venv="${TAXO_MACOS_VENV:-.venv-macos}"
 taxo_app="dist/Taxo.app"
 taxo_executable="${taxo_app}/Contents/MacOS/Taxo"
 taxo_arch="$(uname -m)"
-taxo_bundle_dir="Taxo_v8_66_TEST_r4_macOS_${taxo_arch}"
+taxo_bundle_dir="Taxo_v8_66_TEST_r5_macOS_${taxo_arch}"
 taxo_zip="${taxo_bundle_dir}_Portable.zip"
 
 [[ -x "${taxo_executable}" ]] || { echo "Не знайдено ${taxo_executable}" >&2; exit 1; }
@@ -33,7 +33,7 @@ codesign --verify --deep --strict "${taxo_app}"
 mkdir "${taxo_bundle_dir}"
 mv "${taxo_app}" "${taxo_bundle_dir}/Taxo.app"
 /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${taxo_bundle_dir}" "${taxo_zip}"
-taxo_sums="SHA256SUMS_v8_66_TEST_r4_macOS_${taxo_arch}.txt"
+taxo_sums="SHA256SUMS_v8_66_TEST_r5_macOS_${taxo_arch}.txt"
 shasum -a 256 "${taxo_zip}" > "${taxo_sums}"
 
 echo "Готово: ${taxo_zip}"

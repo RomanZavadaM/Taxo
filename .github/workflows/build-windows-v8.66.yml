@@ -1,4 +1,4 @@
-name: Build Taxo v8.66 Windows candidate r4
+name: Build Taxo v8.66 Windows candidate r5
 
 on:
   workflow_dispatch:
@@ -65,12 +65,12 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean Taxo.spec
-          Move-Item 'dist/Taxo' 'dist/Taxo_v8_66_TEST_r4_Windows_x64'
+          Move-Item 'dist/Taxo' 'dist/Taxo_v8_66_TEST_r5_Windows_x64'
 
       - name: Verify portable bundle
         shell: pwsh
         run: |
-          $bundle = 'dist/Taxo_v8_66_TEST_r4_Windows_x64'
+          $bundle = 'dist/Taxo_v8_66_TEST_r5_Windows_x64'
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
           if (!(Test-Path "$bundle/_internal/Бланк підтвердження.docx")) { throw 'DOCX template not found' }
           if (!(Test-Path "$bundle/_internal/attestation_visual_template.pdf")) { throw 'PDF template not found' }
@@ -80,19 +80,19 @@ jobs:
       - name: Create portable ZIP and checksum
         shell: pwsh
         run: |
-          $bundle = 'dist/Taxo_v8_66_TEST_r4_Windows_x64'
-          $zip = 'Taxo_v8_66_TEST_r4_Windows_x64_Portable.zip'
+          $bundle = 'dist/Taxo_v8_66_TEST_r5_Windows_x64'
+          $zip = 'Taxo_v8_66_TEST_r5_Windows_x64_Portable.zip'
           Compress-Archive -Path $bundle -DestinationPath $zip -Force
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  $zip" | Set-Content -Encoding ascii 'SHA256SUMS_v8_66_TEST_r4_Windows_x64.txt'
-          Get-Content 'SHA256SUMS_v8_66_TEST_r4_Windows_x64.txt'
+          "$hash  $zip" | Set-Content -Encoding ascii 'SHA256SUMS_v8_66_TEST_r5_Windows_x64.txt'
+          Get-Content 'SHA256SUMS_v8_66_TEST_r5_Windows_x64.txt'
 
       - name: Upload Windows candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v8.66-Windows-x64-candidate-r4
+          name: Taxo-v8.66-Windows-x64-candidate-r5
           path: |
-            Taxo_v8_66_TEST_r4_Windows_x64_Portable.zip
-            SHA256SUMS_v8_66_TEST_r4_Windows_x64.txt
+            Taxo_v8_66_TEST_r5_Windows_x64_Portable.zip
+            SHA256SUMS_v8_66_TEST_r5_Windows_x64.txt
           if-no-files-found: error
           retention-days: 30
