@@ -1,0 +1,1 @@
+Candidate v8.66 r6 is published on `work/v8.66-ui-polish-r6`. Stable `main` remains v8.65. This file is a lightweight publication marker and can be removed after promotion or closure of the candidate cycle.
