@@ -1,0 +1,50 @@
+name: Apply Taxo v8.66 candidate r9 exact
+
+on:
+  push:
+    branches:
+      - work/v8.66-ui-polish-r9
+    paths:
+      - .github/workflows/apply-v8-66-r9-exact.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-r9-exact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v8.66-ui-polish-r9
+          fetch-depth: 0
+
+      - name: Apply and verify exact r9 patch
+        shell: bash
+        run: |
+          cat .r9_exact/part* > PATCH_v8_66_r9.diff
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('PATCH_v8_66_r9.diff')
+          lines=p.read_text(encoding='utf-8').splitlines(True)
+          lines[0]='--- a/main.py\n'
+          lines[1]='+++ b/main.py\n'
+          p.write_text(''.join(lines),encoding='utf-8')
+          PY
+          git apply --check PATCH_v8_66_r9.diff
+          git apply PATCH_v8_66_r9.diff
+          test "$(git hash-object main.py)" = "53b5a87de1b6a8aa42f6605332a3f6d912563638"
+          python -m py_compile main.py tachograph.py attestation_render.py
+          ! grep -q 'nb.add(self.tab_routes' main.py
+          grep -q 'text="Застосувати маршрут"' main.py
+          grep -q 'for tab_index in range(8)' main.py
+
+      - name: Commit clean r9 code
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -r .r9_patch .r9_exact .github/workflows/apply-v8-66-r9.yml .github/workflows/apply-v8-66-r9-exact.yml
+          git add main.py PATCH_v8_66_r9.diff
+          git commit -m "Taxo v8.66 candidate r9 — unify routes and route templates"
+          git push origin HEAD:work/v8.66-ui-polish-r9
