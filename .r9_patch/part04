@@ -1,0 +1,132 @@
+   "shift_type":tk.StringVar(value=(route["shift_type"] if route and "shift_type" in route.keys() else "Безперервна") or "Безперервна"),
++            "vehicle":tk.StringVar(value=vehicle_default),
++        }
++        active=tk.BooleanVar(value=bool(route["active"]) if route else True)
++
++        fields=[
++            ("Код / № маршруту","code"),
++            ("Назва маршруту","name"),
++            ("Опис / напрямок","description"),
++            ("Примітка","notes"),
++        ]
++        for row,(label,key) in enumerate(fields):
++            ttk.Label(win,text=label).grid(row=row,column=0,sticky="w",padx=10,pady=5)
++            ttk.Entry(win,textvariable=vv[key],width=65).grid(row=row,column=1,columnspan=3,sticky="ew",padx=10,pady=5)
++
++        ttk.Label(win,text="Автомобіль за замовчуванням").grid(row=4,column=0,sticky="w",padx=10,pady=5)
++        ttk.Combobox(
++            win,textvariable=vv["vehicle"],values=list(vehicle_map.keys()),state="readonly",width=40
++        ).grid(row=4,column=1,sticky="ew",padx=10,pady=5)
++        ttk.Label(win,text="Тип зміни").grid(row=4,column=2,sticky="e",padx=(10,4),pady=5)
++        ttk.Combobox(
++            win,textvariable=vv["shift_type"],values=["Безперервна","Розділена на частини"],
++            state="readonly",width=24
++        ).grid(row=4,column=3,sticky="w",padx=(4,10),pady=5)
++        ttk.Checkbutton(win,text="Активний маршрут",variable=active).grid(row=5,column=1,sticky="w",padx=10,pady=(3,5))
++        ttk.Label(win,text="Частини робочої зміни").grid(row=6,column=0,sticky="nw",padx=10,pady=8)
+ 
+-    def route_template_form(self, existing=None):
+-        win=tk.Toplevel(self); win.title("Шаблон маршруту"); fit_window_to_screen(win,1080,590,820,500); win.transient(self); win.grab_set()
+-        vals={k:(existing[0][k] if existing else "") for k in ["name","route_name","vehicle","shift_type","notes"]}
+-        existing_route_id=(existing[0]["route_id"] if existing and "route_id" in existing[0].keys() else None)
+-        con=db(); routes=con.execute("SELECT * FROM routes WHERE active=1 ORDER BY name").fetchall(); vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall(); con.close()
+-        vehicle_map={self.vehicle_label(v):v for v in vehicles}
+-        existing_vid=(existing[0]["vehicle_id"] if existing and "vehicle_id" in existing[0].keys() else None)
+-        if not vals["shift_type"]: vals["shift_type"]="Безперервна"
+-        vv={k:tk.StringVar(value=vals[k] or "") for k in vals}
+-        fields=[("Назва шаблону","name"),("Примітка","notes")]
+-        for i,(lbl,key) in enumerate(fields):
+-            ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=6); ttk.Entry(win,textvariable=vv[key],width=60).grid(row=i,column=1,columnspan=2,sticky="ew",padx=10,pady=6)
+-        ttk.Label(win,text="Маршрут").grid(row=2,column=0,sticky="w",padx=10,pady=6)
+-        route_map={self.route_label(r):r for r in routes}
+-        route_select=tk.StringVar(value=next((self.route_label(r) for r in routes if r["id"]==existing_route_id), vals["route_name"] or ""))
+-        ttk.Combobox(win,textvariable=route_select,values=list(route_map.keys()),state="readonly",width=57).grid(row=2,column=1,columnspan=2,sticky="ew",padx=10,pady=6)
+-        ttk.Label(win,text="Автомобіль").grid(row=3,column=0,sticky="w",padx=10,pady=6)
+-        vehicle_default=next((self.vehicle_label(v) for v in vehicles if v["id"]==existing_vid), vals["vehicle"] or "")
+-        vehicle_select=tk.StringVar(value=vehicle_default)
+-        ttk.Combobox(win,textvariable=vehicle_select,values=list(vehicle_map.keys()),state="readonly",width=57).grid(row=3,column=1,columnspan=2,sticky="ew",padx=10,pady=6)
+-        ttk.Label(win,text="Тип зміни").grid(row=4,column=0,sticky="w",padx=10,pady=6); ttk.Combobox(win,textvariable=vv["shift_type"],values=["Безперервна","Розділена на частини"],state="readonly",width=30).grid(row=4,column=1,sticky="w",padx=10)
+-        ttk.Label(win,text="Частини робочої зміни").grid(row=5,column=0,sticky="nw",padx=10,pady=8)
+         cols=("no","work_start","work_end","drive_start","drive_end","work","drive","activity","note")
+         tree=ttk.Treeview(win,columns=cols,show="headings",height=10)
+         for c,h,w in [
+@@ -7295,30 +7470,35 @@
+             ("drive_start","Кер. від",75),("drive_end","Кер. до",75),
+             ("work","Робота",75),("drive","Керування",80),
+             ("activity","Тип",110),("note","Примітка",180)
+-        ]: tree.heading(c,text=h); tree.column(c,width=w)
+-        tree.grid(row=5,column=1,columnspan=2,sticky="nsew",padx=10,pady=8)
++        ]:
++            tree.heading(c,text=h); tree.column(c,width=w)
++        tree.grid(row=6,column=1,columnspan=3,sticky="nsew",padx=10,pady=8)
++
+         seg_data=[]
+-        if existing:
+-            for r in existing[1]:
+-                ds=(r["start_time"] or "").strip(); de=(r["end_time"] or "").strip()
+-                ws=(r["work_start_time"] or "").strip() or ds
+-                we=(r["work_end_time"] or "").strip() or de
+-                seg_data.append({
+-                    "start_time":ds,"end_time":de,"work_start_time":ws,"work_end_time":we,
+-                    "work_hours":minutes_to_db_hours(duration_minutes(ws,we)) if ws and we else 0,
+-                    "driving_hours":minutes_to_db_hours(duration_minutes(ds,de)) if ds and de else 0,
+-                    "activity_type":r["activity_type"],"note":r["note"]
+-                })
++        for r in existing_segments:
++            ds=(r["start_time"] or "").strip(); de=(r["end_time"] or "").strip()
++            ws=(r["work_start_time"] or "").strip() or ds
++            we=(r["work_end_time"] or "").strip() or de
++            seg_data.append({
++                "start_time":ds,"end_time":de,"work_start_time":ws,"work_end_time":we,
++                "work_hours":minutes_to_db_hours(duration_minutes(ws,we)) if ws and we else 0,
++                "driving_hours":minutes_to_db_hours(duration_minutes(ds,de)) if ds and de else 0,
++                "activity_type":r["activity_type"],"note":r["note"]
++            })
++
+         def redraw():
+-            for x in tree.get_children(): tree.delete(x)
++            for x in tree.get_children():
++                tree.delete(x)
+             for i,r in enumerate(seg_data,1):
+                 tree.insert("","end",values=(
+                     i,r["work_start_time"],r["work_end_time"],r["start_time"],r["end_time"],
+                     hours_value_hhmm(r["work_hours"]),hours_value_hhmm(r["driving_hours"]),
+                     r["activity_type"],r["note"]
+                 ))
++
+         def edit_seg(index=None):
+-            sw=tk.Toplevel(win); sw.title("Частина шаблону"); fit_window_to_screen(sw,560,445,510,400); sw.transient(win); sw.grab_set()
++            sw=tk.Toplevel(win); sw.title("Частина маршруту")
++            fit_window_to_screen(sw,570,455,520,410); sw.transient(win); sw.grab_set()
+             base=seg_data[index] if index is not None else {
+                 "work_start_time":"08:00","work_end_time":"09:00",
+                 "start_time":"08:00","end_time":"09:00",
+@@ -7331,92 +7511,165 @@
+                 "start_time":base.get("start_time",""),"end_time":base.get("end_time",""),
+                 "activity_type":base.get("activity_type","Робота"),"note":base.get("note","")
+             }
+-            for k,v in defaults.items(): x[k]=tk.StringVar(value=str(v or ""))
+-            for i,(lbl,key) in enumerate([
++            for k,v in defaults.items():
++                x[k]=tk.StringVar(value=str(v or ""))
++            for row,(lbl,key) in enumerate([
+                 ("Робота — початок","work_start_time"),("Робота — кінець","work_end_time"),
+                 ("Керування — початок","start_time"),("Керування — кінець","end_time"),
+                 ("Тип","activity_type"),("Примітка","note")
+             ]):
+-                ttk.Label(sw,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=6)
+-                w=ttk.Combobox(sw,textvariable=x[key],values=DAY_TYPES,state="readonly",width=34) if key=="activity_type" else ttk.Entry(sw,textvariable=x[key],width=36)
+-                w.grid(row=i,column=1,padx=10,pady=6)
++                ttk.Label(sw,text=lbl).grid(row=row,column=0,sticky="w",padx=10,pady=6)
++                widget=(
++                    ttk.Combobox(sw,textvariable=x[key],values=DAY_TYPES,state="readonly",width=34)
++                    if key=="activity_type" else ttk.Entry(sw,textvariable=x[key],width=36)
++                )
++                widget.grid(row=row,column=1,padx=10,pady=6,sticky="ew")
+             duration_var=tk.StringVar()
+-            ttk.Label(sw,textvariable=duration_var,foreground="gray").grid(row=6,column=0,columnspan=2,sticky="w",padx=10,pady=4)
++            ttk.Label(sw,textvariable=duration_var,foreground="gray").grid(
++                row=6,column=0,columnspan=2,sticky="w",padx=10,pady=4
++            )
+             def refresh(*_):
+-                try: wt=minutes_hhmm(duration_minutes(x["work_start_time"].get(),x["work_end_time"].get())
