@@ -1,49 +1,45 @@
-# Taxo — CURRENT CHECKPOINT
+# Taxo v8.66 candidate r10 — checkpoint
 
-Date: 2026-09-13
+Date: 2026-09-14
 
-## Current candidate
-- Version: **v8.66 candidate r8**
-- Base: stable v8.65, GitHub `main` commit `f9101c1a41d7c036bade5ce66989171399189d4b`.
-- Scope: UI usability only; tachograph recognition logic is postponed and unchanged.
-- Main fixes: reliable clipboard actions, visible multi-row toolbars, screen-fitted windows, restored application menu, permanently visible tachograph day timeline and statistics button.
-- macOS work branch: `work/v8.66-macos-executable`; native `Taxo.app` candidates for Apple Silicon and Intel, built separately from the Windows package.
-- r3 tachograph preview fix: more default height, centered image, expandable preview pane, and a separate scan window that starts fitted with its own Fit / 100% controls.
-- r4 packaging fix: every Windows/macOS portable archive extracts into a versioned, platform-specific top-level directory.
-- r5 personnel-period fix: scrollable driver form; work schedules and timesheets exclude dates before the driver's employment date.
-- r6 UI stabilization: added a `Розділи` menu so every tab remains reachable on narrow screens; the last tab is remembered. Tachograph initial sash sizing no longer fails on a hidden/short tab; the working pane gets ~70% width, metadata/timeline are compact, and all critical controls were verified at 900×600, 1024×700, and 1200×760.
-- r7 usability hardening: direct system clipboard for ordinary text fields (including Ukrainian-layout shortcuts), Alt+1…Alt+9 navigation, wheel scrolling for schedule/tachograph canvases, and a hide/show tachograph catalog toggle that maximizes preview width without losing the previous sash position.
-- r8 monthly schedule fix: top controls split into two rows so every action stays visible at 900–1200 px; the window now opens on the month/year of the current schedule date and re-syncs when reopened; Refresh invalidates cached PDF state; Open schedule PDF regenerates the current selected month when the previous PDF is stale.
+## Authoritative state
+- Stable `main`: v8.65 @ `f9101c1a41d7c036bade5ce66989171399189d4b`.
+- Candidate branch: `work/v8.66-ui-polish-r10`.
+- Verified code commit: `7076a8dd24937e0925a87e03789e03bb8159ce0d`.
+- `main.py` Git blob: `21c3036237c6d50619890154a9c952f042475ac4`.
+- `tachograph.py` Git blob: `d5d8e71e0601e951b39432ade123e2be99509cd0`.
+- Recognition algorithm is unchanged.
 
-## Distribution cadence
-- Intermediate development versions are delivered as lightweight source archives and tested on Windows through `START.bat`.
-- Do not create or upload automatic `.exe` / `.app` artifacts for every intermediate version or candidate revision.
-- Full executable releases are made every fifth product version: **v8.65, v8.70, v8.75, ...**.
-- Each executable milestone must publish Windows and macOS builds together; macOS includes both Apple Silicon (`arm64`) and Intel (`x86_64`).
-- The next planned executable milestone after stable v8.65 is **v8.70**. v8.66 remains a `START.bat` test version.
+## r9 route model retained
+- User-facing `Шаблони маршрутів` is removed.
+- One `Маршрут` = one exact time scenario.
+- Display/selection label = `номер / назва` only.
+- Route stores default vehicle, shift type, description, notes and exact work/driving segments.
+- Workday editor uses `Застосувати маршрут`; no separate template selector is shown.
+- Legacy `route_templates` / `route_template_segments` are preserved as a safety layer and copied automatically into the unified route model.
 
-## Stable release
-- Version: **v8.65**
-- Promoted from verified candidate **r3**.
-- Previous stable: v8.64 (`c2ebee7bb832680e1c98a447cb90ebd115349fed`).
-- Stable v8.65 remains untouched while v8.66 is tested separately.
+## r10 tachograph UI
+- Right work area uses two sub-tabs: `Перегляд` and `Результати`.
+- The scan catalog remains on the left and can still be hidden/restored.
+- `Перегляд` contains disc metadata, 24-hour timeline and scan preview.
+- `Результати` contains recognition refresh/edit actions, statistics/protocol actions and the interval table.
+- Both sub-tabs have independent vertical scrollbars.
+- Scan preview keeps independent vertical + horizontal scrolling.
+- Interval table keeps independent vertical + horizontal scrolling.
+- The previous vertical sash between preview/results is removed.
+- Quick navigation buttons connect both sub-tabs: `До результатів →` / `← До перегляду`.
 
-## v8.65 time model
-- Existing schedule intervals are PLAN driving intervals.
-- Each segment has explicit WORK start/end plus DRIVING start/end.
-- Durations are derived from boundaries.
-- Legacy driving boundaries initially copy 1:1 into working boundaries.
-- `Без тахо — стандартні 8 год`: work=8h, drive=0h.
-- Tachograph future data = FACTUAL driving; it must not overwrite PLAN automatically.
+## Regression protection
+- Authoritative r8 monthly-schedule behavior is retained: the selected schedule date controls month/year, Refresh marks the PDF stale, and Open PDF regenerates the current month when required.
+- The canonical GitHub candidate differs from the older local r10 build only by retaining the newer r8 monthly-schedule implementation already published on GitHub.
 
-## r3 release fixes
-- Centralized output-file exception handler for locked/open PDF/XLSX files.
-- On locked existing file: Retry / Create copy / Cancel.
-- Nonhandled GUI exceptions are logged locally to `Documents/DriverWorktime/Logs/Taxo_errors.log`.
-- Graphical schedule no longer hides labels of short bands; every work/driving band receives an adaptive label.
+## Verification
+- Exact GitHub candidate exported as an Actions artifact and tested locally.
+- Python compile PASS for `main.py`, `tachograph.py`, `attestation_render.py`.
+- TAHO layout PASS at 900x600, 1024x700, 1200x760 and 1400x780.
+- Both TAHO sub-tab vertical scrollbars were exercised at 900x600.
+- All critical Results buttons are mapped and inside the window at 900x600.
+- Monthly schedule source date 13.09.2026 resolves to September 2026.
+- Dirty PDF state regenerates before opening; repeated dirty-state test regenerated twice.
 
-## Release assets expected
-- `Taxo_v8_65_Setup_Windows_x64.exe`
-- `Taxo_v8_65_Windows_x64_Portable.zip`
-- `Taxo_v8_65_source.zip`
-- `SHA256SUMS_v8_65.txt`
+Do not merge into stable `main` before manual Windows regression testing is confirmed.
