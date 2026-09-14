@@ -1,0 +1,66 @@
+name: Publish Taxo v8.70 Windows release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-v8.70.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish-windows-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout consolidated source
+        uses: actions/checkout@v4
+
+      - name: Download verified Windows r5 artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 34889230153 \
+            --name 'Taxo-v8.70-Windows-x64-consolidated-r5' \
+            --dir release-assets
+
+      - name: Verify and prepare release files
+        run: |
+          test -f 'release-assets/Taxo_v8_70_TEST_r5_Windows_x64_Portable.zip'
+          test -f 'release-assets/release_out/Taxo_v8_70_TEST_r5_Setup_Windows_x64.exe'
+          test -f 'release-assets/SHA256SUMS_v8_70_TEST_r5_Windows_x64.txt'
+          cp 'release-assets/release_out/Taxo_v8_70_TEST_r5_Setup_Windows_x64.exe' 'release-assets/'
+          cd release-assets
+          sha256sum -c SHA256SUMS_v8_70_TEST_r5_Windows_x64.txt
+          cd ..
+          git archive --format=zip --output='release-assets/Taxo_v8_70_r5_source.zip' HEAD
+          cp 'release-assets/SHA256SUMS_v8_70_TEST_r5_Windows_x64.txt' 'release-assets/SHA256SUMS_v8_70.txt'
+          cd release-assets
+          sha256sum Taxo_v8_70_r5_source.zip >> SHA256SUMS_v8_70.txt
+
+      - name: Create or update v8.70 pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v8.70 >/dev/null 2>&1; then
+            gh release edit v8.70 \
+              --target "$GITHUB_SHA" \
+              --title 'Taxo v8.70 r5 — Windows testing release' \
+              --notes-file RELEASE_NOTES_v8_70.md \
+              --prerelease
+          else
+            gh release create v8.70 \
+              --target "$GITHUB_SHA" \
+              --title 'Taxo v8.70 r5 — Windows testing release' \
+              --notes-file RELEASE_NOTES_v8_70.md \
+              --prerelease
+          fi
+          gh release upload v8.70 \
+            'release-assets/Taxo_v8_70_TEST_r5_Setup_Windows_x64.exe' \
+            'release-assets/Taxo_v8_70_TEST_r5_Windows_x64_Portable.zip' \
+            'release-assets/Taxo_v8_70_r5_source.zip' \
+            'release-assets/SHA256SUMS_v8_70.txt' \
+            --clobber

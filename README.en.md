@@ -20,6 +20,8 @@ Taxo is a Ukrainian-language desktop application for managing transport-company 
 
 On Windows, the source package can be started with `START.bat`. Ready-made Windows Setup and Portable packages, as well as native macOS packages for Apple Silicon and Intel, are produced by GitHub Actions at executable checkpoints.
 
+The current Windows Setup, Portable ZIP, source ZIP and SHA-256 checksums are available from [GitHub Release v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70).
+
 The application stores user data outside the program directory under `Documents/DriverWorktime`. SQLite databases and personal data are intentionally excluded from the repository and all distribution packages, so updating the program does not replace operational data.
 
 The interface and generated official forms are currently in Ukrainian. This repository page is translated to make the project easier to review internationally.

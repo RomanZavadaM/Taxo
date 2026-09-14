@@ -20,6 +20,8 @@ Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Besc
 
 Unter Windows kann das Quellpaket über `START.bat` gestartet werden. Windows-Setup- und Portable-Pakete sowie native macOS-Pakete für Apple Silicon und Intel werden an ausführbaren Kontrollpunkten über GitHub Actions erstellt.
 
+Das aktuelle Windows-Setup, das Portable-ZIP, das Quellcode-ZIP und die SHA-256-Prüfsummen stehen im [GitHub-Release v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70) bereit.
+
 Benutzerdaten werden außerhalb des Programmordners unter `Documents/DriverWorktime` gespeichert. SQLite-Datenbanken und personenbezogene Daten sind bewusst weder im Repository noch in den Distributionspaketen enthalten. Programmaktualisierungen ersetzen daher keine Betriebsdaten.
 
 Die Benutzeroberfläche und die erzeugten amtlichen Formulare sind derzeit ukrainisch. Diese Übersetzung dient der internationalen Projektübersicht.
