@@ -1,0 +1,56 @@
+rt_time,end_time,work_start_time,work_end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?,?,?)",
+-                                (tid,i,r["start_time"],r["end_time"],r["work_start_time"],r["work_end_time"],r["work_hours"],r["driving_hours"],r["activity_type"],r["note"]))
++                    con.execute(
++                        """INSERT INTO route_segments(
++                               route_id,segment_no,start_time,end_time,work_start_time,work_end_time,
++                               work_hours,driving_hours,activity_type,note
++                           ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
++                        (rid,i,r["start_time"],r["end_time"],r["work_start_time"],r["work_end_time"],
++                         r["work_hours"],r["driving_hours"],r["activity_type"],r["note"])
++                    )
+                 con.commit()
+             except sqlite3.IntegrityError as e:
+-                con.rollback(); messagebox.showerror("Помилка",f"Не вдалося зберегти шаблон. Назва має бути унікальною.\n{e}",parent=win); return
+-            finally: con.close()
+-            win.destroy(); self.load_route_templates()
+-        ttk.Button(win,text="Зберегти шаблон",command=save).grid(row=8,column=2,sticky="e",padx=10,pady=10)
+-
+-    def edit_route_template(self):
+-        item=self.selected_route_template()
+-        if item: self.route_template_form(item)
+-
+-    def delete_route_template(self):
+-        item=self.selected_route_template()
+-        if not item: return
+-        if not messagebox.askyesno("Підтвердження","Видалити цей шаблон маршруту?"): return
+-        con=db(); con.execute("DELETE FROM route_templates WHERE id=?",(item[0]["id"],)); con.commit(); con.close(); self.load_route_templates()
++                con.rollback()
++                messagebox.showerror(
++                    "Помилка",f"Не вдалося зберегти маршрут. Назва має бути унікальною.\n{e}",parent=win
++                ); return
++            finally:
++                con.close()
++            win.destroy(); self.load_route_catalog()
++
++        ttk.Button(win,text="Зберегти маршрут",command=save).grid(row=8,column=3,sticky="e",padx=10,pady=10)
++
++    def edit_route_catalog(self):
++        item=self.selected_route_catalog()
++        if item:
++            self.route_catalog_form(item)
++
++    def delete_route_catalog(self):
++        item=self.selected_route_catalog()
++        if not item:
++            return
++        route=item[0]
++        if messagebox.askyesno(
++            "Підтвердження",
++            "Вимкнути цей маршрут? Історичні записи табеля та його часовий сценарій залишаться.",
++            parent=self
++        ):
++            con=db(); con.execute("UPDATE routes SET active=0 WHERE id=?",(route["id"],)); con.commit(); con.close()
++            self.load_route_catalog()
+ 
+     def tacho_drivers(self):
+         con=db(); rows=con.execute("SELECT * FROM drivers WHERE active=1 ORDER BY last_name, first_name").fetchall(); con.close(); return rows
