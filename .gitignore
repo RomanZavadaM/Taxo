@@ -10,7 +10,10 @@ __pycache__/
 .venv-macos/
 build/
 dist/
-Taxo_v8_66_TEST_r*_macOS_*_Portable.zip
-SHA256SUMS_v8_66_TEST_r*_macOS_*.txt
-Taxo_v8_66_TEST_r*_Windows_x64_Portable.zip
-SHA256SUMS_v8_66_TEST_r*_Windows_x64.txt
+release_out/
+Taxo_v8_70_TEST_r*_macOS_*_Portable.zip
+SHA256SUMS_v8_70_TEST_r*_macOS_*.txt
+Taxo_v8_70_TEST_r*_Windows_x64_Portable.zip
+Taxo_v8_70_TEST_r*_Setup_Windows_x64.exe
+SHA256SUMS_v8_70_TEST_r*_Windows_x64.txt
+

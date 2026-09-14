@@ -1,14 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.66 candidate r5 — native macOS onedir application bundle.
-# Build separately on Apple Silicon and Intel; bundled user databases are forbidden.
+# Taxo v8.70 candidate r3 — native macOS application bundle.
+# Build separately on Apple Silicon and Intel; user databases are forbidden.
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
     datas=[('Бланк підтвердження.docx', '.'), ('attestation_visual_template.pdf', '.')],
-    hiddenimports=['tachograph', 'attestation_render', 'fitz', 'pymupdf'],
+    hiddenimports=['tachograph', 'attestation_render', 'waybill', 'fitz', 'pymupdf'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -50,7 +50,7 @@ app = BUNDLE(
     name='Taxo.app',
     icon=None,
     bundle_identifier='com.romanzavadam.taxo',
-    version='8.66',
+    version='8.70',
     info_plist={
         'CFBundleDisplayName': 'Taxo',
         'CFBundleName': 'Taxo',
@@ -59,3 +59,4 @@ app = BUNDLE(
         'NSHighResolutionCapable': True,
     },
 )
+

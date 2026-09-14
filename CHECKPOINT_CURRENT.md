@@ -1,45 +1,43 @@
-# Taxo v8.66 candidate r10 — checkpoint
+# Taxo — CURRENT CHECKPOINT
 
 Date: 2026-09-14
 
-## Authoritative state
-- Stable `main`: v8.65 @ `f9101c1a41d7c036bade5ce66989171399189d4b`.
-- Candidate branch: `work/v8.66-ui-polish-r10`.
-- Verified code commit: `7076a8dd24937e0925a87e03789e03bb8159ce0d`.
-- `main.py` Git blob: `21c3036237c6d50619890154a9c952f042475ac4`.
-- `tachograph.py` Git blob: `d5d8e71e0601e951b39432ade123e2be99509cd0`.
-- Recognition algorithm is unchanged.
+## Current candidate
 
-## r9 route model retained
-- User-facing `Шаблони маршрутів` is removed.
-- One `Маршрут` = one exact time scenario.
-- Display/selection label = `номер / назва` only.
-- Route stores default vehicle, shift type, description, notes and exact work/driving segments.
-- Workday editor uses `Застосувати маршрут`; no separate template selector is shown.
-- Legacy `route_templates` / `route_template_segments` are preserved as a safety layer and copied automatically into the unified route model.
+- Version: **v8.70 candidate r3**.
+- Stable published baseline: **v8.65**, GitHub `main` commit `f9101c1a41d7c036bade5ce66989171399189d4b`.
+- Previous development checkpoints remain preserved: v8.66 r10, v8.70 r1 and v8.70 r2.
+- Distribution for testing: source package with `START.bat`, Windows Setup/Portable and native macOS arm64/x86_64 candidate artifacts.
+- Publication branch: `work/v8.70-waybill-r3`; stable `main` remains unchanged until manual acceptance.
 
-## r10 tachograph UI
-- Right work area uses two sub-tabs: `Перегляд` and `Результати`.
-- The scan catalog remains on the left and can still be hidden/restored.
-- `Перегляд` contains disc metadata, 24-hour timeline and scan preview.
-- `Результати` contains recognition refresh/edit actions, statistics/protocol actions and the interval table.
-- Both sub-tabs have independent vertical scrollbars.
-- Scan preview keeps independent vertical + horizontal scrolling.
-- Interval table keeps independent vertical + horizontal scrolling.
-- The previous vertical sash between preview/results is removed.
-- Quick navigation buttons connect both sub-tabs: `До результатів →` / `← До перегляду`.
+## Personnel and timekeeping
 
-## Regression protection
-- Authoritative r8 monthly-schedule behavior is retained: the selected schedule date controls month/year, Refresh marks the PDF stale, and Open PDF regenerates the current month when required.
-- The canonical GitHub candidate differs from the older local r10 build only by retaining the newer r8 monthly-schedule implementation already published on GitHub.
+- `Працівники → Реєстр усіх працівників` stores all employees once, with personnel number, dates, position, phone, status and multiple roles.
+- Existing drivers migrate automatically into the employee register and keep their driver cards and all historical links.
+- Existing r2 doctors/mechanics and dispatch shifts migrate into the common employee and shift tables.
+- Dispatch shifts support role, exact date/time, D+ end day, location, planned hours, actual hours and overlap checks.
+- The monthly personnel summary combines driver plan from `worklog` with non-driver shifts. Cross-midnight hours are allocated to the calendar month they actually occupy.
 
-## Verification
-- Exact GitHub candidate exported as an Actions artifact and tested locally.
-- Python compile PASS for `main.py`, `tachograph.py`, `attestation_render.py`.
-- TAHO layout PASS at 900x600, 1024x700, 1200x760 and 1400x780.
-- Both TAHO sub-tab vertical scrollbars were exercised at 900x600.
-- All critical Results buttons are mapped and inside the window at 900x600.
-- Monthly schedule source date 13.09.2026 resolves to September 2026.
-- Dirty PDF state regenerates before opening; repeated dirty-state test regenerated twice.
+## Waybill numbering and lifecycle
 
-Do not merge into stable `main` before manual Windows regression testing is confirmed.
+- `Підприємство → Пули серій і номерів` stores series, range, next number, width, effective dates and automatic/manual mode.
+- Exactly one active pool may cover a given work date. The pool is selected by work date, not print date.
+- Preview does not consume a number. First issue consumes it only after successful PDF creation.
+- Reprint keeps series/number and increments revision without advancing the pool.
+- Annulment records its reason and does not return the number to the pool. A later issue receives a new number.
+- `waybill_events` keeps issue/reprint/void history; `waybills` keeps the current document snapshot.
+
+## Route and form № 1-АП
+
+- Every route has an explicit start location, end location, start direction and D+ start/end day.
+- Each outbound/return point stores its type (`АТП`, `Зупинка`, `Автостанція`, `Відпочинок`, `Нічліг`, `Інше`).
+- Arrival and departure have independent D+ day values, so `D0 23:55 → D+1 00:40` is represented correctly.
+- The reverse side prints outbound and return schedules with day markers and highlights the direction where work begins.
+- The front side prints the official series/number, route/vehicle/driver plan, start/end locations and scheduled doctor/mechanic names. Handwritten signatures and unknown actual/fuel/control fields remain blank.
+
+## Compatibility and constraints
+
+- Database migration is additive; no driver, vehicle, route, worklog, tachograph record or old dispatch table is deleted.
+- Dates in the UI remain `ДД.ММ.РРРР`.
+- Persistent data remains in `Documents/DriverWorktime`; the distribution ZIP contains no database or personal data.
+- Tachograph recognition and the rule that tachograph facts never overwrite plan `worklog/work_segments` are unchanged.

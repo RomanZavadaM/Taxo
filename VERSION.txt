@@ -1,16 +1,13 @@
 Taxo / Driver Worktime
-Version: 8.66 candidate r10
+Version: 8.70 candidate r3
 Candidate date: 2026-09-14
 Stable published baseline: 8.65
+Development baseline: verified v8.66 candidate r10 checkpoint
 
-Scope: interface simplification and tachograph usability before the next recognition-development stage.
-Routes r9 retained: one user-facing «Маршрути» section; one route = one exact work/driving time scenario; legacy templates migrate automatically and remain preserved.
-Tachograph r10: the right working area is split into two sub-tabs — «Перегляд» and «Результати».
-Tachograph r10 scrolling: both sub-tabs have their own vertical scrollbar; the scan keeps its own X/Y scrollbars in 100% mode; the interval table keeps its own X/Y scrollbars.
-Tachograph r10 layout: the old vertical preview/results sash is removed, so results buttons cannot be pushed below the window by the scan preview.
-Monthly schedule: authoritative r8 synchronization/stale-PDF logic is retained in this candidate.
-Navigation: 8 main application sections; «Шаблони маршрутів» remains merged into «Маршрути».
-Canonical GitHub source blobs: main.py 21c3036237c6d50619890154a9c952f042475ac4; tachograph.py d5d8e71e0601e951b39432ade123e2be99509cd0.
-Distribution: intermediate versions use START.bat; next Windows/macOS executable milestone is v8.70.
+v8.70 starts the waybill issuance workflow from the graphical driver schedule.
+Waybill r3: common employee register and personnel timekeeping; date-effective series/number pools; route start/end points, D+ days, rest/overnight point types, and outbound/return schedules feed vector form 1-AP.
+Waybill archive: issued PDFs are registered in the persistent database, receive a unique official series+number and an internal yearly id, and are stored under Documents/DriverWorktime/Output/Waybills/YYYY/MM.
+Route model from v8.66 r10 remains: one route = one exact time scenario.
+Tachograph recognition algorithm is unchanged.
 
-The tachograph recognition algorithm is intentionally unchanged in this candidate.
+Distribution: START.bat source candidate plus GitHub Actions Windows Setup/Portable and native macOS arm64/x86_64 candidate builds. No user database is bundled.
