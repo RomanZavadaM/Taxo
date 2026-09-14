@@ -9,7 +9,8 @@ on:
 
 permissions:
   contents: read
-\ njobs:
+
+jobs:
   export:
     runs-on: ubuntu-latest
     steps:
