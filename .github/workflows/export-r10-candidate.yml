@@ -1,0 +1,38 @@
+name: Export Taxo v8.66 r10 candidate for verification
+
+on:
+  push:
+    branches:
+      - work/v8.66-ui-polish-r10
+    paths:
+      - .github/workflows/export-r10-candidate.yml
+
+permissions:
+  contents: read
+\ njobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v8.66-ui-polish-r10
+          fetch-depth: 0
+      - name: Build candidate source
+        shell: bash
+        run: |
+          cat .r10_exact/main*.diff > /tmp/main.diff
+          cat .r10_exact/tacho*.diff > /tmp/tacho.diff
+          git apply --check /tmp/main.diff
+          git apply /tmp/main.diff
+          git apply --check /tmp/tacho.diff
+          git apply /tmp/tacho.diff
+          python -m py_compile main.py tachograph.py attestation_render.py
+          echo "MAIN_BLOB=$(git hash-object main.py)"
+          echo "TACHO_BLOB=$(git hash-object tachograph.py)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: taxo-r10-candidate-source
+          path: |
+            main.py
+            tachograph.py
+          if-no-files-found: error
