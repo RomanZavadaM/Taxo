@@ -1,0 +1,53 @@
+-                # і правій частині бракувало ширини навіть на 1024 px.
+-                pan.sashpos(0,max(190,min(330,int(total_w*0.30))))
+-                body.update_idletasks()
+-                total_h=body.winfo_height()
+-                # На малих екранах гарантовано лишаємо видимими обидва pane.
+-                result_min=95 if total_h>=190 else max(45,int(total_h*0.45))
+-                image_min=70 if total_h>=170 else max(40,int(total_h*0.45))
+-                desired=max(image_min,int(total_h*0.62))
+-                desired=min(desired,max(image_min,total_h-result_min))
+-                body.sashpos(0,desired)
++                # Каталог близько 28%, дві робочі підвкладки отримують решту.
++                pan.sashpos(0,max(180,min(320,int(total_w*0.28))))
+                 self._initial_sashes_done=True
+             except tk.TclError:
+                 pass
+         self._set_readable_sashes=set_readable_sashes
+-        # Hidden Notebook tabs report 1x1 on Map. Configure retries once the tab
+-        # has a real size, then stops so manual sash movement is respected.
+-        body.bind("<Map>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
+-        body.bind("<Configure>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
++        pan.bind("<Map>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
++        pan.bind("<Configure>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
+         right.bind("<Configure>",lambda _event:self.parent.after_idle(set_readable_sashes),add="+")
+         self.parent.after_idle(set_readable_sashes)
+ 
+@@ -575,21 +610,14 @@
+         self._render_image_preview()
+ 
+     def toggle_preview_space(self):
+-        """Temporarily maximize the scan pane without losing result controls."""
++        """Legacy compatibility: r10 switches between Preview and Results tabs."""
+         try:
+-            total=self.detail_paned.winfo_height()
+-            if total<160:
+-                return
+-            if self.preview_expanded:
+-                desired=max(160,min(int(total*0.70),max(120,total-95)))
+-                self.preview_expanded=False
+-                self.preview_space_button.configure(text="Збільшити перегляд")
++            current=self.tacho_pages.select()
++            if current==str(self.preview_page):
++                self.tacho_pages.select(self.results_page)
+             else:
+-                desired=max(160,total-48)
+-                self.preview_expanded=True
+-                self.preview_space_button.configure(text="Показати результати")
+-            self.detail_paned.sashpos(0,desired)
+-            self.parent.after_idle(self._render_image_preview)
++                self.tacho_pages.select(self.preview_page)
++                self.parent.after_idle(self._render_image_preview)
+         except tk.TclError:
+             pass
+ 
