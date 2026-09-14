@@ -1,0 +1,52 @@
+Taxo v8.70 candidate r3 — TEST REPORT
+Date: 2026-09-14
+
+PASS — Python syntax compilation:
+  main.py, waybill.py, tachograph.py, attestation_render.py
+
+PASS — clean database initialization:
+  SQLite quick_check = ok;
+  employee, personnel-shift, number-pool and waybill-event tables created;
+  one default active automatic number pool created.
+
+PASS — additive migration from an actual v8.70 r2 database:
+  driver preserved and linked to the common employee register;
+  doctor preserved with personnel number and role;
+  overnight r2 shift 20:00–06:00 migrated as D+1;
+  legacy route point preserved and extended with D+ and point-type fields;
+  no legacy table was deleted.
+
+PASS — night-route schedule integration:
+  route starts at an explicit non-default point;
+  planned return is displayed as D+1;
+  direct and return point counts are available to issuance validation;
+  doctor and mechanic are resolved from dated, timed, located personnel shifts.
+
+PASS — waybill number lifecycle logic:
+  first successful issue consumes the next number;
+  reprint keeps the same official series/number and increments revision;
+  annulment records an event and does not return the number to the pool;
+  issue after annulment receives the next number;
+  issued/reprint/void history is kept in waybill_events.
+
+PASS — PDF structure and visual inspection:
+  2 pages, A4 landscape, vector-only (no raster background images);
+  official series/number present;
+  direct and return schedules present;
+  independent arrival/departure day transition D+0→D+1 present;
+  rest and overnight point types present;
+  all page borders and main cells fit the rendered pages.
+
+PASS — distribution rule:
+  candidate can be tested through START.bat;
+  Windows Setup/Portable and native macOS candidates are built only in isolated GitHub Actions runners;
+  source and executable packages must contain no SQLite database, cache, personal data or generated user output.
+
+MANUAL WINDOWS CHECK STILL REQUIRED:
+  run START.bat;
+  open and save an employee card with several roles;
+  enter doctor/mechanic shifts and view the monthly personnel table;
+  create/edit a dated numbering pool;
+  edit a night route with both directions and a D+0→D+1 point;
+  issue, reprint and annul one test waybill;
+  print both PDF sides at 100% scale and compare with the approved paper form.

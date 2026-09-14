@@ -79,7 +79,12 @@ def _find_visual_font_files():
         Path("/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf"),
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf"),
         Path("/usr/share/fonts/truetype/croscore/Tinos-Regular.ttf"),
+        Path.home() / "Library/Fonts/Times New Roman.ttf",
+        Path.home() / "Library/Fonts/Arial.ttf",
         Path("/Library/Fonts/Times New Roman.ttf"),
+        Path("/Library/Fonts/Arial.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Times New Roman.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
         Path("/System/Library/Fonts/Times.ttc"),
     ]
     bold_candidates += [
@@ -87,7 +92,12 @@ def _find_visual_font_files():
         Path("/usr/share/fonts/truetype/liberation2/LiberationSerif-Bold.ttf"),
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"),
         Path("/usr/share/fonts/truetype/croscore/Tinos-Bold.ttf"),
+        Path.home() / "Library/Fonts/Times New Roman Bold.ttf",
+        Path.home() / "Library/Fonts/Arial Bold.ttf",
         Path("/Library/Fonts/Times New Roman Bold.ttf"),
+        Path("/Library/Fonts/Arial Bold.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Times New Roman Bold.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
         Path("/System/Library/Fonts/Times.ttc"),
     ]
     regular = next((p for p in regular_candidates if p.exists()), None)

@@ -1,29 +1,46 @@
 # Taxo — CURRENT CHECKPOINT
 
-Date: 2026-09-12
+Date: 2026-09-14
 
-## Stable release
-- Version: **v8.65**
-- Promoted from verified candidate **r3**.
-- Previous stable: v8.64 (`c2ebee7bb832680e1c98a447cb90ebd115349fed`).
-- Next development version: **v8.66**.
+## Current consolidated version
 
-## v8.65 time model
-- Existing schedule intervals are PLAN driving intervals.
-- Each segment has explicit WORK start/end plus DRIVING start/end.
-- Durations are derived from boundaries.
-- Legacy driving boundaries initially copy 1:1 into working boundaries.
-- `Без тахо — стандартні 8 год`: work=8h, drive=0h.
-- Tachograph future data = FACTUAL driving; it must not overwrite PLAN automatically.
+- Version: **v8.70 consolidated r5**.
+- Publication target: GitHub `main`; the old v8.65 head is superseded after verified merge.
+- Previous development checkpoints remain preserved: v8.66 r10 and v8.70 r1–r3.
+- Distribution for testing: source package with `START.bat`, Windows Setup/Portable and native macOS arm64/x86_64 candidate artifacts.
+- Publication branch: `work/v8.70-consolidated-r5`; after automated verification it is merged into `main`.
 
-## r3 release fixes
-- Centralized output-file exception handler for locked/open PDF/XLSX files.
-- On locked existing file: Retry / Create copy / Cancel.
-- Nonhandled GUI exceptions are logged locally to `Documents/DriverWorktime/Logs/Taxo_errors.log`.
-- Graphical schedule no longer hides labels of short bands; every work/driving band receives an adaptive label.
+## Personnel and timekeeping
 
-## Release assets expected
-- `Taxo_v8_65_Setup_Windows_x64.exe`
-- `Taxo_v8_65_Windows_x64_Portable.zip`
-- `Taxo_v8_65_source.zip`
-- `SHA256SUMS_v8_65.txt`
+- `Працівники → Реєстр усіх працівників` stores all employees once, with personnel number, dates, position, phone, status and multiple roles.
+- Existing drivers migrate automatically into the employee register and keep their driver cards and all historical links.
+- Removing the `Водій` role closes the linked driver card with an end date but does not delete the employee, schedule, timesheet or waybill history.
+- Existing r2 doctors/mechanics and dispatch shifts migrate into the common employee and shift tables.
+- Dispatch shifts support role, exact date/time, D+ end day, location, planned hours, actual hours and overlap checks.
+- The monthly personnel summary combines driver plan from `worklog` with non-driver shifts. Cross-midnight hours are allocated to the calendar month they actually occupy.
+
+## Waybill numbering and lifecycle
+
+- `Підприємство → Пули серій і номерів` stores series, range, next number, width, effective dates and automatic/manual mode.
+- Exactly one active pool may cover a given work date. The pool is selected by work date, not print date.
+- Preview does not consume a number. First issue consumes it only after successful PDF creation.
+- Reprint keeps series/number and increments revision without advancing the pool.
+- Annulment records its reason and does not return the number to the pool. A later issue receives a new number.
+- `waybill_events` keeps issue/reprint/void history; `waybills` keeps the current document snapshot.
+
+## Route and form № 1-АП
+
+- Every route has an explicit start location, end location, start direction and D+ start/end day.
+- Each outbound/return point stores its type (`АТП`, `Зупинка`, `Автостанція`, `Відпочинок`, `Нічліг`, `Інше`).
+- Arrival and departure have independent D+ day values, so `D0 23:55 → D+1 00:40` is represented correctly.
+- The primary entry path accepts two pasted Excel/text columns `Точка | Час` for both directions, automatically infers arrival/departure placement, day rollover, route endpoints and D+ bounds.
+- One route that returns on the next day produces one official waybill number whose date is printed as the full interval, for example `14.09.2026 - 15.09.2026`; both dates are stored in the register.
+- The reverse side prints outbound and return schedules with real calendar dates and highlights the direction where work begins. Internal D+ offsets are never printed.
+- The front side prints the official series/number, route/vehicle/driver plan, start/end locations and scheduled doctor/mechanic names. Handwritten signatures and unknown actual/fuel/control fields remain blank.
+
+## Compatibility and constraints
+
+- Database migration is additive; no driver, vehicle, route, worklog, tachograph record or old dispatch table is deleted.
+- Dates in the UI remain `ДД.ММ.РРРР`.
+- Persistent data remains in `Documents/DriverWorktime`; the distribution ZIP contains no database or personal data.
+- Tachograph recognition and the rule that tachograph facts never overwrite plan `worklog/work_segments` are unchanged.

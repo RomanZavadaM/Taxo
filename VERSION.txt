@@ -1,11 +1,13 @@
 Taxo / Driver Worktime
-Version: 8.65
-Release date: 2026-09-12
-Promoted from verified candidate r3.
+Version: 8.70 consolidated r5
+Candidate date: 2026-09-14
+Published baseline after merge: 8.70 consolidated r5
+Development baseline: verified v8.66 candidate r10 checkpoint
 
-Time model: each segment has separate planned WORK start/end and DRIVING start/end; durations are derived from those boundaries.
-Legacy route start/end are treated as planned driving boundaries and initially copied to working boundaries.
-Tachograph principle: future recognized tachograph data is FACTUAL driving and remains separate from PLAN.
+v8.70 starts the waybill issuance workflow from the graphical driver schedule.
+Waybill r5: simple two-column route paste, internal automatic day rollover, and calendar dates on every printed overnight/multiday waybill field. All preserved v8.66 and v8.70 development is consolidated into main.
+Waybill archive: issued PDFs are registered in the persistent database, receive a unique official series+number and an internal yearly id, and are stored under Documents/DriverWorktime/Output/Waybills/YYYY/MM.
+Route model from v8.66 r10 remains: one route = one exact time scenario.
+Tachograph recognition algorithm is unchanged.
 
-r3 release fixes: centralized output-file exception handling for locked/open PDF/XLSX files; schedule timeline labels are never silently hidden for short edited intervals.
-Next development version: 8.66
+Distribution: START.bat source package plus GitHub Actions Windows Setup/Portable and native macOS arm64/x86_64 builds. No user database is bundled.

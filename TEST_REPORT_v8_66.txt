@@ -1,0 +1,23 @@
+Taxo v8.66 candidate r1 — UI verification
+Date: 2026-09-12
+
+PASS: main.py / tachograph.py / attestation_render.py py_compile.
+PASS: git diff whitespace validation.
+PASS: 10 automated UI/infrastructure and isolated-database tests.
+PASS: Ukrainian-layout shortcut mapping for copy, paste, cut, select all, undo, redo.
+PASS: Windows physical-key fallback mapping.
+PASS: editable-field virtual paste and readonly-field protection.
+PASS: dialog size clamp for a 1366x768 screen.
+PASS: main menu invocation guard.
+PASS: scrollable tabs no longer remove global bindings.
+PASS: tachograph timeline is built before the expandable image/result panes.
+PASS: visible tachograph statistics control guard.
+PASS: v8.65 separate WORK/DRIVING boundary schema preserved.
+PASS: tachograph database remains a separate tachograph_test.sqlite3.
+PASS: isolated SQLite smoke test with a test driver and worklog row.
+PASS: monthly work balance PDF and XLSX generation.
+PASS: monthly shift schedule PDF generation.
+
+NOT RUN HERE: rendered Tk GUI test, because this environment has no display server.
+REQUIRED USER CHECK: Windows visual/copy-paste smoke test using the supplied candidate archive.
+Tachograph recognition algorithm was not changed or retested in this candidate.

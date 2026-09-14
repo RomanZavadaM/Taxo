@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.70 consolidated r5 — Windows onedir build.
-# User databases are never bundled.
+# Taxo v8.70 consolidated r5 — native macOS application bundle.
+# Build separately on Apple Silicon and Intel; user databases are forbidden.
 
 a = Analysis(
     ['main.py'],
@@ -27,7 +27,7 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    upx=False,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -41,7 +41,21 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
-    upx_exclude=[],
+    upx=False,
     name='Taxo',
+)
+
+app = BUNDLE(
+    coll,
+    name='Taxo.app',
+    icon=None,
+    bundle_identifier='com.romanzavadam.taxo',
+    version='8.70',
+    info_plist={
+        'CFBundleDisplayName': 'Taxo',
+        'CFBundleName': 'Taxo',
+        'LSApplicationCategoryType': 'public.app-category.productivity',
+        'NSPrincipalClass': 'NSApplication',
+        'NSHighResolutionCapable': True,
+    },
 )

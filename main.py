@@ -7,6 +7,7 @@
 """
 import calendar
 import os
+import re
 import sqlite3
 import subprocess
 import sys
@@ -35,6 +36,11 @@ except ImportError:
     build_attestation_pdf = None
     pdf_to_jpg_pages = None
 
+try:
+    from waybill import build_waybill_pdf
+except ImportError:
+    build_waybill_pdf = None
+
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне сховище даних НЕ залежить від версії програми.
@@ -48,12 +54,42 @@ LOG_DIR = DATA_ROOT / "Logs"
 ATT_ARCHIVE_DIR = OUTPUT_DIR / "AttestationArchive"
 ATT_REPLACED_DIR = ATT_ARCHIVE_DIR / "Replaced"
 ATT_DELETED_DIR = ATT_ARCHIVE_DIR / "Deleted"
+WAYBILL_DIR = OUTPUT_DIR / "Waybills"
 DB_PATH = DATA_DIR / "driver_worktime.sqlite3"
 TEMPLATE_PATH = APP_DIR / "Бланк підтвердження.docx"
 ATT_VISUAL_TEMPLATE_PATH = APP_DIR / "attestation_visual_template.pdf"
 
-for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR, LOG_DIR, ATT_ARCHIVE_DIR, ATT_REPLACED_DIR, ATT_DELETED_DIR):
+for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR, LOG_DIR, ATT_ARCHIVE_DIR, ATT_REPLACED_DIR, ATT_DELETED_DIR, WAYBILL_DIR):
     _p.mkdir(parents=True, exist_ok=True)
+
+
+def open_external(path):
+    """Open a file or directory with the platform's default application."""
+    target = str(path)
+    if os.name == "nt":
+        os.startfile(target)
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", target])
+    else:
+        subprocess.Popen(["xdg-open", target])
+
+
+def report_font_candidates():
+    """System fonts suitable for Ukrainian text in generated PDF reports."""
+    candidates = [
+        r"C:\Windows\Fonts\arial.ttf",
+        r"C:\Windows\Fonts\calibri.ttf",
+    ]
+    if sys.platform == "darwin":
+        candidates.extend([
+            str(Path.home() / "Library/Fonts/Arial.ttf"),
+            "/Library/Fonts/Arial.ttf",
+            "/Library/Fonts/Arial Unicode.ttf",
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+            "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
+        ])
+    candidates.append("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    return candidates
 
 
 def _append_error_log(context, exc, tb=None):
@@ -387,7 +423,7 @@ WORK_MODE_NO_TACHO = "no_tacho_8h"
 WORK_MODE_MANUAL = "manual"
 
 WORK_MODE_LABELS = {
-    WORK_MODE_TACHO: "Маршрут / шаблон — план керування",
+    WORK_MODE_TACHO: "Маршрут — план керування",
     WORK_MODE_NO_TACHO: "Без тахо — стандартні 8 год",
     WORK_MODE_MANUAL: "Інше / ручний облік",
 }
@@ -418,6 +454,18 @@ def db():
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys=ON")
     return con
+
+
+def finish_driver_role(con, employee_id, driver_id, end_date):
+    """Завершити лише роль водія, не видаляючи працівника чи історію."""
+    con.execute(
+        "UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",
+        (end_date,driver_id),
+    )
+    con.execute(
+        "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
+        (employee_id,),
+    )
 
 
 def get_setting(key, default=""):
@@ -483,6 +531,7 @@ def init_db():
         license_issue_date TEXT DEFAULT '',
         license_issued_by TEXT DEFAULT '', -- legacy для старих баз
         employment_date TEXT DEFAULT '',
+        driver_end_date TEXT DEFAULT '',
         notes TEXT DEFAULT '',
         active INTEGER DEFAULT 1,
         created_at TEXT NOT NULL
@@ -510,9 +559,124 @@ def init_db():
         name TEXT NOT NULL UNIQUE,
         code TEXT DEFAULT '',
         description TEXT DEFAULT '',
+        vehicle TEXT DEFAULT '',
+        vehicle_id INTEGER,
+        shift_type TEXT DEFAULT 'Безперервна',
+        notes TEXT DEFAULT '',
+        legacy_template_id INTEGER,
         active INTEGER DEFAULT 1,
         created_at TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS route_segments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
+        segment_no INTEGER NOT NULL,
+        start_time TEXT DEFAULT '', -- план керування: початок
+        end_time TEXT DEFAULT '',   -- план керування: кінець
+        work_start_time TEXT DEFAULT '',
+        work_end_time TEXT DEFAULT '',
+        work_hours REAL DEFAULT 0,
+        driving_hours REAL DEFAULT 0,
+        activity_type TEXT DEFAULT 'Робота',
+        note TEXT DEFAULT '',
+        UNIQUE(route_id, segment_no)
+    );
+
+    CREATE TABLE IF NOT EXISTS route_stops (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
+        direction TEXT NOT NULL CHECK(direction IN ('outbound','return')),
+        stop_no INTEGER NOT NULL,
+        stop_name TEXT NOT NULL,
+        arrival_time TEXT DEFAULT '',
+        departure_time TEXT DEFAULT '',
+        note TEXT DEFAULT '',
+        day_offset INTEGER NOT NULL DEFAULT 0,
+        arrival_day_offset INTEGER NOT NULL DEFAULT 0,
+        departure_day_offset INTEGER NOT NULL DEFAULT 0,
+        point_type TEXT DEFAULT 'Зупинка',
+        UNIQUE(route_id, direction, stop_no)
+    );
+
+    CREATE TABLE IF NOT EXISTS dispatch_staff (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        full_name TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('Лікар','Механік')),
+        personnel_no TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS dispatch_shifts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        staff_id INTEGER NOT NULL REFERENCES dispatch_staff(id) ON DELETE CASCADE,
+        work_date TEXT NOT NULL,
+        shift_no INTEGER NOT NULL DEFAULT 1 CHECK(shift_no IN (1,2)),
+        start_time TEXT DEFAULT '',
+        end_time TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
+        UNIQUE(staff_id, work_date, shift_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_dispatch_shifts_date ON dispatch_shifts(work_date, shift_no);
+
+    CREATE TABLE IF NOT EXISTS employees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        personnel_no TEXT DEFAULT '',
+        last_name TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        middle_name TEXT DEFAULT '',
+        position TEXT DEFAULT '',
+        phone TEXT DEFAULT '',
+        employment_date TEXT DEFAULT '',
+        dismissal_date TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
+        active INTEGER NOT NULL DEFAULT 1,
+        driver_id INTEGER UNIQUE REFERENCES drivers(id) ON DELETE SET NULL,
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_employees_name ON employees(last_name,first_name,middle_name);
+
+    CREATE TABLE IF NOT EXISTS employee_roles (
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        role TEXT NOT NULL,
+        PRIMARY KEY(employee_id, role)
+    );
+
+    CREATE TABLE IF NOT EXISTS employee_shifts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE RESTRICT,
+        role TEXT NOT NULL,
+        work_date TEXT NOT NULL,
+        shift_no INTEGER NOT NULL DEFAULT 1 CHECK(shift_no IN (1,2)),
+        start_time TEXT NOT NULL,
+        end_day_offset INTEGER NOT NULL DEFAULT 0 CHECK(end_day_offset BETWEEN 0 AND 7),
+        end_time TEXT NOT NULL,
+        location TEXT DEFAULT '',
+        planned_hours REAL NOT NULL DEFAULT 0,
+        actual_hours REAL,
+        status TEXT NOT NULL DEFAULT 'planned',
+        notes TEXT DEFAULT '',
+        UNIQUE(employee_id, role, work_date, shift_no)
+    );
+    CREATE INDEX IF NOT EXISTS idx_employee_shifts_date ON employee_shifts(work_date, role);
+
+    CREATE TABLE IF NOT EXISTS waybill_number_pools (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        series TEXT NOT NULL,
+        start_number INTEGER NOT NULL,
+        end_number INTEGER NOT NULL,
+        next_number INTEGER NOT NULL,
+        number_width INTEGER NOT NULL DEFAULT 6,
+        valid_from TEXT NOT NULL,
+        valid_until TEXT DEFAULT '',
+        mode TEXT NOT NULL DEFAULT 'auto' CHECK(mode IN ('auto','manual')),
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','closed')),
+        notes TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_waybill_pools_dates ON waybill_number_pools(valid_from,valid_until,status);
 
     CREATE TABLE IF NOT EXISTS route_templates (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -555,6 +719,45 @@ def init_db():
         note TEXT DEFAULT '',
         UNIQUE(worklog_id, segment_no)
     );
+
+    CREATE TABLE IF NOT EXISTS waybills (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        worklog_id INTEGER NOT NULL REFERENCES worklog(id) ON DELETE CASCADE,
+        driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+        work_date TEXT NOT NULL,
+        work_end_date TEXT DEFAULT '',
+        issue_year INTEGER NOT NULL,
+        issue_seq INTEGER NOT NULL,
+        waybill_no TEXT NOT NULL UNIQUE,
+        route_id INTEGER,
+        route_label TEXT DEFAULT '',
+        vehicle_id INTEGER,
+        vehicle_label TEXT DEFAULT '',
+        planned_departure TEXT DEFAULT '',
+        planned_return TEXT DEFAULT '',
+        pdf_path TEXT DEFAULT '',
+        revision INTEGER NOT NULL DEFAULT 1,
+        status TEXT NOT NULL DEFAULT 'active',
+        issued_at TEXT NOT NULL,
+        updated_at TEXT DEFAULT '',
+        UNIQUE(worklog_id),
+        UNIQUE(issue_year, issue_seq)
+    );
+    CREATE INDEX IF NOT EXISTS idx_waybills_date ON waybills(work_date);
+
+    CREATE TABLE IF NOT EXISTS waybill_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        waybill_id INTEGER NOT NULL REFERENCES waybills(id) ON DELETE CASCADE,
+        event_type TEXT NOT NULL,
+        document_series TEXT DEFAULT '',
+        document_number TEXT DEFAULT '',
+        internal_no TEXT DEFAULT '',
+        revision INTEGER NOT NULL DEFAULT 1,
+        pdf_path TEXT DEFAULT '',
+        reason TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_waybill_events_waybill ON waybill_events(waybill_id,id);
 
     CREATE TABLE IF NOT EXISTS attestations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -647,11 +850,134 @@ def init_db():
         ("last_name_en", "TEXT DEFAULT ''"),
         ("first_name_en", "TEXT DEFAULT ''"),
         ("middle_name_en", "TEXT DEFAULT ''"),
+        ("driver_end_date", "TEXT DEFAULT ''"),
     ]:
         if name not in dcols:
             con.execute(f"ALTER TABLE drivers ADD COLUMN {name} {ddl}")
     if "license_issue_date" not in dcols:
         con.execute("ALTER TABLE drivers ADD COLUMN license_issue_date TEXT DEFAULT ''")
+    if "personnel_no" not in dcols:
+        con.execute("ALTER TABLE drivers ADD COLUMN personnel_no TEXT DEFAULT ''")
+
+    vcols = {r[1] for r in con.execute("PRAGMA table_info(vehicles)").fetchall()}
+    if "garage_no" not in vcols:
+        con.execute("ALTER TABLE vehicles ADD COLUMN garage_no TEXT DEFAULT ''")
+
+    for name, ddl in [
+        ("waybill_series", "TEXT DEFAULT 'АААТ'"),
+        ("transport_column", "TEXT DEFAULT ''"),
+        ("brigade", "TEXT DEFAULT ''"),
+    ]:
+        if name not in ccols:
+            con.execute(f"ALTER TABLE company ADD COLUMN {name} {ddl}")
+
+    wbcols = {r[1] for r in con.execute("PRAGMA table_info(waybills)").fetchall()}
+    for name in ("doctor_1", "doctor_2", "mechanic_1", "mechanic_2"):
+        if name not in wbcols:
+            con.execute(f"ALTER TABLE waybills ADD COLUMN {name} TEXT DEFAULT ''")
+    for name, ddl in [
+        ("work_end_date", "TEXT DEFAULT ''"),
+        ("number_pool_id", "INTEGER"),
+        ("document_series", "TEXT DEFAULT ''"),
+        ("document_number", "TEXT DEFAULT ''"),
+        ("internal_no", "TEXT DEFAULT ''"),
+        ("start_location", "TEXT DEFAULT ''"),
+        ("end_location", "TEXT DEFAULT ''"),
+        ("voided_at", "TEXT DEFAULT ''"),
+        ("void_reason", "TEXT DEFAULT ''"),
+    ]:
+        if name not in wbcols:
+            con.execute(f"ALTER TABLE waybills ADD COLUMN {name} {ddl}")
+    con.execute("UPDATE waybills SET work_end_date=work_date WHERE COALESCE(work_end_date,'')=''")
+    con.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_waybills_document_no "
+        "ON waybills(document_series,document_number) WHERE COALESCE(document_number,'')<>''"
+    )
+
+    # v8.70 r3: єдиний реєстр працівників. Старі водії та працівники
+    # випуску не дублюються при кожному запуску і не видаляються.
+    def _split_full_name(raw):
+        parts=(raw or "").strip().split()
+        return (
+            parts[0] if parts else "",
+            parts[1] if len(parts)>1 else "Без імені",
+            " ".join(parts[2:]) if len(parts)>2 else "",
+        )
+
+    for dr in con.execute("SELECT * FROM drivers ORDER BY id").fetchall():
+        employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(dr["id"],)).fetchone()
+        if employee:
+            eid=employee["id"]
+            con.execute(
+                """UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,
+                       employment_date=?,notes=?,active=? WHERE id=?""",
+                (dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
+                 dr["employment_date"] or "",dr["notes"] or "",int(dr["active"]),eid)
+            )
+        else:
+            cur=con.execute(
+                """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
+                       employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                (dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
+                 "Водій",dr["employment_date"] or "",dr["notes"] or "",int(dr["active"]),dr["id"],
+                 dr["created_at"] or datetime.now().isoformat(timespec="seconds"))
+            )
+            eid=cur.lastrowid
+        con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(eid,"Водій"))
+
+    staff_map={}
+    for st in con.execute("SELECT * FROM dispatch_staff ORDER BY id").fetchall():
+        last,first,middle=_split_full_name(st["full_name"])
+        employee=con.execute(
+            """SELECT e.id FROM employees e JOIN employee_roles er ON er.employee_id=e.id
+                 WHERE er.role=? AND lower(e.last_name||' '||e.first_name||' '||e.middle_name)=lower(?)
+                 ORDER BY e.active DESC,e.id LIMIT 1""",
+            (st["role"]," ".join(x for x in (last,first,middle) if x))
+        ).fetchone()
+        if employee:
+            eid=employee["id"]
+        else:
+            cur=con.execute(
+                """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
+                       notes,active,created_at) VALUES(?,?,?,?,?,?,?,?)""",
+                (st["personnel_no"] or "",last,first,middle,st["role"],st["notes"] or "",
+                 int(st["active"]),st["created_at"] or datetime.now().isoformat(timespec="seconds"))
+            )
+            eid=cur.lastrowid
+        con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(eid,st["role"]))
+        staff_map[st["id"]]=eid
+
+    for sh in con.execute("SELECT * FROM dispatch_shifts ORDER BY id").fetchall():
+        eid=staff_map.get(sh["staff_id"])
+        if not eid:
+            continue
+        role_row=con.execute("SELECT role FROM dispatch_staff WHERE id=?",(sh["staff_id"],)).fetchone()
+        role=role_row["role"] if role_row else ""
+        start=(sh["start_time"] or "").strip() or "00:00"
+        end=(sh["end_time"] or "").strip() or "23:59"
+        try:
+            sm=sum(int(x)*m for x,m in zip(start.split(":"),(60,1)))
+            em=sum(int(x)*m for x,m in zip(end.split(":"),(60,1)))
+            offset=1 if em<=sm else 0
+            planned=round(((em+offset*1440)-sm)/60.0,6)
+        except Exception:
+            offset=0; planned=0
+        con.execute(
+            """INSERT OR IGNORE INTO employee_shifts(employee_id,role,work_date,shift_no,start_time,
+                   end_day_offset,end_time,planned_hours,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (eid,role,sh["work_date"],sh["shift_no"],start,offset,end,planned,"planned",sh["notes"] or "")
+        )
+
+    if not con.execute("SELECT 1 FROM waybill_number_pools LIMIT 1").fetchone():
+        company_row=con.execute("SELECT waybill_series FROM company WHERE id=1").fetchone()
+        series=((company_row["waybill_series"] if company_row else "") or "АААТ").strip()
+        next_no=int(con.execute("SELECT COALESCE(MAX(issue_seq),0)+1 FROM waybills").fetchone()[0])
+        con.execute(
+            """INSERT INTO waybill_number_pools(series,start_number,end_number,next_number,number_width,
+                   valid_from,mode,status,notes,created_at) VALUES(?,?,?,?,?,'1900-01-01','auto','active',?,?)""",
+            (series,1,999999,max(1,next_no),6,"Автоматично створено під час переходу на v8.70 r3",
+             datetime.now().isoformat(timespec="seconds"))
+        )
 
     # Якщо у старому legacy-полі вже була введена дата, переносимо її автоматично.
     old_rows = con.execute(
@@ -682,11 +1008,163 @@ def init_db():
     if "route_id" not in rcols:
         con.execute("ALTER TABLE route_templates ADD COLUMN route_id INTEGER")
 
+    # v8.66 r9: функціонально об'єднуємо «Маршрути» і «Шаблони маршрутів».
+    # Старі таблиці route_templates/route_template_segments НЕ видаляємо — це
+    # страховочний legacy-шар. Новий інтерфейс працює тільки з routes +
+    # route_segments: один маршрут = один конкретний часовий сценарій.
+    route_cols = {r[1] for r in con.execute("PRAGMA table_info(routes)").fetchall()}
+    for name, ddl in [
+        ("vehicle", "TEXT DEFAULT ''"),
+        ("vehicle_id", "INTEGER"),
+        ("shift_type", "TEXT DEFAULT 'Безперервна'"),
+        ("notes", "TEXT DEFAULT ''"),
+        ("legacy_template_id", "INTEGER"),
+        ("start_location", "TEXT DEFAULT ''"),
+        ("end_location", "TEXT DEFAULT ''"),
+        ("start_direction", "TEXT DEFAULT 'outbound'"),
+        ("start_day_offset", "INTEGER NOT NULL DEFAULT 0"),
+        ("end_day_offset", "INTEGER NOT NULL DEFAULT 0"),
+    ]:
+        if name not in route_cols:
+            con.execute(f"ALTER TABLE routes ADD COLUMN {name} {ddl}")
+
+    stop_cols={r[1] for r in con.execute("PRAGMA table_info(route_stops)").fetchall()}
+    added_arrival_day="arrival_day_offset" not in stop_cols
+    added_departure_day="departure_day_offset" not in stop_cols
+    for name,ddl in [
+        ("day_offset","INTEGER NOT NULL DEFAULT 0"),
+        ("arrival_day_offset","INTEGER NOT NULL DEFAULT 0"),
+        ("departure_day_offset","INTEGER NOT NULL DEFAULT 0"),
+        ("point_type","TEXT DEFAULT 'Зупинка'"),
+    ]:
+        if name not in stop_cols:
+            con.execute(f"ALTER TABLE route_stops ADD COLUMN {name} {ddl}")
+    if added_arrival_day:
+        con.execute("UPDATE route_stops SET arrival_day_offset=day_offset")
+    if added_departure_day:
+        con.execute("UPDATE route_stops SET departure_day_offset=day_offset")
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS route_segments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
+            segment_no INTEGER NOT NULL,
+            start_time TEXT DEFAULT '',
+            end_time TEXT DEFAULT '',
+            work_start_time TEXT DEFAULT '',
+            work_end_time TEXT DEFAULT '',
+            work_hours REAL DEFAULT 0,
+            driving_hours REAL DEFAULT 0,
+            activity_type TEXT DEFAULT 'Робота',
+            note TEXT DEFAULT '',
+            UNIQUE(route_id, segment_no)
+        )
+    """)
+
+    unify_key = "routes_unified_v8_66_r9"
+    unified = con.execute("SELECT value FROM app_settings WHERE key=?", (unify_key,)).fetchone()
+    if not unified:
+        templates = con.execute("SELECT * FROM route_templates ORDER BY id").fetchall()
+        for t in templates:
+            target = None
+            if "route_id" in t.keys() and t["route_id"]:
+                target = con.execute("SELECT * FROM routes WHERE id=?", (t["route_id"],)).fetchone()
+
+            route_name = (t["route_name"] or "").strip() if "route_name" in t.keys() else ""
+            if target is None and route_name:
+                # У старих шаблонах route_name часто зберігався як відображуваний
+                # «код — назва». Спочатку намагаємося знайти відповідний каталог.
+                candidates = con.execute("SELECT * FROM routes ORDER BY id").fetchall()
+                for r in candidates:
+                    label = " — ".join(x for x in ((r["code"] or "").strip(), (r["name"] or "").strip()) if x)
+                    if route_name in {(r["name"] or "").strip(), label}:
+                        target = r
+                        break
+
+            # Якщо до одного legacy-маршруту було прив'язано кілька шаблонів,
+            # не втрачаємо жоден: перший наповнює маршрут, наступний стає
+            # окремим маршрутом з назвою старого шаблону.
+            if target is not None:
+                has_segments = con.execute(
+                    "SELECT 1 FROM route_segments WHERE route_id=? LIMIT 1", (target["id"],)
+                ).fetchone()
+                if has_segments:
+                    target = None
+
+            if target is None:
+                code = ""
+                name = route_name or (t["name"] or "").strip() or f"Маршрут {t['id']}"
+                if " — " in name:
+                    maybe_code, maybe_name = name.split(" — ", 1)
+                    if maybe_code.strip() and maybe_name.strip():
+                        code, name = maybe_code.strip(), maybe_name.strip()
+                existing_name = con.execute("SELECT id FROM routes WHERE name=?", (name,)).fetchone()
+                if existing_name:
+                    base = (t["name"] or "").strip() or name
+                    candidate = base
+                    suffix = 2
+                    while con.execute("SELECT 1 FROM routes WHERE name=?", (candidate,)).fetchone():
+                        candidate = f"{base} ({suffix})"
+                        suffix += 1
+                    name = candidate
+                cur = con.execute(
+                    """INSERT INTO routes(
+                           name,code,description,vehicle,vehicle_id,shift_type,notes,
+                           legacy_template_id,active,created_at
+                       ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        name, code, "",
+                        (t["vehicle"] or "") if "vehicle" in t.keys() else "",
+                        t["vehicle_id"] if "vehicle_id" in t.keys() else None,
+                        (t["shift_type"] or "Безперервна") if "shift_type" in t.keys() else "Безперервна",
+                        (t["notes"] or "") if "notes" in t.keys() else "",
+                        t["id"], int(t["active"] if "active" in t.keys() else 1),
+                        t["created_at"] or datetime.now().isoformat(timespec="seconds"),
+                    )
+                )
+                target = con.execute("SELECT * FROM routes WHERE id=?", (cur.lastrowid,)).fetchone()
+            else:
+                con.execute(
+                    """UPDATE routes
+                          SET vehicle=?, vehicle_id=?, shift_type=?, notes=?, legacy_template_id=?
+                        WHERE id=?""",
+                    (
+                        (t["vehicle"] or "") if "vehicle" in t.keys() else "",
+                        t["vehicle_id"] if "vehicle_id" in t.keys() else None,
+                        (t["shift_type"] or "Безперервна") if "shift_type" in t.keys() else "Безперервна",
+                        (t["notes"] or "") if "notes" in t.keys() else "",
+                        t["id"], target["id"],
+                    )
+                )
+
+            legacy_segments = con.execute(
+                "SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no", (t["id"],)
+            ).fetchall()
+            for s in legacy_segments:
+                ds = (s["start_time"] or "").strip()
+                de = (s["end_time"] or "").strip()
+                ws = (s["work_start_time"] or "").strip() or ds
+                we = (s["work_end_time"] or "").strip() or de
+                con.execute(
+                    """INSERT OR REPLACE INTO route_segments(
+                           route_id,segment_no,start_time,end_time,work_start_time,work_end_time,
+                           work_hours,driving_hours,activity_type,note
+                       ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        target["id"], s["segment_no"], ds, de, ws, we,
+                        s["work_hours"], s["driving_hours"], s["activity_type"], s["note"],
+                    )
+                )
+
+        con.execute(
+            "INSERT INTO app_settings(key,value) VALUES(?,?)",
+            (unify_key, datetime.now().isoformat(timespec="seconds"))
+        )
+
     # v8.65 r2: кожен інтервал має окрему пару початок/кінець для
     # робочого часу та для керування. Старі start_time/end_time НЕ
     # перейменовуємо у БД для сумісності: відтепер це саме інтервал
     # КЕРУВАННЯ. Для роботи додаємо work_start_time/work_end_time.
-    for table in ("work_segments", "route_template_segments"):
+    for table in ("work_segments", "route_template_segments", "route_segments"):
         scols={r[1] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}
         if "work_start_time" not in scols:
             con.execute(f"ALTER TABLE {table} ADD COLUMN work_start_time TEXT DEFAULT ''")
@@ -714,7 +1192,7 @@ def init_db():
                 # штатний auto-backup усе одно виконується нижче.
                 pass
 
-        for table in ("work_segments","route_template_segments"):
+        for table in ("work_segments","route_template_segments","route_segments"):
             con.execute(f"""
                 UPDATE {table}
                    SET driving_hours = CASE
@@ -789,7 +1267,7 @@ def init_db():
             except Exception:
                 return 0
 
-        for table in ("work_segments","route_template_segments"):
+        for table in ("work_segments","route_template_segments","route_segments"):
             rows_i=con.execute(f"SELECT id,start_time,end_time,work_start_time,work_end_time FROM {table}").fetchall()
             for rr in rows_i:
                 ds=(rr["start_time"] or "").strip(); de=(rr["end_time"] or "").strip()
@@ -926,6 +1404,137 @@ def time_to_minutes(value):
         raise ValueError(f"Невірний час: {value}")
 
 
+def parse_hhmm(value):
+    """Перевірити HH:MM і повернути кількість хвилин від початку доби."""
+    return time_to_minutes(value)
+
+
+def waybill_date_range_label(start_date, end_date=None):
+    """Дата або повний інтервал дат однієї багатодобової шляхівки."""
+    if isinstance(start_date, str):
+        start_date=datetime.strptime(start_date, "%Y-%m-%d").date()
+    if isinstance(end_date, str):
+        end_date=datetime.strptime(end_date, "%Y-%m-%d").date()
+    end_date=end_date or start_date
+    if end_date <= start_date:
+        return start_date.strftime("%d.%m.%Y")
+    return f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}"
+
+
+def waybill_time_label(work_date, day_offset, time_value, show_date=False, separator=" "):
+    """Фактична календарна дата й час для друку замість службового D+N."""
+    if not time_value:
+        return ""
+    if isinstance(work_date, str):
+        work_date=datetime.strptime(work_date, "%Y-%m-%d").date()
+    day_offset=int(day_offset or 0)
+    actual_date=work_date+timedelta(days=day_offset)
+    if show_date or day_offset:
+        return f"{actual_date.strftime('%d.%m.%Y')}{separator}{time_value}"
+    return time_value
+
+
+ROUTE_POINT_TYPES=("АТП","Зупинка","Автостанція","Відпочинок","Нічліг","Інше")
+
+
+def parse_route_schedule_text(raw, start_day=0, previous_absolute=None):
+    """Вставлені рядки маршруту з автоматичним обчисленням D+.
+
+    Формат рядка: назва; прибуття; відправлення; тип; примітка.
+    Роздільником може бути Tab, крапка з комою або вертикальна риска.
+    Явний день необов'язковий: D+1 00:40. Без нього перехід через
+    північ визначається за зменшенням часу.
+    """
+    rows=[]
+    current_day=max(0,int(start_day or 0))
+    previous_abs=previous_absolute
+
+    def parse_moment(token):
+        nonlocal current_day,previous_abs
+        token=(token or "").strip()
+        if token in {"","-","—"}:
+            return current_day,""
+        match=re.fullmatch(r"(?:D\+\s*(\d+)\s+)?(\d{1,2}:\d{2})",token,re.IGNORECASE)
+        if not match:
+            raise ValueError(f"Невірний час «{token}». Використовуйте ГГ:ХХ або D+1 ГГ:ХХ.")
+        explicit=match.group(1)
+        value=match.group(2)
+        minutes=time_to_minutes(value)
+        day=int(explicit) if explicit is not None else current_day
+        absolute=day*1440+minutes
+        if explicit is None and previous_abs is not None and absolute<previous_abs:
+            day=previous_abs//1440+1
+            absolute=day*1440+minutes
+        if not 0<=day<=7:
+            raise ValueError("Автоматичний день вийшов за межі D+0…D+7.")
+        current_day=day
+        previous_abs=absolute
+        return day,value
+
+    for line_no,line in enumerate((raw or "").splitlines(),1):
+        line=line.strip()
+        if not line:
+            continue
+        separator="\t" if "\t" in line else ";" if ";" in line else "|" if "|" in line else None
+        parts=[part.strip() for part in (line.split(separator) if separator else [line])]
+        name=parts[0] if parts else ""
+        if name.casefold() in {"назва","зупинка","назва точки","точка маршруту"}:
+            continue
+        if not name:
+            raise ValueError(f"Рядок {line_no}: немає назви точки.")
+        single_time=len(parts)==2
+        arrival_token=parts[1] if len(parts)>1 else ""
+        departure_token=parts[1] if single_time else parts[2] if len(parts)>2 else ""
+        point_type=parts[3] if len(parts)>3 else "Зупинка"
+        note=parts[4] if len(parts)>4 else ""
+        if point_type not in ROUTE_POINT_TYPES:
+            note="; ".join(x for x in (point_type,note) if x)
+            point_type="Зупинка"
+        arrival_day,arrival_time=parse_moment(arrival_token)
+        departure_day,departure_time=parse_moment(departure_token)
+        rows.append({
+            "stop_name":name,
+            "arrival_time":arrival_time,
+            "departure_time":departure_time,
+            "note":note,
+            "day_offset":arrival_day if arrival_time else departure_day,
+            "arrival_day_offset":arrival_day,
+            "departure_day_offset":departure_day,
+            "point_type":point_type,
+            "_single_time":single_time,
+        })
+        if len(rows)>15:
+            raise ValueError("У напрямку може бути не більше 15 точок форми № 1-АП.")
+    if not rows:
+        raise ValueError("Вставте хоча б одну точку маршруту.")
+    # У найпростішому двоколонковому варіанті «Точка | Час» перша
+    # точка має лише відправлення, остання — лише прибуття, а проміжні
+    # використовують один плановий час для обох граф форми.
+    for index,row in enumerate(rows):
+        if row.pop("_single_time",False):
+            if index==0:
+                row["arrival_time"]=""
+            if index==len(rows)-1:
+                row["departure_time"]=""
+            row["day_offset"]=row["arrival_day_offset"] if row["arrival_time"] else row["departure_day_offset"]
+    return rows
+
+
+def route_schedule_to_text(rows):
+    def moment(day,value):
+        return f"D+{int(day or 0)} {value}" if value else ""
+    return "\n".join(
+        "\t".join((
+            str(row.get("stop_name","")),
+            moment(row.get("arrival_day_offset",0),row.get("arrival_time","")),
+            moment(row.get("departure_day_offset",0),row.get("departure_time","")),
+            str(row.get("point_type","Зупинка")),
+            str(row.get("note","")),
+        ))
+        for row in rows
+    )
+
+
 def duration_minutes(start, end):
     a = time_to_minutes(start)
     b = time_to_minutes(end)
@@ -1018,6 +1627,16 @@ def hours_value_hhmm(value):
         return str(value or "")
 
 
+def signed_hours_hhmm(value):
+    try:
+        minutes=int((Decimal(str(value).replace(",","."))*Decimal(60)).quantize(Decimal("1"),rounding=ROUND_HALF_UP))
+        sign="-" if minutes<0 else "+" if minutes>0 else ""
+        minutes=abs(minutes)
+        return f"{sign}{minutes//60}:{minutes%60:02d}"
+    except Exception:
+        return str(value or "")
+
+
 def format_hours(value):
     try:
         return f"{float(value):.2f}".rstrip("0").rstrip(".")
@@ -1076,6 +1695,28 @@ def gaps_summary(segments, pair="work"):
 def month_dates(year, month):
     days = calendar.monthrange(year, month)[1]
     return [date(year, month, d) for d in range(1, days + 1)]
+
+
+def driver_employment_start(driver):
+    """Повертає дату прийняття; порожня/стара некоректна дата не ламає історію."""
+    if not driver:
+        return None
+    try:
+        value=(driver["employment_date"] or "").strip()
+    except (KeyError, TypeError, AttributeError):
+        return None
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value,"%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def driver_employed_on(driver, work_day):
+    """Чи вже був водій прийнятий на роботу у вказаний календарний день."""
+    start=driver_employment_start(driver)
+    return start is None or work_day>=start
 
 
 def set_paragraph_text(p, new_text):
@@ -1700,7 +2341,7 @@ def export_pdf(driver, year, month, rows, out_path):
     from reportlab.lib.enums import TA_LEFT, TA_CENTER
     from xml.sax.saxutils import escape
 
-    candidates = [r"C:\Windows\Fonts\arial.ttf", r"C:\Windows\Fonts\calibri.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    candidates = report_font_candidates()
     font_path = next((p for p in candidates if os.path.exists(p)), None)
     font_name = "Helvetica"
     if font_path:
@@ -1949,11 +2590,7 @@ def export_work_analysis_pdf(data, driver_name, out_path):
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, KeepTogether
     from xml.sax.saxutils import escape
 
-    candidates=[
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+    candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
     font_name="Helvetica"
     if font_path:
@@ -2650,6 +3287,9 @@ def collect_monthly_work_balance(year, month, active_only=True):
         drivers=con.execute(
             "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
         ).fetchall()
+    # Водій з майбутньою датою прийняття не належить до табеля за цей місяць.
+    # Порожню дату лишаємо сумісною зі старими базами: вона означає "дата невідома".
+    drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
 
     rows=con.execute(
         """SELECT * FROM worklog
@@ -2668,6 +3308,9 @@ def collect_monthly_work_balance(year, month, active_only=True):
         total_over_min=0
         work_days=0
         for d in days:
+            if not driver_employed_on(dr,d):
+                cells.append("")
+                continue
             r=row_by.get((dr["id"],d.isoformat()))
             cells.append(_work_balance_cell(r,d))
             if r is not None:
@@ -2715,11 +3358,7 @@ def export_monthly_work_balance_pdf(year, month, out_path, active_only=True):
 
     data=collect_monthly_work_balance(year,month,active_only=active_only)
 
-    candidates=[
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+    candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
     font_name="Helvetica"
     if font_path:
@@ -2976,6 +3615,7 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         drivers=con.execute(
             "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
         ).fetchall()
+    drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
 
     rows=con.execute(
         """SELECT * FROM worklog
@@ -3007,6 +3647,9 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         work_min=0
         drive_min=0
         for d in days:
+            if not driver_employed_on(dr,d):
+                cells.append("")
+                continue
             r=row_by.get((dr["id"],d.isoformat()))
             segs=seg_by.get(r["id"],[]) if r else []
             cell=_monthly_shift_cell(r,segs)
@@ -3133,11 +3776,7 @@ def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True):
 
     data=collect_monthly_shift_schedule(year,month,active_only=active_only)
 
-    candidates=[
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+    candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
     font_name="Helvetica"
     if font_path:
@@ -3328,11 +3967,7 @@ def export_monthly_shift_detail_pdf(year, month, out_path, active_only=True):
 
     data=collect_monthly_shift_schedule(year,month,active_only=active_only)
 
-    candidates=[
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
+    candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
     font_name="Helvetica"
     if font_path:
@@ -3786,8 +4421,47 @@ def show_calendar_picker(parent, variable, title="Вибір дати"):
 
 def calendar_button(parent, variable):
     # Text label instead of an emoji so the button is visible on every Windows font setup.
-    return ttk.Button(parent, text="Дата…", width=7,
+    # r9: width=6 keeps the button inside 900 px layouts without changing its label.
+    return ttk.Button(parent, text="Дата…", width=6,
                       command=lambda: show_calendar_picker(parent, variable))
+
+
+def fit_window_to_screen(win, width, height, min_width=420, min_height=260):
+    """Не дозволяє діалогам виходити за межі робочого екрана.
+
+    На невеликих ноутбуках старі фіксовані розміри 1450x760 або 980x760
+    ховали нижні кнопки за панеллю Windows. Вікно лишається змінюваним.
+    """
+    win.update_idletasks()
+    screen_w=max(640, int(win.winfo_screenwidth()))
+    screen_h=max(480, int(win.winfo_screenheight()))
+    max_w=max(520, screen_w-80)
+    max_h=max(360, screen_h-120)
+    final_w=max(420, min(int(width), max_w))
+    final_h=max(260, min(int(height), max_h))
+    win.geometry(f"{final_w}x{final_h}")
+    win.minsize(min(int(min_width), final_w), min(int(min_height), final_h))
+    win.resizable(True, True)
+
+
+def ctrl_shortcut_action(keysym, keycode=None):
+    """Розпізнає Ctrl-команди також при українській розкладці клавіатури."""
+    key=(keysym or "").lower()
+    aliases={
+        "c":"copy", "с":"copy", "cyrillic_es":"copy",
+        "v":"paste", "м":"paste", "cyrillic_em":"paste",
+        "x":"cut", "ч":"cut", "cyrillic_che":"cut",
+        "a":"select_all", "ф":"select_all", "cyrillic_ef":"select_all",
+        "z":"undo", "я":"undo", "cyrillic_ya":"undo",
+        "y":"redo", "н":"redo", "cyrillic_en":"redo",
+    }
+    action=aliases.get(key)
+    if action:
+        return action
+    # На Windows keycode є кодом фізичної клавіші й не залежить від розкладки.
+    if sys.platform.startswith("win"):
+        return {65:"select_all",67:"copy",86:"paste",88:"cut",89:"redo",90:"undo"}.get(keycode)
+    return None
 
 class App(tk.Tk):
     def report_callback_exception(self, exc_type, exc_value, exc_tb):
@@ -3817,22 +4491,253 @@ class App(tk.Tk):
         except Exception:
             pass
 
+    @staticmethod
+    def _is_text_input(widget):
+        return widget is not None and widget.winfo_class() in {
+            "Entry", "TEntry", "Text", "Spinbox", "TSpinbox", "TCombobox"
+        }
+
+    @staticmethod
+    def _widget_is_readonly(widget):
+        try:
+            return str(widget.cget("state")) in {"disabled", "readonly"}
+        except (tk.TclError, AttributeError):
+            return False
+
+    def _select_all_widget(self, widget):
+        try:
+            if widget.winfo_class()=="Text":
+                widget.tag_add("sel", "1.0", "end-1c")
+                widget.mark_set("insert", "end-1c")
+                widget.see("insert")
+            else:
+                widget.selection_range(0, "end")
+                widget.icursor("end")
+            return True
+        except (tk.TclError, AttributeError):
+            return False
+
+    def _copy_tree_rows(self, tree):
+        selected=list(tree.selection())
+        if not selected and tree.focus():
+            selected=[tree.focus()]
+        if not selected:
+            return False
+        lines=[]
+        for item in selected:
+            values=tree.item(item, "values")
+            lines.append("\t".join(str(value) for value in values))
+        self.clipboard_clear()
+        self.clipboard_append("\n".join(lines))
+        self.update_idletasks()
+        if hasattr(self, "ui_status_var"):
+            self.ui_status_var.set(f"Скопійовано рядків: {len(lines)}")
+        return True
+
+    def _text_selection(self, widget):
+        """Повертає виділений текст без залежності від стандартних Tk virtual events."""
+        try:
+            if widget.winfo_class()=="Text":
+                if not widget.tag_ranges("sel"):
+                    return ""
+                return widget.get("sel.first", "sel.last")
+            if hasattr(widget, "selection_present") and widget.selection_present():
+                return widget.get()[widget.index("sel.first"):widget.index("sel.last")]
+        except (tk.TclError, AttributeError):
+            pass
+        return ""
+
+    def _copy_text_widget(self, widget):
+        try:
+            text=self._text_selection(widget)
+            # Для readonly Combobox корисніше скопіювати поточне значення,
+            # навіть якщо користувач не зміг явно виділити його мишею.
+            if not text and widget.winfo_class()=="TCombobox":
+                text=widget.get()
+            if not text:
+                return False
+            self.clipboard_clear()
+            self.clipboard_append(text)
+            self.update_idletasks()
+            if hasattr(self, "ui_status_var"):
+                self.ui_status_var.set("Скопійовано в буфер обміну")
+            return True
+        except tk.TclError:
+            return False
+
+    def _delete_text_selection(self, widget):
+        try:
+            if widget.winfo_class()=="Text":
+                if widget.tag_ranges("sel"):
+                    widget.delete("sel.first", "sel.last")
+                    return True
+                return False
+            if hasattr(widget, "selection_present") and widget.selection_present():
+                widget.delete("sel.first", "sel.last")
+                return True
+        except (tk.TclError, AttributeError):
+            return False
+        return False
+
+    def _paste_text_widget(self, widget):
+        try:
+            text=self.clipboard_get()
+        except tk.TclError:
+            return False
+        try:
+            self._delete_text_selection(widget)
+            if widget.winfo_class()=="Text":
+                widget.insert("insert", text)
+                widget.see("insert")
+            else:
+                widget.insert("insert", text)
+            if hasattr(self, "ui_status_var"):
+                self.ui_status_var.set("Вставлено з буфера обміну")
+            return True
+        except (tk.TclError, AttributeError):
+            return False
+
+    def _run_edit_action(self, widget, action):
+        if widget is None:
+            return False
+        if isinstance(widget, ttk.Treeview):
+            if widget is getattr(self, "work_tree", None):
+                if action=="copy":
+                    self.copy_work_day()
+                    return True
+                if action=="paste":
+                    self.paste_work_day()
+                    return True
+            if action=="copy":
+                return self._copy_tree_rows(widget)
+            if action=="select_all":
+                widget.selection_set(widget.get_children())
+                return True
+            return False
+        if not self._is_text_input(widget):
+            return False
+        if action=="select_all":
+            return self._select_all_widget(widget)
+        if action=="copy":
+            return self._copy_text_widget(widget)
+        if action in {"cut", "paste", "undo", "redo"} and self._widget_is_readonly(widget):
+            return False
+        if action=="cut":
+            if not self._copy_text_widget(widget):
+                return False
+            return self._delete_text_selection(widget)
+        if action=="paste":
+            return self._paste_text_widget(widget)
+        virtual={"undo":"<<Undo>>", "redo":"<<Redo>>"}.get(action)
+        if not virtual:
+            return False
+        try:
+            widget.event_generate(virtual)
+            return True
+        except tk.TclError:
+            return False
+
+    def _edit_focused(self, action):
+        self._run_edit_action(self.focus_get(), action)
+
+    def _global_ctrl_shortcut(self, event):
+        action=ctrl_shortcut_action(getattr(event, "keysym", ""), getattr(event, "keycode", None))
+        if not action:
+            return None
+        widget=getattr(event, "widget", None)
+        key=(getattr(event, "keysym", "") or "").lower()
+        # r7: і латинські, і українські Ctrl/Cmd-команди йдуть через один
+        # прямий обробник. Це прибирає залежність від нестабільних <<Paste>>/<<Copy>>
+        # у ttk.Entry/Spinbox/Combobox на Windows.
+        if self._run_edit_action(widget, action):
+            return "break"
+        return None
+
+    def _show_context_menu(self, event):
+        widget=getattr(event, "widget", None)
+        if not (self._is_text_input(widget) or isinstance(widget, ttk.Treeview)):
+            return None
+        if isinstance(widget, ttk.Treeview):
+            row=widget.identify_row(event.y)
+            if row and row not in widget.selection():
+                widget.selection_set(row)
+                widget.focus(row)
+        menu=tk.Menu(self, tearoff=0)
+        if isinstance(widget, ttk.Treeview):
+            copy_label="Копіювати день" if widget is getattr(self, "work_tree", None) else "Копіювати рядок(и)"
+            menu.add_command(label=copy_label, command=lambda:self._run_edit_action(widget,"copy"))
+            if widget is getattr(self, "work_tree", None):
+                menu.add_command(label="Вставити день", command=lambda:self._run_edit_action(widget,"paste"))
+            menu.add_separator()
+            menu.add_command(label="Виділити все", command=lambda:self._run_edit_action(widget,"select_all"))
+        else:
+            readonly=self._widget_is_readonly(widget)
+            menu.add_command(label="Вирізати", state="disabled" if readonly else "normal", command=lambda:self._run_edit_action(widget,"cut"))
+            menu.add_command(label="Копіювати", command=lambda:self._run_edit_action(widget,"copy"))
+            menu.add_command(label="Вставити", state="disabled" if readonly else "normal", command=lambda:self._run_edit_action(widget,"paste"))
+            menu.add_separator()
+            menu.add_command(label="Виділити все", command=lambda:self._run_edit_action(widget,"select_all"))
+        try:
+            x_root=getattr(event,"x_root",0) or widget.winfo_rootx()+12
+            y_root=getattr(event,"y_root",0) or widget.winfo_rooty()+widget.winfo_height()
+            menu.tk_popup(x_root, y_root)
+        finally:
+            menu.grab_release()
+        return "break"
+
+    def _install_ui_accessibility(self):
+        # bind_all поширює меню та українські Ctrl/Cmd-команди на поля у всіх Toplevel.
+        self.bind_all("<Control-KeyPress>", self._global_ctrl_shortcut, add="+")
+        if sys.platform == "darwin":
+            self.bind_all("<Command-KeyPress>", self._global_ctrl_shortcut, add="+")
+            # На Mac контекстне меню відкривається також Control-click.
+            self.bind_all("<Control-Button-1>", self._show_context_menu, add="+")
+        self.bind_all("<Button-3>", self._show_context_menu, add="+")
+        self.bind_all("<Shift-F10>", self._show_context_menu, add="+")
+
+    def _restore_main_window(self):
+        saved=get_setting("main_window_geometry", "")
+        match=re.fullmatch(r"(\d+)x(\d+)([+-]\d+)([+-]\d+)", saved or "")
+        if match:
+            try:
+                screen_w=max(640,self.winfo_screenwidth())
+                screen_h=max(480,self.winfo_screenheight())
+                width=min(int(match.group(1)),max(520,screen_w-80))
+                height=min(int(match.group(2)),max(360,screen_h-120))
+                x=max(0,min(int(match.group(3)),screen_w-width))
+                y=max(0,min(int(match.group(4)),screen_h-height))
+                self.geometry(f"{width}x{height}+{x}+{y}")
+            except tk.TclError:
+                pass
+        if get_setting("main_window_state", "normal")=="zoomed":
+            def apply_zoomed():
+                try:
+                    self.state("zoomed")
+                except tk.TclError:
+                    pass
+            self.after_idle(apply_zoomed)
+
     def __init__(self):
         super().__init__()
-        self.title("Taxo v8.65 — Облік водіїв — 48 місяців")
-        self.geometry("1200x760")
-        self.minsize(1050, 650)
+        self.title("Taxo v8.70 — Працівники, графіки та шляхівки")
+        fit_window_to_screen(self,1200,760,900,600)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
         self.bind("<Control-q>", lambda e: self.exit_app())
+        if sys.platform == "darwin":
+            self.bind("<Command-q>", lambda e: self.exit_app())
         self.driver_id = None
         self.att_driver_id = None
         self.att_driver_map = {}
+        self._install_ui_accessibility()
         self.build_ui()
+        self.build_menu()
+        self._restore_main_window()
         self.load_company()
         self.load_drivers()
         self.refresh_month()
 
     def build_menu(self):
+        shortcut = "Command+" if sys.platform == "darwin" else "Ctrl+"
         menubar = tk.Menu(self)
         file_menu = tk.Menu(menubar, tearoff=0)
         file_menu.add_command(label="Зберегти реквізити підприємства", command=self.save_company)
@@ -3843,20 +4748,58 @@ class App(tk.Tk):
         file_menu.add_separator()
         file_menu.add_command(label="Вийти", command=self.exit_app)
         menubar.add_cascade(label="Файл", menu=file_menu)
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        edit_menu.add_command(label="Вирізати", accelerator=f"{shortcut}X", command=lambda:self._edit_focused("cut"))
+        edit_menu.add_command(label="Копіювати", accelerator=f"{shortcut}C", command=lambda:self._edit_focused("copy"))
+        edit_menu.add_command(label="Вставити", accelerator=f"{shortcut}V", command=lambda:self._edit_focused("paste"))
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Виділити все", accelerator=f"{shortcut}A", command=lambda:self._edit_focused("select_all"))
+        menubar.add_cascade(label="Правка", menu=edit_menu)
+        # Notebook не має штатної прокрутки заголовків вкладок у Tk. На вузьких
+        # екранах крайні вкладки можуть фізично не вміститись, тому всі розділи
+        # дублюємо у меню й робимо їх доступними незалежно від ширини вікна.
+        sections_menu = tk.Menu(menubar, tearoff=0)
+        for section_index, (label, tab) in enumerate((
+            ("Підприємство", self.tab_company),
+            ("Водії", self.tab_drivers),
+            ("Автомобілі", self.tab_vehicles),
+            ("Табель", self.tab_work),
+            ("Графік водіїв", self.tab_schedule),
+            ("Маршрути", self.tab_route_catalog),
+            ("Підтвердження діяльності", self.tab_att),
+            ("Тахограф — шайби", self.tab_tacho),
+        ), start=1):
+            sections_menu.add_command(
+                label=label, accelerator=f"Alt+{section_index}",
+                command=lambda t=tab:self.show_tab(t)
+            )
+        menubar.add_cascade(label="Розділи", menu=sections_menu)
         service_menu = tk.Menu(menubar, tearoff=0)
         service_menu.add_command(label="Оновити табель", command=self.refresh_month)
         service_menu.add_command(label="Графік водіїв", command=lambda: self.show_tab(self.tab_schedule))
         service_menu.add_command(label="Місячний графік змінності", command=self.show_monthly_shift_schedule)
+        service_menu.add_command(label="Шляхівки на день", command=self.show_waybills_for_schedule)
+        service_menu.add_command(label="Реєстр усіх працівників", command=self.show_employee_registry)
+        service_menu.add_command(label="Випуск на лінію — зміни персоналу", command=self.show_dispatch_staff_schedule)
+        service_menu.add_command(label="Табель персоналу", command=self.show_employee_timesheet)
         service_menu.add_command(label="Місячний табель / баланс часу", command=self.show_monthly_work_balance)
         service_menu.add_command(label="Контроль бланків — 56 днів + поточний", command=self.show_attestation_gap_control)
         service_menu.add_command(label="Маршрути", command=lambda: self.show_tab(self.tab_route_catalog))
-        service_menu.add_command(label="Шаблони маршрутів", command=lambda: self.show_tab(self.tab_routes))
         service_menu.add_command(label="Автомобілі", command=lambda: self.show_tab(self.tab_vehicles))
         if TachographModule:
             service_menu.add_command(label="Тахограф — шайби", command=lambda: self.show_tab(self.tab_tacho))
         menubar.add_cascade(label="Сервіс", menu=service_menu)
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(label="Про програму", command=lambda: messagebox.showinfo("Облік водіїв", "Облік водіїв та робочого часу — 48 місяців."))
+        help_menu.add_command(
+            label="Про програму",
+            command=lambda: messagebox.showinfo(
+                "Taxo v8.70 consolidated r5",
+                "Облік водіїв та робочого часу — 48 місяців.\n\n"
+                "v8.70 r5: усі розробки зведено в main; багатодобова шляхівка друкує календарні дати замість D+N.\n"
+                "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
+                parent=self
+            )
+        )
         menubar.add_cascade(label="Довідка", menu=help_menu)
         self.config(menu=menubar)
 
@@ -3868,6 +4811,14 @@ class App(tk.Tk):
 
     def exit_app(self):
         if messagebox.askyesno("Вихід", "Вийти з програми?", parent=self):
+            try:
+                state=self.state()
+                if state in {"normal", "zoomed"}:
+                    set_setting("main_window_state", state)
+                if state=="normal":
+                    set_setting("main_window_geometry", self.geometry())
+            except Exception:
+                pass
             self.destroy()
 
     def build_ui(self):
@@ -3877,34 +4828,75 @@ class App(tk.Tk):
         except Exception:
             pass
 
+        style.configure("TButton", padding=(8, 4))
+        style.configure("Treeview", rowheight=24)
+
+        modifier="Command" if sys.platform=="darwin" else "Ctrl"
+        self.ui_status_var=tk.StringVar(
+            value=f"Підказка: контекстне меню у полі — Вирізати / Копіювати / Вставити; {modifier}-команди працюють і в українській розкладці."
+        )
+        ttk.Label(
+            self,
+            textvariable=self.ui_status_var,
+            anchor="w",
+            relief="sunken",
+            padding=(8, 3)
+        ).pack(side="bottom", fill="x")
+
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=8, pady=8)
+        self.notebook=nb
 
         self.tab_company = ttk.Frame(nb)
         self.tab_drivers = ttk.Frame(nb)
         self.tab_vehicles = ttk.Frame(nb)
         self.tab_work = ttk.Frame(nb)
         self.tab_schedule = ttk.Frame(nb)
-        self.tab_routes = ttk.Frame(nb)
         self.tab_route_catalog = ttk.Frame(nb)
         self.tab_att = ttk.Frame(nb)
         self.tab_tacho = ttk.Frame(nb)
         nb.add(self.tab_company, text="Підприємство")
-        nb.add(self.tab_drivers, text="Водії")
+        nb.add(self.tab_drivers, text="Працівники")
         nb.add(self.tab_vehicles, text="Автомобілі")
         nb.add(self.tab_work, text="Табель")
         nb.add(self.tab_schedule, text="Графік водіїв")
-        nb.add(self.tab_routes, text="Шаблони маршрутів")
         nb.add(self.tab_route_catalog, text="Маршрути")
         nb.add(self.tab_att, text="Підтвердження діяльності")
         nb.add(self.tab_tacho, text="Тахограф — шайби")
+
+        def remember_tab(_event=None):
+            try:
+                set_setting("main_last_tab", str(nb.index(nb.select())))
+            except (tk.TclError, ValueError):
+                pass
+        nb.bind("<<NotebookTabChanged>>", remember_tab, add="+")
+        self.main_notebook=nb
+        # Alt+1…Alt+8 — швидкий перехід між розділами, навіть якщо вкладка
+        # фізично не помістилась у рядку Notebook.
+        for tab_index in range(8):
+            self.bind_all(
+                f"<Alt-Key-{tab_index+1}>",
+                lambda _event, idx=tab_index: (nb.select(idx), "break")[1],
+                add="+"
+            )
+        try:
+            saved_tab=int(get_setting("main_last_tab", "0") or 0)
+            # r9 прибрав окрему вкладку «Шаблони маршрутів». Переносимо
+            # індекс останньої вкладки зі старої 9-вкладкової схеми.
+            if not get_setting("main_tabs_r9_migrated", ""):
+                saved_tab={5:5, 6:5, 7:6, 8:7}.get(saved_tab, saved_tab)
+                set_setting("main_last_tab", saved_tab)
+                set_setting("main_tabs_r9_migrated", "1")
+            if 0 <= saved_tab < nb.index("end"):
+                nb.select(saved_tab)
+        except (ValueError, tk.TclError):
+            pass
 
         self.build_company()
         self.build_drivers()
         self.build_vehicles()
         self.build_work()
         self.build_schedule()
-        self.build_routes()
         self.build_route_catalog()
         self.build_attestation()
         if TachographModule:
@@ -3953,30 +4945,39 @@ class App(tk.Tk):
         body.bind("<Configure>", sync_region, add="+")
         canvas.bind("<Configure>", fit_minimum_width, add="+")
 
+        def owns_event(event):
+            widget=getattr(event, "widget", None)
+            while widget is not None:
+                if widget in (body, canvas):
+                    return True
+                widget=getattr(widget, "master", None)
+            return False
+
         def wheel(event):
+            if not owns_event(event):
+                return None
+            if event.widget.winfo_class() in {"Treeview", "Text", "Canvas"} and event.widget is not canvas:
+                return None
             delta=getattr(event, "delta", 0)
             if delta:
                 canvas.yview_scroll(int(-delta/120) or (-1 if delta>0 else 1), "units")
             return "break"
 
         def shift_wheel(event):
+            if not owns_event(event):
+                return None
+            if event.widget.winfo_class() in {"Treeview", "Text", "Canvas"} and event.widget is not canvas:
+                return None
             delta=getattr(event, "delta", 0)
             if delta:
                 canvas.xview_scroll(int(-delta/120) or (-1 if delta>0 else 1), "units")
             return "break"
 
-        def bind_wheel(_event=None):
-            canvas.bind_all("<MouseWheel>", wheel)
-            canvas.bind_all("<Shift-MouseWheel>", shift_wheel)
-
-        def unbind_wheel(_event=None):
-            canvas.unbind_all("<MouseWheel>")
-            canvas.unbind_all("<Shift-MouseWheel>")
-
-        canvas.bind("<Enter>", bind_wheel)
-        canvas.bind("<Leave>", unbind_wheel)
-        body.bind("<Enter>", bind_wheel)
-        body.bind("<Leave>", unbind_wheel)
+        # Не використовуємо небезпечне глобальне зняття: старий варіант міг зняти
+        # прив'язки інших вкладок. Безпечний глобальний обробник перевіряє,
+        # чи подія справді належить цій вкладці, і не забирає колесо у таблиць.
+        canvas.bind_all("<MouseWheel>", wheel, add="+")
+        canvas.bind_all("<Shift-MouseWheel>", shift_wheel, add="+")
 
         setattr(self, f"_{key}_scroll_canvas", canvas)
         return body
@@ -4027,6 +5028,25 @@ class App(tk.Tk):
             self.company_en_vars[key] = v
             ttk.Entry(en_box, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
         en_box.columnconfigure(1, weight=1)
+
+        waybill_box = ttk.LabelFrame(host, text="Постійні реквізити автобусної шляхівки")
+        waybill_box.pack(fill="x", padx=12, pady=(0,10))
+        self.company_waybill_vars = {}
+        for i, (key, label, default) in enumerate([
+            ("waybill_series", "Серія за замовчуванням", "АААТ"),
+            ("transport_column", "Колона", ""),
+            ("brigade", "Бригада", ""),
+        ]):
+            ttk.Label(waybill_box, text=label).grid(row=i, column=0, sticky="w", padx=8, pady=5)
+            value=tk.StringVar(value=default); self.company_waybill_vars[key]=value
+            ttk.Entry(waybill_box, textvariable=value, width=45).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
+        ttk.Button(waybill_box,text="Пули серій і номерів…",command=self.show_waybill_number_pools).grid(row=3,column=1,sticky="w",padx=8,pady=5)
+        ttk.Label(
+            waybill_box,
+            text="Офіційний номер береться з активного пулу за датою роботи. Перегляд не витрачає номер; повторний друк зберігає номер і збільшує ревізію.",
+            foreground="gray",wraplength=850,justify="left"
+        ).grid(row=4,column=0,columnspan=2,sticky="w",padx=8,pady=(2,7))
+        waybill_box.columnconfigure(1,weight=1)
 
         company_save_bar = ttk.Frame(host)
         company_save_bar.pack(fill="x", padx=12, pady=(0,10))
@@ -4095,7 +5115,7 @@ class App(tk.Tk):
 
     def open_data_folder(self):
         try:
-            os.startfile(DATA_ROOT) if os.name == "nt" else subprocess.Popen(["xdg-open", str(DATA_ROOT)])
+            open_external(DATA_ROOT)
         except Exception as e:
             messagebox.showerror("Помилка", str(e))
 
@@ -4156,7 +5176,6 @@ class App(tk.Tk):
             self.load_drivers()
             self.load_vehicles()
             self.load_route_catalog()
-            self.load_route_templates()
             self.refresh_month()
             self.refresh_schedule()
             self.load_att_history()
@@ -4176,9 +5195,12 @@ class App(tk.Tk):
     def build_drivers(self):
         top = ttk.Frame(self.tab_drivers)
         top.pack(fill="x", padx=10, pady=8)
+        ttk.Button(top, text="Реєстр усіх працівників", command=self.show_employee_registry).pack(side="left", padx=4)
+        ttk.Button(top, text="Табель персоналу", command=self.show_employee_timesheet).pack(side="left", padx=4)
+        ttk.Separator(top,orient="vertical").pack(side="left",fill="y",padx=6)
         ttk.Button(top, text="Новий водій", command=self.new_driver).pack(side="left", padx=4)
         ttk.Button(top, text="Редагувати", command=self.edit_driver).pack(side="left", padx=4)
-        ttk.Button(top, text="Видалити", command=self.delete_driver).pack(side="left", padx=4)
+        ttk.Button(top, text="Завершити роль водія", command=self.delete_driver).pack(side="left", padx=4)
         ttk.Button(top, text="Оновити", command=self.load_drivers).pack(side="left", padx=4)
 
         cols = ("id","name","birth","license","employment","active")
@@ -4195,16 +5217,241 @@ class App(tk.Tk):
         driver_y.pack(side="right",fill="y",pady=5)
         self.driver_tree.pack(side="left",fill="both", expand=True, padx=(10,0), pady=5)
         self.driver_tree.bind("<<TreeviewSelect>>", self.on_driver_select)
+        self.driver_tree.bind("<Double-1>",lambda _event:self.edit_driver())
+        self.driver_tree.bind("<Return>",lambda _event:self.edit_driver())
+
+    def employee_full_name(self, row):
+        return " ".join(x for x in (row["last_name"],row["first_name"],row["middle_name"]) if x).strip()
+
+    def show_employee_registry(self):
+        if hasattr(self,"employee_win") and self.employee_win.winfo_exists():
+            self.employee_win.lift(); self.load_employee_registry(); return
+        win=tk.Toplevel(self); self.employee_win=win; win.title("Реєстр усіх працівників")
+        fit_window_to_screen(win,1080,650,820,500)
+        top=ttk.Frame(win,padding=8); top.pack(fill="x")
+        ttk.Button(top,text="Новий працівник",command=self.employee_form).pack(side="left",padx=3)
+        ttk.Button(top,text="Редагувати",command=self.edit_employee).pack(side="left",padx=3)
+        ttk.Button(top,text="Звільнити / поновити",command=self.toggle_employee_active).pack(side="left",padx=3)
+        ttk.Button(top,text="Зміни випуску",command=self.show_dispatch_staff_schedule).pack(side="left",padx=3)
+        ttk.Button(top,text="Табель персоналу",command=self.show_employee_timesheet).pack(side="left",padx=3)
+        ttk.Label(win,text="Водій є працівником із додатковою водійською карткою. Лікаря, механіка, диспетчера та інших вводьте тут один раз.",foreground="gray",wraplength=1020,justify="left").pack(fill="x",padx=10,pady=(0,6))
+        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6)
+        frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+        cols=("id","personnel","name","roles","position","employment","dismissal","phone","status")
+        self.employee_tree=ttk.Treeview(frame,columns=cols,show="headings")
+        heads={"id":"ID","personnel":"Таб. №","name":"ПІБ","roles":"Ролі","position":"Посада","employment":"Прийнятий","dismissal":"Звільнений","phone":"Телефон","status":"Стан"}
+        widths={"id":45,"personnel":75,"name":240,"roles":180,"position":150,"employment":90,"dismissal":90,"phone":120,"status":80}
+        for key in cols: self.employee_tree.heading(key,text=heads[key]); self.employee_tree.column(key,width=widths[key],anchor="w")
+        y=ttk.Scrollbar(frame,orient="vertical",command=self.employee_tree.yview); x=ttk.Scrollbar(frame,orient="horizontal",command=self.employee_tree.xview)
+        self.employee_tree.configure(yscrollcommand=y.set,xscrollcommand=x.set)
+        self.employee_tree.grid(row=0,column=0,sticky="nsew"); y.grid(row=0,column=1,sticky="ns"); x.grid(row=1,column=0,sticky="ew")
+        self.employee_tree.bind("<Double-1>",lambda _e:self.edit_employee())
+        self.load_employee_registry()
+
+    def load_employee_registry(self):
+        if not hasattr(self,"employee_tree") or not self.employee_tree.winfo_exists(): return
+        for item in self.employee_tree.get_children(): self.employee_tree.delete(item)
+        con=db(); rows=con.execute("""SELECT e.*,GROUP_CONCAT(er.role, ', ') roles FROM employees e
+             LEFT JOIN employee_roles er ON er.employee_id=e.id GROUP BY e.id
+             ORDER BY e.active DESC,e.last_name,e.first_name,e.middle_name""").fetchall(); con.close()
+        for row in rows:
+            self.employee_tree.insert("","end",values=(row["id"],row["personnel_no"],self.employee_full_name(row),row["roles"] or "",row["position"],fmt_date(row["employment_date"]),fmt_date(row["dismissal_date"]),row["phone"],"Працює" if row["active"] else "Звільнений"))
+
+    def selected_employee(self):
+        sel=getattr(self,"employee_tree",None).selection() if hasattr(self,"employee_tree") else ()
+        if not sel: return None
+        eid=int(self.employee_tree.item(sel[0],"values")[0]); con=db()
+        row=con.execute("SELECT * FROM employees WHERE id=?",(eid,)).fetchone(); con.close(); return row
+
+    def employee_form(self, employee=None):
+        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Картка працівника")
+        fit_window_to_screen(win,700,650,610,520); win.transient(parent); win.grab_set()
+        con=db(); current_roles={r[0] for r in con.execute("SELECT role FROM employee_roles WHERE employee_id=?",(employee["id"],)).fetchall()} if employee else set(); con.close()
+        fields=(("personnel_no","Табельний номер"),("last_name","Прізвище"),("first_name","Ім'я"),("middle_name","По батькові"),("position","Основна посада"),("phone","Телефон"),("employment_date","Дата прийняття"),("dismissal_date","Дата звільнення"),("notes","Примітка"))
+        values={}
+        for i,(key,label) in enumerate(fields):
+            raw=(employee[key] if employee else "") or ""
+            if key in {"employment_date","dismissal_date"}: raw=fmt_date(raw)
+            values[key]=tk.StringVar(value=raw)
+            ttk.Label(win,text=label).grid(row=i,column=0,sticky="w",padx=10,pady=5)
+            ttk.Entry(win,textvariable=values[key],width=48).grid(row=i,column=1,sticky="ew",padx=10,pady=5)
+            if key in {"employment_date","dismissal_date"}: calendar_button(win,values[key]).grid(row=i,column=2,sticky="w",padx=(0,8))
+        win.columnconfigure(1,weight=1)
+        role_box=ttk.LabelFrame(win,text="Спеціальні ролі працівника (необов'язково)",padding=8); role_box.grid(row=len(fields),column=0,columnspan=3,sticky="ew",padx=10,pady=8)
+        role_vars={}
+        for i,role in enumerate(("Водій","Лікар","Механік","Диспетчер","Кондуктор","Інше")):
+            role_vars[role]=tk.BooleanVar(value=role in current_roles)
+            ttk.Checkbutton(role_box,text=role,variable=role_vars[role]).grid(row=i//3,column=i%3,sticky="w",padx=8,pady=3)
+        ttk.Label(
+            role_box,
+            text="Щоб зняти роль водія: приберіть прапорець «Водій» і натисніть «Зберегти». Історія графіка не видаляється.",
+            foreground="gray",wraplength=610,justify="left"
+        ).grid(row=2,column=0,columnspan=3,sticky="w",padx=8,pady=(7,2))
+        active=tk.BooleanVar(value=bool(employee["active"]) if employee else True)
+        ttk.Checkbutton(win,text="Працює",variable=active).grid(row=len(fields)+1,column=1,sticky="w",padx=10,pady=3)
+        def save():
+            vals={k:v.get().strip() for k,v in values.items()}
+            if not vals["last_name"] or not vals["first_name"]:
+                messagebox.showerror("Працівник","Прізвище та ім'я обов'язкові.",parent=win); return
+            roles=[r for r,v in role_vars.items() if v.get()]
+            closing_driver=bool(employee and employee["driver_id"] and "Водій" in current_roles and "Водій" not in roles)
+            driver_end_date=""
+            if closing_driver:
+                if not messagebox.askyesno(
+                    "Завершити роль водія",
+                    "Зняти роль «Водій»? Водійська картка стане неактивною, але весь старий графік, табель і шляхівки залишаться.",
+                    parent=win,
+                ):
+                    return
+                raw_end=simpledialog.askstring(
+                    "Дата завершення ролі",
+                    "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                    initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
+                )
+                if raw_end is None:
+                    return
+                try:
+                    driver_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                except ValueError:
+                    messagebox.showerror("Працівник","Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",parent=win); return
+            for key in ("employment_date","dismissal_date"):
+                if vals[key]:
+                    try: vals[key]=datetime.strptime(vals[key],"%d.%m.%Y").strftime("%Y-%m-%d")
+                    except ValueError:
+                        messagebox.showerror("Працівник","Дата має бути у форматі ДД.ММ.РРРР.",parent=win); return
+            con=db()
+            if vals["personnel_no"] and con.execute("SELECT 1 FROM employees WHERE personnel_no=? AND id<>?",(vals["personnel_no"],employee["id"] if employee else -1)).fetchone():
+                con.close(); messagebox.showerror("Працівник","Такий табельний номер уже використовується.",parent=win); return
+            driver_id=employee["driver_id"] if employee else None
+            if "Водій" in roles and not driver_id:
+                cur=con.execute("""INSERT INTO drivers(last_name,first_name,middle_name,personnel_no,employment_date,notes,active,created_at)
+                    VALUES(?,?,?,?,?,?,?,?)""",(vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],vals["notes"],int(active.get()),datetime.now().isoformat(timespec="seconds")))
+                driver_id=cur.lastrowid
+            if employee:
+                eid=employee["id"]
+                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position=?,phone=?,employment_date=?,dismissal_date=?,notes=?,active=?,driver_id=? WHERE id=?""",
+                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,eid))
+            else:
+                cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,phone,employment_date,dismissal_date,notes,active,driver_id,created_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,datetime.now().isoformat(timespec="seconds"))); eid=cur.lastrowid
+            con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
+            con.executemany("INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",[(eid,r) for r in roles])
+            if driver_id:
+                driver_active=int(active.get() and "Водій" in roles)
+                con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,driver_end_date=?,notes=?,active=? WHERE id=?""",
+                    (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],"",vals["notes"],driver_active,driver_id))
+                if closing_driver:
+                    finish_driver_role(con,eid,driver_id,driver_end_date)
+            con.commit(); con.close(); self.load_employee_registry(); self.load_drivers(); win.destroy()
+        ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+2,column=1,sticky="e",padx=10,pady=12)
+
+    def edit_employee(self):
+        row=self.selected_employee()
+        if row: self.employee_form(row)
+
+    def toggle_employee_active(self):
+        row=self.selected_employee()
+        if not row: return
+        new_state=0 if row["active"] else 1
+        con=db(); con.execute("UPDATE employees SET active=?,dismissal_date=CASE WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",(new_state,new_state,date.today().isoformat(),new_state,row["id"]))
+        if row["driver_id"]: con.execute("UPDATE drivers SET active=? WHERE id=?",(new_state,row["driver_id"]))
+        con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
+
+    def show_employee_timesheet(self):
+        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Місячний табель персоналу")
+        fit_window_to_screen(win,980,620,760,480)
+        top=ttk.Frame(win,padding=8); top.pack(fill="x")
+        today=date.today(); month=tk.StringVar(value=str(today.month)); year=tk.StringVar(value=str(today.year))
+        ttk.Label(top,text="Місяць").pack(side="left"); ttk.Spinbox(top,textvariable=month,from_=1,to=12,width=5).pack(side="left",padx=4)
+        ttk.Label(top,text="Рік").pack(side="left"); ttk.Spinbox(top,textvariable=year,from_=2020,to=2100,width=7).pack(side="left",padx=4)
+        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6); frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+        cols=("personnel","name","roles","planned","actual","difference")
+        tree=ttk.Treeview(frame,columns=cols,show="headings")
+        for key,label,width in (("personnel","Таб. №",80),("name","ПІБ",280),("roles","Ролі",220),("planned","План, год",95),("actual","Факт, год",95),("difference","Відхилення",95)):
+            tree.heading(key,text=label); tree.column(key,width=width,anchor="w")
+        yb=ttk.Scrollbar(frame,orient="vertical",command=tree.yview); xb=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview); tree.configure(yscrollcommand=yb.set,xscrollcommand=xb.set)
+        tree.grid(row=0,column=0,sticky="nsew"); yb.grid(row=0,column=1,sticky="ns"); xb.grid(row=1,column=0,sticky="ew")
+        def refresh():
+            try: m=int(month.get()); yy=int(year.get()); start=date(yy,m,1); end=date(yy,m,calendar.monthrange(yy,m)[1])
+            except Exception: messagebox.showerror("Табель","Перевірте місяць і рік.",parent=win); return
+            for item in tree.get_children(): tree.delete(item)
+            con=db(); rows=con.execute("""SELECT e.*,GROUP_CONCAT(er.role, ', ') roles FROM employees e LEFT JOIN employee_roles er ON er.employee_id=e.id GROUP BY e.id ORDER BY e.last_name,e.first_name""").fetchall()
+            for row in rows:
+                driver_plan=con.execute("SELECT COALESCE(SUM(work_hours),0) FROM worklog WHERE driver_id=? AND work_date BETWEEN ? AND ?",(row["driver_id"],start.isoformat(),end.isoformat())).fetchone()[0] if row["driver_id"] else 0
+                shifts=con.execute("SELECT * FROM employee_shifts WHERE employee_id=? AND work_date BETWEEN ? AND ?",(row["id"],(start-timedelta(days=7)).isoformat(),end.isoformat())).fetchall()
+                period_start=datetime.combine(start,datetime.min.time()); period_end=datetime.combine(end+timedelta(days=1),datetime.min.time())
+                shift_plan=0.0; shift_actual=0.0; actual_complete=True; overlap_found=False
+                for sh in shifts:
+                    base=datetime.strptime(sh["work_date"],"%Y-%m-%d"); sm=parse_hhmm(sh["start_time"]); em=parse_hhmm(sh["end_time"])
+                    shift_start=base+timedelta(minutes=sm); shift_end=base+timedelta(days=int(sh["end_day_offset"] or 0),minutes=em)
+                    overlap=max(0.0,(min(shift_end,period_end)-max(shift_start,period_start)).total_seconds()/3600.0)
+                    if overlap<=0: continue
+                    overlap_found=True
+                    shift_plan+=overlap
+                    if sh["actual_hours"] is None: actual_complete=False
+                    else:
+                        total=max((shift_end-shift_start).total_seconds()/3600.0,0.001)
+                        shift_actual+=float(sh["actual_hours"])*overlap/total
+                planned=float(driver_plan or 0)+shift_plan
+                actual=shift_actual if overlap_found and actual_complete and not row["driver_id"] else None
+                actual_text=hours_value_hhmm(actual) if actual is not None else "—"; diff=signed_hours_hhmm(float(actual)-planned) if actual is not None else "—"
+                tree.insert("","end",values=(row["personnel_no"],self.employee_full_name(row),row["roles"] or "",hours_value_hhmm(planned),actual_text,diff))
+            con.close()
+        ttk.Button(top,text="Показати",command=refresh).pack(side="left",padx=8); refresh()
 
     def driver_form(self, driver=None):
         win = tk.Toplevel(self)
         win.title("Картка водія")
-        win.geometry("760x720")
-        win.minsize(700,650)
+        fit_window_to_screen(win,760,720,700,540)
         win.transient(self)
 
-        outer=ttk.Frame(win,padding=10)
-        outer.pack(fill="both",expand=True)
+        # Картка містить багато полів і на ноутбучному екрані не вміщується
+        # по висоті. Весь вміст, включно з прапорцем і кнопкою збереження,
+        # розміщуємо у вертикально прокручуваному полотні.
+        shell=ttk.Frame(win)
+        shell.pack(fill="both",expand=True)
+        shell.rowconfigure(0,weight=1)
+        shell.columnconfigure(0,weight=1)
+        form_canvas=tk.Canvas(shell,highlightthickness=0,borderwidth=0)
+        form_scroll=ttk.Scrollbar(shell,orient="vertical",command=form_canvas.yview)
+        form_canvas.configure(yscrollcommand=form_scroll.set)
+        form_canvas.grid(row=0,column=0,sticky="nsew")
+        form_scroll.grid(row=0,column=1,sticky="ns")
+
+        outer=ttk.Frame(form_canvas,padding=10)
+        form_window=form_canvas.create_window((0,0),window=outer,anchor="nw")
+
+        def sync_driver_form(_event=None):
+            try:
+                form_canvas.configure(scrollregion=form_canvas.bbox("all"))
+            except tk.TclError:
+                pass
+
+        def fit_driver_form_width(event):
+            try:
+                form_canvas.itemconfigure(form_window,width=max(1,event.width))
+                sync_driver_form()
+            except tk.TclError:
+                pass
+
+        def scroll_driver_form(event):
+            if getattr(event,"num",None)==4:
+                step=-1
+            elif getattr(event,"num",None)==5:
+                step=1
+            else:
+                delta=getattr(event,"delta",0)
+                if not delta:
+                    return None
+                step=int(-delta/120) or (-1 if delta>0 else 1)
+            form_canvas.yview_scroll(step,"units")
+            return "break"
+
+        outer.bind("<Configure>",sync_driver_form,add="+")
+        form_canvas.bind("<Configure>",fit_driver_form_width,add="+")
+        win.bind("<MouseWheel>",scroll_driver_form,add="+")
+        win.bind("<Button-4>",scroll_driver_form,add="+")
+        win.bind("<Button-5>",scroll_driver_form,add="+")
 
         ua=ttk.LabelFrame(outer,text="Дані водія — українською",padding=8)
         ua.pack(fill="x",pady=(0,8))
@@ -4244,6 +5491,7 @@ class App(tk.Tk):
         en.columnconfigure(1,weight=1)
 
         other_fields=[
+            ("personnel_no","Табельний номер"),
             ("birth_date","Дата народження (ДД.ММ.РРРР)"),
             ("license_series","Серія посвідчення"),("license_number","Номер посвідчення"),
             ("license_issue_date","Дата видачі посвідчення (ДД.ММ.РРРР)"),
@@ -4272,7 +5520,7 @@ class App(tk.Tk):
             order=[
                 "last_name","first_name","middle_name",
                 "last_name_en","first_name_en","middle_name_en",
-                "birth_date","license_series","license_number",
+                "personnel_no","birth_date","license_series","license_number",
                 "license_issue_date","employment_date","notes"
             ]
             vals={k:vars_[k].get().strip() for k in order}
@@ -4288,28 +5536,40 @@ class App(tk.Tk):
                 return
             con=db()
             if driver:
+                saved_driver_id=driver["id"]
                 con.execute("""UPDATE drivers SET
                     last_name=?,first_name=?,middle_name=?,
                     last_name_en=?,first_name_en=?,middle_name_en=?,
-                    birth_date=?,license_series=?,license_number=?,license_issue_date=?,
+                    personnel_no=?,birth_date=?,license_series=?,license_number=?,license_issue_date=?,
                     employment_date=?,notes=?,active=? WHERE id=?""",
                     (vals["last_name"],vals["first_name"],vals["middle_name"],
                      vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
-                     vals["birth_date"],vals["license_series"],vals["license_number"],
+                     vals["personnel_no"],vals["birth_date"],vals["license_series"],vals["license_number"],
                      vals["license_issue_date"],vals["employment_date"],vals["notes"],
-                     int(active.get()),driver["id"]))
+                     int(active.get()),saved_driver_id))
             else:
-                con.execute("""INSERT INTO drivers(
+                cur=con.execute("""INSERT INTO drivers(
                     last_name,first_name,middle_name,last_name_en,first_name_en,middle_name_en,
-                    birth_date,license_series,license_number,license_issue_date,employment_date,
-                    notes,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    personnel_no,birth_date,license_series,license_number,license_issue_date,employment_date,
+                    notes,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (vals["last_name"],vals["first_name"],vals["middle_name"],
                      vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
-                     vals["birth_date"],vals["license_series"],vals["license_number"],
+                     vals["personnel_no"],vals["birth_date"],vals["license_series"],vals["license_number"],
                      vals["license_issue_date"],vals["employment_date"],vals["notes"],
                      int(active.get()),datetime.now().isoformat(timespec="seconds")))
+                saved_driver_id=cur.lastrowid
+            emp=con.execute("SELECT id FROM employees WHERE driver_id=?",(saved_driver_id,)).fetchone()
+            if emp:
+                employee_id=emp["id"]
+                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position='Водій',employment_date=?,notes=?,active=? WHERE id=?""",
+                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],int(active.get()),employee_id))
+            else:
+                cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,employment_date,notes,active,driver_id,created_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],int(active.get()),saved_driver_id,datetime.now().isoformat(timespec="seconds")))
+                employee_id=cur.lastrowid
+            con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
             con.commit(); con.close()
-            self.load_drivers(); win.destroy()
+            self.load_drivers(); self.load_employee_registry(); win.destroy()
 
         ttk.Button(outer,text="Зберегти",command=save).pack(anchor="e",padx=8,pady=8)
 
@@ -4320,8 +5580,17 @@ class App(tk.Tk):
     def delete_driver(self):
         d=self.selected_driver()
         if not d: return
-        if not messagebox.askyesno("Підтвердження","Видалити водія та його історію?"): return
-        con=db(); con.execute("DELETE FROM drivers WHERE id=?",(d["id"],)); con.commit(); con.close(); self.load_drivers()
+        if not messagebox.askyesno("Завершити роль водія","Зняти роль «Водій»? Працівник залишиться в реєстрі, а історія графіка, табеля та шляхівок не видалиться."): return
+        raw_end=simpledialog.askstring("Дата завершення ролі","Дата завершення роботи водієм (ДД.ММ.РРРР):",initialvalue=date.today().strftime("%d.%m.%Y"),parent=self)
+        if raw_end is None: return
+        try: end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+        except ValueError:
+            messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=self); return
+        con=db()
+        employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(d["id"],)).fetchone()
+        if employee: finish_driver_role(con,employee["id"],d["id"],end_date)
+        else: con.execute("UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",(end_date,d["id"]))
+        con.commit(); con.close(); self.load_drivers(); self.load_employee_registry()
     def selected_driver(self):
         sel=self.driver_tree.selection()
         if not sel: return None
@@ -4346,9 +5615,10 @@ class App(tk.Tk):
         d=self.selected_driver()
         if d:
             self.driver_id=d["id"]
-            if hasattr(self, "work_driver_map"):
-                label=next((k for k,v in self.work_driver_map.items() if v==d["id"]), self.driver_full_name(d))
-                self.work_driver_var.set(label)
+            if hasattr(self,"work_driver_cb"):
+                # Список табеля залежить від вибраного місяця: водій до дати
+                # прийняття не може бути примусово підставлений з каталогу.
+                self.refresh_work_driver_choices()
             else:
                 self.work_driver_var.set(self.driver_full_name(d))
             self.att_driver_id=d["id"]
@@ -4365,6 +5635,17 @@ class App(tk.Tk):
         ).fetchall()
         con.close()
 
+        try:
+            period_end=month_dates(int(self.year_var.get()),int(self.month_var.get()))[-1]
+        except Exception:
+            period_end=date.today()
+        rows=[d for d in rows if driver_employed_on(d,period_end)]
+
+        available_ids={d["id"] for d in rows}
+        if self.driver_id not in available_ids:
+            self.driver_id=None
+            self.work_driver_var.set("")
+
         self.work_driver_map={}
         values=[]
         name_counts={}
@@ -4372,7 +5653,6 @@ class App(tk.Tk):
             base=self.driver_full_name(d)
             name_counts[base]=name_counts.get(base,0)+1
 
-        used={}
         for d in rows:
             base=self.driver_full_name(d)
             if name_counts.get(base,0)>1:
@@ -4393,6 +5673,11 @@ class App(tk.Tk):
             if label:
                 self.driver_id=first["id"]
                 self.work_driver_var.set(label)
+
+    def refresh_work_period(self):
+        """Оновлює список водіїв і табель після зміни місяця або року."""
+        self.refresh_work_driver_choices()
+        self.refresh_month()
 
     def on_work_driver_change(self, _=None):
         label=self.work_driver_var.get().strip()
@@ -4447,6 +5732,91 @@ class App(tk.Tk):
         self.refresh_att_driver_choices()
         self.refresh_work_driver_choices()
 
+    def show_waybill_number_pools(self):
+        if hasattr(self,"pool_win") and self.pool_win.winfo_exists():
+            self.pool_win.lift(); self.load_waybill_number_pools(); return
+        win=tk.Toplevel(self); self.pool_win=win; win.title("Пули серій і номерів шляхівок")
+        fit_window_to_screen(win,1050,590,800,460)
+        top=ttk.Frame(win,padding=8); top.pack(fill="x")
+        ttk.Button(top,text="Новий пул",command=self.waybill_number_pool_form).pack(side="left",padx=3)
+        ttk.Button(top,text="Редагувати",command=self.edit_waybill_number_pool).pack(side="left",padx=3)
+        ttk.Button(top,text="Закрити / активувати",command=self.toggle_waybill_number_pool).pack(side="left",padx=3)
+        ttk.Label(win,text="Taxo вибирає пул за датою роботи. Для готових пронумерованих бланків використовуйте ручний режим.",foreground="gray",wraplength=990,justify="left").pack(fill="x",padx=10,pady=(0,6))
+        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6); frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+        cols=("id","series","range","next","dates","mode","status","notes")
+        self.pool_tree=ttk.Treeview(frame,columns=cols,show="headings")
+        for key,label,width in (("id","ID",45),("series","Серія",85),("range","Діапазон",150),("next","Наступний",95),("dates","Діє за датою роботи",185),("mode","Режим",100),("status","Стан",85),("notes","Примітка",250)):
+            self.pool_tree.heading(key,text=label); self.pool_tree.column(key,width=width,anchor="w")
+        y=ttk.Scrollbar(frame,orient="vertical",command=self.pool_tree.yview); x=ttk.Scrollbar(frame,orient="horizontal",command=self.pool_tree.xview); self.pool_tree.configure(yscrollcommand=y.set,xscrollcommand=x.set)
+        self.pool_tree.grid(row=0,column=0,sticky="nsew"); y.grid(row=0,column=1,sticky="ns"); x.grid(row=1,column=0,sticky="ew")
+        self.pool_tree.bind("<Double-1>",lambda _e:self.edit_waybill_number_pool())
+        self.load_waybill_number_pools()
+
+    def load_waybill_number_pools(self):
+        if not hasattr(self,"pool_tree") or not self.pool_tree.winfo_exists(): return
+        for item in self.pool_tree.get_children(): self.pool_tree.delete(item)
+        con=db(); rows=con.execute("SELECT * FROM waybill_number_pools ORDER BY valid_from DESC,id DESC").fetchall(); con.close()
+        for row in rows:
+            width=int(row["number_width"] or 6); rng=f"{row['start_number']:0{width}d}–{row['end_number']:0{width}d}"
+            dates=f"{fmt_date(row['valid_from'])} – {fmt_date(row['valid_until']) or 'без обмеження'}"
+            self.pool_tree.insert("","end",values=(row["id"],row["series"],rng,f"{row['next_number']:0{width}d}",dates,"Авто" if row["mode"]=="auto" else "Ручний","Активний" if row["status"]=="active" else "Закритий",row["notes"]))
+
+    def selected_waybill_number_pool(self):
+        sel=getattr(self,"pool_tree",None).selection() if hasattr(self,"pool_tree") else ()
+        if not sel: return None
+        pid=int(self.pool_tree.item(sel[0],"values")[0]); con=db(); row=con.execute("SELECT * FROM waybill_number_pools WHERE id=?",(pid,)).fetchone(); con.close(); return row
+
+    def waybill_number_pool_form(self, pool=None):
+        parent=getattr(self,"pool_win",self); win=tk.Toplevel(parent); win.title("Пул номерів шляхівок")
+        fit_window_to_screen(win,650,560,570,480); win.transient(parent); win.grab_set()
+        defaults={"series":pool["series"] if pool else "","start":pool["start_number"] if pool else 1,"end":pool["end_number"] if pool else 999999,"next":pool["next_number"] if pool else 1,"width":pool["number_width"] if pool else 6,"from":fmt_date(pool["valid_from"]) if pool else date.today().strftime("%d.%m.%Y"),"until":fmt_date(pool["valid_until"]) if pool else "","mode":"Автоматичний" if not pool or pool["mode"]=="auto" else "Готові бланки / ручний номер","notes":pool["notes"] if pool else ""}
+        vars_={k:tk.StringVar(value=str(v or "")) for k,v in defaults.items()}
+        fields=(("series","Серія"),("start","Початковий номер"),("end","Кінцевий номер"),("next","Наступний номер"),("width","Кількість цифр"),("from","Діє з дати роботи"),("until","Діє до (необов'язково)"),("mode","Режим"),("notes","Примітка"))
+        for i,(key,label) in enumerate(fields):
+            ttk.Label(win,text=label).grid(row=i,column=0,sticky="w",padx=10,pady=6)
+            widget=ttk.Combobox(win,textvariable=vars_[key],values=("Автоматичний","Готові бланки / ручний номер"),state="readonly",width=38) if key=="mode" else ttk.Entry(win,textvariable=vars_[key],width=42)
+            widget.grid(row=i,column=1,sticky="ew",padx=10,pady=6)
+            if key in {"from","until"}: calendar_button(win,vars_[key]).grid(row=i,column=2,sticky="w",padx=(0,8))
+        win.columnconfigure(1,weight=1)
+        def save():
+            try:
+                start=int(vars_["start"].get()); end=int(vars_["end"].get()); nxt=int(vars_["next"].get()); width=int(vars_["width"].get())
+                valid_from=datetime.strptime(vars_["from"].get().strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                valid_until=datetime.strptime(vars_["until"].get().strip(),"%d.%m.%Y").strftime("%Y-%m-%d") if vars_["until"].get().strip() else ""
+            except Exception:
+                messagebox.showerror("Пул номерів","Перевірте числа і дати у форматі ДД.ММ.РРРР.",parent=win); return
+            series=vars_["series"].get().strip()
+            if not series or start<0 or end<start or not start<=nxt<=end+1 or not 1<=width<=12 or (valid_until and valid_until<valid_from):
+                messagebox.showerror("Пул номерів","Некоректний діапазон, наступний номер, ширина або період дії.",parent=win); return
+            mode="auto" if vars_["mode"].get()=="Автоматичний" else "manual"
+            con=db()
+            overlap=con.execute("""SELECT id FROM waybill_number_pools WHERE status='active' AND id<>?
+                AND valid_from<=COALESCE(NULLIF(?,''),'9999-12-31') AND COALESCE(NULLIF(valid_until,''),'9999-12-31')>=? LIMIT 1""",(pool["id"] if pool else -1,valid_until,valid_from)).fetchone()
+            if overlap:
+                con.close(); messagebox.showerror("Пул номерів","У ці дати вже діє інший активний пул. Періоди активних пулів не можуть перетинатися.",parent=win); return
+            vals=(series,start,end,nxt,width,valid_from,valid_until,mode,vars_["notes"].get().strip())
+            if pool: con.execute("UPDATE waybill_number_pools SET series=?,start_number=?,end_number=?,next_number=?,number_width=?,valid_from=?,valid_until=?,mode=?,notes=? WHERE id=?",vals+(pool["id"],))
+            else: con.execute("INSERT INTO waybill_number_pools(series,start_number,end_number,next_number,number_width,valid_from,valid_until,mode,status,notes,created_at) VALUES(?,?,?,?,?,?,?,?, 'active',?,?)",vals+(datetime.now().isoformat(timespec="seconds"),))
+            con.commit(); con.close(); self.load_waybill_number_pools(); win.destroy()
+        ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields),column=1,sticky="e",padx=10,pady=12)
+
+    def edit_waybill_number_pool(self):
+        row=self.selected_waybill_number_pool()
+        if row: self.waybill_number_pool_form(row)
+
+    def toggle_waybill_number_pool(self):
+        row=self.selected_waybill_number_pool()
+        if not row: return
+        status="closed" if row["status"]=="active" else "active"
+        con=db()
+        if status=="active":
+            overlap=con.execute("""SELECT id FROM waybill_number_pools WHERE status='active' AND id<>?
+                AND valid_from<=COALESCE(NULLIF(?,''),'9999-12-31') AND COALESCE(NULLIF(valid_until,''),'9999-12-31')>=? LIMIT 1""",
+                (row["id"],row["valid_until"],row["valid_from"])).fetchone()
+            if overlap:
+                con.close(); messagebox.showerror("Пул номерів","Період перетинається з іншим активним пулом. Спочатку закрийте або змініть його.",parent=self.pool_win); return
+        con.execute("UPDATE waybill_number_pools SET status=? WHERE id=?",(status,row["id"])); con.commit(); con.close(); self.load_waybill_number_pools()
+
     def load_company(self):
         con=db(); r=con.execute("SELECT * FROM company WHERE id=1").fetchone(); con.close()
         if r:
@@ -4454,6 +5824,8 @@ class App(tk.Tk):
                 self.company_vars[k].set(r[k] or "")
             for k in getattr(self,"company_en_vars",{}):
                 self.company_en_vars[k].set(r[k] or "")
+            for k in getattr(self,"company_waybill_vars",{}):
+                self.company_waybill_vars[k].set(r[k] or ("АААТ" if k=="waybill_series" else ""))
         if hasattr(self,"transport_profile_var"):
             self.transport_profile_var.set(current_transport_profile())
 
@@ -4467,18 +5839,21 @@ class App(tk.Tk):
         """
         ua={k:v.get().strip() for k,v in self.company_vars.items()}
         en={k:v.get().strip() for k,v in getattr(self,"company_en_vars",{}).items()}
+        wb={k:v.get().strip() for k,v in getattr(self,"company_waybill_vars",{}).items()}
         con=db()
         try:
             con.execute(
                 """UPDATE company SET
                        name=?,address=?,phone=?,fax=?,email=?,signer_name=?,signer_position=?,
-                       name_en=?,address_en=?,signer_name_en=?,signer_position_en=?,place_en=?
+                       name_en=?,address_en=?,signer_name_en=?,signer_position_en=?,place_en=?,
+                       waybill_series=?,transport_column=?,brigade=?
                    WHERE id=1""",
                 (
                     ua.get("name",""),ua.get("address",""),ua.get("phone",""),ua.get("fax",""),
                     ua.get("email",""),ua.get("signer_name",""),ua.get("signer_position",""),
                     en.get("name_en",""),en.get("address_en",""),en.get("signer_name_en",""),
-                    en.get("signer_position_en",""),en.get("place_en","")
+                    en.get("signer_position_en",""),en.get("place_en",""),wb.get("waybill_series","АААТ"),
+                    wb.get("transport_column",""),wb.get("brigade","")
                 )
             )
             con.commit()
@@ -4504,10 +5879,10 @@ class App(tk.Tk):
         ttk.Button(top, text="Видалити", command=self.delete_vehicle).pack(side="left", padx=4)
         ttk.Button(top, text="Оновити", command=self.load_vehicles).pack(side="left", padx=4)
         ttk.Label(self.tab_vehicles, text="Каталог автомобілів. Одного водія можна щодня призначати на різні автомобілі та маршрути.", foreground="gray").pack(anchor="w", padx=12)
-        cols=("id","name","plate","make","year","active","notes")
+        cols=("id","name","plate","garage","make","year","active","notes")
         self.vehicle_tree=ttk.Treeview(self.tab_vehicles,columns=cols,show="headings",height=25)
-        heads={"id":"ID","name":"Назва","plate":"Держ. №","make":"Марка / модель","year":"Рік","active":"Статус","notes":"Примітка"}
-        widths={"id":45,"name":180,"plate":120,"make":180,"year":70,"active":80,"notes":300}
+        heads={"id":"ID","name":"Назва","plate":"Держ. №","garage":"Гар. №","make":"Марка / модель","year":"Рік","active":"Статус","notes":"Примітка"}
+        widths={"id":45,"name":165,"plate":110,"garage":85,"make":170,"year":65,"active":75,"notes":280}
         for c in cols:
             self.vehicle_tree.heading(c,text=heads[c]); self.vehicle_tree.column(c,width=widths[c],anchor="w")
         vehicle_y=ttk.Scrollbar(self.tab_vehicles,orient="vertical",command=self.vehicle_tree.yview)
@@ -4516,6 +5891,8 @@ class App(tk.Tk):
         vehicle_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
         vehicle_y.pack(side="right",fill="y",pady=5)
         self.vehicle_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
+        self.vehicle_tree.bind("<Double-1>",lambda _event:self.edit_vehicle())
+        self.vehicle_tree.bind("<Return>",lambda _event:self.edit_vehicle())
         self.load_vehicles()
 
     def load_vehicles(self):
@@ -4523,7 +5900,7 @@ class App(tk.Tk):
         for x in self.vehicle_tree.get_children(): self.vehicle_tree.delete(x)
         con=db(); rows=con.execute("SELECT * FROM vehicles ORDER BY active DESC, name, plate").fetchall(); con.close()
         for r in rows:
-            self.vehicle_tree.insert("","end",values=(r["id"],r["name"],r["plate"],r["make_model"],r["year"] or "","Так" if r["active"] else "Ні",r["notes"]))
+            self.vehicle_tree.insert("","end",values=(r["id"],r["name"],r["plate"],r["garage_no"],r["make_model"],r["year"] or "","Так" if r["active"] else "Ні",r["notes"]))
 
     def selected_vehicle(self):
         sel=self.vehicle_tree.selection()
@@ -4538,8 +5915,8 @@ class App(tk.Tk):
         return " — ".join(x for x in parts if x)
 
     def vehicle_form(self, vehicle=None):
-        win=tk.Toplevel(self); win.title("Автомобіль"); win.geometry("620x430"); win.transient(self); win.grab_set()
-        fields=[("name","Назва / інвентарний номер"),("plate","Державний номер"),("make_model","Марка / модель"),("year","Рік"),("notes","Примітка")]
+        win=tk.Toplevel(self); win.title("Автомобіль"); fit_window_to_screen(win,620,430,520,360); win.transient(self); win.grab_set()
+        fields=[("name","Назва / інвентарний номер"),("plate","Державний номер"),("garage_no","Гаражний номер"),("make_model","Марка / модель"),("year","Рік"),("notes","Примітка")]
         vv={}
         for i,(k,lbl) in enumerate(fields):
             ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=8)
@@ -4557,11 +5934,11 @@ class App(tk.Tk):
                 except ValueError: messagebox.showerror("Помилка","Рік має бути числом.",parent=win); return
             else: year=None
             con=db()
-            vals=(name,vv["plate"].get().strip(),vv["make_model"].get().strip(),year,vv["notes"].get().strip(),int(active.get()))
+            vals=(name,vv["plate"].get().strip(),vv["garage_no"].get().strip(),vv["make_model"].get().strip(),year,vv["notes"].get().strip(),int(active.get()))
             if vehicle:
-                con.execute("UPDATE vehicles SET name=?,plate=?,make_model=?,year=?,notes=?,active=? WHERE id=?",(*vals,vehicle["id"]))
+                con.execute("UPDATE vehicles SET name=?,plate=?,garage_no=?,make_model=?,year=?,notes=?,active=? WHERE id=?",(*vals,vehicle["id"]))
             else:
-                con.execute("INSERT INTO vehicles(name,plate,make_model,year,notes,active,created_at) VALUES(?,?,?,?,?,?,?)",(*vals,datetime.now().isoformat(timespec="seconds")))
+                con.execute("INSERT INTO vehicles(name,plate,garage_no,make_model,year,notes,active,created_at) VALUES(?,?,?,?,?,?,?,?)",(*vals,datetime.now().isoformat(timespec="seconds")))
             con.commit(); con.close(); self.load_vehicles(); win.destroy()
         ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+1,column=1,sticky="e",padx=10,pady=14)
 
@@ -4576,12 +5953,15 @@ class App(tk.Tk):
         con=db(); con.execute("UPDATE vehicles SET active=0 WHERE id=?",(v["id"],)); con.commit(); con.close(); self.load_vehicles()
 
     def build_work(self):
-        bar=ttk.Frame(self.tab_work); bar.pack(fill="x",padx=10,pady=8)
+        controls=ttk.Frame(self.tab_work)
+        controls.pack(fill="x",padx=10,pady=(8,3))
+        select_bar=ttk.Frame(controls)
+        select_bar.pack(fill="x")
         self.work_driver_var=tk.StringVar(value="")
         self.work_driver_map={}
-        ttk.Label(bar,text="Водій:").pack(side="left")
+        ttk.Label(select_bar,text="Водій:").pack(side="left")
         self.work_driver_cb=ttk.Combobox(
-            bar,
+            select_bar,
             textvariable=self.work_driver_var,
             state="readonly",
             width=34
@@ -4590,23 +5970,33 @@ class App(tk.Tk):
         self.work_driver_cb.bind("<<ComboboxSelected>>", self.on_work_driver_change)
         self.year_var=tk.IntVar(value=date.today().year)
         self.month_var=tk.IntVar(value=date.today().month)
-        ttk.Spinbox(bar,from_=2020,to=2100,textvariable=self.year_var,width=7,command=self.refresh_month).pack(side="left",padx=4)
-        ttk.Spinbox(bar,from_=1,to=12,textvariable=self.month_var,width=4,command=self.refresh_month).pack(side="left",padx=4)
-        ttk.Button(bar,text="Новий / редагувати",command=self.save_work_row).pack(side="left",padx=5)
-        ttk.Button(bar,text="Копіювати день",command=self.copy_work_day).pack(side="left",padx=5)
-        ttk.Button(bar,text="Вставити день",command=self.paste_work_day).pack(side="left",padx=5)
-        ttk.Button(bar,text="Excel",command=lambda:self.export_current("xlsx")).pack(side="left",padx=5)
-        ttk.Button(bar,text="PDF",command=lambda:self.export_current("pdf")).pack(side="left",padx=5)
-        ttk.Button(bar,text="Підсумки / контроль",command=self.show_work_analysis).pack(side="left",padx=5)
+        ttk.Label(select_bar,text="Рік:").pack(side="left",padx=(8,2))
+        ttk.Spinbox(select_bar,from_=2020,to=2100,textvariable=self.year_var,width=7,command=self.refresh_work_period).pack(side="left",padx=(0,4))
+        ttk.Label(select_bar,text="Місяць:").pack(side="left",padx=(8,2))
+        ttk.Spinbox(select_bar,from_=1,to=12,textvariable=self.month_var,width=4,command=self.refresh_work_period).pack(side="left",padx=(0,8))
+        ttk.Button(select_bar,text="Оновити",command=self.refresh_work_period).pack(side="left",padx=4)
+
+        edit_bar=ttk.Frame(controls)
+        edit_bar.pack(fill="x",pady=(5,0))
+        ttk.Button(edit_bar,text="Новий / редагувати день",command=self.save_work_row).pack(side="left",padx=(0,5))
+        ttk.Button(edit_bar,text="Копіювати день",command=self.copy_work_day).pack(side="left",padx=5)
+        ttk.Button(edit_bar,text="Вставити день",command=self.paste_work_day).pack(side="left",padx=5)
+
+        report_bar=ttk.Frame(controls)
+        report_bar.pack(fill="x",pady=(5,0))
+        ttk.Label(report_bar,text="Звіти:").pack(side="left",padx=(0,3))
+        ttk.Button(report_bar,text="Excel",command=lambda:self.export_current("xlsx")).pack(side="left",padx=4)
+        ttk.Button(report_bar,text="PDF",command=lambda:self.export_current("pdf")).pack(side="left",padx=4)
+        ttk.Button(report_bar,text="Підсумки / контроль",command=self.show_work_analysis).pack(side="left",padx=4)
         ttk.Button(
-            bar,text="Місячний табель / баланс",
+            report_bar,text="Місячний табель / баланс",
             command=self.show_monthly_work_balance
-        ).pack(side="left",padx=5)
+        ).pack(side="left",padx=4)
         ttk.Button(
-            bar,
+            report_bar,
             text="⚠ Без тахо — робочі дні 8 год",
             command=self.autofill
-        ).pack(side="left",padx=(18,5))
+        ).pack(side="right",padx=(18,0))
         ttk.Label(
             self.tab_work,
             text=(
@@ -4615,8 +6005,8 @@ class App(tk.Tk):
                 "робочий час дорівнює керуванню; далі його можна збільшити/уточнити окремо. "
                 "Проміжки між частинами використовуються для контролю перерв у керуванні 4:30 → 45 хв або 15+30."
             ),
-            foreground="gray"
-        ).pack(anchor="w",padx=12)
+            foreground="gray",wraplength=1080,justify="left"
+        ).pack(anchor="w",padx=12,pady=(2,0))
         cols=("id","date","weekday","type","schedule","breaks","work","drive","over","route","vehicle","notes","mode")
         self.work_tree=ttk.Treeview(self.tab_work,columns=cols,show="headings",height=24,selectmode="extended")
         heads={"id":"ID","date":"Дата","weekday":"День","type":"Вид","schedule":"Графік","breaks":"Перерви","work":"Робота (план)","drive":"Керування (план)","over":"Надуроч.","route":"Маршрут","vehicle":"Авто","notes":"Примітка","mode":"Режим"}
@@ -4632,6 +6022,9 @@ class App(tk.Tk):
         self.work_tree.bind("<Double-1>",self.edit_work_row)
         self.work_tree.bind("<Control-c>",lambda e:self.copy_work_day())
         self.work_tree.bind("<Control-v>",lambda e:self.paste_work_day())
+        if sys.platform=="darwin":
+            self.work_tree.bind("<Command-c>",lambda e:self.copy_work_day())
+            self.work_tree.bind("<Command-v>",lambda e:self.paste_work_day())
         self.work_clipboard=None
 
     def show_monthly_work_balance(self):
@@ -4644,9 +6037,7 @@ class App(tk.Tk):
         win=tk.Toplevel(self)
         self.monthly_balance_win=win
         win.title("Місячний табель / баланс робочого часу")
-        win.geometry("1450x760")
-        win.minsize(950,520)
-        win.resizable(True,True)
+        fit_window_to_screen(win,1450,760,900,500)
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
@@ -4860,10 +6251,7 @@ class App(tk.Tk):
             path=actual
             self.monthly_balance_last_pdf=actual
         try:
-            if os.name=="nt":
-                os.startfile(str(path))
-            else:
-                open_external(path)
+            open_external(path)
         except Exception as e:
             messagebox.showerror(
                 "Помилка",str(e),parent=self.monthly_balance_win
@@ -4895,10 +6283,7 @@ class App(tk.Tk):
             return
         self.monthly_balance_last_xlsx=actual
         try:
-            if os.name=="nt":
-                os.startfile(str(actual))
-            else:
-                subprocess.Popen(["xdg-open",str(actual)])
+            open_external(actual)
         except Exception as exc:
             messagebox.showwarning(
                 "Файл створено",
@@ -4908,22 +6293,34 @@ class App(tk.Tk):
 
     def build_schedule(self):
         """Графічний планувальник одного календарного дня по всіх активних водіях."""
-        top=ttk.Frame(self.tab_schedule); top.pack(fill="x",padx=10,pady=8)
+        top=ttk.Frame(self.tab_schedule); top.pack(fill="x",padx=10,pady=(8,3))
+        nav=ttk.Frame(top); nav.pack(fill="x")
         self.schedule_date_var=tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
-        ttk.Label(top,text="Дата:").pack(side="left")
-        ttk.Entry(top,textvariable=self.schedule_date_var,width=13).pack(side="left",padx=5)
-        calendar_button(top,self.schedule_date_var).pack(side="left",padx=2)
-        ttk.Button(top,text="◀ День",command=lambda:self.shift_schedule_day(-1)).pack(side="left",padx=3)
-        ttk.Button(top,text="Сьогодні",command=self.schedule_today).pack(side="left",padx=3)
-        ttk.Button(top,text="День ▶",command=lambda:self.shift_schedule_day(1)).pack(side="left",padx=3)
-        ttk.Button(top,text="Оновити",command=self.refresh_schedule).pack(side="left",padx=5)
-        ttk.Button(top,text="Додати / редагувати період",command=self.schedule_add_period).pack(side="left",padx=5)
+        ttk.Label(nav,text="Дата:").pack(side="left")
+        ttk.Entry(nav,textvariable=self.schedule_date_var,width=13).pack(side="left",padx=5)
+        calendar_button(nav,self.schedule_date_var).pack(side="left",padx=2)
+        ttk.Button(nav,text="◀ День",command=lambda:self.shift_schedule_day(-1)).pack(side="left",padx=3)
+        ttk.Button(nav,text="Сьогодні",command=self.schedule_today).pack(side="left",padx=3)
+        ttk.Button(nav,text="День ▶",command=lambda:self.shift_schedule_day(1)).pack(side="left",padx=3)
+        ttk.Button(nav,text="Оновити",command=self.refresh_schedule).pack(side="left",padx=5)
+
+        actions=ttk.Frame(top); actions.pack(fill="x",pady=(5,0))
+        ttk.Button(actions,text="Додати / редагувати період",command=self.schedule_add_period).pack(side="left")
         ttk.Button(
-            top,
+            actions,
             text="Місячний графік змінності",
             command=self.show_monthly_shift_schedule
         ).pack(side="left",padx=5)
-        ttk.Label(self.tab_schedule,text="План дня по всіх активних водіях. Періоди відпочинку, роботи, керування та готовності відображаються на одній часовій шкалі.",foreground="gray").pack(anchor="w",padx=12)
+        ttk.Button(
+            actions,
+            text="Шляхівки на день",
+            command=self.show_waybills_for_schedule
+        ).pack(side="left",padx=5)
+        ttk.Label(
+            self.tab_schedule,
+            text="План дня по всіх активних водіях. Подвійний клік по смузі або рядку відкриває день для редагування.",
+            foreground="gray",wraplength=1080,justify="left"
+        ).pack(anchor="w",padx=12)
 
         legend=ttk.Frame(self.tab_schedule); legend.pack(fill="x",padx=12,pady=(4,2))
         for txt in ("Робота","Керування","Відпочинок","Готовність","Інше"):
@@ -4941,13 +6338,46 @@ class App(tk.Tk):
         self.schedule_canvas.bind("<Configure>",lambda e:self.refresh_schedule())
         self.schedule_canvas.bind("<Double-1>",self.schedule_double_click)
         self.schedule_canvas.bind("<Button-1>",self.schedule_click)
+        def schedule_wheel(event):
+            delta=getattr(event,"delta",0)
+            if delta:
+                self.schedule_canvas.yview_scroll(int(-delta/120) or (-1 if delta>0 else 1),"units")
+            elif getattr(event,"num",None) in (4,5):
+                self.schedule_canvas.yview_scroll(-1 if event.num==4 else 1,"units")
+            return "break"
+        def schedule_shift_wheel(event):
+            delta=getattr(event,"delta",0)
+            if delta:
+                self.schedule_canvas.xview_scroll(int(-delta/120) or (-1 if delta>0 else 1),"units")
+            return "break"
+        self.schedule_canvas.bind("<MouseWheel>",schedule_wheel,add="+")
+        self.schedule_canvas.bind("<Shift-MouseWheel>",schedule_shift_wheel,add="+")
+        self.schedule_canvas.bind("<Button-4>",schedule_wheel,add="+")
+        self.schedule_canvas.bind("<Button-5>",schedule_wheel,add="+")
         self.schedule_hitboxes=[]
         self.schedule_driver_rows=[]
         self.after(100,self.refresh_schedule)
 
+    def _monthly_shift_source_date(self):
+        """Дата, від якої відкриваємо місячний графік змінності."""
+        try:
+            return datetime.strptime(self.schedule_date_var.get().strip(),"%d.%m.%Y").date()
+        except Exception:
+            return date.today()
+
+    def _sync_monthly_shift_period_from_schedule(self):
+        d=self._monthly_shift_source_date()
+        if hasattr(self,"monthly_shift_year"):
+            self.monthly_shift_year.set(d.year)
+        if hasattr(self,"monthly_shift_month"):
+            self.monthly_shift_month.set(d.month)
+        if hasattr(self,"monthly_shift_pdf_dirty"):
+            self.monthly_shift_pdf_dirty=True
+
     def show_monthly_shift_schedule(self):
         """Місячний графік змінності по всіх активних водіях."""
         if hasattr(self,"monthly_shift_win") and self.monthly_shift_win.winfo_exists():
+            self._sync_monthly_shift_period_from_schedule()
             self.monthly_shift_win.lift()
             self.refresh_monthly_shift_schedule()
             return
@@ -4955,57 +6385,58 @@ class App(tk.Tk):
         win=tk.Toplevel(self)
         self.monthly_shift_win=win
         win.title("Місячний графік змінності водіїв")
-        win.geometry("1450x760")
-        win.minsize(950,520)
-        win.resizable(True,True)
+        fit_window_to_screen(win,1450,760,900,500)
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
+        filters=ttk.Frame(top)
+        filters.pack(fill="x")
+        exports=ttk.Frame(top)
+        exports.pack(fill="x",pady=(6,0))
 
-        today=date.today()
-        self.monthly_shift_year=tk.IntVar(
-            value=int(self.year_var.get()) if hasattr(self,"year_var") else today.year
-        )
-        self.monthly_shift_month=tk.IntVar(
-            value=int(self.month_var.get()) if hasattr(self,"month_var") else today.month
-        )
+        source_date=self._monthly_shift_source_date()
+        self.monthly_shift_year=tk.IntVar(value=source_date.year)
+        self.monthly_shift_month=tk.IntVar(value=source_date.month)
         self.monthly_shift_active_only=tk.BooleanVar(value=True)
         self.monthly_shift_last_pdf=None
+        self.monthly_shift_last_pdf_key=None
+        self.monthly_shift_pdf_dirty=True
         self.monthly_shift_last_detail_pdf=None
         self.monthly_shift_last_xlsx=None
 
-        ttk.Label(top,text="Рік:").pack(side="left")
+        ttk.Label(filters,text="Рік:").pack(side="left")
         ttk.Spinbox(
-            top,from_=2020,to=2100,textvariable=self.monthly_shift_year,width=7,
+            filters,from_=2020,to=2100,textvariable=self.monthly_shift_year,width=7,
             command=self.refresh_monthly_shift_schedule
         ).pack(side="left",padx=(3,8))
 
-        ttk.Label(top,text="Місяць:").pack(side="left")
+        ttk.Label(filters,text="Місяць:").pack(side="left")
         ttk.Spinbox(
-            top,from_=1,to=12,textvariable=self.monthly_shift_month,width=4,
+            filters,from_=1,to=12,textvariable=self.monthly_shift_month,width=4,
             command=self.refresh_monthly_shift_schedule
         ).pack(side="left",padx=(3,8))
 
         ttk.Checkbutton(
-            top,text="Тільки активні водії",
+            filters,text="Тільки активні водії",
             variable=self.monthly_shift_active_only,
             command=self.refresh_monthly_shift_schedule
         ).pack(side="left",padx=(4,10))
 
         ttk.Button(
-            top,text="Оновити",command=self.refresh_monthly_shift_schedule
+            filters,text="Оновити",command=self.refresh_monthly_shift_schedule
+        ).pack(side="left",padx=3)
+
+        ttk.Button(
+            exports,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
+        ).pack(side="left",padx=(0,3))
+        ttk.Button(
+            exports,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
         ).pack(side="left",padx=3)
         ttk.Button(
-            top,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
-        ).pack(side="left",padx=(12,3))
-        ttk.Button(
-            top,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
+            exports,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
         ).pack(side="left",padx=3)
         ttk.Button(
-            top,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
-        ).pack(side="left",padx=3)
-        ttk.Button(
-            top,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
+            exports,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
         ).pack(side="left",padx=3)
 
         ttk.Label(
@@ -5120,6 +6551,10 @@ class App(tk.Tk):
             f"Робота, план: {minutes_hhmm(total_work_min)}    "
             f"Керування, план: {minutes_hhmm(total_drive_min)}"
         )
+        # Матриця могла змінитися після редагування табеля/графіка або просто
+        # після натискання «Оновити». Старий PDF більше не вважаємо актуальним.
+        if hasattr(self,"monthly_shift_pdf_dirty"):
+            self.monthly_shift_pdf_dirty=True
 
     def save_monthly_shift_schedule_xlsx(self):
         y=int(self.monthly_shift_year.get())
@@ -5147,10 +6582,7 @@ class App(tk.Tk):
             return
         self.monthly_shift_last_xlsx=actual
         try:
-            if os.name=="nt":
-                os.startfile(str(actual))
-            else:
-                subprocess.Popen(["xdg-open",str(actual)])
+            open_external(actual)
         except Exception as exc:
             messagebox.showwarning(
                 "Файл створено",
@@ -5194,6 +6626,13 @@ class App(tk.Tk):
         m=int(self.monthly_shift_month.get())
         return OUTPUT_DIR / f"Графік_змінності_{y}_{m:02d}.pdf"
 
+    def _monthly_shift_pdf_key(self):
+        return (
+            int(self.monthly_shift_year.get()),
+            int(self.monthly_shift_month.get()),
+            bool(self.monthly_shift_active_only.get()),
+        )
+
     def save_monthly_shift_schedule_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
@@ -5218,16 +6657,24 @@ class App(tk.Tk):
         )
         if actual is None:
             return
-        self.monthly_shift_last_pdf=actual
+        self.monthly_shift_last_pdf=Path(actual)
+        self.monthly_shift_last_pdf_key=self._monthly_shift_pdf_key()
+        self.monthly_shift_pdf_dirty=False
         messagebox.showinfo("Графік змінності",f"PDF створено:\n{actual}",parent=self.monthly_shift_win)
 
     def open_monthly_shift_schedule_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
-        path=self.monthly_shift_last_pdf or self._monthly_shift_default_pdf()
-        path=Path(path)
+        key=self._monthly_shift_pdf_key()
+        use_last=(
+            self.monthly_shift_last_pdf is not None
+            and self.monthly_shift_last_pdf_key==key
+            and not self.monthly_shift_pdf_dirty
+            and Path(self.monthly_shift_last_pdf).exists()
+        )
+        path=Path(self.monthly_shift_last_pdf) if use_last else self._monthly_shift_default_pdf()
         try:
-            if not path.exists():
+            if not use_last:
                 actual=write_output_file(
                     lambda out: export_monthly_shift_schedule_pdf(
                         y,m,out,active_only=bool(self.monthly_shift_active_only.get())
@@ -5239,12 +6686,11 @@ class App(tk.Tk):
                 )
                 if actual is None:
                     return
-                path=actual
-            self.monthly_shift_last_pdf=Path(path)
-            if os.name=="nt":
-                os.startfile(str(path))
-            else:
-                open_external(path)
+                path=Path(actual)
+                self.monthly_shift_last_pdf=path
+                self.monthly_shift_last_pdf_key=key
+                self.monthly_shift_pdf_dirty=False
+            open_external(path)
         except Exception as e:
             messagebox.showerror(
                 "Графік змінності",
@@ -5290,6 +6736,7 @@ class App(tk.Tk):
         c=self.schedule_canvas; c.delete("all"); self.schedule_hitboxes=[]; self.schedule_driver_rows=[]
         con=db()
         drivers=con.execute("SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name,middle_name").fetchall()
+        drivers=[dr for dr in drivers if driver_employed_on(dr,d)]
         rows=con.execute("SELECT * FROM worklog WHERE work_date=?",(d.isoformat(),)).fetchall()
         by_driver={r["driver_id"]:r for r in rows}
         seg_by={}
@@ -5394,10 +6841,17 @@ class App(tk.Tk):
         con=db()
         d=con.execute("SELECT * FROM drivers WHERE id=?",(driver_id,)).fetchone()
         con.close()
-        if d:
-            label=next((k for k,v in getattr(self,"work_driver_map",{}).items() if v==driver_id), self.driver_full_name(d))
-            self.work_driver_var.set(label)
         self.year_var.set(work_date.year); self.month_var.set(work_date.month)
+        self.refresh_work_driver_choices()
+        if not d or not bool(d["active"]) or not driver_employed_on(d,work_date):
+            messagebox.showwarning(
+                "Графік","Водій не був прийнятий як активний працівник на цю дату.",parent=self
+            )
+            self.refresh_month()
+            return
+        label=next((k for k,v in getattr(self,"work_driver_map",{}).items() if v==driver_id), self.driver_full_name(d))
+        self.driver_id=driver_id
+        self.work_driver_var.set(label)
         self.refresh_month()
         target=work_date.strftime("%d.%m.%Y")
         for item in self.work_tree.get_children():
@@ -5411,12 +6865,15 @@ class App(tk.Tk):
         if not d: return
         # If a driver is currently selected, use it; otherwise ask from active drivers.
         if self.driver_id:
-            self.open_schedule_worklog(self.driver_id,d)
-            return
+            selected=self.driver_by_id(self.driver_id)
+            if selected and bool(selected["active"]) and driver_employed_on(selected,d):
+                self.open_schedule_worklog(self.driver_id,d)
+                return
         con=db(); drivers=con.execute("SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name").fetchall(); con.close()
+        drivers=[dr for dr in drivers if driver_employed_on(dr,d)]
         if not drivers:
-            messagebox.showwarning("Графік","Спочатку додайте активного водія.",parent=self); return
-        win=tk.Toplevel(self); win.title("Вибір водія"); win.geometry("430x170"); win.transient(self); win.grab_set()
+            messagebox.showwarning("Графік","На цю дату немає прийнятих активних водіїв.",parent=self); return
+        win=tk.Toplevel(self); win.title("Вибір водія"); fit_window_to_screen(win,430,170,400,170); win.transient(self); win.grab_set()
         var=tk.StringVar(value=self.driver_full_name(drivers[0])); labels=[self.driver_full_name(x) for x in drivers]; mapping={self.driver_full_name(x):x["id"] for x in drivers}
         ttk.Label(win,text="Водій").pack(anchor="w",padx=12,pady=(15,5)); ttk.Combobox(win,textvariable=var,values=labels,state="readonly",width=42).pack(padx=12)
         def go():
@@ -5424,18 +6881,538 @@ class App(tk.Tk):
             if did: self.open_schedule_worklog(did,d)
         ttk.Button(win,text="Відкрити",command=go).pack(anchor="e",padx=12,pady=14)
 
+    def show_dispatch_staff_schedule(self):
+        """План/факт змін зареєстрованих працівників випуску."""
+        if hasattr(self,"dispatch_win") and self.dispatch_win.winfo_exists():
+            self.dispatch_win.lift(); self.refresh_dispatch_shifts(); return
+        win=tk.Toplevel(self); self.dispatch_win=win; win.title("Випуск на лінію — зміни персоналу")
+        fit_window_to_screen(win,980,620,780,500)
+        top=ttk.Frame(win,padding=8); top.pack(fill="x")
+        ttk.Label(top,text="Дата:").pack(side="left")
+        try: initial=self._schedule_parse_date().strftime("%d.%m.%Y")
+        except Exception: initial=date.today().strftime("%d.%m.%Y")
+        self.dispatch_date_var=tk.StringVar(value=initial)
+        ttk.Entry(top,textvariable=self.dispatch_date_var,width=12).pack(side="left",padx=(4,2))
+        calendar_button(top,self.dispatch_date_var).pack(side="left",padx=(0,8))
+        ttk.Button(top,text="Показати",command=self.refresh_dispatch_shifts).pack(side="left",padx=3)
+        ttk.Button(top,text="Додати зміну",command=self.dispatch_shift_form).pack(side="left",padx=3)
+        ttk.Button(top,text="Редагувати",command=self.edit_dispatch_shift).pack(side="left",padx=3)
+        ttk.Button(top,text="Видалити",command=self.delete_dispatch_shift).pack(side="left",padx=3)
+        ttk.Label(
+            win,text=("Це окремий облік роботи персоналу випуску. ПІБ чергового автоматично переходить у шляхівки цієї дати; "
+                      "фактична відмітка і власноручний підпис залишаються у паперовому документі."),
+            foreground="gray",wraplength=930,justify="left"
+        ).pack(fill="x",padx=10,pady=(0,6))
+        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
+        frame.columnconfigure(0,weight=1); frame.rowconfigure(0,weight=1)
+        cols=("id","role","name","personnel","shift","start","end","location","planned","actual","notes")
+        self.dispatch_tree=ttk.Treeview(frame,columns=cols,show="headings")
+        heads={"id":"ID","role":"Роль","name":"ПІБ","personnel":"Таб. №","shift":"Зміна","start":"Початок","end":"Кінець","location":"Місце","planned":"План","actual":"Факт","notes":"Примітка"}
+        widths={"id":45,"role":90,"name":230,"personnel":75,"shift":60,"start":72,"end":95,"location":150,"planned":70,"actual":70,"notes":220}
+        for key in cols: self.dispatch_tree.heading(key,text=heads[key]); self.dispatch_tree.column(key,width=widths[key],anchor="w")
+        ybar=ttk.Scrollbar(frame,orient="vertical",command=self.dispatch_tree.yview); xbar=ttk.Scrollbar(frame,orient="horizontal",command=self.dispatch_tree.xview)
+        self.dispatch_tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+        self.dispatch_tree.grid(row=0,column=0,sticky="nsew"); ybar.grid(row=0,column=1,sticky="ns"); xbar.grid(row=1,column=0,sticky="ew")
+        self.dispatch_tree.bind("<Double-1>",lambda _e:self.edit_dispatch_shift())
+        self.refresh_dispatch_shifts()
+
+    def _dispatch_selected_date(self):
+        try: return datetime.strptime(self.dispatch_date_var.get().strip(),"%d.%m.%Y").date()
+        except Exception:
+            messagebox.showerror("Зміни персоналу","Дата має бути у форматі ДД.ММ.РРРР.",parent=getattr(self,"dispatch_win",self)); return None
+
+    def refresh_dispatch_shifts(self):
+        if not hasattr(self,"dispatch_tree") or not self.dispatch_tree.winfo_exists(): return
+        work_date=self._dispatch_selected_date()
+        if not work_date: return
+        for item in self.dispatch_tree.get_children(): self.dispatch_tree.delete(item)
+        con=db(); rows=con.execute(
+            """SELECT sh.*,e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END full_name,
+                      e.personnel_no FROM employee_shifts sh JOIN employees e ON e.id=sh.employee_id
+                WHERE sh.work_date=? AND sh.role IN ('Лікар','Механік','Диспетчер')
+                ORDER BY sh.shift_no,sh.role,e.last_name,e.first_name""",(work_date.isoformat(),)
+        ).fetchall(); con.close()
+        for row in rows:
+            self.dispatch_tree.insert("","end",values=(row["id"],row["role"],row["full_name"],row["personnel_no"],
+                "I" if row["shift_no"]==1 else "II",row["start_time"],f"D+{row['end_day_offset']} {row['end_time']}",row["location"],
+                hours_value_hhmm(row["planned_hours"]),hours_value_hhmm(row["actual_hours"]) if row["actual_hours"] is not None else "—",row["notes"]))
+        if hasattr(self,"waybill_win") and self.waybill_win.winfo_exists(): self.refresh_waybill_issue_list()
+
+    def _selected_dispatch_shift(self):
+        sel=getattr(self,"dispatch_tree",None).selection() if hasattr(self,"dispatch_tree") else ()
+        if not sel: return None
+        sid=int(self.dispatch_tree.item(sel[0],"values")[0]); con=db()
+        row=con.execute("""SELECT sh.*,e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END full_name,
+                              e.personnel_no FROM employee_shifts sh JOIN employees e ON e.id=sh.employee_id WHERE sh.id=?""",(sid,)).fetchone(); con.close(); return row
+
+    def dispatch_shift_form(self, existing=None):
+        parent=getattr(self,"dispatch_win",self); win=tk.Toplevel(parent); win.title("Зміна працівника випуску")
+        fit_window_to_screen(win,680,650,590,520); win.transient(parent); win.grab_set()
+        default_date=(existing["work_date"] if existing else (self._dispatch_selected_date() or date.today()).isoformat())
+        try: default_date=datetime.strptime(default_date,"%Y-%m-%d").strftime("%d.%m.%Y")
+        except Exception: pass
+        values={
+            "date":tk.StringVar(value=default_date),"role":tk.StringVar(value=existing["role"] if existing else "Лікар"),
+            "name":tk.StringVar(value=existing["full_name"] if existing else ""),"personnel":tk.StringVar(value=existing["personnel_no"] if existing else ""),
+            "shift":tk.StringVar(value=("I" if existing and existing["shift_no"]==1 else "II" if existing else "I")),
+            "start":tk.StringVar(value=existing["start_time"] if existing else ""),"end":tk.StringVar(value=existing["end_time"] if existing else ""),
+            "end_day":tk.StringVar(value=str(existing["end_day_offset"] if existing else 0)),
+            "location":tk.StringVar(value=existing["location"] if existing else ""),
+            "actual":tk.StringVar(value=(hours_value_hhmm(existing["actual_hours"]) if existing and existing["actual_hours"] is not None else "")),
+            "notes":tk.StringVar(value=existing["notes"] if existing else "")
+        }
+        fields=(("date","Дата початку"),("role","Роль"),("name","Працівник з реєстру"),("personnel","Табельний №"),("shift","Зміна"),("start","Початок роботи"),("end_day","Кінець, день D+"),("end","Кінець роботи"),("location","Місце випуску"),("actual","Фактично відпрацьовано ГГ:ХХ"),("notes","Примітка"))
+        widgets={}
+        for row,(key,label) in enumerate(fields):
+            ttk.Label(win,text=label).grid(row=row,column=0,sticky="w",padx=10,pady=6)
+            if key=="role": widget=ttk.Combobox(win,textvariable=values[key],values=("Лікар","Механік","Диспетчер"),state="readonly",width=39)
+            elif key=="shift": widget=ttk.Combobox(win,textvariable=values[key],values=("I","II"),state="readonly",width=39)
+            elif key=="name":
+                con=db(); names=[r[0] for r in con.execute("""SELECT DISTINCT e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END FROM employees e JOIN employee_roles er ON er.employee_id=e.id WHERE e.active=1 AND er.role IN ('Лікар','Механік','Диспетчер') ORDER BY 1""")]; con.close()
+                widget=ttk.Combobox(win,textvariable=values[key],values=names,state="readonly",width=39)
+            elif key=="personnel": widget=ttk.Entry(win,textvariable=values[key],width=42,state="readonly")
+            elif key=="end_day": widget=ttk.Spinbox(win,textvariable=values[key],from_=0,to=7,width=8)
+            else: widget=ttk.Entry(win,textvariable=values[key],width=42)
+            widget.grid(row=row,column=1,sticky="ew",padx=10,pady=6); widgets[key]=widget
+            if key=="date": calendar_button(win,values[key]).grid(row=row,column=2,sticky="w",padx=(0,8),pady=6)
+        def refresh_staff_choices(_event=None):
+            con=db(); rows=con.execute("""SELECT e.personnel_no,e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END full_name
+                FROM employees e JOIN employee_roles er ON er.employee_id=e.id WHERE e.active=1 AND er.role=? ORDER BY e.last_name,e.first_name""",(values["role"].get(),)).fetchall(); con.close()
+            mapping={r["full_name"]:r["personnel_no"] or "" for r in rows}; widgets["name"]["values"]=list(mapping)
+            if values["name"].get() not in mapping: values["name"].set("")
+            values["personnel"].set(mapping.get(values["name"].get(),""))
+        def refresh_personnel(_event=None):
+            con=db(); row=con.execute("""SELECT e.personnel_no FROM employees e JOIN employee_roles er ON er.employee_id=e.id WHERE e.active=1 AND er.role=? AND e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END=? LIMIT 1""",(values["role"].get(),values["name"].get())).fetchone(); con.close()
+            values["personnel"].set((row["personnel_no"] if row else "") or "")
+        widgets["role"].bind("<<ComboboxSelected>>",refresh_staff_choices,add="+")
+        widgets["name"].bind("<<ComboboxSelected>>",refresh_personnel,add="+")
+        refresh_staff_choices()
+        if existing:
+            values["name"].set(existing["full_name"]); refresh_personnel()
+        win.columnconfigure(1,weight=1)
+        def save():
+            try: work_date=datetime.strptime(values["date"].get().strip(),"%d.%m.%Y").date()
+            except ValueError:
+                messagebox.showerror("Зміна персоналу","Дата має бути у форматі ДД.ММ.РРРР.",parent=win); return
+            name=values["name"].get().strip(); role=values["role"].get(); shift_no=1 if values["shift"].get()=="I" else 2
+            if not name:
+                messagebox.showerror("Зміна персоналу","Вкажіть ПІБ працівника.",parent=win); return
+            for key in ("start","end"):
+                raw=values[key].get().strip()
+                if raw:
+                    try: parse_hhmm(raw)
+                    except Exception:
+                        messagebox.showerror("Зміна персоналу","Час має бути у форматі ГГ:ХХ.",parent=win); return
+            try: end_day=int(values["end_day"].get())
+            except ValueError: end_day=-1
+            if not 0 <= end_day <= 7:
+                messagebox.showerror("Зміна персоналу","День завершення має бути від D+0 до D+7.",parent=win); return
+            try:
+                start_min=parse_hhmm(values["start"].get().strip()); end_min=parse_hhmm(values["end"].get().strip())+end_day*1440
+                if end_min<=start_min: raise ValueError
+                planned=(end_min-start_min)/60.0
+            except Exception:
+                messagebox.showerror("Зміна персоналу","Кінець зміни має бути пізніше початку з урахуванням D+.",parent=win); return
+            actual=None
+            if values["actual"].get().strip():
+                try:
+                    ah,am=map(int,values["actual"].get().strip().split(":"))
+                    if ah<0 or not 0<=am<=59: raise ValueError
+                    actual=ah+am/60.0
+                except Exception:
+                    messagebox.showerror("Зміна персоналу","Факт задається у форматі ГГ:ХХ.",parent=win); return
+            con=db()
+            employee=con.execute("""SELECT e.id,e.personnel_no FROM employees e JOIN employee_roles er ON er.employee_id=e.id
+                    WHERE er.role=? AND e.active=1 AND e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END=? LIMIT 1""",(role,name)).fetchone()
+            if not employee:
+                con.close(); messagebox.showerror("Зміна персоналу",f"Працівник не має активної ролі «{role}». Спочатку виправте картку у реєстрі працівників.",parent=win); return
+            duplicate=con.execute("SELECT id FROM employee_shifts WHERE work_date=? AND shift_no=? AND role=? AND lower(COALESCE(location,''))=lower(?) AND id<>?",(work_date.isoformat(),shift_no,role,values["location"].get().strip(),existing["id"] if existing else -1)).fetchone()
+            if duplicate:
+                con.close(); messagebox.showerror("Зміна персоналу",f"На цю дату для ролі «{role}», зміна {values['shift'].get()}, уже є призначення.",parent=win); return
+            new_start=datetime.combine(work_date,datetime.min.time())+timedelta(minutes=start_min)
+            new_end=datetime.combine(work_date+timedelta(days=end_day),datetime.min.time())+timedelta(minutes=parse_hhmm(values["end"].get().strip()))
+            candidates=con.execute("""SELECT * FROM employee_shifts WHERE role=? AND lower(COALESCE(location,''))=lower(?)
+                    AND work_date BETWEEN ? AND ? AND id<>?""",(role,values["location"].get().strip(),(work_date-timedelta(days=7)).isoformat(),(work_date+timedelta(days=end_day)).isoformat(),existing["id"] if existing else -1)).fetchall()
+            for other in candidates:
+                other_date=datetime.strptime(other["work_date"],"%Y-%m-%d").date()
+                other_start=datetime.combine(other_date,datetime.min.time())+timedelta(minutes=parse_hhmm(other["start_time"]))
+                other_end=datetime.combine(other_date+timedelta(days=int(other["end_day_offset"] or 0)),datetime.min.time())+timedelta(minutes=parse_hhmm(other["end_time"]))
+                if new_start<other_end and other_start<new_end:
+                    con.close(); messagebox.showerror("Зміна персоналу",f"Час перетинається з іншою зміною ролі «{role}» у цьому місці.",parent=win); return
+            vals=(employee["id"],role,work_date.isoformat(),shift_no,values["start"].get().strip(),end_day,values["end"].get().strip(),values["location"].get().strip(),planned,actual,"actual" if actual is not None else "planned",values["notes"].get().strip())
+            if existing: con.execute("UPDATE employee_shifts SET employee_id=?,role=?,work_date=?,shift_no=?,start_time=?,end_day_offset=?,end_time=?,location=?,planned_hours=?,actual_hours=?,status=?,notes=? WHERE id=?",vals+(existing["id"],))
+            else: con.execute("INSERT INTO employee_shifts(employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,location,planned_hours,actual_hours,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",vals)
+            con.commit(); con.close(); self.dispatch_date_var.set(work_date.strftime("%d.%m.%Y")); self.refresh_dispatch_shifts(); win.destroy()
+        ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields),column=1,sticky="e",padx=10,pady=12)
+
+    def edit_dispatch_shift(self):
+        row=self._selected_dispatch_shift()
+        if row: self.dispatch_shift_form(row)
+
+    def delete_dispatch_shift(self):
+        row=self._selected_dispatch_shift()
+        if not row: return
+        if messagebox.askyesno("Зміни персоналу","Видалити це призначення?",parent=self.dispatch_win):
+            con=db(); con.execute("DELETE FROM employee_shifts WHERE id=?",(row["id"],)); con.commit(); con.close(); self.refresh_dispatch_shifts()
+
+    def _duty_staff_for_interval(self, start_dt, end_dt, location="", con=None):
+        """Працівники, чиї зміни реально перекривають випуск/рейс."""
+        own=con is None
+        if own: con=db()
+        from_date=(start_dt.date()-timedelta(days=7)).isoformat()
+        rows=con.execute("""SELECT sh.*,e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END full_name
+             FROM employee_shifts sh JOIN employees e ON e.id=sh.employee_id
+             WHERE sh.work_date BETWEEN ? AND ? AND e.active=1 AND sh.role IN ('Лікар','Механік')
+             ORDER BY sh.work_date,sh.start_time""",(from_date,end_dt.date().isoformat())).fetchall()
+        if own: con.close()
+        result={"doctor_1":"","doctor_2":"","mechanic_1":"","mechanic_2":""}
+        ranked=[]
+        for row in rows:
+            base=datetime.strptime(row["work_date"],"%Y-%m-%d")
+            sh,sm=map(int,row["start_time"].split(":")); eh,em=map(int,row["end_time"].split(":"))
+            row_start=base.replace(hour=sh,minute=sm)
+            row_end=(base+timedelta(days=int(row["end_day_offset"] or 0))).replace(hour=eh,minute=em)
+            if row_end <= start_dt or row_start >= end_dt:
+                continue
+            exact_location=1 if location and (row["location"] or "").strip().casefold()==location.strip().casefold() else 0
+            ranked.append((exact_location,row_start,row))
+        for _match,_start,row in sorted(ranked,key=lambda x:(x[0],x[1]),reverse=True):
+            prefix="doctor" if row["role"]=="Лікар" else "mechanic"
+            key=f"{prefix}_{row['shift_no']}"
+            if not result[key]: result[key]=row["full_name"]
+        return result
+
+    def _duty_staff_for_date(self, work_date, con=None):
+        start=datetime.combine(work_date,datetime.min.time())
+        return self._duty_staff_for_interval(start,start+timedelta(days=1),con=con)
+
+    def _waybill_schedule_rows(self, work_date):
+        """Rows eligible for waybill issuance for the selected schedule day."""
+        con=db()
+        rows=con.execute(
+            """SELECT w.*, d.last_name,d.first_name,d.middle_name,d.personnel_no AS driver_personnel_no,
+                      r.code AS route_code, r.name AS route_catalog_name,
+                      r.start_location AS route_start_location,r.end_location AS route_end_location,
+                      r.start_day_offset AS route_start_day,r.end_day_offset AS route_end_day,
+                      r.start_direction AS route_start_direction,
+                      v.name AS vehicle_name, v.plate AS vehicle_plate, v.make_model AS vehicle_make_model,v.garage_no AS vehicle_garage_no,
+                      wb.id AS waybill_id,
+                      CASE WHEN COALESCE(wb.document_number,'')<>'' THEN trim(COALESCE(wb.document_series,'')||' '||wb.document_number) ELSE wb.waybill_no END AS waybill_no,
+                      wb.pdf_path AS waybill_pdf, wb.revision AS waybill_revision,wb.status AS waybill_status
+                 FROM worklog w
+                 JOIN drivers d ON d.id=w.driver_id
+            LEFT JOIN routes r ON r.id=w.route_id
+            LEFT JOIN vehicles v ON v.id=w.vehicle_id
+            LEFT JOIN waybills wb ON wb.worklog_id=w.id
+                WHERE w.work_date=?
+             ORDER BY d.last_name,d.first_name,d.middle_name""",
+            (work_date.isoformat(),)
+        ).fetchall()
+        out=[]
+        for r in rows:
+            if (r["day_type"] or "") not in {"Робота","Готовність","Інше"} and float(r["work_hours"] or 0)<=0:
+                continue
+            segs=con.execute(
+                "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(r["id"],)
+            ).fetchall()
+            if not segs:
+                segs=[r]
+            drive_pairs=[]; work_pairs=[]
+            for sg in segs:
+                ds=(sg["start_time"] or "").strip(); de=(sg["end_time"] or "").strip()
+                ws=(sg["work_start_time"] or "").strip() or ds
+                we=(sg["work_end_time"] or "").strip() or de
+                if ws and we: work_pairs.append((ws,we))
+                if ds and de: drive_pairs.append((ds,de))
+            dep=drive_pairs[0][0] if drive_pairs else (work_pairs[0][0] if work_pairs else "")
+            ret=drive_pairs[-1][1] if drive_pairs else (work_pairs[-1][1] if work_pairs else "")
+            start_day=int(r["route_start_day"] or 0); end_day=int(r["route_end_day"] or 0)
+            def at_day(day_no,time_value):
+                if not time_value: return datetime.combine(work_date+timedelta(days=day_no),datetime.min.time())
+                hh,mm=map(int,time_value.split(":")); return datetime.combine(work_date+timedelta(days=day_no),datetime.min.time()).replace(hour=hh,minute=mm)
+            start_dt=at_day(start_day,dep); end_dt=at_day(end_day,ret)
+            if end_dt<=start_dt: end_dt+=timedelta(days=1)
+            multiday=end_dt.date()>work_date
+            start_location=(r["route_start_location"] or "").strip()
+            end_location=(r["route_end_location"] or "").strip()
+            duty=self._duty_staff_for_interval(start_dt,end_dt,start_location,con)
+            stop_counts={x["direction"]:x["n"] for x in con.execute("SELECT direction,COUNT(*) n FROM route_stops WHERE route_id=? GROUP BY direction",(r["route_id"],)).fetchall()} if r["route_id"] else {}
+            route_code=(r["route_code"] or "").strip()
+            route_name=(r["route_catalog_name"] or "").strip() or (r["route_name"] or "").strip()
+            route_label=(f"{route_code} / {route_name}" if route_code and route_name else route_code or route_name)
+            vehicle_parts=[]
+            vm=(r["vehicle_make_model"] or "").strip()
+            vn=(r["vehicle_name"] or "").strip() or (r["vehicle"] or "").strip()
+            vp=(r["vehicle_plate"] or "").strip()
+            if vm: vehicle_parts.append(vm)
+            elif vn: vehicle_parts.append(vn)
+            if vp: vehicle_parts.append(vp)
+            if (r["vehicle_garage_no"] or "").strip(): vehicle_parts.append(f"гар. № {r['vehicle_garage_no'].strip()}")
+            vehicle_label=" / ".join(vehicle_parts) or (r["vehicle"] or "").strip()
+            out.append({
+                "worklog_id":r["id"],"driver_id":r["driver_id"],
+                "driver":f"{r['last_name']} {r['first_name']} {r['middle_name']}".strip(),
+                "date":work_date,"end_date":end_dt.date(),"route_id":r["route_id"],"route":route_label,
+                "route_code":route_code,"driver_personnel_no":r["driver_personnel_no"] or "",
+                "vehicle_id":r["vehicle_id"],"vehicle":vehicle_label,
+                "vehicle_garage_no":r["vehicle_garage_no"] or "",
+                "planned_departure":waybill_time_label(work_date,start_day,dep,multiday),
+                "planned_return":waybill_time_label(work_date,end_day,ret,multiday),
+                "start_time_raw":dep,"end_time_raw":ret,"start_day_offset":start_day,"end_day_offset":end_day,
+                "start_location":start_location,"end_location":end_location,
+                "start_direction":r["route_start_direction"] or "outbound",
+                "outbound_stop_count":int(stop_counts.get("outbound",0)),"return_stop_count":int(stop_counts.get("return",0)),
+                "work_span":f"{work_pairs[0][0]}-{work_pairs[-1][1]}" if work_pairs else "",
+                "drive_span":f"{drive_pairs[0][0]}-{drive_pairs[-1][1]}" if drive_pairs else "",
+                "work_hours":float(r["work_hours"] or 0),"driving_hours":float(r["driving_hours"] or 0),
+                "waybill_id":r["waybill_id"],"waybill_no":r["waybill_no"] or "",
+                "waybill_pdf":r["waybill_pdf"] or "","waybill_revision":r["waybill_revision"] or 0,
+                "waybill_status":r["waybill_status"] or "",
+                **duty,
+            })
+        con.close()
+        return out
+
+    def show_waybills_for_schedule(self):
+        d=self._schedule_parse_date()
+        if not d:
+            return
+        if hasattr(self,"waybill_win") and self.waybill_win.winfo_exists():
+            self.waybill_date=d
+            self.waybill_win.title(f"Шляхівки на {d.strftime('%d.%m.%Y')}")
+            self.waybill_win.lift(); self.refresh_waybill_issue_list(); return
+        win=tk.Toplevel(self); self.waybill_win=win; self.waybill_date=d
+        win.title(f"Шляхівки на {d.strftime('%d.%m.%Y')}")
+        fit_window_to_screen(win,1120,600,850,480)
+        top=ttk.Frame(win,padding=8); top.pack(fill="x")
+        self.waybill_date_label=tk.StringVar(value=d.strftime("%d.%m.%Y"))
+        ttk.Label(top,text="Дата графіка:",font=("TkDefaultFont",9,"bold")).pack(side="left")
+        ttk.Label(top,textvariable=self.waybill_date_label).pack(side="left",padx=(4,12))
+        actions=ttk.Frame(win,padding=(8,0,8,5)); actions.pack(fill="x")
+        ttk.Button(actions,text="Оновити",command=self.refresh_waybill_issue_list).pack(side="left",padx=3)
+        ttk.Button(actions,text="Сформувати / видати PDF",command=self.issue_selected_waybill).pack(side="left",padx=3)
+        ttk.Button(actions,text="Відкрити PDF",command=self.open_selected_waybill).pack(side="left",padx=3)
+        ttk.Button(actions,text="Анулювати номер",command=self.void_selected_waybill).pack(side="left",padx=3)
+        ttk.Button(actions,text="Папка шляхівок",command=lambda:open_external(WAYBILL_DIR)).pack(side="left",padx=3)
+        ttk.Button(actions,text="Зміни лікаря/механіка",command=self.show_dispatch_staff_schedule).pack(side="left",padx=3)
+        ttk.Label(
+            win,
+            text=("Планові реквізити беруться безпосередньо з графіка: водій, маршрут, автомобіль, "
+                  "графік зупинок прямого/зворотного напрямку та чергові лікар/механік. Фактичні, паливні й підписні поля залишаються порожніми."),
+            foreground="gray",wraplength=1050,justify="left"
+        ).pack(fill="x",padx=10,pady=(0,6))
+        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
+        cols=("driver","route","vehicle","depart","return","doctor","mechanic","work","drive","status")
+        self.waybill_tree=ttk.Treeview(frame,columns=cols,show="headings")
+        heads={"driver":"Водій","route":"Маршрут","vehicle":"Автомобіль","depart":"Виїзд план","return":"Заїзд план","doctor":"Лікар","mechanic":"Механік","work":"Робота","drive":"Керування","status":"Шляхівка"}
+        widths={"driver":210,"route":150,"vehicle":190,"depart":90,"return":90,"doctor":180,"mechanic":180,"work":80,"drive":90,"status":130}
+        for c in cols:
+            self.waybill_tree.heading(c,text=heads[c]); self.waybill_tree.column(c,width=widths[c],anchor="w")
+        y=ttk.Scrollbar(frame,orient="vertical",command=self.waybill_tree.yview)
+        x=ttk.Scrollbar(frame,orient="horizontal",command=self.waybill_tree.xview)
+        self.waybill_tree.configure(yscrollcommand=y.set,xscrollcommand=x.set)
+        self.waybill_tree.grid(row=0,column=0,sticky="nsew"); y.grid(row=0,column=1,sticky="ns"); x.grid(row=1,column=0,sticky="ew")
+        frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+        self.waybill_tree.bind("<Double-1>",lambda _e:self.issue_selected_waybill())
+        self.waybill_rows={}
+        self.refresh_waybill_issue_list()
+
+    def refresh_waybill_issue_list(self):
+        if not hasattr(self,"waybill_tree") or not self.waybill_tree.winfo_exists():
+            return
+        d=getattr(self,"waybill_date",self._schedule_parse_date())
+        if not d: return
+        self.waybill_date_label.set(d.strftime("%d.%m.%Y"))
+        for item in self.waybill_tree.get_children(): self.waybill_tree.delete(item)
+        self.waybill_rows={}
+        for row in self._waybill_schedule_rows(d):
+            missing=[]
+            if not row["route"]: missing.append("маршрут")
+            if not row["vehicle"]: missing.append("авто")
+            if not row["planned_departure"] or not row["planned_return"]: missing.append("час")
+            if not row["start_location"] or not row["end_location"]: missing.append("точки початку/завершення")
+            if not row["outbound_stop_count"] or not row["return_stop_count"]: missing.append("прямий/зворотний графік")
+            if row["waybill_no"] and row["waybill_status"]=="void":
+                status=f"АНУЛЬОВАНА № {row['waybill_no']}"
+            elif row["waybill_no"]:
+                status=f"№ {row['waybill_no']}" + (f" r{row['waybill_revision']}" if row['waybill_revision']>1 else "")
+            elif missing:
+                status="Немає: "+", ".join(missing)
+            else:
+                status="Не видана"
+            iid=self.waybill_tree.insert("","end",values=(
+                row["driver"],row["route"],row["vehicle"],row["planned_departure"],row["planned_return"],
+                row["doctor_1"] or "—",row["mechanic_1"] or "—",hours_value_hhmm(row["work_hours"]),hours_value_hhmm(row["driving_hours"]),status
+            ))
+            self.waybill_rows[iid]=row
+
+    def _selected_waybill_data(self):
+        if not hasattr(self,"waybill_tree"): return None
+        sel=self.waybill_tree.selection()
+        return self.waybill_rows.get(sel[0]) if sel else None
+
+    def _waybill_pool_for_date(self, con, work_date):
+        return con.execute("""SELECT * FROM waybill_number_pools WHERE status='active' AND valid_from<=?
+            AND (COALESCE(valid_until,'')='' OR valid_until>=?) ORDER BY valid_from DESC,id DESC LIMIT 1""",
+            (work_date.isoformat(),work_date.isoformat())).fetchone()
+
+    def _next_waybill_internal_number(self, con, issue_year):
+        seq=int(con.execute("SELECT COALESCE(MAX(issue_seq),0)+1 FROM waybills WHERE issue_year=?",(issue_year,)).fetchone()[0])
+        return seq,f"{issue_year}-{seq:04d}"
+
+    def issue_selected_waybill(self):
+        row=self._selected_waybill_data()
+        if not row:
+            messagebox.showwarning("Шляхівка","Виберіть водія у списку.",parent=getattr(self,"waybill_win",self)); return
+        missing=[]
+        if not row["route"]: missing.append("маршрут")
+        if not row["vehicle"]: missing.append("автомобіль")
+        if not row["planned_departure"] or not row["planned_return"]: missing.append("плановий час виїзду/заїзду")
+        if not row["start_location"] or not row["end_location"]: missing.append("точка початку/завершення маршруту")
+        if not row["outbound_stop_count"] or not row["return_stop_count"]: missing.append("графік прямого і зворотного напрямків")
+        if missing:
+            messagebox.showerror(
+                "Шляхівка",
+                "Бракує даних: "+", ".join(missing)+".\n\n"
+                "Відкрийте вкладку «Маршрути», виберіть цей маршрут і натисніть «Заповнити маршрут для шляхівки…».",
+                parent=self.waybill_win,
+            ); return
+        if build_waybill_pdf is None:
+            messagebox.showerror("Шляхівка","Модуль формування шляхівки недоступний.",parent=self.waybill_win); return
+        # Щойно відредаговані реквізити шляхівки не повинні вимагати окремого
+        # натискання «Зберегти» перед видачею документа.
+        self.save_company(show_message=False)
+        con=db()
+        existing=con.execute("SELECT * FROM waybills WHERE worklog_id=?",(row["worklog_id"],)).fetchone()
+        company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
+        reprint=bool(existing and (existing["status"] or "active")=="active")
+        if reprint:
+            issue_seq=existing["issue_seq"]; internal_no=(existing["internal_no"] or existing["waybill_no"])
+            document_series=(existing["document_series"] or (company["waybill_series"] if company else "АААТ"))
+            document_number=(existing["document_number"] or existing["waybill_no"])
+            pool=None; revision=int(existing["revision"] or 1)+1
+        else:
+            pool=self._waybill_pool_for_date(con,row["date"])
+            if not pool:
+                con.close(); messagebox.showerror("Шляхівка","Для цієї дати роботи немає активного пулу номерів. Налаштуйте його у «Підприємство → Пули серій і номерів».",parent=self.waybill_win); return
+            if pool["mode"]=="auto":
+                number_value=int(pool["next_number"])
+                if number_value>int(pool["end_number"]):
+                    con.close(); messagebox.showerror("Шляхівка","Активний пул номерів вичерпано.",parent=self.waybill_win); return
+            else:
+                raw=simpledialog.askstring("Номер готового бланка",f"Введіть номер із бланка серії {pool['series']} ({pool['start_number']}–{pool['end_number']}):",parent=self.waybill_win)
+                if raw is None: con.close(); return
+                try: number_value=int(raw.strip())
+                except ValueError: con.close(); messagebox.showerror("Шляхівка","Номер має бути цілим числом.",parent=self.waybill_win); return
+                if not int(pool["start_number"])<=number_value<=int(pool["end_number"]):
+                    con.close(); messagebox.showerror("Шляхівка","Номер поза діапазоном вибраного пулу.",parent=self.waybill_win); return
+            width=int(pool["number_width"] or 6); document_series=pool["series"]; document_number=f"{number_value:0{width}d}"
+            if con.execute("SELECT 1 FROM waybills WHERE document_series=? AND document_number=?",(document_series,document_number)).fetchone():
+                con.close(); messagebox.showerror("Шляхівка","Цю пару серія + номер уже використано.",parent=self.waybill_win); return
+            issue_seq,internal_no=self._next_waybill_internal_number(con,row["date"].year); revision=1
+        waybill_no=f"{document_series}-{document_number}" if document_series else document_number
+        out_dir=WAYBILL_DIR/f"{row['date'].year:04d}"/f"{row['date'].month:02d}"; out_dir.mkdir(parents=True,exist_ok=True)
+        safe_driver=re.sub(r"[^0-9A-Za-zА-Яа-яІіЇїЄєҐґ_-]+","_",row["driver"]).strip("_")
+        target=out_dir/f"Шляхівка_{waybill_no}_{row['date'].isoformat()}_{safe_driver}.pdf"
+        stops=con.execute("SELECT * FROM route_stops WHERE route_id=? ORDER BY direction,stop_no",(row["route_id"],)).fetchall()
+        payload={
+            "waybill_no":document_number,"internal_no":internal_no,
+            "date":waybill_date_range_label(row["date"],row["end_date"]),"work_date":row["date"].isoformat(),"route":row["route"],
+            "vehicle":row["vehicle"],"driver":row["driver"],
+            "planned_departure":waybill_time_label(row["date"],row["start_day_offset"],row["start_time_raw"],row["end_date"]>row["date"],"\n"),
+            "planned_return":waybill_time_label(row["date"],row["end_day_offset"],row["end_time_raw"],row["end_date"]>row["date"],"\n"),
+            "work_span":row["work_span"],"drive_span":row["drive_span"],
+            "route_code":row["route_code"],"driver_personnel_no":row["driver_personnel_no"],
+            "company_name":company["name"] if company else "","waybill_series":document_series,
+            "transport_column":company["transport_column"] if company else "","brigade":company["brigade"] if company else "",
+            "start_location":row["start_location"],"end_location":row["end_location"],
+            "start_direction":row["start_direction"],
+            "planned_route_time":hours_value_hhmm(row["driving_hours"]),"planned_duty_time":hours_value_hhmm(row["work_hours"]),
+            "doctor_1":row["doctor_1"],"doctor_2":row["doctor_2"],"mechanic_1":row["mechanic_1"],"mechanic_2":row["mechanic_2"],
+            "outbound_stops":[dict(s) for s in stops if s["direction"]=="outbound"],
+            "return_stops":[dict(s) for s in stops if s["direction"]=="return"],
+        }
+        actual=write_output_file(
+            lambda out: build_waybill_pdf(None,out,payload),target,
+            parent=self.waybill_win,kind="PDF шляхівки",error_title="Помилка шляхівки"
+        )
+        if actual is None:
+            con.close(); return
+        now=datetime.now().isoformat(timespec="seconds")
+        if not reprint and pool["mode"]=="auto":
+            con.execute("UPDATE waybill_number_pools SET next_number=? WHERE id=?",(number_value+1,pool["id"]))
+        if existing:
+            con.execute(
+                """UPDATE waybills SET work_end_date=?,issue_year=?,issue_seq=?,waybill_no=?,route_id=?,route_label=?,vehicle_id=?,vehicle_label=?,planned_departure=?,planned_return=?,
+                       doctor_1=?,doctor_2=?,mechanic_1=?,mechanic_2=?,number_pool_id=?,document_series=?,document_number=?,internal_no=?,
+                       start_location=?,end_location=?,pdf_path=?,revision=?,status='active',voided_at='',void_reason='',updated_at=? WHERE id=?""",
+                (row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
+                 row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"] if pool else existing["number_pool_id"],document_series,document_number,internal_no,
+                 row["start_location"],row["end_location"],str(actual),revision,now,existing["id"])
+            )
+        else:
+            con.execute(
+                """INSERT INTO waybills(worklog_id,driver_id,work_date,work_end_date,issue_year,issue_seq,waybill_no,route_id,route_label,vehicle_id,vehicle_label,
+                   planned_departure,planned_return,doctor_1,doctor_2,mechanic_1,mechanic_2,number_pool_id,document_series,document_number,internal_no,
+                   start_location,end_location,pdf_path,revision,status,issued_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active',?,?)""",
+                (row["worklog_id"],row["driver_id"],row["date"].isoformat(),row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,
+                 row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
+                 row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"],document_series,document_number,internal_no,
+                 row["start_location"],row["end_location"],str(actual),revision,now,now)
+            )
+        waybill_id=existing["id"] if existing else con.execute("SELECT id FROM waybills WHERE worklog_id=?",(row["worklog_id"],)).fetchone()[0]
+        con.execute("""INSERT INTO waybill_events(waybill_id,event_type,document_series,document_number,internal_no,revision,pdf_path,created_at)
+            VALUES(?,?,?,?,?,?,?,?)""",(waybill_id,"reprint" if reprint else "issued",document_series,document_number,internal_no,revision,str(actual),now))
+        con.commit(); con.close(); self.refresh_waybill_issue_list()
+        try: open_external(actual)
+        except Exception: pass
+
+    def void_selected_waybill(self):
+        row=self._selected_waybill_data()
+        if not row or not row.get("waybill_id"):
+            messagebox.showinfo("Шляхівка","Для вибраного графіка номер ще не видавався.",parent=getattr(self,"waybill_win",self)); return
+        if row.get("waybill_status")=="void":
+            messagebox.showinfo("Шляхівка","Ця шляхівка вже анульована. Наступне формування отримає новий номер.",parent=self.waybill_win); return
+        reason=simpledialog.askstring("Анулювання шляхівки","Причина анулювання (обов'язково):",parent=self.waybill_win)
+        if reason is None: return
+        reason=reason.strip()
+        if not reason:
+            messagebox.showerror("Шляхівка","Вкажіть причину анулювання.",parent=self.waybill_win); return
+        if not messagebox.askyesno("Анулювання шляхівки",f"Анулювати № {row['waybill_no']}? Номер не буде повернений у пул.",parent=self.waybill_win): return
+        con=db(); wb=con.execute("SELECT * FROM waybills WHERE id=?",(row["waybill_id"],)).fetchone(); now=datetime.now().isoformat(timespec="seconds")
+        con.execute("UPDATE waybills SET status='void',voided_at=?,void_reason=?,updated_at=? WHERE id=?",(now,reason,now,row["waybill_id"]))
+        con.execute("""INSERT INTO waybill_events(waybill_id,event_type,document_series,document_number,internal_no,revision,pdf_path,reason,created_at)
+            VALUES(?,?,?,?,?,?,?,?,?)""",(row["waybill_id"],"void",wb["document_series"],wb["document_number"],wb["internal_no"],wb["revision"],wb["pdf_path"],reason,now))
+        con.commit(); con.close(); self.refresh_waybill_issue_list()
+
+    def open_selected_waybill(self):
+        row=self._selected_waybill_data()
+        if not row or not row.get("waybill_pdf"):
+            messagebox.showinfo("Шляхівка","Для вибраного запису PDF ще не сформовано.",parent=getattr(self,"waybill_win",self)); return
+        path=Path(row["waybill_pdf"])
+        if not path.exists():
+            messagebox.showerror("Шляхівка","Файл шляхівки не знайдено. Сформуйте його повторно.",parent=self.waybill_win); return
+        open_external(path)
+
     def get_work_segments(self, worklog_id):
         if not worklog_id: return []
         con=db(); rows=con.execute("SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(worklog_id,)).fetchall(); con.close()
         return rows
 
     def refresh_month(self):
-        if not hasattr(self,"work_tree") or not self.driver_id: return
+        if not hasattr(self,"work_tree"): return
         for x in self.work_tree.get_children(): self.work_tree.delete(x)
+        if not self.driver_id: return
         y,m=int(self.year_var.get()),int(self.month_var.get())
+        driver=self.driver_by_id(self.driver_id)
+        if not driver or not driver_employed_on(driver,month_dates(y,m)[-1]):
+            return
         con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{y:04d}-{m:02d}")).fetchall(); con.close()
         existing={r["work_date"]:r for r in rows}
         for d in month_dates(y,m):
+            if not driver_employed_on(driver,d):
+                continue
             r=existing.get(d.isoformat())
             segs=self.get_work_segments(r["id"]) if r else []
             if segs:
@@ -5463,12 +7440,11 @@ class App(tk.Tk):
         work_id=int(vals[0]) if vals[0] else None
         date_text=vals[1]
         con=db(); existing=con.execute("SELECT * FROM worklog WHERE id=?",(work_id,)).fetchone() if work_id else None
-        templates=con.execute("SELECT * FROM route_templates WHERE active=1 ORDER BY name").fetchall()
         routes=con.execute("SELECT * FROM routes WHERE active=1 ORDER BY name").fetchall()
         vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall()
         con.close()
         old_segments=self.get_work_segments(work_id) if work_id else []
-        win=tk.Toplevel(self); win.title("Запис робочого часу"); win.geometry("1180x650"); win.transient(self); win.grab_set()
+        win=tk.Toplevel(self); win.title("Запис робочого часу"); fit_window_to_screen(win,1180,650,900,520); win.transient(self); win.grab_set()
         top=ttk.Frame(win); top.pack(fill="x",padx=10,pady=8)
         day_var=tk.StringVar(value=date_text); type_var=tk.StringVar(value=(existing["day_type"] if existing else vals[3]))
         existing_route_id=(existing["route_id"] if existing and "route_id" in existing.keys() else None)
@@ -5501,10 +7477,11 @@ class App(tk.Tk):
         ).grid(row=0,column=6,padx=4,sticky="w")
 
         ttk.Label(top,text="Маршрут").grid(row=1,column=0,padx=4,pady=4,sticky="w")
-        ttk.Combobox(
+        route_combo=ttk.Combobox(
             top,textvariable=route_var,values=list(route_map.keys()),
             state="readonly",width=28
-        ).grid(row=1,column=1,columnspan=2,padx=4,sticky="ew")
+        )
+        route_combo.grid(row=1,column=1,columnspan=2,padx=4,sticky="ew")
 
         ttk.Label(top,text="Автомобіль").grid(row=1,column=3,padx=(8,4),sticky="w")
         ttk.Combobox(
@@ -5523,7 +7500,7 @@ class App(tk.Tk):
         ).grid(row=2,column=1,columnspan=2,padx=4,sticky="w")
         ttk.Label(
             top,
-            text="Маршрут/шаблон = ПЛАН. Тахокарта надалі дає окремий ФАКТ керування і не перезаписує цей план. Без тахо: лише 8 год у табелі.",
+            text="Маршрут = готовий ПЛАН з точними годинами. Після застосування його можна змінити для конкретного дня. Тахокарта дає окремий ФАКТ.",
             foreground="gray"
         ).grid(row=2,column=3,columnspan=4,padx=(8,4),sticky="w")
 
@@ -5532,9 +7509,11 @@ class App(tk.Tk):
         top.columnconfigure(6,weight=1)
 
         apply_frame=ttk.Frame(win); apply_frame.pack(fill="x",padx=10,pady=(2,6))
-        template_names=[t["name"] for t in templates]; template_var=tk.StringVar()
-        ttk.Label(apply_frame,text="Шаблон маршруту:").pack(side="left")
-        tcb=ttk.Combobox(apply_frame,textvariable=template_var,values=template_names,state="readonly",width=34); tcb.pack(side="left",padx=6)
+        ttk.Label(
+            apply_frame,
+            text="Виберіть маршрут вище та застосуйте його точний часовий сценарій:",
+            foreground="gray"
+        ).pack(side="left")
 
         cols=("no","work_start","work_end","drive_start","drive_end","work","drive","activity","note")
         tree=ttk.Treeview(win,columns=cols,show="headings",height=11)
@@ -5598,7 +7577,7 @@ class App(tk.Tk):
             )
 
         def segment_form(item=None, index=None):
-            sw=tk.Toplevel(win); sw.title("Частина робочої зміни"); sw.geometry("570x455"); sw.transient(win); sw.grab_set()
+            sw=tk.Toplevel(win); sw.title("Частина робочої зміни"); fit_window_to_screen(sw,570,455,520,410); sw.transient(win); sw.grab_set()
             vals=item or {
                 "work_start_time":"08:00","work_end_time":"09:00",
                 "start_time":"08:00","end_time":"09:00",
@@ -5696,17 +7675,29 @@ class App(tk.Tk):
             i=selected_seg_index()
             if i is not None: seg_data.pop(i); redraw()
         ttk.Button(btns,text="Видалити частину",command=delete_seg).pack(side="left",padx=3)
-        def apply_template():
-            name=template_var.get()
-            t=next((x for x in templates if x["name"]==name),None)
-            if not t: return
-            con=db(); ts=con.execute("SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no",(t["id"],)).fetchall(); con.close()
-            route_var.set(next((self.route_label(r) for r in routes if r["id"]==t["route_id"]), t["route_name"] or "")) if "route_id" in t.keys() else route_var.set(t["route_name"] or "")
-            tv=next((v for v in vehicles if v["id"]==(t["vehicle_id"] if "vehicle_id" in t.keys() else None)),None)
-            vehicle_label_var.set(self.vehicle_label(tv) if tv else (t["vehicle"] or ""))
-            vehicle_var.set(t["vehicle"] or "")
-            shift_var.set(t["shift_type"] or ("Розділена на частини" if len(ts)>1 else "Безперервна"))
-            template_id_var.set(t["id"])
+        def apply_route():
+            route=route_map.get(route_var.get())
+            if not route:
+                messagebox.showwarning("Маршрут","Виберіть маршрут.",parent=win); return
+            con=db()
+            ts=con.execute(
+                "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",(route["id"],)
+            ).fetchall()
+            con.close()
+            if not ts:
+                messagebox.showwarning(
+                    "Маршрут",
+                    "Для цього маршруту ще не налаштовано точний часовий сценарій. Відредагуйте його у розділі «Маршрути».",
+                    parent=win
+                ); return
+            tv=next((v for v in vehicles if v["id"]==(route["vehicle_id"] if "vehicle_id" in route.keys() else None)),None)
+            vehicle_label_var.set(self.vehicle_label(tv) if tv else (route["vehicle"] or ""))
+            vehicle_var.set(route["vehicle"] or "")
+            shift_var.set(route["shift_type"] or ("Розділена на частини" if len(ts)>1 else "Безперервна"))
+            if "notes" in route.keys() and (route["notes"] or "").strip():
+                notes_var.set(route["notes"].strip())
+            # template_id лишається тільки legacy-полем старих записів.
+            template_id_var.set(0)
             mode_var.set(WORK_MODE_LABELS[WORK_MODE_TACHO])
             load_segments(ts)
 
@@ -5714,14 +7705,13 @@ class App(tk.Tk):
             mode_var.set(WORK_MODE_LABELS[WORK_MODE_NO_TACHO])
             type_var.set("Робота")
             template_id_var.set(0)
-            template_var.set("")
             route_var.set("")
             shift_var.set("Безперервна")
             seg_data.clear()
             redraw()
             summary_var.set("Без тахографа: стандартний робочий день 8:00. План керування не задається; це саме робочий час.")
 
-        ttk.Button(apply_frame,text="Застосувати шаблон",command=apply_template).pack(side="left")
+        ttk.Button(apply_frame,text="Застосувати маршрут",command=apply_route).pack(side="left",padx=(8,0))
         ttk.Button(
             apply_frame,text="Без тахо — 8 год",command=set_no_tacho_8h
         ).pack(side="left",padx=(10,3))
@@ -5918,6 +7908,12 @@ class App(tk.Tk):
             return
 
         y,m=int(self.year_var.get()),int(self.month_var.get())
+        driver=self.driver_by_id(self.driver_id)
+        if not driver or not driver_employed_on(driver,month_dates(y,m)[-1]):
+            messagebox.showwarning(
+                "Увага","Водій ще не прийнятий на роботу в обраному місяці.",parent=self
+            )
+            return
 
         if not messagebox.askyesno(
             "Небезпечна масова дія",
@@ -5931,7 +7927,7 @@ class App(tk.Tk):
 
         con=db()
         for d in month_dates(y,m):
-            if d.weekday()<5:
+            if d.weekday()<5 and driver_employed_on(driver,d):
                 con.execute("""INSERT INTO worklog(
                     driver_id,work_date,day_type,start_time,end_time,work_hours,driving_hours,
                     route_name,route_id,template_id,shift_type,accounting_mode
@@ -5959,7 +7955,11 @@ class App(tk.Tk):
         con.commit(); con.close(); self.refresh_month()
 
     def current_rows(self):
-        con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{int(self.year_var.get()):04d}-{int(self.month_var.get()):02d}")).fetchall(); con.close(); return rows
+        con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{int(self.year_var.get()):04d}-{int(self.month_var.get()):02d}")).fetchall(); con.close()
+        driver=self.driver_by_id(self.driver_id)
+        if not driver:
+            return []
+        return [r for r in rows if driver_employed_on(driver,date.fromisoformat(r["work_date"]))]
 
     def export_current(self,kind):
         if not self.driver_id:
@@ -5978,8 +7978,14 @@ class App(tk.Tk):
             )
             return
 
-        rows=self.current_rows()
         y,m=int(self.year_var.get()),int(self.month_var.get())
+        if not driver_employed_on(d,month_dates(y,m)[-1]):
+            messagebox.showwarning(
+                "Увага","Водій ще не був прийнятий на роботу в обраному місяці.",parent=self
+            )
+            return
+
+        rows=self.current_rows()
         safe_last=(d["last_name"] or "Водій").strip()
         name=f"Табель_{safe_last}_{y}_{m:02d}"
         path=OUTPUT_DIR/(name+(".xlsx" if kind=="xlsx" else ".pdf"))
@@ -6510,10 +8516,8 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         win.title("Підсумки та контроль №340")
-        win.geometry("980x760")
-        win.minsize(760,520)
+        fit_window_to_screen(win,980,760,760,500)
         win.transient(self)
-        win.resizable(True,True)
 
         head=ttk.Frame(win,padding=10)
         head.pack(fill="x")
@@ -6610,127 +8614,421 @@ class App(tk.Tk):
         ttk.Button(top,text="Редагувати",command=self.edit_route_catalog).pack(side="left",padx=4)
         ttk.Button(top,text="Вимкнути",command=self.delete_route_catalog).pack(side="left",padx=4)
         ttk.Button(top,text="Оновити",command=self.load_route_catalog).pack(side="left",padx=4)
-        ttk.Label(self.tab_route_catalog,text="Маршрути зберігаються в каталозі та вибираються у табелі й шаблонах. Історичні записи не змінюються при редагуванні каталогу.",foreground="gray").pack(anchor="w",padx=12,pady=(0,6))
-        cols=("id","code","name","description","active")
+        ttk.Label(
+            self.tab_route_catalog,
+            text=(
+                "Один маршрут = один точний часовий сценарій. Номер / назва використовується у списках; "
+                "автомобіль, робочі інтервали та керування зберігаються всередині маршруту."
+            ),
+            foreground="gray",wraplength=1050,justify="left"
+        ).pack(anchor="w",padx=12,pady=(0,6))
+        cols=("id","label","vehicle","shift","segments","description","active")
         self.route_catalog_tree=ttk.Treeview(self.tab_route_catalog,columns=cols,show="headings",height=25)
-        heads={"id":"ID","code":"Код / №","name":"Маршрут","description":"Опис / напрямок","active":"Статус"}
-        widths={"id":45,"code":110,"name":230,"description":450,"active":90}
-        for c in cols: self.route_catalog_tree.heading(c,text=heads[c]); self.route_catalog_tree.column(c,width=widths[c],anchor="w")
+        heads={
+            "id":"ID","label":"№ / назва","vehicle":"Автомобіль","shift":"Тип зміни",
+            "segments":"Точний часовий сценарій","description":"Опис / примітка","active":"Статус"
+        }
+        widths={"id":45,"label":230,"vehicle":150,"shift":145,"segments":410,"description":280,"active":80}
+        for c in cols:
+            self.route_catalog_tree.heading(c,text=heads[c])
+            self.route_catalog_tree.column(c,width=widths[c],anchor="w")
         routecat_y=ttk.Scrollbar(self.tab_route_catalog,orient="vertical",command=self.route_catalog_tree.yview)
         routecat_x=ttk.Scrollbar(self.tab_route_catalog,orient="horizontal",command=self.route_catalog_tree.xview)
         self.route_catalog_tree.configure(yscrollcommand=routecat_y.set,xscrollcommand=routecat_x.set)
         routecat_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
         routecat_y.pack(side="right",fill="y",pady=5)
         self.route_catalog_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
+        self.route_catalog_tree.bind("<Double-1>",lambda _event:self.edit_route_catalog())
+        self.route_catalog_tree.bind("<Return>",lambda _event:self.edit_route_catalog())
         self.load_route_catalog()
 
     def route_label(self,r):
-        return " — ".join(x for x in [r["code"],r["name"]] if x) if r else ""
+        if not r:
+            return ""
+        code=(r["code"] or "").strip()
+        name=(r["name"] or "").strip()
+        return " / ".join(x for x in (code,name) if x)
+
+    def route_segments(self, route_id):
+        if not route_id:
+            return []
+        con=db()
+        rows=con.execute(
+            "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no", (route_id,)
+        ).fetchall()
+        con.close()
+        return rows
+
+    def route_stops(self, route_id):
+        if not route_id:
+            return []
+        con=db()
+        rows=con.execute(
+            "SELECT * FROM route_stops WHERE route_id=? ORDER BY direction, stop_no", (route_id,)
+        ).fetchall()
+        con.close()
+        return rows
 
     def load_route_catalog(self):
-        if not hasattr(self,"route_catalog_tree"): return
-        for x in self.route_catalog_tree.get_children(): self.route_catalog_tree.delete(x)
-        con=db(); rows=con.execute("SELECT * FROM routes ORDER BY active DESC,name").fetchall(); con.close()
-        for r in rows: self.route_catalog_tree.insert("","end",values=(r["id"],r["code"],r["name"],r["description"],"Так" if r["active"] else "Ні"))
+        if not hasattr(self,"route_catalog_tree"):
+            return
+        for x in self.route_catalog_tree.get_children():
+            self.route_catalog_tree.delete(x)
+        con=db()
+        rows=con.execute("SELECT * FROM routes ORDER BY active DESC, code, name").fetchall()
+        for r in rows:
+            segs=con.execute(
+                "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no", (r["id"],)
+            ).fetchall()
+            stop_counts={x["direction"]:x["n"] for x in con.execute(
+                "SELECT direction,COUNT(*) AS n FROM route_stops WHERE route_id=? GROUP BY direction",(r["id"],)
+            ).fetchall()}
+            summary=" / ".join(
+                f"роб. {(sg['work_start_time'] or sg['start_time'])}-{(sg['work_end_time'] or sg['end_time'])}; "
+                f"кер. {sg['start_time'] or '—'}-{sg['end_time'] or '—'}"
+                for sg in segs
+            ) or "— не налаштовано —"
+            route_plan=(f"зупинки: прямий {stop_counts.get('outbound',0)}, "
+                        f"зворотний {stop_counts.get('return',0)}")
+            description="; ".join(x for x in ((r["description"] or "").strip(), route_plan, (r["notes"] or "").strip()) if x)
+            self.route_catalog_tree.insert("","end",values=(
+                r["id"],self.route_label(r),r["vehicle"],r["shift_type"],summary,description,
+                "Так" if r["active"] else "Ні"
+            ))
+        con.close()
 
     def selected_route_catalog(self):
         sel=self.route_catalog_tree.selection()
-        if not sel: return None
+        if not sel:
+            return None
         rid=int(self.route_catalog_tree.item(sel[0],"values")[0])
-        con=db(); r=con.execute("SELECT * FROM routes WHERE id=?",(rid,)).fetchone(); con.close(); return r
-
-    def route_catalog_form(self,route=None):
-        win=tk.Toplevel(self); win.title("Маршрут"); win.geometry("650x350"); win.transient(self); win.grab_set()
-        fields=[("name","Назва маршруту"),("code","Код / № маршруту"),("description","Опис / напрямок")]
-        vv={k:tk.StringVar(value=str(route[k] or "") if route else "") for k,_ in fields}
-        for i,(k,lbl) in enumerate(fields):
-            ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=10); ttk.Entry(win,textvariable=vv[k],width=58).grid(row=i,column=1,padx=10,pady=10)
-        active=tk.BooleanVar(value=bool(route["active"]) if route else True)
-        ttk.Checkbutton(win,text="Активний маршрут",variable=active).grid(row=3,column=1,sticky="w",padx=10,pady=8)
-        def save():
-            if not vv["name"].get().strip(): messagebox.showerror("Помилка","Вкажіть назву маршруту.",parent=win); return
-            con=db()
-            try:
-                data=(vv["name"].get().strip(),vv["code"].get().strip(),vv["description"].get().strip(),int(active.get()))
-                if route: con.execute("UPDATE routes SET name=?,code=?,description=?,active=? WHERE id=?",data+(route["id"],))
-                else: con.execute("INSERT INTO routes(name,code,description,active,created_at) VALUES(?,?,?,?,?)",data+(datetime.now().isoformat(timespec="seconds"),))
-                con.commit()
-            except sqlite3.IntegrityError: con.rollback(); messagebox.showerror("Помилка","Такий маршрут уже існує.",parent=win); return
-            finally: con.close()
-            win.destroy(); self.load_route_catalog(); self.load_route_templates()
-        ttk.Button(win,text="Зберегти",command=save).grid(row=4,column=1,sticky="e",padx=10,pady=15)
-
-    def edit_route_catalog(self):
-        r=self.selected_route_catalog()
-        if r: self.route_catalog_form(r)
-
-    def delete_route_catalog(self):
-        r=self.selected_route_catalog()
-        if not r: return
-        if messagebox.askyesno("Підтвердження","Вимкнути маршрут у каталозі? Історичні записи табеля залишаться.",parent=self):
-            con=db(); con.execute("UPDATE routes SET active=0 WHERE id=?",(r["id"],)); con.commit(); con.close(); self.load_route_catalog()
-
-    def build_routes(self):
-        top=ttk.Frame(self.tab_routes); top.pack(fill="x",padx=10,pady=8)
-        ttk.Button(top,text="Новий шаблон",command=self.route_template_form).pack(side="left",padx=4)
-        ttk.Button(top,text="Редагувати",command=self.edit_route_template).pack(side="left",padx=4)
-        ttk.Button(top,text="Видалити",command=self.delete_route_template).pack(side="left",padx=4)
-        ttk.Button(top,text="Оновити",command=self.load_route_templates).pack(side="left",padx=4)
-        ttk.Label(self.tab_routes,text="Шаблон зберігає маршрут, автомобіль і готові частини робочої зміни. У табелі його можна застосувати до конкретного дня та після цього змінити вручну.",foreground="gray").pack(anchor="w",padx=12,pady=(0,6))
-        cols=("id","name","route","vehicle","shift","segments","notes")
-        self.route_tree=ttk.Treeview(self.tab_routes,columns=cols,show="headings",height=25)
-        heads={"id":"ID","name":"Назва шаблону","route":"Маршрут","vehicle":"Автомобіль","shift":"Тип зміни","segments":"Частини","notes":"Примітка"}
-        for c in cols: self.route_tree.heading(c,text=heads[c]); self.route_tree.column(c,width={"id":45,"name":190,"route":180,"vehicle":130,"shift":150,"segments":260,"notes":250}[c],anchor="w")
-        route_y=ttk.Scrollbar(self.tab_routes,orient="vertical",command=self.route_tree.yview)
-        route_x=ttk.Scrollbar(self.tab_routes,orient="horizontal",command=self.route_tree.xview)
-        self.route_tree.configure(yscrollcommand=route_y.set,xscrollcommand=route_x.set)
-        route_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
-        route_y.pack(side="right",fill="y",pady=5)
-        self.route_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
-        self.load_route_templates()
-
-    def load_route_templates(self):
-        if not hasattr(self,"route_tree"): return
-        for x in self.route_tree.get_children(): self.route_tree.delete(x)
-        con=db(); ts=con.execute("SELECT * FROM route_templates WHERE active=1 ORDER BY name").fetchall()
-        for t in ts:
-            segs=con.execute("SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no",(t["id"],)).fetchall()
-            summary=" / ".join(
-                f"роб. {(r['work_start_time'] or r['start_time'])}-{(r['work_end_time'] or r['end_time'])}; "
-                f"кер. {r['start_time']}-{r['end_time']} "
-                f"({hours_value_hhmm(r['work_hours'])} / {hours_value_hhmm(r['driving_hours'])})"
-                for r in segs
-            )
-            self.route_tree.insert("","end",values=(t["id"],t["name"],t["route_name"],t["vehicle"],t["shift_type"],summary,t["notes"]))
+        con=db()
+        route=con.execute("SELECT * FROM routes WHERE id=?",(rid,)).fetchone()
+        segs=con.execute("SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",(rid,)).fetchall()
+        stops=con.execute("SELECT * FROM route_stops WHERE route_id=? ORDER BY direction,stop_no",(rid,)).fetchall()
         con.close()
+        return (route,segs,stops) if route else None
 
-    def selected_route_template(self):
-        sel=self.route_tree.selection()
-        if not sel: return None
-        rid=int(self.route_tree.item(sel[0],"values")[0]); con=db(); t=con.execute("SELECT * FROM route_templates WHERE id=?",(rid,)).fetchone(); segs=con.execute("SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no",(rid,)).fetchall(); con.close(); return t,segs
+    def route_catalog_form(self, existing=None):
+        route=existing[0] if existing else None
+        existing_segments=existing[1] if existing else []
+        existing_stops=existing[2] if existing and len(existing)>2 else []
+        win=tk.Toplevel(self)
+        win.title("Маршрут")
+        fit_window_to_screen(win,1100,650,850,520)
+        win.transient(self); win.grab_set()
+        win.columnconfigure(1,weight=1)
+        win.rowconfigure(8,weight=1)
 
-    def route_template_form(self, existing=None):
-        win=tk.Toplevel(self); win.title("Шаблон маршруту"); win.geometry("1080x590"); win.transient(self); win.grab_set()
-        vals={k:(existing[0][k] if existing else "") for k in ["name","route_name","vehicle","shift_type","notes"]}
-        existing_route_id=(existing[0]["route_id"] if existing and "route_id" in existing[0].keys() else None)
-        con=db(); routes=con.execute("SELECT * FROM routes WHERE active=1 ORDER BY name").fetchall(); vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall(); con.close()
+        con=db()
+        vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall()
+        con.close()
         vehicle_map={self.vehicle_label(v):v for v in vehicles}
-        existing_vid=(existing[0]["vehicle_id"] if existing and "vehicle_id" in existing[0].keys() else None)
-        if not vals["shift_type"]: vals["shift_type"]="Безперервна"
-        vv={k:tk.StringVar(value=vals[k] or "") for k in vals}
-        fields=[("Назва шаблону","name"),("Примітка","notes")]
-        for i,(lbl,key) in enumerate(fields):
-            ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=6); ttk.Entry(win,textvariable=vv[key],width=60).grid(row=i,column=1,columnspan=2,sticky="ew",padx=10,pady=6)
-        ttk.Label(win,text="Маршрут").grid(row=2,column=0,sticky="w",padx=10,pady=6)
-        route_map={self.route_label(r):r for r in routes}
-        route_select=tk.StringVar(value=next((self.route_label(r) for r in routes if r["id"]==existing_route_id), vals["route_name"] or ""))
-        ttk.Combobox(win,textvariable=route_select,values=list(route_map.keys()),state="readonly",width=57).grid(row=2,column=1,columnspan=2,sticky="ew",padx=10,pady=6)
-        ttk.Label(win,text="Автомобіль").grid(row=3,column=0,sticky="w",padx=10,pady=6)
-        vehicle_default=next((self.vehicle_label(v) for v in vehicles if v["id"]==existing_vid), vals["vehicle"] or "")
-        vehicle_select=tk.StringVar(value=vehicle_default)
-        ttk.Combobox(win,textvariable=vehicle_select,values=list(vehicle_map.keys()),state="readonly",width=57).grid(row=3,column=1,columnspan=2,sticky="ew",padx=10,pady=6)
-        ttk.Label(win,text="Тип зміни").grid(row=4,column=0,sticky="w",padx=10,pady=6); ttk.Combobox(win,textvariable=vv["shift_type"],values=["Безперервна","Розділена на частини"],state="readonly",width=30).grid(row=4,column=1,sticky="w",padx=10)
-        ttk.Label(win,text="Частини робочої зміни").grid(row=5,column=0,sticky="nw",padx=10,pady=8)
+        existing_vid=(route["vehicle_id"] if route and "vehicle_id" in route.keys() else None)
+        vehicle_default=next(
+            (self.vehicle_label(v) for v in vehicles if v["id"]==existing_vid),
+            (route["vehicle"] if route else "") or ""
+        )
+
+        vv={
+            "code":tk.StringVar(value=(route["code"] if route else "") or ""),
+            "name":tk.StringVar(value=(route["name"] if route else "") or ""),
+            "description":tk.StringVar(value=(route["description"] if route else "") or ""),
+            "notes":tk.StringVar(value=(route["notes"] if route and "notes" in route.keys() else "") or ""),
+            "shift_type":tk.StringVar(value=(route["shift_type"] if route and "shift_type" in route.keys() else "Безперервна") or "Безперервна"),
+            "vehicle":tk.StringVar(value=vehicle_default),
+            "start_location":tk.StringVar(value=(route["start_location"] if route and "start_location" in route.keys() else "") or ""),
+            "end_location":tk.StringVar(value=(route["end_location"] if route and "end_location" in route.keys() else "") or ""),
+            "start_direction":tk.StringVar(value=(route["start_direction"] if route and "start_direction" in route.keys() else "outbound") or "outbound"),
+            "start_day_offset":tk.StringVar(value=str(route["start_day_offset"] if route and "start_day_offset" in route.keys() else 0)),
+            "end_day_offset":tk.StringVar(value=str(route["end_day_offset"] if route and "end_day_offset" in route.keys() else 0)),
+        }
+        active=tk.BooleanVar(value=bool(route["active"]) if route else True)
+        stop_data={"outbound":[],"return":[]}
+        for stop in existing_stops:
+            stop_data[stop["direction"]].append({
+                "stop_name":stop["stop_name"],"arrival_time":stop["arrival_time"] or "",
+                "departure_time":stop["departure_time"] or "","note":stop["note"] or "",
+                "day_offset":int(stop["day_offset"] or 0) if "day_offset" in stop.keys() else 0,
+                "arrival_day_offset":int(stop["arrival_day_offset"] or 0) if "arrival_day_offset" in stop.keys() else int(stop["day_offset"] or 0),
+                "departure_day_offset":int(stop["departure_day_offset"] or 0) if "departure_day_offset" in stop.keys() else int(stop["day_offset"] or 0),
+                "point_type":(stop["point_type"] or "Зупинка") if "point_type" in stop.keys() else "Зупинка",
+            })
+
+        fields=[
+            ("Код / № маршруту","code"),
+            ("Назва маршруту","name"),
+            ("Опис / напрямок","description"),
+            ("Примітка","notes"),
+        ]
+        for row,(label,key) in enumerate(fields):
+            ttk.Label(win,text=label).grid(row=row,column=0,sticky="w",padx=10,pady=5)
+            ttk.Entry(win,textvariable=vv[key],width=65).grid(row=row,column=1,columnspan=3,sticky="ew",padx=10,pady=5)
+
+        ttk.Label(win,text="Точка початку роботи").grid(row=4,column=0,sticky="w",padx=10,pady=5)
+        ttk.Entry(win,textvariable=vv["start_location"],width=38).grid(row=4,column=1,sticky="ew",padx=10,pady=5)
+        ttk.Label(win,text="Напрямок / день").grid(row=4,column=2,sticky="e",padx=(10,4),pady=5)
+        start_box=ttk.Frame(win); start_box.grid(row=4,column=3,sticky="ew",padx=(4,10),pady=5)
+        ttk.Combobox(start_box,textvariable=vv["start_direction"],values=("outbound","return"),state="readonly",width=11).pack(side="left")
+        ttk.Label(start_box,text="D+").pack(side="left",padx=(6,1))
+        ttk.Spinbox(start_box,textvariable=vv["start_day_offset"],from_=0,to=7,width=4).pack(side="left")
+
+        ttk.Label(win,text="Точка завершення роботи").grid(row=5,column=0,sticky="w",padx=10,pady=5)
+        ttk.Entry(win,textvariable=vv["end_location"],width=38).grid(row=5,column=1,sticky="ew",padx=10,pady=5)
+        ttk.Label(win,text="День завершення D+").grid(row=5,column=2,sticky="e",padx=(10,4),pady=5)
+        ttk.Spinbox(win,textvariable=vv["end_day_offset"],from_=0,to=7,width=5).grid(row=5,column=3,sticky="w",padx=(4,10),pady=5)
+
+        ttk.Label(win,text="Автомобіль за замовчуванням").grid(row=6,column=0,sticky="w",padx=10,pady=5)
+        ttk.Combobox(
+            win,textvariable=vv["vehicle"],values=list(vehicle_map.keys()),state="readonly",width=40
+        ).grid(row=6,column=1,sticky="ew",padx=10,pady=5)
+        ttk.Label(win,text="Тип зміни").grid(row=6,column=2,sticky="e",padx=(10,4),pady=5)
+        ttk.Combobox(
+            win,textvariable=vv["shift_type"],values=["Безперервна","Розділена на частини"],
+            state="readonly",width=24
+        ).grid(row=6,column=3,sticky="w",padx=(4,10),pady=5)
+        ttk.Checkbutton(win,text="Активний маршрут",variable=active).grid(row=7,column=1,sticky="w",padx=10,pady=(3,5))
+        stops_summary=tk.StringVar()
+        def refresh_stops_summary():
+            stops_summary.set(f"Графік зупинок: прямий {len(stop_data['outbound'])}, зворотний {len(stop_data['return'])}")
+
+        def edit_stop_schedule():
+            sw=tk.Toplevel(win); sw.title("Графік руху маршруту — зворотна сторона шляхівки")
+            fit_window_to_screen(sw,1080,650,850,520); sw.transient(win); sw.grab_set()
+            ttk.Label(
+                sw,text=("До 15 рядків у кожному напрямку. Планові прибуття/відправлення друкуються на звороті; "
+                         "фактичний час, підпис і особливі відмітки залишаються порожніми."),
+                foreground="gray",wraplength=1020,justify="left"
+            ).pack(fill="x",padx=10,pady=(10,5))
+            body=ttk.Frame(sw); body.pack(fill="both",expand=True,padx=8,pady=5)
+            body.columnconfigure(0,weight=1); body.columnconfigure(1,weight=1); body.rowconfigure(0,weight=1)
+            trees={}
+
+            def redraw_stops(direction):
+                tree=trees[direction]
+                for item in tree.get_children(): tree.delete(item)
+                for i,item in enumerate(stop_data[direction],1):
+                    arrive=(f"D+{item['arrival_day_offset']} {item['arrival_time']}" if item["arrival_time"] else "")
+                    depart=(f"D+{item['departure_day_offset']} {item['departure_time']}" if item["departure_time"] else "")
+                    tree.insert("","end",values=(i,item["point_type"],item["stop_name"],arrive,depart,item["note"]))
+
+            def route_days():
+                days=[]
+                for direction in ("outbound","return"):
+                    for item in stop_data[direction]:
+                        if item.get("arrival_time"): days.append(int(item.get("arrival_day_offset",0)))
+                        if item.get("departure_time"): days.append(int(item.get("departure_day_offset",0)))
+                return days
+
+            def sync_route_bounds(force=True):
+                first_direction=vv["start_direction"].get() or "outbound"
+                last_direction="return" if first_direction=="outbound" else "outbound"
+                first_rows=stop_data[first_direction]
+                last_rows=stop_data[last_direction] or first_rows
+                if first_rows and (force or not vv["start_location"].get().strip()):
+                    vv["start_location"].set(first_rows[0]["stop_name"])
+                if last_rows and (force or not vv["end_location"].get().strip()):
+                    vv["end_location"].set(last_rows[-1]["stop_name"])
+                days=route_days()
+                if days:
+                    vv["start_day_offset"].set(str(min(days)))
+                    vv["end_day_offset"].set(str(max(days)))
+
+            def quick_fill(direction):
+                qw=tk.Toplevel(sw)
+                qw.title("Швидке заповнення — "+("прямий напрямок" if direction=="outbound" else "зворотний напрямок"))
+                fit_window_to_screen(qw,850,600,680,470); qw.transient(sw); qw.grab_set()
+                ttk.Label(
+                    qw,
+                    text=("Один рядок — одна точка. Вставляйте з Excel або використовуйте «;». "
+                          "Колонки: Назва | Прибуття | Відправлення | Тип | Примітка.\n"
+                          "D+ вводити не потрібно: після 23:55 → 00:40 програма поставить D+1 сама. "
+                          "Порожній час позначайте «-»."),
+                    wraplength=800,justify="left",foreground="gray"
+                ).pack(fill="x",padx=10,pady=(10,6))
+                host=ttk.Frame(qw); host.pack(fill="both",expand=True,padx=10,pady=5)
+                host.rowconfigure(0,weight=1); host.columnconfigure(0,weight=1)
+                editor=tk.Text(host,wrap="none",undo=True,font=("Consolas",10))
+                ybar=ttk.Scrollbar(host,orient="vertical",command=editor.yview)
+                xbar=ttk.Scrollbar(host,orient="horizontal",command=editor.xview)
+                editor.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+                editor.grid(row=0,column=0,sticky="nsew"); ybar.grid(row=0,column=1,sticky="ns"); xbar.grid(row=1,column=0,sticky="ew")
+                editor.insert("1.0",route_schedule_to_text(stop_data[direction]))
+                buttons=ttk.Frame(qw); buttons.pack(fill="x",padx=10,pady=(4,10))
+                ttk.Button(
+                    buttons,text="Вставити приклад",
+                    command=lambda:(
+                        editor.delete("1.0","end"),
+                        editor.insert("1.0","Львів АС-2;-;22:40;Автостанція;Початок\nСтрий АС;23:55;00:40;Автостанція;\nУжгород АС;05:35;-;Нічліг;")
+                    )
+                ).pack(side="left")
+                def apply_quick():
+                    try:
+                        start_day=int(vv["start_day_offset"].get() or 0)
+                        first_direction=vv["start_direction"].get() or "outbound"
+                        previous_absolute=None
+                        if direction!=first_direction and stop_data[first_direction]:
+                            source_moments=[
+                                int(item.get(key,0))*1440+time_to_minutes(item[time_key])
+                                for item in stop_data[first_direction]
+                                for key,time_key in (("arrival_day_offset","arrival_time"),("departure_day_offset","departure_time"))
+                                if item.get(time_key)
+                            ]
+                            if source_moments:
+                                previous_absolute=max(source_moments); start_day=previous_absolute//1440
+                        parsed=parse_route_schedule_text(editor.get("1.0","end-1c"),start_day,previous_absolute)
+                    except ValueError as exc:
+                        messagebox.showerror("Швидке заповнення",str(exc),parent=qw); return
+                    stop_data[direction]=parsed
+                    redraw_stops(direction); refresh_stops_summary(); sync_route_bounds(force=False)
+                    qw.destroy()
+                ttk.Button(buttons,text="Замінити графік цим списком",command=apply_quick).pack(side="right")
+
+            def quick_fill_both():
+                qw=tk.Toplevel(sw); qw.title("Швидке заповнення маршруту")
+                fit_window_to_screen(qw,1080,650,850,520); qw.transient(sw); qw.grab_set()
+                ttk.Label(
+                    qw,
+                    text=("Найпростіше: скопіюйте з Excel дві колонки — Точка | Час. "
+                          "Програма сама поставить перший час як відправлення, останній як прибуття і визначить D+ після півночі.\n"
+                          "Якщо потрібна стоянка, використайте три колонки: Точка | Прибуття | Відправлення."),
+                    wraplength=1020,justify="left",foreground="gray"
+                ).pack(fill="x",padx=10,pady=(10,6))
+                body2=ttk.Frame(qw); body2.pack(fill="both",expand=True,padx=8,pady=5)
+                body2.columnconfigure(0,weight=1); body2.columnconfigure(1,weight=1); body2.rowconfigure(0,weight=1)
+                editors={}
+                for col,(direction,title) in enumerate((("outbound","Прямий напрямок"),("return","Зворотний напрямок"))):
+                    box=ttk.LabelFrame(body2,text=title); box.grid(row=0,column=col,sticky="nsew",padx=5)
+                    box.rowconfigure(0,weight=1); box.columnconfigure(0,weight=1)
+                    editor=tk.Text(box,wrap="none",undo=True,font=("Consolas",10))
+                    ybar=ttk.Scrollbar(box,orient="vertical",command=editor.yview)
+                    xbar=ttk.Scrollbar(box,orient="horizontal",command=editor.xview)
+                    editor.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+                    editor.grid(row=0,column=0,sticky="nsew"); ybar.grid(row=0,column=1,sticky="ns"); xbar.grid(row=1,column=0,sticky="ew")
+                    editor.insert("1.0",route_schedule_to_text(stop_data[direction]))
+                    editors[direction]=editor
+                buttons=ttk.Frame(qw); buttons.pack(fill="x",padx=10,pady=(4,10))
+                def insert_simple_example():
+                    examples={
+                        "outbound":"Львів АС-2\t22:40\nСтрий АС\t23:55\nУжгород АС\t05:35",
+                        "return":"Ужгород АС\t07:10\nСтрий АС\t12:15\nЛьвів АС-2\t14:20",
+                    }
+                    for direction,editor in editors.items():
+                        editor.delete("1.0","end"); editor.insert("1.0",examples[direction])
+                ttk.Button(buttons,text="Показати простий приклад",command=insert_simple_example).pack(side="left")
+                def apply_both():
+                    try:
+                        start_day=int(vv["start_day_offset"].get() or 0)
+                        outbound=parse_route_schedule_text(editors["outbound"].get("1.0","end-1c"),start_day)
+                        outbound_moments=[
+                            int(item.get(key,0))*1440+time_to_minutes(item[time_key]) for item in outbound
+                            for key,time_key in (("arrival_day_offset","arrival_time"),("departure_day_offset","departure_time"))
+                            if item.get(time_key)
+                        ]
+                        previous_absolute=max(outbound_moments) if outbound_moments else None
+                        return_start=previous_absolute//1440 if previous_absolute is not None else start_day
+                        returning=parse_route_schedule_text(editors["return"].get("1.0","end-1c"),return_start,previous_absolute)
+                    except ValueError as exc:
+                        messagebox.showerror("Швидке заповнення",str(exc),parent=qw); return
+                    stop_data["outbound"]=outbound; stop_data["return"]=returning
+                    redraw_stops("outbound"); redraw_stops("return")
+                    refresh_stops_summary(); sync_route_bounds(force=True); qw.destroy()
+                ttk.Button(buttons,text="Зберегти обидва напрямки",command=apply_both).pack(side="right")
+
+            def copy_reverse_names():
+                if not stop_data["outbound"]:
+                    messagebox.showinfo("Зворотний напрямок","Спочатку заповніть прямий напрямок.",parent=sw); return
+                if stop_data["return"] and not messagebox.askyesno(
+                    "Зворотний напрямок","Замінити наявні точки зворотного напрямку?",parent=sw
+                ):
+                    return
+                days=route_days()
+                seed=max(days) if days else int(vv["start_day_offset"].get() or 0)
+                stop_data["return"]=[
+                    {
+                        "stop_name":item["stop_name"],"arrival_time":"","departure_time":"",
+                        "note":"","day_offset":seed,"arrival_day_offset":seed,
+                        "departure_day_offset":seed,"point_type":item.get("point_type","Зупинка"),
+                    }
+                    for item in reversed(stop_data["outbound"])
+                ]
+                redraw_stops("return"); refresh_stops_summary(); sync_route_bounds(force=False)
+
+            def stop_form(direction,index=None):
+                if index is None and len(stop_data[direction])>=15:
+                    messagebox.showwarning("Графік маршруту","У формі № 1-АП передбачено 15 рядків на напрямок.",parent=sw); return
+                base=stop_data[direction][index] if index is not None else {"stop_name":"","arrival_time":"","departure_time":"","note":"","arrival_day_offset":0,"departure_day_offset":0,"point_type":"Зупинка"}
+                fw=tk.Toplevel(sw); fw.title("Точка маршруту"); fit_window_to_screen(fw,600,430,530,380); fw.transient(sw); fw.grab_set()
+                values={k:tk.StringVar(value=str(base.get(k,""))) for k in ("stop_name","point_type","arrival_day_offset","arrival_time","departure_day_offset","departure_time","note")}
+                for row,(key,label) in enumerate((("stop_name","Назва точки / автостанції"),("point_type","Тип точки"),("arrival_day_offset","Прибуття, день D+"),("arrival_time","Прибуття за графіком"),("departure_day_offset","Відправлення, день D+"),("departure_time","Відправлення за графіком"),("note","Примітка"))):
+                    ttk.Label(fw,text=label).grid(row=row,column=0,sticky="w",padx=10,pady=7)
+                    widget=(ttk.Combobox(fw,textvariable=values[key],values=("АТП","Зупинка","Автостанція","Відпочинок","Нічліг","Інше"),state="readonly",width=39)
+                            if key=="point_type" else ttk.Spinbox(fw,textvariable=values[key],from_=0,to=7,width=8)
+                            if key in {"arrival_day_offset","departure_day_offset"} else ttk.Entry(fw,textvariable=values[key],width=42))
+                    widget.grid(row=row,column=1,sticky="ew",padx=10,pady=7)
+                fw.columnconfigure(1,weight=1)
+                def save_stop():
+                    name=values["stop_name"].get().strip()
+                    if not name:
+                        messagebox.showerror("Зупинка","Вкажіть назву зупинки.",parent=fw); return
+                    for key in ("arrival_time","departure_time"):
+                        raw=values[key].get().strip()
+                        if raw:
+                            try: parse_hhmm(raw)
+                            except Exception:
+                                messagebox.showerror("Зупинка","Час має бути у форматі ГГ:ХХ.",parent=fw); return
+                    try:
+                        arrival_day=int(values["arrival_day_offset"].get()); departure_day=int(values["departure_day_offset"].get())
+                    except ValueError: arrival_day=departure_day=-1
+                    if not (0 <= arrival_day <= 7 and 0 <= departure_day <= 7):
+                        messagebox.showerror("Точка маршруту","Дні мають бути від D+0 до D+7.",parent=fw); return
+                    if values["arrival_time"].get().strip() and values["departure_time"].get().strip():
+                        if departure_day*1440+time_to_minutes(values["departure_time"].get()) < arrival_day*1440+time_to_minutes(values["arrival_time"].get()):
+                            messagebox.showerror("Точка маршруту","Відправлення не може бути раніше прибуття.",parent=fw); return
+                    item={k:values[k].get().strip() for k in values}
+                    item["arrival_day_offset"]=arrival_day; item["departure_day_offset"]=departure_day
+                    item["day_offset"]=arrival_day if item["arrival_time"] else departure_day
+                    if index is None: stop_data[direction].append(item)
+                    else: stop_data[direction][index]=item
+                    redraw_stops(direction); refresh_stops_summary(); fw.destroy()
+                ttk.Button(fw,text="Зберегти",command=save_stop).grid(row=4,column=1,sticky="e",padx=10,pady=12)
+
+            for col,(direction,title) in enumerate((("outbound","Прямий напрямок"),("return","Зворотний напрямок"))):
+                frame=ttk.LabelFrame(body,text=title); frame.grid(row=0,column=col,sticky="nsew",padx=5,pady=3)
+                frame.columnconfigure(0,weight=1); frame.rowconfigure(0,weight=1)
+                tree=ttk.Treeview(frame,columns=("no","type","name","arrive","depart","note"),show="headings")
+                trees[direction]=tree
+                for key,label,width in (("no","№",32),("type","Тип",75),("name","Точка",155),("arrive","Прибуття",105),("depart","Відправлення",110),("note","Примітка",120)):
+                    tree.heading(key,text=label); tree.column(key,width=width,anchor="w")
+                ybar=ttk.Scrollbar(frame,orient="vertical",command=tree.yview); xbar=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview)
+                tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+                tree.grid(row=0,column=0,sticky="nsew"); ybar.grid(row=0,column=1,sticky="ns"); xbar.grid(row=1,column=0,sticky="ew")
+                bar=ttk.Frame(frame); bar.grid(row=2,column=0,columnspan=2,sticky="w",pady=5)
+                ttk.Button(bar,text="Додати",command=lambda d=direction:stop_form(d)).pack(side="left",padx=2)
+                ttk.Button(bar,text="Вставити список",command=lambda d=direction:quick_fill(d)).pack(side="left",padx=2)
+                def edit_selected(d=direction):
+                    sel=trees[d].selection()
+                    if sel: stop_form(d,int(trees[d].item(sel[0],"values")[0])-1)
+                ttk.Button(bar,text="Редагувати",command=edit_selected).pack(side="left",padx=2)
+                def delete_selected(d=direction):
+                    sel=trees[d].selection()
+                    if sel:
+                        stop_data[d].pop(int(trees[d].item(sel[0],"values")[0])-1); redraw_stops(d); refresh_stops_summary()
+                ttk.Button(bar,text="Видалити",command=delete_selected).pack(side="left",padx=2)
+                if direction=="return":
+                    ttk.Button(bar,text="Назви ← прямий",command=copy_reverse_names).pack(side="left",padx=2)
+                tree.bind("<Double-1>",lambda _e,d=direction: (lambda s=trees[d].selection(): stop_form(d,int(trees[d].item(s[0],"values")[0])-1) if s else None)())
+            redraw_stops("outbound"); redraw_stops("return")
+            bottom=ttk.Frame(sw); bottom.pack(fill="x",padx=12,pady=8)
+            ttk.Button(bottom,text="Швидко вставити обидва напрямки",command=quick_fill_both).pack(side="left",padx=(0,6))
+            ttk.Button(bottom,text="Підтягнути точки й дні з графіка",command=lambda:sync_route_bounds(force=True)).pack(side="left")
+            ttk.Button(bottom,text="Готово",command=sw.destroy).pack(side="right")
+
+        refresh_stops_summary()
+        ttk.Label(win,textvariable=stops_summary,foreground="gray").grid(row=7,column=2,sticky="e",padx=(10,3),pady=(3,5))
+        ttk.Button(win,text="Заповнити маршрут для шляхівки…",command=edit_stop_schedule).grid(row=7,column=3,sticky="e",padx=10,pady=(3,5))
+        ttk.Label(win,text="Частини робочої зміни").grid(row=8,column=0,sticky="nw",padx=10,pady=8)
+
         cols=("no","work_start","work_end","drive_start","drive_end","work","drive","activity","note")
         tree=ttk.Treeview(win,columns=cols,show="headings",height=10)
         for c,h,w in [
@@ -6738,30 +9036,35 @@ class App(tk.Tk):
             ("drive_start","Кер. від",75),("drive_end","Кер. до",75),
             ("work","Робота",75),("drive","Керування",80),
             ("activity","Тип",110),("note","Примітка",180)
-        ]: tree.heading(c,text=h); tree.column(c,width=w)
-        tree.grid(row=5,column=1,columnspan=2,sticky="nsew",padx=10,pady=8)
+        ]:
+            tree.heading(c,text=h); tree.column(c,width=w)
+        tree.grid(row=8,column=1,columnspan=3,sticky="nsew",padx=10,pady=8)
+
         seg_data=[]
-        if existing:
-            for r in existing[1]:
-                ds=(r["start_time"] or "").strip(); de=(r["end_time"] or "").strip()
-                ws=(r["work_start_time"] or "").strip() or ds
-                we=(r["work_end_time"] or "").strip() or de
-                seg_data.append({
-                    "start_time":ds,"end_time":de,"work_start_time":ws,"work_end_time":we,
-                    "work_hours":minutes_to_db_hours(duration_minutes(ws,we)) if ws and we else 0,
-                    "driving_hours":minutes_to_db_hours(duration_minutes(ds,de)) if ds and de else 0,
-                    "activity_type":r["activity_type"],"note":r["note"]
-                })
+        for r in existing_segments:
+            ds=(r["start_time"] or "").strip(); de=(r["end_time"] or "").strip()
+            ws=(r["work_start_time"] or "").strip() or ds
+            we=(r["work_end_time"] or "").strip() or de
+            seg_data.append({
+                "start_time":ds,"end_time":de,"work_start_time":ws,"work_end_time":we,
+                "work_hours":minutes_to_db_hours(duration_minutes(ws,we)) if ws and we else 0,
+                "driving_hours":minutes_to_db_hours(duration_minutes(ds,de)) if ds and de else 0,
+                "activity_type":r["activity_type"],"note":r["note"]
+            })
+
         def redraw():
-            for x in tree.get_children(): tree.delete(x)
+            for x in tree.get_children():
+                tree.delete(x)
             for i,r in enumerate(seg_data,1):
                 tree.insert("","end",values=(
                     i,r["work_start_time"],r["work_end_time"],r["start_time"],r["end_time"],
                     hours_value_hhmm(r["work_hours"]),hours_value_hhmm(r["driving_hours"]),
                     r["activity_type"],r["note"]
                 ))
+
         def edit_seg(index=None):
-            sw=tk.Toplevel(win); sw.title("Частина шаблону"); sw.geometry("560x445"); sw.transient(win); sw.grab_set()
+            sw=tk.Toplevel(win); sw.title("Частина маршруту")
+            fit_window_to_screen(sw,570,455,520,410); sw.transient(win); sw.grab_set()
             base=seg_data[index] if index is not None else {
                 "work_start_time":"08:00","work_end_time":"09:00",
                 "start_time":"08:00","end_time":"09:00",
@@ -6774,92 +9077,200 @@ class App(tk.Tk):
                 "start_time":base.get("start_time",""),"end_time":base.get("end_time",""),
                 "activity_type":base.get("activity_type","Робота"),"note":base.get("note","")
             }
-            for k,v in defaults.items(): x[k]=tk.StringVar(value=str(v or ""))
-            for i,(lbl,key) in enumerate([
+            for k,v in defaults.items():
+                x[k]=tk.StringVar(value=str(v or ""))
+            for row,(lbl,key) in enumerate([
                 ("Робота — початок","work_start_time"),("Робота — кінець","work_end_time"),
                 ("Керування — початок","start_time"),("Керування — кінець","end_time"),
                 ("Тип","activity_type"),("Примітка","note")
             ]):
-                ttk.Label(sw,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=6)
-                w=ttk.Combobox(sw,textvariable=x[key],values=DAY_TYPES,state="readonly",width=34) if key=="activity_type" else ttk.Entry(sw,textvariable=x[key],width=36)
-                w.grid(row=i,column=1,padx=10,pady=6)
+                ttk.Label(sw,text=lbl).grid(row=row,column=0,sticky="w",padx=10,pady=6)
+                widget=(
+                    ttk.Combobox(sw,textvariable=x[key],values=DAY_TYPES,state="readonly",width=34)
+                    if key=="activity_type" else ttk.Entry(sw,textvariable=x[key],width=36)
+                )
+                widget.grid(row=row,column=1,padx=10,pady=6,sticky="ew")
             duration_var=tk.StringVar()
-            ttk.Label(sw,textvariable=duration_var,foreground="gray").grid(row=6,column=0,columnspan=2,sticky="w",padx=10,pady=4)
+            ttk.Label(sw,textvariable=duration_var,foreground="gray").grid(
+                row=6,column=0,columnspan=2,sticky="w",padx=10,pady=4
+            )
             def refresh(*_):
-                try: wt=minutes_hhmm(duration_minutes(x["work_start_time"].get(),x["work_end_time"].get()))
-                except Exception: wt="—"
+                try:
+                    wt=minutes_hhmm(duration_minutes(x["work_start_time"].get(),x["work_end_time"].get()))
+                except Exception:
+                    wt="—"
                 ds=x["start_time"].get().strip(); de=x["end_time"].get().strip()
-                if not ds and not de: dt="0:00"
+                if not ds and not de:
+                    dt="0:00"
                 else:
-                    try: dt=minutes_hhmm(duration_minutes(ds,de))
-                    except Exception: dt="—"
+                    try:
+                        dt=minutes_hhmm(duration_minutes(ds,de))
+                    except Exception:
+                        dt="—"
                 duration_var.set(f"Тривалість: робота {wt}; керування {dt}")
-            for v in (x["work_start_time"],x["work_end_time"],x["start_time"],x["end_time"]): v.trace_add("write",refresh)
+            for v in (x["work_start_time"],x["work_end_time"],x["start_time"],x["end_time"]):
+                v.trace_add("write",refresh)
             refresh()
             bar=ttk.Frame(sw); bar.grid(row=7,column=0,columnspan=2,sticky="w",padx=10,pady=5)
-            ttk.Button(bar,text="Керування → робота",command=lambda:(x["work_start_time"].set(x["start_time"].get()),x["work_end_time"].set(x["end_time"].get()))).pack(side="left")
-            ttk.Button(bar,text="Робота → керування",command=lambda:(x["start_time"].set(x["work_start_time"].get()),x["end_time"].set(x["work_end_time"].get()))).pack(side="left",padx=(6,0))
+            ttk.Button(
+                bar,text="Керування → робота",
+                command=lambda:(x["work_start_time"].set(x["start_time"].get()),x["work_end_time"].set(x["end_time"].get()))
+            ).pack(side="left")
+            ttk.Button(
+                bar,text="Робота → керування",
+                command=lambda:(x["start_time"].set(x["work_start_time"].get()),x["end_time"].set(x["work_end_time"].get()))
+            ).pack(side="left",padx=(6,0))
             def save_seg():
                 ws=x["work_start_time"].get().strip(); we=x["work_end_time"].get().strip()
                 ds=x["start_time"].get().strip(); de=x["end_time"].get().strip()
                 try:
-                    if not ws or not we: raise ValueError
+                    if not ws or not we:
+                        raise ValueError
                     wh_min=duration_minutes(ws,we)
-                    if bool(ds)!=bool(de): raise ValueError
+                    if bool(ds)!=bool(de):
+                        raise ValueError
                     dh_min=duration_minutes(ds,de) if ds and de else 0
                 except Exception:
-                    messagebox.showerror("Помилка","Перевірте пари початок/кінець для роботи і керування.",parent=sw); return
+                    messagebox.showerror(
+                        "Помилка","Перевірте пари початок/кінець для роботи і керування.",parent=sw
+                    ); return
                 if ds and not interval_within(ds,de,ws,we):
-                    messagebox.showerror("Помилка","Інтервал керування повинен міститися всередині робочого інтервалу.",parent=sw); return
+                    messagebox.showerror(
+                        "Помилка","Інтервал керування повинен міститися всередині робочого інтервалу.",parent=sw
+                    ); return
                 item={
                     "work_start_time":ws,"work_end_time":we,"start_time":ds,"end_time":de,
                     "work_hours":minutes_to_db_hours(wh_min),"driving_hours":minutes_to_db_hours(dh_min),
                     "activity_type":x["activity_type"].get().strip(),"note":x["note"].get().strip()
                 }
-                if index is None: seg_data.append(item)
-                else: seg_data[index]=item
+                if index is None:
+                    seg_data.append(item)
+                else:
+                    seg_data[index]=item
                 redraw(); sw.destroy()
             ttk.Button(sw,text="Зберегти",command=save_seg).grid(row=8,column=1,sticky="e",padx=10,pady=10)
-        b=ttk.Frame(win); b.grid(row=6,column=1,columnspan=2,sticky="w",padx=10,pady=5)
-        ttk.Button(b,text="Додати частину",command=lambda:edit_seg()).pack(side="left",padx=3)
+
+        button_row=ttk.Frame(win); button_row.grid(row=9,column=1,columnspan=3,sticky="w",padx=10,pady=5)
+        ttk.Button(button_row,text="Додати частину",command=lambda:edit_seg()).pack(side="left",padx=3)
         def edit_selected():
-            sel=tree.selection();
-            if sel: edit_seg(int(tree.item(sel[0],"values")[0])-1)
-        ttk.Button(b,text="Редагувати",command=edit_selected).pack(side="left",padx=3)
+            sel=tree.selection()
+            if sel:
+                edit_seg(int(tree.item(sel[0],"values")[0])-1)
+        ttk.Button(button_row,text="Редагувати",command=edit_selected).pack(side="left",padx=3)
         def del_selected():
-            sel=tree.selection();
-            if sel: seg_data.pop(int(tree.item(sel[0],"values")[0])-1); redraw()
-        ttk.Button(b,text="Видалити",command=del_selected).pack(side="left",padx=3)
+            sel=tree.selection()
+            if sel:
+                seg_data.pop(int(tree.item(sel[0],"values")[0])-1); redraw()
+        ttk.Button(button_row,text="Видалити",command=del_selected).pack(side="left",padx=3)
         redraw()
+
         def save():
-            if not vv["name"].get().strip(): messagebox.showerror("Помилка","Вкажіть назву шаблону.",parent=win); return
-            if not seg_data: messagebox.showerror("Помилка","Додайте хоча б одну частину робочої зміни.",parent=win); return
+            name=vv["name"].get().strip()
+            if not name:
+                messagebox.showerror("Помилка","Вкажіть назву маршруту.",parent=win); return
+            if active.get() and not seg_data:
+                messagebox.showerror(
+                    "Помилка","Активний маршрут повинен мати хоча б одну точну частину робочої зміни.",parent=win
+                ); return
+            try:
+                start_day=int(vv["start_day_offset"].get()); end_day=int(vv["end_day_offset"].get())
+            except ValueError:
+                start_day=end_day=-1
+            if not (0 <= start_day <= 7 and start_day <= end_day <= 7):
+                messagebox.showerror("Маршрут","Дні мають бути від D+0 до D+7, а завершення не раніше початку.",parent=win); return
+            start_location=vv["start_location"].get().strip()
+            end_location=vv["end_location"].get().strip()
+            if active.get() and (not start_location or not end_location):
+                messagebox.showerror("Маршрут","Для активного маршруту вкажіть точку початку і завершення роботи.",parent=win); return
+            for direction,label in (("outbound","прямому"),("return","зворотному")):
+                previous=-1
+                for stop in stop_data[direction]:
+                    arrival_day=int(stop.get("arrival_day_offset",stop.get("day_offset",0))); departure_day=int(stop.get("departure_day_offset",stop.get("day_offset",0)))
+                    if min(arrival_day,departure_day) < start_day or max(arrival_day,departure_day) > end_day:
+                        messagebox.showerror("Маршрут",f"У {label} напрямку точка «{stop['stop_name']}» має день поза межами маршруту.",parent=win); return
+                    moments=[]
+                    if stop.get("arrival_time"): moments.append(arrival_day*1440+time_to_minutes(stop["arrival_time"]))
+                    if stop.get("departure_time"): moments.append(departure_day*1440+time_to_minutes(stop["departure_time"]))
+                    if moments and (moments!=sorted(moments) or moments[0]<previous):
+                        messagebox.showerror("Маршрут",f"У {label} напрямку порушена послідовність днів/часу біля точки «{stop['stop_name']}».",parent=win); return
+                    if moments: previous=moments[-1]
+            vehicle=vehicle_map.get(vv["vehicle"].get())
+            vehicle_text=self.vehicle_label(vehicle) if vehicle else vv["vehicle"].get().strip()
+            vehicle_id=vehicle["id"] if vehicle else None
             con=db()
             try:
-                if existing:
-                    tid=existing[0]["id"]; con.execute("UPDATE route_templates SET name=?,route_name=?,route_id=?,vehicle=?,vehicle_id=?,shift_type=?,notes=? WHERE id=?",(vv["name"].get().strip(),route_select.get().strip(),route_map[route_select.get()]["id"] if route_select.get() in route_map else None,vehicle_select.get().strip(),vehicle_map[vehicle_select.get()]["id"] if vehicle_select.get() in vehicle_map else None,vv["shift_type"].get(),vv["notes"].get().strip(),tid))
-                    con.execute("DELETE FROM route_template_segments WHERE template_id=?",(tid,))
+                if route:
+                    rid=route["id"]
+                    con.execute(
+                        """UPDATE routes SET
+                               name=?,code=?,description=?,vehicle=?,vehicle_id=?,shift_type=?,notes=?,active=?,
+                               start_location=?,end_location=?,start_direction=?,start_day_offset=?,end_day_offset=?
+                             WHERE id=?""",
+                        (name,vv["code"].get().strip(),vv["description"].get().strip(),
+                         vehicle_text,vehicle_id,vv["shift_type"].get(),vv["notes"].get().strip(),
+                         int(active.get()),start_location,end_location,vv["start_direction"].get(),start_day,end_day,rid)
+                    )
+                    con.execute("DELETE FROM route_segments WHERE route_id=?",(rid,))
+                    con.execute("DELETE FROM route_stops WHERE route_id=?",(rid,))
                 else:
-                    cur=con.execute("INSERT INTO route_templates(name,route_name,route_id,vehicle,vehicle_id,shift_type,notes,created_at) VALUES(?,?,?,?,?,?,?,?)",(vv["name"].get().strip(),route_select.get().strip(),route_map[route_select.get()]["id"] if route_select.get() in route_map else None,vehicle_select.get().strip(),vehicle_map[vehicle_select.get()]["id"] if vehicle_select.get() in vehicle_map else None,vv["shift_type"].get(),vv["notes"].get().strip(),datetime.now().isoformat(timespec="seconds"))); tid=cur.lastrowid
+                    cur=con.execute(
+                        """INSERT INTO routes(
+                               name,code,description,vehicle,vehicle_id,shift_type,notes,active,created_at,
+                               start_location,end_location,start_direction,start_day_offset,end_day_offset
+                           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        (name,vv["code"].get().strip(),vv["description"].get().strip(),
+                         vehicle_text,vehicle_id,vv["shift_type"].get(),vv["notes"].get().strip(),
+                         int(active.get()),datetime.now().isoformat(timespec="seconds"),start_location,end_location,
+                         vv["start_direction"].get(),start_day,end_day)
+                    )
+                    rid=cur.lastrowid
                 for i,r in enumerate(seg_data,1):
-                    con.execute("INSERT INTO route_template_segments(template_id,segment_no,start_time,end_time,work_start_time,work_end_time,work_hours,driving_hours,activity_type,note) VALUES(?,?,?,?,?,?,?,?,?,?)",
-                                (tid,i,r["start_time"],r["end_time"],r["work_start_time"],r["work_end_time"],r["work_hours"],r["driving_hours"],r["activity_type"],r["note"]))
+                    con.execute(
+                        """INSERT INTO route_segments(
+                               route_id,segment_no,start_time,end_time,work_start_time,work_end_time,
+                               work_hours,driving_hours,activity_type,note
+                           ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                        (rid,i,r["start_time"],r["end_time"],r["work_start_time"],r["work_end_time"],
+                        r["work_hours"],r["driving_hours"],r["activity_type"],r["note"])
+                    )
+                for direction in ("outbound","return"):
+                    for i,stop in enumerate(stop_data[direction],1):
+                        con.execute(
+                            """INSERT INTO route_stops(route_id,direction,stop_no,stop_name,arrival_time,departure_time,note,day_offset,arrival_day_offset,departure_day_offset,point_type)
+                               VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                            (rid,direction,i,stop["stop_name"],stop["arrival_time"],stop["departure_time"],stop["note"],
+                             int(stop.get("day_offset",0)),int(stop.get("arrival_day_offset",stop.get("day_offset",0))),
+                             int(stop.get("departure_day_offset",stop.get("day_offset",0))),stop.get("point_type","Зупинка"))
+                        )
                 con.commit()
             except sqlite3.IntegrityError as e:
-                con.rollback(); messagebox.showerror("Помилка",f"Не вдалося зберегти шаблон. Назва має бути унікальною.\n{e}",parent=win); return
-            finally: con.close()
-            win.destroy(); self.load_route_templates()
-        ttk.Button(win,text="Зберегти шаблон",command=save).grid(row=8,column=2,sticky="e",padx=10,pady=10)
+                con.rollback()
+                messagebox.showerror(
+                    "Помилка",f"Не вдалося зберегти маршрут. Назва має бути унікальною.\n{e}",parent=win
+                ); return
+            finally:
+                con.close()
+            win.destroy(); self.load_route_catalog()
 
-    def edit_route_template(self):
-        item=self.selected_route_template()
-        if item: self.route_template_form(item)
+        ttk.Button(win,text="Зберегти маршрут",command=save).grid(row=10,column=3,sticky="e",padx=10,pady=10)
 
-    def delete_route_template(self):
-        item=self.selected_route_template()
-        if not item: return
-        if not messagebox.askyesno("Підтвердження","Видалити цей шаблон маршруту?"): return
-        con=db(); con.execute("DELETE FROM route_templates WHERE id=?",(item[0]["id"],)); con.commit(); con.close(); self.load_route_templates()
+    def edit_route_catalog(self):
+        item=self.selected_route_catalog()
+        if item:
+            self.route_catalog_form(item)
+
+    def delete_route_catalog(self):
+        item=self.selected_route_catalog()
+        if not item:
+            return
+        route=item[0]
+        if messagebox.askyesno(
+            "Підтвердження",
+            "Вимкнути цей маршрут? Історичні записи табеля та його часовий сценарій залишаться.",
+            parent=self
+        ):
+            con=db(); con.execute("UPDATE routes SET active=0 WHERE id=?",(route["id"],)); con.commit(); con.close()
+            self.load_route_catalog()
 
     def tacho_drivers(self):
         con=db(); rows=con.execute("SELECT * FROM drivers WHERE active=1 ORDER BY last_name, first_name").fetchall(); con.close(); return rows
@@ -6938,16 +9349,23 @@ class App(tk.Tk):
 
         hbar=ttk.Frame(hist)
         hbar.pack(fill="x",padx=6,pady=(6,2))
-        ttk.Button(hbar,text="DOCX",command=lambda:self.open_att_file("docx")).pack(side="left",padx=3)
-        ttk.Button(hbar,text="PDF",command=lambda:self.open_att_file("pdf")).pack(side="left",padx=3)
-        ttk.Button(hbar,text="JPG",command=lambda:self.open_att_file("jpg")).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Папка файла",command=self.open_att_folder).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Архів файлів",command=self.open_att_archive_folder).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Редагувати",command=self.edit_selected_attestation).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Вилучити з контролю",command=self.delete_selected_attestation).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Відновити",command=self.restore_selected_attestation).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Видалити назавжди",command=self.purge_selected_attestation).pack(side="left",padx=3)
-        ttk.Button(hbar,text="Історія змін",command=self.show_attestation_audit).pack(side="left",padx=3)
+        open_bar=ttk.Frame(hbar)
+        open_bar.pack(fill="x")
+        ttk.Label(open_bar,text="Відкрити:").pack(side="left",padx=(3,1))
+        ttk.Button(open_bar,text="DOCX",command=lambda:self.open_att_file("docx")).pack(side="left",padx=3)
+        ttk.Button(open_bar,text="PDF",command=lambda:self.open_att_file("pdf")).pack(side="left",padx=3)
+        ttk.Button(open_bar,text="JPG",command=lambda:self.open_att_file("jpg")).pack(side="left",padx=3)
+        ttk.Button(open_bar,text="Папка файла",command=self.open_att_folder).pack(side="left",padx=3)
+        ttk.Button(open_bar,text="Архів файлів",command=self.open_att_archive_folder).pack(side="left",padx=3)
+
+        manage_bar=ttk.Frame(hbar)
+        manage_bar.pack(fill="x",pady=(4,0))
+        ttk.Label(manage_bar,text="Дії:").pack(side="left",padx=(3,1))
+        ttk.Button(manage_bar,text="Редагувати",command=self.edit_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(manage_bar,text="Вилучити з контролю",command=self.delete_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(manage_bar,text="Відновити",command=self.restore_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(manage_bar,text="Видалити назавжди",command=self.purge_selected_attestation).pack(side="left",padx=3)
+        ttk.Button(manage_bar,text="Історія змін",command=self.show_attestation_audit).pack(side="left",padx=3)
 
         filter_bar=ttk.Frame(hist)
         filter_bar.pack(fill="x",padx=6,pady=(2,4))
@@ -7007,36 +9425,38 @@ class App(tk.Tk):
         win=tk.Toplevel(self)
         self.att_gap_win=win
         win.title("Контроль бланків — 56 днів + поточний період до виїзду")
-        win.geometry("1250x650")
-        win.minsize(900,500)
-        win.resizable(True,True)
+        fit_window_to_screen(win,1250,650,900,500)
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
+        control_bar=ttk.Frame(top)
+        control_bar.pack(fill="x")
 
         self.att_gap_control_date=tk.StringVar(
             value=self.att_date.get().strip() if hasattr(self,"att_date") else date.today().strftime("%d.%m.%Y")
         )
-        ttk.Label(top,text="День контролю:").pack(side="left")
-        ttk.Entry(top,textvariable=self.att_gap_control_date,width=13).pack(side="left",padx=5)
-        calendar_button(top,self.att_gap_control_date).pack(side="left",padx=2)
+        ttk.Label(control_bar,text="День контролю:").pack(side="left")
+        ttk.Entry(control_bar,textvariable=self.att_gap_control_date,width=13).pack(side="left",padx=5)
+        calendar_button(control_bar,self.att_gap_control_date).pack(side="left",padx=2)
         ttk.Button(
-            top,text="Перевірити",command=self.refresh_attestation_gap_control
-        ).pack(side="left",padx=8)
-        ttk.Button(
-            top,text="Підставити у форму",
-            command=self.use_selected_attestation_gap
+            control_bar,text="Перевірити",command=self.refresh_attestation_gap_control
         ).pack(side="left",padx=8)
 
         self.att_gap_activity=tk.StringVar(value=f"16 — {ACTIVITIES[16]}")
-        ttk.Label(top,text="Позиція:").pack(side="left",padx=(8,3))
+        ttk.Label(control_bar,text="Позиція:").pack(side="left",padx=(8,3))
         ttk.Combobox(
-            top,textvariable=self.att_gap_activity,state="readonly",width=31,
+            control_bar,textvariable=self.att_gap_activity,state="readonly",width=31,
             values=[f"{n} — {ACTIVITIES[n]}" for n in ACTIVITIES]
         ).pack(side="left",padx=3)
 
+        action_bar=ttk.Frame(top)
+        action_bar.pack(fill="x",pady=(5,0))
         ttk.Button(
-            top,text="Сформувати Бланк підтвердження",
+            action_bar,text="Підставити у форму",
+            command=self.use_selected_attestation_gap
+        ).pack(side="left",padx=(0,8))
+        ttk.Button(
+            action_bar,text="Сформувати Бланк підтвердження",
             command=self.create_selected_gap_attestation
         ).pack(side="left",padx=8)
 
@@ -7465,7 +9885,7 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         win.title(f"Редагування Бланка підтвердження №{att_id}")
-        win.geometry("760x390")
+        fit_window_to_screen(win,760,390,650,360)
         win.transient(self)
         win.grab_set()
 
@@ -7636,10 +10056,7 @@ class App(tk.Tk):
 
     def open_att_archive_folder(self):
         ATT_ARCHIVE_DIR.mkdir(parents=True,exist_ok=True)
-        if os.name=="nt":
-            os.startfile(str(ATT_ARCHIVE_DIR))
-        else:
-            subprocess.Popen(["xdg-open",str(ATT_ARCHIVE_DIR)])
+        open_external(ATT_ARCHIVE_DIR)
 
     def purge_selected_attestation(self):
         """Фізично видаляє вже вилучений бланк, його аудит і файли.
@@ -7737,7 +10154,7 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         win.title(f"Історія змін Бланка №{att_id}")
-        win.geometry("1350x520")
+        fit_window_to_screen(win,1350,520,850,440)
         win.transient(self)
 
         cols=("when","action","revision","from","to","activity","status","note","files")
@@ -7852,7 +10269,7 @@ class App(tk.Tk):
         if not path or not os.path.exists(path):
             messagebox.showerror("Помилка","Файл не знайдено.",parent=self)
             return
-        os.startfile(path) if os.name=="nt" else subprocess.Popen(["xdg-open",path])
+        open_external(path)
 
     def open_att_file(self, kind=None):
         row=self._selected_attestation_row()
@@ -7882,10 +10299,7 @@ class App(tk.Tk):
             messagebox.showinfo("Бланки","Для цього запису немає збереженого файлу.",parent=self)
             return
         folder=str(Path(path).parent)
-        if os.name=="nt":
-            os.startfile(folder)
-        else:
-            subprocess.Popen(["xdg-open",folder])
+        open_external(folder)
 
 if __name__ == "__main__":
     migrated, old_db = init_db()
