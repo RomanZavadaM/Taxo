@@ -1,0 +1,184 @@
+--- main_r8_reference.py	2026-09-14 09:48:06.445113314 +0000
++++ main.py	2026-09-14 09:55:47.627010164 +0000
+@@ -417,7 +417,7 @@
+ WORK_MODE_MANUAL = "manual"
+ 
+ WORK_MODE_LABELS = {
+-    WORK_MODE_TACHO: "Маршрут / шаблон — план керування",
++    WORK_MODE_TACHO: "Маршрут — план керування",
+     WORK_MODE_NO_TACHO: "Без тахо — стандартні 8 год",
+     WORK_MODE_MANUAL: "Інше / ручний облік",
+ }
+@@ -540,10 +540,30 @@
+         name TEXT NOT NULL UNIQUE,
+         code TEXT DEFAULT '',
+         description TEXT DEFAULT '',
++        vehicle TEXT DEFAULT '',
++        vehicle_id INTEGER,
++        shift_type TEXT DEFAULT 'Безперервна',
++        notes TEXT DEFAULT '',
++        legacy_template_id INTEGER,
+         active INTEGER DEFAULT 1,
+         created_at TEXT NOT NULL
+     );
+ 
++    CREATE TABLE IF NOT EXISTS route_segments (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
++        segment_no INTEGER NOT NULL,
++        start_time TEXT DEFAULT '', -- план керування: початок
++        end_time TEXT DEFAULT '',   -- план керування: кінець
++        work_start_time TEXT DEFAULT '',
++        work_end_time TEXT DEFAULT '',
++        work_hours REAL DEFAULT 0,
++        driving_hours REAL DEFAULT 0,
++        activity_type TEXT DEFAULT 'Робота',
++        note TEXT DEFAULT '',
++        UNIQUE(route_id, segment_no)
++    );
++
+     CREATE TABLE IF NOT EXISTS route_templates (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT NOT NULL UNIQUE,
+@@ -712,11 +732,142 @@
+     if "route_id" not in rcols:
+         con.execute("ALTER TABLE route_templates ADD COLUMN route_id INTEGER")
+ 
++    # v8.66 r9: функціонально об'єднуємо «Маршрути» і «Шаблони маршрутів».
++    # Старі таблиці route_templates/route_template_segments НЕ видаляємо — це
++    # страховочний legacy-шар. Новий інтерфейс працює тільки з routes +
++    # route_segments: один маршрут = один конкретний часовий сценарій.
++    route_cols = {r[1] for r in con.execute("PRAGMA table_info(routes)").fetchall()}
++    for name, ddl in [
++        ("vehicle", "TEXT DEFAULT ''"),
++        ("vehicle_id", "INTEGER"),
++        ("shift_type", "TEXT DEFAULT 'Безперервна'"),
++        ("notes", "TEXT DEFAULT ''"),
++        ("legacy_template_id", "INTEGER"),
++    ]:
++        if name not in route_cols:
++            con.execute(f"ALTER TABLE routes ADD COLUMN {name} {ddl}")
++    con.execute("""
++        CREATE TABLE IF NOT EXISTS route_segments (
++            id INTEGER PRIMARY KEY AUTOINCREMENT,
++            route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
++            segment_no INTEGER NOT NULL,
++            start_time TEXT DEFAULT '',
++            end_time TEXT DEFAULT '',
++            work_start_time TEXT DEFAULT '',
++            work_end_time TEXT DEFAULT '',
++            work_hours REAL DEFAULT 0,
++            driving_hours REAL DEFAULT 0,
++            activity_type TEXT DEFAULT 'Робота',
++            note TEXT DEFAULT '',
++            UNIQUE(route_id, segment_no)
++        )
++    """)
++
++    unify_key = "routes_unified_v8_66_r9"
++    unified = con.execute("SELECT value FROM app_settings WHERE key=?", (unify_key,)).fetchone()
++    if not unified:
++        templates = con.execute("SELECT * FROM route_templates ORDER BY id").fetchall()
++        for t in templates:
++            target = None
++            if "route_id" in t.keys() and t["route_id"]:
++                target = con.execute("SELECT * FROM routes WHERE id=?", (t["route_id"],)).fetchone()
++
++            route_name = (t["route_name"] or "").strip() if "route_name" in t.keys() else ""
++            if target is None and route_name:
++                # У старих шаблонах route_name часто зберігався як відображуваний
++                # «код — назва». Спочатку намагаємося знайти відповідний каталог.
++                candidates = con.execute("SELECT * FROM routes ORDER BY id").fetchall()
++                for r in candidates:
++                    label = " — ".join(x for x in ((r["code"] or "").strip(), (r["name"] or "").strip()) if x)
++                    if route_name in {(r["name"] or "").strip(), label}:
++                        target = r
++                        break
++
++            # Якщо до одного legacy-маршруту було прив'язано кілька шаблонів,
++            # не втрачаємо жоден: перший наповнює маршрут, наступний стає
++            # окремим маршрутом з назвою старого шаблону.
++            if target is not None:
++                has_segments = con.execute(
++                    "SELECT 1 FROM route_segments WHERE route_id=? LIMIT 1", (target["id"],)
++                ).fetchone()
++                if has_segments:
++                    target = None
++
++            if target is None:
++                code = ""
++                name = route_name or (t["name"] or "").strip() or f"Маршрут {t['id']}"
++                if " — " in name:
++                    maybe_code, maybe_name = name.split(" — ", 1)
++                    if maybe_code.strip() and maybe_name.strip():
++                        code, name = maybe_code.strip(), maybe_name.strip()
++                existing_name = con.execute("SELECT id FROM routes WHERE name=?", (name,)).fetchone()
++                if existing_name:
++                    base = (t["name"] or "").strip() or name
++                    candidate = base
++                    suffix = 2
++                    while con.execute("SELECT 1 FROM routes WHERE name=?", (candidate,)).fetchone():
++                        candidate = f"{base} ({suffix})"
++                        suffix += 1
++                    name = candidate
++                cur = con.execute(
++                    """INSERT INTO routes(
++                           name,code,description,vehicle,vehicle_id,shift_type,notes,
++                           legacy_template_id,active,created_at
++                       ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
++                    (
++                        name, code, "",
++                        (t["vehicle"] or "") if "vehicle" in t.keys() else "",
++                        t["vehicle_id"] if "vehicle_id" in t.keys() else None,
++                        (t["shift_type"] or "Безперервна") if "shift_type" in t.keys() else "Безперервна",
++                        (t["notes"] or "") if "notes" in t.keys() else "",
++                        t["id"], int(t["active"] if "active" in t.keys() else 1),
++                        t["created_at"] or datetime.now().isoformat(timespec="seconds"),
++                    )
++                )
++                target = con.execute("SELECT * FROM routes WHERE id=?", (cur.lastrowid,)).fetchone()
++            else:
++                con.execute(
++                    """UPDATE routes
++                          SET vehicle=?, vehicle_id=?, shift_type=?, notes=?, legacy_template_id=?
++                        WHERE id=?""",
++                    (
++                        (t["vehicle"] or "") if "vehicle" in t.keys() else "",
++                        t["vehicle_id"] if "vehicle_id" in t.keys() else None,
++                        (t["shift_type"] or "Безперервна") if "shift_type" in t.keys() else "Безперервна",
++                        (t["notes"] or "") if "notes" in t.keys() else "",
++                        t["id"], target["id"],
++                    )
++                )
++
++            legacy_segments = con.execute(
++                "SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no", (t["id"],)
++            ).fetchall()
++            for s in legacy_segments:
++                ds = (s["start_time"] or "").strip()
++                de = (s["end_time"] or "").strip()
++                ws = (s["work_start_time"] or "").strip() or ds
++                we = (s["work_end_time"] or "").strip() or de
++                con.execute(
++                    """INSERT OR REPLACE INTO route_segments(
++                           route_id,segment_no,start_time,end_time,work_start_time,work_end_time,
++                           work_hours,driving_hours,activity_type,note
++                       ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
++                    (
++                        target["id"], s["segment_no"], ds, de, ws, we,
++                        s["work_hours"], s["driving_hours"], s["activity_type"], s["note"],
++                    )
++                )
++
++        con.execute(
++            "INSERT INTO app_settings(key,value) VALUES(?,?)",
++            (unify_key, datetime.now().isoformat(timespec="seconds"))
++        )
++
+     # v8.65 r2: кожен інтервал має окрему пару початок/кінець для
+     # робочого часу та для керування. Старі start_time/end_time НЕ
+     # перейменовуємо у БД для сумісності: відтепер це саме інтервал
+     # КЕРУВАННЯ. Для роботи додаємо work_start_time/work_end_time.
+-    for table in ("work_segments", "route_template_segments"):
++    for table in ("work_segments", "route_template_segments", "route_segments"):
+         scols={r[1] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}
