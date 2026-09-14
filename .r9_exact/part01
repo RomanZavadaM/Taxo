@@ -1,0 +1,187 @@
+         if "work_start_time" not in scols:
+             con.execute(f"ALTER TABLE {table} ADD COLUMN work_start_time TEXT DEFAULT ''")
+@@ -744,7 +895,7 @@
+                 # штатний auto-backup усе одно виконується нижче.
+                 pass
+ 
+-        for table in ("work_segments","route_template_segments"):
++        for table in ("work_segments","route_template_segments","route_segments"):
+             con.execute(f"""
+                 UPDATE {table}
+                    SET driving_hours = CASE
+@@ -819,7 +970,7 @@
+             except Exception:
+                 return 0
+ 
+-        for table in ("work_segments","route_template_segments"):
++        for table in ("work_segments","route_template_segments","route_segments"):
+             rows_i=con.execute(f"SELECT id,start_time,end_time,work_start_time,work_end_time FROM {table}").fetchall()
+             for rr in rows_i:
+                 ds=(rr["start_time"] or "").strip(); de=(rr["end_time"] or "").strip()
+@@ -3832,7 +3983,8 @@
+ 
+ def calendar_button(parent, variable):
+     # Text label instead of an emoji so the button is visible on every Windows font setup.
+-    return ttk.Button(parent, text="Дата…", width=7,
++    # r9: width=6 keeps the button inside 900 px layouts without changing its label.
++    return ttk.Button(parent, text="Дата…", width=6,
+                       command=lambda: show_calendar_picker(parent, variable))
+ 
+ 
+@@ -4175,7 +4327,6 @@
+             ("Автомобілі", self.tab_vehicles),
+             ("Табель", self.tab_work),
+             ("Графік водіїв", self.tab_schedule),
+-            ("Шаблони маршрутів", self.tab_routes),
+             ("Маршрути", self.tab_route_catalog),
+             ("Підтвердження діяльності", self.tab_att),
+             ("Тахограф — шайби", self.tab_tacho),
+@@ -4192,7 +4343,6 @@
+         service_menu.add_command(label="Місячний табель / баланс часу", command=self.show_monthly_work_balance)
+         service_menu.add_command(label="Контроль бланків — 56 днів + поточний", command=self.show_attestation_gap_control)
+         service_menu.add_command(label="Маршрути", command=lambda: self.show_tab(self.tab_route_catalog))
+-        service_menu.add_command(label="Шаблони маршрутів", command=lambda: self.show_tab(self.tab_routes))
+         service_menu.add_command(label="Автомобілі", command=lambda: self.show_tab(self.tab_vehicles))
+         if TachographModule:
+             service_menu.add_command(label="Тахограф — шайби", command=lambda: self.show_tab(self.tab_tacho))
+@@ -4201,7 +4351,7 @@
+         help_menu.add_command(
+             label="Про програму",
+             command=lambda: messagebox.showinfo(
+-                "Taxo v8.66 candidate r8",
++                "Taxo v8.66 candidate r9",
+                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
+                 "Кандидат інтерфейсу на базі стабільної v8.65.\n"
+                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
+@@ -4260,7 +4410,6 @@
+         self.tab_vehicles = ttk.Frame(nb)
+         self.tab_work = ttk.Frame(nb)
+         self.tab_schedule = ttk.Frame(nb)
+-        self.tab_routes = ttk.Frame(nb)
+         self.tab_route_catalog = ttk.Frame(nb)
+         self.tab_att = ttk.Frame(nb)
+         self.tab_tacho = ttk.Frame(nb)
+@@ -4269,7 +4418,6 @@
+         nb.add(self.tab_vehicles, text="Автомобілі")
+         nb.add(self.tab_work, text="Табель")
+         nb.add(self.tab_schedule, text="Графік водіїв")
+-        nb.add(self.tab_routes, text="Шаблони маршрутів")
+         nb.add(self.tab_route_catalog, text="Маршрути")
+         nb.add(self.tab_att, text="Підтвердження діяльності")
+         nb.add(self.tab_tacho, text="Тахограф — шайби")
+@@ -4281,9 +4429,9 @@
+                 pass
+         nb.bind("<<NotebookTabChanged>>", remember_tab, add="+")
+         self.main_notebook=nb
+-        # Alt+1…Alt+9 — швидкий перехід між розділами, навіть якщо вкладка
++        # Alt+1…Alt+8 — швидкий перехід між розділами, навіть якщо вкладка
+         # фізично не помістилась у рядку Notebook.
+-        for tab_index in range(9):
++        for tab_index in range(8):
+             self.bind_all(
+                 f"<Alt-Key-{tab_index+1}>",
+                 lambda _event, idx=tab_index: (nb.select(idx), "break")[1],
+@@ -4291,6 +4439,12 @@
+             )
+         try:
+             saved_tab=int(get_setting("main_last_tab", "0") or 0)
++            # r9 прибрав окрему вкладку «Шаблони маршрутів». Переносимо
++            # індекс останньої вкладки зі старої 9-вкладкової схеми.
++            if not get_setting("main_tabs_r9_migrated", ""):
++                saved_tab={5:5, 6:5, 7:6, 8:7}.get(saved_tab, saved_tab)
++                set_setting("main_last_tab", saved_tab)
++                set_setting("main_tabs_r9_migrated", "1")
+             if 0 <= saved_tab < nb.index("end"):
+                 nb.select(saved_tab)
+         except (ValueError, tk.TclError):
+@@ -4301,7 +4455,6 @@
+         self.build_vehicles()
+         self.build_work()
+         self.build_schedule()
+-        self.build_routes()
+         self.build_route_catalog()
+         self.build_attestation()
+         if TachographModule:
+@@ -4562,7 +4715,6 @@
+             self.load_drivers()
+             self.load_vehicles()
+             self.load_route_catalog()
+-            self.load_route_templates()
+             self.refresh_month()
+             self.refresh_schedule()
+             self.load_att_history()
+@@ -5478,6 +5630,10 @@
+ 
+         top=ttk.Frame(win,padding=8)
+         top.pack(fill="x")
++        controls=ttk.Frame(top)
++        controls.pack(fill="x")
++        exports=ttk.Frame(top)
++        exports.pack(fill="x",pady=(5,0))
+ 
+         self.monthly_shift_year=tk.IntVar(value=schedule_year)
+         self.monthly_shift_month=tk.IntVar(value=schedule_month)
+@@ -5487,38 +5643,38 @@
+         self.monthly_shift_last_detail_pdf=None
+         self.monthly_shift_last_xlsx=None
+ 
+-        ttk.Label(top,text="Рік:").pack(side="left")
++        ttk.Label(controls,text="Рік:").pack(side="left")
+         ttk.Spinbox(
+-            top,from_=2020,to=2100,textvariable=self.monthly_shift_year,width=7,
++            controls,from_=2020,to=2100,textvariable=self.monthly_shift_year,width=7,
+             command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=(3,8))
+ 
+-        ttk.Label(top,text="Місяць:").pack(side="left")
++        ttk.Label(controls,text="Місяць:").pack(side="left")
+         ttk.Spinbox(
+-            top,from_=1,to=12,textvariable=self.monthly_shift_month,width=4,
++            controls,from_=1,to=12,textvariable=self.monthly_shift_month,width=4,
+             command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=(3,8))
+ 
+         ttk.Checkbutton(
+-            top,text="Тільки активні водії",
++            controls,text="Тільки активні водії",
+             variable=self.monthly_shift_active_only,
+             command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=(4,10))
+ 
+         ttk.Button(
+-            top,text="Оновити",command=self.refresh_monthly_shift_schedule
++            controls,text="Оновити",command=self.refresh_monthly_shift_schedule
+         ).pack(side="left",padx=3)
+         ttk.Button(
+-            top,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
+-        ).pack(side="left",padx=(12,3))
++            exports,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
++        ).pack(side="left",padx=(0,3))
+         ttk.Button(
+-            top,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
++            exports,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
+         ).pack(side="left",padx=3)
+         ttk.Button(
+-            top,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
++            exports,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
+         ).pack(side="left",padx=3)
+         ttk.Button(
+-            top,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
++            exports,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
+         ).pack(side="left",padx=3)
+ 
+         ttk.Label(
+@@ -6002,7 +6158,6 @@
+         work_id=int(vals[0]) if vals[0] else None
+         date_text=vals[1]
+         con=db(); existing=con.execute("SELECT * FROM worklog WHERE id=?",(work_id,)).fetchone() if work_id else None
+-        templates=con.execute("SELECT * FROM route_templates WHERE active=1 ORDER BY name").fetchall()
+         routes=con.execute("SELECT * FROM routes WHERE active=1 ORDER BY name").fetchall()
+         vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall()
+         con.close()
+@@ -6040,10 +6195,11 @@
+         ).grid(row=0,column=6,padx=4,sticky="w")
+ 
+         ttk.Label(top,text="Маршрут").grid(row=1,column=0,padx=4,pady=4,sticky="w")
+-        ttk.Combobox(
++        route_combo=ttk.Combobox(
