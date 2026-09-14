@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.70 candidate r3 — Windows onedir build.
+# Taxo v8.70 candidate r4 — Windows onedir build.
 # User databases are never bundled.
 
 a = Analysis(
@@ -45,4 +45,3 @@ coll = COLLECT(
     upx_exclude=[],
     name='Taxo',
 )
-

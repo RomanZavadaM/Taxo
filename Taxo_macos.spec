@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.70 candidate r3 — native macOS application bundle.
+# Taxo v8.70 candidate r4 — native macOS application bundle.
 # Build separately on Apple Silicon and Intel; user databases are forbidden.
 
 a = Analysis(
@@ -59,4 +59,3 @@ app = BUNDLE(
         'NSHighResolutionCapable': True,
     },
 )
-

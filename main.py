@@ -456,6 +456,18 @@ def db():
     return con
 
 
+def finish_driver_role(con, employee_id, driver_id, end_date):
+    """Завершити лише роль водія, не видаляючи працівника чи історію."""
+    con.execute(
+        "UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",
+        (end_date,driver_id),
+    )
+    con.execute(
+        "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
+        (employee_id,),
+    )
+
+
 def get_setting(key, default=""):
     try:
         con=db(); r=con.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone(); con.close()
@@ -519,6 +531,7 @@ def init_db():
         license_issue_date TEXT DEFAULT '',
         license_issued_by TEXT DEFAULT '', -- legacy для старих баз
         employment_date TEXT DEFAULT '',
+        driver_end_date TEXT DEFAULT '',
         notes TEXT DEFAULT '',
         active INTEGER DEFAULT 1,
         created_at TEXT NOT NULL
@@ -712,6 +725,7 @@ def init_db():
         worklog_id INTEGER NOT NULL REFERENCES worklog(id) ON DELETE CASCADE,
         driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
         work_date TEXT NOT NULL,
+        work_end_date TEXT DEFAULT '',
         issue_year INTEGER NOT NULL,
         issue_seq INTEGER NOT NULL,
         waybill_no TEXT NOT NULL UNIQUE,
@@ -836,6 +850,7 @@ def init_db():
         ("last_name_en", "TEXT DEFAULT ''"),
         ("first_name_en", "TEXT DEFAULT ''"),
         ("middle_name_en", "TEXT DEFAULT ''"),
+        ("driver_end_date", "TEXT DEFAULT ''"),
     ]:
         if name not in dcols:
             con.execute(f"ALTER TABLE drivers ADD COLUMN {name} {ddl}")
@@ -861,6 +876,7 @@ def init_db():
         if name not in wbcols:
             con.execute(f"ALTER TABLE waybills ADD COLUMN {name} TEXT DEFAULT ''")
     for name, ddl in [
+        ("work_end_date", "TEXT DEFAULT ''"),
         ("number_pool_id", "INTEGER"),
         ("document_series", "TEXT DEFAULT ''"),
         ("document_number", "TEXT DEFAULT ''"),
@@ -872,6 +888,7 @@ def init_db():
     ]:
         if name not in wbcols:
             con.execute(f"ALTER TABLE waybills ADD COLUMN {name} {ddl}")
+    con.execute("UPDATE waybills SET work_end_date=work_date WHERE COALESCE(work_end_date,'')=''")
     con.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_waybills_document_no "
         "ON waybills(document_series,document_number) WHERE COALESCE(document_number,'')<>''"
@@ -1390,6 +1407,119 @@ def time_to_minutes(value):
 def parse_hhmm(value):
     """Перевірити HH:MM і повернути кількість хвилин від початку доби."""
     return time_to_minutes(value)
+
+
+def waybill_date_range_label(start_date, end_date=None):
+    """Дата або повний інтервал дат однієї багатодобової шляхівки."""
+    if isinstance(start_date, str):
+        start_date=datetime.strptime(start_date, "%Y-%m-%d").date()
+    if isinstance(end_date, str):
+        end_date=datetime.strptime(end_date, "%Y-%m-%d").date()
+    end_date=end_date or start_date
+    if end_date <= start_date:
+        return start_date.strftime("%d.%m.%Y")
+    return f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}"
+
+
+ROUTE_POINT_TYPES=("АТП","Зупинка","Автостанція","Відпочинок","Нічліг","Інше")
+
+
+def parse_route_schedule_text(raw, start_day=0):
+    """Вставлені рядки маршруту з автоматичним обчисленням D+.
+
+    Формат рядка: назва; прибуття; відправлення; тип; примітка.
+    Роздільником може бути Tab, крапка з комою або вертикальна риска.
+    Явний день необов'язковий: D+1 00:40. Без нього перехід через
+    північ визначається за зменшенням часу.
+    """
+    rows=[]
+    current_day=max(0,int(start_day or 0))
+    previous_abs=None
+
+    def parse_moment(token):
+        nonlocal current_day,previous_abs
+        token=(token or "").strip()
+        if token in {"","-","—"}:
+            return current_day,""
+        match=re.fullmatch(r"(?:D\+\s*(\d+)\s+)?(\d{1,2}:\d{2})",token,re.IGNORECASE)
+        if not match:
+            raise ValueError(f"Невірний час «{token}». Використовуйте ГГ:ХХ або D+1 ГГ:ХХ.")
+        explicit=match.group(1)
+        value=match.group(2)
+        minutes=time_to_minutes(value)
+        day=int(explicit) if explicit is not None else current_day
+        absolute=day*1440+minutes
+        if explicit is None and previous_abs is not None and absolute<previous_abs:
+            day=previous_abs//1440+1
+            absolute=day*1440+minutes
+        if not 0<=day<=7:
+            raise ValueError("Автоматичний день вийшов за межі D+0…D+7.")
+        current_day=day
+        previous_abs=absolute
+        return day,value
+
+    for line_no,line in enumerate((raw or "").splitlines(),1):
+        line=line.strip()
+        if not line:
+            continue
+        separator="\t" if "\t" in line else ";" if ";" in line else "|" if "|" in line else None
+        parts=[part.strip() for part in (line.split(separator) if separator else [line])]
+        name=parts[0] if parts else ""
+        if name.casefold() in {"назва","зупинка","назва точки","точка маршруту"}:
+            continue
+        if not name:
+            raise ValueError(f"Рядок {line_no}: немає назви точки.")
+        single_time=len(parts)==2
+        arrival_token=parts[1] if len(parts)>1 else ""
+        departure_token=parts[1] if single_time else parts[2] if len(parts)>2 else ""
+        point_type=parts[3] if len(parts)>3 else "Зупинка"
+        note=parts[4] if len(parts)>4 else ""
+        if point_type not in ROUTE_POINT_TYPES:
+            note="; ".join(x for x in (point_type,note) if x)
+            point_type="Зупинка"
+        arrival_day,arrival_time=parse_moment(arrival_token)
+        departure_day,departure_time=parse_moment(departure_token)
+        rows.append({
+            "stop_name":name,
+            "arrival_time":arrival_time,
+            "departure_time":departure_time,
+            "note":note,
+            "day_offset":arrival_day if arrival_time else departure_day,
+            "arrival_day_offset":arrival_day,
+            "departure_day_offset":departure_day,
+            "point_type":point_type,
+            "_single_time":single_time,
+        })
+        if len(rows)>15:
+            raise ValueError("У напрямку може бути не більше 15 точок форми № 1-АП.")
+    if not rows:
+        raise ValueError("Вставте хоча б одну точку маршруту.")
+    # У найпростішому двоколонковому варіанті «Точка | Час» перша
+    # точка має лише відправлення, остання — лише прибуття, а проміжні
+    # використовують один плановий час для обох граф форми.
+    for index,row in enumerate(rows):
+        if row.pop("_single_time",False):
+            if index==0:
+                row["arrival_time"]=""
+            if index==len(rows)-1:
+                row["departure_time"]=""
+            row["day_offset"]=row["arrival_day_offset"] if row["arrival_time"] else row["departure_day_offset"]
+    return rows
+
+
+def route_schedule_to_text(rows):
+    def moment(day,value):
+        return f"D+{int(day or 0)} {value}" if value else ""
+    return "\n".join(
+        "\t".join((
+            str(row.get("stop_name","")),
+            moment(row.get("arrival_day_offset",0),row.get("arrival_time","")),
+            moment(row.get("departure_day_offset",0),row.get("departure_time","")),
+            str(row.get("point_type","Зупинка")),
+            str(row.get("note","")),
+        ))
+        for row in rows
+    )
 
 
 def duration_minutes(start, end):
@@ -4650,9 +4780,9 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.70 candidate r3",
+                "Taxo v8.70 candidate r4",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "v8.70 r3: єдиний реєстр працівників, пули номерів і багатодобові маршрути у формі № 1-АП.\n"
+                "v8.70 r4: просте вставлення маршрутів, одна шляхівка на інтервал дат і безпечне завершення ролі водія.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
                 parent=self
             )
@@ -5057,7 +5187,7 @@ class App(tk.Tk):
         ttk.Separator(top,orient="vertical").pack(side="left",fill="y",padx=6)
         ttk.Button(top, text="Новий водій", command=self.new_driver).pack(side="left", padx=4)
         ttk.Button(top, text="Редагувати", command=self.edit_driver).pack(side="left", padx=4)
-        ttk.Button(top, text="Вимкнути", command=self.delete_driver).pack(side="left", padx=4)
+        ttk.Button(top, text="Завершити роль водія", command=self.delete_driver).pack(side="left", padx=4)
         ttk.Button(top, text="Оновити", command=self.load_drivers).pack(side="left", padx=4)
 
         cols = ("id","name","birth","license","employment","active")
@@ -5134,11 +5264,16 @@ class App(tk.Tk):
             ttk.Entry(win,textvariable=values[key],width=48).grid(row=i,column=1,sticky="ew",padx=10,pady=5)
             if key in {"employment_date","dismissal_date"}: calendar_button(win,values[key]).grid(row=i,column=2,sticky="w",padx=(0,8))
         win.columnconfigure(1,weight=1)
-        role_box=ttk.LabelFrame(win,text="Ролі працівника",padding=8); role_box.grid(row=len(fields),column=0,columnspan=3,sticky="ew",padx=10,pady=8)
+        role_box=ttk.LabelFrame(win,text="Спеціальні ролі працівника (необов'язково)",padding=8); role_box.grid(row=len(fields),column=0,columnspan=3,sticky="ew",padx=10,pady=8)
         role_vars={}
         for i,role in enumerate(("Водій","Лікар","Механік","Диспетчер","Кондуктор","Інше")):
             role_vars[role]=tk.BooleanVar(value=role in current_roles)
             ttk.Checkbutton(role_box,text=role,variable=role_vars[role]).grid(row=i//3,column=i%3,sticky="w",padx=8,pady=3)
+        ttk.Label(
+            role_box,
+            text="Щоб зняти роль водія: приберіть прапорець «Водій» і натисніть «Зберегти». Історія графіка не видаляється.",
+            foreground="gray",wraplength=610,justify="left"
+        ).grid(row=2,column=0,columnspan=3,sticky="w",padx=8,pady=(7,2))
         active=tk.BooleanVar(value=bool(employee["active"]) if employee else True)
         ttk.Checkbutton(win,text="Працює",variable=active).grid(row=len(fields)+1,column=1,sticky="w",padx=10,pady=3)
         def save():
@@ -5146,10 +5281,26 @@ class App(tk.Tk):
             if not vals["last_name"] or not vals["first_name"]:
                 messagebox.showerror("Працівник","Прізвище та ім'я обов'язкові.",parent=win); return
             roles=[r for r,v in role_vars.items() if v.get()]
-            if not roles:
-                messagebox.showerror("Працівник","Виберіть хоча б одну роль.",parent=win); return
-            if employee and employee["driver_id"] and "Водій" not in roles:
-                messagebox.showerror("Працівник","Роль «Водій» знімається лише після завершення пов'язаної водійської картки; дані графіка видаляти не можна.",parent=win); return
+            closing_driver=bool(employee and employee["driver_id"] and "Водій" in current_roles and "Водій" not in roles)
+            driver_end_date=""
+            if closing_driver:
+                if not messagebox.askyesno(
+                    "Завершити роль водія",
+                    "Зняти роль «Водій»? Водійська картка стане неактивною, але весь старий графік, табель і шляхівки залишаться.",
+                    parent=win,
+                ):
+                    return
+                raw_end=simpledialog.askstring(
+                    "Дата завершення ролі",
+                    "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                    initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
+                )
+                if raw_end is None:
+                    return
+                try:
+                    driver_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                except ValueError:
+                    messagebox.showerror("Працівник","Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",parent=win); return
             for key in ("employment_date","dismissal_date"):
                 if vals[key]:
                     try: vals[key]=datetime.strptime(vals[key],"%d.%m.%Y").strftime("%Y-%m-%d")
@@ -5173,8 +5324,11 @@ class App(tk.Tk):
             con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
             con.executemany("INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",[(eid,r) for r in roles])
             if driver_id:
-                con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,notes=?,active=? WHERE id=?""",
-                    (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],vals["notes"],int(active.get()),driver_id))
+                driver_active=int(active.get() and "Водій" in roles)
+                con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,driver_end_date=?,notes=?,active=? WHERE id=?""",
+                    (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],"",vals["notes"],driver_active,driver_id))
+                if closing_driver:
+                    finish_driver_role(con,eid,driver_id,driver_end_date)
             con.commit(); con.close(); self.load_employee_registry(); self.load_drivers(); win.destroy()
         ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+2,column=1,sticky="e",padx=10,pady=12)
 
@@ -5413,8 +5567,17 @@ class App(tk.Tk):
     def delete_driver(self):
         d=self.selected_driver()
         if not d: return
-        if not messagebox.askyesno("Підтвердження","Вимкнути водія? Історія графіка, табеля та шляхівок залишиться."): return
-        con=db(); con.execute("UPDATE drivers SET active=0 WHERE id=?",(d["id"],)); con.execute("UPDATE employees SET active=0,dismissal_date=CASE WHEN COALESCE(dismissal_date,'')='' THEN ? ELSE dismissal_date END WHERE driver_id=?",(date.today().isoformat(),d["id"])); con.commit(); con.close(); self.load_drivers(); self.load_employee_registry()
+        if not messagebox.askyesno("Завершити роль водія","Зняти роль «Водій»? Працівник залишиться в реєстрі, а історія графіка, табеля та шляхівок не видалиться."): return
+        raw_end=simpledialog.askstring("Дата завершення ролі","Дата завершення роботи водієм (ДД.ММ.РРРР):",initialvalue=date.today().strftime("%d.%m.%Y"),parent=self)
+        if raw_end is None: return
+        try: end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+        except ValueError:
+            messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=self); return
+        con=db()
+        employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(d["id"],)).fetchone()
+        if employee: finish_driver_role(con,employee["id"],d["id"],end_date)
+        else: con.execute("UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",(end_date,d["id"]))
+        con.commit(); con.close(); self.load_drivers(); self.load_employee_registry()
     def selected_driver(self):
         sel=self.driver_tree.selection()
         if not sel: return None
@@ -6975,7 +7138,7 @@ class App(tk.Tk):
             out.append({
                 "worklog_id":r["id"],"driver_id":r["driver_id"],
                 "driver":f"{r['last_name']} {r['first_name']} {r['middle_name']}".strip(),
-                "date":work_date,"route_id":r["route_id"],"route":route_label,
+                "date":work_date,"end_date":end_dt.date(),"route_id":r["route_id"],"route":route_label,
                 "route_code":route_code,"driver_personnel_no":r["driver_personnel_no"] or "",
                 "vehicle_id":r["vehicle_id"],"vehicle":vehicle_label,
                 "vehicle_garage_no":r["vehicle_garage_no"] or "",
@@ -7094,7 +7257,12 @@ class App(tk.Tk):
         if not row["start_location"] or not row["end_location"]: missing.append("точка початку/завершення маршруту")
         if not row["outbound_stop_count"] or not row["return_stop_count"]: missing.append("графік прямого і зворотного напрямків")
         if missing:
-            messagebox.showerror("Шляхівка","У графіку бракує даних: "+", ".join(missing)+".\nСпочатку виправте день у графіку.",parent=self.waybill_win); return
+            messagebox.showerror(
+                "Шляхівка",
+                "Бракує даних: "+", ".join(missing)+".\n\n"
+                "Відкрийте вкладку «Маршрути», виберіть цей маршрут і натисніть «Заповнити маршрут для шляхівки…».",
+                parent=self.waybill_win,
+            ); return
         if build_waybill_pdf is None:
             messagebox.showerror("Шляхівка","Модуль формування шляхівки недоступний.",parent=self.waybill_win); return
         # Щойно відредаговані реквізити шляхівки не повинні вимагати окремого
@@ -7134,7 +7302,8 @@ class App(tk.Tk):
         target=out_dir/f"Шляхівка_{waybill_no}_{row['date'].isoformat()}_{safe_driver}.pdf"
         stops=con.execute("SELECT * FROM route_stops WHERE route_id=? ORDER BY direction,stop_no",(row["route_id"],)).fetchall()
         payload={
-            "waybill_no":document_number,"internal_no":internal_no,"date":row["date"].strftime("%d.%m.%Y"),"route":row["route"],
+            "waybill_no":document_number,"internal_no":internal_no,
+            "date":waybill_date_range_label(row["date"],row["end_date"]),"route":row["route"],
             "vehicle":row["vehicle"],"driver":row["driver"],"planned_departure":row["planned_departure"],
             "planned_return":row["planned_return"],"work_span":row["work_span"],"drive_span":row["drive_span"],
             "route_code":row["route_code"],"driver_personnel_no":row["driver_personnel_no"],
@@ -7158,20 +7327,20 @@ class App(tk.Tk):
             con.execute("UPDATE waybill_number_pools SET next_number=? WHERE id=?",(number_value+1,pool["id"]))
         if existing:
             con.execute(
-                """UPDATE waybills SET issue_year=?,issue_seq=?,waybill_no=?,route_id=?,route_label=?,vehicle_id=?,vehicle_label=?,planned_departure=?,planned_return=?,
+                """UPDATE waybills SET work_end_date=?,issue_year=?,issue_seq=?,waybill_no=?,route_id=?,route_label=?,vehicle_id=?,vehicle_label=?,planned_departure=?,planned_return=?,
                        doctor_1=?,doctor_2=?,mechanic_1=?,mechanic_2=?,number_pool_id=?,document_series=?,document_number=?,internal_no=?,
                        start_location=?,end_location=?,pdf_path=?,revision=?,status='active',voided_at='',void_reason='',updated_at=? WHERE id=?""",
-                (row["date"].year,issue_seq,waybill_no,row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
+                (row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
                  row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"] if pool else existing["number_pool_id"],document_series,document_number,internal_no,
                  row["start_location"],row["end_location"],str(actual),revision,now,existing["id"])
             )
         else:
             con.execute(
-                """INSERT INTO waybills(worklog_id,driver_id,work_date,issue_year,issue_seq,waybill_no,route_id,route_label,vehicle_id,vehicle_label,
+                """INSERT INTO waybills(worklog_id,driver_id,work_date,work_end_date,issue_year,issue_seq,waybill_no,route_id,route_label,vehicle_id,vehicle_label,
                    planned_departure,planned_return,doctor_1,doctor_2,mechanic_1,mechanic_2,number_pool_id,document_series,document_number,internal_no,
                    start_location,end_location,pdf_path,revision,status,issued_at,updated_at)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active',?,?)""",
-                (row["worklog_id"],row["driver_id"],row["date"].isoformat(),row["date"].year,issue_seq,waybill_no,
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active',?,?)""",
+                (row["worklog_id"],row["driver_id"],row["date"].isoformat(),row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,
                  row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
                  row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"],document_series,document_number,internal_no,
                  row["start_location"],row["end_location"],str(actual),revision,now,now)
@@ -8627,6 +8796,145 @@ class App(tk.Tk):
                     depart=(f"D+{item['departure_day_offset']} {item['departure_time']}" if item["departure_time"] else "")
                     tree.insert("","end",values=(i,item["point_type"],item["stop_name"],arrive,depart,item["note"]))
 
+            def route_days():
+                days=[]
+                for direction in ("outbound","return"):
+                    for item in stop_data[direction]:
+                        if item.get("arrival_time"): days.append(int(item.get("arrival_day_offset",0)))
+                        if item.get("departure_time"): days.append(int(item.get("departure_day_offset",0)))
+                return days
+
+            def sync_route_bounds(force=True):
+                first_direction=vv["start_direction"].get() or "outbound"
+                last_direction="return" if first_direction=="outbound" else "outbound"
+                first_rows=stop_data[first_direction]
+                last_rows=stop_data[last_direction] or first_rows
+                if first_rows and (force or not vv["start_location"].get().strip()):
+                    vv["start_location"].set(first_rows[0]["stop_name"])
+                if last_rows and (force or not vv["end_location"].get().strip()):
+                    vv["end_location"].set(last_rows[-1]["stop_name"])
+                days=route_days()
+                if days:
+                    vv["start_day_offset"].set(str(min(days)))
+                    vv["end_day_offset"].set(str(max(days)))
+
+            def quick_fill(direction):
+                qw=tk.Toplevel(sw)
+                qw.title("Швидке заповнення — "+("прямий напрямок" if direction=="outbound" else "зворотний напрямок"))
+                fit_window_to_screen(qw,850,600,680,470); qw.transient(sw); qw.grab_set()
+                ttk.Label(
+                    qw,
+                    text=("Один рядок — одна точка. Вставляйте з Excel або використовуйте «;». "
+                          "Колонки: Назва | Прибуття | Відправлення | Тип | Примітка.\n"
+                          "D+ вводити не потрібно: після 23:55 → 00:40 програма поставить D+1 сама. "
+                          "Порожній час позначайте «-»."),
+                    wraplength=800,justify="left",foreground="gray"
+                ).pack(fill="x",padx=10,pady=(10,6))
+                host=ttk.Frame(qw); host.pack(fill="both",expand=True,padx=10,pady=5)
+                host.rowconfigure(0,weight=1); host.columnconfigure(0,weight=1)
+                editor=tk.Text(host,wrap="none",undo=True,font=("Consolas",10))
+                ybar=ttk.Scrollbar(host,orient="vertical",command=editor.yview)
+                xbar=ttk.Scrollbar(host,orient="horizontal",command=editor.xview)
+                editor.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+                editor.grid(row=0,column=0,sticky="nsew"); ybar.grid(row=0,column=1,sticky="ns"); xbar.grid(row=1,column=0,sticky="ew")
+                editor.insert("1.0",route_schedule_to_text(stop_data[direction]))
+                buttons=ttk.Frame(qw); buttons.pack(fill="x",padx=10,pady=(4,10))
+                ttk.Button(
+                    buttons,text="Вставити приклад",
+                    command=lambda:(
+                        editor.delete("1.0","end"),
+                        editor.insert("1.0","Львів АС-2;-;22:40;Автостанція;Початок\nСтрий АС;23:55;00:40;Автостанція;\nУжгород АС;05:35;-;Нічліг;")
+                    )
+                ).pack(side="left")
+                def apply_quick():
+                    try:
+                        start_day=int(vv["start_day_offset"].get() or 0)
+                        first_direction=vv["start_direction"].get() or "outbound"
+                        if direction!=first_direction and stop_data[first_direction]:
+                            source_days=[
+                                int(item.get(key,0))
+                                for item in stop_data[first_direction]
+                                for key,time_key in (("arrival_day_offset","arrival_time"),("departure_day_offset","departure_time"))
+                                if item.get(time_key)
+                            ]
+                            if source_days: start_day=max(source_days)
+                        parsed=parse_route_schedule_text(editor.get("1.0","end-1c"),start_day)
+                    except ValueError as exc:
+                        messagebox.showerror("Швидке заповнення",str(exc),parent=qw); return
+                    stop_data[direction]=parsed
+                    redraw_stops(direction); refresh_stops_summary(); sync_route_bounds(force=False)
+                    qw.destroy()
+                ttk.Button(buttons,text="Замінити графік цим списком",command=apply_quick).pack(side="right")
+
+            def quick_fill_both():
+                qw=tk.Toplevel(sw); qw.title("Швидке заповнення маршруту")
+                fit_window_to_screen(qw,1080,650,850,520); qw.transient(sw); qw.grab_set()
+                ttk.Label(
+                    qw,
+                    text=("Найпростіше: скопіюйте з Excel дві колонки — Точка | Час. "
+                          "Програма сама поставить перший час як відправлення, останній як прибуття і визначить D+ після півночі.\n"
+                          "Якщо потрібна стоянка, використайте три колонки: Точка | Прибуття | Відправлення."),
+                    wraplength=1020,justify="left",foreground="gray"
+                ).pack(fill="x",padx=10,pady=(10,6))
+                body2=ttk.Frame(qw); body2.pack(fill="both",expand=True,padx=8,pady=5)
+                body2.columnconfigure(0,weight=1); body2.columnconfigure(1,weight=1); body2.rowconfigure(0,weight=1)
+                editors={}
+                for col,(direction,title) in enumerate((("outbound","Прямий напрямок"),("return","Зворотний напрямок"))):
+                    box=ttk.LabelFrame(body2,text=title); box.grid(row=0,column=col,sticky="nsew",padx=5)
+                    box.rowconfigure(0,weight=1); box.columnconfigure(0,weight=1)
+                    editor=tk.Text(box,wrap="none",undo=True,font=("Consolas",10))
+                    ybar=ttk.Scrollbar(box,orient="vertical",command=editor.yview)
+                    xbar=ttk.Scrollbar(box,orient="horizontal",command=editor.xview)
+                    editor.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+                    editor.grid(row=0,column=0,sticky="nsew"); ybar.grid(row=0,column=1,sticky="ns"); xbar.grid(row=1,column=0,sticky="ew")
+                    editor.insert("1.0",route_schedule_to_text(stop_data[direction]))
+                    editors[direction]=editor
+                buttons=ttk.Frame(qw); buttons.pack(fill="x",padx=10,pady=(4,10))
+                def insert_simple_example():
+                    examples={
+                        "outbound":"Львів АС-2\t22:40\nСтрий АС\t23:55\nУжгород АС\t05:35",
+                        "return":"Ужгород АС\t07:10\nСтрий АС\t12:15\nЛьвів АС-2\t14:20",
+                    }
+                    for direction,editor in editors.items():
+                        editor.delete("1.0","end"); editor.insert("1.0",examples[direction])
+                ttk.Button(buttons,text="Показати простий приклад",command=insert_simple_example).pack(side="left")
+                def apply_both():
+                    try:
+                        start_day=int(vv["start_day_offset"].get() or 0)
+                        outbound=parse_route_schedule_text(editors["outbound"].get("1.0","end-1c"),start_day)
+                        outbound_days=[
+                            int(item.get(key,0)) for item in outbound
+                            for key,time_key in (("arrival_day_offset","arrival_time"),("departure_day_offset","departure_time"))
+                            if item.get(time_key)
+                        ]
+                        return_start=max(outbound_days) if outbound_days else start_day
+                        returning=parse_route_schedule_text(editors["return"].get("1.0","end-1c"),return_start)
+                    except ValueError as exc:
+                        messagebox.showerror("Швидке заповнення",str(exc),parent=qw); return
+                    stop_data["outbound"]=outbound; stop_data["return"]=returning
+                    redraw_stops("outbound"); redraw_stops("return")
+                    refresh_stops_summary(); sync_route_bounds(force=True); qw.destroy()
+                ttk.Button(buttons,text="Зберегти обидва напрямки",command=apply_both).pack(side="right")
+
+            def copy_reverse_names():
+                if not stop_data["outbound"]:
+                    messagebox.showinfo("Зворотний напрямок","Спочатку заповніть прямий напрямок.",parent=sw); return
+                if stop_data["return"] and not messagebox.askyesno(
+                    "Зворотний напрямок","Замінити наявні точки зворотного напрямку?",parent=sw
+                ):
+                    return
+                days=route_days()
+                seed=max(days) if days else int(vv["start_day_offset"].get() or 0)
+                stop_data["return"]=[
+                    {
+                        "stop_name":item["stop_name"],"arrival_time":"","departure_time":"",
+                        "note":"","day_offset":seed,"arrival_day_offset":seed,
+                        "departure_day_offset":seed,"point_type":item.get("point_type","Зупинка"),
+                    }
+                    for item in reversed(stop_data["outbound"])
+                ]
+                redraw_stops("return"); refresh_stops_summary(); sync_route_bounds(force=False)
+
             def stop_form(direction,index=None):
                 if index is None and len(stop_data[direction])>=15:
                     messagebox.showwarning("Графік маршруту","У формі № 1-АП передбачено 15 рядків на напрямок.",parent=sw); return
@@ -8678,6 +8986,7 @@ class App(tk.Tk):
                 tree.grid(row=0,column=0,sticky="nsew"); ybar.grid(row=0,column=1,sticky="ns"); xbar.grid(row=1,column=0,sticky="ew")
                 bar=ttk.Frame(frame); bar.grid(row=2,column=0,columnspan=2,sticky="w",pady=5)
                 ttk.Button(bar,text="Додати",command=lambda d=direction:stop_form(d)).pack(side="left",padx=2)
+                ttk.Button(bar,text="Вставити список",command=lambda d=direction:quick_fill(d)).pack(side="left",padx=2)
                 def edit_selected(d=direction):
                     sel=trees[d].selection()
                     if sel: stop_form(d,int(trees[d].item(sel[0],"values")[0])-1)
@@ -8687,13 +8996,18 @@ class App(tk.Tk):
                     if sel:
                         stop_data[d].pop(int(trees[d].item(sel[0],"values")[0])-1); redraw_stops(d); refresh_stops_summary()
                 ttk.Button(bar,text="Видалити",command=delete_selected).pack(side="left",padx=2)
+                if direction=="return":
+                    ttk.Button(bar,text="Назви ← прямий",command=copy_reverse_names).pack(side="left",padx=2)
                 tree.bind("<Double-1>",lambda _e,d=direction: (lambda s=trees[d].selection(): stop_form(d,int(trees[d].item(s[0],"values")[0])-1) if s else None)())
             redraw_stops("outbound"); redraw_stops("return")
-            ttk.Button(sw,text="Готово",command=sw.destroy).pack(anchor="e",padx=12,pady=8)
+            bottom=ttk.Frame(sw); bottom.pack(fill="x",padx=12,pady=8)
+            ttk.Button(bottom,text="Швидко вставити обидва напрямки",command=quick_fill_both).pack(side="left",padx=(0,6))
+            ttk.Button(bottom,text="Підтягнути точки й дні з графіка",command=lambda:sync_route_bounds(force=True)).pack(side="left")
+            ttk.Button(bottom,text="Готово",command=sw.destroy).pack(side="right")
 
         refresh_stops_summary()
         ttk.Label(win,textvariable=stops_summary,foreground="gray").grid(row=7,column=2,sticky="e",padx=(10,3),pady=(3,5))
-        ttk.Button(win,text="Графік зупинок…",command=edit_stop_schedule).grid(row=7,column=3,sticky="e",padx=10,pady=(3,5))
+        ttk.Button(win,text="Заповнити маршрут для шляхівки…",command=edit_stop_schedule).grid(row=7,column=3,sticky="e",padx=10,pady=(3,5))
         ttk.Label(win,text="Частини робочої зміни").grid(row=8,column=0,sticky="nw",padx=10,pady=8)
 
         cols=("no","work_start","work_end","drive_start","drive_end","work","drive","activity","note")
