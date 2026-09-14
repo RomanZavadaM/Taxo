@@ -1421,6 +1421,19 @@ def waybill_date_range_label(start_date, end_date=None):
     return f"{start_date.strftime('%d.%m.%Y')} - {end_date.strftime('%d.%m.%Y')}"
 
 
+def waybill_time_label(work_date, day_offset, time_value, show_date=False, separator=" "):
+    """Фактична календарна дата й час для друку замість службового D+N."""
+    if not time_value:
+        return ""
+    if isinstance(work_date, str):
+        work_date=datetime.strptime(work_date, "%Y-%m-%d").date()
+    day_offset=int(day_offset or 0)
+    actual_date=work_date+timedelta(days=day_offset)
+    if show_date or day_offset:
+        return f"{actual_date.strftime('%d.%m.%Y')}{separator}{time_value}"
+    return time_value
+
+
 ROUTE_POINT_TYPES=("АТП","Зупинка","Автостанція","Відпочинок","Нічліг","Інше")
 
 
@@ -4780,9 +4793,9 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.70 candidate r4",
+                "Taxo v8.70 consolidated r5",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "v8.70 r4: просте вставлення маршрутів, одна шляхівка на інтервал дат і безпечне завершення ролі водія.\n"
+                "v8.70 r5: усі розробки зведено в main; багатодобова шляхівка друкує календарні дати замість D+N.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
                 parent=self
             )
@@ -7119,6 +7132,7 @@ class App(tk.Tk):
                 hh,mm=map(int,time_value.split(":")); return datetime.combine(work_date+timedelta(days=day_no),datetime.min.time()).replace(hour=hh,minute=mm)
             start_dt=at_day(start_day,dep); end_dt=at_day(end_day,ret)
             if end_dt<=start_dt: end_dt+=timedelta(days=1)
+            multiday=end_dt.date()>work_date
             start_location=(r["route_start_location"] or "").strip()
             end_location=(r["route_end_location"] or "").strip()
             duty=self._duty_staff_for_interval(start_dt,end_dt,start_location,con)
@@ -7142,8 +7156,8 @@ class App(tk.Tk):
                 "route_code":route_code,"driver_personnel_no":r["driver_personnel_no"] or "",
                 "vehicle_id":r["vehicle_id"],"vehicle":vehicle_label,
                 "vehicle_garage_no":r["vehicle_garage_no"] or "",
-                "planned_departure":f"D+{start_day} {dep}" if start_day and dep else dep,
-                "planned_return":f"D+{end_day} {ret}" if end_day and ret else ret,
+                "planned_departure":waybill_time_label(work_date,start_day,dep,multiday),
+                "planned_return":waybill_time_label(work_date,end_day,ret,multiday),
                 "start_time_raw":dep,"end_time_raw":ret,"start_day_offset":start_day,"end_day_offset":end_day,
                 "start_location":start_location,"end_location":end_location,
                 "start_direction":r["route_start_direction"] or "outbound",
@@ -7303,9 +7317,11 @@ class App(tk.Tk):
         stops=con.execute("SELECT * FROM route_stops WHERE route_id=? ORDER BY direction,stop_no",(row["route_id"],)).fetchall()
         payload={
             "waybill_no":document_number,"internal_no":internal_no,
-            "date":waybill_date_range_label(row["date"],row["end_date"]),"route":row["route"],
-            "vehicle":row["vehicle"],"driver":row["driver"],"planned_departure":row["planned_departure"],
-            "planned_return":row["planned_return"],"work_span":row["work_span"],"drive_span":row["drive_span"],
+            "date":waybill_date_range_label(row["date"],row["end_date"]),"work_date":row["date"].isoformat(),"route":row["route"],
+            "vehicle":row["vehicle"],"driver":row["driver"],
+            "planned_departure":waybill_time_label(row["date"],row["start_day_offset"],row["start_time_raw"],row["end_date"]>row["date"],"\n"),
+            "planned_return":waybill_time_label(row["date"],row["end_day_offset"],row["end_time_raw"],row["end_date"]>row["date"],"\n"),
+            "work_span":row["work_span"],"drive_span":row["drive_span"],
             "route_code":row["route_code"],"driver_personnel_no":row["driver_personnel_no"],
             "company_name":company["name"] if company else "","waybill_series":document_series,
             "transport_column":company["transport_column"] if company else "","brigade":company["brigade"] if company else "",

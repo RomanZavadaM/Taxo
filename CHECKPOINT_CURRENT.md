@@ -2,13 +2,13 @@
 
 Date: 2026-09-14
 
-## Current candidate
+## Current consolidated version
 
-- Version: **v8.70 candidate r4**.
-- Stable published baseline: **v8.65**, GitHub `main` commit `f9101c1a41d7c036bade5ce66989171399189d4b`.
+- Version: **v8.70 consolidated r5**.
+- Publication target: GitHub `main`; the old v8.65 head is superseded after verified merge.
 - Previous development checkpoints remain preserved: v8.66 r10 and v8.70 r1–r3.
 - Distribution for testing: source package with `START.bat`, Windows Setup/Portable and native macOS arm64/x86_64 candidate artifacts.
-- Publication branch: `work/v8.70-waybill-r4`; stable `main` remains unchanged until manual acceptance.
+- Publication branch: `work/v8.70-consolidated-r5`; after automated verification it is merged into `main`.
 
 ## Personnel and timekeeping
 
@@ -35,7 +35,7 @@ Date: 2026-09-14
 - Arrival and departure have independent D+ day values, so `D0 23:55 → D+1 00:40` is represented correctly.
 - The primary entry path accepts two pasted Excel/text columns `Точка | Час` for both directions, automatically infers arrival/departure placement, day rollover, route endpoints and D+ bounds.
 - One route that returns on the next day produces one official waybill number whose date is printed as the full interval, for example `14.09.2026 - 15.09.2026`; both dates are stored in the register.
-- The reverse side prints outbound and return schedules with day markers and highlights the direction where work begins.
+- The reverse side prints outbound and return schedules with real calendar dates and highlights the direction where work begins. Internal D+ offsets are never printed.
 - The front side prints the official series/number, route/vehicle/driver plan, start/end locations and scheduled doctor/mechanic names. Handwritten signatures and unknown actual/fuel/control fields remain blank.
 
 ## Compatibility and constraints

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from datetime import datetime, timedelta
 import os
 import sys
 
@@ -243,7 +244,17 @@ def _page_one(c, data):
     c.showPage()
 
 
-def _direction_table(c, x, y, w, h, title, rows):
+def _route_date(data, day_offset):
+    raw=(data.get("work_date") or "").strip()
+    if raw:
+        base=datetime.strptime(raw,"%Y-%m-%d").date()
+    else:
+        first=(data.get("date") or "").split(" - ",1)[0].strip()
+        base=datetime.strptime(first,"%d.%m.%Y").date()
+    return (base+timedelta(days=int(day_offset or 0))).strftime("%d.%m.%Y")
+
+
+def _direction_table(c, x, y, w, h, title, rows, data):
     _cell(c,x,y,w,18,title,7.2,bold=True)
     name_w=w*.27; small=(w-name_w)/6; widths=[name_w]+[small]*6
     heads=["найменування,\nномер маршруту,\nштамп автостанції","прибуття\nза графіком","прибуття\nфактично","відправлення\nза графіком","відправлення\nфактично","підпис","особливі\nвідмітки"]
@@ -257,11 +268,11 @@ def _direction_table(c, x, y, w, h, title, rows):
             departure_day=int(row.get("departure_day_offset",row.get("day_offset",0)) or 0)
             point_type=(row.get("point_type","") or "").strip()
             if row.get("arrival_time") and row.get("departure_time") and arrival_day!=departure_day:
-                prefix=f"D+{arrival_day}→D+{departure_day}"
+                prefix=f"{_route_date(data,arrival_day)} - {_route_date(data,departure_day)}"
             elif row.get("arrival_time"):
-                prefix=f"D+{arrival_day}"
+                prefix=_route_date(data,arrival_day)
             else:
-                prefix=f"D+{departure_day}"
+                prefix=_route_date(data,departure_day)
             if point_type: prefix+=f" · {point_type}"
             stop_label=f"{prefix}\n{row.get('stop_name','')}".strip()
         else:
@@ -277,8 +288,8 @@ def _page_two(c,data):
     start_direction=data.get("start_direction","outbound")
     out_title="Прямий напрямок"+(" — ПОЧАТОК РОБОТИ" if start_direction=="outbound" else "")
     ret_title="Зворотний напрямок"+(" — ПОЧАТОК РОБОТИ" if start_direction=="return" else "")
-    _direction_table(c,m,20,table_w,table_h,out_title,data.get("outbound_stops",[]))
-    _direction_table(c,m+table_w,20,table_w,table_h,ret_title,data.get("return_stops",[]))
+    _direction_table(c,m,20,table_w,table_h,out_title,data.get("outbound_stops",[]),data)
+    _direction_table(c,m+table_w,20,table_w,table_h,ret_title,data.get("return_stops",[]),data)
     y=458; widths=_scaled_widths([125,125,70,145,165,165],W-2*m)
     heads=["Відмітки лікаря","Спідометр,\nпочаток зміни / кінець зміни","Підпис\nмеханіка","Зауваження ДАІ\nта служби руху","Відмітки лінійного контролю","Час і причина заїзду\nв гараж"]
     x=m

@@ -17,7 +17,7 @@ finally:
     Path.home = _original_path_home
 
 
-class V870R4Tests(unittest.TestCase):
+class V870R5Tests(unittest.TestCase):
     def setUp(self):
         main.init_db()
 
@@ -75,6 +75,10 @@ class V870R4Tests(unittest.TestCase):
         self.assertEqual(
             main.waybill_date_range_label(date(2026,9,14),date(2026,9,15)),
             "14.09.2026 - 15.09.2026",
+        )
+        self.assertEqual(
+            main.waybill_time_label(date(2026,9,14),1,"14:20"),
+            "15.09.2026 14:20",
         )
 
     def test_two_column_route_paste_is_the_simple_default(self):
@@ -138,6 +142,9 @@ class V870R4Tests(unittest.TestCase):
                 "waybill_series": "АААТ",
                 "waybill_no": "000127",
                 "date": "14.09.2026 - 15.09.2026",
+                "work_date": "2026-09-14",
+                "planned_departure": "14.09.2026\n22:40",
+                "planned_return": "15.09.2026\n14:20",
                 "route": "401 / Нічний маршрут",
                 "start_location": "Львів АС-8",
                 "end_location": "Ужгород АС",
@@ -165,7 +172,9 @@ class V870R4Tests(unittest.TestCase):
             text = "\n".join(page.get_text() for page in doc)
             self.assertIn("Прямий напрямок", text)
             self.assertIn("Зворотний напрямок", text)
-            self.assertIn("D+0→D+1", text)
+            self.assertIn("14.09.2026 - 15.09.2026", text)
+            self.assertIn("15.09.2026", text)
+            self.assertNotIn("D+1", text)
             self.assertIn("Нічліг", text)
             self.assertIn("14.09.2026 - 15.09.2026", text)
             self.assertFalse(any(page.get_images(full=True) for page in doc))
@@ -179,8 +188,8 @@ class V870R4Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         windows = (root / ".github/workflows/build-windows-v8.70.yml").read_text("utf-8")
         macos = (root / ".github/workflows/build-macos-v8.70.yml").read_text("utf-8")
-        self.assertIn("Taxo_v8_70_TEST_r4_Setup_Windows_x64.exe", windows)
-        self.assertIn("Taxo_v8_70_TEST_r4_Windows_x64_Portable.zip", windows)
+        self.assertIn("Taxo_v8_70_TEST_r5_Setup_Windows_x64.exe", windows)
+        self.assertIn("Taxo_v8_70_TEST_r5_Windows_x64_Portable.zip", windows)
         self.assertIn("runner: macos-15", macos)
         self.assertIn("runner: macos-15-intel", macos)
         self.assertIn("Database unexpectedly bundled", windows)

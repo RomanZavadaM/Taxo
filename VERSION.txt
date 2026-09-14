@@ -1,13 +1,13 @@
 Taxo / Driver Worktime
-Version: 8.70 candidate r4
+Version: 8.70 consolidated r5
 Candidate date: 2026-09-14
-Stable published baseline: 8.65
+Published baseline after merge: 8.70 consolidated r5
 Development baseline: verified v8.66 candidate r10 checkpoint
 
 v8.70 starts the waybill issuance workflow from the graphical driver schedule.
-Waybill r4: simple two-column Excel/text route paste, automatic D+ rollover and endpoints, one numbered waybill with a full date interval for overnight trips, and safe Driver-role completion without deleting history.
+Waybill r5: simple two-column route paste, internal automatic day rollover, and calendar dates on every printed overnight/multiday waybill field. All preserved v8.66 and v8.70 development is consolidated into main.
 Waybill archive: issued PDFs are registered in the persistent database, receive a unique official series+number and an internal yearly id, and are stored under Documents/DriverWorktime/Output/Waybills/YYYY/MM.
 Route model from v8.66 r10 remains: one route = one exact time scenario.
 Tachograph recognition algorithm is unchanged.
 
-Distribution: START.bat source candidate plus GitHub Actions Windows Setup/Portable and native macOS arm64/x86_64 candidate builds. No user database is bundled.
+Distribution: START.bat source package plus GitHub Actions Windows Setup/Portable and native macOS arm64/x86_64 builds. No user database is bundled.
