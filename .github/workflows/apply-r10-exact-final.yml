@@ -1,0 +1,47 @@
+name: Apply Taxo v8.66 candidate r10 exact final
+
+on:
+  push:
+    branches:
+      - work/v8.66-ui-polish-r10
+    paths:
+      - .github/workflows/apply-r10-exact-final.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-r10:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v8.66-ui-polish-r10
+          fetch-depth: 0
+
+      - name: Apply exact r10 diffs and verify blobs
+        shell: bash
+        run: |
+          cat .r10_exact/main*.diff > /tmp/main.diff
+          cat .r10_exact/tacho*.diff > /tmp/tacho.diff
+          git apply --check /tmp/main.diff
+          git apply /tmp/main.diff
+          git apply --check /tmp/tacho.diff
+          git apply /tmp/tacho.diff
+          test "$(git hash-object main.py)" = "ddef553f5cb0b40e0d0213ec26b6192cced42957"
+          test "$(git hash-object tachograph.py)" = "d5d8e71e0601e951b39432ade123e2be99509cd0"
+          python -m py_compile main.py tachograph.py attestation_render.py
+          grep -q 'text="Застосувати маршрут"' main.py
+          grep -q 'for tab_index in range(8)' main.py
+          grep -q 'make_scrollable_page("Перегляд")' tachograph.py
+          grep -q 'make_scrollable_page("Результати")' tachograph.py
+
+      - name: Commit exact r10 code and clean staging files
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -r .r10_exact .github/workflows/apply-r10-exact-final.yml
+          git add main.py tachograph.py
+          git commit -m "Taxo v8.66 candidate r10 — routes unified and TAHO split tabs"
+          git push origin HEAD:work/v8.66-ui-polish-r10
