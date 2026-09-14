@@ -1,0 +1,133 @@
+)
+-                except Exception: wt="—"
++                try:
++                    wt=minutes_hhmm(duration_minutes(x["work_start_time"].get(),x["work_end_time"].get()))
++                except Exception:
++                    wt="—"
+                 ds=x["start_time"].get().strip(); de=x["end_time"].get().strip()
+-                if not ds and not de: dt="0:00"
++                if not ds and not de:
++                    dt="0:00"
+                 else:
+-                    try: dt=minutes_hhmm(duration_minutes(ds,de))
+-                    except Exception: dt="—"
++                    try:
++                        dt=minutes_hhmm(duration_minutes(ds,de))
++                    except Exception:
++                        dt="—"
+                 duration_var.set(f"Тривалість: робота {wt}; керування {dt}")
+-            for v in (x["work_start_time"],x["work_end_time"],x["start_time"],x["end_time"]): v.trace_add("write",refresh)
++            for v in (x["work_start_time"],x["work_end_time"],x["start_time"],x["end_time"]):
++                v.trace_add("write",refresh)
+             refresh()
+             bar=ttk.Frame(sw); bar.grid(row=7,column=0,columnspan=2,sticky="w",padx=10,pady=5)
+-            ttk.Button(bar,text="Керування → робота",command=lambda:(x["work_start_time"].set(x["start_time"].get()),x["work_end_time"].set(x["end_time"].get()))).pack(side="left")
+-            ttk.Button(bar,text="Робота → керування",command=lambda:(x["start_time"].set(x["work_start_time"].get()),x["end_time"].set(x["work_end_time"].get()))).pack(side="left",padx=(6,0))
++            ttk.Button(
++                bar,text="Керування → робота",
++                command=lambda:(x["work_start_time"].set(x["start_time"].get()),x["work_end_time"].set(x["end_time"].get()))
++            ).pack(side="left")
++            ttk.Button(
++                bar,text="Робота → керування",
++                command=lambda:(x["start_time"].set(x["work_start_time"].get()),x["end_time"].set(x["work_end_time"].get()))
++            ).pack(side="left",padx=(6,0))
+             def save_seg():
+                 ws=x["work_start_time"].get().strip(); we=x["work_end_time"].get().strip()
+                 ds=x["start_time"].get().strip(); de=x["end_time"].get().strip()
+                 try:
+-                    if not ws or not we: raise ValueError
++                    if not ws or not we:
++                        raise ValueError
+                     wh_min=duration_minutes(ws,we)
+-                    if bool(ds)!=bool(de): raise ValueError
++                    if bool(ds)!=bool(de):
++                        raise ValueError
+                     dh_min=duration_minutes(ds,de) if ds and de else 0
+                 except Exception:
+-                    messagebox.showerror("Помилка","Перевірте пари початок/кінець для роботи і керування.",parent=sw); return
++                    messagebox.showerror(
++                        "Помилка","Перевірте пари початок/кінець для роботи і керування.",parent=sw
++                    ); return
+                 if ds and not interval_within(ds,de,ws,we):
+-                    messagebox.showerror("Помилка","Інтервал керування повинен міститися всередині робочого інтервалу.",parent=sw); return
++                    messagebox.showerror(
++                        "Помилка","Інтервал керування повинен міститися всередині робочого інтервалу.",parent=sw
++                    ); return
+                 item={
+                     "work_start_time":ws,"work_end_time":we,"start_time":ds,"end_time":de,
+                     "work_hours":minutes_to_db_hours(wh_min),"driving_hours":minutes_to_db_hours(dh_min),
+                     "activity_type":x["activity_type"].get().strip(),"note":x["note"].get().strip()
+                 }
+-                if index is None: seg_data.append(item)
+-                else: seg_data[index]=item
++                if index is None:
++                    seg_data.append(item)
++                else:
++                    seg_data[index]=item
+                 redraw(); sw.destroy()
+             ttk.Button(sw,text="Зберегти",command=save_seg).grid(row=8,column=1,sticky="e",padx=10,pady=10)
+-        b=ttk.Frame(win); b.grid(row=6,column=1,columnspan=2,sticky="w",padx=10,pady=5)
+-        ttk.Button(b,text="Додати частину",command=lambda:edit_seg()).pack(side="left",padx=3)
++
++        button_row=ttk.Frame(win); button_row.grid(row=7,column=1,columnspan=3,sticky="w",padx=10,pady=5)
++        ttk.Button(button_row,text="Додати частину",command=lambda:edit_seg()).pack(side="left",padx=3)
+         def edit_selected():
+-            sel=tree.selection();
+-            if sel: edit_seg(int(tree.item(sel[0],"values")[0])-1)
+-        ttk.Button(b,text="Редагувати",command=edit_selected).pack(side="left",padx=3)
++            sel=tree.selection()
++            if sel:
++                edit_seg(int(tree.item(sel[0],"values")[0])-1)
++        ttk.Button(button_row,text="Редагувати",command=edit_selected).pack(side="left",padx=3)
+         def del_selected():
+-            sel=tree.selection();
+-            if sel: seg_data.pop(int(tree.item(sel[0],"values")[0])-1); redraw()
+-        ttk.Button(b,text="Видалити",command=del_selected).pack(side="left",padx=3)
++            sel=tree.selection()
++            if sel:
++                seg_data.pop(int(tree.item(sel[0],"values")[0])-1); redraw()
++        ttk.Button(button_row,text="Видалити",command=del_selected).pack(side="left",padx=3)
+         redraw()
++
+         def save():
+-            if not vv["name"].get().strip(): messagebox.showerror("Помилка","Вкажіть назву шаблону.",parent=win); return
+-            if not seg_data: messagebox.showerror("Помилка","Додайте хоча б одну частину робочої зміни.",parent=win); return
++            name=vv["name"].get().strip()
++            if not name:
++                messagebox.showerror("Помилка","Вкажіть назву маршруту.",parent=win); return
++            if active.get() and not seg_data:
++                messagebox.showerror(
++                    "Помилка","Активний маршрут повинен мати хоча б одну точну частину робочої зміни.",parent=win
++                ); return
++            vehicle=vehicle_map.get(vv["vehicle"].get())
++            vehicle_text=self.vehicle_label(vehicle) if vehicle else vv["vehicle"].get().strip()
++            vehicle_id=vehicle["id"] if vehicle else None
+             con=db()
+             try:
+-                if existing:
+-                    tid=existing[0]["id"]; con.execute("UPDATE route_templates SET name=?,route_name=?,route_id=?,vehicle=?,vehicle_id=?,shift_type=?,notes=? WHERE id=?",(vv["name"].get().strip(),route_select.get().strip(),route_map[route_select.get()]["id"] if route_select.get() in route_map else None,vehicle_select.get().strip(),vehicle_map[vehicle_select.get()]["id"] if vehicle_select.get() in vehicle_map else None,vv["shift_type"].get(),vv["notes"].get().strip(),tid))
+-                    con.execute("DELETE FROM route_template_segments WHERE template_id=?",(tid,))
++                if route:
++                    rid=route["id"]
++                    con.execute(
++                        """UPDATE routes SET
++                               name=?,code=?,description=?,vehicle=?,vehicle_id=?,shift_type=?,notes=?,active=?
++                             WHERE id=?""",
++                        (name,vv["code"].get().strip(),vv["description"].get().strip(),
++                         vehicle_text,vehicle_id,vv["shift_type"].get(),vv["notes"].get().strip(),
++                         int(active.get()),rid)
++                    )
++                    con.execute("DELETE FROM route_segments WHERE route_id=?",(rid,))
+                 else:
+-                    cur=con.execute("INSERT INTO route_templates(name,route_name,route_id,vehicle,vehicle_id,shift_type,notes,created_at) VALUES(?,?,?,?,?,?,?,?)",(vv["name"].get().strip(),route_select.get().strip(),route_map[route_select.get()]["id"] if route_select.get() in route_map else None,vehicle_select.get().strip(),vehicle_map[vehicle_select.get()]["id"] if vehicle_select.get() in vehicle_map else None,vv["shift_type"].get(),vv["notes"].get().strip(),datetime.now().isoformat(timespec="seconds"))); tid=cur.lastrowid
++                    cur=con.execute(
++                        """INSERT INTO routes(
++                               name,code,description,vehicle,vehicle_id,shift_type,notes,active,created_at
++                           ) VALUES(?,?,?,?,?,?,?,?,?)""",
++                        (name,vv["code"].get().strip(),vv["description"].get().strip(),
++                         vehicle_text,vehicle_id,vv["shift_type"].get(),vv["notes"].get().strip(),
++                         int(active.get()),datetime.now().isoformat(timespec="seconds"))
++                    )
++                    rid=cur.lastrowid
+                 for i,r in enumerate(seg_data,1):
+-                    con.execute("INSERT INTO route_template_segments(template_id,segment_no,sta
