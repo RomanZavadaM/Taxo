@@ -1,0 +1,177 @@
+name: Apply Taxo v8.66 candidate r9
+
+on:
+  push:
+    branches:
+      - work/v8.66-ui-polish-r9
+    paths:
+      - .github/workflows/apply-v8-66-r9.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-r9:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v8.66-ui-polish-r9
+          fetch-depth: 0
+
+      - name: Apply exact r9 source patch
+        shell: bash
+        run: |
+          cat .r9_patch/part* > PATCH_v8_66_r9.diff
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('PATCH_v8_66_r9.diff')
+          lines=p.read_text(encoding='utf-8').splitlines(True)
+          lines[0]='--- a/main.py\n'
+          lines[1]='+++ b/main.py\n'
+          p.write_text(''.join(lines),encoding='utf-8')
+          PY
+          git apply --check PATCH_v8_66_r9.diff
+          git apply PATCH_v8_66_r9.diff
+          test "$(git hash-object main.py)" = "53b5a87de1b6a8aa42f6605332a3f6d912563638"
+          python -m py_compile main.py tachograph.py attestation_render.py
+
+      - name: Finalize r9 metadata
+        shell: bash
+        run: |
+          cat > VERSION.txt <<'EOF'
+          Taxo / Driver Worktime
+          Version: 8.66 candidate r9
+          Candidate date: 2026-09-14
+          Stable published baseline: 8.65
+
+          Scope: interface simplification and usability before the next tachograph-reading development stage.
+          Routes r9: «Шаблони маршрутів» and «Маршрути» are unified into one user-facing «Маршрути» section.
+          Route model r9: one route = one exact time scenario with number/name, default vehicle, shift type, work/driving intervals, notes and description.
+          Migration r9: legacy route_templates and route_template_segments are copied automatically into routes + route_segments; legacy tables are preserved as a safety layer and no manual re-entry is required.
+          Navigation r9: eight main sections instead of nine; old saved tab indexes are migrated automatically; Alt+1…Alt+8 opens any section.
+          Workday r9: select «номер / назва» and use «Застосувати маршрут»; no separate template selector is shown.
+          UI r9: calendar buttons fit inside 900 px layouts; monthly shift-schedule controls are physically split into two rows and verified at 900x600, 1024x700 and 1200x760.
+          Clipboard/navigation/tachograph preview fixes from r6-r8 are retained.
+          Distribution: intermediate versions use START.bat; Windows/macOS executables are published together every fifth product version (next: v8.70).
+
+          The tachograph recognition algorithm is intentionally unchanged in this candidate.
+          EOF
+          sed -i 's/^          //' VERSION.txt
+
+          cat > CHECKPOINT_v8_66_r9.md <<'EOF'
+          # Taxo v8.66 candidate r9 — checkpoint
+
+          Date: 2026-09-14
+
+          ## Authoritative state
+          - Stable branch: `main`
+          - Stable release: **v8.65**
+          - Stable commit: `f9101c1a41d7c036bade5ce66989171399189d4b`
+          - Current candidate: **v8.66 candidate r9**
+          - Parent candidate: **v8.66 r8**
+          - Tachograph recognition algorithm: unchanged.
+
+          ## r9 model
+          - User-facing `Шаблони маршрутів` removed.
+          - One `Маршрут` = one exact time scenario.
+          - Display/selection label = `номер / назва` only.
+          - Route stores default vehicle, shift type, description, notes and exact work/driving segments.
+          - Workday editor uses `Застосувати маршрут`; no separate template selector.
+
+          ## Data migration
+          - New route detail table: `route_segments`.
+          - Legacy `route_templates` / `route_template_segments` are automatically copied once.
+          - Legacy tables are preserved and not deleted.
+          - Multiple legacy templates linked to one route are preserved as separate migrated routes instead of being overwritten.
+          - No manual re-entry is required.
+
+          ## Verification
+          - Python compile: PASS.
+          - Full UI horizontal-overflow audit: PASS at 900×600 and 1024×700 across all 8 tabs.
+          - Monthly schedule: PASS at 900×600, 1024×700 and 1200×760; date 13.09.2026 opens 09.2026.
+          - Legacy two-template migration: PASS, no template rows lost.
+          - Route application integration: PASS; exact work/driving segments copied to a day and `template_id` remains NULL for new r9 usage.
+
+          Do not merge into stable `main` until manual Windows regression testing is confirmed.
+          EOF
+          sed -i 's/^          //' CHECKPOINT_v8_66_r9.md
+
+          cat > PUBLISH_STATUS_v8_66_r9.md <<'EOF'
+          # Taxo v8.66 candidate r9 — publication checkpoint
+
+          Date: 2026-09-14
+
+          - Stable `main`: v8.65 @ `f9101c1a41d7c036bade5ce66989171399189d4b`.
+          - Candidate: v8.66 r9.
+          - Core change: merge `Шаблони маршрутів` into a single `Маршрути` model.
+          - Route label shown to users: `номер / назва`.
+          - Legacy template data migrates automatically and remains preserved.
+          - UI regression suite passes at 900×600 / 1024×700; monthly window passes through 1200×760.
+          - Recognition algorithm unchanged.
+          - Intermediate delivery remains START.bat; next full executable milestone is v8.70.
+
+          This file is the recovery point if chat context is lost.
+          EOF
+          sed -i 's/^          //' PUBLISH_STATUS_v8_66_r9.md
+
+          cat > TEST_REPORT_v8_66_r9.txt <<'EOF'
+          Taxo v8.66 candidate r9 — regression report
+          Date: 2026-09-14
+
+          PASS: Python syntax compilation for main.py, tachograph.py, attestation_render.py.
+          PASS: Main notebook now contains 8 sections; separate «Шаблони маршрутів» tab is absent.
+          PASS: Legacy route_templates -> routes + route_segments automatic migration.
+          PASS: Two legacy templates linked to one route are both preserved; no legacy rows are deleted.
+          PASS: Route display label is «номер / назва» (example: 12 / Центр).
+          PASS: Workday editor has «Застосувати маршрут» and no visible route-template selector.
+          PASS: Applying route copies exact work/driving boundaries and saves route_id; new r9 day stores template_id=NULL.
+          PASS: Full UI horizontal-overflow audit at 900x600 across all 8 tabs.
+          PASS: Full UI horizontal-overflow audit at 1024x700 across all 8 tabs.
+          PASS: Monthly shift schedule opens 13.09.2026 as 09.2026.
+          PASS: Monthly shift-schedule buttons fit at 900x600, 1024x700 and 1200x760.
+          PASS: Calendar «Дата…» controls fit inside 900 px layout.
+          UNCHANGED: tachograph recognition algorithm.
+          UNCHANGED: stable main v8.65.
+          EOF
+          sed -i 's/^          //' TEST_REPORT_v8_66_r9.txt
+
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('README.md'); s=p.read_text(encoding='utf-8')
+          s=s.replace('# Taxo — v8.66 candidate r8','# Taxo — v8.66 candidate r9',1)
+          old='- Алгоритм розпізнавання тахокарт у v8.66 r8 **не змінювався**.'
+          new='- У r9 прибрано окрему сутність `Шаблони маршрутів`: лишився один розділ `Маршрути`, де кожен маршрут містить власний точний часовий сценарій, автомобіль за замовчуванням, тип зміни та примітки. Старі шаблони переносяться автоматично, legacy-таблиці не видаляються.\n- У табелі маршрут вибирається як `номер / назва` і застосовується однією кнопкою; окремого вибору шаблону більше немає.\n- У r9 верхній інтерфейс має 8 основних вкладок замість 9, а місячний графік та кнопки вибору дати перевірені на вузьких вікнах.\n- Алгоритм розпізнавання тахокарт у v8.66 r9 **не змінювався**.'
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('RELEASE_NOTES_v8_66.md'); s=p.read_text(encoding='utf-8')
+          s=s.replace('# Taxo v8.66 candidate r8','# Taxo v8.66 candidate r9',1)
+          if '## Об’єднання маршрутів — r9' not in s:
+              s=s.rstrip()+'''\n\n## Об’єднання маршрутів — r9\n\n- Окрему вкладку `Шаблони маршрутів` прибрано. Користувацька модель тепер має один довідник `Маршрути`.\n- Один маршрут означає один точний часовий сценарій: `номер / назва`, автомобіль за замовчуванням, тип зміни, робочі інтервали, інтервали керування, опис і примітка.\n- Додано `route_segments`; старі `route_templates` та `route_template_segments` автоматично копіюються у нову модель один раз і залишаються в БД як legacy-страховка. Дані не треба вводити повторно.\n- Якщо в старій БД до одного маршруту було прив’язано кілька шаблонів, жоден не губиться: перший наповнює вихідний маршрут, додаткові сценарії переносяться як окремі маршрути.\n- У табелі вилучено окремий комбобокс шаблону. Користувач вибирає маршрут як `номер / назва` і натискає `Застосувати маршрут`; після підстановки конкретний день можна редагувати вручну.\n- Основних вкладок стало 8. Старий індекс останньої відкритої вкладки автоматично переноситься; Alt+1…Alt+8 відповідають новій схемі.\n- Фактично виправлено дворядкову панель місячного графіка змінності. Автоматичний тест підтвердив видимість кнопок при 900×600, 1024×700 та 1200×760.\n- Кнопки `Дата…` стиснено до безпечної ширини: горизонтальний UI-аудит дає 0 обрізаних кнопок на 900×600 по всіх 8 вкладках.\n- Алгоритм розпізнавання тахокарт не змінювався.\n'''
+          p.write_text(s,encoding='utf-8')
+
+          p=Path('CHECKPOINT_CURRENT.md'); s=p.read_text(encoding='utf-8')
+          s=s.replace('Date: 2026-09-13','Date: 2026-09-14',1)
+          s=s.replace('Version: **v8.66 candidate r8**','Version: **v8.66 candidate r9**',1)
+          line='- r9 route simplification: `Шаблони маршрутів` merged into `Маршрути`; one route owns one exact work/driving time scenario. Legacy templates migrate automatically into `route_segments` and remain preserved. Main navigation now has 8 tabs; monthly-schedule controls and date buttons were revalidated at 900–1200 px.\n'
+          if 'r9 route simplification' not in s:
+              s=s.replace('\n## Distribution cadence','\n'+line+'\n## Distribution cadence',1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+          python -m py_compile main.py tachograph.py attestation_render.py
+          test "$(git hash-object main.py)" = "53b5a87de1b6a8aa42f6605332a3f6d912563638"
+          ! grep -q 'nb.add(self.tab_routes' main.py
+          grep -q 'text="Застосувати маршрут"' main.py
+          grep -q 'for tab_index in range(8)' main.py
+
+      - name: Commit clean r9 candidate
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -r .r9_patch .github/workflows/apply-v8-66-r9.yml
+          git add main.py PATCH_v8_66_r9.diff VERSION.txt README.md RELEASE_NOTES_v8_66.md CHECKPOINT_CURRENT.md CHECKPOINT_v8_66_r9.md PUBLISH_STATUS_v8_66_r9.md TEST_REPORT_v8_66_r9.txt
+          git commit -m "Taxo v8.66 candidate r9 — unify routes and route templates"
+          git push origin HEAD:work/v8.66-ui-polish-r9
