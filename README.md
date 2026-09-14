@@ -1,5 +1,7 @@
 # Taxo — v8.70 consolidated r5
 
+[Українська](README.md) | [English](README.en.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [Français](README.fr.md)
+
 Актуальна опублікована база після злиття: **v8.70 r5**. Попередні гілки збережено як історичні контрольні точки.
 
 ## v8.70 — шляхівки з графіка
