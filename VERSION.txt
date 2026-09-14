@@ -1,16 +1,16 @@
 Taxo / Driver Worktime
-Version: 8.66 candidate r8
-Candidate date: 2026-09-13
+Version: 8.66 candidate r10
+Candidate date: 2026-09-14
 Stable published baseline: 8.65
 
-Scope: interface usability before the next tachograph-reading development stage.
-Clipboard r7: direct copy/cut/paste for Entry/Text/Spinbox/Combobox; Ukrainian and Latin Ctrl/Cmd shortcuts use the same handler.
-Navigation r7: Alt+1…Alt+9 opens any of the nine main sections; Sections menu remains available on narrow screens.
-Tachograph r7: catalog can be hidden/restored to maximize preview width; scan canvas supports mouse-wheel vertical and Shift+wheel horizontal scrolling.
-Schedule r7: graphical daily schedule canvas supports wheel and Shift+wheel scrolling.
-Tachograph r6: corrected initial pane sizing and verified critical controls at 900x600, 1024x700, and 1200x760.
-Personnel r5: scrollable driver card and employment-date filtering in daily/monthly schedules and timesheets.
-Distribution: intermediate versions use START.bat; Windows/macOS executables are published together every fifth product version (next: v8.70).
+Scope: interface simplification and tachograph usability before the next recognition-development stage.
+Routes r9 retained: one user-facing «Маршрути» section; one route = one exact work/driving time scenario; legacy templates migrate automatically and remain preserved.
+Tachograph r10: the right working area is split into two sub-tabs — «Перегляд» and «Результати».
+Tachograph r10 scrolling: both sub-tabs have their own vertical scrollbar; the scan keeps its own X/Y scrollbars in 100% mode; the interval table keeps its own X/Y scrollbars.
+Tachograph r10 layout: the old vertical preview/results sash is removed, so results buttons cannot be pushed below the window by the scan preview.
+Monthly schedule: authoritative r8 synchronization/stale-PDF logic is retained in this candidate.
+Navigation: 8 main application sections; «Шаблони маршрутів» remains merged into «Маршрути».
+Canonical GitHub source blobs: main.py 21c3036237c6d50619890154a9c952f042475ac4; tachograph.py d5d8e71e0601e951b39432ade123e2be99509cd0.
+Distribution: intermediate versions use START.bat; next Windows/macOS executable milestone is v8.70.
 
 The tachograph recognition algorithm is intentionally unchanged in this candidate.
-Monthly schedule r8: responsive two-row controls; opens on the month from the current schedule date; Refresh invalidates stale PDFs; Open schedule PDF regenerates the current month when needed.
