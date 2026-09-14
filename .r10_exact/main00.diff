@@ -1,0 +1,333 @@
+--- a/main.py
++++ b/main.py
+@@ -417,7 +417,7 @@
+ WORK_MODE_MANUAL = "manual"
+ 
+ WORK_MODE_LABELS = {
+-    WORK_MODE_TACHO: "Маршрут / шаблон — план керування",
++    WORK_MODE_TACHO: "Маршрут — план керування",
+     WORK_MODE_NO_TACHO: "Без тахо — стандартні 8 год",
+     WORK_MODE_MANUAL: "Інше / ручний облік",
+ }
+@@ -540,10 +540,30 @@
+         name TEXT NOT NULL UNIQUE,
+         code TEXT DEFAULT '',
+         description TEXT DEFAULT '',
++        vehicle TEXT DEFAULT '',
++        vehicle_id INTEGER,
++        shift_type TEXT DEFAULT 'Безперервна',
++        notes TEXT DEFAULT '',
++        legacy_template_id INTEGER,
+         active INTEGER DEFAULT 1,
+         created_at TEXT NOT NULL
+     );
+ 
++    CREATE TABLE IF NOT EXISTS route_segments (
++        id INTEGER PRIMARY KEY AUTOINCREMENT,
++        route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
++        segment_no INTEGER NOT NULL,
++        start_time TEXT DEFAULT '', -- план керування: початок
++        end_time TEXT DEFAULT '',   -- план керування: кінець
++        work_start_time TEXT DEFAULT '',
++        work_end_time TEXT DEFAULT '',
++        work_hours REAL DEFAULT 0,
++        driving_hours REAL DEFAULT 0,
++        activity_type TEXT DEFAULT 'Робота',
++        note TEXT DEFAULT '',
++        UNIQUE(route_id, segment_no)
++    );
++
+     CREATE TABLE IF NOT EXISTS route_templates (
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         name TEXT NOT NULL UNIQUE,
+@@ -712,11 +732,142 @@
+     if "route_id" not in rcols:
+         con.execute("ALTER TABLE route_templates ADD COLUMN route_id INTEGER")
+ 
++    # v8.66 r9: функціонально об'єднуємо «Маршрути» і «Шаблони маршрутів».
++    # Старі таблиці route_templates/route_template_segments НЕ видаляємо — це
++    # страховочний legacy-шар. Новий інтерфейс працює тільки з routes +
++    # route_segments: один маршрут = один конкретний часовий сценарій.
++    route_cols = {r[1] for r in con.execute("PRAGMA table_info(routes)").fetchall()}
++    for name, ddl in [
++        ("vehicle", "TEXT DEFAULT ''"),
++        ("vehicle_id", "INTEGER"),
++        ("shift_type", "TEXT DEFAULT 'Безперервна'"),
++        ("notes", "TEXT DEFAULT ''"),
++        ("legacy_template_id", "INTEGER"),
++    ]:
++        if name not in route_cols:
++            con.execute(f"ALTER TABLE routes ADD COLUMN {name} {ddl}")
++    con.execute("""
++        CREATE TABLE IF NOT EXISTS route_segments (
++            id INTEGER PRIMARY KEY AUTOINCREMENT,
++            route_id INTEGER NOT NULL REFERENCES routes(id) ON DELETE CASCADE,
++            segment_no INTEGER NOT NULL,
++            start_time TEXT DEFAULT '',
++            end_time TEXT DEFAULT '',
++            work_start_time TEXT DEFAULT '',
++            work_end_time TEXT DEFAULT '',
++            work_hours REAL DEFAULT 0,
++            driving_hours REAL DEFAULT 0,
++            activity_type TEXT DEFAULT 'Робота',
++            note TEXT DEFAULT '',
++            UNIQUE(route_id, segment_no)
++        )
++    """)
++
++    unify_key = "routes_unified_v8_66_r9"
++    unified = con.execute("SELECT value FROM app_settings WHERE key=?", (unify_key,)).fetchone()
++    if not unified:
++        templates = con.execute("SELECT * FROM route_templates ORDER BY id").fetchall()
++        for t in templates:
++            target = None
++            if "route_id" in t.keys() and t["route_id"]:
++                target = con.execute("SELECT * FROM routes WHERE id=?", (t["route_id"],)).fetchone()
++
++            route_name = (t["route_name"] or "").strip() if "route_name" in t.keys() else ""
++            if target is None and route_name:
++                # У старих шаблонах route_name часто зберігався як відображуваний
++                # «код — назва». Спочатку намагаємося знайти відповідний каталог.
++                candidates = con.execute("SELECT * FROM routes ORDER BY id").fetchall()
++                for r in candidates:
++                    label = " — ".join(x for x in ((r["code"] or "").strip(), (r["name"] or "").strip()) if x)
++                    if route_name in {(r["name"] or "").strip(), label}:
++                        target = r
++                        break
++
++            # Якщо до одного legacy-маршруту було прив'язано кілька шаблонів,
++            # не втрачаємо жоден: перший наповнює маршрут, наступний стає
++            # окремим маршрутом з назвою старого шаблону.
++            if target is not None:
++                has_segments = con.execute(
++                    "SELECT 1 FROM route_segments WHERE route_id=? LIMIT 1", (target["id"],)
++                ).fetchone()
++                if has_segments:
++                    target = None
++
++            if target is None:
++                code = ""
++                name = route_name or (t["name"] or "").strip() or f"Маршрут {t['id']}"
++                if " — " in name:
++                    maybe_code, maybe_name = name.split(" — ", 1)
++                    if maybe_code.strip() and maybe_name.strip():
++                        code, name = maybe_code.strip(), maybe_name.strip()
++                existing_name = con.execute("SELECT id FROM routes WHERE name=?", (name,)).fetchone()
++                if existing_name:
++                    base = (t["name"] or "").strip() or name
++                    candidate = base
++                    suffix = 2
++                    while con.execute("SELECT 1 FROM routes WHERE name=?", (candidate,)).fetchone():
++                        candidate = f"{base} ({suffix})"
++                        suffix += 1
++                    name = candidate
++                cur = con.execute(
++                    """INSERT INTO routes(
++                           name,code,description,vehicle,vehicle_id,shift_type,notes,
++                           legacy_template_id,active,created_at
++                       ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
++                    (
++                        name, code, "",
++                        (t["vehicle"] or "") if "vehicle" in t.keys() else "",
++                        t["vehicle_id"] if "vehicle_id" in t.keys() else None,
++                        (t["shift_type"] or "Безперервна") if "shift_type" in t.keys() else "Безперервна",
++                        (t["notes"] or "") if "notes" in t.keys() else "",
++                        t["id"], int(t["active"] if "active" in t.keys() else 1),
++                        t["created_at"] or datetime.now().isoformat(timespec="seconds"),
++                    )
++                )
++                target = con.execute("SELECT * FROM routes WHERE id=?", (cur.lastrowid,)).fetchone()
++            else:
++                con.execute(
++                    """UPDATE routes
++                          SET vehicle=?, vehicle_id=?, shift_type=?, notes=?, legacy_template_id=?
++                        WHERE id=?""",
++                    (
++                        (t["vehicle"] or "") if "vehicle" in t.keys() else "",
++                        t["vehicle_id"] if "vehicle_id" in t.keys() else None,
++                        (t["shift_type"] or "Безперервна") if "shift_type" in t.keys() else "Безперервна",
++                        (t["notes"] or "") if "notes" in t.keys() else "",
++                        t["id"], target["id"],
++                    )
++                )
++
++            legacy_segments = con.execute(
++                "SELECT * FROM route_template_segments WHERE template_id=? ORDER BY segment_no", (t["id"],)
++            ).fetchall()
++            for s in legacy_segments:
++                ds = (s["start_time"] or "").strip()
++                de = (s["end_time"] or "").strip()
++                ws = (s["work_start_time"] or "").strip() or ds
++                we = (s["work_end_time"] or "").strip() or de
++                con.execute(
++                    """INSERT OR REPLACE INTO route_segments(
++                           route_id,segment_no,start_time,end_time,work_start_time,work_end_time,
++                           work_hours,driving_hours,activity_type,note
++                       ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
++                    (
++                        target["id"], s["segment_no"], ds, de, ws, we,
++                        s["work_hours"], s["driving_hours"], s["activity_type"], s["note"],
++                    )
++                )
++
++        con.execute(
++            "INSERT INTO app_settings(key,value) VALUES(?,?)",
++            (unify_key, datetime.now().isoformat(timespec="seconds"))
++        )
++
+     # v8.65 r2: кожен інтервал має окрему пару початок/кінець для
+     # робочого часу та для керування. Старі start_time/end_time НЕ
+     # перейменовуємо у БД для сумісності: відтепер це саме інтервал
+     # КЕРУВАННЯ. Для роботи додаємо work_start_time/work_end_time.
+-    for table in ("work_segments", "route_template_segments"):
++    for table in ("work_segments", "route_template_segments", "route_segments"):
+         scols={r[1] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}
+         if "work_start_time" not in scols:
+             con.execute(f"ALTER TABLE {table} ADD COLUMN work_start_time TEXT DEFAULT ''")
+@@ -744,7 +895,7 @@
+                 # штатний auto-backup усе одно виконується нижче.
+                 pass
+ 
+-        for table in ("work_segments","route_template_segments"):
++        for table in ("work_segments","route_template_segments","route_segments"):
+             con.execute(f"""
+                 UPDATE {table}
+                    SET driving_hours = CASE
+@@ -819,7 +970,7 @@
+             except Exception:
+                 return 0
+ 
+-        for table in ("work_segments","route_template_segments"):
++        for table in ("work_segments","route_template_segments","route_segments"):
+             rows_i=con.execute(f"SELECT id,start_time,end_time,work_start_time,work_end_time FROM {table}").fetchall()
+             for rr in rows_i:
+                 ds=(rr["start_time"] or "").strip(); de=(rr["end_time"] or "").strip()
+@@ -3832,7 +3983,8 @@
+ 
+ def calendar_button(parent, variable):
+     # Text label instead of an emoji so the button is visible on every Windows font setup.
+-    return ttk.Button(parent, text="Дата…", width=7,
++    # r9: width=6 keeps the button inside 900 px layouts without changing its label.
++    return ttk.Button(parent, text="Дата…", width=6,
+                       command=lambda: show_calendar_picker(parent, variable))
+ 
+ 
+@@ -4175,7 +4327,6 @@
+             ("Автомобілі", self.tab_vehicles),
+             ("Табель", self.tab_work),
+             ("Графік водіїв", self.tab_schedule),
+-            ("Шаблони маршрутів", self.tab_routes),
+             ("Маршрути", self.tab_route_catalog),
+             ("Підтвердження діяльності", self.tab_att),
+             ("Тахограф — шайби", self.tab_tacho),
+@@ -4192,7 +4343,6 @@
+         service_menu.add_command(label="Місячний табель / баланс часу", command=self.show_monthly_work_balance)
+         service_menu.add_command(label="Контроль бланків — 56 днів + поточний", command=self.show_attestation_gap_control)
+         service_menu.add_command(label="Маршрути", command=lambda: self.show_tab(self.tab_route_catalog))
+-        service_menu.add_command(label="Шаблони маршрутів", command=lambda: self.show_tab(self.tab_routes))
+         service_menu.add_command(label="Автомобілі", command=lambda: self.show_tab(self.tab_vehicles))
+         if TachographModule:
+             service_menu.add_command(label="Тахограф — шайби", command=lambda: self.show_tab(self.tab_tacho))
+@@ -4201,7 +4351,7 @@
+         help_menu.add_command(
+             label="Про програму",
+             command=lambda: messagebox.showinfo(
+-                "Taxo v8.66 candidate r8",
++                "Taxo v8.66 candidate r10",
+                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
+                 "Кандидат інтерфейсу на базі стабільної v8.65.\n"
+                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
+@@ -4260,7 +4410,6 @@
+         self.tab_vehicles = ttk.Frame(nb)
+         self.tab_work = ttk.Frame(nb)
+         self.tab_schedule = ttk.Frame(nb)
+-        self.tab_routes = ttk.Frame(nb)
+         self.tab_route_catalog = ttk.Frame(nb)
+         self.tab_att = ttk.Frame(nb)
+         self.tab_tacho = ttk.Frame(nb)
+@@ -4269,7 +4418,6 @@
+         nb.add(self.tab_vehicles, text="Автомобілі")
+         nb.add(self.tab_work, text="Табель")
+         nb.add(self.tab_schedule, text="Графік водіїв")
+-        nb.add(self.tab_routes, text="Шаблони маршрутів")
+         nb.add(self.tab_route_catalog, text="Маршрути")
+         nb.add(self.tab_att, text="Підтвердження діяльності")
+         nb.add(self.tab_tacho, text="Тахограф — шайби")
+@@ -4281,9 +4429,9 @@
+                 pass
+         nb.bind("<<NotebookTabChanged>>", remember_tab, add="+")
+         self.main_notebook=nb
+-        # Alt+1…Alt+9 — швидкий перехід між розділами, навіть якщо вкладка
++        # Alt+1…Alt+8 — швидкий перехід між розділами, навіть якщо вкладка
+         # фізично не помістилась у рядку Notebook.
+-        for tab_index in range(9):
++        for tab_index in range(8):
+             self.bind_all(
+                 f"<Alt-Key-{tab_index+1}>",
+                 lambda _event, idx=tab_index: (nb.select(idx), "break")[1],
+@@ -4291,6 +4439,12 @@
+             )
+         try:
+             saved_tab=int(get_setting("main_last_tab", "0") or 0)
++            # r9 прибрав окрему вкладку «Шаблони маршрутів». Переносимо
++            # індекс останньої вкладки зі старої 9-вкладкової схеми.
++            if not get_setting("main_tabs_r9_migrated", ""):
++                saved_tab={5:5, 6:5, 7:6, 8:7}.get(saved_tab, saved_tab)
++                set_setting("main_last_tab", saved_tab)
++                set_setting("main_tabs_r9_migrated", "1")
+             if 0 <= saved_tab < nb.index("end"):
+                 nb.select(saved_tab)
+         except (ValueError, tk.TclError):
+@@ -4301,7 +4455,6 @@
+         self.build_vehicles()
+         self.build_work()
+         self.build_schedule()
+-        self.build_routes()
+         self.build_route_catalog()
+         self.build_attestation()
+         if TachographModule:
+@@ -4562,7 +4715,6 @@
+             self.load_drivers()
+             self.load_vehicles()
+             self.load_route_catalog()
+-            self.load_route_templates()
+             self.refresh_month()
+             self.refresh_schedule()
+             self.load_att_history()
+@@ -6002,7 +6169,6 @@
+         work_id=int(vals[0]) if vals[0] else None
+         date_text=vals[1]
+         con=db(); existing=con.execute("SELECT * FROM worklog WHERE id=?",(work_id,)).fetchone() if work_id else None
+-        templates=con.execute("SELECT * FROM route_templates WHERE active=1 ORDER BY name").fetchall()
+         routes=con.execute("SELECT * FROM routes WHERE active=1 ORDER BY name").fetchall()
+         vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall()
+         con.close()
+@@ -6040,10 +6206,11 @@
+         ).grid(row=0,column=6,padx=4,sticky="w")
+ 
+         ttk.Label(top,text="Маршрут").grid(row=1,column=0,padx=4,pady=4,sticky="w")
+-        ttk.Combobox(
++        route_combo=ttk.Combobox(
+             top,textvariable=route_var,values=list(route_map.keys()),
+             state="readonly",width=28
+-        ).grid(row=1,column=1,columnspan=2,padx=4,sticky="ew")
++        )
++        route_combo.grid(row=1,column=1,columnspan=2,padx=4,sticky="ew")
+ 
+         ttk.Label(top,text="Автомобіль").grid(row=1,column=3,padx=(8,4),sticky="w")
+         ttk.Combobox(
+@@ -6062,7 +6229,7 @@
+         ).grid(row=2,column=1,columnspan=2,padx=4,sticky="w")
+         ttk.Label(
+             top,
+-            text="Маршрут/шаблон = ПЛАН. Тахокарта надалі дає окремий ФАКТ керування і не перезаписує цей план. Без тахо: лише 8 год у табелі.",
++            text="Маршрут = готовий ПЛАН з точними годинами. Після застосування його можна змінити для конкретного дня. Тахокарта дає окремий ФАКТ.",
+             foreground="gray"
+         ).grid(row=2,column=3,columnspan=4,padx=(8,4),sticky="w")
+ 
+@@ -6071,9 +6238,11 @@
+         top.columnconfigure(6,weight=1)
+ 
+         apply_frame=ttk.Frame(win); apply_frame.pack(fill="x",padx=10,pady=(2,6))
+-        template_names=[t["name"] for t in templates]; template_var=tk.StringVar()
+-        ttk.Label(apply_frame,text="Шаблон маршруту:").pack(side="left")
