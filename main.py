@@ -1424,7 +1424,7 @@ def waybill_date_range_label(start_date, end_date=None):
 ROUTE_POINT_TYPES=("АТП","Зупинка","Автостанція","Відпочинок","Нічліг","Інше")
 
 
-def parse_route_schedule_text(raw, start_day=0):
+def parse_route_schedule_text(raw, start_day=0, previous_absolute=None):
     """Вставлені рядки маршруту з автоматичним обчисленням D+.
 
     Формат рядка: назва; прибуття; відправлення; тип; примітка.
@@ -1434,7 +1434,7 @@ def parse_route_schedule_text(raw, start_day=0):
     """
     rows=[]
     current_day=max(0,int(start_day or 0))
-    previous_abs=None
+    previous_abs=previous_absolute
 
     def parse_moment(token):
         nonlocal current_day,previous_abs
@@ -8850,15 +8850,17 @@ class App(tk.Tk):
                     try:
                         start_day=int(vv["start_day_offset"].get() or 0)
                         first_direction=vv["start_direction"].get() or "outbound"
+                        previous_absolute=None
                         if direction!=first_direction and stop_data[first_direction]:
-                            source_days=[
-                                int(item.get(key,0))
+                            source_moments=[
+                                int(item.get(key,0))*1440+time_to_minutes(item[time_key])
                                 for item in stop_data[first_direction]
                                 for key,time_key in (("arrival_day_offset","arrival_time"),("departure_day_offset","departure_time"))
                                 if item.get(time_key)
                             ]
-                            if source_days: start_day=max(source_days)
-                        parsed=parse_route_schedule_text(editor.get("1.0","end-1c"),start_day)
+                            if source_moments:
+                                previous_absolute=max(source_moments); start_day=previous_absolute//1440
+                        parsed=parse_route_schedule_text(editor.get("1.0","end-1c"),start_day,previous_absolute)
                     except ValueError as exc:
                         messagebox.showerror("Швидке заповнення",str(exc),parent=qw); return
                     stop_data[direction]=parsed
@@ -8902,13 +8904,14 @@ class App(tk.Tk):
                     try:
                         start_day=int(vv["start_day_offset"].get() or 0)
                         outbound=parse_route_schedule_text(editors["outbound"].get("1.0","end-1c"),start_day)
-                        outbound_days=[
-                            int(item.get(key,0)) for item in outbound
+                        outbound_moments=[
+                            int(item.get(key,0))*1440+time_to_minutes(item[time_key]) for item in outbound
                             for key,time_key in (("arrival_day_offset","arrival_time"),("departure_day_offset","departure_time"))
                             if item.get(time_key)
                         ]
-                        return_start=max(outbound_days) if outbound_days else start_day
-                        returning=parse_route_schedule_text(editors["return"].get("1.0","end-1c"),return_start)
+                        previous_absolute=max(outbound_moments) if outbound_moments else None
+                        return_start=previous_absolute//1440 if previous_absolute is not None else start_day
+                        returning=parse_route_schedule_text(editors["return"].get("1.0","end-1c"),return_start,previous_absolute)
                     except ValueError as exc:
                         messagebox.showerror("Швидке заповнення",str(exc),parent=qw); return
                     stop_data["outbound"]=outbound; stop_data["return"]=returning

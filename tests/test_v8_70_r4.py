@@ -90,6 +90,16 @@ class V870R4Tests(unittest.TestCase):
         self.assertEqual(rows[2]["arrival_time"], "05:35")
         self.assertEqual(rows[2]["departure_time"], "")
 
+        outbound=main.parse_route_schedule_text("А\t20:00\nБ\t23:00",0)
+        last=max(
+            int(row[key])*1440+main.time_to_minutes(row[time_key])
+            for row in outbound
+            for key,time_key in (("arrival_day_offset","arrival_time"),("departure_day_offset","departure_time"))
+            if row[time_key]
+        )
+        returning=main.parse_route_schedule_text("Б\t05:00\nА\t08:00",last//1440,last)
+        self.assertEqual(returning[0]["departure_day_offset"],1)
+
     def test_finishing_driver_role_preserves_employee_and_history(self):
         con=main.db()
         try:
