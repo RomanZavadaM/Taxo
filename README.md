@@ -47,6 +47,8 @@
 
 v8.70 consolidated r5 можна перевіряти у Windows через `START.bat`. GitHub Actions формує Windows Setup/Portable та нативні macOS-пакети для `arm64` і `x86_64`. У жодну збірку не включається користувацька БД.
 
+Готові Windows-файли поточної тестової версії доступні у [GitHub Release v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70): інсталятор Setup, Portable ZIP, вихідний ZIP та файл контрольних сум SHA-256.
+
 Підготовлений macOS-процес формує нативний пакет `Taxo.app` для двох архітектур:
 
 - Apple Silicon (`arm64`);

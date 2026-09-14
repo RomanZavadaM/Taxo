@@ -59,7 +59,8 @@ jobs:
           $files = git diff --name-only $base $head
           $executableChanges = $files | Where-Object {
             $_ -notlike 'README*.md' -and
-            $_ -ne '.github/workflows/build-windows-v8.70.yml'
+            $_ -ne '.github/workflows/build-windows-v8.70.yml' -and
+            $_ -ne '.github/workflows/publish-v8.70.yml'
           }
           $build = if ($executableChanges) { 'true' } else { 'false' }
           "build=$build" | Out-File -FilePath $env:GITHUB_OUTPUT -Append

@@ -20,6 +20,8 @@ Taxo est une application de bureau en ukrainien destinée à gérer le personnel
 
 Sous Windows, le paquet source peut être lancé avec `START.bat`. GitHub Actions produit des paquets Windows Setup et Portable ainsi que des paquets macOS natifs pour Apple Silicon et Intel aux points de contrôle exécutables.
 
+Le programme d'installation Windows, l'archive Portable, l'archive du code source et les sommes SHA-256 actuels sont disponibles dans la [version GitHub v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70).
+
 L'application conserve les données utilisateur en dehors du dossier du programme, sous `Documents/DriverWorktime`. Les bases SQLite et les données personnelles sont volontairement exclues du dépôt et de tous les paquets de distribution ; une mise à jour du programme ne remplace donc pas les données d'exploitation.
 
 L'interface et les formulaires officiels générés sont actuellement en ukrainien. Cette traduction facilite la présentation internationale du projet.
