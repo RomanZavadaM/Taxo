@@ -107,6 +107,17 @@ class V870R8Tests(unittest.TestCase):
             doc=fitz.open(pdf); text="\n".join(page.get_text() for page in doc); doc.close()
             self.assertIn("ТАБЕЛЬ УСЬОГО ПЕРСОНАЛУ",text)
 
+    def test_r8_release_workflow_builds_every_platform_and_checks_databases(self):
+        root=Path(__file__).resolve().parents[1]
+        workflow=(root/".github/workflows/publish-v8.70.yml").read_text("utf-8")
+        self.assertIn("Taxo_v8_70_TEST_r8_Setup_Windows_x64.exe",workflow)
+        self.assertIn("Taxo_v8_70_TEST_r8_Windows_x64_Portable.zip",workflow)
+        self.assertIn("Taxo_v8_70_TEST_r8_macOS_arm64_Portable.zip",workflow)
+        self.assertIn("Taxo_v8_70_TEST_r8_macOS_x86_64_Portable.zip",workflow)
+        self.assertIn("SHA256SUMS_v8_70_TEST_r8.txt",workflow)
+        self.assertIn("Database unexpectedly bundled",workflow)
+        self.assertIn("needs:",workflow)
+
 
 if __name__ == "__main__":
     unittest.main()

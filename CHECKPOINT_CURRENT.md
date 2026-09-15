@@ -7,7 +7,7 @@ Date: 2026-09-15
 - Version: **v8.70 candidate r8**; based on published r7.
 - Publication target: GitHub `main`; the old v8.65 head is superseded after verified merge.
 - Previous development checkpoints remain preserved: v8.66 r10 and v8.70 r1–r3.
-- Routine testing uses the source package with `START.bat`; executable packaging runs only when manually requested at a release checkpoint.
+- r8 is an executable release checkpoint: Windows Setup/Portable, macOS arm64/x86_64, source ZIP and shared checksums are built and verified in one GitHub workflow.
 - Publication branch: `work/v8.70-personnel-timesheet-r8`.
 
 ## Personnel and timekeeping
@@ -61,4 +61,5 @@ Date: 2026-09-15
 - Database migration is additive; no driver, vehicle, route, worklog, tachograph record or old dispatch table is deleted.
 - Dates in the UI remain `ДД.ММ.РРРР`.
 - Persistent data remains in `Documents/DriverWorktime`; the distribution ZIP contains no database or personal data.
+- Every r8 executable job rejects bundled `.db`, `.sqlite` or `.sqlite3` files before publication.
 - Tachograph recognition and the rule that tachograph facts never overwrite plan `worklog/work_segments` are unchanged.

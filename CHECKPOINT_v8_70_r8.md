@@ -23,5 +23,6 @@ Branch: `work/v8.70-personnel-timesheet-r8`
 
 - Database schema is unchanged from r7; no destructive migration is needed.
 - Tachograph recognition, route mileage, odometer history and waybill logic are unchanged.
-- Routine candidate testing uses `START.bat`; no EXE/app packaging is performed for r8.
+- After source acceptance, r8 is promoted to an executable checkpoint: one GitHub workflow builds Windows Setup/Portable, native macOS arm64/x86_64 packages, source ZIP and shared checksums.
+- Every platform bundle is checked for its executable, required templates, architecture and absence of user databases before publication.
 - Source distribution contains no SQLite database, caches or personal data.
