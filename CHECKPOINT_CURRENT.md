@@ -4,11 +4,22 @@ Date: 2026-09-15
 
 ## Current development version
 
-- Version: **v8.70 candidate r8**; based on published r7.
+- Version: **v8.70 candidate r9**; based on published r8.
 - Publication target: GitHub `main`; the old v8.65 head is superseded after verified merge.
 - Previous development checkpoints remain preserved: v8.66 r10 and v8.70 r1–r3.
-- r8 is an executable release checkpoint: Windows Setup/Portable, macOS arm64/x86_64, source ZIP and shared checksums are built and verified in one GitHub workflow.
-- Publication branch: `work/v8.70-personnel-timesheet-r8`.
+- r9 is an executable release checkpoint: Windows Setup/Portable, macOS arm64/x86_64, source ZIP and shared checksums are built and verified in one GitHub workflow.
+- Publication branch: `work/v8.70-workspace-r9`.
+
+## Configurable workspaces
+
+- `Файл → Робоче сховище…` supports local folders, SMB/NAS shares and cloud-synchronized folders.
+- All mutable business data is rooted there: both SQLite databases, tachograph scans, backups, output documents and logs.
+- Migration uses SQLite backup APIs, copies the remaining tree, validates both databases and keeps the old workspace unchanged.
+- Existing workspaces can be attached without copying or overwriting them.
+- One shared lock with host/user/PID/heartbeat metadata enforces sequential use. Same-host crash locks recover automatically; stale foreign locks require explicit user confirmation.
+- Cloud use is explicitly sequential: close Taxo, wait for synchronization, then open it on the next computer.
+- Database paths for waybills, attestations and tachograph scans use `workspace://` relative addresses so different computers may mount the same cloud data at different local paths.
+- The only local state outside the workspace is a per-user JSON pointer containing its selected path; it contains no business or personal records.
 
 ## Personnel and timekeeping
 
@@ -60,6 +71,6 @@ Date: 2026-09-15
 
 - Database migration is additive; no driver, vehicle, route, worklog, tachograph record or old dispatch table is deleted.
 - Dates in the UI remain `ДД.ММ.РРРР`.
-- Persistent data remains in `Documents/DriverWorktime`; the distribution ZIP contains no database or personal data.
-- Every r8 executable job rejects bundled `.db`, `.sqlite` or `.sqlite3` files before publication.
+- The default remains `Documents/DriverWorktime`, but the selected workspace may be elsewhere; the distribution ZIP contains no database or personal data.
+- Every r9 executable job rejects bundled `.db`, `.sqlite` or `.sqlite3` files before publication.
 - Tachograph recognition and the rule that tachograph facts never overwrite plan `worklog/work_segments` are unchanged.

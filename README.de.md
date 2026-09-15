@@ -2,7 +2,7 @@
 
 [Українська](README.md) | [English](README.en.md) | **Deutsch** | [Español](README.es.md) | [Français](README.fr.md)
 
-Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Beschäftigten eines Verkehrsunternehmens, Fahrerplänen, Arbeitszeiten, Linien, Fahrzeugen, Tätigkeitsbescheinigungen, Bus-Fahrtenblättern und Aufzeichnungen analoger Fahrtenschreiber. Der aktuelle Entwicklungskandidat ist **v8.70 r8**.
+Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Beschäftigten eines Verkehrsunternehmens, Fahrerplänen, Arbeitszeiten, Linien, Fahrzeugen, Tätigkeitsbescheinigungen, Bus-Fahrtenblättern und Aufzeichnungen analoger Fahrtenschreiber. Der aktuelle Entwicklungskandidat ist **v8.70 r9**.
 
 ## Wichtigste Funktionen
 
@@ -18,6 +18,7 @@ Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Besc
 - Für jeden vollständigen Linienablauf kann eine optionale Planstrecke hinterlegt werden. Sie wird als Plan im Fahrtenblatt gedruckt, prognostiziert den Endkilometerstand und warnt unverbindlich bei mehr als 10 km oder 10 % Abweichung.
 - Tätigkeitsbescheinigungen als DOCX, PDF und JPG sowie Sicherung und Wiederherstellung der dauerhaft gespeicherten Anwendungsdaten.
 - Arbeitsbereich für analoge Fahrtenschreiberscheiben mit Scans, Tätigkeitsintervallen und Vergleich der tatsächlichen Lenkzeit mit dem Plan. Tachographen-Istwerte überschreiben keine Plandaten.
+- Konfigurierbare lokale, Netzwerk-/NAS- oder cloud-synchronisierte Arbeitsordner. Beide Datenbanken, Scans, Sicherungen, Dokumente und Protokolle werden gemeinsam verschoben; eine Sperrdatei erzwingt die abwechselnde Nutzung durch mehrere Installationen.
 
 ## Start und Datenspeicherung
 
@@ -25,10 +26,10 @@ Unter Windows kann das Quellpaket über `START.bat` gestartet werden. Windows-Se
 
 Das aktuelle Windows-Setup, das Portable-ZIP, das Quellcode-ZIP und die SHA-256-Prüfsummen stehen im [GitHub-Release v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70) bereit.
 
-Benutzerdaten werden außerhalb des Programmordners unter `Documents/DriverWorktime` gespeichert. SQLite-Datenbanken und personenbezogene Daten sind bewusst weder im Repository noch in den Distributionspaketen enthalten. Programmaktualisierungen ersetzen daher keine Betriebsdaten.
+Der Standardordner ist `Documents/DriverWorktime`. Über `Datei → Arbeitsspeicher…` können alle Daten sicher verschoben oder ein vorhandener gemeinsamer Ordner eingebunden werden. SQLite-Datenbanken und personenbezogene Daten sind weder im Repository noch in den Distributionspaketen enthalten.
 
 Die Benutzeroberfläche und die erzeugten amtlichen Formulare sind derzeit ukrainisch. Diese Übersetzung dient der internationalen Projektübersicht.
 
 ## Projektstatus
 
-v8.70 r8 ist der aktive Entwicklungskandidat auf Grundlage der veröffentlichten r7-Version. Ältere Branches bleiben als historische Kontrollpunkte erhalten. Vor dem produktiven Einsatz sind weiterhin Prüfungen mit echten Unternehmensdaten und gedruckten Formularen erforderlich.
+v8.70 r9 ist der aktive Entwicklungskandidat auf Grundlage der veröffentlichten r8-Version. Ältere Branches bleiben als historische Kontrollpunkte erhalten. Vor dem produktiven Einsatz sind weiterhin Prüfungen mit echten Unternehmensdaten und gedruckten Formularen erforderlich.

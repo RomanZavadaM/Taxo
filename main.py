@@ -20,6 +20,25 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 
+from workspace import (
+    WorkspaceBusyError,
+    WorkspaceLock,
+    clone_workspace,
+    describe_lock,
+    ensure_workspace,
+    load_workspace_root,
+    normalize_database_paths,
+    normalize_root,
+    paths_for,
+    probe_workspace,
+    read_lock_info,
+    resolved_path,
+    save_workspace_root,
+    storage_kind,
+    stored_path,
+    workspace_has_data,
+)
+
 try:
     from docx.shared import Pt
 except ImportError:
@@ -43,24 +62,49 @@ except ImportError:
 
 APP_DIR = Path(__file__).resolve().parent
 
-# Постійне сховище даних НЕ залежить від версії програми.
-# Завдяки цьому при оновленні програми база не переноситься вручну.
+# Постійне робоче сховище не залежить від версії програми. Його адресу можна
+# змінити на локальну, мережеву або синхронізовану папку. У локальному профілі
+# залишається лише покажчик на сховище; усі робочі дані лежать у DATA_ROOT.
 DOCUMENTS_DIR = Path.home() / "Documents"
-DATA_ROOT = DOCUMENTS_DIR / "DriverWorktime"
-DATA_DIR = DATA_ROOT / "Data"
-BACKUP_DIR = DATA_ROOT / "Backups"
-OUTPUT_DIR = DATA_ROOT / "Output"
-LOG_DIR = DATA_ROOT / "Logs"
-ATT_ARCHIVE_DIR = OUTPUT_DIR / "AttestationArchive"
-ATT_REPLACED_DIR = ATT_ARCHIVE_DIR / "Replaced"
-ATT_DELETED_DIR = ATT_ARCHIVE_DIR / "Deleted"
-WAYBILL_DIR = OUTPUT_DIR / "Waybills"
-DB_PATH = DATA_DIR / "driver_worktime.sqlite3"
+DATA_ROOT = load_workspace_root()
+_WORKSPACE_PATHS = paths_for(DATA_ROOT)
+DATA_DIR = _WORKSPACE_PATHS["data"]
+BACKUP_DIR = _WORKSPACE_PATHS["backups"]
+OUTPUT_DIR = _WORKSPACE_PATHS["output"]
+LOG_DIR = _WORKSPACE_PATHS["logs"]
+ATT_ARCHIVE_DIR = _WORKSPACE_PATHS["att_archive"]
+ATT_REPLACED_DIR = _WORKSPACE_PATHS["att_replaced"]
+ATT_DELETED_DIR = _WORKSPACE_PATHS["att_deleted"]
+WAYBILL_DIR = _WORKSPACE_PATHS["waybills"]
+DB_PATH = _WORKSPACE_PATHS["main_db"]
 TEMPLATE_PATH = APP_DIR / "Бланк підтвердження.docx"
 ATT_VISUAL_TEMPLATE_PATH = APP_DIR / "attestation_visual_template.pdf"
 
-for _p in (DATA_DIR, BACKUP_DIR, OUTPUT_DIR, LOG_DIR, ATT_ARCHIVE_DIR, ATT_REPLACED_DIR, ATT_DELETED_DIR, WAYBILL_DIR):
-    _p.mkdir(parents=True, exist_ok=True)
+ACTIVE_WORKSPACE_LOCK = None
+
+
+def configure_runtime_workspace(root):
+    """Оновити модульні шляхи до створення БД/інтерфейсу."""
+    global DATA_ROOT,DATA_DIR,BACKUP_DIR,OUTPUT_DIR,LOG_DIR
+    global ATT_ARCHIVE_DIR,ATT_REPLACED_DIR,ATT_DELETED_DIR,WAYBILL_DIR,DB_PATH
+    DATA_ROOT=normalize_root(root)
+    p=paths_for(DATA_ROOT)
+    DATA_DIR=p["data"]; BACKUP_DIR=p["backups"]; OUTPUT_DIR=p["output"]; LOG_DIR=p["logs"]
+    ATT_ARCHIVE_DIR=p["att_archive"]; ATT_REPLACED_DIR=p["att_replaced"]
+    ATT_DELETED_DIR=p["att_deleted"]; WAYBILL_DIR=p["waybills"]; DB_PATH=p["main_db"]
+    try:
+        import tachograph
+        tachograph.configure_workspace(DATA_ROOT)
+    except Exception:
+        pass
+
+
+def db_stored_path(path):
+    return stored_path(path,DATA_ROOT)
+
+
+def real_data_path(value):
+    return resolved_path(value,DATA_ROOT)
 
 
 def open_external(path):
@@ -296,9 +340,10 @@ def backup_database(label="auto"):
         return None
     stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     target = BACKUP_DIR / f"driver_worktime_{label}_{stamp}.sqlite3"
-    src_con = sqlite3.connect(DB_PATH)
-    dst_con = sqlite3.connect(target)
+    src_con = sqlite3.connect(str(DB_PATH),timeout=30)
+    dst_con = sqlite3.connect(str(target),timeout=30)
     try:
+        src_con.execute("PRAGMA busy_timeout=30000")
         src_con.backup(dst_con)
         dst_con.commit()
     finally:
@@ -331,8 +376,9 @@ def validate_database_file(path):
 
     con=None
     try:
-        uri=f"file:{path.as_posix()}?mode=ro"
-        con=sqlite3.connect(uri,uri=True)
+        con=sqlite3.connect(str(path),timeout=30)
+        con.execute("PRAGMA query_only=ON")
+        con.execute("PRAGMA busy_timeout=30000")
         quick=con.execute("PRAGMA quick_check").fetchone()
         if not quick or str(quick[0]).lower()!="ok":
             return False, f"SQLite quick_check: {quick[0] if quick else 'невідомий результат'}"
@@ -371,9 +417,11 @@ def restore_database_from_file(source_path):
         if temp_target.exists():
             temp_target.unlink()
 
-        src_con=sqlite3.connect(f"file:{source.as_posix()}?mode=ro",uri=True)
-        dst_con=sqlite3.connect(temp_target)
+        src_con=sqlite3.connect(str(source),timeout=30)
+        dst_con=sqlite3.connect(str(temp_target),timeout=30)
         try:
+            src_con.execute("PRAGMA query_only=ON")
+            src_con.execute("PRAGMA busy_timeout=30000")
             src_con.backup(dst_con)
             dst_con.commit()
         finally:
@@ -450,9 +498,15 @@ def current_transport_profile():
 
 
 def db():
-    con = sqlite3.connect(DB_PATH)
+    con = sqlite3.connect(DB_PATH,timeout=30)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys=ON")
+    con.execute("PRAGMA busy_timeout=30000")
+    # WAL не є безпечним вибором для мережевих файлових систем. Звичайний
+    # rollback journal разом із блокуванням всього сховища підтримує почергову
+    # роботу встановлених копій Taxo.
+    con.execute("PRAGMA journal_mode=DELETE")
+    con.execute("PRAGMA synchronous=FULL")
     return con
 
 
@@ -481,6 +535,7 @@ def set_setting(key, value):
 
 
 def init_db():
+    ensure_workspace(DATA_ROOT)
     migrated, old_db = migrate_legacy_database()
     con = db()
     con.executescript("""
@@ -1389,6 +1444,12 @@ def init_db():
 
     con.commit()
     con.close()
+    normalize_database_paths(DB_PATH,DATA_ROOT,{
+        "waybills":("pdf_path",),
+        "waybill_events":("pdf_path",),
+        "attestations":("file_path","pdf_path","jpg_page1_path","jpg_page2_path"),
+        "attestation_audit":("file_path","pdf_path","jpg_page1_path","jpg_page2_path"),
+    })
     purge_old()
     # Після міграції одразу робимо резервну копію старої бази в новому сховищі.
     auto_backup_database()
@@ -3245,7 +3306,9 @@ def _safe_archive_file(path_text, target_dir, label):
     raw=(path_text or "").strip()
     if not raw:
         return raw
-    src=Path(raw)
+    src=real_data_path(raw)
+    if src is None:
+        return raw
     if not src.exists() or not src.is_file():
         return raw
     target_dir.mkdir(parents=True,exist_ok=True)
@@ -3258,7 +3321,7 @@ def _safe_archive_file(path_text, target_dir, label):
         target=target_dir/f"{stem}_{label}_{stamp}_{n}{suffix}"
         n+=1
     shutil.move(str(src),str(target))
-    return str(target)
+    return db_stored_path(target)
 
 
 def _unique_attestation_output_paths(driver, st, en, activity_no):
@@ -3318,9 +3381,12 @@ def _restore_attestation_files(row):
         if not raw:
             result[field]=""
             continue
-        src=Path(raw)
-        if not src.exists() or not src.is_file() or src.parent.resolve()==OUTPUT_DIR.resolve():
+        src=real_data_path(raw)
+        if src is None:
             result[field]=raw
+            continue
+        if not src.exists() or not src.is_file() or src.parent.resolve()==OUTPUT_DIR.resolve():
+            result[field]=db_stored_path(src) if src.exists() else raw
             continue
         target=OUTPUT_DIR/src.name
         n=2
@@ -3328,7 +3394,7 @@ def _restore_attestation_files(row):
             target=OUTPUT_DIR/f"{src.stem}_restored_{n}{src.suffix}"
             n+=1
         shutil.move(str(src),str(target))
-        result[field]=str(target)
+        result[field]=db_stored_path(target)
     return result
 
 
@@ -4984,6 +5050,87 @@ def ctrl_shortcut_action(keysym, keycode=None):
         return {65:"select_all",67:"copy",86:"paste",88:"cut",89:"redo",90:"undo"}.get(keycode)
     return None
 
+def _select_workspace_folder(parent,title="Виберіть робочу папку Taxo"):
+    selected=filedialog.askdirectory(parent=parent,title=title,mustexist=True)
+    return normalize_root(selected) if selected else None
+
+
+def prepare_workspace_interactively():
+    """Перевірити сховище до відкриття БД та отримати єдиний активний lock."""
+    global ACTIVE_WORKSPACE_LOCK
+    root=DATA_ROOT
+    chooser=tk.Tk(); chooser.withdraw()
+    try:
+        while True:
+            configure_runtime_workspace(root)
+            try:
+                probe_workspace(root)
+                ensure_workspace(root)
+                lock=WorkspaceLock(root,"v8.70-r9")
+                lock.acquire()
+                try:
+                    save_workspace_root(root)
+                except Exception:
+                    lock.release()
+                    raise
+                ACTIVE_WORKSPACE_LOCK=lock
+                return lock
+            except WorkspaceBusyError as exc:
+                info=exc.info
+                if info.get("stale"):
+                    recover=messagebox.askyesno(
+                        "Залишкове блокування Taxo",
+                        "Сховище має старий файл блокування:\n\n"
+                        f"{root}\n\n{describe_lock(info)}\n\n"
+                        "Інша копія, ймовірно, завершилася аварійно. Зняти старе блокування?\n\n"
+                        "Робіть це лише якщо Taxo точно не працює на іншому комп’ютері.",
+                        icon="warning",parent=chooser
+                    )
+                    if recover:
+                        try:
+                            lock=WorkspaceLock(root,"v8.70-r9"); lock.acquire(force=True)
+                            try:
+                                save_workspace_root(root)
+                            except Exception:
+                                lock.release()
+                                raise
+                            ACTIVE_WORKSPACE_LOCK=lock
+                            return lock
+                        except Exception as recovery_error:
+                            messagebox.showerror("Робоче сховище",str(recovery_error),parent=chooser)
+                            continue
+                action=messagebox.askyesnocancel(
+                    "Сховище зараз використовується",
+                    "Інша копія Taxo вже працює з цими даними:\n\n"
+                    f"{root}\n\n{describe_lock(info)}\n\n"
+                    "Так — перевірити ще раз\nНі — вибрати інше сховище\nСкасувати — закрити програму",
+                    icon="warning",parent=chooser
+                )
+                if action is True:
+                    continue
+                if action is None:
+                    return None
+                selected=_select_workspace_folder(chooser)
+                if selected is None:
+                    return None
+                root=selected
+            except Exception as exc:
+                choose=messagebox.askyesno(
+                    "Робоче сховище недоступне",
+                    f"Taxo не може прочитати або записати робочу папку:\n\n{root}\n\n{exc}\n\n"
+                    "Вибрати іншу папку?",
+                    icon="error",parent=chooser
+                )
+                if not choose:
+                    return None
+                selected=_select_workspace_folder(chooser)
+                if selected is None:
+                    return None
+                root=selected
+    finally:
+        chooser.destroy()
+
+
 class App(tk.Tk):
     def report_callback_exception(self, exc_type, exc_value, exc_tb):
         """Остання лінія захисту для неперехоплених помилок Tkinter callback-ів."""
@@ -5240,7 +5387,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("Taxo v8.70 — Працівники, графіки та шляхівки")
+        self.title("Taxo v8.70 r9 — Працівники, графіки та шляхівки")
         fit_window_to_screen(self,1200,760,900,600)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
         self.bind("<Control-q>", lambda e: self.exit_app())
@@ -5249,6 +5396,8 @@ class App(tk.Tk):
         self.driver_id = None
         self.att_driver_id = None
         self.att_driver_map = {}
+        self._workspace_lock=ACTIVE_WORKSPACE_LOCK
+        self._workspace_lock_failures=0
         self._install_ui_accessibility()
         self.build_ui()
         self.build_menu()
@@ -5256,6 +5405,27 @@ class App(tk.Tk):
         self.load_company()
         self.load_drivers()
         self.refresh_month()
+        self.after(30000,self._refresh_workspace_lock)
+
+    def _refresh_workspace_lock(self):
+        lock=getattr(self,"_workspace_lock",None)
+        if lock is None:
+            return
+        if lock.refresh():
+            self._workspace_lock_failures=0
+            self.after(30000,self._refresh_workspace_lock)
+            return
+        self._workspace_lock_failures+=1
+        if self._workspace_lock_failures<3:
+            self.after(5000,self._refresh_workspace_lock)
+            return
+        messagebox.showerror(
+            "Втрачено блокування сховища",
+            "Taxo більше не може підтвердити виключний доступ до робочих даних. "
+            "Щоб не пошкодити спільну базу, програма буде закрита.\n\n"
+            f"Сховище: {DATA_ROOT}",parent=self
+        )
+        self.destroy()
 
     def build_menu(self):
         shortcut = "Command+" if sys.platform == "darwin" else "Ctrl+"
@@ -5265,6 +5435,7 @@ class App(tk.Tk):
         file_menu.add_separator()
         file_menu.add_command(label="Резервна копія", command=self.manual_backup)
         file_menu.add_command(label="Відновити з резервної копії…", command=self.restore_backup)
+        file_menu.add_command(label="Робоче сховище…", command=self.show_workspace_manager)
         file_menu.add_command(label="Відкрити папку даних", command=self.open_data_folder)
         file_menu.add_separator()
         file_menu.add_command(label="Вийти", command=self.exit_app)
@@ -5314,10 +5485,11 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.70 candidate r8",
+                "Taxo v8.70 candidate r9",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "v8.70 r8: повний щоденний і місячний табель робочого часу всього персоналу.\n"
-                "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
+                "v8.70 r9: змінні локальні, мережеві та синхронізовані робочі сховища; "
+                "почергова робота кількох копій Taxo.\n"
+                "База, резервні копії, документи, журнали та скани зберігаються разом.",
                 parent=self
             )
         )
@@ -5340,6 +5512,9 @@ class App(tk.Tk):
                     set_setting("main_window_geometry", self.geometry())
             except Exception:
                 pass
+            lock=getattr(self,"_workspace_lock",None)
+            if lock is not None:
+                lock.release()
             self.destroy()
 
     def build_ui(self):
@@ -5620,11 +5795,14 @@ class App(tk.Tk):
         btns.pack(fill="x", padx=12, pady=(0, 8))
         ttk.Button(btns, text="Резервна копія", command=self.manual_backup).pack(side="left", padx=(0, 6))
         ttk.Button(btns, text="Відновити з копії…", command=self.restore_backup).pack(side="left", padx=(0, 6))
+        ttk.Button(btns, text="Робоче сховище…", command=self.show_workspace_manager).pack(side="left", padx=(0, 6))
         ttk.Button(btns, text="Відкрити папку даних", command=self.open_data_folder).pack(side="left")
         ttk.Button(btns, text="Вийти", command=self.exit_app).pack(side="right")
+        kind_label={"local":"локальне","network":"мережеве","cloud":"синхронізована хмара"}.get(storage_kind(DATA_ROOT),"інше")
+        ttk.Label(host, text=f"Робоче сховище ({kind_label}): {DATA_ROOT}", foreground="gray").pack(anchor="w", padx=12)
         ttk.Label(host, text=f"База: {DB_PATH}", foreground="gray").pack(anchor="w", padx=12)
         ttk.Label(host, text=f"Резервні копії: {BACKUP_DIR}", foreground="gray").pack(anchor="w", padx=12)
-        ttk.Label(host, text="Дані зберігаються окремо від програми. Оновлення версій не потребують перенесення бази.", foreground="gray").pack(anchor="w", padx=12)
+        ttk.Label(host, text="Усі змінні дані зберігаються тут окремо від програми. Одночасно сховище відкриває лише одна копія Taxo.", foreground="gray").pack(anchor="w", padx=12)
 
     def manual_backup(self):
         try:
@@ -5639,6 +5817,128 @@ class App(tk.Tk):
             open_external(DATA_ROOT)
         except Exception as e:
             messagebox.showerror("Помилка", str(e))
+
+    def _close_after_workspace_switch(self,target,operation):
+        save_workspace_root(target)
+        messagebox.showinfo(
+            "Робоче сховище змінено",
+            f"{operation}\n\nНове сховище:\n{target}\n\n"
+            "Taxo зараз закриється. Запустіть програму знову — вона відкриє нове сховище. "
+            "Попередня папка залишається без змін як страхова копія.",parent=self
+        )
+        lock=getattr(self,"_workspace_lock",None)
+        if lock is not None:
+            lock.release()
+        self._workspace_lock=None
+        self.destroy()
+
+    def show_workspace_manager(self):
+        win=tk.Toplevel(self)
+        win.title("Робоче сховище Taxo")
+        fit_window_to_screen(win,820,540,680,480)
+        win.transient(self); win.grab_set()
+        body=ttk.Frame(win,padding=14); body.pack(fill="both",expand=True)
+        kind=storage_kind(DATA_ROOT)
+        kind_label={"local":"Локальна папка","network":"Мережева папка / NAS","cloud":"Синхронізована хмарна папка"}.get(kind,"Папка")
+        ttk.Label(body,text="Поточне робоче сховище",font=("TkDefaultFont",11,"bold")).pack(anchor="w")
+        ttk.Label(body,text=str(DATA_ROOT),wraplength=760,justify="left").pack(anchor="w",pady=(5,2))
+        ttk.Label(body,text=kind_label,foreground="gray").pack(anchor="w")
+
+        ttk.Separator(body).pack(fill="x",pady=12)
+        ttk.Label(
+            body,
+            text=(
+                "У цій папці разом зберігаються основна БД, тахографічна БД і скани, "
+                "резервні копії, шляхівки, бланки, звіти та журнали помилок. "
+                "Після зміни папки програма закриється; новий шлях застосовується при наступному запуску."
+            ),wraplength=760,justify="left"
+        ).pack(anchor="w")
+
+        warning=ttk.LabelFrame(body,text="Почергова робота кількох копій")
+        warning.pack(fill="x",pady=12)
+        ttk.Label(
+            warning,
+            text=(
+                "Мережева папка (SMB/NAS) дає безпосереднє блокування. У OneDrive, Dropbox, "
+                "Google Drive чи іншій синхронізованій хмарі запускайте Taxo лише почергово: "
+                "після закриття на першому комп’ютері дочекайтеся завершення синхронізації, "
+                "і тільки тоді відкривайте на другому. Taxo створює файл блокування та не дозволяє "
+                "штатно відкрити одне сховище двом копіям r9 або новішим одночасно. Старі версії "
+                "до r9 не знають про це блокування — не підключайте їх до спільної робочої папки."
+            ),wraplength=730,justify="left",foreground="#7A4E00"
+        ).pack(anchor="w",padx=10,pady=8)
+
+        def check_target(target,require_existing=False):
+            if target is None:
+                return False
+            if normalize_root(target)==normalize_root(DATA_ROOT):
+                messagebox.showinfo("Робоче сховище","Це вже поточне сховище.",parent=win)
+                return False
+            try:
+                info=probe_workspace(target)
+                lock_info=read_lock_info(target)
+                if lock_info and not lock_info.get("stale"):
+                    raise RuntimeError("Це сховище вже відкрите іншою копією Taxo:\n\n"+describe_lock(lock_info))
+                if require_existing and not workspace_has_data(target):
+                    if not messagebox.askyesno(
+                        "Порожнє сховище",
+                        "У вибраній папці не знайдено даних Taxo. Підключити її як нове порожнє сховище?",
+                        parent=win
+                    ):
+                        return False
+                return info
+            except Exception as exc:
+                messagebox.showerror("Робоче сховище",f"Не вдалося використати папку:\n\n{target}\n\n{exc}",parent=win)
+                return False
+
+        def attach_existing():
+            target=_select_workspace_folder(win,"Підключити існуюче сховище Taxo")
+            info=check_target(target,require_existing=True)
+            if not info:
+                return
+            main_db=paths_for(target)["main_db"]
+            if main_db.exists():
+                ok,details=validate_database_file(main_db)
+                if not ok:
+                    messagebox.showerror("Робоче сховище",f"Основна база не пройшла перевірку:\n\n{details}",parent=win)
+                    return
+            ensure_workspace(target)
+            self._close_after_workspace_switch(target,"Існуюче сховище підключено.")
+
+        def copy_current():
+            target=_select_workspace_folder(win,"Куди перенести всі робочі дані Taxo")
+            info=check_target(target)
+            if not info:
+                return
+            if workspace_has_data(target):
+                messagebox.showerror(
+                    "Перенесення даних",
+                    "У вибраній папці вже є дані Taxo. Щоб відкрити їх без перезапису, використайте «Підключити існуюче».",
+                    parent=win
+                ); return
+            if not messagebox.askyesno(
+                "Перенести всі робочі дані",
+                f"Створити перевірену копію всього поточного сховища?\n\nЗвідки:\n{DATA_ROOT}\n\nКуди:\n{target}\n\n"
+                "Основна та тахографічна SQLite-БД будуть скопійовані узгоджено. Старе сховище не видаляється.",
+                parent=win
+            ):
+                return
+            destination_lock=WorkspaceLock(target,"v8.70-r9-transfer")
+            try:
+                destination_lock.acquire(force=bool(read_lock_info(target) and read_lock_info(target).get("stale")))
+                clone_workspace(DATA_ROOT,target)
+            except Exception as exc:
+                messagebox.showerror("Перенесення даних",f"Перенесення не завершено:\n\n{exc}\n\nПоточне сховище не змінено.",parent=win)
+                return
+            finally:
+                destination_lock.release()
+            self._close_after_workspace_switch(target,"Усі робочі дані перевірено й скопійовано.")
+
+        buttons=ttk.Frame(body); buttons.pack(fill="x",pady=(8,0))
+        ttk.Button(buttons,text="Перенести поточні дані…",command=copy_current).pack(side="left")
+        ttk.Button(buttons,text="Підключити існуюче…",command=attach_existing).pack(side="left",padx=8)
+        ttk.Button(buttons,text="Відкрити поточну папку",command=self.open_data_folder).pack(side="left")
+        ttk.Button(buttons,text="Закрити",command=win.destroy).pack(side="right")
 
     def restore_backup(self):
         path=filedialog.askopenfilename(
@@ -8206,6 +8506,7 @@ class App(tk.Tk):
         )
         if actual is None:
             con.close(); return
+        actual_db_path=db_stored_path(actual)
         now=datetime.now().isoformat(timespec="seconds")
         if not reprint and pool["mode"]=="auto":
             con.execute("UPDATE waybill_number_pools SET next_number=? WHERE id=?",(number_value+1,pool["id"]))
@@ -8216,7 +8517,7 @@ class App(tk.Tk):
                        start_location=?,end_location=?,odometer_start=?,odometer_end=?,distance_km=?,planned_distance_km=?,pdf_path=?,revision=?,status='active',voided_at='',void_reason='',updated_at=? WHERE id=?""",
                 (row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
                  row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"] if pool else existing["number_pool_id"],document_series,document_number,internal_no,
-                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],row["planned_distance_km"],str(actual),revision,now,existing["id"])
+                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],row["planned_distance_km"],actual_db_path,revision,now,existing["id"])
             )
         else:
             con.execute(
@@ -8227,11 +8528,11 @@ class App(tk.Tk):
                 (row["worklog_id"],row["driver_id"],row["date"].isoformat(),row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,
                  row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
                  row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"],document_series,document_number,internal_no,
-                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],row["planned_distance_km"],str(actual),revision,now,now)
+                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],row["planned_distance_km"],actual_db_path,revision,now,now)
             )
         waybill_id=existing["id"] if existing else con.execute("SELECT id FROM waybills WHERE worklog_id=?",(row["worklog_id"],)).fetchone()[0]
         con.execute("""INSERT INTO waybill_events(waybill_id,event_type,document_series,document_number,internal_no,revision,pdf_path,created_at)
-            VALUES(?,?,?,?,?,?,?,?)""",(waybill_id,"reprint" if reprint else "issued",document_series,document_number,internal_no,revision,str(actual),now))
+            VALUES(?,?,?,?,?,?,?,?)""",(waybill_id,"reprint" if reprint else "issued",document_series,document_number,internal_no,revision,actual_db_path,now))
         con.commit(); con.close(); self.refresh_waybill_issue_list()
         try: open_external(actual)
         except Exception: pass
@@ -8258,7 +8559,9 @@ class App(tk.Tk):
         row=self._selected_waybill_data()
         if not row or not row.get("waybill_pdf"):
             messagebox.showinfo("Шляхівка","Для вибраного запису PDF ще не сформовано.",parent=getattr(self,"waybill_win",self)); return
-        path=Path(row["waybill_pdf"])
+        path=real_data_path(row["waybill_pdf"])
+        if path is None:
+            messagebox.showerror("Шляхівка","Файл шляхівки не знайдено.",parent=self.waybill_win); return
         if not path.exists():
             messagebox.showerror("Шляхівка","Файл шляхівки не знайдено. Сформуйте його повторно.",parent=self.waybill_win); return
         open_external(path)
@@ -10546,6 +10849,7 @@ class App(tk.Tk):
         created=_generate_attestation_files(
             d,period_from,period_to,int(activity_no),place_value,form_date_text,paths,formats
         )
+        stored_created={key:db_stored_path(value) if value else "" for key,value in created.items()}
 
         con=db()
         now=datetime.now().isoformat(timespec="seconds")
@@ -10557,7 +10861,7 @@ class App(tk.Tk):
             ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 d["id"],period_from,period_to,int(activity_no),place_value,dt.isoformat(),
-                created["file_path"],created["pdf_path"],created["jpg_page1_path"],created["jpg_page2_path"],
+                stored_created["file_path"],stored_created["pdf_path"],stored_created["jpg_page1_path"],stored_created["jpg_page2_path"],
                 "active",1,now,"","",now
             )
         )
@@ -10701,6 +11005,7 @@ class App(tk.Tk):
         created=_generate_attestation_files(
             driver,period_from,period_to,int(activity_no),place,form_date_text,paths,formats
         )
+        stored_created={key:db_stored_path(value) if value else "" for key,value in created.items()}
 
         backup_database("before_attestation_edit")
         archived_old=_archive_attestation_files(current,ATT_REPLACED_DIR,"replaced")
@@ -10718,7 +11023,7 @@ class App(tk.Tk):
                            status='active',revision=?,updated_at=?,deleted_at='',delete_reason=''
                      WHERE id=?""",
                 (period_from,period_to,int(activity_no),place,en.date().isoformat(),
-                 created["file_path"],created["pdf_path"],created["jpg_page1_path"],created["jpg_page2_path"],
+                 stored_created["file_path"],stored_created["pdf_path"],stored_created["jpg_page1_path"],stored_created["jpg_page2_path"],
                  new_revision,now,int(attestation_id))
             )
             updated=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
@@ -10984,7 +11289,9 @@ class App(tk.Tk):
         removed_files=0
         for raw in sorted(paths):
             try:
-                fp=Path(raw)
+                fp=real_data_path(raw)
+                if fp is None:
+                    continue
                 if not fp.exists() or not fp.is_file():
                     continue
                 resolved=fp.resolve()
@@ -11061,7 +11368,8 @@ class App(tk.Tk):
             for label,field in (("DOCX","file_path"),("PDF","pdf_path"),("JPG1","jpg_page1_path"),("JPG2","jpg_page2_path")):
                 val=(row[field] or "") if field in keys else ""
                 if val:
-                    parts.append(f"{label}: {val}")
+                    actual=real_data_path(val)
+                    parts.append(f"{label}: {actual or val}")
             return " | ".join(parts)
 
         if rows:
@@ -11118,6 +11426,7 @@ class App(tk.Tk):
             if (r["pdf_path"] or "").strip(): formats.append("PDF")
             if (r["jpg_page1_path"] or "").strip() or (r["jpg_page2_path"] or "").strip(): formats.append("JPG")
             primary=(r["pdf_path"] or r["file_path"] or r["jpg_page1_path"] or r["jpg_page2_path"] or "")
+            primary=str(real_data_path(primary) or primary) if primary else ""
             iid=self.att_tree.insert(
                 "","end",
                 values=(
@@ -11140,8 +11449,9 @@ class App(tk.Tk):
         return row
 
     def _open_path(self, path):
-        path=(path or "").strip()
-        if not path or not os.path.exists(path):
+        raw=(path or "").strip()
+        path=real_data_path(raw)
+        if path is None or not path.exists():
             messagebox.showerror("Помилка","Файл не знайдено.",parent=self)
             return
         open_external(path)
@@ -11173,16 +11483,25 @@ class App(tk.Tk):
         if not (path or "").strip():
             messagebox.showinfo("Бланки","Для цього запису немає збереженого файлу.",parent=self)
             return
-        folder=str(Path(path).parent)
+        resolved=real_data_path(path)
+        if resolved is None:
+            messagebox.showerror("Помилка","Папку файла не знайдено.",parent=self)
+            return
+        folder=str(resolved.parent)
         open_external(folder)
 
 if __name__ == "__main__":
-    migrated, old_db = init_db()
-    app = App()
-    if migrated and old_db:
-        app.after(300, lambda: messagebox.showinfo(
-            "Дані перенесено автоматично",
-            "Існуючу базу водіїв знайдено та один раз скопійовано у постійне сховище:\n\n"
-            f"{DB_PATH}\n\nСтара база залишена без змін. Надалі оновлення програми не вимагатимуть перенесення даних."
-        ))
-    app.mainloop()
+    workspace_lock=prepare_workspace_interactively()
+    if workspace_lock is not None:
+        try:
+            migrated, old_db = init_db()
+            app = App()
+            if migrated and old_db:
+                app.after(300, lambda: messagebox.showinfo(
+                    "Дані перенесено автоматично",
+                    "Існуючу базу водіїв знайдено та один раз скопійовано у робоче сховище:\n\n"
+                    f"{DB_PATH}\n\nСтара база залишена без змін."
+                ))
+            app.mainloop()
+        finally:
+            workspace_lock.release()
