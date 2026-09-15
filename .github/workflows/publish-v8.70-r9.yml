@@ -37,7 +37,11 @@ jobs:
         shell: pwsh
         run: |
           python -m py_compile main.py workspace.py waybill.py tachograph.py attestation_render.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/run_ci_suite.py
+          $testsExit = $LASTEXITCODE
+          Write-Host "Recorded unittest exit code: $testsExit"
+          exit $testsExit
 
       - name: Build Windows portable application
         shell: pwsh
