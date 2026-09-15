@@ -662,6 +662,21 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_employee_shifts_date ON employee_shifts(work_date, role);
 
+    CREATE TABLE IF NOT EXISTS employee_time_entries (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE RESTRICT,
+        work_date TEXT NOT NULL,
+        day_type TEXT NOT NULL DEFAULT 'Робота',
+        planned_hours REAL,
+        actual_hours REAL,
+        notes TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT DEFAULT '',
+        UNIQUE(employee_id, work_date)
+    );
+    CREATE INDEX IF NOT EXISTS idx_employee_time_entries_date
+        ON employee_time_entries(work_date, employee_id);
+
     CREATE TABLE IF NOT EXISTS waybill_number_pools (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         series TEXT NOT NULL,
@@ -744,6 +759,24 @@ def init_db():
         UNIQUE(issue_year, issue_seq)
     );
     CREATE INDEX IF NOT EXISTS idx_waybills_date ON waybills(work_date);
+
+    CREATE TABLE IF NOT EXISTS vehicle_odometer_readings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicle_id INTEGER NOT NULL REFERENCES vehicles(id) ON DELETE RESTRICT,
+        driver_id INTEGER REFERENCES drivers(id) ON DELETE SET NULL,
+        work_date TEXT NOT NULL,
+        reading_at TEXT DEFAULT '',
+        reading_kind TEXT NOT NULL CHECK(reading_kind IN ('start','end','single')),
+        reading_km INTEGER NOT NULL CHECK(reading_km >= 0),
+        source_type TEXT NOT NULL DEFAULT 'manual',
+        source_id INTEGER,
+        notes TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT DEFAULT '',
+        UNIQUE(source_type, source_id, reading_kind)
+    );
+    CREATE INDEX IF NOT EXISTS idx_vehicle_odometer_history
+        ON vehicle_odometer_readings(vehicle_id, reading_at, id);
 
     CREATE TABLE IF NOT EXISTS waybill_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -885,6 +918,9 @@ def init_db():
         ("end_location", "TEXT DEFAULT ''"),
         ("voided_at", "TEXT DEFAULT ''"),
         ("void_reason", "TEXT DEFAULT ''"),
+        ("odometer_start", "INTEGER"),
+        ("odometer_end", "INTEGER"),
+        ("distance_km", "INTEGER"),
     ]:
         if name not in wbcols:
             con.execute(f"ALTER TABLE waybills ADD COLUMN {name} {ddl}")
@@ -1365,6 +1401,7 @@ def purge_old():
     cutoff = cutoff_date.isoformat()
     con = db()
     con.execute("DELETE FROM worklog WHERE work_date < ?", (cutoff,))
+    con.execute("DELETE FROM employee_time_entries WHERE work_date < ?", (cutoff,))
 
     # v8.62: Бланки підтвердження та їх журнал більше НЕ очищаються автоматично.
     # 48-місячне вікно лишається для робочого табеля, але юридичні/архівні
@@ -1635,6 +1672,196 @@ def signed_hours_hhmm(value):
         return f"{sign}{minutes//60}:{minutes%60:02d}"
     except Exception:
         return str(value or "")
+
+
+def parse_optional_odometer(value):
+    """Порожнє значення дозволене; введений показник має бути цілими км."""
+    raw=str(value or "").strip().replace(" ", "")
+    if not raw:
+        return None
+    if not raw.isdigit():
+        raise ValueError("Показник спідометра має бути цілим невід'ємним числом кілометрів.")
+    return int(raw)
+
+
+def odometer_display(start_value, end_value):
+    if start_value is None and end_value is None:
+        return "—"
+    left="—" if start_value is None else f"{int(start_value):,}".replace(",", " ")
+    right="—" if end_value is None else f"{int(end_value):,}".replace(",", " ")
+    suffix=""
+    if start_value is not None and end_value is not None:
+        suffix=f" ({int(end_value)-int(start_value):+d} км)"
+    return f"{left} → {right}{suffix}"
+
+
+def odometer_consistency_warnings(con, vehicle_id, start_value=None, end_value=None,
+                                  reading_at="", exclude_source_id=None):
+    """Лише діагностика: жодне попередження не блокує збереження."""
+    warnings=[]
+    if start_value is not None and end_value is not None and end_value < start_value:
+        warnings.append("Кінцевий показник менший за початковий.")
+    if not vehicle_id:
+        return warnings
+    probe=start_value if start_value is not None else end_value
+    if probe is None:
+        return warnings
+    params=[vehicle_id]
+    sql="""SELECT reading_km,reading_at,source_type FROM vehicle_odometer_readings
+             WHERE vehicle_id=?"""
+    if reading_at:
+        sql+=" AND (COALESCE(reading_at,'')='' OR reading_at<=?)"
+        params.append(reading_at)
+    if exclude_source_id is not None:
+        sql+=" AND NOT (source_type='waybill' AND source_id=?)"
+        params.append(exclude_source_id)
+    sql+=" ORDER BY COALESCE(reading_at,'' ) DESC,id DESC LIMIT 1"
+    previous=con.execute(sql,params).fetchone()
+    if previous and int(probe)<int(previous["reading_km"]):
+        label=(previous["reading_at"] or "раніше").replace("T", " ")
+        warnings.append(
+            f"Новий показник {int(probe)} км менший за попередній "
+            f"{int(previous['reading_km'])} км ({label}, джерело: {previous['source_type']})."
+        )
+    return warnings
+
+
+def save_waybill_odometer_readings(con, worklog_id, vehicle_id, driver_id, work_date,
+                                    start_value=None, end_value=None,
+                                    start_at="", end_at="", notes=""):
+    """Зберегти або очистити необов'язкові показники, прив'язані до графіка."""
+    now=datetime.now().isoformat(timespec="seconds")
+    for kind,value,stamp in (("start",start_value,start_at),("end",end_value,end_at)):
+        if value is None:
+            con.execute(
+                "DELETE FROM vehicle_odometer_readings WHERE source_type='waybill' AND source_id=? AND reading_kind=?",
+                (worklog_id,kind),
+            )
+            continue
+        con.execute(
+            """INSERT INTO vehicle_odometer_readings(
+                   vehicle_id,driver_id,work_date,reading_at,reading_kind,reading_km,
+                   source_type,source_id,notes,created_at,updated_at
+               ) VALUES(?,?,?,?,?,?,'waybill',?,?,?,?)
+               ON CONFLICT(source_type,source_id,reading_kind) DO UPDATE SET
+                   vehicle_id=excluded.vehicle_id,driver_id=excluded.driver_id,
+                   work_date=excluded.work_date,reading_at=excluded.reading_at,
+                   reading_km=excluded.reading_km,notes=excluded.notes,
+                   updated_at=excluded.updated_at""",
+            (vehicle_id,driver_id,work_date,stamp,kind,int(value),worklog_id,notes,now,now),
+        )
+    distance=(int(end_value)-int(start_value)) if start_value is not None and end_value is not None else None
+    con.execute(
+        """UPDATE waybills SET odometer_start=?,odometer_end=?,distance_km=?,updated_at=?
+             WHERE worklog_id=?""",
+        (start_value,end_value,distance,now,worklog_id),
+    )
+
+
+def get_waybill_odometer_readings(con, worklog_id):
+    rows=con.execute(
+        """SELECT reading_kind,reading_km FROM vehicle_odometer_readings
+             WHERE source_type='waybill' AND source_id=?""",(worklog_id,)
+    ).fetchall()
+    values={row["reading_kind"]:int(row["reading_km"]) for row in rows}
+    return values.get("start"),values.get("end")
+
+
+def _interval_overlap_minutes(start_dt, end_dt, target_date):
+    day_start=datetime.combine(target_date,datetime.min.time())
+    day_end=day_start+timedelta(days=1)
+    return max(0,int((min(end_dt,day_end)-max(start_dt,day_start)).total_seconds()//60))
+
+
+def _driver_plan_minutes_for_day(con, driver_id, target_date):
+    if not driver_id:
+        return 0
+    total=0
+    rows=con.execute(
+        "SELECT * FROM worklog WHERE driver_id=? AND work_date BETWEEN ? AND ? ORDER BY work_date,id",
+        (driver_id,(target_date-timedelta(days=7)).isoformat(),target_date.isoformat()),
+    ).fetchall()
+    for work in rows:
+        base=datetime.strptime(work["work_date"],"%Y-%m-%d")
+        segments=con.execute(
+            "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(work["id"],)
+        ).fetchall()
+        pairs=[]
+        for segment in segments:
+            start=(segment["work_start_time"] or segment["start_time"] or "").strip()
+            end=(segment["work_end_time"] or segment["end_time"] or "").strip()
+            if start and end:
+                pairs.append((start,end))
+        if not pairs:
+            start=(work["work_start_time"] or work["start_time"] or "").strip()
+            end=(work["work_end_time"] or work["end_time"] or "").strip()
+            if start and end:
+                pairs=[(start,end)]
+        previous_end=None
+        for start_raw,end_raw in pairs:
+            start_abs=parse_hhmm(start_raw)
+            while previous_end is not None and start_abs<previous_end:
+                start_abs+=1440
+            end_abs=parse_hhmm(end_raw)+(start_abs//1440)*1440
+            while end_abs<=start_abs:
+                end_abs+=1440
+            start_dt=base+timedelta(minutes=start_abs)
+            end_dt=base+timedelta(minutes=end_abs)
+            total+=_interval_overlap_minutes(start_dt,end_dt,target_date)
+            previous_end=end_abs
+        if not pairs and work["work_date"]==target_date.isoformat():
+            total+=hours_value_to_minutes(work["work_hours"] or 0)
+    return total
+
+
+def _employee_shift_minutes_for_day(con, employee_id, target_date):
+    planned=0; actual=0.0; actual_known=True; found=False
+    rows=con.execute(
+        "SELECT * FROM employee_shifts WHERE employee_id=? AND work_date BETWEEN ? AND ?",
+        (employee_id,(target_date-timedelta(days=7)).isoformat(),target_date.isoformat()),
+    ).fetchall()
+    for row in rows:
+        base=datetime.strptime(row["work_date"],"%Y-%m-%d")
+        start_dt=base+timedelta(minutes=parse_hhmm(row["start_time"]))
+        end_dt=base+timedelta(days=int(row["end_day_offset"] or 0),minutes=parse_hhmm(row["end_time"]))
+        overlap=_interval_overlap_minutes(start_dt,end_dt,target_date)
+        if overlap<=0:
+            continue
+        found=True; planned+=overlap
+        if row["actual_hours"] is None:
+            actual_known=False
+        else:
+            duration=max((end_dt-start_dt).total_seconds()/60.0,1.0)
+            actual+=hours_value_to_minutes(row["actual_hours"])*overlap/duration
+    return planned,(int(round(actual)) if found and actual_known else None),found
+
+
+def employee_day_time(con, employee_id, target_date):
+    """Єдиний рядок табеля: автоматичний план + необов'язковий ручний факт."""
+    if isinstance(target_date,str):
+        target_date=datetime.strptime(target_date,"%Y-%m-%d").date()
+    employee=con.execute("SELECT * FROM employees WHERE id=?",(employee_id,)).fetchone()
+    if employee is None:
+        raise ValueError("Працівника не знайдено.")
+    driver_minutes=_driver_plan_minutes_for_day(con,employee["driver_id"],target_date)
+    shift_minutes,shift_actual,shift_found=_employee_shift_minutes_for_day(con,employee_id,target_date)
+    automatic_plan=driver_minutes+shift_minutes
+    entry=con.execute(
+        "SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+        (employee_id,target_date.isoformat()),
+    ).fetchone()
+    plan=hours_value_to_minutes(entry["planned_hours"]) if entry and entry["planned_hours"] is not None else automatic_plan
+    actual=hours_value_to_minutes(entry["actual_hours"]) if entry and entry["actual_hours"] is not None else shift_actual
+    sources=[]
+    if driver_minutes: sources.append("графік водія")
+    if shift_found: sources.append("зміна персоналу")
+    if entry: sources.append("ручний табель")
+    return {
+        "day_type":entry["day_type"] if entry else ("Робота" if automatic_plan else "Вихідний"),
+        "planned_minutes":int(plan),"actual_minutes":actual,
+        "source":" + ".join(sources) or "—",
+        "notes":entry["notes"] if entry else "","manual":bool(entry),
+    }
 
 
 def format_hours(value):
@@ -4793,9 +5020,9 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.70 consolidated r5",
+                "Taxo v8.70 candidate r6",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "v8.70 r5: усі розробки зведено в main; багатодобова шляхівка друкує календарні дати замість D+N.\n"
+                "v8.70 r6: щоденний табель усіх працівників і необов'язковий журнал показників спідометра.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
                 parent=self
             )
@@ -5358,46 +5585,156 @@ class App(tk.Tk):
         con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
 
     def show_employee_timesheet(self):
-        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Місячний табель персоналу")
-        fit_window_to_screen(win,980,620,760,480)
+        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Табель робочого часу всіх працівників")
+        fit_window_to_screen(win,1180,700,900,540)
         top=ttk.Frame(win,padding=8); top.pack(fill="x")
         today=date.today(); month=tk.StringVar(value=str(today.month)); year=tk.StringVar(value=str(today.year))
         ttk.Label(top,text="Місяць").pack(side="left"); ttk.Spinbox(top,textvariable=month,from_=1,to=12,width=5).pack(side="left",padx=4)
         ttk.Label(top,text="Рік").pack(side="left"); ttk.Spinbox(top,textvariable=year,from_=2020,to=2100,width=7).pack(side="left",padx=4)
-        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6); frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
-        cols=("personnel","name","roles","planned","actual","difference")
-        tree=ttk.Treeview(frame,columns=cols,show="headings")
-        for key,label,width in (("personnel","Таб. №",80),("name","ПІБ",280),("roles","Ролі",220),("planned","План, год",95),("actual","Факт, год",95),("difference","Відхилення",95)):
-            tree.heading(key,text=label); tree.column(key,width=width,anchor="w")
-        yb=ttk.Scrollbar(frame,orient="vertical",command=tree.yview); xb=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview); tree.configure(yscrollcommand=yb.set,xscrollcommand=xb.set)
-        tree.grid(row=0,column=0,sticky="nsew"); yb.grid(row=0,column=1,sticky="ns"); xb.grid(row=1,column=0,sticky="ew")
-        def refresh():
-            try: m=int(month.get()); yy=int(year.get()); start=date(yy,m,1); end=date(yy,m,calendar.monthrange(yy,m)[1])
-            except Exception: messagebox.showerror("Табель","Перевірте місяць і рік.",parent=win); return
-            for item in tree.get_children(): tree.delete(item)
-            con=db(); rows=con.execute("""SELECT e.*,GROUP_CONCAT(er.role, ', ') roles FROM employees e LEFT JOIN employee_roles er ON er.employee_id=e.id GROUP BY e.id ORDER BY e.last_name,e.first_name""").fetchall()
-            for row in rows:
-                driver_plan=con.execute("SELECT COALESCE(SUM(work_hours),0) FROM worklog WHERE driver_id=? AND work_date BETWEEN ? AND ?",(row["driver_id"],start.isoformat(),end.isoformat())).fetchone()[0] if row["driver_id"] else 0
-                shifts=con.execute("SELECT * FROM employee_shifts WHERE employee_id=? AND work_date BETWEEN ? AND ?",(row["id"],(start-timedelta(days=7)).isoformat(),end.isoformat())).fetchall()
-                period_start=datetime.combine(start,datetime.min.time()); period_end=datetime.combine(end+timedelta(days=1),datetime.min.time())
-                shift_plan=0.0; shift_actual=0.0; actual_complete=True; overlap_found=False
-                for sh in shifts:
-                    base=datetime.strptime(sh["work_date"],"%Y-%m-%d"); sm=parse_hhmm(sh["start_time"]); em=parse_hhmm(sh["end_time"])
-                    shift_start=base+timedelta(minutes=sm); shift_end=base+timedelta(days=int(sh["end_day_offset"] or 0),minutes=em)
-                    overlap=max(0.0,(min(shift_end,period_end)-max(shift_start,period_start)).total_seconds()/3600.0)
-                    if overlap<=0: continue
-                    overlap_found=True
-                    shift_plan+=overlap
-                    if sh["actual_hours"] is None: actual_complete=False
-                    else:
-                        total=max((shift_end-shift_start).total_seconds()/3600.0,0.001)
-                        shift_actual+=float(sh["actual_hours"])*overlap/total
-                planned=float(driver_plan or 0)+shift_plan
-                actual=shift_actual if overlap_found and actual_complete and not row["driver_id"] else None
-                actual_text=hours_value_hhmm(actual) if actual is not None else "—"; diff=signed_hours_hhmm(float(actual)-planned) if actual is not None else "—"
-                tree.insert("","end",values=(row["personnel_no"],self.employee_full_name(row),row["roles"] or "",hours_value_hhmm(planned),actual_text,diff))
+        notebook=ttk.Notebook(win); notebook.pack(fill="both",expand=True,padx=8,pady=(0,8))
+        summary_tab=ttk.Frame(notebook); daily_tab=ttk.Frame(notebook)
+        notebook.add(summary_tab,text="Підсумок місяця"); notebook.add(daily_tab,text="Щоденний табель")
+
+        summary_frame=ttk.Frame(summary_tab); summary_frame.pack(fill="both",expand=True,padx=4,pady=6)
+        summary_frame.rowconfigure(0,weight=1); summary_frame.columnconfigure(0,weight=1)
+        summary_cols=("personnel","name","roles","planned","actual","difference","missing")
+        summary_tree=ttk.Treeview(summary_frame,columns=summary_cols,show="headings")
+        for key,label,width in (("personnel","Таб. №",80),("name","ПІБ",270),("roles","Ролі",210),("planned","План",85),("actual","Факт",85),("difference","Відхилення",90),("missing","Без факту",90)):
+            summary_tree.heading(key,text=label); summary_tree.column(key,width=width,anchor="w")
+        sy=ttk.Scrollbar(summary_frame,orient="vertical",command=summary_tree.yview); sx=ttk.Scrollbar(summary_frame,orient="horizontal",command=summary_tree.xview)
+        summary_tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
+        summary_tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
+
+        daily_top=ttk.Frame(daily_tab,padding=(4,6)); daily_top.pack(fill="x")
+        employee_choice=tk.StringVar(); ttk.Label(daily_top,text="Працівник").pack(side="left")
+        employee_combo=ttk.Combobox(daily_top,textvariable=employee_choice,state="readonly",width=48); employee_combo.pack(side="left",padx=6)
+        ttk.Label(daily_top,text="План надходить із графіка водія або зміни; ручний запис може його уточнити. Факт можна лишити порожнім.",foreground="gray").pack(side="left",padx=8)
+        daily_frame=ttk.Frame(daily_tab); daily_frame.pack(fill="both",expand=True,padx=4,pady=(0,6)); daily_frame.rowconfigure(0,weight=1); daily_frame.columnconfigure(0,weight=1)
+        daily_cols=("date","weekday","day_type","planned","actual","difference","source","notes")
+        daily_tree=ttk.Treeview(daily_frame,columns=daily_cols,show="headings")
+        for key,label,width in (("date","Дата",90),("weekday","День",75),("day_type","Вид дня",115),("planned","План",70),("actual","Факт",70),("difference","Відхилення",85),("source","Джерело",190),("notes","Примітка",260)):
+            daily_tree.heading(key,text=label); daily_tree.column(key,width=width,anchor="w")
+        dy=ttk.Scrollbar(daily_frame,orient="vertical",command=daily_tree.yview); dx=ttk.Scrollbar(daily_frame,orient="horizontal",command=daily_tree.xview)
+        daily_tree.configure(yscrollcommand=dy.set,xscrollcommand=dx.set)
+        daily_tree.grid(row=0,column=0,sticky="nsew"); dy.grid(row=0,column=1,sticky="ns"); dx.grid(row=1,column=0,sticky="ew")
+        daily_actions=ttk.Frame(daily_tab,padding=(4,0,4,6)); daily_actions.pack(fill="x")
+
+        employee_map={}
+        def selected_month():
+            try:
+                m=int(month.get()); yy=int(year.get())
+                return date(yy,m,1),calendar.monthrange(yy,m)[1]
+            except Exception:
+                messagebox.showerror("Табель","Перевірте місяць і рік.",parent=win); return None,None
+
+        def load_employees():
+            nonlocal employee_map
+            con=db(); rows=con.execute("""SELECT e.*,GROUP_CONCAT(er.role, ', ') roles FROM employees e
+                LEFT JOIN employee_roles er ON er.employee_id=e.id GROUP BY e.id ORDER BY e.active DESC,e.last_name,e.first_name""").fetchall(); con.close()
+            employee_map={f"{row['personnel_no'] or '—'} | {self.employee_full_name(row)}":row for row in rows}
+            employee_combo["values"]=list(employee_map)
+            if employee_choice.get() not in employee_map and employee_map:
+                employee_choice.set(next(iter(employee_map)))
+            return rows
+
+        def refresh_daily():
+            start,days=selected_month()
+            if not start: return
+            employee=employee_map.get(employee_choice.get())
+            for item in daily_tree.get_children(): daily_tree.delete(item)
+            if not employee: return
+            con=db()
+            weekday_names=("Пн","Вт","Ср","Чт","Пт","Сб","Нд")
+            for day_no in range(1,days+1):
+                work_date=start.replace(day=day_no); row=employee_day_time(con,employee["id"],work_date)
+                actual=row["actual_minutes"]
+                difference=(actual-row["planned_minutes"]) if actual is not None else None
+                daily_tree.insert("","end",iid=work_date.isoformat(),values=(
+                    work_date.strftime("%d.%m.%Y"),weekday_names[work_date.weekday()],row["day_type"],
+                    minutes_hhmm(row["planned_minutes"]),minutes_hhmm(actual) if actual is not None else "—",
+                    signed_hours_hhmm((difference or 0)/60) if difference is not None else "—",
+                    row["source"],row["notes"],
+                ))
             con.close()
-        ttk.Button(top,text="Показати",command=refresh).pack(side="left",padx=8); refresh()
+
+        def refresh_summary():
+            start,days=selected_month()
+            if not start: return
+            rows=load_employees()
+            for item in summary_tree.get_children(): summary_tree.delete(item)
+            con=db()
+            for employee in rows:
+                planned=actual=missing=0
+                for day_no in range(1,days+1):
+                    row=employee_day_time(con,employee["id"],start.replace(day=day_no))
+                    planned+=row["planned_minutes"]
+                    if row["actual_minutes"] is not None: actual+=row["actual_minutes"]
+                    elif row["planned_minutes"]>0: missing+=1
+                summary_tree.insert("","end",values=(employee["personnel_no"],self.employee_full_name(employee),employee["roles"] or "",
+                    minutes_hhmm(planned),minutes_hhmm(actual),signed_hours_hhmm((actual-planned)/60),str(missing)))
+            con.close(); refresh_daily()
+
+        def selected_day():
+            sel=daily_tree.selection()
+            return datetime.strptime(sel[0],"%Y-%m-%d").date() if sel else None
+
+        def edit_day():
+            employee=employee_map.get(employee_choice.get()); work_date=selected_day()
+            if not employee or not work_date:
+                messagebox.showinfo("Табель","Виберіть день у щоденному табелі.",parent=win); return
+            con=db(); current=employee_day_time(con,employee["id"],work_date)
+            entry=con.execute("SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",(employee["id"],work_date.isoformat())).fetchone(); con.close()
+            dialog=tk.Toplevel(win); dialog.title(f"Табель: {self.employee_full_name(employee)}, {work_date.strftime('%d.%m.%Y')}")
+            fit_window_to_screen(dialog,590,410,520,360); dialog.transient(win); dialog.grab_set()
+            day_type=tk.StringVar(value=entry["day_type"] if entry else current["day_type"])
+            plan=tk.StringVar(value=hours_value_hhmm(entry["planned_hours"]) if entry and entry["planned_hours"] is not None else "")
+            actual=tk.StringVar(value=hours_value_hhmm(entry["actual_hours"]) if entry and entry["actual_hours"] is not None else "")
+            notes=tk.StringVar(value=entry["notes"] if entry else "")
+            ttk.Label(dialog,text="Вид дня").grid(row=0,column=0,sticky="w",padx=10,pady=8)
+            ttk.Combobox(dialog,textvariable=day_type,values=DAY_TYPES,state="readonly",width=35).grid(row=0,column=1,sticky="ew",padx=10,pady=8)
+            ttk.Label(dialog,text="План, ГГ:ХХ").grid(row=1,column=0,sticky="w",padx=10,pady=8)
+            ttk.Entry(dialog,textvariable=plan).grid(row=1,column=1,sticky="ew",padx=10,pady=8)
+            ttk.Label(dialog,text=f"Порожньо = автоматично {minutes_hhmm(current['planned_minutes'])}",foreground="gray").grid(row=2,column=1,sticky="w",padx=10)
+            ttk.Label(dialog,text="Факт, ГГ:ХХ").grid(row=3,column=0,sticky="w",padx=10,pady=8)
+            ttk.Entry(dialog,textvariable=actual).grid(row=3,column=1,sticky="ew",padx=10,pady=8)
+            ttk.Label(dialog,text="Примітка").grid(row=4,column=0,sticky="w",padx=10,pady=8)
+            ttk.Entry(dialog,textvariable=notes).grid(row=4,column=1,sticky="ew",padx=10,pady=8); dialog.columnconfigure(1,weight=1)
+            def save_entry():
+                try:
+                    plan_value=minutes_to_db_hours(hours_value_to_minutes(plan.get())) if plan.get().strip() else None
+                    actual_value=minutes_to_db_hours(hours_value_to_minutes(actual.get())) if actual.get().strip() else None
+                except ValueError as exc:
+                    messagebox.showerror("Табель",str(exc),parent=dialog); return
+                con=db(); now=datetime.now().isoformat(timespec="seconds")
+                con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,planned_hours,actual_hours,notes,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET day_type=excluded.day_type,
+                    planned_hours=excluded.planned_hours,actual_hours=excluded.actual_hours,notes=excluded.notes,updated_at=excluded.updated_at""",
+                    (employee["id"],work_date.isoformat(),day_type.get(),plan_value,actual_value,notes.get().strip(),now,now))
+                con.commit(); con.close(); dialog.destroy(); refresh_summary()
+            ttk.Button(dialog,text="Зберегти",command=save_entry).grid(row=5,column=1,sticky="e",padx=10,pady=14)
+
+        def plan_to_fact():
+            employee=employee_map.get(employee_choice.get()); work_date=selected_day()
+            if not employee or not work_date: return
+            con=db(); current=employee_day_time(con,employee["id"],work_date); now=datetime.now().isoformat(timespec="seconds")
+            con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,actual_hours,notes,created_at,updated_at)
+                VALUES(?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET actual_hours=excluded.actual_hours,updated_at=excluded.updated_at""",
+                (employee["id"],work_date.isoformat(),current["day_type"],minutes_to_db_hours(current["planned_minutes"]),current["notes"],now,now))
+            con.commit(); con.close(); refresh_summary()
+
+        def clear_manual():
+            employee=employee_map.get(employee_choice.get()); work_date=selected_day()
+            if not employee or not work_date: return
+            if not messagebox.askyesno("Табель","Прибрати ручні план/факт і повернути автоматичні дані цього дня?",parent=win): return
+            con=db(); con.execute("DELETE FROM employee_time_entries WHERE employee_id=? AND work_date=?",(employee["id"],work_date.isoformat())); con.commit(); con.close(); refresh_summary()
+
+        ttk.Button(top,text="Оновити",command=refresh_summary).pack(side="left",padx=8)
+        ttk.Button(daily_actions,text="Редагувати день",command=edit_day).pack(side="left",padx=3)
+        ttk.Button(daily_actions,text="План → факт",command=plan_to_fact).pack(side="left",padx=3)
+        ttk.Button(daily_actions,text="Очистити ручний запис",command=clear_manual).pack(side="left",padx=3)
+        employee_combo.bind("<<ComboboxSelected>>",lambda _e:refresh_daily())
+        daily_tree.bind("<Double-1>",lambda _e:edit_day())
+        refresh_summary()
 
     def driver_form(self, driver=None):
         win = tk.Toplevel(self)
@@ -7098,7 +7435,8 @@ class App(tk.Tk):
                       v.name AS vehicle_name, v.plate AS vehicle_plate, v.make_model AS vehicle_make_model,v.garage_no AS vehicle_garage_no,
                       wb.id AS waybill_id,
                       CASE WHEN COALESCE(wb.document_number,'')<>'' THEN trim(COALESCE(wb.document_series,'')||' '||wb.document_number) ELSE wb.waybill_no END AS waybill_no,
-                      wb.pdf_path AS waybill_pdf, wb.revision AS waybill_revision,wb.status AS waybill_status
+                      wb.pdf_path AS waybill_pdf, wb.revision AS waybill_revision,wb.status AS waybill_status,
+                      wb.odometer_start AS waybill_odometer_start,wb.odometer_end AS waybill_odometer_end
                  FROM worklog w
                  JOIN drivers d ON d.id=w.driver_id
             LEFT JOIN routes r ON r.id=w.route_id
@@ -7149,6 +7487,11 @@ class App(tk.Tk):
             if vp: vehicle_parts.append(vp)
             if (r["vehicle_garage_no"] or "").strip(): vehicle_parts.append(f"гар. № {r['vehicle_garage_no'].strip()}")
             vehicle_label=" / ".join(vehicle_parts) or (r["vehicle"] or "").strip()
+            odometer_start,odometer_end=get_waybill_odometer_readings(con,r["id"])
+            if odometer_start is None and r["waybill_odometer_start"] is not None:
+                odometer_start=int(r["waybill_odometer_start"])
+            if odometer_end is None and r["waybill_odometer_end"] is not None:
+                odometer_end=int(r["waybill_odometer_end"])
             out.append({
                 "worklog_id":r["id"],"driver_id":r["driver_id"],
                 "driver":f"{r['last_name']} {r['first_name']} {r['middle_name']}".strip(),
@@ -7168,6 +7511,7 @@ class App(tk.Tk):
                 "waybill_id":r["waybill_id"],"waybill_no":r["waybill_no"] or "",
                 "waybill_pdf":r["waybill_pdf"] or "","waybill_revision":r["waybill_revision"] or 0,
                 "waybill_status":r["waybill_status"] or "",
+                "odometer_start":odometer_start,"odometer_end":odometer_end,
                 **duty,
             })
         con.close()
@@ -7194,6 +7538,8 @@ class App(tk.Tk):
         ttk.Button(actions,text="Відкрити PDF",command=self.open_selected_waybill).pack(side="left",padx=3)
         ttk.Button(actions,text="Анулювати номер",command=self.void_selected_waybill).pack(side="left",padx=3)
         ttk.Button(actions,text="Папка шляхівок",command=lambda:open_external(WAYBILL_DIR)).pack(side="left",padx=3)
+        ttk.Button(actions,text="Спідометр / пробіг",command=self.edit_waybill_odometer).pack(side="left",padx=3)
+        ttk.Button(actions,text="Історія пробігу",command=self.show_vehicle_odometer_history).pack(side="left",padx=3)
         ttk.Button(actions,text="Зміни лікаря/механіка",command=self.show_dispatch_staff_schedule).pack(side="left",padx=3)
         ttk.Label(
             win,
@@ -7202,10 +7548,10 @@ class App(tk.Tk):
             foreground="gray",wraplength=1050,justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
-        cols=("driver","route","vehicle","depart","return","doctor","mechanic","work","drive","status")
+        cols=("driver","route","vehicle","depart","return","odometer","doctor","mechanic","work","drive","status")
         self.waybill_tree=ttk.Treeview(frame,columns=cols,show="headings")
-        heads={"driver":"Водій","route":"Маршрут","vehicle":"Автомобіль","depart":"Виїзд план","return":"Заїзд план","doctor":"Лікар","mechanic":"Механік","work":"Робота","drive":"Керування","status":"Шляхівка"}
-        widths={"driver":210,"route":150,"vehicle":190,"depart":90,"return":90,"doctor":180,"mechanic":180,"work":80,"drive":90,"status":130}
+        heads={"driver":"Водій","route":"Маршрут","vehicle":"Автомобіль","depart":"Виїзд план","return":"Заїзд план","odometer":"Спідометр","doctor":"Лікар","mechanic":"Механік","work":"Робота","drive":"Керування","status":"Шляхівка"}
+        widths={"driver":210,"route":150,"vehicle":190,"depart":100,"return":100,"odometer":170,"doctor":180,"mechanic":180,"work":80,"drive":90,"status":130}
         for c in cols:
             self.waybill_tree.heading(c,text=heads[c]); self.waybill_tree.column(c,width=widths[c],anchor="w")
         y=ttk.Scrollbar(frame,orient="vertical",command=self.waybill_tree.yview)
@@ -7242,6 +7588,7 @@ class App(tk.Tk):
                 status="Не видана"
             iid=self.waybill_tree.insert("","end",values=(
                 row["driver"],row["route"],row["vehicle"],row["planned_departure"],row["planned_return"],
+                odometer_display(row["odometer_start"],row["odometer_end"]),
                 row["doctor_1"] or "—",row["mechanic_1"] or "—",hours_value_hhmm(row["work_hours"]),hours_value_hhmm(row["driving_hours"]),status
             ))
             self.waybill_rows[iid]=row
@@ -7250,6 +7597,64 @@ class App(tk.Tk):
         if not hasattr(self,"waybill_tree"): return None
         sel=self.waybill_tree.selection()
         return self.waybill_rows.get(sel[0]) if sel else None
+
+    def edit_waybill_odometer(self):
+        row=self._selected_waybill_data()
+        if not row:
+            messagebox.showinfo("Спідометр","Виберіть рядок графіка.",parent=getattr(self,"waybill_win",self)); return
+        if not row.get("vehicle_id"):
+            messagebox.showwarning("Спідометр","Спочатку прив'яжіть автомобіль у графіку. Показник без автомобіля зберегти неможливо.",parent=self.waybill_win); return
+        win=tk.Toplevel(self.waybill_win); win.title("Показники спідометра — необов'язково")
+        fit_window_to_screen(win,650,390,560,340); win.transient(self.waybill_win); win.grab_set()
+        start=tk.StringVar(value="" if row["odometer_start"] is None else str(row["odometer_start"]))
+        end=tk.StringVar(value="" if row["odometer_end"] is None else str(row["odometer_end"]))
+        notes=tk.StringVar()
+        ttk.Label(win,text=row["vehicle"],font=("TkDefaultFont",10,"bold"),wraplength=600).grid(row=0,column=0,columnspan=2,sticky="w",padx=12,pady=(12,4))
+        ttk.Label(win,text=f"Рейс: {waybill_date_range_label(row['date'],row['end_date'])}; {row['driver']}",foreground="gray").grid(row=1,column=0,columnspan=2,sticky="w",padx=12,pady=(0,10))
+        ttk.Label(win,text="На початок рейсу, км").grid(row=2,column=0,sticky="w",padx=12,pady=7)
+        ttk.Entry(win,textvariable=start,width=28).grid(row=2,column=1,sticky="ew",padx=12,pady=7)
+        ttk.Label(win,text="На завершення рейсу, км").grid(row=3,column=0,sticky="w",padx=12,pady=7)
+        ttk.Entry(win,textvariable=end,width=28).grid(row=3,column=1,sticky="ew",padx=12,pady=7)
+        ttk.Label(win,text="Примітка").grid(row=4,column=0,sticky="w",padx=12,pady=7)
+        ttk.Entry(win,textvariable=notes,width=42).grid(row=4,column=1,sticky="ew",padx=12,pady=7)
+        ttk.Label(win,text="Обидва поля можна лишити порожніми. Перевірки показують попередження, але не блокують збереження чи видачу шляхівки.",foreground="gray",wraplength=600,justify="left").grid(row=5,column=0,columnspan=2,sticky="w",padx=12,pady=8)
+        win.columnconfigure(1,weight=1)
+        def save_readings():
+            try:
+                start_value=parse_optional_odometer(start.get()); end_value=parse_optional_odometer(end.get())
+            except ValueError as exc:
+                messagebox.showerror("Спідометр",str(exc),parent=win); return
+            start_at=f"{(row['date']+timedelta(days=int(row['start_day_offset'] or 0))).isoformat()}T{row['start_time_raw'] or '00:00'}:00"
+            end_at=f"{(row['date']+timedelta(days=int(row['end_day_offset'] or 0))).isoformat()}T{row['end_time_raw'] or '23:59'}:00"
+            con=db(); warnings=odometer_consistency_warnings(con,row["vehicle_id"],start_value,end_value,start_at,row["worklog_id"])
+            save_waybill_odometer_readings(con,row["worklog_id"],row["vehicle_id"],row["driver_id"],row["date"].isoformat(),start_value,end_value,start_at,end_at,notes.get().strip())
+            con.commit(); con.close(); win.destroy(); self.refresh_waybill_issue_list()
+            if warnings:
+                messagebox.showwarning("Спідометр — перевірте дані","\n\n".join(warnings)+"\n\nДані збережено; шляхівку не заблоковано.",parent=self.waybill_win)
+            elif row.get("waybill_id"):
+                messagebox.showinfo("Спідометр","Дані збережено. Щоб вони з'явилися у PDF, сформуйте шляхівку повторно; номер збережеться, ревізія збільшиться.",parent=self.waybill_win)
+        ttk.Button(win,text="Зберегти",command=save_readings).grid(row=6,column=1,sticky="e",padx=12,pady=12)
+
+    def show_vehicle_odometer_history(self):
+        row=self._selected_waybill_data()
+        if not row or not row.get("vehicle_id"):
+            messagebox.showinfo("Історія пробігу","Виберіть графік із прив'язаним автомобілем.",parent=getattr(self,"waybill_win",self)); return
+        win=tk.Toplevel(self.waybill_win); win.title(f"Історія пробігу — {row['vehicle']}")
+        fit_window_to_screen(win,880,520,700,420)
+        frame=ttk.Frame(win,padding=8); frame.pack(fill="both",expand=True); frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+        cols=("date","kind","value","source","driver","notes")
+        tree=ttk.Treeview(frame,columns=cols,show="headings")
+        for key,label,width in (("date","Дата й час",145),("kind","Точка",80),("value","Показник, км",110),("source","Джерело",105),("driver","Водій",210),("notes","Примітка",190)):
+            tree.heading(key,text=label); tree.column(key,width=width,anchor="w")
+        y=ttk.Scrollbar(frame,orient="vertical",command=tree.yview); x=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview); tree.configure(yscrollcommand=y.set,xscrollcommand=x.set)
+        tree.grid(row=0,column=0,sticky="nsew"); y.grid(row=0,column=1,sticky="ns"); x.grid(row=1,column=0,sticky="ew")
+        con=db(); readings=con.execute("""SELECT o.*,d.last_name,d.first_name,d.middle_name FROM vehicle_odometer_readings o
+            LEFT JOIN drivers d ON d.id=o.driver_id WHERE o.vehicle_id=? ORDER BY COALESCE(o.reading_at,''),o.id""",(row["vehicle_id"],)).fetchall(); con.close()
+        kind_labels={"start":"початок","end":"кінець","single":"одиночний"}
+        for item in readings:
+            driver=" ".join(x for x in (item["last_name"],item["first_name"],item["middle_name"]) if x)
+            tree.insert("","end",values=((item["reading_at"] or item["work_date"]).replace("T"," "),kind_labels.get(item["reading_kind"],item["reading_kind"]),item["reading_km"],item["source_type"],driver,item["notes"]))
+        ttk.Label(win,text="Журнал уже підтримує різні джерела. Майбутнє зчитування з тахокарти додаватиме записи з джерелом tachograph.",foreground="gray").pack(anchor="w",padx=10,pady=(0,8))
 
     def _waybill_pool_for_date(self, con, work_date):
         return con.execute("""SELECT * FROM waybill_number_pools WHERE status='active' AND valid_from<=?
@@ -7328,6 +7733,8 @@ class App(tk.Tk):
             "start_location":row["start_location"],"end_location":row["end_location"],
             "start_direction":row["start_direction"],
             "planned_route_time":hours_value_hhmm(row["driving_hours"]),"planned_duty_time":hours_value_hhmm(row["work_hours"]),
+            "odometer_start":row["odometer_start"],"odometer_end":row["odometer_end"],
+            "distance_km":(row["odometer_end"]-row["odometer_start"]) if row["odometer_start"] is not None and row["odometer_end"] is not None else None,
             "doctor_1":row["doctor_1"],"doctor_2":row["doctor_2"],"mechanic_1":row["mechanic_1"],"mechanic_2":row["mechanic_2"],
             "outbound_stops":[dict(s) for s in stops if s["direction"]=="outbound"],
             "return_stops":[dict(s) for s in stops if s["direction"]=="return"],
@@ -7345,21 +7752,21 @@ class App(tk.Tk):
             con.execute(
                 """UPDATE waybills SET work_end_date=?,issue_year=?,issue_seq=?,waybill_no=?,route_id=?,route_label=?,vehicle_id=?,vehicle_label=?,planned_departure=?,planned_return=?,
                        doctor_1=?,doctor_2=?,mechanic_1=?,mechanic_2=?,number_pool_id=?,document_series=?,document_number=?,internal_no=?,
-                       start_location=?,end_location=?,pdf_path=?,revision=?,status='active',voided_at='',void_reason='',updated_at=? WHERE id=?""",
+                       start_location=?,end_location=?,odometer_start=?,odometer_end=?,distance_km=?,pdf_path=?,revision=?,status='active',voided_at='',void_reason='',updated_at=? WHERE id=?""",
                 (row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
                  row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"] if pool else existing["number_pool_id"],document_series,document_number,internal_no,
-                 row["start_location"],row["end_location"],str(actual),revision,now,existing["id"])
+                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],str(actual),revision,now,existing["id"])
             )
         else:
             con.execute(
                 """INSERT INTO waybills(worklog_id,driver_id,work_date,work_end_date,issue_year,issue_seq,waybill_no,route_id,route_label,vehicle_id,vehicle_label,
                    planned_departure,planned_return,doctor_1,doctor_2,mechanic_1,mechanic_2,number_pool_id,document_series,document_number,internal_no,
-                   start_location,end_location,pdf_path,revision,status,issued_at,updated_at)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active',?,?)""",
+                   start_location,end_location,odometer_start,odometer_end,distance_km,pdf_path,revision,status,issued_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active',?,?)""",
                 (row["worklog_id"],row["driver_id"],row["date"].isoformat(),row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,
                  row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
                  row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"],document_series,document_number,internal_no,
-                 row["start_location"],row["end_location"],str(actual),revision,now,now)
+                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],str(actual),revision,now,now)
             )
         waybill_id=existing["id"] if existing else con.execute("SELECT id FROM waybills WHERE worklog_id=?",(row["worklog_id"],)).fetchone()[0]
         con.execute("""INSERT INTO waybill_events(waybill_id,event_type,document_series,document_number,internal_no,revision,pdf_path,created_at)

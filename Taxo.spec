@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.70 consolidated r5 — Windows onedir build.
+# Taxo v8.70 candidate r6 — Windows onedir build.
 # User databases are never bundled.
 
 a = Analysis(

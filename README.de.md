@@ -2,7 +2,7 @@
 
 [Українська](README.md) | [English](README.en.md) | **Deutsch** | [Español](README.es.md) | [Français](README.fr.md)
 
-Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Beschäftigten eines Verkehrsunternehmens, Fahrerplänen, Arbeitszeiten, Linien, Fahrzeugen, Tätigkeitsbescheinigungen, Bus-Fahrtenblättern und Aufzeichnungen analoger Fahrtenschreiber. Die aktuelle zusammengeführte Version ist **v8.70 r5** im Branch `main`.
+Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Beschäftigten eines Verkehrsunternehmens, Fahrerplänen, Arbeitszeiten, Linien, Fahrzeugen, Tätigkeitsbescheinigungen, Bus-Fahrtenblättern und Aufzeichnungen analoger Fahrtenschreiber. Der aktuelle Entwicklungskandidat ist **v8.70 r6**.
 
 ## Wichtigste Funktionen
 
@@ -13,6 +13,8 @@ Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Besc
 - Zweiseitige vektorbasierte A4-Fahrtenblätter für Busse nach Formular Nr. 1-AP. Fahrer, Fahrzeug, Linie und Planzeiten werden aus dem Dienstplan übernommen. Mehrtägige Dokumente zeigen reale Kalenderdaten statt interner `D+N`-Kennzeichnungen.
 - Serien- und Nummernkreise für offizielle Fahrtenblätter mit Gültigkeitszeiträumen, automatischer oder manueller Nummerierung, Revisionsverlauf und Annullierungsprotokoll.
 - Dienstpläne für Ärzte und Mechaniker. Ihre Namen können in das Fahrtenblatt übernommen werden; handschriftliche Unterschriften sowie unbekannte Ist-, Kraftstoff- und Kontrollfelder bleiben frei.
+- Täglicher Personalzeitnachweis für alle Beschäftigten mit Tagesart, automatischen oder manuellen Planstunden, optionalen Iststunden und Notizen. Nachtarbeit wird auf Kalendertage verteilt.
+- Optionale Kilometerstände zu Beginn und Ende im Fahrtenblatt. Sie werden gedruckt, je Fahrzeug historisiert und nur für nicht blockierende Plausibilitätswarnungen verwendet; die Historie ist für eine spätere Quelle `tachograph` vorbereitet.
 - Tätigkeitsbescheinigungen als DOCX, PDF und JPG sowie Sicherung und Wiederherstellung der dauerhaft gespeicherten Anwendungsdaten.
 - Arbeitsbereich für analoge Fahrtenschreiberscheiben mit Scans, Tätigkeitsintervallen und Vergleich der tatsächlichen Lenkzeit mit dem Plan. Tachographen-Istwerte überschreiben keine Plandaten.
 
@@ -28,4 +30,4 @@ Die Benutzeroberfläche und die erzeugten amtlichen Formulare sind derzeit ukrai
 
 ## Projektstatus
 
-v8.70 r5 ist die aktive, zusammengeführte Entwicklungslinie. Ältere Branches bleiben als historische Kontrollpunkte erhalten. Vor dem produktiven Einsatz sind weiterhin Prüfungen mit echten Unternehmensdaten und gedruckten Formularen erforderlich.
+v8.70 r6 ist der aktive Entwicklungskandidat auf Grundlage der veröffentlichten r5-Version. Ältere Branches bleiben als historische Kontrollpunkte erhalten. Vor dem produktiven Einsatz sind weiterhin Prüfungen mit echten Unternehmensdaten und gedruckten Formularen erforderlich.

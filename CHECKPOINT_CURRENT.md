@@ -1,14 +1,14 @@
 # Taxo — CURRENT CHECKPOINT
 
-Date: 2026-09-14
+Date: 2026-09-15
 
-## Current consolidated version
+## Current development version
 
-- Version: **v8.70 consolidated r5**.
+- Version: **v8.70 candidate r6**; based on published r5.
 - Publication target: GitHub `main`; the old v8.65 head is superseded after verified merge.
 - Previous development checkpoints remain preserved: v8.66 r10 and v8.70 r1–r3.
-- Distribution for testing: source package with `START.bat`, Windows Setup/Portable and native macOS arm64/x86_64 candidate artifacts.
-- Publication branch: `work/v8.70-consolidated-r5`; after automated verification it is merged into `main`.
+- Routine testing uses the source package with `START.bat`; executable packaging runs only when manually requested at a release checkpoint.
+- Publication branch: `work/v8.70-personnel-odometer-r6`.
 
 ## Personnel and timekeeping
 
@@ -18,6 +18,17 @@ Date: 2026-09-14
 - Existing r2 doctors/mechanics and dispatch shifts migrate into the common employee and shift tables.
 - Dispatch shifts support role, exact date/time, D+ end day, location, planned hours, actual hours and overlap checks.
 - The monthly personnel summary combines driver plan from `worklog` with non-driver shifts. Cross-midnight hours are allocated to the calendar month they actually occupy.
+- The personnel timesheet now has monthly summary and daily views for every employee. A daily row stores day type, optional plan override, optional actual hours and notes.
+- Driver schedules and personnel shifts remain automatic plan sources. A manual row supplements them and can be cleared to return to automatic data.
+- Overnight personnel shifts are split between their actual calendar dates.
+
+## Odometer and mileage history
+
+- A waybill may have optional start and/or end odometer readings; leaving both blank never blocks issue.
+- Readings are stored in `vehicle_odometer_readings` per vehicle, driver, timestamp, source and source record.
+- Source `waybill` is active now; the same history table is ready for future `tachograph` readings without changing recognition in r6.
+- If both readings exist, the difference is calculated and printed on page two.
+- A decreasing end value or a value below the previous vehicle reading produces a warning only. Data is still saved and the waybill remains issuable.
 
 ## Waybill numbering and lifecycle
 
