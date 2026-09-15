@@ -5,9 +5,9 @@ from datetime import date
 from pathlib import Path
 
 
-_temporary_home = tempfile.TemporaryDirectory()
+_temporary_home = Path(tempfile.mkdtemp(prefix="taxo_v870_r5_"))
 _original_path_home = Path.home
-Path.home = classmethod(lambda cls: Path(_temporary_home.name))
+Path.home = classmethod(lambda cls: _temporary_home)
 try:
     import fitz
     import main
