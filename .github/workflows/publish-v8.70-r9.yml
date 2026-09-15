@@ -37,7 +37,7 @@ jobs:
         shell: pwsh
         run: |
           python -m py_compile main.py workspace.py waybill.py tachograph.py attestation_render.py
-          python -m unittest discover -s tests -v
+          python tests/run_ci_suite.py
 
       - name: Build Windows portable application
         shell: pwsh
