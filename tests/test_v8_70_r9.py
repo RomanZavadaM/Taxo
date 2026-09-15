@@ -49,6 +49,10 @@ class V870R9WorkspaceTests(unittest.TestCase):
             second.acquire()
             self.assertTrue(second.release())
 
+    def test_process_probe_is_safe_for_current_process(self):
+        self.assertTrue(workspace._pid_alive(os.getpid()))
+        self.assertFalse(workspace._pid_alive(99999999))
+
     def test_stale_same_machine_lock_is_recovered(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)/"shared"

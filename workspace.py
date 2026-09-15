@@ -179,9 +179,31 @@ def _pid_alive(pid):
         pid=int(pid)
         if pid<=0:
             return False
+    except (ValueError,TypeError):
+        return False
+    if pid==os.getpid():
+        return True
+    if os.name=="nt":
+        # On Windows os.kill(pid, 0) can deliver a console CTRL_C_EVENT instead
+        # of performing the harmless POSIX existence probe.
+        import ctypes
+        process_query_limited_information=0x1000
+        still_active=259
+        kernel32=ctypes.windll.kernel32
+        handle=kernel32.OpenProcess(process_query_limited_information,False,pid)
+        if not handle:
+            return False
+        try:
+            exit_code=ctypes.c_ulong()
+            if not kernel32.GetExitCodeProcess(handle,ctypes.byref(exit_code)):
+                return False
+            return exit_code.value==still_active
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
         os.kill(pid,0)
         return True
-    except (OSError,ValueError,TypeError):
+    except OSError:
         return False
 
 

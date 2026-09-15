@@ -2,10 +2,11 @@ Taxo v8.70 candidate r9 — test report
 Date: 2026-09-15
 
 PASS: Python compilation for main.py, workspace.py, tachograph.py, waybill.py and attestation_render.py.
-PASS: 30 automated tests.
+PASS: 31 automated tests.
 PASS: existing r5-r8 personnel, schedule, route, odometer, waybill and report regression tests.
 PASS: configurable workspace pointer and complete mutable-data layout.
 PASS: exclusive second-copy blocking, heartbeat refresh and clean release.
+PASS: Windows process-liveness probing uses WinAPI without emitting Ctrl+C.
 PASS: automatic recovery of a dead same-computer lock with archived metadata.
 PASS: SQLite-consistent migration of main and tachograph databases.
 PASS: copy of scans, backups, output documents and logs while keeping the source workspace.

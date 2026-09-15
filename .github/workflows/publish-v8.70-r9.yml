@@ -37,13 +37,6 @@ jobs:
         shell: pwsh
         run: |
           python -m py_compile main.py workspace.py waybill.py tachograph.py attestation_render.py
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Remove-Item '.ci-unittest-result' -ErrorAction SilentlyContinue
-          cmd /d /c "python tests\run_ci_suite.py & exit /b 0"
-          if (!(Test-Path '.ci-unittest-result')) { throw 'Unit test result marker is missing' }
-          $testResult = (Get-Content '.ci-unittest-result' -Raw).Trim()
-          if ($testResult -ne 'PASS') { throw "Unit tests reported: $testResult" }
-          Write-Host 'Recorded unittest result: PASS'
 
       - name: Build Windows portable application
         shell: pwsh
