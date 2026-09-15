@@ -188,8 +188,8 @@ class V870R5Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         windows = (root / ".github/workflows/build-windows-v8.70.yml").read_text("utf-8")
         macos = (root / ".github/workflows/build-macos-v8.70.yml").read_text("utf-8")
-        self.assertIn("Taxo_v8_70_TEST_r6_Setup_Windows_x64.exe", windows)
-        self.assertIn("Taxo_v8_70_TEST_r6_Windows_x64_Portable.zip", windows)
+        self.assertIn("Taxo_v8_70_TEST_r8_Setup_Windows_x64.exe", windows)
+        self.assertIn("Taxo_v8_70_TEST_r8_Windows_x64_Portable.zip", windows)
         self.assertIn("$build = 'false'", windows)
         self.assertIn("runner: macos-15", macos)
         self.assertIn("runner: macos-15-intel", macos)

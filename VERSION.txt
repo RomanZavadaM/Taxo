@@ -11,4 +11,4 @@ Waybill archive: issued PDFs are registered in the persistent database, receive 
 Route model from v8.66 r10 remains: one route = one exact time scenario.
 Tachograph recognition algorithm is unchanged.
 
-Distribution: START.bat for routine candidates. GitHub Actions compiles/tests source on every change and builds Windows/macOS executables only when manually requested at an executable checkpoint. No user database is bundled.
+Distribution: r8 is an executable checkpoint. GitHub Actions builds Windows Setup/Portable, native macOS arm64/x86_64 packages, a source ZIP and shared SHA-256 checksums. No user database is bundled.
