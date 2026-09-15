@@ -237,6 +237,8 @@ def _page_one(c, data):
         x=m
         for j,ww in enumerate(cols):
             val="I" if row==0 and j==0 else "II" if row==2 and j==0 else ""
+            if row==0 and j==1 and data.get("planned_distance_km") is not None:
+                val=str(int(data["planned_distance_km"]))
             _cell(c,x,y+62+row*18,ww,18,val,5.8,bold=bool(val)); x+=ww
     sig_y=y+134; _line(c,m,sig_y,right,sig_y,.8)
     for xx,ww,label in ((m+390,70,"підпис механіка"),(m+470,80,"підпис заправника"),(m+557,70,"підпис механіка"),(m+676,110,"підпис відповідальної особи")):
@@ -310,7 +312,9 @@ def _page_two(c,data):
             if data.get("odometer_end") is not None:
                 odometer_lines.append(f"кін. {int(data['odometer_end'])} км")
             if data.get("distance_km") is not None:
-                odometer_lines.append(f"пробіг {int(data['distance_km'])} км")
+                odometer_lines.append(f"пробіг {int(data['distance_km'])} км (факт)")
+            if data.get("planned_distance_km") is not None:
+                odometer_lines.append(f"план {int(data['planned_distance_km'])} км")
             _text(c,x+30,y+32,ww-32,body_h/2-4,"\n".join(odometer_lines),5.9,
                   bold=bool(odometer_lines),align="left",valign="top")
         elif idx==2:

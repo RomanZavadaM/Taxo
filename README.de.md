@@ -2,7 +2,7 @@
 
 [Українська](README.md) | [English](README.en.md) | **Deutsch** | [Español](README.es.md) | [Français](README.fr.md)
 
-Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Beschäftigten eines Verkehrsunternehmens, Fahrerplänen, Arbeitszeiten, Linien, Fahrzeugen, Tätigkeitsbescheinigungen, Bus-Fahrtenblättern und Aufzeichnungen analoger Fahrtenschreiber. Der aktuelle Entwicklungskandidat ist **v8.70 r6**.
+Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Beschäftigten eines Verkehrsunternehmens, Fahrerplänen, Arbeitszeiten, Linien, Fahrzeugen, Tätigkeitsbescheinigungen, Bus-Fahrtenblättern und Aufzeichnungen analoger Fahrtenschreiber. Der aktuelle Entwicklungskandidat ist **v8.70 r7**.
 
 ## Wichtigste Funktionen
 
@@ -15,6 +15,7 @@ Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Besc
 - Dienstpläne für Ärzte und Mechaniker. Ihre Namen können in das Fahrtenblatt übernommen werden; handschriftliche Unterschriften sowie unbekannte Ist-, Kraftstoff- und Kontrollfelder bleiben frei.
 - Täglicher Personalzeitnachweis für alle Beschäftigten mit Tagesart, automatischen oder manuellen Planstunden, optionalen Iststunden und Notizen. Nachtarbeit wird auf Kalendertage verteilt.
 - Optionale Kilometerstände zu Beginn und Ende im Fahrtenblatt. Sie werden gedruckt, je Fahrzeug historisiert und nur für nicht blockierende Plausibilitätswarnungen verwendet; die Historie ist für eine spätere Quelle `tachograph` vorbereitet.
+- Für jeden vollständigen Linienablauf kann eine optionale Planstrecke hinterlegt werden. Sie wird als Plan im Fahrtenblatt gedruckt, prognostiziert den Endkilometerstand und warnt unverbindlich bei mehr als 10 km oder 10 % Abweichung.
 - Tätigkeitsbescheinigungen als DOCX, PDF und JPG sowie Sicherung und Wiederherstellung der dauerhaft gespeicherten Anwendungsdaten.
 - Arbeitsbereich für analoge Fahrtenschreiberscheiben mit Scans, Tätigkeitsintervallen und Vergleich der tatsächlichen Lenkzeit mit dem Plan. Tachographen-Istwerte überschreiben keine Plandaten.
 
@@ -30,4 +31,4 @@ Die Benutzeroberfläche und die erzeugten amtlichen Formulare sind derzeit ukrai
 
 ## Projektstatus
 
-v8.70 r6 ist der aktive Entwicklungskandidat auf Grundlage der veröffentlichten r5-Version. Ältere Branches bleiben als historische Kontrollpunkte erhalten. Vor dem produktiven Einsatz sind weiterhin Prüfungen mit echten Unternehmensdaten und gedruckten Formularen erforderlich.
+v8.70 r7 ist der aktive Entwicklungskandidat auf Grundlage der veröffentlichten r6-Version. Ältere Branches bleiben als historische Kontrollpunkte erhalten. Vor dem produktiven Einsatz sind weiterhin Prüfungen mit echten Unternehmensdaten und gedruckten Formularen erforderlich.

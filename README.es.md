@@ -2,7 +2,7 @@
 
 [Українська](README.md) | [English](README.en.md) | [Deutsch](README.de.md) | **Español** | [Français](README.fr.md)
 
-Taxo es una aplicación de escritorio en ucraniano para gestionar el personal de una empresa de transporte, los horarios de los conductores, el tiempo de trabajo, las rutas, los vehículos, los certificados de actividades, las hojas de ruta de autobuses y los registros de tacógrafos analógicos. El candidato de desarrollo actual es **v8.70 r6**.
+Taxo es una aplicación de escritorio en ucraniano para gestionar el personal de una empresa de transporte, los horarios de los conductores, el tiempo de trabajo, las rutas, los vehículos, los certificados de actividades, las hojas de ruta de autobuses y los registros de tacógrafos analógicos. El candidato de desarrollo actual es **v8.70 r7**.
 
 ## Funciones principales
 
@@ -15,6 +15,7 @@ Taxo es una aplicación de escritorio en ucraniano para gestionar el personal de
 - Turnos de médicos y mecánicos. Sus nombres pueden incorporarse a la hoja de ruta, mientras que las firmas manuscritas y los campos reales, de combustible y de control que todavía se desconocen permanecen vacíos.
 - Parte diario de jornada para todos los empleados, con tipo de día, horas previstas automáticas o manuales, horas reales opcionales y notas. Los turnos nocturnos se reparten entre los días naturales.
 - Lecturas opcionales del odómetro al inicio y al final en la hoja de ruta. Se imprimen, se acumulan por vehículo y solo generan avisos de coherencia sin bloquear; el historial queda preparado para una futura fuente `tachograph`.
+- Cada escenario completo de ruta puede tener una distancia planificada opcional. Se imprime como plan en la hoja de ruta, permite prever el odómetro final y genera un aviso no bloqueante si la distancia real difiere en más de 10 km o del 10 %.
 - Certificados de actividades en DOCX, PDF y JPG, además de copia de seguridad y restauración de los datos persistentes.
 - Área de trabajo para discos de tacógrafo analógico con imágenes escaneadas, intervalos de actividad y comparación de la conducción real con el plan. Los datos reales del tacógrafo no sobrescriben el horario planificado.
 
@@ -30,4 +31,4 @@ La interfaz y los formularios oficiales generados están actualmente en ucranian
 
 ## Estado del proyecto
 
-v8.70 r6 es el candidato de desarrollo activo sobre la base r5 publicada. Las ramas anteriores se conservan como puntos de control históricos. Antes de su uso operativo, la aplicación todavía debe validarse con datos reales de la empresa y con formularios impresos.
+v8.70 r7 es el candidato de desarrollo activo sobre la base r6 publicada. Las ramas anteriores se conservan como puntos de control históricos. Antes de su uso operativo, la aplicación todavía debe validarse con datos reales de la empresa y con formularios impresos.

@@ -4,11 +4,11 @@ Date: 2026-09-15
 
 ## Current development version
 
-- Version: **v8.70 candidate r6**; based on published r5.
+- Version: **v8.70 candidate r7**; based on published r6.
 - Publication target: GitHub `main`; the old v8.65 head is superseded after verified merge.
 - Previous development checkpoints remain preserved: v8.66 r10 and v8.70 r1–r3.
 - Routine testing uses the source package with `START.bat`; executable packaging runs only when manually requested at a release checkpoint.
-- Publication branch: `work/v8.70-personnel-odometer-r6`.
+- Publication branch: `work/v8.70-route-distance-r7`.
 
 ## Personnel and timekeeping
 
@@ -24,9 +24,13 @@ Date: 2026-09-15
 
 ## Odometer and mileage history
 
+- Each route may store an optional planned distance for its complete outbound/return scenario.
+- The issued waybill snapshots that route plan, prints it separately from actual mileage and preserves it if the route is edited later.
+- A start reading plus route plan shows a forecast end reading in the UI; the forecast is never stored as an actual reading.
+- With both actual readings, deviation beyond the greater of 10 km or 10% of plan produces a warning only.
 - A waybill may have optional start and/or end odometer readings; leaving both blank never blocks issue.
 - Readings are stored in `vehicle_odometer_readings` per vehicle, driver, timestamp, source and source record.
-- Source `waybill` is active now; the same history table is ready for future `tachograph` readings without changing recognition in r6.
+- Source `waybill` is active now; the same history table is ready for future `tachograph` readings without changing recognition in r7.
 - If both readings exist, the difference is calculated and printed on page two.
 - A decreasing end value or a value below the previous vehicle reading produces a warning only. Data is still saved and the waybill remains issuable.
 

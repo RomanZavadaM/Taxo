@@ -563,6 +563,7 @@ def init_db():
         vehicle_id INTEGER,
         shift_type TEXT DEFAULT 'Безперервна',
         notes TEXT DEFAULT '',
+        planned_distance_km INTEGER,
         legacy_template_id INTEGER,
         active INTEGER DEFAULT 1,
         created_at TEXT NOT NULL
@@ -750,6 +751,7 @@ def init_db():
         vehicle_label TEXT DEFAULT '',
         planned_departure TEXT DEFAULT '',
         planned_return TEXT DEFAULT '',
+        planned_distance_km INTEGER,
         pdf_path TEXT DEFAULT '',
         revision INTEGER NOT NULL DEFAULT 1,
         status TEXT NOT NULL DEFAULT 'active',
@@ -921,6 +923,7 @@ def init_db():
         ("odometer_start", "INTEGER"),
         ("odometer_end", "INTEGER"),
         ("distance_km", "INTEGER"),
+        ("planned_distance_km", "INTEGER"),
     ]:
         if name not in wbcols:
             con.execute(f"ALTER TABLE waybills ADD COLUMN {name} {ddl}")
@@ -1060,6 +1063,7 @@ def init_db():
         ("start_direction", "TEXT DEFAULT 'outbound'"),
         ("start_day_offset", "INTEGER NOT NULL DEFAULT 0"),
         ("end_day_offset", "INTEGER NOT NULL DEFAULT 0"),
+        ("planned_distance_km", "INTEGER"),
     ]:
         if name not in route_cols:
             con.execute(f"ALTER TABLE routes ADD COLUMN {name} {ddl}")
@@ -1684,6 +1688,23 @@ def parse_optional_odometer(value):
     return int(raw)
 
 
+def parse_optional_route_distance(value):
+    """Плановий пробіг маршруту необов'язковий і зберігається у цілих км."""
+    raw=str(value or "").strip().replace(" ", "")
+    if not raw:
+        return None
+    if not raw.isdigit() or int(raw)<=0:
+        raise ValueError("Плановий пробіг має бути цілим додатним числом кілометрів або порожнім.")
+    return int(raw)
+
+
+def planned_odometer_end(start_value, planned_distance_km):
+    """Обчислити прогноз, не перетворюючи його на фактичний показник."""
+    if start_value is None or planned_distance_km is None:
+        return None
+    return int(start_value)+int(planned_distance_km)
+
+
 def odometer_display(start_value, end_value):
     if start_value is None and end_value is None:
         return "—"
@@ -1695,12 +1716,33 @@ def odometer_display(start_value, end_value):
     return f"{left} → {right}{suffix}"
 
 
+def waybill_mileage_display(start_value, end_value, planned_distance_km=None):
+    actual=odometer_display(start_value,end_value)
+    plan=(f"план {int(planned_distance_km)} км" if planned_distance_km is not None else "")
+    if actual=="—":
+        return plan or "—"
+    return f"{actual}; {plan}" if plan else actual
+
+
 def odometer_consistency_warnings(con, vehicle_id, start_value=None, end_value=None,
-                                  reading_at="", exclude_source_id=None):
+                                  reading_at="", exclude_source_id=None,
+                                  planned_distance_km=None):
     """Лише діагностика: жодне попередження не блокує збереження."""
     warnings=[]
     if start_value is not None and end_value is not None and end_value < start_value:
         warnings.append("Кінцевий показник менший за початковий.")
+    if (start_value is not None and end_value is not None and
+            planned_distance_km is not None and int(planned_distance_km)>0 and
+            int(end_value)>=int(start_value)):
+        actual_distance=int(end_value)-int(start_value)
+        planned_distance=int(planned_distance_km)
+        deviation=actual_distance-planned_distance
+        tolerance=max(10,planned_distance*0.10)
+        if abs(deviation)>tolerance:
+            warnings.append(
+                f"Фактичний пробіг {actual_distance} км відрізняється від планового "
+                f"{planned_distance} км на {deviation:+d} км."
+            )
     if not vehicle_id:
         return warnings
     probe=start_value if start_value is not None else end_value
@@ -5020,9 +5062,9 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.70 candidate r6",
+                "Taxo v8.70 candidate r7",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "v8.70 r6: щоденний табель усіх працівників і необов'язковий журнал показників спідометра.\n"
+                "v8.70 r7: плановий пробіг маршруту, прогноз спідометра і м'яка перевірка фактичного пробігу.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
                 parent=self
             )
@@ -7431,12 +7473,13 @@ class App(tk.Tk):
                       r.code AS route_code, r.name AS route_catalog_name,
                       r.start_location AS route_start_location,r.end_location AS route_end_location,
                       r.start_day_offset AS route_start_day,r.end_day_offset AS route_end_day,
-                      r.start_direction AS route_start_direction,
+                      r.start_direction AS route_start_direction,r.planned_distance_km AS route_planned_distance_km,
                       v.name AS vehicle_name, v.plate AS vehicle_plate, v.make_model AS vehicle_make_model,v.garage_no AS vehicle_garage_no,
                       wb.id AS waybill_id,
                       CASE WHEN COALESCE(wb.document_number,'')<>'' THEN trim(COALESCE(wb.document_series,'')||' '||wb.document_number) ELSE wb.waybill_no END AS waybill_no,
                       wb.pdf_path AS waybill_pdf, wb.revision AS waybill_revision,wb.status AS waybill_status,
-                      wb.odometer_start AS waybill_odometer_start,wb.odometer_end AS waybill_odometer_end
+                      wb.odometer_start AS waybill_odometer_start,wb.odometer_end AS waybill_odometer_end,
+                      wb.planned_distance_km AS waybill_planned_distance_km
                  FROM worklog w
                  JOIN drivers d ON d.id=w.driver_id
             LEFT JOIN routes r ON r.id=w.route_id
@@ -7492,6 +7535,11 @@ class App(tk.Tk):
                 odometer_start=int(r["waybill_odometer_start"])
             if odometer_end is None and r["waybill_odometer_end"] is not None:
                 odometer_end=int(r["waybill_odometer_end"])
+            planned_distance_km=(
+                r["waybill_planned_distance_km"]
+                if r["waybill_id"] and (r["waybill_status"] or "active")=="active" and r["waybill_planned_distance_km"] is not None
+                else r["route_planned_distance_km"]
+            )
             out.append({
                 "worklog_id":r["id"],"driver_id":r["driver_id"],
                 "driver":f"{r['last_name']} {r['first_name']} {r['middle_name']}".strip(),
@@ -7512,6 +7560,7 @@ class App(tk.Tk):
                 "waybill_pdf":r["waybill_pdf"] or "","waybill_revision":r["waybill_revision"] or 0,
                 "waybill_status":r["waybill_status"] or "",
                 "odometer_start":odometer_start,"odometer_end":odometer_end,
+                "planned_distance_km":int(planned_distance_km) if planned_distance_km is not None else None,
                 **duty,
             })
         con.close()
@@ -7550,8 +7599,8 @@ class App(tk.Tk):
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
         cols=("driver","route","vehicle","depart","return","odometer","doctor","mechanic","work","drive","status")
         self.waybill_tree=ttk.Treeview(frame,columns=cols,show="headings")
-        heads={"driver":"Водій","route":"Маршрут","vehicle":"Автомобіль","depart":"Виїзд план","return":"Заїзд план","odometer":"Спідометр","doctor":"Лікар","mechanic":"Механік","work":"Робота","drive":"Керування","status":"Шляхівка"}
-        widths={"driver":210,"route":150,"vehicle":190,"depart":100,"return":100,"odometer":170,"doctor":180,"mechanic":180,"work":80,"drive":90,"status":130}
+        heads={"driver":"Водій","route":"Маршрут","vehicle":"Автомобіль","depart":"Виїзд план","return":"Заїзд план","odometer":"Пробіг / спідометр","doctor":"Лікар","mechanic":"Механік","work":"Робота","drive":"Керування","status":"Шляхівка"}
+        widths={"driver":210,"route":150,"vehicle":190,"depart":100,"return":100,"odometer":220,"doctor":180,"mechanic":180,"work":80,"drive":90,"status":130}
         for c in cols:
             self.waybill_tree.heading(c,text=heads[c]); self.waybill_tree.column(c,width=widths[c],anchor="w")
         y=ttk.Scrollbar(frame,orient="vertical",command=self.waybill_tree.yview)
@@ -7588,7 +7637,7 @@ class App(tk.Tk):
                 status="Не видана"
             iid=self.waybill_tree.insert("","end",values=(
                 row["driver"],row["route"],row["vehicle"],row["planned_departure"],row["planned_return"],
-                odometer_display(row["odometer_start"],row["odometer_end"]),
+                waybill_mileage_display(row["odometer_start"],row["odometer_end"],row["planned_distance_km"]),
                 row["doctor_1"] or "—",row["mechanic_1"] or "—",hours_value_hhmm(row["work_hours"]),hours_value_hhmm(row["driving_hours"]),status
             ))
             self.waybill_rows[iid]=row
@@ -7605,7 +7654,7 @@ class App(tk.Tk):
         if not row.get("vehicle_id"):
             messagebox.showwarning("Спідометр","Спочатку прив'яжіть автомобіль у графіку. Показник без автомобіля зберегти неможливо.",parent=self.waybill_win); return
         win=tk.Toplevel(self.waybill_win); win.title("Показники спідометра — необов'язково")
-        fit_window_to_screen(win,650,390,560,340); win.transient(self.waybill_win); win.grab_set()
+        fit_window_to_screen(win,650,455,560,390); win.transient(self.waybill_win); win.grab_set()
         start=tk.StringVar(value="" if row["odometer_start"] is None else str(row["odometer_start"]))
         end=tk.StringVar(value="" if row["odometer_end"] is None else str(row["odometer_end"]))
         notes=tk.StringVar()
@@ -7615,9 +7664,22 @@ class App(tk.Tk):
         ttk.Entry(win,textvariable=start,width=28).grid(row=2,column=1,sticky="ew",padx=12,pady=7)
         ttk.Label(win,text="На завершення рейсу, км").grid(row=3,column=0,sticky="w",padx=12,pady=7)
         ttk.Entry(win,textvariable=end,width=28).grid(row=3,column=1,sticky="ew",padx=12,pady=7)
-        ttk.Label(win,text="Примітка").grid(row=4,column=0,sticky="w",padx=12,pady=7)
-        ttk.Entry(win,textvariable=notes,width=42).grid(row=4,column=1,sticky="ew",padx=12,pady=7)
-        ttk.Label(win,text="Обидва поля можна лишити порожніми. Перевірки показують попередження, але не блокують збереження чи видачу шляхівки.",foreground="gray",wraplength=600,justify="left").grid(row=5,column=0,columnspan=2,sticky="w",padx=12,pady=8)
+        plan_text=(f"{row['planned_distance_km']} км" if row.get("planned_distance_km") is not None else "не задано")
+        ttk.Label(win,text="Плановий пробіг маршруту").grid(row=4,column=0,sticky="w",padx=12,pady=7)
+        ttk.Label(win,text=plan_text,font=("TkDefaultFont",9,"bold")).grid(row=4,column=1,sticky="w",padx=12,pady=7)
+        forecast=tk.StringVar()
+        ttk.Label(win,textvariable=forecast,foreground="#2255aa").grid(row=5,column=0,columnspan=2,sticky="w",padx=12,pady=4)
+        def refresh_forecast(*_):
+            try:
+                start_value=parse_optional_odometer(start.get())
+            except ValueError:
+                start_value=None
+            predicted=planned_odometer_end(start_value,row.get("planned_distance_km"))
+            forecast.set(f"Прогноз кінцевого показника: {predicted} км" if predicted is not None else "Прогноз з'явиться після введення початкового показника і планового пробігу маршруту.")
+        start.trace_add("write",refresh_forecast); refresh_forecast()
+        ttk.Label(win,text="Примітка").grid(row=6,column=0,sticky="w",padx=12,pady=7)
+        ttk.Entry(win,textvariable=notes,width=42).grid(row=6,column=1,sticky="ew",padx=12,pady=7)
+        ttk.Label(win,text="Обидва фактичні показники можна лишити порожніми. Прогноз не записується як факт; перевірки лише попереджають і не блокують збереження чи видачу.",foreground="gray",wraplength=600,justify="left").grid(row=7,column=0,columnspan=2,sticky="w",padx=12,pady=8)
         win.columnconfigure(1,weight=1)
         def save_readings():
             try:
@@ -7626,14 +7688,16 @@ class App(tk.Tk):
                 messagebox.showerror("Спідометр",str(exc),parent=win); return
             start_at=f"{(row['date']+timedelta(days=int(row['start_day_offset'] or 0))).isoformat()}T{row['start_time_raw'] or '00:00'}:00"
             end_at=f"{(row['date']+timedelta(days=int(row['end_day_offset'] or 0))).isoformat()}T{row['end_time_raw'] or '23:59'}:00"
-            con=db(); warnings=odometer_consistency_warnings(con,row["vehicle_id"],start_value,end_value,start_at,row["worklog_id"])
+            con=db(); warnings=odometer_consistency_warnings(
+                con,row["vehicle_id"],start_value,end_value,start_at,row["worklog_id"],row.get("planned_distance_km")
+            )
             save_waybill_odometer_readings(con,row["worklog_id"],row["vehicle_id"],row["driver_id"],row["date"].isoformat(),start_value,end_value,start_at,end_at,notes.get().strip())
             con.commit(); con.close(); win.destroy(); self.refresh_waybill_issue_list()
             if warnings:
                 messagebox.showwarning("Спідометр — перевірте дані","\n\n".join(warnings)+"\n\nДані збережено; шляхівку не заблоковано.",parent=self.waybill_win)
             elif row.get("waybill_id"):
                 messagebox.showinfo("Спідометр","Дані збережено. Щоб вони з'явилися у PDF, сформуйте шляхівку повторно; номер збережеться, ревізія збільшиться.",parent=self.waybill_win)
-        ttk.Button(win,text="Зберегти",command=save_readings).grid(row=6,column=1,sticky="e",padx=12,pady=12)
+        ttk.Button(win,text="Зберегти",command=save_readings).grid(row=8,column=1,sticky="e",padx=12,pady=12)
 
     def show_vehicle_odometer_history(self):
         row=self._selected_waybill_data()
@@ -7735,6 +7799,7 @@ class App(tk.Tk):
             "planned_route_time":hours_value_hhmm(row["driving_hours"]),"planned_duty_time":hours_value_hhmm(row["work_hours"]),
             "odometer_start":row["odometer_start"],"odometer_end":row["odometer_end"],
             "distance_km":(row["odometer_end"]-row["odometer_start"]) if row["odometer_start"] is not None and row["odometer_end"] is not None else None,
+            "planned_distance_km":row["planned_distance_km"],
             "doctor_1":row["doctor_1"],"doctor_2":row["doctor_2"],"mechanic_1":row["mechanic_1"],"mechanic_2":row["mechanic_2"],
             "outbound_stops":[dict(s) for s in stops if s["direction"]=="outbound"],
             "return_stops":[dict(s) for s in stops if s["direction"]=="return"],
@@ -7752,21 +7817,21 @@ class App(tk.Tk):
             con.execute(
                 """UPDATE waybills SET work_end_date=?,issue_year=?,issue_seq=?,waybill_no=?,route_id=?,route_label=?,vehicle_id=?,vehicle_label=?,planned_departure=?,planned_return=?,
                        doctor_1=?,doctor_2=?,mechanic_1=?,mechanic_2=?,number_pool_id=?,document_series=?,document_number=?,internal_no=?,
-                       start_location=?,end_location=?,odometer_start=?,odometer_end=?,distance_km=?,pdf_path=?,revision=?,status='active',voided_at='',void_reason='',updated_at=? WHERE id=?""",
+                       start_location=?,end_location=?,odometer_start=?,odometer_end=?,distance_km=?,planned_distance_km=?,pdf_path=?,revision=?,status='active',voided_at='',void_reason='',updated_at=? WHERE id=?""",
                 (row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
                  row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"] if pool else existing["number_pool_id"],document_series,document_number,internal_no,
-                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],str(actual),revision,now,existing["id"])
+                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],row["planned_distance_km"],str(actual),revision,now,existing["id"])
             )
         else:
             con.execute(
                 """INSERT INTO waybills(worklog_id,driver_id,work_date,work_end_date,issue_year,issue_seq,waybill_no,route_id,route_label,vehicle_id,vehicle_label,
                    planned_departure,planned_return,doctor_1,doctor_2,mechanic_1,mechanic_2,number_pool_id,document_series,document_number,internal_no,
-                   start_location,end_location,odometer_start,odometer_end,distance_km,pdf_path,revision,status,issued_at,updated_at)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active',?,?)""",
+                   start_location,end_location,odometer_start,odometer_end,distance_km,planned_distance_km,pdf_path,revision,status,issued_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active',?,?)""",
                 (row["worklog_id"],row["driver_id"],row["date"].isoformat(),row["end_date"].isoformat(),row["date"].year,issue_seq,waybill_no,
                  row["route_id"],row["route"],row["vehicle_id"],row["vehicle"],row["planned_departure"],row["planned_return"],
                  row["doctor_1"],row["doctor_2"],row["mechanic_1"],row["mechanic_2"],pool["id"],document_series,document_number,internal_no,
-                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],str(actual),revision,now,now)
+                 row["start_location"],row["end_location"],row["odometer_start"],row["odometer_end"],payload["distance_km"],row["planned_distance_km"],str(actual),revision,now,now)
             )
         waybill_id=existing["id"] if existing else con.execute("SELECT id FROM waybills WHERE worklog_id=?",(row["worklog_id"],)).fetchone()[0]
         con.execute("""INSERT INTO waybill_events(waybill_id,event_type,document_series,document_number,internal_no,revision,pdf_path,created_at)
@@ -9029,13 +9094,13 @@ class App(tk.Tk):
             ),
             foreground="gray",wraplength=1050,justify="left"
         ).pack(anchor="w",padx=12,pady=(0,6))
-        cols=("id","label","vehicle","shift","segments","description","active")
+        cols=("id","label","vehicle","distance","shift","segments","description","active")
         self.route_catalog_tree=ttk.Treeview(self.tab_route_catalog,columns=cols,show="headings",height=25)
         heads={
-            "id":"ID","label":"№ / назва","vehicle":"Автомобіль","shift":"Тип зміни",
+            "id":"ID","label":"№ / назва","vehicle":"Автомобіль","distance":"План, км","shift":"Тип зміни",
             "segments":"Точний часовий сценарій","description":"Опис / примітка","active":"Статус"
         }
-        widths={"id":45,"label":230,"vehicle":150,"shift":145,"segments":410,"description":280,"active":80}
+        widths={"id":45,"label":230,"vehicle":150,"distance":80,"shift":145,"segments":410,"description":280,"active":80}
         for c in cols:
             self.route_catalog_tree.heading(c,text=heads[c])
             self.route_catalog_tree.column(c,width=widths[c],anchor="w")
@@ -9099,7 +9164,7 @@ class App(tk.Tk):
                         f"зворотний {stop_counts.get('return',0)}")
             description="; ".join(x for x in ((r["description"] or "").strip(), route_plan, (r["notes"] or "").strip()) if x)
             self.route_catalog_tree.insert("","end",values=(
-                r["id"],self.route_label(r),r["vehicle"],r["shift_type"],summary,description,
+                r["id"],self.route_label(r),r["vehicle"],r["planned_distance_km"] or "—",r["shift_type"],summary,description,
                 "Так" if r["active"] else "Ні"
             ))
         con.close()
@@ -9125,7 +9190,7 @@ class App(tk.Tk):
         fit_window_to_screen(win,1100,650,850,520)
         win.transient(self); win.grab_set()
         win.columnconfigure(1,weight=1)
-        win.rowconfigure(8,weight=1)
+        win.rowconfigure(9,weight=1)
 
         con=db()
         vehicles=con.execute("SELECT * FROM vehicles WHERE active=1 ORDER BY name,plate").fetchall()
@@ -9149,6 +9214,7 @@ class App(tk.Tk):
             "start_direction":tk.StringVar(value=(route["start_direction"] if route and "start_direction" in route.keys() else "outbound") or "outbound"),
             "start_day_offset":tk.StringVar(value=str(route["start_day_offset"] if route and "start_day_offset" in route.keys() else 0)),
             "end_day_offset":tk.StringVar(value=str(route["end_day_offset"] if route and "end_day_offset" in route.keys() else 0)),
+            "planned_distance_km":tk.StringVar(value=str(route["planned_distance_km"] or "") if route and "planned_distance_km" in route.keys() else ""),
         }
         active=tk.BooleanVar(value=bool(route["active"]) if route else True)
         stop_data={"outbound":[],"return":[]}
@@ -9194,7 +9260,9 @@ class App(tk.Tk):
             win,textvariable=vv["shift_type"],values=["Безперервна","Розділена на частини"],
             state="readonly",width=24
         ).grid(row=6,column=3,sticky="w",padx=(4,10),pady=5)
-        ttk.Checkbutton(win,text="Активний маршрут",variable=active).grid(row=7,column=1,sticky="w",padx=10,pady=(3,5))
+        ttk.Label(win,text="Плановий пробіг за повним графіком, км").grid(row=7,column=0,sticky="w",padx=10,pady=5)
+        ttk.Entry(win,textvariable=vv["planned_distance_km"],width=18).grid(row=7,column=1,sticky="w",padx=10,pady=5)
+        ttk.Checkbutton(win,text="Активний маршрут",variable=active).grid(row=7,column=2,sticky="e",padx=10,pady=(3,5))
         stops_summary=tk.StringVar()
         def refresh_stops_summary():
             stops_summary.set(f"Графік зупинок: прямий {len(stop_data['outbound'])}, зворотний {len(stop_data['return'])}")
@@ -9432,9 +9500,9 @@ class App(tk.Tk):
             ttk.Button(bottom,text="Готово",command=sw.destroy).pack(side="right")
 
         refresh_stops_summary()
-        ttk.Label(win,textvariable=stops_summary,foreground="gray").grid(row=7,column=2,sticky="e",padx=(10,3),pady=(3,5))
-        ttk.Button(win,text="Заповнити маршрут для шляхівки…",command=edit_stop_schedule).grid(row=7,column=3,sticky="e",padx=10,pady=(3,5))
-        ttk.Label(win,text="Частини робочої зміни").grid(row=8,column=0,sticky="nw",padx=10,pady=8)
+        ttk.Label(win,textvariable=stops_summary,foreground="gray").grid(row=8,column=1,columnspan=2,sticky="e",padx=(10,3),pady=(3,5))
+        ttk.Button(win,text="Заповнити маршрут для шляхівки…",command=edit_stop_schedule).grid(row=8,column=3,sticky="e",padx=10,pady=(3,5))
+        ttk.Label(win,text="Частини робочої зміни").grid(row=9,column=0,sticky="nw",padx=10,pady=8)
 
         cols=("no","work_start","work_end","drive_start","drive_end","work","drive","activity","note")
         tree=ttk.Treeview(win,columns=cols,show="headings",height=10)
@@ -9445,7 +9513,7 @@ class App(tk.Tk):
             ("activity","Тип",110),("note","Примітка",180)
         ]:
             tree.heading(c,text=h); tree.column(c,width=w)
-        tree.grid(row=8,column=1,columnspan=3,sticky="nsew",padx=10,pady=8)
+        tree.grid(row=9,column=1,columnspan=3,sticky="nsew",padx=10,pady=8)
 
         seg_data=[]
         for r in existing_segments:
@@ -9557,7 +9625,7 @@ class App(tk.Tk):
                 redraw(); sw.destroy()
             ttk.Button(sw,text="Зберегти",command=save_seg).grid(row=8,column=1,sticky="e",padx=10,pady=10)
 
-        button_row=ttk.Frame(win); button_row.grid(row=9,column=1,columnspan=3,sticky="w",padx=10,pady=5)
+        button_row=ttk.Frame(win); button_row.grid(row=10,column=1,columnspan=3,sticky="w",padx=10,pady=5)
         ttk.Button(button_row,text="Додати частину",command=lambda:edit_seg()).pack(side="left",padx=3)
         def edit_selected():
             sel=tree.selection()
@@ -9575,6 +9643,10 @@ class App(tk.Tk):
             name=vv["name"].get().strip()
             if not name:
                 messagebox.showerror("Помилка","Вкажіть назву маршруту.",parent=win); return
+            try:
+                planned_distance_km=parse_optional_route_distance(vv["planned_distance_km"].get())
+            except ValueError as exc:
+                messagebox.showerror("Маршрут",str(exc),parent=win); return
             if active.get() and not seg_data:
                 messagebox.showerror(
                     "Помилка","Активний маршрут повинен мати хоча б одну точну частину робочої зміни.",parent=win
@@ -9611,11 +9683,11 @@ class App(tk.Tk):
                     con.execute(
                         """UPDATE routes SET
                                name=?,code=?,description=?,vehicle=?,vehicle_id=?,shift_type=?,notes=?,active=?,
-                               start_location=?,end_location=?,start_direction=?,start_day_offset=?,end_day_offset=?
+                               start_location=?,end_location=?,start_direction=?,start_day_offset=?,end_day_offset=?,planned_distance_km=?
                              WHERE id=?""",
                         (name,vv["code"].get().strip(),vv["description"].get().strip(),
                          vehicle_text,vehicle_id,vv["shift_type"].get(),vv["notes"].get().strip(),
-                         int(active.get()),start_location,end_location,vv["start_direction"].get(),start_day,end_day,rid)
+                         int(active.get()),start_location,end_location,vv["start_direction"].get(),start_day,end_day,planned_distance_km,rid)
                     )
                     con.execute("DELETE FROM route_segments WHERE route_id=?",(rid,))
                     con.execute("DELETE FROM route_stops WHERE route_id=?",(rid,))
@@ -9623,12 +9695,12 @@ class App(tk.Tk):
                     cur=con.execute(
                         """INSERT INTO routes(
                                name,code,description,vehicle,vehicle_id,shift_type,notes,active,created_at,
-                               start_location,end_location,start_direction,start_day_offset,end_day_offset
-                           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                               start_location,end_location,start_direction,start_day_offset,end_day_offset,planned_distance_km
+                           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                         (name,vv["code"].get().strip(),vv["description"].get().strip(),
                          vehicle_text,vehicle_id,vv["shift_type"].get(),vv["notes"].get().strip(),
                          int(active.get()),datetime.now().isoformat(timespec="seconds"),start_location,end_location,
-                         vv["start_direction"].get(),start_day,end_day)
+                         vv["start_direction"].get(),start_day,end_day,planned_distance_km)
                     )
                     rid=cur.lastrowid
                 for i,r in enumerate(seg_data,1):
@@ -9659,7 +9731,7 @@ class App(tk.Tk):
                 con.close()
             win.destroy(); self.load_route_catalog()
 
-        ttk.Button(win,text="Зберегти маршрут",command=save).grid(row=10,column=3,sticky="e",padx=10,pady=10)
+        ttk.Button(win,text="Зберегти маршрут",command=save).grid(row=11,column=3,sticky="e",padx=10,pady=10)
 
     def edit_route_catalog(self):
         item=self.selected_route_catalog()
