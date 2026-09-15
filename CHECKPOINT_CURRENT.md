@@ -4,11 +4,11 @@ Date: 2026-09-15
 
 ## Current development version
 
-- Version: **v8.70 candidate r7**; based on published r6.
+- Version: **v8.70 candidate r8**; based on published r7.
 - Publication target: GitHub `main`; the old v8.65 head is superseded after verified merge.
 - Previous development checkpoints remain preserved: v8.66 r10 and v8.70 r1–r3.
 - Routine testing uses the source package with `START.bat`; executable packaging runs only when manually requested at a release checkpoint.
-- Publication branch: `work/v8.70-route-distance-r7`.
+- Publication branch: `work/v8.70-personnel-timesheet-r8`.
 
 ## Personnel and timekeeping
 
@@ -21,6 +21,9 @@ Date: 2026-09-15
 - The personnel timesheet now has monthly summary and daily views for every employee. A daily row stores day type, optional plan override, optional actual hours and notes.
 - Driver schedules and personnel shifts remain automatic plan sources. A manual row supplements them and can be cleared to return to automatic data.
 - Overnight personnel shifts are split between their actual calendar dates.
+- The daily personnel table now supports copy/paste across selected dates, multi-date plan-to-actual and clearing, plus safe 8-hour planning for otherwise empty weekdays.
+- Individual Excel/PDF reports and control identify plan, optional actual, deviations and exact missing-fact dates.
+- The monthly all-personnel balance provides daily hours/codes plus plan/fact/deviation totals in the UI, editable Excel and printable PDF.
 
 ## Odometer and mileage history
 

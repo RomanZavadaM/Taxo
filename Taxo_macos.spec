@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.70 candidate r7 — native macOS application bundle.
+# Taxo v8.70 candidate r8 — native macOS application bundle.
 # Build separately on Apple Silicon and Intel; user databases are forbidden.
 
 a = Analysis(

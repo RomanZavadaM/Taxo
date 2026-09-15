@@ -1906,6 +1906,183 @@ def employee_day_time(con, employee_id, target_date):
     }
 
 
+def employee_employed_on(employee, target_date):
+    """Whether an employee belongs to the personnel timesheet on a date."""
+    if isinstance(target_date,str):
+        target_date=date.fromisoformat(target_date)
+    try:
+        started=date.fromisoformat((employee["employment_date"] or "").strip())
+    except (ValueError,TypeError,KeyError,IndexError):
+        started=None
+    try:
+        finished=date.fromisoformat((employee["dismissal_date"] or "").strip())
+    except (ValueError,TypeError,KeyError,IndexError):
+        finished=None
+    return (started is None or target_date>=started) and (finished is None or target_date<=finished)
+
+
+def employee_name(employee):
+    return " ".join(
+        x for x in (employee["last_name"],employee["first_name"],employee["middle_name"]) if x
+    ).strip()
+
+
+def collect_employee_timesheet(employee_id, year, month):
+    """Daily plan/fact rows and totals for one employee and one month."""
+    y=int(year); m=int(month); days=month_dates(y,m)
+    con=db()
+    employee=con.execute(
+        """SELECT e.*,GROUP_CONCAT(er.role, ', ') roles FROM employees e
+           LEFT JOIN employee_roles er ON er.employee_id=e.id
+           WHERE e.id=? GROUP BY e.id""",
+        (employee_id,),
+    ).fetchone()
+    if employee is None:
+        con.close(); raise ValueError("Працівника не знайдено.")
+    company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
+    rows=[]; planned=actual=missing=work_days=0
+    weekday_names=("Пн","Вт","Ср","Чт","Пт","Сб","Нд")
+    for work_date in days:
+        employed=employee_employed_on(employee,work_date)
+        row=employee_day_time(con,employee_id,work_date) if employed else {
+            "day_type":"—","planned_minutes":0,"actual_minutes":None,
+            "source":"поза періодом роботи","notes":"","manual":False,
+        }
+        difference=(row["actual_minutes"]-row["planned_minutes"]) if row["actual_minutes"] is not None else None
+        rows.append({
+            "date":work_date,"weekday":weekday_names[work_date.weekday()],
+            "day_type":row["day_type"],"planned_minutes":row["planned_minutes"],
+            "actual_minutes":row["actual_minutes"],"difference_minutes":difference,
+            "source":row["source"],"notes":row["notes"],"manual":row["manual"],
+            "employed":employed,
+        })
+        if employed:
+            planned+=row["planned_minutes"]
+            if row["actual_minutes"] is not None:
+                actual+=row["actual_minutes"]
+            elif row["planned_minutes"]>0:
+                missing+=1
+            if row["planned_minutes"]>0 or (row["actual_minutes"] or 0)>0:
+                work_days+=1
+    con.close()
+    return {
+        "year":y,"month":m,"employee":employee,"company":company,"rows":rows,
+        "planned_minutes":planned,"actual_minutes":actual,
+        "difference_minutes":actual-planned,"missing_days":missing,"work_days":work_days,
+    }
+
+
+def collect_personnel_monthly_balance(year, month, active_only=True):
+    """Monthly actual-hours grid for all personnel, including missing-fact control."""
+    y=int(year); m=int(month); days=month_dates(y,m); con=db()
+    sql="""SELECT e.*,GROUP_CONCAT(er.role, ', ') roles FROM employees e
+           LEFT JOIN employee_roles er ON er.employee_id=e.id"""
+    if active_only:
+        sql += " WHERE e.active=1"
+    sql += " GROUP BY e.id ORDER BY e.active DESC,e.last_name,e.first_name,e.middle_name"
+    employees=con.execute(sql).fetchall()
+    company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
+    out=[]
+    codes={"Вихідний":"В","Відпустка":"Відп","Лікарняний":"Лік",
+           "Відпочинок":"Відпч","Доступний":"Гот","Інша робота":"Інш","Інше":"Інш"}
+    for employee in employees:
+        if not any(employee_employed_on(employee,d) for d in days):
+            continue
+        cells=[]; planned=actual=missing=work_days=0
+        for d in days:
+            if not employee_employed_on(employee,d):
+                cells.append(""); continue
+            row=employee_day_time(con,employee["id"],d)
+            planned += row["planned_minutes"]
+            if row["actual_minutes"] is not None:
+                actual += row["actual_minutes"]
+                cells.append(minutes_hhmm(row["actual_minutes"]) if row["actual_minutes"]>0 else codes.get(row["day_type"],"0:00"))
+            elif row["planned_minutes"]>0:
+                missing += 1; cells.append("—")
+            else:
+                cells.append(codes.get(row["day_type"],"В" if d.weekday()>=5 else ""))
+            if row["planned_minutes"]>0 or (row["actual_minutes"] or 0)>0:
+                work_days += 1
+        out.append({
+            "employee_id":employee["id"],"personnel_no":employee["personnel_no"] or "",
+            "name":employee_name(employee),"roles":employee["roles"] or employee["position"] or "",
+            "cells":cells,"work_days":work_days,"planned_min":planned,"actual_min":actual,
+            "difference_min":actual-planned,"missing_days":missing,
+        })
+    con.close()
+    return {"year":y,"month":m,"days":days,"employees":out,"company":company}
+
+
+def export_employee_timesheet_xlsx(employee_id, year, month, out_path):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    data=collect_employee_timesheet(employee_id,year,month)
+    wb=Workbook(); ws=wb.active; ws.title="Щоденний табель"
+    headers=["Дата","День","Вид дня","План","Факт","Відхилення","Джерело","Примітка"]
+    ws.merge_cells("A1:H1"); ws["A1"]=(data["company"]["name"] if data["company"] else "") or ""
+    ws.merge_cells("A2:H2"); ws["A2"]=f"ТАБЕЛЬ РОБОЧОГО ЧАСУ — {employee_name(data['employee'])} — {month_name_ua(data['month'])} {data['year']}"
+    for cell in (ws["A1"],ws["A2"]):
+        cell.font=Font(bold=True,size=14); cell.alignment=Alignment(horizontal="center")
+    thin=Side(style="thin",color="777777"); border=Border(left=thin,right=thin,top=thin,bottom=thin)
+    for col,label in enumerate(headers,1):
+        c=ws.cell(4,col,label); c.font=Font(bold=True); c.fill=PatternFill("solid",fgColor="D9E6F2"); c.border=border; c.alignment=Alignment(horizontal="center")
+    for row_no,row in enumerate(data["rows"],5):
+        values=[row["date"].strftime("%d.%m.%Y"),row["weekday"],row["day_type"],minutes_hhmm(row["planned_minutes"]),
+                minutes_hhmm(row["actual_minutes"]) if row["actual_minutes"] is not None else "—",
+                signed_hours_hhmm(row["difference_minutes"]/60) if row["difference_minutes"] is not None else "—",row["source"],row["notes"]]
+        for col,value in enumerate(values,1):
+            c=ws.cell(row_no,col,value); c.border=border; c.alignment=Alignment(vertical="top",wrap_text=True)
+        if not row["employed"]:
+            for col in range(1,9): ws.cell(row_no,col).fill=PatternFill("solid",fgColor="EEEEEE")
+        elif row["planned_minutes"]>0 and row["actual_minutes"] is None:
+            ws.cell(row_no,5).fill=PatternFill("solid",fgColor="FFF2CC")
+    total_row=5+len(data["rows"])
+    ws.cell(total_row,1,"РАЗОМ"); ws.cell(total_row,4,minutes_hhmm(data["planned_minutes"])); ws.cell(total_row,5,minutes_hhmm(data["actual_minutes"])); ws.cell(total_row,6,signed_hours_hhmm(data["difference_minutes"]/60)); ws.cell(total_row,7,f"Без факту: {data['missing_days']}")
+    for col in range(1,9): ws.cell(total_row,col).font=Font(bold=True); ws.cell(total_row,col).border=border
+    widths=[13,8,18,10,10,13,25,34]
+    for col,width in enumerate(widths,1): ws.column_dimensions[get_column_letter(col)].width=width
+    ws.freeze_panes="A5"; ws.auto_filter.ref=f"A4:H{total_row-1}"; ws.sheet_view.showGridLines=False
+    ws.page_setup.orientation="landscape"; ws.page_setup.paperSize=ws.PAPERSIZE_A4; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0; ws.sheet_properties.pageSetUpPr.fitToPage=True
+    ws.print_title_rows="1:4"; ws.print_area=f"A1:H{total_row}"
+    wb.save(str(out_path)); return data
+
+
+def export_employee_timesheet_pdf(employee_id, year, month, out_path):
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from xml.sax.saxutils import escape
+    data=collect_employee_timesheet(employee_id,year,month)
+    font_name="Helvetica"; font_path=next((p for p in report_font_candidates() if os.path.exists(p)),None)
+    if font_path:
+        try:
+            if "PersonnelTimesheetFont" not in pdfmetrics.getRegisteredFontNames(): pdfmetrics.registerFont(TTFont("PersonnelTimesheetFont",font_path))
+            font_name="PersonnelTimesheetFont"
+        except Exception: pass
+    doc=SimpleDocTemplate(str(out_path),pagesize=landscape(A4),leftMargin=14,rightMargin=14,topMargin=14,bottomMargin=14)
+    styles=getSampleStyleSheet(); normal=ParagraphStyle("PersonnelNormal",parent=styles["Normal"],fontName=font_name,fontSize=7.7,leading=9)
+    center=ParagraphStyle("PersonnelCenter",parent=normal,alignment=1); title=ParagraphStyle("PersonnelTitle",parent=center,fontSize=13,leading=15,spaceAfter=5)
+    story=[]; company=(data["company"]["name"] if data["company"] else "") or ""
+    if company: story.append(Paragraph(f"<b>{escape(company)}</b>",title))
+    story.append(Paragraph(f"<b>ТАБЕЛЬ РОБОЧОГО ЧАСУ — {escape(employee_name(data['employee']))}</b><br/>{month_name_ua(data['month'])} {data['year']}",title)); story.append(Spacer(1,3))
+    headers=["Дата","День","Вид дня","План","Факт","Відх.","Джерело","Примітка"]
+    rows=[[Paragraph(f"<b>{escape(h)}</b>",center) for h in headers]]
+    for row in data["rows"]:
+        vals=[row["date"].strftime("%d.%m.%Y"),row["weekday"],row["day_type"],minutes_hhmm(row["planned_minutes"]),minutes_hhmm(row["actual_minutes"]) if row["actual_minutes"] is not None else "—",signed_hours_hhmm(row["difference_minutes"]/60) if row["difference_minutes"] is not None else "—",row["source"],row["notes"]]
+        rows.append([Paragraph(escape(str(v)),center if i<6 else normal) for i,v in enumerate(vals)])
+    rows.append([Paragraph("<b>РАЗОМ</b>",normal),"","",Paragraph(f"<b>{minutes_hhmm(data['planned_minutes'])}</b>",center),Paragraph(f"<b>{minutes_hhmm(data['actual_minutes'])}</b>",center),Paragraph(f"<b>{signed_hours_hhmm(data['difference_minutes']/60)}</b>",center),Paragraph(f"Без факту: {data['missing_days']}",normal),""])
+    table=Table(rows,colWidths=[54,34,72,42,42,48,120,220],repeatRows=1)
+    style=[("FONTNAME",(0,0),(-1,-1),font_name),("GRID",(0,0),(-1,-1),0.35,colors.HexColor("#777777")),("BACKGROUND",(0,0),(-1,0),colors.HexColor("#D9E6F2")),("VALIGN",(0,0),(-1,-1),"TOP"),("LEFTPADDING",(0,0),(-1,-1),2),("RIGHTPADDING",(0,0),(-1,-1),2),("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2),("BACKGROUND",(0,len(rows)-1),(-1,len(rows)-1),colors.HexColor("#EAF2F8"))]
+    for idx,row in enumerate(data["rows"],1):
+        if not row["employed"]: style.append(("BACKGROUND",(0,idx),(-1,idx),colors.HexColor("#EEEEEE")))
+        elif row["planned_minutes"]>0 and row["actual_minutes"] is None: style.append(("BACKGROUND",(4,idx),(4,idx),colors.HexColor("#FFF2CC")))
+    table.setStyle(TableStyle(style)); story.append(table); doc.build(story); return data
+
+
 def format_hours(value):
     try:
         return f"{float(value):.2f}".rstrip("0").rstrip(".")
@@ -3870,6 +4047,81 @@ def export_monthly_work_balance_xlsx(year, month, out_path, active_only=True):
     return data
 
 
+def export_personnel_monthly_balance_xlsx(year, month, out_path, active_only=True):
+    """Editable A4 monthly actual-hours grid for all personnel."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from openpyxl.utils import get_column_letter
+    data=collect_personnel_monthly_balance(year,month,active_only=active_only)
+    wb=Workbook(); wb.remove(wb.active)
+    thin=Side(style="thin",color="777777"); border=Border(left=thin,right=thin,top=thin,bottom=thin)
+    header_fill=PatternFill("solid",fgColor="D9E6F2"); warning_fill=PatternFill("solid",fgColor="FFF2CC"); nonwork_fill=PatternFill("solid",fgColor="F2F2F2")
+    company=(data["company"]["name"] if data["company"] else "") or ""
+    for chunk in _split_month_days_a4(data["days"]):
+        ws=wb.create_sheet(f"{chunk[0].day}-{chunk[-1].day}"); ncols=3+len(chunk)+5
+        ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=ncols); ws.cell(1,1,company)
+        ws.merge_cells(start_row=2,start_column=1,end_row=2,end_column=ncols); ws.cell(2,1,f"ТАБЕЛЬ УСЬОГО ПЕРСОНАЛУ — {month_name_ua(data['month']).upper()} {data['year']} — ДНІ {chunk[0].day}–{chunk[-1].day}")
+        for cell in (ws.cell(1,1),ws.cell(2,1)):
+            cell.font=Font(size=14,bold=True); cell.alignment=Alignment(horizontal="center")
+        headers=["Таб. №","Працівник","Ролі"]+[f"{d.day}\n{['Пн','Вт','Ср','Чт','Пт','Сб','Нд'][d.weekday()]}" for d in chunk]+["Роб. днів","План","Факт","Відх.","Без факту"]
+        for col,label in enumerate(headers,1):
+            c=ws.cell(4,col,label); c.font=Font(size=9,bold=True); c.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True); c.fill=header_fill; c.border=border
+        indexes=[d.day-1 for d in chunk]
+        for row_no,employee in enumerate(data["employees"],5):
+            values=[employee["personnel_no"],employee["name"],employee["roles"]]+[employee["cells"][i] for i in indexes]+[employee["work_days"],minutes_hhmm(employee["planned_min"]),minutes_hhmm(employee["actual_min"]),signed_hours_hhmm(employee["difference_min"]/60),employee["missing_days"]]
+            for col,value in enumerate(values,1):
+                c=ws.cell(row_no,col,value); c.border=border; c.alignment=Alignment(horizontal="center" if col!=2 else "left",vertical="center",wrap_text=True)
+                if value=="—": c.fill=warning_fill
+                elif value in ("В","Відп","Лік","Відпч","Гот","Інш"): c.fill=nonwork_fill
+        ws.column_dimensions["A"].width=10; ws.column_dimensions["B"].width=24; ws.column_dimensions["C"].width=18
+        for col in range(4,4+len(chunk)): ws.column_dimensions[get_column_letter(col)].width=8
+        for col in range(4+len(chunk),ncols+1): ws.column_dimensions[get_column_letter(col)].width=11
+        ws.freeze_panes="D5"; ws.sheet_view.showGridLines=False; ws.row_dimensions[4].height=30
+        ws.page_setup.orientation="landscape"; ws.page_setup.paperSize=ws.PAPERSIZE_A4; ws.page_setup.fitToWidth=1; ws.page_setup.fitToHeight=0; ws.sheet_properties.pageSetUpPr.fitToPage=True
+        ws.print_title_rows="1:4"; ws.print_area=f"A1:{get_column_letter(ncols)}{max(5,4+len(data['employees']))}"
+    wb.save(str(out_path)); return data
+
+
+def export_personnel_monthly_balance_pdf(year, month, out_path, active_only=True):
+    """Printable A4 monthly actual-hours grid for all personnel."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from xml.sax.saxutils import escape
+    data=collect_personnel_monthly_balance(year,month,active_only=active_only)
+    font_name="Helvetica"; font_path=next((p for p in report_font_candidates() if os.path.exists(p)),None)
+    if font_path:
+        try:
+            if "PersonnelBalanceFont" not in pdfmetrics.getRegisteredFontNames(): pdfmetrics.registerFont(TTFont("PersonnelBalanceFont",font_path))
+            font_name="PersonnelBalanceFont"
+        except Exception: pass
+    doc=SimpleDocTemplate(str(out_path),pagesize=landscape(A4),leftMargin=10,rightMargin=10,topMargin=12,bottomMargin=12)
+    styles=getSampleStyleSheet(); normal=ParagraphStyle("PersonnelBalanceNormal",parent=styles["Normal"],fontName=font_name,fontSize=6.8,leading=8)
+    center=ParagraphStyle("PersonnelBalanceCenter",parent=normal,alignment=1); title=ParagraphStyle("PersonnelBalanceTitle",parent=center,fontSize=12.5,leading=14)
+    story=[]; company=(data["company"]["name"] if data["company"] else "") or ""
+    for page_no,chunk in enumerate(_split_month_days_a4(data["days"]),1):
+        if page_no>1: story.append(PageBreak())
+        if company: story.append(Paragraph(f"<b>{escape(company)}</b>",title))
+        story.append(Paragraph(f"<b>ТАБЕЛЬ УСЬОГО ПЕРСОНАЛУ — {month_name_ua(data['month']).upper()} {data['year']} — ДНІ {chunk[0].day}–{chunk[-1].day}</b>",title)); story.append(Spacer(1,3))
+        headers=["Таб. №","Працівник","Ролі"]+[f"{d.day}<br/>{['Пн','Вт','Ср','Чт','Пт','Сб','Нд'][d.weekday()]}" for d in chunk]+["Днів","План","Факт","Відх.","Без<br/>факту"]
+        rows=[[Paragraph(f"<b>{h}</b>",center) for h in headers]]; indexes=[d.day-1 for d in chunk]
+        for employee in data["employees"]:
+            vals=[employee["personnel_no"],employee["name"],employee["roles"]]+[employee["cells"][i] for i in indexes]+[employee["work_days"],minutes_hhmm(employee["planned_min"]),minutes_hhmm(employee["actual_min"]),signed_hours_hhmm(employee["difference_min"]/60),employee["missing_days"]]
+            rows.append([Paragraph(escape(str(v)),normal if i in (1,2) else center) for i,v in enumerate(vals)])
+        day_width=min(39,410/max(1,len(chunk))); widths=[43,108,75]+[day_width]*len(chunk)+[34,42,42,43,37]
+        table=Table(rows,colWidths=widths,repeatRows=1); style=[("FONTNAME",(0,0),(-1,-1),font_name),("GRID",(0,0),(-1,-1),0.35,colors.HexColor("#777777")),("BACKGROUND",(0,0),(-1,0),colors.HexColor("#D9E6F2")),("VALIGN",(0,0),(-1,-1),"MIDDLE"),("LEFTPADDING",(0,0),(-1,-1),1.5),("RIGHTPADDING",(0,0),(-1,-1),1.5),("TOPPADDING",(0,0),(-1,-1),2),("BOTTOMPADDING",(0,0),(-1,-1),2)]
+        for rr,employee in enumerate(data["employees"],1):
+            for cc,idx in enumerate(indexes,3):
+                value=employee["cells"][idx]
+                if value=="—": style.append(("BACKGROUND",(cc,rr),(cc,rr),colors.HexColor("#FFF2CC")))
+                elif value in ("В","Відп","Лік","Відпч","Гот","Інш"): style.append(("BACKGROUND",(cc,rr),(cc,rr),colors.HexColor("#F2F2F2")))
+        table.setStyle(TableStyle(style)); story.append(table); story.append(Spacer(1,4)); story.append(Paragraph("— = є план, але факт ще не внесено. В — вихідний; Відп — відпустка; Лік — лікарняний; Відпч — відпочинок; Гот — готовність; Інш — інша робота.",normal))
+    doc.build(story); return data
+
+
 def collect_monthly_shift_schedule(year, month, active_only=True):
     """Збирає дані графіка змінності для всіх водіїв за місяць."""
     y=int(year); m=int(month)
@@ -5062,9 +5314,9 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.70 candidate r7",
+                "Taxo v8.70 candidate r8",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "v8.70 r7: плановий пробіг маршруту, прогноз спідометра і м'яка перевірка фактичного пробігу.\n"
+                "v8.70 r8: повний щоденний і місячний табель робочого часу всього персоналу.\n"
                 "Розпізнавання тахокарт у цьому кандидатові не змінювалося.",
                 parent=self
             )
@@ -5628,7 +5880,7 @@ class App(tk.Tk):
 
     def show_employee_timesheet(self):
         parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Табель робочого часу всіх працівників")
-        fit_window_to_screen(win,1180,700,900,540)
+        fit_window_to_screen(win,1360,760,960,560)
         top=ttk.Frame(win,padding=8); top.pack(fill="x")
         today=date.today(); month=tk.StringVar(value=str(today.month)); year=tk.StringVar(value=str(today.year))
         ttk.Label(top,text="Місяць").pack(side="left"); ttk.Spinbox(top,textvariable=month,from_=1,to=12,width=5).pack(side="left",padx=4)
@@ -5639,9 +5891,9 @@ class App(tk.Tk):
 
         summary_frame=ttk.Frame(summary_tab); summary_frame.pack(fill="both",expand=True,padx=4,pady=6)
         summary_frame.rowconfigure(0,weight=1); summary_frame.columnconfigure(0,weight=1)
-        summary_cols=("personnel","name","roles","planned","actual","difference","missing")
+        summary_cols=("id","personnel","name","roles","planned","actual","difference","missing")
         summary_tree=ttk.Treeview(summary_frame,columns=summary_cols,show="headings")
-        for key,label,width in (("personnel","Таб. №",80),("name","ПІБ",270),("roles","Ролі",210),("planned","План",85),("actual","Факт",85),("difference","Відхилення",90),("missing","Без факту",90)):
+        for key,label,width in (("id","ID",45),("personnel","Таб. №",80),("name","ПІБ",270),("roles","Ролі",210),("planned","План",85),("actual","Факт",85),("difference","Відхилення",90),("missing","Без факту",90)):
             summary_tree.heading(key,text=label); summary_tree.column(key,width=width,anchor="w")
         sy=ttk.Scrollbar(summary_frame,orient="vertical",command=summary_tree.yview); sx=ttk.Scrollbar(summary_frame,orient="horizontal",command=summary_tree.xview)
         summary_tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
@@ -5650,18 +5902,20 @@ class App(tk.Tk):
         daily_top=ttk.Frame(daily_tab,padding=(4,6)); daily_top.pack(fill="x")
         employee_choice=tk.StringVar(); ttk.Label(daily_top,text="Працівник").pack(side="left")
         employee_combo=ttk.Combobox(daily_top,textvariable=employee_choice,state="readonly",width=48); employee_combo.pack(side="left",padx=6)
-        ttk.Label(daily_top,text="План надходить із графіка водія або зміни; ручний запис може його уточнити. Факт можна лишити порожнім.",foreground="gray").pack(side="left",padx=8)
+        ttk.Label(daily_top,text="План — із графіка або зміни; факт і уточнення — з ручного табеля.",foreground="gray").pack(side="left",padx=8)
+
+        edit_bar=ttk.Frame(daily_tab,padding=(4,0,4,3)); edit_bar.pack(fill="x")
+        report_bar=ttk.Frame(daily_tab,padding=(4,0,4,5)); report_bar.pack(fill="x")
         daily_frame=ttk.Frame(daily_tab); daily_frame.pack(fill="both",expand=True,padx=4,pady=(0,6)); daily_frame.rowconfigure(0,weight=1); daily_frame.columnconfigure(0,weight=1)
         daily_cols=("date","weekday","day_type","planned","actual","difference","source","notes")
-        daily_tree=ttk.Treeview(daily_frame,columns=daily_cols,show="headings")
+        daily_tree=ttk.Treeview(daily_frame,columns=daily_cols,show="headings",selectmode="extended")
         for key,label,width in (("date","Дата",90),("weekday","День",75),("day_type","Вид дня",115),("planned","План",70),("actual","Факт",70),("difference","Відхилення",85),("source","Джерело",190),("notes","Примітка",260)):
             daily_tree.heading(key,text=label); daily_tree.column(key,width=width,anchor="w")
         dy=ttk.Scrollbar(daily_frame,orient="vertical",command=daily_tree.yview); dx=ttk.Scrollbar(daily_frame,orient="horizontal",command=daily_tree.xview)
         daily_tree.configure(yscrollcommand=dy.set,xscrollcommand=dx.set)
         daily_tree.grid(row=0,column=0,sticky="nsew"); dy.grid(row=0,column=1,sticky="ns"); dx.grid(row=1,column=0,sticky="ew")
-        daily_actions=ttk.Frame(daily_tab,padding=(4,0,4,6)); daily_actions.pack(fill="x")
 
-        employee_map={}
+        employee_map={}; clipboard={"value":None}; last_files={"pdf":None,"xlsx":None}
         def selected_month():
             try:
                 m=int(month.get()); yy=int(year.get())
@@ -5688,7 +5942,11 @@ class App(tk.Tk):
             con=db()
             weekday_names=("Пн","Вт","Ср","Чт","Пт","Сб","Нд")
             for day_no in range(1,days+1):
-                work_date=start.replace(day=day_no); row=employee_day_time(con,employee["id"],work_date)
+                work_date=start.replace(day=day_no)
+                if employee_employed_on(employee,work_date):
+                    row=employee_day_time(con,employee["id"],work_date)
+                else:
+                    row={"day_type":"—","planned_minutes":0,"actual_minutes":None,"source":"поза періодом роботи","notes":""}
                 actual=row["actual_minutes"]
                 difference=(actual-row["planned_minutes"]) if actual is not None else None
                 daily_tree.insert("","end",iid=work_date.isoformat(),values=(
@@ -5708,22 +5966,29 @@ class App(tk.Tk):
             for employee in rows:
                 planned=actual=missing=0
                 for day_no in range(1,days+1):
-                    row=employee_day_time(con,employee["id"],start.replace(day=day_no))
+                    work_date=start.replace(day=day_no)
+                    if not employee_employed_on(employee,work_date):
+                        continue
+                    row=employee_day_time(con,employee["id"],work_date)
                     planned+=row["planned_minutes"]
                     if row["actual_minutes"] is not None: actual+=row["actual_minutes"]
                     elif row["planned_minutes"]>0: missing+=1
-                summary_tree.insert("","end",values=(employee["personnel_no"],self.employee_full_name(employee),employee["roles"] or "",
+                summary_tree.insert("","end",values=(employee["id"],employee["personnel_no"],self.employee_full_name(employee),employee["roles"] or employee["position"] or "",
                     minutes_hhmm(planned),minutes_hhmm(actual),signed_hours_hhmm((actual-planned)/60),str(missing)))
             con.close(); refresh_daily()
 
+        def selected_days():
+            return [datetime.strptime(item,"%Y-%m-%d").date() for item in daily_tree.selection()]
+
         def selected_day():
-            sel=daily_tree.selection()
-            return datetime.strptime(sel[0],"%Y-%m-%d").date() if sel else None
+            days=selected_days(); return days[0] if days else None
 
         def edit_day():
             employee=employee_map.get(employee_choice.get()); work_date=selected_day()
             if not employee or not work_date:
                 messagebox.showinfo("Табель","Виберіть день у щоденному табелі.",parent=win); return
+            if not employee_employed_on(employee,work_date):
+                messagebox.showwarning("Табель","Ця дата поза періодом роботи працівника.",parent=win); return
             con=db(); current=employee_day_time(con,employee["id"],work_date)
             entry=con.execute("SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",(employee["id"],work_date.isoformat())).fetchone(); con.close()
             dialog=tk.Toplevel(win); dialog.title(f"Табель: {self.employee_full_name(employee)}, {work_date.strftime('%d.%m.%Y')}")
@@ -5755,27 +6020,158 @@ class App(tk.Tk):
                 con.commit(); con.close(); dialog.destroy(); refresh_summary()
             ttk.Button(dialog,text="Зберегти",command=save_entry).grid(row=5,column=1,sticky="e",padx=10,pady=14)
 
-        def plan_to_fact():
+        def copy_day():
             employee=employee_map.get(employee_choice.get()); work_date=selected_day()
-            if not employee or not work_date: return
-            con=db(); current=employee_day_time(con,employee["id"],work_date); now=datetime.now().isoformat(timespec="seconds")
-            con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,actual_hours,notes,created_at,updated_at)
-                VALUES(?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET actual_hours=excluded.actual_hours,updated_at=excluded.updated_at""",
-                (employee["id"],work_date.isoformat(),current["day_type"],minutes_to_db_hours(current["planned_minutes"]),current["notes"],now,now))
+            if not employee or not work_date:
+                messagebox.showwarning("Копіювання","Виберіть один день у щоденному табелі.",parent=win); return
+            con=db(); current=employee_day_time(con,employee["id"],work_date); con.close()
+            clipboard["value"]={"day_type":current["day_type"],"planned_hours":minutes_to_db_hours(current["planned_minutes"]),
+                                "actual_hours":minutes_to_db_hours(current["actual_minutes"]) if current["actual_minutes"] is not None else None,
+                                "notes":current["notes"],"source_date":work_date}
+            try: win.clipboard_clear(); win.clipboard_append("taxo_personnel_day")
+            except tk.TclError: pass
+            messagebox.showinfo("Копіювання","День скопійовано. Виділіть одну або кілька дат і натисніть «Вставити день».",parent=win)
+
+        def paste_day():
+            employee=employee_map.get(employee_choice.get()); days=selected_days(); clip=clipboard["value"]
+            if not employee or not days:
+                messagebox.showwarning("Вставлення","Виберіть одну або кілька дат.",parent=win); return
+            if not clip:
+                messagebox.showwarning("Вставлення","Спочатку скопіюйте день.",parent=win); return
+            con=db(); existing=con.execute(
+                f"SELECT COUNT(*) FROM employee_time_entries WHERE employee_id=? AND work_date IN ({','.join('?' for _ in days)})",
+                (employee["id"],*[d.isoformat() for d in days]),
+            ).fetchone()[0]
+            if existing and not messagebox.askyesno("Вставлення",f"Для {existing} вибраних дат уже є ручні записи. Замінити їх скопійованими даними?",parent=win):
+                con.close(); return
+            now=datetime.now().isoformat(timespec="seconds")
+            for work_date in days:
+                if not employee_employed_on(employee,work_date): continue
+                con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,planned_hours,actual_hours,notes,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET day_type=excluded.day_type,planned_hours=excluded.planned_hours,
+                    actual_hours=excluded.actual_hours,notes=excluded.notes,updated_at=excluded.updated_at""",
+                    (employee["id"],work_date.isoformat(),clip["day_type"],clip["planned_hours"],clip["actual_hours"],clip["notes"],now,now))
+            con.commit(); con.close(); refresh_summary()
+
+        def plan_to_fact():
+            employee=employee_map.get(employee_choice.get()); days=selected_days()
+            if not employee or not days:
+                messagebox.showwarning("Табель","Виберіть одну або кілька дат.",parent=win); return
+            con=db(); now=datetime.now().isoformat(timespec="seconds")
+            for work_date in days:
+                if not employee_employed_on(employee,work_date): continue
+                current=employee_day_time(con,employee["id"],work_date)
+                con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,actual_hours,notes,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET actual_hours=excluded.actual_hours,updated_at=excluded.updated_at""",
+                    (employee["id"],work_date.isoformat(),current["day_type"],minutes_to_db_hours(current["planned_minutes"]),current["notes"],now,now))
             con.commit(); con.close(); refresh_summary()
 
         def clear_manual():
-            employee=employee_map.get(employee_choice.get()); work_date=selected_day()
-            if not employee or not work_date: return
-            if not messagebox.askyesno("Табель","Прибрати ручні план/факт і повернути автоматичні дані цього дня?",parent=win): return
-            con=db(); con.execute("DELETE FROM employee_time_entries WHERE employee_id=? AND work_date=?",(employee["id"],work_date.isoformat())); con.commit(); con.close(); refresh_summary()
+            employee=employee_map.get(employee_choice.get()); days=selected_days()
+            if not employee or not days:
+                messagebox.showwarning("Табель","Виберіть одну або кілька дат.",parent=win); return
+            if not messagebox.askyesno("Табель",f"Прибрати ручні записи для вибраних дат ({len(days)}) і повернути автоматичні дані?",parent=win): return
+            con=db(); con.executemany("DELETE FROM employee_time_entries WHERE employee_id=? AND work_date=?",[(employee["id"],d.isoformat()) for d in days]); con.commit(); con.close(); refresh_summary()
+
+        def autofill_empty_weekdays():
+            employee=employee_map.get(employee_choice.get()); start,days_count=selected_month()
+            if not employee or not start: return
+            if not messagebox.askyesno(
+                "Небезпечна масова дія",
+                f"Заповнити ПОРОЖНІ будні {month.get()}.{year.get()} для {self.employee_full_name(employee)} планом 8:00?\n\n"
+                "Існуючі ручні записи, графік водія та зміни персоналу не змінюються. Факт залишиться порожнім.\nПродовжити?",
+                parent=win,
+            ): return
+            con=db(); now=datetime.now().isoformat(timespec="seconds"); added=0
+            for day_no in range(1,days_count+1):
+                work_date=start.replace(day=day_no)
+                if work_date.weekday()>=5 or not employee_employed_on(employee,work_date): continue
+                current=employee_day_time(con,employee["id"],work_date)
+                exists=con.execute("SELECT 1 FROM employee_time_entries WHERE employee_id=? AND work_date=?",(employee["id"],work_date.isoformat())).fetchone()
+                if exists or current["planned_minutes"]>0: continue
+                con.execute("INSERT INTO employee_time_entries(employee_id,work_date,day_type,planned_hours,actual_hours,notes,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)",
+                            (employee["id"],work_date.isoformat(),"Робота",8.0,None,"Масове заповнення порожнього будня",now,now)); added+=1
+            con.commit(); con.close(); refresh_summary(); messagebox.showinfo("Табель",f"Додано план 8:00 для {added} порожніх буднів.",parent=win)
+
+        def export_selected(kind):
+            employee=employee_map.get(employee_choice.get()); start,_days=selected_month()
+            if not employee or not start:
+                messagebox.showwarning("Табель","Виберіть працівника.",parent=win); return
+            suffix=".xlsx" if kind=="xlsx" else ".pdf"; safe=re.sub(r"[^0-9A-Za-zА-Яа-яІіЇїЄє_-]+","_",employee["last_name"] or "Працівник")
+            path=filedialog.asksaveasfilename(parent=win,title="Зберегти табель",initialdir=str(OUTPUT_DIR),initialfile=f"Табель_{safe}_{start.year}_{start.month:02d}{suffix}",defaultextension=suffix,filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")])
+            if not path: return
+            writer=(lambda out:export_employee_timesheet_xlsx(employee["id"],start.year,start.month,out)) if kind=="xlsx" else (lambda out:export_employee_timesheet_pdf(employee["id"],start.year,start.month,out))
+            actual=write_output_file(writer,path,parent=win,kind="Excel-файл табеля" if kind=="xlsx" else "PDF табеля",error_title="Помилка Excel" if kind=="xlsx" else "Помилка PDF")
+            if actual is not None: last_files[kind]=actual; messagebox.showinfo("Готово",f"Файл створено:\n{actual}",parent=win)
+
+        def show_control():
+            employee=employee_map.get(employee_choice.get()); start,_days=selected_month()
+            if not employee or not start: return
+            data=collect_employee_timesheet(employee["id"],start.year,start.month)
+            dialog=tk.Toplevel(win); dialog.title("Підсумки / контроль персоналу"); fit_window_to_screen(dialog,720,500,600,420)
+            text=tk.Text(dialog,wrap="word",font=("TkDefaultFont",10)); scroll=ttk.Scrollbar(dialog,command=text.yview); text.configure(yscrollcommand=scroll.set); scroll.pack(side="right",fill="y"); text.pack(fill="both",expand=True,padx=10,pady=10)
+            lines=[f"Працівник: {employee_name(data['employee'])}",f"Період: {month_name_ua(data['month'])} {data['year']}","",f"План: {minutes_hhmm(data['planned_minutes'])}",f"Факт: {minutes_hhmm(data['actual_minutes'])}",f"Відхилення: {signed_hours_hhmm(data['difference_minutes']/60)}",f"Робочих днів: {data['work_days']}",f"Днів із планом без факту: {data['missing_days']}",""]
+            missing=[r["date"].strftime("%d.%m.%Y") for r in data["rows"] if r["planned_minutes"]>0 and r["actual_minutes"] is None]
+            lines.append("Потрібно внести факт: "+(", ".join(missing) if missing else "немає"))
+            types={}
+            for row in data["rows"]: types[row["day_type"]]=types.get(row["day_type"],0)+1
+            lines.extend(["","Дні за видами:"]+[f"  {key}: {value}" for key,value in sorted(types.items())])
+            text.insert("1.0","\n".join(lines)); text.configure(state="disabled")
+
+        def show_personnel_balance():
+            start,_days=selected_month()
+            if not start: return
+            dialog=tk.Toplevel(win); dialog.title("Місячний табель / баланс усього персоналу"); fit_window_to_screen(dialog,1500,760,960,520)
+            bar=ttk.Frame(dialog,padding=8); bar.pack(fill="x"); active_only=tk.BooleanVar(value=True); last={"pdf":None}
+            ttk.Checkbutton(bar,text="Тільки активні працівники",variable=active_only).pack(side="left")
+            frame=ttk.Frame(dialog); frame.pack(fill="both",expand=True,padx=8,pady=(0,6)); frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+            tree=ttk.Treeview(frame,show="headings"); yscroll=ttk.Scrollbar(frame,orient="vertical",command=tree.yview); xscroll=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview); tree.configure(yscrollcommand=yscroll.set,xscrollcommand=xscroll.set); tree.grid(row=0,column=0,sticky="nsew"); yscroll.grid(row=0,column=1,sticky="ns"); xscroll.grid(row=1,column=0,sticky="ew")
+            status=tk.StringVar(); ttk.Label(dialog,textvariable=status,font=("TkDefaultFont",9,"bold")).pack(fill="x",padx=10,pady=(0,6))
+            def refresh_balance():
+                data=collect_personnel_monthly_balance(start.year,start.month,active_only.get()); columns=["personnel","employee","roles"]+[f"d{d.day}" for d in data["days"]]+["days","plan","actual","difference","missing"]; tree["columns"]=columns
+                labels={"personnel":"Таб. №","employee":"Працівник","roles":"Ролі","days":"Днів","plan":"План","actual":"Факт","difference":"Відх.","missing":"Без факту"}
+                for col in columns:
+                    label=labels.get(col,col[1:]); tree.heading(col,text=label); tree.column(col,width=210 if col=="employee" else 140 if col=="roles" else 70,anchor="w" if col in ("employee","roles") else "center",stretch=False)
+                for item in tree.get_children(): tree.delete(item)
+                for employee_row in data["employees"]:
+                    tree.insert("","end",values=[employee_row["personnel_no"],employee_row["name"],employee_row["roles"],*employee_row["cells"],employee_row["work_days"],minutes_hhmm(employee_row["planned_min"]),minutes_hhmm(employee_row["actual_min"]),signed_hours_hhmm(employee_row["difference_min"]/60),employee_row["missing_days"]])
+                status.set(f"{month_name_ua(start.month)} {start.year}: працівників {len(data['employees'])}; без факту загалом {sum(e['missing_days'] for e in data['employees'])}")
+            def save_balance(kind):
+                suffix=".xlsx" if kind=="xlsx" else ".pdf"; path=filedialog.asksaveasfilename(parent=dialog,title="Зберегти табель усього персоналу",initialdir=str(OUTPUT_DIR),initialfile=f"Табель_усього_персоналу_{start.year}_{start.month:02d}{suffix}",defaultextension=suffix,filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")])
+                if not path: return
+                writer=(lambda out:export_personnel_monthly_balance_xlsx(start.year,start.month,out,active_only.get())) if kind=="xlsx" else (lambda out:export_personnel_monthly_balance_pdf(start.year,start.month,out,active_only.get()))
+                actual=write_output_file(writer,path,parent=dialog,kind="Excel-файл місячного табеля" if kind=="xlsx" else "PDF місячного табеля",error_title="Помилка Excel" if kind=="xlsx" else "Помилка PDF")
+                if actual is not None: last[kind]=actual; messagebox.showinfo("Місячний табель",f"Файл створено:\n{actual}",parent=dialog)
+            ttk.Button(bar,text="Оновити",command=refresh_balance).pack(side="left",padx=5); ttk.Button(bar,text="Excel — редагувати",command=lambda:save_balance("xlsx")).pack(side="left",padx=(12,3)); ttk.Button(bar,text="PDF — друк",command=lambda:save_balance("pdf")).pack(side="left",padx=3)
+            active_only.trace_add("write",lambda *_args:refresh_balance()); refresh_balance()
+
+        def open_summary_employee(_event=None):
+            sel=summary_tree.selection()
+            if not sel: return
+            eid=int(summary_tree.item(sel[0],"values")[0])
+            for label,row in employee_map.items():
+                if row["id"]==eid: employee_choice.set(label); break
+            notebook.select(daily_tab); refresh_daily()
 
         ttk.Button(top,text="Оновити",command=refresh_summary).pack(side="left",padx=8)
-        ttk.Button(daily_actions,text="Редагувати день",command=edit_day).pack(side="left",padx=3)
-        ttk.Button(daily_actions,text="План → факт",command=plan_to_fact).pack(side="left",padx=3)
-        ttk.Button(daily_actions,text="Очистити ручний запис",command=clear_manual).pack(side="left",padx=3)
+        ttk.Button(edit_bar,text="Новий / редагувати день",command=edit_day).pack(side="left",padx=3)
+        ttk.Button(edit_bar,text="Копіювати день",command=copy_day).pack(side="left",padx=3)
+        ttk.Button(edit_bar,text="Вставити день",command=paste_day).pack(side="left",padx=3)
+        ttk.Button(edit_bar,text="План → факт",command=plan_to_fact).pack(side="left",padx=(12,3))
+        ttk.Button(edit_bar,text="Очистити ручний запис",command=clear_manual).pack(side="left",padx=3)
+        ttk.Button(edit_bar,text="⚠ Порожні будні — план 8 год",command=autofill_empty_weekdays).pack(side="right",padx=3)
+        ttk.Label(report_bar,text="Звіти:").pack(side="left",padx=(0,3))
+        ttk.Button(report_bar,text="Excel",command=lambda:export_selected("xlsx")).pack(side="left",padx=3)
+        ttk.Button(report_bar,text="PDF",command=lambda:export_selected("pdf")).pack(side="left",padx=3)
+        ttk.Button(report_bar,text="Підсумки / контроль",command=show_control).pack(side="left",padx=3)
+        ttk.Button(report_bar,text="Місячний табель / баланс",command=show_personnel_balance).pack(side="left",padx=3)
         employee_combo.bind("<<ComboboxSelected>>",lambda _e:refresh_daily())
         daily_tree.bind("<Double-1>",lambda _e:edit_day())
+        daily_tree.bind("<Control-c>",lambda _e:copy_day())
+        daily_tree.bind("<Control-v>",lambda _e:paste_day())
+        if sys.platform=="darwin":
+            daily_tree.bind("<Command-c>",lambda _e:copy_day()); daily_tree.bind("<Command-v>",lambda _e:paste_day())
+        summary_tree.bind("<Double-1>",open_summary_employee)
         refresh_summary()
 
     def driver_form(self, driver=None):
