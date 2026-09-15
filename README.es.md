@@ -2,7 +2,7 @@
 
 [Українська](README.md) | [English](README.en.md) | [Deutsch](README.de.md) | **Español** | [Français](README.fr.md)
 
-Taxo es una aplicación de escritorio en ucraniano para gestionar el personal de una empresa de transporte, los horarios de los conductores, el tiempo de trabajo, las rutas, los vehículos, los certificados de actividades, las hojas de ruta de autobuses y los registros de tacógrafos analógicos. El candidato de desarrollo actual es **v8.70 r8**.
+Taxo es una aplicación de escritorio en ucraniano para gestionar el personal de una empresa de transporte, los horarios de los conductores, el tiempo de trabajo, las rutas, los vehículos, los certificados de actividades, las hojas de ruta de autobuses y los registros de tacógrafos analógicos. El candidato de desarrollo actual es **v8.70 r9**.
 
 ## Funciones principales
 
@@ -18,6 +18,7 @@ Taxo es una aplicación de escritorio en ucraniano para gestionar el personal de
 - Cada escenario completo de ruta puede tener una distancia planificada opcional. Se imprime como plan en la hoja de ruta, permite prever el odómetro final y genera un aviso no bloqueante si la distancia real difiere en más de 10 km o del 10 %.
 - Certificados de actividades en DOCX, PDF y JPG, además de copia de seguridad y restauración de los datos persistentes.
 - Área de trabajo para discos de tacógrafo analógico con imágenes escaneadas, intervalos de actividad y comparación de la conducción real con el plan. Los datos reales del tacógrafo no sobrescriben el horario planificado.
+- Carpetas de trabajo configurables: locales, de red/NAS o sincronizadas en la nube. Las dos bases, imágenes, copias, documentos y registros se trasladan juntas; un bloqueo compartido obliga a que varias instalaciones trabajen por turnos.
 
 ## Ejecución y almacenamiento de datos
 
@@ -25,10 +26,10 @@ En Windows, el paquete de código fuente puede iniciarse con `START.bat`. GitHub
 
 El instalador de Windows, el ZIP portátil, el ZIP del código fuente y las sumas SHA-256 actuales están disponibles en la [versión v8.70 de GitHub](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70).
 
-La aplicación guarda los datos del usuario fuera de la carpeta del programa, en `Documents/DriverWorktime`. Las bases SQLite y los datos personales se excluyen deliberadamente del repositorio y de todos los paquetes de distribución; por tanto, una actualización del programa no sustituye los datos operativos.
+La carpeta predeterminada es `Documents/DriverWorktime`. `Archivo → Almacenamiento de trabajo…` permite trasladar todos los datos de forma segura o conectar una carpeta compartida existente. Las bases SQLite y los datos personales se excluyen del repositorio y de todos los paquetes.
 
 La interfaz y los formularios oficiales generados están actualmente en ucraniano. Esta traducción facilita la presentación internacional del proyecto.
 
 ## Estado del proyecto
 
-v8.70 r8 es el candidato de desarrollo activo sobre la base r7 publicada. Las ramas anteriores se conservan como puntos de control históricos. Antes de su uso operativo, la aplicación todavía debe validarse con datos reales de la empresa y con formularios impresos.
+v8.70 r9 es el candidato de desarrollo activo sobre la base r8 publicada. Las ramas anteriores se conservan como puntos de control históricos. Antes de su uso operativo, la aplicación todavía debe validarse con datos reales de la empresa y con formularios impresos.

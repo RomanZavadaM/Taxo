@@ -2,7 +2,7 @@
 
 [Українська](README.md) | **English** | [Deutsch](README.de.md) | [Español](README.es.md) | [Français](README.fr.md)
 
-Taxo is a Ukrainian-language desktop application for managing transport-company personnel, driver schedules, working-time records, routes, vehicles, activity attestation forms, bus waybills and analog tachograph records. The current development candidate is **v8.70 r8**.
+Taxo is a Ukrainian-language desktop application for managing transport-company personnel, driver schedules, working-time records, routes, vehicles, activity attestation forms, bus waybills and analog tachograph records. The current development candidate is **v8.70 r9**.
 
 ## Main capabilities
 
@@ -18,6 +18,7 @@ Taxo is a Ukrainian-language desktop application for managing transport-company 
 - Each complete route scenario may have an optional planned distance. It is printed as the waybill plan, forecasts the ending odometer reading and gives a non-blocking warning when actual mileage differs by more than 10 km or 10%.
 - Activity attestation forms in DOCX, PDF and JPG, plus backup and restore of persistent application data.
 - An analog tachograph-disc workspace for scans, activity intervals and comparison of factual driving with the plan. Tachograph facts do not overwrite planned schedule data.
+- Configurable local, network/NAS or cloud-synchronized workspaces. Both databases, scans, backups, generated documents and logs move together; a shared lock enforces sequential use by multiple installed copies.
 
 ## Running and data storage
 
@@ -25,10 +26,10 @@ On Windows, the source package can be started with `START.bat`. Ready-made Windo
 
 The current Windows Setup, Portable ZIP, source ZIP and SHA-256 checksums are available from [GitHub Release v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70).
 
-The application stores user data outside the program directory under `Documents/DriverWorktime`. SQLite databases and personal data are intentionally excluded from the repository and all distribution packages, so updating the program does not replace operational data.
+The default is `Documents/DriverWorktime`. Use `File → Working storage…` to migrate all data safely or attach an existing shared workspace. SQLite databases and personal data are intentionally excluded from the repository and every distribution package.
 
 The interface and generated official forms are currently in Ukrainian. This repository page is translated to make the project easier to review internationally.
 
 ## Project status
 
-v8.70 r8 is the active development candidate on top of the published r7 baseline. Earlier branches are retained as historical checkpoints. The application should still be validated with real company data and printed forms before operational deployment.
+v8.70 r9 is the active development candidate on top of the published r8 baseline. Earlier branches are retained as historical checkpoints. The application should still be validated with real company data and printed forms before operational deployment.

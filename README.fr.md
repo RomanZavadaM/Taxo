@@ -2,7 +2,7 @@
 
 [Українська](README.md) | [English](README.en.md) | [Deutsch](README.de.md) | [Español](README.es.md) | **Français**
 
-Taxo est une application de bureau en ukrainien destinée à gérer le personnel d'une entreprise de transport, les horaires des conducteurs, le temps de travail, les itinéraires, les véhicules, les attestations d'activités, les feuilles de route des autobus et les relevés de tachygraphes analogiques. Le candidat de développement actuel est **v8.70 r8**.
+Taxo est une application de bureau en ukrainien destinée à gérer le personnel d'une entreprise de transport, les horaires des conducteurs, le temps de travail, les itinéraires, les véhicules, les attestations d'activités, les feuilles de route des autobus et les relevés de tachygraphes analogiques. Le candidat de développement actuel est **v8.70 r9**.
 
 ## Fonctions principales
 
@@ -18,6 +18,7 @@ Taxo est une application de bureau en ukrainien destinée à gérer le personnel
 - Chaque scénario d'itinéraire complet peut recevoir une distance planifiée facultative. Elle est imprimée comme valeur prévue, permet d'estimer le compteur final et produit un avertissement non bloquant si l'écart réel dépasse 10 km ou 10 %.
 - Attestations d'activités aux formats DOCX, PDF et JPG, ainsi que sauvegarde et restauration des données persistantes.
 - Espace de travail pour les disques de tachygraphe analogique, avec scans, intervalles d'activité et comparaison de la conduite réelle au plan. Les données réelles du tachygraphe n'écrasent pas les données planifiées.
+- Dossiers de travail configurables : locaux, réseau/NAS ou synchronisés dans le cloud. Les deux bases, scans, sauvegardes, documents et journaux sont déplacés ensemble ; un verrou partagé impose l'utilisation successive par plusieurs installations.
 
 ## Exécution et stockage des données
 
@@ -25,10 +26,10 @@ Sous Windows, le paquet source peut être lancé avec `START.bat`. GitHub Action
 
 Le programme d'installation Windows, l'archive Portable, l'archive du code source et les sommes SHA-256 actuels sont disponibles dans la [version GitHub v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70).
 
-L'application conserve les données utilisateur en dehors du dossier du programme, sous `Documents/DriverWorktime`. Les bases SQLite et les données personnelles sont volontairement exclues du dépôt et de tous les paquets de distribution ; une mise à jour du programme ne remplace donc pas les données d'exploitation.
+Le dossier par défaut est `Documents/DriverWorktime`. `Fichier → Stockage de travail…` permet de déplacer toutes les données en sécurité ou de connecter un dossier partagé existant. Les bases SQLite et les données personnelles restent exclues du dépôt et de tous les paquets.
 
 L'interface et les formulaires officiels générés sont actuellement en ukrainien. Cette traduction facilite la présentation internationale du projet.
 
 ## État du projet
 
-v8.70 r8 est le candidat de développement actif basé sur la version r7 publiée. Les anciennes branches sont conservées comme points de contrôle historiques. Avant toute utilisation opérationnelle, l'application doit encore être validée avec des données réelles de l'entreprise et des formulaires imprimés.
+v8.70 r9 est le candidat de développement actif basé sur la version r8 publiée. Les anciennes branches sont conservées comme points de contrôle historiques. Avant toute utilisation opérationnelle, l'application doit encore être validée avec des données réelles de l'entreprise et des formulaires imprimés.

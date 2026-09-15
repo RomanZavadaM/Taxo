@@ -16,6 +16,16 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+from workspace import (
+    ensure_workspace,
+    load_workspace_root,
+    normalize_database_paths,
+    normalize_root,
+    paths_for,
+    resolved_path,
+    stored_path,
+)
+
 try:
     import cv2
     import numpy as np
@@ -29,15 +39,26 @@ except ImportError:
     Image = ImageTk = ImageDraw = None
 
 
-def _data_root():
-    root = Path.home() / "Documents" / "DriverWorktime"
-    (root / "Data").mkdir(parents=True, exist_ok=True)
-    (root / "Data" / "TachographScans").mkdir(parents=True, exist_ok=True)
-    return root
+DATA_ROOT = load_workspace_root()
+_PATHS = paths_for(DATA_ROOT)
+TACHO_DB = _PATHS["tacho_db"]
+SCAN_DIR = _PATHS["tacho_scans"]
 
-DATA_ROOT = _data_root()
-TACHO_DB = DATA_ROOT / "Data" / "tachograph_test.sqlite3"
-SCAN_DIR = DATA_ROOT / "Data" / "TachographScans"
+
+def configure_workspace(root):
+    global DATA_ROOT,TACHO_DB,SCAN_DIR
+    DATA_ROOT=normalize_root(root)
+    p=paths_for(DATA_ROOT)
+    TACHO_DB=p["tacho_db"]
+    SCAN_DIR=p["tacho_scans"]
+
+
+def scan_path(value):
+    return resolved_path(value,DATA_ROOT)
+
+
+def stored_scan_path(path):
+    return stored_path(path,DATA_ROOT)
 
 
 def open_external(path):
@@ -76,12 +97,17 @@ def preview_dimensions(image_width, image_height, canvas_width, canvas_height, f
 
 
 def tdb():
-    con = sqlite3.connect(TACHO_DB)
+    con = sqlite3.connect(TACHO_DB,timeout=30)
     con.row_factory = sqlite3.Row
+    con.execute("PRAGMA foreign_keys=ON")
+    con.execute("PRAGMA busy_timeout=30000")
+    con.execute("PRAGMA journal_mode=DELETE")
+    con.execute("PRAGMA synchronous=FULL")
     return con
 
 
 def init_tacho_db():
+    ensure_workspace(DATA_ROOT)
     con = tdb()
     con.executescript("""
     CREATE TABLE IF NOT EXISTS discs (
@@ -134,6 +160,7 @@ def init_tacho_db():
         ON control_protocols(disc_id);
     """)
     con.commit(); con.close()
+    normalize_database_paths(TACHO_DB,DATA_ROOT,{"discs":("source_path",)})
 
 
 def detect_discs(path):
@@ -585,7 +612,7 @@ class TachographModule:
         # рядків інтервалів. У такому разі одразу добудовуємо кандидати.
         if r["radius"] and not self.itree.get_children():
             try:
-                items=_polar_signal(r["source_path"],r["cx"],r["cy"],r["radius"],float(r["rotation_deg"] or 0))
+                items=_polar_signal(scan_path(r["source_path"]),r["cx"],r["cy"],r["radius"],float(r["rotation_deg"] or 0))
                 con=tdb(); con.execute("DELETE FROM intervals WHERE disc_id=?",(r["id"],))
                 for a,b,act,conf in items:
                     con.execute("INSERT INTO intervals(disc_id,start_min,end_min,activity,confidence,source) VALUES(?,?,?,?,?,?)",(r["id"],a,b,act,conf,"auto"))
@@ -655,7 +682,7 @@ class TachographModule:
             self.preview_status.set("Перегляд недоступний: не встановлено Pillow")
             return
         try:
-            im=Image.open(r["source_path"]).convert("RGB")
+            im=Image.open(scan_path(r["source_path"])).convert("RGB")
             draw=ImageDraw.Draw(im)
             if r["cx"] and r["radius"]:
                 draw.ellipse((r["cx"]-r["radius"],r["cy"]-r["radius"],
@@ -686,7 +713,7 @@ class TachographModule:
         con=tdb()
         if not circles: circles=[(0,0,0)]
         for i,(cx,cy,r) in enumerate(circles,1):
-            con.execute("INSERT INTO discs(source_path,scan_name,disc_no,cx,cy,radius,created_at) VALUES(?,?,?,?,?,?,?)",(str(dest),p.name,i,cx,cy,r,datetime.now().isoformat(timespec="seconds")))
+            con.execute("INSERT INTO discs(source_path,scan_name,disc_no,cx,cy,radius,created_at) VALUES(?,?,?,?,?,?,?)",(stored_scan_path(dest),p.name,i,cx,cy,r,datetime.now().isoformat(timespec="seconds")))
         con.commit();con.close()
         if not circles: messagebox.showwarning("Шайба",f"Не вдалося автоматично знайти коло у {p.name}. Її можна буде налаштувати вручну.",parent=self.parent)
 
@@ -698,7 +725,7 @@ class TachographModule:
         con=tdb()
         for r in rows:
             rot=float(r["rotation_deg"] or 0)
-            items=_polar_signal(r["source_path"],r["cx"],r["cy"],r["radius"],rot)
+            items=_polar_signal(scan_path(r["source_path"]),r["cx"],r["cy"],r["radius"],rot)
             con.execute("DELETE FROM intervals WHERE disc_id=?",(r["id"],))
             for a,b,act,conf in items:
                 con.execute("INSERT INTO intervals(disc_id,start_min,end_min,activity,confidence,source) VALUES(?,?,?,?,?,?)",(r["id"],a,b,act,conf,"auto"))
@@ -714,7 +741,7 @@ class TachographModule:
         if not r["radius"]: messagebox.showwarning("Розпізнавання","Для цієї шайби не знайдено коло.",parent=self.parent);return
         try: rot=float(self.v_rot.get().replace(",","."))
         except: rot=0
-        items=_polar_signal(r["source_path"],r["cx"],r["cy"],r["radius"],rot)
+        items=_polar_signal(scan_path(r["source_path"]),r["cx"],r["cy"],r["radius"],rot)
         con=tdb(); con.execute("DELETE FROM intervals WHERE disc_id=?",(r["id"],))
         for a,b,act,conf in items: con.execute("INSERT INTO intervals(disc_id,start_min,end_min,activity,confidence,source) VALUES(?,?,?,?,?,?)",(r["id"],a,b,act,conf,"auto"))
         con.execute("UPDATE discs SET rotation_deg=?,status=? WHERE id=?",(rot,"Розпізнано — перевірити",r["id"])); con.commit();con.close()
@@ -774,7 +801,7 @@ class TachographModule:
             dur=(int(x["end_min"])-int(x["start_min"]))%1440
             totals[x["activity"]]=totals.get(x["activity"],0)+dur
         def hh(mm): return f"{mm//60} год {mm%60:02d} хв"
-        max_speed=estimate_max_speed(r["source_path"],r["cx"],r["cy"],r["radius"],float(r["rotation_deg"] or 0)) if r["radius"] else None
+        max_speed=estimate_max_speed(scan_path(r["source_path"]),r["cx"],r["cy"],r["radius"],float(r["rotation_deg"] or 0)) if r["radius"] else None
         max_txt=f"{max_speed} км/год (орієнтовно)" if max_speed is not None else "не визначено"
         msg=(f"Кандидатів/інтервалів: {len(rows)}\n"
              f"Час керування: {hh(totals.get('Керування',0))}\n"
@@ -987,7 +1014,7 @@ class TachographModule:
         r=self._selected()
         if not r:return
         if Image is None:
-            try: open_external(r["source_path"])
+            try: open_external(scan_path(r["source_path"]))
             except Exception: pass
             return
         try:
@@ -1007,7 +1034,7 @@ class TachographModule:
             hs=ttk.Scrollbar(outer,orient="horizontal",command=canvas.xview)
             canvas.configure(yscrollcommand=vs.set,xscrollcommand=hs.set)
             vs.pack(side="right",fill="y"); hs.pack(side="bottom",fill="x"); canvas.pack(side="left",fill="both",expand=True)
-            im=Image.open(r["source_path"]).convert("RGB")
+            im=Image.open(scan_path(r["source_path"])).convert("RGB")
             draw=ImageDraw.Draw(im)
             if r["cx"] and r["radius"]:
                 draw.ellipse((r["cx"]-r["radius"],r["cy"]-r["radius"],r["cx"]+r["radius"],r["cy"]+r["radius"]),outline=(220,30,30),width=max(3,int(r["radius"]*0.01)))
@@ -1082,7 +1109,7 @@ class TachographModule:
             )
 
         max_speed=estimate_max_speed(
-            disc_row["source_path"],disc_row["cx"],disc_row["cy"],
+            scan_path(disc_row["source_path"]),disc_row["cx"],disc_row["cy"],
             disc_row["radius"],float(disc_row["rotation_deg"] or 0)
         ) if disc_row["radius"] else None
 
