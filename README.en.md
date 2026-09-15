@@ -2,7 +2,7 @@
 
 [Українська](README.md) | **English** | [Deutsch](README.de.md) | [Español](README.es.md) | [Français](README.fr.md)
 
-Taxo is a Ukrainian-language desktop application for managing transport-company personnel, driver schedules, working-time records, routes, vehicles, activity attestation forms, bus waybills and analog tachograph records. The current development candidate is **v8.70 r6**.
+Taxo is a Ukrainian-language desktop application for managing transport-company personnel, driver schedules, working-time records, routes, vehicles, activity attestation forms, bus waybills and analog tachograph records. The current development candidate is **v8.70 r7**.
 
 ## Main capabilities
 
@@ -15,6 +15,7 @@ Taxo is a Ukrainian-language desktop application for managing transport-company 
 - Duty schedules for doctors and mechanics. Their names can be inserted in the waybill, while handwritten signatures and unknown actual, fuel and control fields remain blank.
 - A daily personnel timesheet for every employee with day type, automatic or manual planned hours, optional actual hours and notes. Overnight shifts are split between calendar days.
 - Optional start/end odometer readings on waybills. Readings are printed, accumulated per vehicle and used for non-blocking consistency warnings; the history is ready for a future `tachograph` data source.
+- Each complete route scenario may have an optional planned distance. It is printed as the waybill plan, forecasts the ending odometer reading and gives a non-blocking warning when actual mileage differs by more than 10 km or 10%.
 - Activity attestation forms in DOCX, PDF and JPG, plus backup and restore of persistent application data.
 - An analog tachograph-disc workspace for scans, activity intervals and comparison of factual driving with the plan. Tachograph facts do not overwrite planned schedule data.
 
@@ -30,4 +31,4 @@ The interface and generated official forms are currently in Ukrainian. This repo
 
 ## Project status
 
-v8.70 r6 is the active development candidate on top of the published r5 baseline. Earlier branches are retained as historical checkpoints. The application should still be validated with real company data and printed forms before operational deployment.
+v8.70 r7 is the active development candidate on top of the published r6 baseline. Earlier branches are retained as historical checkpoints. The application should still be validated with real company data and printed forms before operational deployment.

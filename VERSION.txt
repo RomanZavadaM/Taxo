@@ -1,12 +1,12 @@
 Taxo / Driver Worktime
-Version: 8.70 candidate r6
+Version: 8.70 candidate r7
 Candidate date: 2026-09-15
-Published baseline after merge: 8.70 consolidated r5
+Published baseline after merge: 8.70 candidate r6
 Development baseline: verified v8.66 candidate r10 checkpoint
 
 v8.70 starts the waybill issuance workflow from the graphical driver schedule.
 Waybill r5: simple two-column route paste, internal automatic day rollover, and calendar dates on every printed overnight/multiday waybill field. All preserved v8.66 and v8.70 development is consolidated into main.
-Candidate r6: editable daily working-time records for every employee and optional start/end odometer readings with per-vehicle history and non-blocking checks. Future tachograph mileage can use the same history table.
+Candidate r7: optional planned mileage for each complete route scenario, waybill forecast, odometer-end forecast and non-blocking plan-versus-actual checks. Future tachograph mileage can use the same history table.
 Waybill archive: issued PDFs are registered in the persistent database, receive a unique official series+number and an internal yearly id, and are stored under Documents/DriverWorktime/Output/Waybills/YYYY/MM.
 Route model from v8.66 r10 remains: one route = one exact time scenario.
 Tachograph recognition algorithm is unchanged.
