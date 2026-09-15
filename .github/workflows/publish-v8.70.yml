@@ -196,34 +196,31 @@ jobs:
             > SHA256SUMS_v8_70_TEST_r8.txt
           sha256sum -c SHA256SUMS_v8_70_TEST_r8.txt
 
-      - name: Replace v8.70 release assets with r8
+      - name: Publish immutable v8.70-r8 release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view v8.70 >/dev/null 2>&1; then
-            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/v8.70" \
-              -f sha="$GITHUB_SHA" -F force=true
-            gh release edit v8.70 \
-              --target "$GITHUB_SHA" \
+          if gh release view v8.70-r8 >/dev/null 2>&1; then
+            gh release edit v8.70-r8 \
               --title 'Taxo v8.70 r8 — executable testing release' \
               --notes-file RELEASE_NOTES_v8_70.md \
               --prerelease
-            gh release view v8.70 --json assets --jq '.assets[].name' | while IFS= read -r asset; do
+            gh release view v8.70-r8 --json assets --jq '.assets[].name' | while IFS= read -r asset; do
               case "$asset" in
                 Taxo_v8_70_TEST_r*|Taxo_v8_70_r*_source.zip|SHA256SUMS_v8_70*)
-                  gh release delete-asset v8.70 "$asset" --yes
+                  gh release delete-asset v8.70-r8 "$asset" --yes
                   ;;
               esac
             done
           else
-            gh release create v8.70 \
+            gh release create v8.70-r8 \
               --target "$GITHUB_SHA" \
               --title 'Taxo v8.70 r8 — executable testing release' \
               --notes-file RELEASE_NOTES_v8_70.md \
               --prerelease
           fi
-          gh release upload v8.70 release-upload/* --clobber
+          gh release upload v8.70-r8 release-upload/* --clobber
 
       - name: Preserve release manifest as workflow artifact
         uses: actions/upload-artifact@v4

@@ -52,7 +52,7 @@
 
 v8.70 candidate r8 перевіряється через `START.bat`. На звичайних змінах GitHub Actions лише компілює й тестує вихідний код; Setup/Portable та macOS-пакети формуються вручну тільки на виконавчому рубежі. У жодну збірку не включається користувацька БД.
 
-Готові Windows-файли поточної тестової версії доступні у [GitHub Release v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70): інсталятор Setup, Portable ZIP, вихідний ZIP та файл контрольних сум SHA-256.
+Готові файли поточної тестової версії доступні у [GitHub Release v8.70-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70-r8): Windows Setup, Windows Portable, macOS для Apple Silicon та Intel, вихідний ZIP і спільний файл контрольних сум SHA-256.
 
 Підготовлений macOS-процес формує нативний пакет `Taxo.app` для двох архітектур:
 
