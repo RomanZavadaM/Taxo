@@ -304,6 +304,15 @@ def _page_two(c,data):
         elif idx==1:
             _line(c,x+28,y+30,x+28,y+30+body_h); _line(c,x,y+30+body_h/2,x+ww,y+30+body_h/2)
             _text(c,x,y+30,28,body_h/2,"I",5.8,bold=True); _text(c,x,y+30+body_h/2,28,body_h/2,"II",5.8,bold=True)
+            odometer_lines=[]
+            if data.get("odometer_start") is not None:
+                odometer_lines.append(f"поч. {int(data['odometer_start'])} км")
+            if data.get("odometer_end") is not None:
+                odometer_lines.append(f"кін. {int(data['odometer_end'])} км")
+            if data.get("distance_km") is not None:
+                odometer_lines.append(f"пробіг {int(data['distance_km'])} км")
+            _text(c,x+30,y+32,ww-32,body_h/2-4,"\n".join(odometer_lines),5.9,
+                  bold=bool(odometer_lines),align="left",valign="top")
         elif idx==2:
             _line(c,x,y+30+body_h/2,x+ww,y+30+body_h/2)
             _text(c,x+2,y+34,ww-4,body_h/2-6,data.get("mechanic_1",""),5.2,bold=bool(data.get("mechanic_1")),valign="top")

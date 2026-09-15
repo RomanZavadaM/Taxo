@@ -2,7 +2,7 @@
 
 [Українська](README.md) | [English](README.en.md) | [Deutsch](README.de.md) | [Español](README.es.md) | **Français**
 
-Taxo est une application de bureau en ukrainien destinée à gérer le personnel d'une entreprise de transport, les horaires des conducteurs, le temps de travail, les itinéraires, les véhicules, les attestations d'activités, les feuilles de route des autobus et les relevés de tachygraphes analogiques. La version consolidée actuelle est **v8.70 r5** sur la branche `main`.
+Taxo est une application de bureau en ukrainien destinée à gérer le personnel d'une entreprise de transport, les horaires des conducteurs, le temps de travail, les itinéraires, les véhicules, les attestations d'activités, les feuilles de route des autobus et les relevés de tachygraphes analogiques. Le candidat de développement actuel est **v8.70 r6**.
 
 ## Fonctions principales
 
@@ -13,6 +13,8 @@ Taxo est une application de bureau en ukrainien destinée à gérer le personnel
 - Feuilles de route d'autobus vectorielles de deux pages A4, fondées sur le formulaire n° 1-AP. Le conducteur, le véhicule, l'itinéraire et les heures planifiées proviennent de l'horaire. Les documents couvrant plusieurs jours affichent les dates civiles réelles et non les marqueurs internes `D+N`.
 - Séries et plages de numéros officiels avec périodes de validité, numérotation automatique ou manuelle, historique des révisions et journal des annulations.
 - Horaires de service des médecins et mécaniciens. Leurs noms peuvent être repris dans la feuille de route, tandis que les signatures manuscrites et les champs réels, de carburant ou de contrôle encore inconnus restent vides.
+- Relevé quotidien du temps de travail pour chaque salarié, avec type de journée, heures planifiées automatiques ou manuelles, heures réelles facultatives et notes. Les services de nuit sont répartis entre les jours civils.
+- Relevés kilométriques facultatifs au début et à la fin de la feuille de route. Ils sont imprimés, historisés par véhicule et ne produisent que des avertissements de cohérence non bloquants ; l'historique est prêt pour une future source `tachograph`.
 - Attestations d'activités aux formats DOCX, PDF et JPG, ainsi que sauvegarde et restauration des données persistantes.
 - Espace de travail pour les disques de tachygraphe analogique, avec scans, intervalles d'activité et comparaison de la conduite réelle au plan. Les données réelles du tachygraphe n'écrasent pas les données planifiées.
 
@@ -28,4 +30,4 @@ L'interface et les formulaires officiels générés sont actuellement en ukraini
 
 ## État du projet
 
-v8.70 r5 constitue la ligne de développement consolidée et active. Les anciennes branches sont conservées comme points de contrôle historiques. Avant toute utilisation opérationnelle, l'application doit encore être validée avec des données réelles de l'entreprise et des formulaires imprimés.
+v8.70 r6 est le candidat de développement actif basé sur la version r5 publiée. Les anciennes branches sont conservées comme points de contrôle historiques. Avant toute utilisation opérationnelle, l'application doit encore être validée avec des données réelles de l'entreprise et des formulaires imprimés.

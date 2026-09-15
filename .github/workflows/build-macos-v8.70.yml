@@ -1,4 +1,4 @@
-name: Build Taxo v8.70 macOS consolidated r5
+name: Test Taxo v8.70 source / build macOS on demand
 
 on:
   workflow_dispatch:
@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - work/v8.70-consolidated-r5
+      - work/v8.70-personnel-odometer-r6
   pull_request:
     paths:
       - 'main.py'
@@ -61,6 +62,12 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Install macOS packaging dependencies
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
           python -m pip install -r requirements-build-macos.txt
 
       - name: Compile and test source
@@ -70,10 +77,12 @@ jobs:
           python -m unittest discover -s tests -v
 
       - name: Build native Taxo.app
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: python -m PyInstaller --noconfirm --clean Taxo_macos.spec
 
       - name: Verify application bundle
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
@@ -87,21 +96,23 @@ jobs:
           codesign --verify --deep --strict 'dist/Taxo.app'
 
       - name: Create portable ZIP and checksum
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
-          bundle_dir="Taxo_v8_70_TEST_r5_macOS_${{ matrix.arch }}"
+          bundle_dir="Taxo_v8_70_TEST_r6_macOS_${{ matrix.arch }}"
           zip_name="${bundle_dir}_Portable.zip"
           mkdir "${bundle_dir}"
           mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle_dir}" "${zip_name}"
-          shasum -a 256 "${zip_name}" > "SHA256SUMS_v8_70_TEST_r5_macOS_${{ matrix.arch }}.txt"
+          shasum -a 256 "${zip_name}" > "SHA256SUMS_v8_70_TEST_r6_macOS_${{ matrix.arch }}.txt"
 
       - name: Upload macOS candidate
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v8.70-macOS-${{ matrix.arch }}-consolidated-r5
+          name: Taxo-v8.70-macOS-${{ matrix.arch }}-candidate-r6
           path: |
-            Taxo_v8_70_TEST_r5_macOS_${{ matrix.arch }}_Portable.zip
-            SHA256SUMS_v8_70_TEST_r5_macOS_${{ matrix.arch }}.txt
+            Taxo_v8_70_TEST_r6_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v8_70_TEST_r6_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30
