@@ -13,6 +13,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 suite = unittest.defaultTestLoader.discover("tests")
 result = unittest.TextTestRunner(verbosity=2).run(suite)
+result_path = Path(os.environ.get("TAXO_CI_RESULT", ".ci-unittest-result"))
+result_path.write_text("PASS\n" if result.wasSuccessful() else "FAIL\n", encoding="ascii")
 sys.stdout.flush()
 sys.stderr.flush()
 os._exit(0 if result.wasSuccessful() else 1)
