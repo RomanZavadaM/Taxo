@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Taxo application entry point from v8.70 candidate r10 onward."""
+"""Taxo application entry point from v8.70 candidate r11 onward."""
 import main as core
-from work_analysis_ext import install
+from work_analysis_ext import install as install_work_analysis
+from activity_register_60 import install as install_activity_register
 
-App = install(core)
+App = install_activity_register(core, install_work_analysis(core))
 
 
 def run():
