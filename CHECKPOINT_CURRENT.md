@@ -1,76 +1,73 @@
-# Taxo — CURRENT CHECKPOINT
+# CHECKPOINT CURRENT — Taxo 9.0
 
-Date: 2026-09-15
+Дата фіксації: **17.09.2026**
 
-## Current development version
+## Статус
 
-- Version: **v8.70 candidate r9**; based on published r8.
-- Publication target: GitHub `main`; the old v8.65 head is superseded after verified merge.
-- Previous development checkpoints remain preserved: v8.66 r10 and v8.70 r1–r3.
-- r9 is an executable release checkpoint: Windows Setup/Portable, macOS arm64/x86_64, source ZIP and shared checksums are built and verified in one GitHub workflow.
-- Publication branch: `work/v8.70-workspace-r9`.
+- поточна стабільна версія: **Taxo 9.0**;
+- stable GitHub Release: `v9.0`;
+- основна гілка: `main`;
+- релізний merge commit: `a8e6b80d34d114e6d2c82f602d03468f1529e98a`;
+- попередня робоча лінія: `v8.70 candidate r11`;
+- наступний етап: **експлуатація, наповнення бази, точкові виправлення за реальними проблемами**.
 
-## Configurable workspaces
+## Що входить у 9.0
 
-- `Файл → Робоче сховище…` supports local folders, SMB/NAS shares and cloud-synchronized folders.
-- All mutable business data is rooted there: both SQLite databases, tachograph scans, backups, output documents and logs.
-- Migration uses SQLite backup APIs, copies the remaining tree, validates both databases and keeps the old workspace unchanged.
-- Existing workspaces can be attached without copying or overwriting them.
-- One shared lock with host/user/PID/heartbeat metadata enforces sequential use. Same-host crash locks recover automatically; stale foreign locks require explicit user confirmation.
-- Cloud use is explicitly sequential: close Taxo, wait for synchronization, then open it on the next computer.
-- Database paths for waybills, attestations and tachograph scans use `workspace://` relative addresses so different computers may mount the same cloud data at different local paths.
-- The only local state outside the workspace is a per-user JSON pointer containing its selected path; it contains no business or personal records.
+- персонал і водії;
+- підприємство та реквізити;
+- транспортні засоби;
+- маршрути з часовими сценаріями;
+- графік водіїв;
+- табель робочого часу з поділеними змінами;
+- план/факт;
+- контроль одного водія;
+- баланс робочого часу до 60:00;
+- окремий баланс керування до 56:00;
+- 60-денний похвилинний реєстр діяльності;
+- змінювана дата формування контрольних звітів;
+- вибір водія всередині вікна контролю;
+- аналогові тахокарти, інтервали, ручне підтвердження і протоколи;
+- шляхові листи;
+- бланки підтвердження діяльності;
+- PDF/Excel звіти;
+- переносиме локальне/мережеве/синхронізоване робоче сховище;
+- резервні копії та блокування спільного сховища.
 
-## Personnel and timekeeping
+## Головні правила, які не можна зламати
 
-- `Працівники → Реєстр усіх працівників` stores all employees once, with personnel number, dates, position, phone, status and multiple roles.
-- Existing drivers migrate automatically into the employee register and keep their driver cards and all historical links.
-- Removing the `Водій` role closes the linked driver card with an end date but does not delete the employee, schedule, timesheet or waybill history.
-- Existing r2 doctors/mechanics and dispatch shifts migrate into the common employee and shift tables.
-- Dispatch shifts support role, exact date/time, D+ end day, location, planned hours, actual hours and overlap checks.
-- The monthly personnel summary combines driver plan from `worklog` with non-driver shifts. Cross-midnight hours are allocated to the calendar month they actually occupy.
-- The personnel timesheet now has monthly summary and daily views for every employee. A daily row stores day type, optional plan override, optional actual hours and notes.
-- Driver schedules and personnel shifts remain automatic plan sources. A manual row supplements them and can be cleared to return to automatic data.
-- Overnight personnel shifts are split between their actual calendar dates.
-- The daily personnel table now supports copy/paste across selected dates, multi-date plan-to-actual and clearing, plus safe 8-hour planning for otherwise empty weekdays.
-- Individual Excel/PDF reports and control identify plan, optional actual, deviations and exact missing-fact dates.
-- The monthly all-personnel balance provides daily hours/codes plus plan/fact/deviation totals in the UI, editable Excel and printable PDF.
+1. База користувача та персональні дані не потрапляють у GitHub/релізи.
+2. Оновлення програми не повинно вимагати повторного введення робочих даних.
+3. Робочий час і час керування — різні величини.
+4. 60:00 — контроль робочого часу, 56:00 — контроль керування.
+5. План не підміняє факт.
+6. Автоматичний результат тахографа не підміняє підтверджений факт без перевірки.
+7. Невідомий проміжок у 60-денному реєстрі показується як «Невизначено», а не як вигаданий відпочинок.
+8. Історичні документи/ревізії не видаляються непомітно.
+9. Спільне сховище використовується почергово.
+10. Зміни в `main` лише через Pull Request і автоматичні перевірки.
 
-## Odometer and mileage history
+## Релізні пакети 9.0
 
-- Each route may store an optional planned distance for its complete outbound/return scenario.
-- The issued waybill snapshots that route plan, prints it separately from actual mileage and preserves it if the route is edited later.
-- A start reading plus route plan shows a forecast end reading in the UI; the forecast is never stored as an actual reading.
-- With both actual readings, deviation beyond the greater of 10 km or 10% of plan produces a warning only.
-- A waybill may have optional start and/or end odometer readings; leaving both blank never blocks issue.
-- Readings are stored in `vehicle_odometer_readings` per vehicle, driver, timestamp, source and source record.
-- Source `waybill` is active now; the same history table is ready for future `tachograph` readings without changing recognition in r7.
-- If both readings exist, the difference is calculated and printed on page two.
-- A decreasing end value or a value below the previous vehicle reading produces a warning only. Data is still saved and the waybill remains issuable.
+- Windows x64 Setup;
+- Windows x64 Portable;
+- macOS ARM64 Portable;
+- macOS x86_64 Portable;
+- START source ZIP;
+- SHA-256 manifest.
 
-## Waybill numbering and lifecycle
+## Документація
 
-- `Підприємство → Пули серій і номерів` stores series, range, next number, width, effective dates and automatic/manual mode.
-- Exactly one active pool may cover a given work date. The pool is selected by work date, not print date.
-- Preview does not consume a number. First issue consumes it only after successful PDF creation.
-- Reprint keeps series/number and increments revision without advancing the pool.
-- Annulment records its reason and does not return the number to the pool. A later issue receives a new number.
-- `waybill_events` keeps issue/reprint/void history; `waybills` keeps the current document snapshot.
+Актуальні інструкції знаходяться в `docs/`. Починати з `docs/README.md`.
 
-## Route and form № 1-АП
+Повний технічний стан: `PROJECT_STATE.md`.
 
-- Every route has an explicit start location, end location, start direction and D+ start/end day.
-- Each outbound/return point stores its type (`АТП`, `Зупинка`, `Автостанція`, `Відпочинок`, `Нічліг`, `Інше`).
-- Arrival and departure have independent D+ day values, so `D0 23:55 → D+1 00:40` is represented correctly.
-- The primary entry path accepts two pasted Excel/text columns `Точка | Час` for both directions, automatically infers arrival/departure placement, day rollover, route endpoints and D+ bounds.
-- One route that returns on the next day produces one official waybill number whose date is printed as the full interval, for example `14.09.2026 - 15.09.2026`; both dates are stored in the register.
-- The reverse side prints outbound and return schedules with real calendar dates and highlights the direction where work begins. Internal D+ offsets are never printed.
-- The front side prints the official series/number, route/vehicle/driver plan, start/end locations and scheduled doctor/mechanic names. Handwritten signatures and unknown actual/fuel/control fields remain blank.
+## Наступна робота
 
-## Compatibility and constraints
+Не розширювати систему «про запас». Спочатку експлуатація й реальні дані. Нові зміни класифікувати як:
+- дефект;
+- експлуатаційне покращення;
+- новий функціонал.
 
-- Database migration is additive; no driver, vehicle, route, worklog, tachograph record or old dispatch table is deleted.
-- Dates in the UI remain `ДД.ММ.РРРР`.
-- The default remains `Documents/DriverWorktime`, but the selected workspace may be elsewhere; the distribution ZIP contains no database or personal data.
-- Every r9 executable job rejects bundled `.db`, `.sqlite` or `.sqlite3` files before publication.
-- Tachograph recognition and the rule that tachograph facts never overwrite plan `worklog/work_segments` are unchanged.
+Пріоритет мають дефекти даних, розрахунків і документів.
+
+**Ця контрольна точка замінює всі попередні CHECKPOINT як актуальний baseline, але старі файли залишаються історією розвитку.**
