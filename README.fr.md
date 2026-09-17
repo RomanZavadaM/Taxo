@@ -1,35 +1,42 @@
-# Taxo v8.70 — Personnel, horaires et feuilles de route
+# Taxo 9.0
 
-[Українська](README.md) | [English](README.en.md) | [Deutsch](README.de.md) | [Español](README.es.md) | **Français**
+[Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-Taxo est une application de bureau en ukrainien destinée à gérer le personnel d'une entreprise de transport, les horaires des conducteurs, le temps de travail, les itinéraires, les véhicules, les attestations d'activités, les feuilles de route des autobus et les relevés de tachygraphes analogiques. Le candidat de développement actuel est **v8.70 r9**.
+**Version stable : v9.0 — 17 septembre 2026.**
+
+Taxo est une application de bureau destinée à une entreprise de transport. Elle regroupe la planification des conducteurs, le suivi du temps de travail, les itinéraires et véhicules, les feuilles de route, les attestations d’activité, les rapports et le contrôle sélectif des disques de tachygraphe analogiques.
 
 ## Fonctions principales
 
-- Registre unique du personnel avec matricules, dates d'emploi et plusieurs rôles, notamment conducteur, médecin, mécanicien, répartiteur et receveur.
-- Horaires des conducteurs et relevés mensuels séparant le temps de travail planifié du temps de conduite planifié. Une journée de travail peut comporter plusieurs segments.
-- Répertoires des itinéraires et des véhicules. Chaque itinéraire contient un horaire précis et peut commencer hors du dépôt, franchir minuit, inclure des périodes de repos ou une nuitée et se terminer un autre jour civil.
-- Saisie simplifiée du parcours : il suffit de coller deux colonnes, `Point | Heure`, pour les sens aller et retour. Les changements de jour et les limites de l'itinéraire sont calculés automatiquement ; un éditeur détaillé reste disponible pour les cas particuliers.
-- Feuilles de route d'autobus vectorielles de deux pages A4, fondées sur le formulaire n° 1-AP. Le conducteur, le véhicule, l'itinéraire et les heures planifiées proviennent de l'horaire. Les documents couvrant plusieurs jours affichent les dates civiles réelles et non les marqueurs internes `D+N`.
-- Séries et plages de numéros officiels avec périodes de validité, numérotation automatique ou manuelle, historique des révisions et journal des annulations.
-- Horaires de service des médecins et mécaniciens. Leurs noms peuvent être repris dans la feuille de route, tandis que les signatures manuscrites et les champs réels, de carburant ou de contrôle encore inconnus restent vides.
-- Relevé complet de tout le personnel avec copie/collage d'une journée sur plusieurs dates, actions groupées plan→réel et effacement, planification sûre de huit heures uniquement pour les jours ouvrés vides, rapports Excel/PDF individuels, contrôle plan/réel et bilan mensuel imprimable/modifiable. Les services de nuit sont répartis entre les jours civils.
-- Relevés kilométriques facultatifs au début et à la fin de la feuille de route. Ils sont imprimés, historisés par véhicule et ne produisent que des avertissements de cohérence non bloquants ; l'historique est prêt pour une future source `tachograph`.
-- Chaque scénario d'itinéraire complet peut recevoir une distance planifiée facultative. Elle est imprimée comme valeur prévue, permet d'estimer le compteur final et produit un avertissement non bloquant si l'écart réel dépasse 10 km ou 10 %.
-- Attestations d'activités aux formats DOCX, PDF et JPG, ainsi que sauvegarde et restauration des données persistantes.
-- Espace de travail pour les disques de tachygraphe analogique, avec scans, intervalles d'activité et comparaison de la conduite réelle au plan. Les données réelles du tachygraphe n'écrasent pas les données planifiées.
-- Dossiers de travail configurables : locaux, réseau/NAS ou synchronisés dans le cloud. Les deux bases, scans, sauvegardes, documents et journaux sont déplacés ensemble ; un verrou partagé impose l'utilisation successive par plusieurs installations.
+- registre du personnel et des conducteurs ;
+- véhicules, itinéraires et scénarios horaires ;
+- planning graphique des conducteurs ;
+- feuilles de temps avec services fractionnés, planifié et réel ;
+- contrôle individuel du temps de travail d’un conducteur ;
+- bilans hebdomadaires séparés de **60:00 de travail** et **56:00 de conduite** ;
+- registre d’activité sur 60 jours avec détail à la minute ;
+- rapports PDF/Excel ;
+- feuilles de route avec numérotation, itinéraire, odomètre et historique kilométrique ;
+- attestations d’activité avec révisions et archivage ;
+- disques de tachygraphe analogiques : scans, intervalles reconnus, confirmation manuelle et protocoles de contrôle ;
+- espace de travail local/réseau/synchronisé avec sauvegardes.
 
-## Exécution et stockage des données
+## Téléchargements
 
-Sous Windows, le paquet source peut être lancé avec `START.bat`. GitHub Actions produit des paquets Windows Setup et Portable ainsi que des paquets macOS natifs pour Apple Silicon et Intel aux points de contrôle exécutables.
+Les paquets officiels sont disponibles dans le [GitHub Release v9.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0) : Windows x64 Setup/Portable, macOS ARM64/Intel, archive START et manifeste SHA-256.
 
-Le programme d'installation Windows, l'archive Portable, l'archive du code source et les sommes SHA-256 actuels sont disponibles dans la [version GitHub v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70).
+Les bases de données utilisateurs et les données personnelles ne sont jamais incluses dans les versions publiées.
 
-Le dossier par défaut est `Documents/DriverWorktime`. `Fichier → Stockage de travail…` permet de déplacer toutes les données en sécurité ou de connecter un dossier partagé existant. Les bases SQLite et les données personnelles restent exclues du dépôt et de tous les paquets.
+## Documentation
 
-L'interface et les formulaires officiels générés sont actuellement en ukrainien. Cette traduction facilite la présentation internationale du projet.
+La documentation opérationnelle complète est maintenue en ukrainien :
+
+- [Index de documentation](docs/README.md)
+- [Présentation du système](docs/SYSTEM_OVERVIEW.md)
+- [Manuel du personnel](docs/guides/USER_MANUAL.md)
+- [Administration et sauvegardes](docs/guides/ADMIN_GUIDE.md)
+- [Dépannage](docs/guides/TROUBLESHOOTING.md)
 
 ## État du projet
 
-v8.70 r9 est le candidat de développement actif basé sur la version r8 publiée. Les anciennes branches sont conservées comme points de contrôle historiques. Avant toute utilisation opérationnelle, l'application doit encore être validée avec des données réelles de l'entreprise et des formulaires imprimés.
+Taxo 9.0 est la base stable actuelle. La suite du développement est orientée vers l’exploitation réelle, l’enrichissement des données et les corrections ciblées de problèmes reproductibles.
