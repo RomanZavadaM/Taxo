@@ -58,9 +58,9 @@ Taxo 9.0 формує окремий документ за 60 календарн
 
 ## Завантаження
 
-У [GitHub Release v9.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0) доступні Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v9_0_START.zip` і SHA-256 manifest. Робочі бази та персональні дані до релізів **не входять**.
+У [стабільному релізі Taxo 9.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0) доступні Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v9_0_START.zip` і файл контрольних сум SHA-256. Робочі бази та персональні дані до релізів **не входять**.
 
-Для звичайної експлуатації використовуйте готовий Windows/macOS пакет із Releases. `START.bat` призначений насамперед для перевірки кандидатних змін і технічної діагностики.
+Для звичайної експлуатації використовуйте готовий Windows/macOS пакет із розділу релізів. `START.bat` призначений насамперед для перевірки кандидатних змін і технічної діагностики.
 
 ## Робоче сховище і безпека даних
 
@@ -72,7 +72,7 @@ Taxo 9.0 формує окремий документ за 60 календарн
 
 **Taxo 9.0 зафіксована як стабільна експлуатаційна контрольна точка.** Наступний етап — реальна експлуатація, наповнення бази даними та виправлення проблем, що проявляються в роботі. Великі функціональні зміни не є поточним пріоритетом.
 
-Матеріали технічного супроводу: [docs/maintenance](docs/maintenance/README.md). Актуальні release notes: [docs/releases](docs/releases/README.md).
+Матеріали технічного супроводу: [docs/maintenance](docs/maintenance/README.md). Актуальні примітки до релізів: [docs/releases](docs/releases/README.md).
 
 ## Важливо
 
