@@ -1,0 +1,31 @@
+name: Оновити опис релізу Taxo 9.0
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/releases/RELEASE_NOTES_v9_0.md'
+      - '.github/workflows/update-release-description-v9.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-release-description:
+    name: Оновити український опис релізу
+    runs-on: ubuntu-latest
+    steps:
+      - name: Отримати актуальну документацію
+        uses: actions/checkout@v4
+
+      - name: Оновити назву та опис GitHub Release v9.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release edit v9.0 \
+            --title 'Taxo 9.0 — стабільний реліз' \
+            --notes-file docs/releases/RELEASE_NOTES_v9_0.md \
+            --latest

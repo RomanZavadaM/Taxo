@@ -1,18 +1,35 @@
 # Taxo 9.0
 
-Taxo 9.0 is the new stable baseline after the verified v8.70 candidate line.
+**Taxo 9.0 — стабільна експлуатаційна версія системи обліку роботи водіїв.**
 
-## Main changes
+Ця версія є новою базовою контрольною точкою після перевіреної лінії кандидатів v8.70. Подальші зміни мають виконуватися переважно за результатами реальної експлуатації, наповнення бази даними та виявлення відтворюваних проблем.
 
-- Added a standalone 60-day driver activity register with minute-by-minute coverage of every calendar day.
-- The register separates driving, other work, availability, breaks, rest, absence and undefined time and checks every day to exactly 24:00.
-- Tachograph/manual facts, automatic recognition, timesheet data, confirmation forms and calculated intervals are clearly identified by source; missing information remains «Невизначено».
-- The single-driver №340 / weekly work-time control keeps work time and driving time separate: 60:00 work-time limit and 56:00 driving-time limit.
-- Added a driver selector directly inside the №340 / 60-hour balance window.
-- Added an editable report formation date to both the №340 PDF and the 60-day activity-register PDF.
-- The №340 PDF can be generated and opened directly from the analysis window.
-- Preserves the configurable shared workspace, timesheets, route planning, vehicle/odometer history, waybill workflow and tachograph modules from the verified v8.70 line.
+## Основні зміни
 
-## Operational status
+- Додано окремий **60-денний реєстр діяльності водія** з похвилинним покриттям кожної календарної доби.
+- Реєстр окремо показує **керування, іншу роботу, готовність, перерви, відпочинок, підтверджену відсутність і невизначений час**; кожна доба контролюється до рівно 24:00.
+- Для інтервалів вказується джерело даних: підтверджені дані ТАХО, автоматичне розпізнавання, табель, бланки підтвердження діяльності або розраховані проміжки. Якщо даних недостатньо, система показує **«Невизначено»**, а не підміняє відсутній факт припущенням.
+- У контролі одного водія за №340 робочий час і час керування залишаються розділеними: **60:00 робочого часу** та **56:00 керування**.
+- Додано вибір водія безпосередньо у вікні контролю №340 / 60-годинного балансу.
+- Додано змінювану **дату формування документа** для PDF контролю №340 та 60-денного реєстру діяльності.
+- PDF контролю №340 можна сформувати й відкрити безпосередньо з вікна аналізу.
+- Збережено функціонал спільного робочого сховища, табелів, планування маршрутів, транспортних засобів і пробігу, шляхових листів, бланків підтвердження діяльності та модуля аналогових тахокарт.
 
-Version 9.0 is the stable operational baseline. Further changes are driven by real use, database population and reproducible defects.
+## Експлуатаційний статус
+
+**Taxo 9.0 зафіксована як стабільна версія для експлуатації.**
+
+Поточний етап — робота на реальних даних, поступове наповнення бази та локальне виправлення проблем, що проявляються в експлуатації. Великі функціональні зміни не є поточним пріоритетом.
+
+## Пакети релізу
+
+У релізі доступні:
+
+- Windows x64 — Setup;
+- Windows x64 — Portable;
+- macOS ARM64 — Portable;
+- macOS Intel x86_64 — Portable;
+- `Taxo_v9_0_START.zip` для технічної перевірки через `START.bat`;
+- файл контрольних сум SHA-256.
+
+Робочі бази даних, скани тахокарт і персональні документи до релізу не входять.
