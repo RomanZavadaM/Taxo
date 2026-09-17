@@ -1,8 +1,10 @@
 Taxo / Driver Worktime
-Version: 8.70 candidate r10
+Version: 8.70 candidate r11
 Candidate date: 2026-09-17
-Published baseline after merge: 8.70 candidate r9
-Development baseline: verified v8.70 candidate r9 checkpoint
+Published baseline after merge: 8.70 candidate r10
+Development baseline: verified v8.70 candidate r10 checkpoint
+
+Candidate r11 adds a standalone 60-calendar-day driver activity register. The PDF contains a daily summary and exact minute intervals for driving, other work, availability, breaks, rest, absence and undefined time. Every day is controlled to 24:00. Confirmed/manual tachograph intervals have highest priority; automatic recognition is clearly marked as a candidate; table/worklog and confirmation-form intervals are used as additional sources; calculated break/rest periods are explicitly labelled, and missing information remains «Невизначено» instead of being silently treated as rest.
 
 Candidate r10 adds single-driver work-time analysis improvements: the №340 protocol window can generate and immediately open its current PDF, and it shows an hourly weekly balance with separate work-time (60:00) and driving-time (56:00) limits. The 4-month 48:00 average remains a separate control.
 
@@ -13,4 +15,4 @@ Waybill archive: issued PDFs are registered in the persistent database, receive 
 Route model from v8.66 r10 remains: one route = one exact time scenario.
 Tachograph recognition algorithm is unchanged.
 
-Distribution: routine r10 verification uses START.bat through taxo_app.py. Windows/macOS build specifications are r10-ready for the next requested executable checkpoint. No user database is bundled.
+Distribution: routine r11 verification uses START.bat through taxo_app.py. The automatic source-candidate workflow produces a versioned START archive after merge. Windows/macOS executable builds remain reserved for selected checkpoints. No user database is bundled.
