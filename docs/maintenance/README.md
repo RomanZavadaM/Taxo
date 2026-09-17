@@ -4,6 +4,7 @@
 
 - [Поточний технічний стан](PROJECT_STATE.md)
 - [Поточна контрольна точка](CHECKPOINT_CURRENT.md)
+- [Політика гілки main](MAIN_BRANCH_POLICY.md)
 - [Чекліст випуску](RELEASE_CHECKLIST.md)
 
 Історія розробки версій 8.x винесена з `main` у гілку [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
