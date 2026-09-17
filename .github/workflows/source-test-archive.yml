@@ -1,4 +1,4 @@
-name: Package Taxo source candidate
+name: Package Taxo START source
 
 on:
   push:
@@ -51,16 +51,21 @@ jobs:
           print(archive)
           PY
 
-      - name: Verify no database is inside
+      - name: Verify clean operational package
         shell: bash
         run: |
-          if unzip -l "${{ steps.pack.outputs.archive }}" | grep -E '\.(db|sqlite|sqlite3)$'; then
-            echo 'Database unexpectedly included in source archive' >&2
+          if unzip -l "${{ steps.pack.outputs.archive }}" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included in source archive' >&2
+            exit 1
+          fi
+          if unzip -l "${{ steps.pack.outputs.archive }}" | grep -Eiq '/(CHECKPOINT_v8|TEST_REPORT_v8|PUBLISH_STATUS_v8|PATCH_v8)'; then
+            echo 'Legacy v8 development clutter unexpectedly included in START archive' >&2
             exit 1
           fi
           unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/START.bat$'
           unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/taxo_app.py$'
           unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
+          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/hotfix_901.py$'
 
       - name: Upload source archive
         uses: actions/upload-artifact@v4
