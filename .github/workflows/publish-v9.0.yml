@@ -204,13 +204,13 @@ jobs:
           if gh release view v9.0 >/dev/null 2>&1; then
             gh release edit v9.0 \
               --title 'Taxo 9.0 — stable release' \
-              --notes-file RELEASE_NOTES_v9_0.md \
+              --notes-file docs/releases/RELEASE_NOTES_v9_0.md \
               --latest
           else
             gh release create v9.0 \
               --target "$GITHUB_SHA" \
               --title 'Taxo 9.0 — stable release' \
-              --notes-file RELEASE_NOTES_v9_0.md \
+              --notes-file docs/releases/RELEASE_NOTES_v9_0.md \
               --latest
           fi
           gh release upload v9.0 release-upload/* --clobber
