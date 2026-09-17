@@ -2,7 +2,7 @@
 cd /d "%~dp0"
 echo ==============================================
 echo   Driver Worktime App - START
- echo ==============================================
+echo ==============================================
 echo.
 py -3.13 -m pip install -r requirements.txt
 if errorlevel 1 (
