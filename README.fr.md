@@ -1,8 +1,8 @@
-# Taxo 9.0
+# Taxo 9.0.1
 
 [Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-**Version stable : v9.0 — 17 septembre 2026.**
+**Version stable : v9.0.1 — 17 septembre 2026.**
 
 Taxo est une application de bureau destinée à une entreprise de transport. Elle regroupe la planification des conducteurs, le suivi du temps de travail, les itinéraires et véhicules, les feuilles de route, les attestations d’activité, les rapports et le contrôle sélectif des disques de tachygraphe analogiques.
 
@@ -23,7 +23,7 @@ Taxo est une application de bureau destinée à une entreprise de transport. Ell
 
 ## Téléchargements
 
-Les paquets officiels sont disponibles dans le [GitHub Release v9.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0) : Windows x64 Setup/Portable, macOS ARM64/Intel, archive START et manifeste SHA-256.
+Les paquets officiels sont disponibles dans le [GitHub Release v9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) : Windows x64 Setup/Portable, macOS ARM64/Intel, archive START et manifeste SHA-256.
 
 Les bases de données utilisateurs et les données personnelles ne sont jamais incluses dans les versions publiées.
 
@@ -39,4 +39,4 @@ La documentation opérationnelle complète est maintenue en ukrainien :
 
 ## État du projet
 
-Taxo 9.0 est la base stable actuelle. La suite du développement est orientée vers l’exploitation réelle, l’enrichissement des données et les corrections ciblées de problèmes reproductibles.
+Taxo 9.0.1 est le correctif opérationnel stable actuel basé sur 9.0. La suite du développement est orientée vers l’exploitation réelle, l’enrichissement des données et les corrections ciblées de problèmes reproductibles.
