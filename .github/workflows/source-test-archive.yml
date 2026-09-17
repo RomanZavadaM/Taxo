@@ -1,0 +1,64 @@
+name: Package Taxo source candidate
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create START.bat source archive
+        id: pack
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import os, re, subprocess
+
+          text = Path('VERSION.txt').read_text(encoding='utf-8')
+          line = next((x.strip() for x in text.splitlines() if x.startswith('Version:')), 'Version: candidate')
+          version = line.split(':', 1)[1].strip()
+          m = re.search(r'(\d+)\.(\d+).*?r(\d+)', version, re.I)
+          if m:
+              stem = f"Taxo_v{m.group(1)}_{m.group(2)}_candidate_r{m.group(3)}_START"
+          else:
+              safe = re.sub(r'[^A-Za-z0-9._-]+', '_', version).strip('_') or 'candidate'
+              stem = f"Taxo_{safe}_START"
+          archive = stem + '.zip'
+          subprocess.check_call([
+              'git', 'archive', '--format=zip', f'--prefix={stem}/', f'--output={archive}', 'HEAD'
+          ])
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write(f"archive={archive}\n")
+              out.write(f"stem={stem}\n")
+          print(archive)
+          PY
+
+      - name: Verify no database is inside
+        shell: bash
+        run: |
+          if unzip -l "${{ steps.pack.outputs.archive }}" | grep -E '\.(db|sqlite|sqlite3)$'; then
+            echo 'Database unexpectedly included in source archive' >&2
+            exit 1
+          fi
+          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/START.bat$'
+          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/taxo_app.py$'
+
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.stem }}
+          path: ${{ steps.pack.outputs.archive }}
+          if-no-files-found: error
+          retention-days: 30
