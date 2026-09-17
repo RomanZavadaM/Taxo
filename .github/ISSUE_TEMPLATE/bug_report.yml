@@ -1,0 +1,94 @@
+name: Помилка Taxo
+about: Повідомити про проблему, знайдену під час експлуатації
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Дякуємо за точний опис проблеми. **Не прикріплюйте реальну БД, скани тахокарт або документи з персональними даними.** За потреби використовуйте знеособлений приклад.
+
+  - type: input
+    id: version
+    attributes:
+      label: Версія Taxo
+      description: Наприклад 9.0
+      placeholder: 9.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Операційна система
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS Apple Silicon
+        - macOS Intel
+        - Інше
+    validations:
+      required: true
+
+  - type: input
+    id: module
+    attributes:
+      label: Розділ програми
+      placeholder: Табель / ТАХО / Шляхівки / Працівники / Бланки / інше
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Кроки відтворення
+      description: Опишіть точну послідовність дій.
+      placeholder: |
+        1. Відкрити ...
+        2. Вибрати ...
+        3. Натиснути ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Очікуваний результат
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактичний результат
+      description: Додайте точний текст помилки. Скріншот можна додати лише після перевірки, що на ньому немає персональних даних.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data_impact
+    attributes:
+      label: Чи впливає проблема на збережені дані?
+      options:
+        - Ні / тільки інтерфейс
+        - Не знаю
+        - Так, дані не зберігаються
+        - Так, дані зберігаються неправильно
+        - Так, проблема з документом/нумерацією
+    validations:
+      required: true
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Обхідний шлях
+      description: Якщо вдалося продовжити роботу іншим способом — опишіть його.
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Перевірка конфіденційності
+      options:
+        - label: Я не прикріпив реальну БД або резервну копію БД.
+          required: true
+        - label: Я перевірив, що вкладення не містять персональних даних працівників.
+          required: true
