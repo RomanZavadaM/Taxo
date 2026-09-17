@@ -1,5 +1,5 @@
 #define MyAppName "Taxo"
-#define MyAppVersion "8.70 TEST r11"
+#define MyAppVersion "9.0"
 #define MyAppPublisher "RomanZavadaM"
 #define MyAppExeName "Taxo.exe"
 
@@ -16,7 +16,7 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release_out
-OutputBaseFilename=Taxo_v8_70_TEST_r11_Setup_Windows_x64
+OutputBaseFilename=Taxo_v9_0_Setup_Windows_x64
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -34,7 +34,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Створити ярлик на робочому столі"; GroupDescription: "Додаткові ярлики:"; Flags: checkedonce
 
 [Files]
-Source: "..\dist\Taxo_v8_70_TEST_r11_Windows_x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\Taxo_v9_0_Windows_x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Taxo"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
@@ -44,5 +44,5 @@ Name: "{autodesktop}\Taxo"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app
 Filename: "{app}\{#MyAppExeName}"; Description: "Запустити Taxo"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
-; Навмисно НЕ видаляємо %USERPROFILE%\Documents\DriverWorktime.
+; Навмисно НЕ видаляємо робоче сховище Taxo / DriverWorktime.
 Type: filesandordirs; Name: "{app}"

@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.70 candidate r11 — Windows onedir build.
+# Taxo 9.0 — Windows onedir build.
 # User databases are never bundled.
 
 a = Analysis(
@@ -8,7 +8,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('Бланк підтвердження.docx', '.'), ('attestation_visual_template.pdf', '.')],
-    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'fitz', 'pymupdf'],
+    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'fitz', 'pymupdf'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

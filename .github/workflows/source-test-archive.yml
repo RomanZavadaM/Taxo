@@ -29,9 +29,15 @@ jobs:
           text = Path('VERSION.txt').read_text(encoding='utf-8')
           line = next((x.strip() for x in text.splitlines() if x.startswith('Version:')), 'Version: candidate')
           version = line.split(':', 1)[1].strip()
-          m = re.search(r'(\d+)\.(\d+).*?r(\d+)', version, re.I)
-          if m:
-              stem = f"Taxo_v{m.group(1)}_{m.group(2)}_candidate_r{m.group(3)}_START"
+          candidate = re.search(r'(\d+)\.(\d+).*?r(\d+)', version, re.I)
+          stable = re.fullmatch(r'(\d+)\.(\d+)(?:\.(\d+))?', version)
+          if candidate:
+              stem = f"Taxo_v{candidate.group(1)}_{candidate.group(2)}_candidate_r{candidate.group(3)}_START"
+          elif stable:
+              parts = [stable.group(1), stable.group(2)]
+              if stable.group(3) is not None:
+                  parts.append(stable.group(3))
+              stem = "Taxo_v" + "_".join(parts) + "_START"
           else:
               safe = re.sub(r'[^A-Za-z0-9._-]+', '_', version).strip('_') or 'candidate'
               stem = f"Taxo_{safe}_START"
@@ -54,6 +60,7 @@ jobs:
           fi
           unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/START.bat$'
           unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/taxo_app.py$'
+          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
 
       - name: Upload source archive
         uses: actions/upload-artifact@v4
