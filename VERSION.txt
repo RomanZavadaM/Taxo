@@ -1,21 +1,17 @@
 Taxo / Driver Worktime
-Version: 9.0
+Version: 9.0.1
 Release date: 2026-09-17
-Release type: stable
-Baseline: v8.70 candidate r11
+Release type: stable hotfix
+Baseline: Taxo 9.0
 
-Taxo 9.0 establishes a new stable baseline for the next development stage.
+Taxo 9.0.1 — експлуатаційне виправлення стабільної гілки 9.0.
 
-Included in 9.0:
-- standalone 60-calendar-day driver activity register with minute-by-minute coverage;
-- daily 24:00 control with driving, other work, availability, breaks, rest, absence and undefined time;
-- exact source/confidence labelling for tachograph, worklog, confirmation forms and calculated intervals;
-- missing information stays «Невизначено» instead of being silently converted to rest;
-- single-driver №340 control with weekly balances separated into work time up to 60:00 and driving up to 56:00;
-- driver selection directly inside the №340 / 60-hour balance window;
-- editable report formation date for the №340 PDF and the 60-day activity-register PDF;
-- one-click opening of the current №340 PDF;
-- configurable local/network/cloud-synchronized workspace from v8.70 r9;
-- preserved route, timesheet, odometer, waybill and tachograph functionality from the verified v8.70 line.
+Зміни 9.0.1:
+- виправлено назву головного вікна: більше не показується застаріле «v8.70 r9»;
+- виправлено вікно «Про програму»: воно показує актуальну версію Taxo 9.0.1;
+- START-архів формується з очищеної експлуатаційної гілки main без старих checkpoint/test/publish-файлів версій 8.x;
+- функціонал Taxo 9.0, структура робочої БД та робоче сховище не змінюються.
 
-Distribution for 9.0: START source ZIP, Windows x64 Portable, Windows x64 Setup, macOS arm64 Portable and macOS x86_64 Portable. User databases and personal data are never bundled.
+Окремо продовжується діагностика експлуатаційної помилки Tkinter «bad window path name» за журналом Taxo_errors.log.
+
+Пакети 9.0.1: START source ZIP, Windows x64 Portable, Windows x64 Setup, macOS arm64 Portable та macOS x86_64 Portable. Робочі бази та персональні дані до релізів не включаються.
