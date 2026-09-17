@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+import tempfile
 import unittest
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time
+from pathlib import Path
 
 from activity_register_60 import (
     RAW_REST,
     assign_span,
     classify_and_fill,
     compress_day,
+    export_activity_register_pdf,
     new_grid,
     span_datetimes,
     summarize_day,
@@ -67,6 +70,35 @@ class ActivityRegister60Tests(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["duration_min"], 1440)
         self.assertEqual(rows[0]["activity"], "Невизначено")
+
+    def test_pdf_smoke(self):
+        import main as core
+        day = date(2026, 9, 17)
+        grid = new_grid(day, day)
+        assign_span(grid, datetime.combine(day, time(8, 0)), datetime.combine(day, time(12, 0)),
+                    "Керування", "ТАХО — підтверджено вручну", 100, vehicle="TEST 123")
+        classify_and_fill(grid)
+        summary = summarize_day(grid[day])
+        data = {
+            "driver_name": "Тестовий Водій",
+            "start_day": day,
+            "end_day": day,
+            "period_days": 1,
+            "generated_at": datetime(2026, 9, 17, 12, 0),
+            "days": [{
+                "date": day,
+                "day_type": "Робота",
+                "summary": summary,
+                "intervals": compress_day(grid[day]),
+                "warnings": [],
+            }],
+            "overall": {},
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "activity-register.pdf"
+            export_activity_register_pdf(core, data, path)
+            self.assertTrue(path.is_file())
+            self.assertGreater(path.stat().st_size, 1000)
 
 
 if __name__ == "__main__":
