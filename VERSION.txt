@@ -1,18 +1,21 @@
 Taxo / Driver Worktime
-Version: 8.70 candidate r11
-Candidate date: 2026-09-17
-Published baseline after merge: 8.70 candidate r10
-Development baseline: verified v8.70 candidate r10 checkpoint
+Version: 9.0
+Release date: 2026-09-17
+Release type: stable
+Baseline: v8.70 candidate r11
 
-Candidate r11 adds a standalone 60-calendar-day driver activity register. The PDF contains a daily summary and exact minute intervals for driving, other work, availability, breaks, rest, absence and undefined time. Every day is controlled to 24:00. Confirmed/manual tachograph intervals have highest priority; automatic recognition is clearly marked as a candidate; table/worklog and confirmation-form intervals are used as additional sources; calculated break/rest periods are explicitly labelled, and missing information remains «Невизначено» instead of being silently treated as rest.
+Taxo 9.0 establishes a new stable baseline for the next development stage.
 
-Candidate r10 adds single-driver work-time analysis improvements: the №340 protocol window can generate and immediately open its current PDF, and it shows an hourly weekly balance with separate work-time (60:00) and driving-time (56:00) limits. The 4-month 48:00 average remains a separate control.
+Included in 9.0:
+- standalone 60-calendar-day driver activity register with minute-by-minute coverage;
+- daily 24:00 control with driving, other work, availability, breaks, rest, absence and undefined time;
+- exact source/confidence labelling for tachograph, worklog, confirmation forms and calculated intervals;
+- missing information stays «Невизначено» instead of being silently converted to rest;
+- single-driver №340 control with weekly balances separated into work time up to 60:00 and driving up to 56:00;
+- driver selection directly inside the №340 / 60-hour balance window;
+- editable report formation date for the №340 PDF and the 60-day activity-register PDF;
+- one-click opening of the current №340 PDF;
+- configurable local/network/cloud-synchronized workspace from v8.70 r9;
+- preserved route, timesheet, odometer, waybill and tachograph functionality from the verified v8.70 line.
 
-v8.70 starts the waybill issuance workflow from the graphical driver schedule.
-Waybill r5: simple two-column route paste, internal automatic day rollover, and calendar dates on every printed overnight/multiday waybill field. All preserved v8.66 and v8.70 development is consolidated into main.
-Candidate r9: configurable local, network and cloud-synchronized workspaces contain every mutable business file. A shared lock enforces sequential multi-copy use, safe migration preserves the previous workspace, and database file references are portable between computers.
-Waybill archive: issued PDFs are registered in the persistent database, receive a unique official series+number and an internal yearly id, and are stored under the selected workspace in Output/Waybills/YYYY/MM.
-Route model from v8.66 r10 remains: one route = one exact time scenario.
-Tachograph recognition algorithm is unchanged.
-
-Distribution: routine r11 verification uses START.bat through taxo_app.py. The automatic source-candidate workflow produces a versioned START archive after merge. Windows/macOS executable builds remain reserved for selected checkpoints. No user database is bundled.
+Distribution for 9.0: START source ZIP, Windows x64 Portable, Windows x64 Setup, macOS arm64 Portable and macOS x86_64 Portable. User databases and personal data are never bundled.
