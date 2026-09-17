@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.0 application entry point."""
+"""Taxo 9.0.1 application entry point."""
 import main as core
 from work_analysis_ext import install as install_work_analysis
 from activity_register_60 import install as install_activity_register
 from v9_release import install as install_v9
+from hotfix_901 import install as install_hotfix_901
 
-App = install_v9(
+App = install_hotfix_901(
     core,
-    install_activity_register(core, install_work_analysis(core)),
+    install_v9(
+        core,
+        install_activity_register(core, install_work_analysis(core)),
+    ),
 )
 
 
