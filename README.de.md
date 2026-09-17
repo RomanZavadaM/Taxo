@@ -1,35 +1,42 @@
-# Taxo v8.70 — Fahrpersonal, Dienstpläne und Fahrtenblätter
+# Taxo 9.0
 
-[Українська](README.md) | [English](README.en.md) | **Deutsch** | [Español](README.es.md) | [Français](README.fr.md)
+[Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-Taxo ist eine ukrainischsprachige Desktop-Anwendung für die Verwaltung von Beschäftigten eines Verkehrsunternehmens, Fahrerplänen, Arbeitszeiten, Linien, Fahrzeugen, Tätigkeitsbescheinigungen, Bus-Fahrtenblättern und Aufzeichnungen analoger Fahrtenschreiber. Der aktuelle Entwicklungskandidat ist **v8.70 r9**.
+**Stabile Version: v9.0 — 17. September 2026.**
 
-## Wichtigste Funktionen
+Taxo ist eine Desktop-Anwendung für ein einzelnes Verkehrsunternehmen. Sie verbindet Fahrerplanung, Arbeitszeiterfassung, Routen- und Fahrzeugdaten, Fahrtenblätter, Tätigkeitsbestätigungen, Berichte und die selektive Auswertung analoger Tachographenscheiben.
 
-- Einheitliches Personalregister mit Personalnummern, Beschäftigungszeiträumen und mehreren Rollen, darunter Fahrer, Arzt, Mechaniker, Disponent und Schaffner.
-- Fahrerpläne und monatliche Arbeitszeitnachweise mit getrennten Planwerten für Arbeitszeit und Lenkzeit. Ein Arbeitstag kann aus mehreren Abschnitten bestehen.
-- Linien- und Fahrzeugverzeichnisse. Jede Linie enthält einen genauen Fahrplan, kann außerhalb des Betriebshofs beginnen, über Mitternacht hinausgehen, Ruhe- oder Übernachtungszeiten enthalten und an einem späteren Kalendertag enden.
-- Vereinfachte Fahrplaneingabe: Für Hin- und Rückrichtung genügen zwei eingefügte Spalten, `Punkt | Uhrzeit`. Tageswechsel und Liniengrenzen werden automatisch ermittelt; für Sonderfälle bleibt ein detaillierter Editor verfügbar.
-- Zweiseitige vektorbasierte A4-Fahrtenblätter für Busse nach Formular Nr. 1-AP. Fahrer, Fahrzeug, Linie und Planzeiten werden aus dem Dienstplan übernommen. Mehrtägige Dokumente zeigen reale Kalenderdaten statt interner `D+N`-Kennzeichnungen.
-- Serien- und Nummernkreise für offizielle Fahrtenblätter mit Gültigkeitszeiträumen, automatischer oder manueller Nummerierung, Revisionsverlauf und Annullierungsprotokoll.
-- Dienstpläne für Ärzte und Mechaniker. Ihre Namen können in das Fahrtenblatt übernommen werden; handschriftliche Unterschriften sowie unbekannte Ist-, Kraftstoff- und Kontrollfelder bleiben frei.
-- Vollständiger Personalzeitnachweis mit Kopieren/Einfügen eines Tages auf mehrere Daten, Sammelaktionen für Plan→Ist und Löschen, sicherer Acht-Stunden-Planung nur für leere Werktage, individuellen Excel/PDF-Berichten, Plan/Ist-Kontrolle und druckbarer/bearbeitbarer Monatsbilanz für alle Beschäftigten. Nachtarbeit wird auf Kalendertage verteilt.
-- Optionale Kilometerstände zu Beginn und Ende im Fahrtenblatt. Sie werden gedruckt, je Fahrzeug historisiert und nur für nicht blockierende Plausibilitätswarnungen verwendet; die Historie ist für eine spätere Quelle `tachograph` vorbereitet.
-- Für jeden vollständigen Linienablauf kann eine optionale Planstrecke hinterlegt werden. Sie wird als Plan im Fahrtenblatt gedruckt, prognostiziert den Endkilometerstand und warnt unverbindlich bei mehr als 10 km oder 10 % Abweichung.
-- Tätigkeitsbescheinigungen als DOCX, PDF und JPG sowie Sicherung und Wiederherstellung der dauerhaft gespeicherten Anwendungsdaten.
-- Arbeitsbereich für analoge Fahrtenschreiberscheiben mit Scans, Tätigkeitsintervallen und Vergleich der tatsächlichen Lenkzeit mit dem Plan. Tachographen-Istwerte überschreiben keine Plandaten.
-- Konfigurierbare lokale, Netzwerk-/NAS- oder cloud-synchronisierte Arbeitsordner. Beide Datenbanken, Scans, Sicherungen, Dokumente und Protokolle werden gemeinsam verschoben; eine Sperrdatei erzwingt die abwechselnde Nutzung durch mehrere Installationen.
+## Hauptfunktionen
 
-## Start und Datenspeicherung
+- Personal- und Fahrerregister;
+- Fahrzeuge, Routen und genaue Zeitabläufe;
+- grafische Fahrerplanung;
+- Arbeitszeittabellen mit geteilten Schichten, Plan und Ist;
+- Kontrolle eines einzelnen Fahrers;
+- getrennte Wochenbilanzen für **60:00 Arbeitszeit** und **56:00 Lenkzeit**;
+- 60-Tage-Aktivitätsregister mit minutengenauer Aufteilung;
+- PDF-/Excel-Berichte;
+- Fahrtenblätter mit Nummerierung, Route, Kilometerstand und Fahrleistungsverlauf;
+- Tätigkeitsbestätigungen mit Revisionen und Archiv;
+- analoge Tachographenscheiben: Scans, erkannte Intervalle, manuelle Bestätigung und Prüfprotokolle;
+- konfigurierbarer lokaler/netzwerk-/synchronisierter Arbeitsbereich mit Sicherungen.
 
-Unter Windows kann das Quellpaket über `START.bat` gestartet werden. Windows-Setup- und Portable-Pakete sowie native macOS-Pakete für Apple Silicon und Intel werden an ausführbaren Kontrollpunkten über GitHub Actions erstellt.
+## Download
 
-Das aktuelle Windows-Setup, das Portable-ZIP, das Quellcode-ZIP und die SHA-256-Prüfsummen stehen im [GitHub-Release v8.70](https://github.com/RomanZavadaM/Taxo/releases/tag/v8.70) bereit.
+Die offiziellen Pakete befinden sich im [GitHub Release v9.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0): Windows x64 Setup/Portable, macOS ARM64/Intel, START-Quellarchiv und SHA-256-Prüfsummen.
 
-Der Standardordner ist `Documents/DriverWorktime`. Über `Datei → Arbeitsspeicher…` können alle Daten sicher verschoben oder ein vorhandener gemeinsamer Ordner eingebunden werden. SQLite-Datenbanken und personenbezogene Daten sind weder im Repository noch in den Distributionspaketen enthalten.
+Benutzerdatenbanken und personenbezogene Daten sind nicht Bestandteil der Releases.
 
-Die Benutzeroberfläche und die erzeugten amtlichen Formulare sind derzeit ukrainisch. Diese Übersetzung dient der internationalen Projektübersicht.
+## Dokumentation
+
+Die vollständige Betriebsdokumentation wird auf Ukrainisch gepflegt:
+
+- [Dokumentationsübersicht](docs/README.md)
+- [Systemübersicht](docs/SYSTEM_OVERVIEW.md)
+- [Bedienungsanleitung für Personal](docs/guides/USER_MANUAL.md)
+- [Administration und Sicherungen](docs/guides/ADMIN_GUIDE.md)
+- [Fehlerbehebung](docs/guides/TROUBLESHOOTING.md)
 
 ## Projektstatus
 
-v8.70 r9 ist der aktive Entwicklungskandidat auf Grundlage der veröffentlichten r8-Version. Ältere Branches bleiben als historische Kontrollpunkte erhalten. Vor dem produktiven Einsatz sind weiterhin Prüfungen mit echten Unternehmensdaten und gedruckten Formularen erforderlich.
+Taxo 9.0 ist die aktuelle stabile Betriebsbasis. Die weitere Entwicklung konzentriert sich auf reale Nutzung, Datenbestand und gezielte Korrekturen reproduzierbarer Probleme.
