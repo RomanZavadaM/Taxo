@@ -122,15 +122,15 @@ class V870R9WorkspaceTests(unittest.TestCase):
             self.assertEqual(changed,1)
             self.assertEqual(value,"workspace://Output/Waybills/one.pdf")
 
-    def test_r9_release_builds_workspace_aware_packages(self):
+    def test_current_release_builds_workspace_aware_packages(self):
         root=Path(__file__).resolve().parents[1]
-        workflow=(root/".github"/"workflows"/"publish-v8.70-r9.yml").read_text("utf-8")
-        self.assertIn("python -m py_compile main.py workspace.py",workflow)
-        self.assertIn("Taxo_v8_70_TEST_r9_Setup_Windows_x64.exe",workflow)
-        self.assertIn("Taxo_v8_70_TEST_r9_Windows_x64_Portable.zip",workflow)
-        self.assertIn("Taxo_v8_70_TEST_r9_macOS_arm64_Portable.zip",workflow)
-        self.assertIn("Taxo_v8_70_TEST_r9_macOS_x86_64_Portable.zip",workflow)
-        self.assertIn("SHA256SUMS_v8_70_TEST_r9.txt",workflow)
+        workflow=(root/".github"/"workflows"/"publish-v9.0.yml").read_text("utf-8")
+        self.assertIn("workspace.py",workflow)
+        self.assertIn("Taxo_v9_0_Setup_Windows_x64.exe",workflow)
+        self.assertIn("Taxo_v9_0_Windows_x64_Portable.zip",workflow)
+        self.assertIn("Taxo_v9_0_macOS_arm64_Portable.zip",workflow)
+        self.assertIn("Taxo_v9_0_macOS_x86_64_Portable.zip",workflow)
+        self.assertIn("SHA256SUMS_v9_0.txt",workflow)
         self.assertIn("Database unexpectedly bundled",workflow)
 
     def test_main_and_tachograph_follow_the_same_selected_root(self):
