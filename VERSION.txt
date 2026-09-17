@@ -1,8 +1,10 @@
 Taxo / Driver Worktime
-Version: 8.70 candidate r9
-Candidate date: 2026-09-15
-Published baseline after merge: 8.70 candidate r7
-Development baseline: verified v8.66 candidate r10 checkpoint
+Version: 8.70 candidate r10
+Candidate date: 2026-09-17
+Published baseline after merge: 8.70 candidate r9
+Development baseline: verified v8.70 candidate r9 checkpoint
+
+Candidate r10 adds single-driver work-time analysis improvements: the №340 protocol window can generate and immediately open its current PDF, and it shows an hourly weekly balance with separate work-time (60:00) and driving-time (56:00) limits. The 4-month 48:00 average remains a separate control.
 
 v8.70 starts the waybill issuance workflow from the graphical driver schedule.
 Waybill r5: simple two-column route paste, internal automatic day rollover, and calendar dates on every printed overnight/multiday waybill field. All preserved v8.66 and v8.70 development is consolidated into main.
@@ -11,4 +13,4 @@ Waybill archive: issued PDFs are registered in the persistent database, receive 
 Route model from v8.66 r10 remains: one route = one exact time scenario.
 Tachograph recognition algorithm is unchanged.
 
-Distribution: r9 is an executable checkpoint. GitHub Actions builds Windows Setup/Portable, native macOS arm64/x86_64 packages, a source ZIP and shared SHA-256 checksums. No user database is bundled.
+Distribution: routine r10 verification uses START.bat through taxo_app.py. Windows/macOS build specifications are r10-ready for the next requested executable checkpoint. No user database is bundled.

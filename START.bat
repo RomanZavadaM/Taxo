@@ -13,7 +13,7 @@ if errorlevel 1 (
 )
 echo.
 echo Starting application...
-py -3.13 main.py
+py -3.13 taxo_app.py
 if errorlevel 1 (
     echo.
     echo ERROR: application stopped with an error.
