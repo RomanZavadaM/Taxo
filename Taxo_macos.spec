@@ -1,14 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo v8.70 candidate r9 — native macOS application bundle.
+# Taxo v8.70 candidate r10 — native macOS application bundle.
 # Build separately on Apple Silicon and Intel; user databases are forbidden.
 
 a = Analysis(
-    ['main.py'],
+    ['taxo_app.py'],
     pathex=[],
     binaries=[],
     datas=[('Бланк підтвердження.docx', '.'), ('attestation_visual_template.pdf', '.')],
-    hiddenimports=['workspace', 'tachograph', 'attestation_render', 'waybill', 'fitz', 'pymupdf'],
+    hiddenimports=['main', 'work_analysis_ext', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'fitz', 'pymupdf'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
