@@ -34,7 +34,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "9.1 candidate r3"
+APP_VERSION = "9.1 candidate r4"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
@@ -201,6 +201,46 @@ def _employee_role_choices(row):
     return roles
 
 
+def linked_route_plan_minutes(core, con, driver_id, target_date):
+    """Fallback for old/incomplete driver-day rows linked to a route.
+
+    Normal current records already carry copied work_segments/work_hours.  If
+    those fields are empty but worklog.route_id exists, use the route's own
+    exact work scenario so personnel/P-5 does not lose planned hours.
+    """
+    if not driver_id:
+        return 0
+    row = con.execute(
+        """SELECT route_id,work_hours,work_start_time,work_end_time
+             FROM worklog
+            WHERE driver_id=? AND work_date=?""",
+        (driver_id, target_date.isoformat()),
+    ).fetchone()
+    if row is None or not row["route_id"]:
+        return 0
+    if core.hours_value_to_minutes(row["work_hours"] or 0) > 0:
+        return core.hours_value_to_minutes(row["work_hours"] or 0)
+
+    segs = con.execute(
+        """SELECT * FROM route_segments
+            WHERE route_id=?
+            ORDER BY segment_no""",
+        (row["route_id"],),
+    ).fetchall()
+    total = 0
+    for seg in segs:
+        ws = (seg["work_start_time"] or seg["start_time"] or "").strip()
+        we = (seg["work_end_time"] or seg["end_time"] or "").strip()
+        if ws and we:
+            try:
+                total += int(core.duration_minutes(ws, we))
+                continue
+            except Exception:
+                pass
+        total += core.hours_value_to_minutes(seg["work_hours"] or 0)
+    return int(total)
+
+
 def collect_p5_data(core, year, month, active_only=True):
     y, m = int(year), int(month)
     days = core.month_dates(y, m)
@@ -238,9 +278,14 @@ def collect_p5_data(core, year, month, active_only=True):
                 work_days += 1
                 work_minutes += int(actual)
             elif planned > 0:
-                hours = None
-                code = "?"
-                numeric = ""
+                # Для експлуатаційного П-5 план із графіка/маршруту є
+                # робочим джерелом до появи факту. Факт, коли він з'явиться,
+                # автоматично має пріоритет.
+                hours = int(planned)
+                code = "РВ" if d.weekday() >= 5 else "Р"
+                numeric = "06" if d.weekday() >= 5 else "01"
+                work_days += 1
+                work_minutes += int(planned)
                 missing_fact += 1
             else:
                 hours = None
@@ -266,7 +311,7 @@ def collect_p5_data(core, year, month, active_only=True):
                 "numeric": numeric,
                 "hours": hours,
                 "day_type": dtype,
-                "missing": code == "?",
+                "missing": bool(actual is None and planned > 0 and dtype not in NONWORK_OVERRIDE_TYPES),
             })
         out.append({
             "employee_id": employee["id"],
@@ -500,7 +545,7 @@ def export_p5_pdf(core, year, month, out_path, active_only=True, form_date=None,
         while pos < len(widths):
             c.rect(x_positions[pos], y, widths[pos], row_h); pos += 1
 
-        text(margin, 18, "«?» = є план роботи, але факт ще не внесено. Поля статі та окладу не заповнюються, бо ці реквізити зараз не ведуться в Taxo.", 4.8)
+        text(margin, 18, "Якщо факт ще не внесено, П-5 використовує планові години з графіка/маршруту; після внесення факту він має пріоритет. Поля статі та окладу поки не ведуться в Taxo.", 4.8)
         c.showPage()
 
     c.save()
@@ -703,7 +748,27 @@ def install(core, base_app):
                 "notes": entry["notes"] or "",
                 "manual": True,
             }
-        return original_employee_day_time(con, employee_id, target_date)
+        result = original_employee_day_time(con, employee_id, target_date)
+        if int(result.get("planned_minutes") or 0) <= 0:
+            employee = con.execute(
+                "SELECT driver_id FROM employees WHERE id=?", (employee_id,)
+            ).fetchone()
+            driver_id = employee["driver_id"] if employee else None
+            route_minutes = linked_route_plan_minutes(
+                core, con, driver_id, target_date
+            )
+            if route_minutes > 0:
+                result = dict(result)
+                result["planned_minutes"] = route_minutes
+                if str(result.get("day_type") or "") in ("", "Вихідний"):
+                    result["day_type"] = "Робота"
+                source = str(result.get("source") or "").strip()
+                result["source"] = (
+                    source + " + графік маршруту"
+                    if source and source != "—"
+                    else "графік маршруту"
+                )
+        return result
 
     core.employee_day_time = employee_day_time_with_absence
     core.TAXO_NONWORK_OVERRIDE_TYPES = set(NONWORK_OVERRIDE_TYPES)
@@ -832,6 +897,8 @@ def install(core, base_app):
             self.personnel_report_department = core.tk.StringVar(value=core.get_setting("personnel_report_department",""))
             self.personnel_report_edrpou = core.tk.StringVar(value=core.get_setting("company_edrpou",""))
             self.personnel_report_active = core.tk.BooleanVar(value=True)
+            self.personnel_last_p5_pdf = None
+            self.personnel_last_p5_xlsx = None
             row = core.ttk.Frame(rpanel); row.pack(fill="x")
             core.ttk.Label(row,text="Місяць").pack(side="left")
             core.ttk.Spinbox(row,textvariable=self.personnel_report_month,from_=1,to=12,width=5).pack(side="left",padx=(4,10))
@@ -849,7 +916,9 @@ def install(core, base_app):
             core.ttk.Label(rpanel,text="Табель П-5 — за структурою наданого зразка: умовні позначення, 1–31 число, відпрацьований час і причини неявок.",foreground="gray",wraplength=980,justify="left").pack(anchor="w",pady=(12,8))
             b = core.ttk.Frame(rpanel); b.pack(fill="x")
             core.ttk.Button(b,text="Табель П-5 — PDF",command=lambda:self._save_p5("pdf")).pack(side="left",padx=(0,5))
-            core.ttk.Button(b,text="Табель П-5 — Excel",command=lambda:self._save_p5("xlsx")).pack(side="left",padx=5)
+            core.ttk.Button(b,text="Відкрити останній PDF",command=lambda:self._open_last_p5("pdf")).pack(side="left",padx=5)
+            core.ttk.Button(b,text="Табель П-5 — Excel",command=lambda:self._save_p5("xlsx")).pack(side="left",padx=(16,5))
+            core.ttk.Button(b,text="Відкрити останній Excel",command=lambda:self._open_last_p5("xlsx")).pack(side="left",padx=5)
             core.ttk.Button(b,text="Звичайний місячний табель",command=self.show_employee_timesheet).pack(side="left",padx=(16,5))
 
         def _refresh_personnel_overview(self):
@@ -1220,6 +1289,28 @@ def install(core, base_app):
                     result[key]=row["full_name"]
             return result
 
+        def _open_last_p5(self, kind):
+            path = (
+                self.personnel_last_p5_xlsx
+                if kind == "xlsx"
+                else self.personnel_last_p5_pdf
+            )
+            if not path or not Path(path).exists():
+                core.messagebox.showinfo(
+                    "Табель П-5",
+                    "Ще немає сформованого файла цього типу.",
+                    parent=self,
+                )
+                return
+            try:
+                core.open_external(path)
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Табель П-5",
+                    f"Не вдалося відкрити файл:\n{exc}",
+                    parent=self,
+                )
+
         def _save_p5(self, kind):
             try:
                 month=int(self.personnel_report_month.get()); year=int(self.personnel_report_year.get())
@@ -1246,7 +1337,23 @@ def install(core, base_app):
             )
             actual=core.write_output_file(writer,path,parent=self,kind="Excel табеля П-5" if kind=="xlsx" else "PDF табеля П-5",error_title="Табель П-5")
             if actual is not None:
-                core.messagebox.showinfo("Табель П-5",f"Файл створено:\n{actual}",parent=self)
+                if kind == "xlsx":
+                    self.personnel_last_p5_xlsx = Path(actual)
+                else:
+                    self.personnel_last_p5_pdf = Path(actual)
+                if core.messagebox.askyesno(
+                    "Табель П-5",
+                    f"Файл створено:\n{actual}\n\nВідкрити зараз?",
+                    parent=self,
+                ):
+                    try:
+                        core.open_external(actual)
+                    except Exception as exc:
+                        core.messagebox.showerror(
+                            "Табель П-5",
+                            f"Файл створено, але не вдалося його відкрити:\n{exc}",
+                            parent=self,
+                        )
 
     PersonnelApp.__name__="App"
     PersonnelApp.__qualname__="App"
