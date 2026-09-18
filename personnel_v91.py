@@ -300,9 +300,36 @@ def driver_work_intervals(core, con, driver_id, around_date):
         if span:
             intervals.append((span[0], span[1], row, None))
             continue
+
+        # Older/incomplete worklog rows can have only route_id.  Exact route
+        # segment clocks are still valid for overlap checks; duration-only
+        # segments are not converted into invented clock times.
+        route_id = row["route_id"] if "route_id" in row.keys() else None
+        if route_id:
+            route_segs = con.execute(
+                """SELECT * FROM route_segments
+                    WHERE route_id=? ORDER BY segment_no""",
+                (route_id,),
+            ).fetchall()
+            route_found = False
+            for seg in route_segs:
+                rws = (seg["work_start_time"] or seg["start_time"] or "").strip()
+                rwe = (seg["work_end_time"] or seg["end_time"] or "").strip()
+                rspan = _interval_datetimes(base, rws, rwe)
+                if rspan:
+                    intervals.append((rspan[0], rspan[1], row, seg))
+                    route_found = True
+            if route_found:
+                continue
+
         if core.hours_value_to_minutes(row["work_hours"] or 0) > 0:
             unresolved.append(base)
     return intervals, unresolved
+
+
+def _is_driver_role(value):
+    text = str(value or "").strip().lower()
+    return text == "водій" or text.startswith("водій ") or "водій автотранспорт" in text
 
 
 def driver_plan_conflict(core, con, employee, start_dt, end_dt):
@@ -1204,6 +1231,15 @@ def install(core, base_app):
                     if show_error: core.messagebox.showerror("Планування",str(exc),parent=win)
                     return None,[]
                 con=core.db(); rows=[]
+                if emp["driver_id"] and _is_driver_role(role_var.get()):
+                    for d in dates:
+                        rows.append((
+                            d,
+                            "Водій — планувати у «Графік водіїв»",
+                            "Щоб не дублювати маршрут/робочий час у employee_shifts",
+                        ))
+                    con.close()
+                    return (emp,dates,dplus,minutes),rows
                 for d in dates:
                     if not core.employee_employed_on(emp,d):
                         rows.append((d,"Поза періодом роботи","")); continue
@@ -1301,6 +1337,15 @@ def install(core, base_app):
                 con.commit(); con.close(); preview()
                 core.messagebox.showinfo("Планування",f"Записано: {added}. Пропущено: {skipped}.",parent=win)
 
+            core.ttk.Label(
+                body,
+                text=(
+                    "Сумісництво: кілька ролей в один день дозволені, якщо точні часові "
+                    "інтервали не перетинаються. План лише «8 год» не означає 08:00–16:00 "
+                    "і дає попередження, а не автоматичний конфлікт."
+                ),
+                foreground="gray", wraplength=900, justify="left",
+            ).grid(row=9,column=0,columnspan=3,sticky="w",pady=(2,6))
             buttons=core.ttk.Frame(body); buttons.grid(row=10,column=0,columnspan=3,sticky="ew")
             core.ttk.Button(buttons,text="Переглянути",command=preview).pack(side="left",padx=3)
             core.ttk.Button(buttons,text="Застосувати",command=apply).pack(side="left",padx=3)
