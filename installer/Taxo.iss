@@ -1,5 +1,5 @@
 #define MyAppName "Taxo"
-#define MyAppVersion "9.1 candidate r5"
+#define MyAppVersion "9.1 candidate r6"
 #define MyAppPublisher "RomanZavadaM"
 #define MyAppExeName "Taxo.exe"
 
@@ -16,7 +16,7 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\release_out
-OutputBaseFilename=Taxo_v9_1_candidate_r5_Setup_Windows_x64
+OutputBaseFilename=Taxo_v9_1_candidate_r6_Setup_Windows_x64
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -34,7 +34,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Створити ярлик на робочому столі"; GroupDescription: "Додаткові ярлики:"; Flags: checkedonce
 
 [Files]
-Source: "..\dist\Taxo_v9_1_candidate_r5_Windows_x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\Taxo_v9_1_candidate_r6_Windows_x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Taxo"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"
