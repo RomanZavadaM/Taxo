@@ -294,8 +294,17 @@ def driver_work_intervals(core, con, driver_id, around_date):
                 found = True
         if found:
             continue
-        ws = (row["work_start_time"] or row["start_time"] or "").strip()
-        we = (row["work_end_time"] or row["end_time"] or "").strip()
+        row_keys = set(row.keys()) if hasattr(row, "keys") else set()
+        ws = (
+            (row["work_start_time"] if "work_start_time" in row_keys else "")
+            or (row["start_time"] if "start_time" in row_keys else "")
+            or ""
+        ).strip()
+        we = (
+            (row["work_end_time"] if "work_end_time" in row_keys else "")
+            or (row["end_time"] if "end_time" in row_keys else "")
+            or ""
+        ).strip()
         span = _interval_datetimes(base, ws, we)
         if span:
             intervals.append((span[0], span[1], row, None))
@@ -304,7 +313,7 @@ def driver_work_intervals(core, con, driver_id, around_date):
         # Older/incomplete worklog rows can have only route_id.  Exact route
         # segment clocks are still valid for overlap checks; duration-only
         # segments are not converted into invented clock times.
-        route_id = row["route_id"] if "route_id" in row.keys() else None
+        route_id = row["route_id"] if "route_id" in row_keys else None
         if route_id:
             route_segs = con.execute(
                 """SELECT * FROM route_segments
