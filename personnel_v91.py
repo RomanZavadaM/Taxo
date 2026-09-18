@@ -661,6 +661,17 @@ def install(core, base_app):
                         break
                 if sections is not None:
                     sections.insert_command(1, label="Персонал", accelerator="Alt+2", command=lambda: self.show_tab(self.tab_personnel))
+                    # Після додавання нового верхнього розділу зсуваємо підписи
+                    # Alt+... так, щоб вони відповідали фактичним індексам вкладок.
+                    menu_end = sections.index("end")
+                    for item_index in range((menu_end or -1) + 1):
+                        if sections.type(item_index) == "command":
+                            sections.entryconfigure(item_index, accelerator=f"Alt+{item_index+1}")
+                    self.bind_all(
+                        "<Alt-Key-9>",
+                        lambda _event: (self.main_notebook.select(8), "break")[1],
+                        add="+",
+                    )
             except Exception:
                 pass
             return result
