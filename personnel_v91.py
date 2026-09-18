@@ -1353,6 +1353,32 @@ def install(core, base_app):
             rows = _all_employee_rows(core, active_only=True)
             return {_employee_label(row): row for row in rows}
 
+        def show_employee_timesheet(self):
+            result = super().show_employee_timesheet()
+
+            def walk(widget):
+                yield widget
+                try:
+                    for child in widget.winfo_children():
+                        yield from walk(child)
+                except Exception:
+                    return
+
+            # Legacy code had a dangerous mass-fill action with a hard-coded
+            # Mon-Fri 8:00 assumption. r6 disables it; planning is regime-based.
+            for widget in walk(self):
+                try:
+                    if isinstance(widget, core.ttk.Button):
+                        text_value = str(widget.cget("text") or "")
+                        if "Порожні будні" in text_value and "8 год" in text_value:
+                            widget.configure(
+                                text="План за режимом — Персонал → Планування",
+                                state="disabled",
+                            )
+                except Exception:
+                    pass
+            return result
+
         def show_employee_work_regime(self):
             existing = getattr(self, "_work_regime_win", None)
             if widget_alive(existing):
@@ -2173,7 +2199,13 @@ def install(core, base_app):
                     driver_plan=core._driver_plan_minutes_for_day(con,emp["driver_id"],d)
                     shift_plan,_shift_actual,_shift_found=core._employee_shift_minutes_for_day(con,emp["id"],d)
                     current=original_employee_day_time(con,emp["id"],d)
-                    automatic_plan=max(int(driver_plan+shift_plan),int(current["planned_minutes"] or 0))
+                    regime_norm, regime = day_norm_minutes(con,emp["id"],d)
+                    fixed_regime_norm = 0 if regime.regime_type == REGIME_SUMMARIZED else regime_norm
+                    automatic_plan=max(
+                        int(driver_plan+shift_plan),
+                        int(current["planned_minutes"] or 0),
+                        int(fixed_regime_norm or 0),
+                    )
                     if fill_mode.get()==ABSENCE_RANGE_WEEKDAYS and d.weekday()>=5:
                         rows.append((d,"вихідний день","Поза схемою")); continue
                     if fill_mode.get()==ABSENCE_RANGE_PLANNED and automatic_plan<=0:
@@ -2206,7 +2238,13 @@ def install(core, base_app):
                     driver_plan=core._driver_plan_minutes_for_day(con,emp["driver_id"],d)
                     shift_plan,_shift_actual,_shift_found=core._employee_shift_minutes_for_day(con,emp["id"],d)
                     current=original_employee_day_time(con,emp["id"],d)
-                    automatic_plan=max(int(driver_plan+shift_plan),int(current["planned_minutes"] or 0))
+                    regime_norm, regime = day_norm_minutes(con,emp["id"],d)
+                    fixed_regime_norm = 0 if regime.regime_type == REGIME_SUMMARIZED else regime_norm
+                    automatic_plan=max(
+                        int(driver_plan+shift_plan),
+                        int(current["planned_minutes"] or 0),
+                        int(fixed_regime_norm or 0),
+                    )
                     if fill_mode.get()==ABSENCE_RANGE_WEEKDAYS and d.weekday()>=5: continue
                     if fill_mode.get()==ABSENCE_RANGE_PLANNED and automatic_plan<=0: continue
                     if current["actual_minutes"] not in (None,0): continue
