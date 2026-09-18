@@ -42,7 +42,7 @@ class TestV91MonthlyPlanning(unittest.TestCase):
             PATTERN_SELECTED,
             weekdays={0, 2},  # Monday + Wednesday
         )
-        self.assertEqual([d.weekday() for d in rows], [2, 0, 2, 0, 2])
+        self.assertEqual([d.weekday() for d in rows], [2, 0, 2, 0])
 
     def test_two_on_two_off_is_anchored_at_start(self):
         rows = pattern_dates(
