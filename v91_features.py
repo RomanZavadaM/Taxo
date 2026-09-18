@@ -681,8 +681,8 @@ def install(core, base_app):
                         )
                     return None
 
-            def evaluate_plan():
-                plan = parse_plan_inputs(show_error=True)
+            def evaluate_plan(show_error=True):
+                plan = parse_plan_inputs(show_error=show_error)
                 if not plan:
                     return None, []
                 con = core.db()
@@ -756,19 +756,15 @@ def install(core, base_app):
             def preview_plan(silent=False):
                 for item in preview_tree.get_children():
                     preview_tree.delete(item)
-                plan = parse_plan_inputs(show_error=not silent)
-                if not plan:
-                    status_var.set("")
-                    return
-                # Avoid a second error dialog when called automatically while fields
-                # are still incomplete.
                 try:
-                    plan, rows = evaluate_plan()
+                    plan, rows = evaluate_plan(show_error=not silent)
                 except Exception:
                     if not silent:
                         raise
+                    status_var.set("")
                     return
                 if not plan:
+                    status_var.set("")
                     return
                 for work_date, action, current_text in rows:
                     preview_tree.insert(
