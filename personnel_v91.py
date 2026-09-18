@@ -635,6 +635,7 @@ def install(core, base_app):
         return original_employee_day_time(con, employee_id, target_date)
 
     core.employee_day_time = employee_day_time_with_absence
+    core.TAXO_NONWORK_OVERRIDE_TYPES = set(NONWORK_OVERRIDE_TYPES)
 
     class PersonnelApp(base_app):
         def build_ui(self):
@@ -647,6 +648,25 @@ def install(core, base_app):
             self.tab_personnel = core.ttk.Frame(nb)
             nb.insert(1, self.tab_personnel, text="Персонал")
             self._build_personnel_section()
+
+            # Numeric tab indexes became unstable after adding «Персонал».
+            # Keep a label-based preference from r3 onward.
+            def remember_section(_event=None):
+                try:
+                    current = nb.select()
+                    core.set_setting("main_last_tab_label_r3", nb.tab(current, "text"))
+                except Exception:
+                    pass
+            nb.bind("<<NotebookTabChanged>>", remember_section, add="+")
+            saved_label = core.get_setting("main_last_tab_label_r3", "")
+            if saved_label:
+                try:
+                    for index in range(nb.index("end")):
+                        if nb.tab(index, "text") == saved_label:
+                            nb.select(index)
+                            break
+                except core.tk.TclError:
+                    pass
 
         def build_menu(self):
             result = super().build_menu()
@@ -777,7 +797,7 @@ def install(core, base_app):
             win.title("Масове планування робочих змін персоналу")
             core.fit_window_to_screen(win, 980, 720, 780, 560)
             body = core.ttk.Frame(win, padding=10); body.pack(fill="both", expand=True)
-            body.columnconfigure(1, weight=1); body.rowconfigure(10, weight=1)
+            body.columnconfigure(1, weight=1); body.rowconfigure(11, weight=1)
 
             employees = self._active_employee_map()
             employee_var = core.tk.StringVar(value=next(iter(employees), ""))
@@ -793,6 +813,8 @@ def install(core, base_app):
             location = core.tk.StringVar()
             note = core.tk.StringVar(value="Місячний план персоналу")
             replace = core.tk.BooleanVar(value=False)
+            cycle_work = core.tk.StringVar(value="2")
+            cycle_rest = core.tk.StringVar(value="2")
             weekdays = [core.tk.BooleanVar(value=(i<5)) for i in range(7)]
 
             def field(row,label,var,calendar_btn=False):
@@ -824,14 +846,22 @@ def install(core, base_app):
             core.ttk.Label(wf,text="Дні тижня").pack(side="left",padx=(0,6))
             for i,label in enumerate(WEEKDAY_NAMES):
                 core.ttk.Checkbutton(wf,text=label,variable=weekdays[i]).pack(side="left")
-            field(7,"Примітка",note)
-            core.ttk.Checkbutton(body,text="Замінювати існуючий ПЛАН цього працівника (факт не змінювати)",variable=replace).grid(row=8,column=0,columnspan=3,sticky="w",pady=4)
+
+            cycle=core.ttk.Frame(body); cycle.grid(row=7,column=0,columnspan=3,sticky="w",pady=4)
+            core.ttk.Label(cycle,text="Власний цикл: робота").pack(side="left")
+            core.ttk.Spinbox(cycle,textvariable=cycle_work,from_=1,to=31,width=4).pack(side="left",padx=4)
+            core.ttk.Label(cycle,text="дн. / відпочинок").pack(side="left")
+            core.ttk.Spinbox(cycle,textvariable=cycle_rest,from_=1,to=31,width=4).pack(side="left",padx=4)
+            core.ttk.Label(cycle,text="дн.").pack(side="left")
+
+            field(8,"Примітка",note)
+            core.ttk.Checkbutton(body,text="Замінювати існуючий ПЛАН цього працівника (факт не змінювати)",variable=replace).grid(row=9,column=0,columnspan=3,sticky="w",pady=4)
 
             tree=core.ttk.Treeview(body,columns=("date","action","current"),show="headings")
             for k,l,w in (("date","Дата",95),("action","Дія",220),("current","Поточне / конфлікт",520)):
                 tree.heading(k,text=l); tree.column(k,width=w,anchor="w")
             sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview); tree.configure(yscrollcommand=sy.set)
-            tree.grid(row=10,column=0,columnspan=2,sticky="nsew",pady=(8,0)); sy.grid(row=10,column=2,sticky="ns",pady=(8,0))
+            tree.grid(row=11,column=0,columnspan=2,sticky="nsew",pady=(8,0)); sy.grid(row=11,column=2,sticky="ns",pady=(8,0))
 
             def refresh_roles(_event=None):
                 emp=employees.get(employee_var.get())
@@ -845,7 +875,10 @@ def install(core, base_app):
                 start=datetime.strptime(start_var.get().strip(),"%d.%m.%Y").date()
                 end=datetime.strptime(end_var.get().strip(),"%d.%m.%Y").date()
                 wd=[i for i,v in enumerate(weekdays) if v.get()]
-                dates=pattern_dates(start,end,pattern_var.get(),weekdays=wd,work_days=2,rest_days=2)
+                dates=pattern_dates(
+                    start,end,pattern_var.get(),weekdays=wd,
+                    work_days=int(cycle_work.get()),rest_days=int(cycle_rest.get())
+                )
                 if pattern_var.get()==PATTERN_SELECTED and not wd: raise ValueError("Виберіть дні тижня.")
                 dplus=int(end_day.get()); minutes=shift_span_minutes(start_time.get(),end_time.get(),dplus)
                 return emp,dates,dplus,minutes
@@ -860,6 +893,12 @@ def install(core, base_app):
                 for d in dates:
                     if not core.employee_employed_on(emp,d):
                         rows.append((d,"Поза періодом роботи","")); continue
+                    absence=con.execute(
+                        "SELECT day_type,notes FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                        (emp["id"],d.isoformat())
+                    ).fetchone()
+                    if absence and str(absence["day_type"] or "") in NONWORK_OVERRIDE_TYPES:
+                        rows.append((d,"Відсутність — не планувати",f"{absence['day_type']} · {absence['notes'] or ''}")); continue
                     own=con.execute("""SELECT * FROM employee_shifts WHERE employee_id=? AND role=? AND work_date=? AND shift_no=? ORDER BY id""",
                                     (emp["id"],role_var.get(),d.isoformat(),1 if shift_var.get()=="I" else 2)).fetchall()
                     if any(r["actual_hours"] is not None for r in own):
@@ -899,6 +938,12 @@ def install(core, base_app):
                 now_note=note.get().strip()
                 for d,action,_curr in rows:
                     if action not in ("Додати","Замінити план"): skipped+=1; continue
+                    absence=con.execute(
+                        "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                        (emp["id"],d.isoformat())
+                    ).fetchone()
+                    if absence and str(absence["day_type"] or "") in NONWORK_OVERRIDE_TYPES:
+                        skipped+=1; continue
                     own=con.execute("SELECT * FROM employee_shifts WHERE employee_id=? AND role=? AND work_date=? AND shift_no=?",
                                     (emp["id"],role_var.get(),d.isoformat(),1 if shift_var.get()=="I" else 2)).fetchall()
                     if any(r["actual_hours"] is not None for r in own): skipped+=1; continue
@@ -916,7 +961,7 @@ def install(core, base_app):
                 con.commit(); con.close(); preview()
                 core.messagebox.showinfo("Планування",f"Записано: {added}. Пропущено: {skipped}.",parent=win)
 
-            buttons=core.ttk.Frame(body); buttons.grid(row=9,column=0,columnspan=3,sticky="ew")
+            buttons=core.ttk.Frame(body); buttons.grid(row=10,column=0,columnspan=3,sticky="ew")
             core.ttk.Button(buttons,text="Переглянути",command=preview).pack(side="left",padx=3)
             core.ttk.Button(buttons,text="Застосувати",command=apply).pack(side="left",padx=3)
             emp_combo.bind("<<ComboboxSelected>>",refresh_roles)
@@ -1019,6 +1064,56 @@ def install(core, base_app):
             core.ttk.Button(btn,text="Застосувати",command=apply).pack(side="left",padx=3)
             dtype.trace_add("write",lambda *_args:preview())
             preview()
+
+        def _duty_staff_for_interval(self, start_dt, end_dt, location="", con=None):
+            """Лікар/механік для шляхівки з урахуванням табельної відсутності."""
+            own = con is None
+            if own:
+                con = core.db()
+            from_date=(start_dt.date()-timedelta(days=7)).isoformat()
+            rows=con.execute(
+                """SELECT sh.*,e.last_name||' '||e.first_name||
+                          CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END full_name
+                   FROM employee_shifts sh
+                   JOIN employees e ON e.id=sh.employee_id
+                   WHERE sh.work_date BETWEEN ? AND ? AND e.active=1
+                     AND sh.role IN ('Лікар','Механік')
+                   ORDER BY sh.work_date,sh.start_time""",
+                (from_date,end_dt.date().isoformat()),
+            ).fetchall()
+            result={"doctor_1":"","doctor_2":"","mechanic_1":"","mechanic_2":""}
+            ranked=[]
+            for row in rows:
+                base=datetime.strptime(row["work_date"],"%Y-%m-%d")
+                row_start=base+timedelta(minutes=parse_clock(row["start_time"]))
+                row_end=base+timedelta(days=int(row["end_day_offset"] or 0),minutes=parse_clock(row["end_time"]))
+                if row_end <= start_dt or row_start >= end_dt:
+                    continue
+                # Any absence day touched by the staffing interval suppresses
+                # this assignment operationally, while the historical shift remains.
+                cursor=row_start.date()
+                unavailable=False
+                while cursor <= row_end.date():
+                    entry=con.execute(
+                        "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                        (row["employee_id"],cursor.isoformat()),
+                    ).fetchone()
+                    if entry and str(entry["day_type"] or "") in NONWORK_OVERRIDE_TYPES:
+                        unavailable=True
+                        break
+                    cursor += timedelta(days=1)
+                if unavailable:
+                    continue
+                exact_location=1 if location and (row["location"] or "").strip().casefold()==location.strip().casefold() else 0
+                ranked.append((exact_location,row_start,row))
+            if own:
+                con.close()
+            for _match,_start,row in sorted(ranked,key=lambda x:(x[0],x[1]),reverse=True):
+                prefix="doctor" if row["role"]=="Лікар" else "mechanic"
+                key=f"{prefix}_{row['shift_no']}"
+                if not result[key]:
+                    result[key]=row["full_name"]
+            return result
 
         def _save_p5(self, kind):
             try:
