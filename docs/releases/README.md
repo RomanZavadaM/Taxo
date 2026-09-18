@@ -4,6 +4,7 @@
 
 - [Примітки до Taxo 9.0.1](RELEASE_NOTES_v9_0_1.md)
 - [Примітки до Taxo 9.0](RELEASE_NOTES_v9_0.md)
+- [Taxo 9.1 candidate r6 — примітки до pre-release](RELEASE_NOTES_v9_1_candidate_r6.md)
 - [Стабільний реліз Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)
 
 Історичні релізні матеріали версій 8.x винесені в гілку [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
