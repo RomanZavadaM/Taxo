@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.1 candidate r2 application entry point."""
+"""Taxo 9.1 candidate r3 application entry point."""
 import main as core
 from work_analysis_ext import install as install_work_analysis
 from activity_register_60 import install as install_activity_register
 from v9_release import install as install_v9
 from hotfix_901 import install as install_hotfix_901
 from v91_features import install as install_v91
+from personnel_v91 import install as install_personnel
 
-App = install_v91(
+App = install_personnel(
     core,
-    install_hotfix_901(
+    install_v91(
         core,
-        install_v9(
+        install_hotfix_901(
             core,
-            install_activity_register(core, install_work_analysis(core)),
+            install_v9(
+                core,
+                install_activity_register(core, install_work_analysis(core)),
+            ),
         ),
     ),
 )
