@@ -11,6 +11,7 @@ from personnel_v91 import (
     ABSENCE_TYPES,
     NONWORK_OVERRIDE_TYPES,
     P5_CODES,
+    P5_LEGEND,
     collect_p5_data,
     export_p5_pdf,
     export_p5_xlsx,
@@ -145,6 +146,14 @@ class TestPersonnelR3(unittest.TestCase):
         self.assertEqual(p5_code("Відпустка без збереження зарплати за згодою сторін")[:2], ("НА", "18"))
         self.assertIn("Основна щорічна відпустка", ABSENCE_TYPES)
 
+    def test_p5_legend_contains_all_30_codes_from_supplied_sample(self):
+        self.assertEqual(len(P5_LEGEND), 30)
+        by_code = {code: (label, letter) for label, letter, code in P5_LEGEND}
+        self.assertEqual(by_code["10"][1], "Ч")
+        self.assertEqual(by_code["20"][1], "НД")
+        self.assertEqual(by_code["21"][1], "НП")
+        self.assertEqual(by_code["30"][1], "І")
+
     def test_p5_collector_keeps_weekend_blank_and_counts_absences(self):
         with tempfile.TemporaryDirectory() as tmp:
             db_path = Path(tmp) / "db.sqlite3"
@@ -198,15 +207,36 @@ class TestPersonnelR3(unittest.TestCase):
 
     def test_p5_pdf_and_xlsx_smoke(self):
         with tempfile.TemporaryDirectory() as tmp:
+            from openpyxl import load_workbook
+            import fitz
+
             db_path = Path(tmp) / "db.sqlite3"
             make_db(db_path)
             core = FakeCore(db_path)
             pdf = Path(tmp) / "p5.pdf"
             xlsx = Path(tmp) / "p5.xlsx"
-            export_p5_pdf(core, 2026, 8, pdf, True)
-            export_p5_xlsx(core, 2026, 8, xlsx, True)
+            export_p5_pdf(
+                core, 2026, 8, pdf, True,
+                date(2026, 8, 31), "Експлуатаційний відділ", "12345678"
+            )
+            export_p5_xlsx(
+                core, 2026, 8, xlsx, True,
+                date(2026, 8, 31), "Експлуатаційний відділ", "12345678"
+            )
             self.assertTrue(pdf.exists() and pdf.stat().st_size > 1000)
             self.assertTrue(xlsx.exists() and xlsx.stat().st_size > 1000)
+
+            with fitz.open(pdf) as doc:
+                text = "\n".join(page.get_text() for page in doc)
+            self.assertIn("Типова форма № П-5", text)
+            self.assertIn("31.08.2026", text)
+            self.assertIn("12345678", text)
+
+            wb = load_workbook(xlsx, data_only=False)
+            self.assertIn("Табель П-5", wb.sheetnames)
+            self.assertIn("Умовні позначення", wb.sheetnames)
+            self.assertIn("12345678", str(wb["Табель П-5"]["A3"].value))
+            self.assertEqual(wb["Умовні позначення"]["C36"].value, "30")
 
 
 if __name__ == "__main__":
