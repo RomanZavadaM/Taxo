@@ -1279,6 +1279,8 @@ def install(core, base_app):
                 text="Робочі зміни плануються для будь-якого працівника. Відсутності вносяться інтервалом і перекривають автоматичний план у табелі, не видаляючи історичний графік.",
                 foreground="gray", wraplength=950, justify="left"
             ).pack(anchor="w", pady=(4,12))
+            core.ttk.Button(panel, text="Режими робочого часу працівників…", command=self.show_employee_work_regime).pack(anchor="w", pady=4)
+            core.ttk.Button(panel, text="Норма за режимом → план місяця…", command=self.show_regime_month_plan_filler).pack(anchor="w", pady=4)
             core.ttk.Button(panel, text="Робочі зміни — масово…", command=self.show_general_personnel_shift_planner).pack(anchor="w", pady=4)
             core.ttk.Button(panel, text="Відпустки / лікарняні / інші відсутності…", command=self.show_personnel_absence_planner).pack(anchor="w", pady=4)
             core.ttk.Button(panel, text="Лікар / механік для випуску на лінію…", command=self.show_dispatch_month_planner).pack(anchor="w", pady=4)
@@ -1288,6 +1290,7 @@ def install(core, base_app):
             core.ttk.Label(tpanel, text="Табель персоналу", font=("TkDefaultFont",13,"bold")).pack(anchor="w")
             core.ttk.Label(tpanel, text="Щоденний табель, місячний баланс, ручний факт і контроль відсутнього факту.", foreground="gray").pack(anchor="w", pady=(4,12))
             core.ttk.Button(tpanel, text="Відкрити табель персоналу", command=self.show_employee_timesheet).pack(anchor="w", pady=4)
+            core.ttk.Button(tpanel, text="Тижневий баланс усього персоналу…", command=self.show_personnel_week_balance).pack(anchor="w", pady=4)
             core.ttk.Button(tpanel, text="Масово внести відсутність…", command=self.show_personnel_absence_planner).pack(anchor="w", pady=4)
 
             # Звіти
