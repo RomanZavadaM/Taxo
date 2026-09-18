@@ -68,7 +68,24 @@ jobs:
           unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
           unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/hotfix_901.py$'
           unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v91_features.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/personnel_v91.py$'
+          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/personnel_v91.py
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.stem }}
+          path: ${{ steps.pack.outputs.archive }}
+          if-no-files-found: error
+          retention-days: 30
+
+          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/work_regime.py
+      - name: Upload source archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.stem }}
+          path: ${{ steps.pack.outputs.archive }}
+          if-no-files-found: error
+          retention-days: 30
+
 
       - name: Upload source archive
         uses: actions/upload-artifact@v4
