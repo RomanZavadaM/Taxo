@@ -17,7 +17,10 @@ class Taxo901HotfixTests(unittest.TestCase):
     def test_version_file_marks_901(self):
         text = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
         self.assertTrue("Version: 9.0.1" in text or "Baseline: Taxo 9.0.1" in text)
-        self.assertIn("Release type: stable hotfix", text)
+        if "Version: 9.0.1" in text:
+            self.assertIn("Release type: stable hotfix", text)
+        else:
+            self.assertIn("Release type: functional candidate", text)
 
     def test_operational_root_has_no_legacy_v8_report_clutter(self):
         forbidden_prefixes = (
