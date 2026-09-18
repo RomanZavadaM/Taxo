@@ -482,6 +482,112 @@ def _legacy_absence_cell(day_type):
     return code or str(day_type or "")[:4]
 
 
+def _employee_absence_adjustment_minutes(core, con, employee, work_date, regime, base_norm):
+    entry = con.execute(
+        "SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+        (employee["id"], work_date.isoformat()),
+    ).fetchone()
+    if not entry or str(entry["day_type"] or "") not in NONWORK_OVERRIDE_TYPES:
+        return 0
+
+    # Fixed schedules: the legal/calendar norm of that workday is the amount
+    # removed from the norm. For summarized accounting, prefer the approved
+    # work schedule for that day because shifts may vary across the period.
+    if regime.regime_type != REGIME_SUMMARIZED:
+        return int(base_norm)
+
+    driver_plan = core._driver_plan_minutes_for_day(
+        con, employee["driver_id"], work_date
+    )
+    shift_plan, _shift_actual, _shift_found = core._employee_shift_minutes_for_day(
+        con, employee["id"], work_date
+    )
+    scheduled = int(driver_plan + shift_plan)
+    if scheduled <= 0 and employee["driver_id"]:
+        scheduled = linked_route_plan_minutes(
+            core, con, employee["driver_id"], work_date
+        )
+    return int(scheduled or base_norm)
+
+
+def collect_personnel_week_balance(core, anchor_date, active_only=True):
+    """Weekly personnel norm/plan/fact balance.
+
+    For summarized accounting the weekly difference is informational only:
+    overtime is determined at the end of the configured accounting period.
+    """
+    monday = regime_week_start(anchor_date)
+    days = [monday + timedelta(days=i) for i in range(7)]
+    con = core.db()
+    sql = """SELECT e.*,GROUP_CONCAT(er.role, ', ') roles
+             FROM employees e
+             LEFT JOIN employee_roles er ON er.employee_id=e.id"""
+    if active_only:
+        sql += " WHERE e.active=1"
+    sql += " GROUP BY e.id ORDER BY e.active DESC,e.last_name,e.first_name,e.middle_name"
+    employees = con.execute(sql).fetchall()
+    out = []
+    for employee in employees:
+        if not any(core.employee_employed_on(employee, d) for d in days):
+            continue
+        base_norm = adjusted_norm = absence_reduction = 0
+        planned = actual = missing = 0
+        regimes = []
+        explicit = False
+        summarized = False
+        accounting_labels = set()
+        for d in days:
+            if not core.employee_employed_on(employee, d):
+                continue
+            norm, regime = day_norm_minutes(con, employee["id"], d)
+            regimes.append(regime)
+            explicit = explicit or regime.explicit
+            summarized = summarized or regime.regime_type == REGIME_SUMMARIZED
+            accounting_labels.add(regime.accounting_label)
+            base_norm += int(norm)
+            reduction = _employee_absence_adjustment_minutes(
+                core, con, employee, d, regime, norm
+            )
+            absence_reduction += int(reduction)
+            adjusted_norm += max(0, int(norm) - int(reduction))
+
+            row = core.employee_day_time(con, employee["id"], d)
+            planned += int(row["planned_minutes"] or 0)
+            if row["actual_minutes"] is not None:
+                actual += int(row["actual_minutes"] or 0)
+            elif row["planned_minutes"] > 0:
+                missing += 1
+
+        current_regime = regimes[-1] if regimes else latest_regime(con, employee["id"])
+        note_parts = []
+        if not explicit:
+            note_parts.append("режим не задано: типово 5/40")
+        if summarized:
+            note_parts.append(
+                "підсумований облік: тижневий Δ довідковий; надурочні визначаються за обліковий період"
+            )
+        out.append({
+            "employee_id": employee["id"],
+            "personnel_no": employee["personnel_no"] or "",
+            "name": core.employee_name(employee),
+            "roles": employee["roles"] or employee["position"] or "",
+            "regime": current_regime.label,
+            "weekly_norm": current_regime.weekly_norm_minutes,
+            "base_norm": base_norm,
+            "absence_reduction": absence_reduction,
+            "adjusted_norm": adjusted_norm,
+            "planned": planned,
+            "actual": actual,
+            "difference": actual - adjusted_norm,
+            "missing": missing,
+            "summarized": summarized,
+            "accounting_period": ", ".join(sorted(accounting_labels)),
+            "note": "; ".join(note_parts),
+        })
+    con.close()
+    return {"start": monday, "end": monday + timedelta(days=6), "days": days, "employees": out}
+
+
 def collect_p5_data(core, year, month, active_only=True):
     y, m = int(year), int(month)
     days = core.month_dates(y, m)
