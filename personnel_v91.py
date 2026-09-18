@@ -1109,12 +1109,12 @@ def install(core, base_app):
                         rows.append((d,"поза періодом роботи","Пропустити")); continue
                     driver_plan=core._driver_plan_minutes_for_day(con,emp["driver_id"],d)
                     shift_plan,_shift_actual,_shift_found=core._employee_shift_minutes_for_day(con,emp["id"],d)
-                    automatic_plan=int(driver_plan+shift_plan)
+                    current=original_employee_day_time(con,emp["id"],d)
+                    automatic_plan=max(int(driver_plan+shift_plan),int(current["planned_minutes"] or 0))
                     if fill_mode.get()==ABSENCE_RANGE_WEEKDAYS and d.weekday()>=5:
                         rows.append((d,"вихідний день","Поза схемою")); continue
                     if fill_mode.get()==ABSENCE_RANGE_PLANNED and automatic_plan<=0:
                         rows.append((d,"немає робочого плану","Немає робочого плану — пропустити")); continue
-                    current=original_employee_day_time(con,emp["id"],d)
                     entry=con.execute("SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",(emp["id"],d.isoformat())).fetchone()
                     if current["actual_minutes"] not in (None,0):
                         rows.append((d,f"{current['day_type']}; факт {core.minutes_hhmm(current['actual_minutes'])}","Є факт — ручне рішення")); continue
@@ -1142,10 +1142,10 @@ def install(core, base_app):
                     if action not in ("Додати відсутність","Замінити ручний запис"): continue
                     driver_plan=core._driver_plan_minutes_for_day(con,emp["driver_id"],d)
                     shift_plan,_shift_actual,_shift_found=core._employee_shift_minutes_for_day(con,emp["id"],d)
-                    automatic_plan=int(driver_plan+shift_plan)
+                    current=original_employee_day_time(con,emp["id"],d)
+                    automatic_plan=max(int(driver_plan+shift_plan),int(current["planned_minutes"] or 0))
                     if fill_mode.get()==ABSENCE_RANGE_WEEKDAYS and d.weekday()>=5: continue
                     if fill_mode.get()==ABSENCE_RANGE_PLANNED and automatic_plan<=0: continue
-                    current=original_employee_day_time(con,emp["id"],d)
                     if current["actual_minutes"] not in (None,0): continue
                     entry=con.execute("SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",(emp["id"],d.isoformat())).fetchone()
                     if entry and entry["actual_hours"] not in (None,0): continue
