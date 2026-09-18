@@ -12,6 +12,7 @@ from v91_features import (
     PATTERN_WEEKDAYS,
     pattern_dates,
     shift_span_minutes,
+    monthly_plan_action,
     widget_alive,
 )
 from waybill import build_waybill_pdf
@@ -74,6 +75,30 @@ class TestV91MonthlyPlanning(unittest.TestCase):
 
         self.assertFalse(widget_alive(DeadWidget()))
         self.assertFalse(widget_alive(None))
+
+
+    def test_monthly_plan_respects_database_unique_key_without_location(self):
+        own_plan = [{"id": 11, "actual_hours": None, "location": "Гараж А"}]
+        self.assertEqual(
+            monthly_plan_action(own_plan, [], replace=False),
+            "Вже є зміна працівника — пропустити",
+        )
+        self.assertEqual(
+            monthly_plan_action(own_plan, [], replace=True),
+            "Замінити план",
+        )
+
+    def test_monthly_plan_never_replaces_fact_or_other_employee_slot(self):
+        own_fact = [{"id": 12, "actual_hours": 8.0, "location": "Гараж А"}]
+        other_slot = [{"id": 25, "actual_hours": None, "location": "Гараж Б"}]
+        self.assertEqual(
+            monthly_plan_action(own_fact, [], replace=True),
+            "Факт — не змінювати",
+        )
+        self.assertEqual(
+            monthly_plan_action([], other_slot, replace=True),
+            "Зміна зайнята іншим працівником",
+        )
 
 
 class TestV91WaybillRendering(unittest.TestCase):
