@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo 9.0 — native macOS application bundle.
+# Taxo 9.1 candidate r1 — native macOS application bundle.
 # Build separately on Apple Silicon and Intel; user databases are forbidden.
 
 a = Analysis(
@@ -8,7 +8,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('Бланк підтвердження.docx', '.'), ('attestation_visual_template.pdf', '.')],
-    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'fitz', 'pymupdf'],
+    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'fitz', 'pymupdf'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -50,12 +50,12 @@ app = BUNDLE(
     name='Taxo.app',
     icon=None,
     bundle_identifier='com.romanzavadam.taxo',
-    version='9.0',
+    version='9.1',
     info_plist={
         'CFBundleDisplayName': 'Taxo',
         'CFBundleName': 'Taxo',
-        'CFBundleShortVersionString': '9.0',
-        'CFBundleVersion': '9.0',
+        'CFBundleShortVersionString': '9.1',
+        'CFBundleVersion': '9.1',
         'LSApplicationCategoryType': 'public.app-category.productivity',
         'NSPrincipalClass': 'NSApplication',
         'NSHighResolutionCapable': True,
