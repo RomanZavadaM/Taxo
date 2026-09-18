@@ -104,10 +104,11 @@ class TestV91WaybillRendering(unittest.TestCase):
         output = self._make_pdf("ТОВ АВТОТРАНСПОРТНЕ ПІДПРИЄМСТВО")
         with fitz.open(output) as doc:
             text = "\n".join(page.get_text() for page in doc)
-        self.assertIn("ТОВ АВТОТРАНСПОРТНЕ", text)
-        self.assertNotIn("Місце для штампа", text)
-        self.assertIn("Тестовий Лікар", text)
-        self.assertIn("Тестовий Механік", text)
+        normalized = " ".join(text.split())
+        self.assertIn("ТОВ АВТОТРАНСПОРТНЕ", normalized)
+        self.assertNotIn("Місце для штампа", normalized)
+        self.assertIn("Тестовий Лікар", normalized)
+        self.assertIn("Тестовий Механік", normalized)
 
     def test_empty_company_keeps_stamp_hint(self):
         output = self._make_pdf("")
