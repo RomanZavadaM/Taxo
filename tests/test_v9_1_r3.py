@@ -3,7 +3,7 @@ import calendar
 import sqlite3
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -17,6 +17,8 @@ from personnel_v91 import (
     export_p5_xlsx,
     install,
     p5_code,
+    driver_plan_conflict,
+    _legacy_absence_cell,
 )
 
 
@@ -74,6 +76,24 @@ class FakeCore:
     @staticmethod
     def report_font_candidates():
         return []
+
+    def collect_monthly_work_balance(self, year, month, active_only=True):
+        days = self.month_dates(year, month)
+        return {
+            "year": int(year),
+            "month": int(month),
+            "days": days,
+            "drivers": [{
+                "driver_id": 10,
+                "personnel_no": "D10",
+                "name": "Тестовий Водій",
+                "cells": ["8:00"] * len(days),
+                "work_days": len(days),
+                "work_min": len(days) * 480,
+                "over_min": 0,
+            }],
+            "company": None,
+        }
 
     def employee_day_time(self, con, employee_id, target_date):
         entry = con.execute(
@@ -146,6 +166,17 @@ def make_db(path):
         CREATE TABLE route_segments(
             id INTEGER PRIMARY KEY,
             route_id INTEGER,
+            segment_no INTEGER,
+            start_time TEXT DEFAULT '',
+            end_time TEXT DEFAULT '',
+            work_start_time TEXT DEFAULT '',
+            work_end_time TEXT DEFAULT '',
+            work_hours REAL DEFAULT 0,
+            driving_hours REAL DEFAULT 0
+        );
+        CREATE TABLE work_segments(
+            id INTEGER PRIMARY KEY,
+            worklog_id INTEGER,
             segment_no INTEGER,
             start_time TEXT DEFAULT '',
             end_time TEXT DEFAULT '',
@@ -280,6 +311,99 @@ class TestPersonnelR3(unittest.TestCase):
             self.assertEqual(cell["hours"], 525)
             self.assertNotEqual(cell["code"], "?")
             self.assertTrue(cell["missing"])
+
+    def test_duration_only_driver_plan_does_not_invent_clock_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "db.sqlite3"
+            make_db(db_path)
+            con = sqlite3.connect(db_path)
+            con.row_factory = sqlite3.Row
+            con.execute("UPDATE employees SET driver_id=10 WHERE id=1")
+            con.execute(
+                """INSERT INTO worklog(
+                       id,driver_id,work_date,overtime_hours,route_id,
+                       work_hours,work_start_time,work_end_time
+                   ) VALUES(1,10,'2026-08-06',0,NULL,8,'','')"""
+            )
+            con.commit()
+            employee = con.execute("SELECT * FROM employees WHERE id=1").fetchone()
+            core = FakeCore(db_path)
+            conflict = driver_plan_conflict(
+                core, con, employee,
+                datetime(2026,8,6,7,0),
+                datetime(2026,8,6,10,0),
+            )
+            con.close()
+            self.assertIsNotNone(conflict)
+            self.assertEqual(conflict["kind"], "unknown_time")
+            self.assertIsNone(conflict["start"])
+            self.assertIsNone(conflict["end"])
+
+    def test_internal_role_allows_non_overlapping_driver_interval(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "db.sqlite3"
+            make_db(db_path)
+            con = sqlite3.connect(db_path)
+            con.row_factory = sqlite3.Row
+            con.execute("UPDATE employees SET driver_id=10 WHERE id=1")
+            con.execute(
+                """INSERT INTO worklog(
+                       id,driver_id,work_date,overtime_hours,route_id,
+                       work_hours,work_start_time,work_end_time
+                   ) VALUES(1,10,'2026-08-06',0,NULL,6,'11:00','17:00')"""
+            )
+            con.commit()
+            employee = con.execute("SELECT * FROM employees WHERE id=1").fetchone()
+            core = FakeCore(db_path)
+            no_conflict = driver_plan_conflict(
+                core, con, employee,
+                datetime(2026,8,6,7,0),
+                datetime(2026,8,6,10,0),
+            )
+            overlap = driver_plan_conflict(
+                core, con, employee,
+                datetime(2026,8,6,12,0),
+                datetime(2026,8,6,14,0),
+            )
+            con.close()
+            self.assertIsNone(no_conflict)
+            self.assertIsNotNone(overlap)
+            self.assertEqual(overlap["kind"], "overlap")
+            self.assertEqual(overlap["start"].strftime("%H:%M"), "11:00")
+            self.assertEqual(overlap["end"].strftime("%H:%M"), "17:00")
+
+    def test_old_driver_balance_reflects_personnel_vacation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "db.sqlite3"
+            make_db(db_path)
+            con = sqlite3.connect(db_path)
+            con.execute("UPDATE employees SET driver_id=10 WHERE id=1")
+            con.execute(
+                """INSERT INTO worklog(
+                       id,driver_id,work_date,overtime_hours,route_id,
+                       work_hours,work_start_time,work_end_time
+                   ) VALUES(1,10,'2026-08-04',0,NULL,8,'08:00','16:00')"""
+            )
+            con.commit()
+            con.close()
+
+            core = FakeCore(db_path)
+            core.tk = SimpleNamespace(TclError=Exception)
+            core.ttk = SimpleNamespace()
+            core.messagebox = SimpleNamespace()
+            core.filedialog = SimpleNamespace()
+            core.fmt_date = lambda value: value
+            core.OUTPUT_DIR = Path(tmp)
+            core.write_output_file = lambda *a, **k: None
+
+            Base = type("Base", (), {})
+            install(core, Base)
+            data = core.collect_monthly_work_balance(2026, 8, True)
+            driver = data["drivers"][0]
+            self.assertEqual(driver["cells"][3], "Відп")  # 04.08
+            self.assertEqual(driver["work_min"], 30 * 480)
+            self.assertEqual(driver["work_days"], 30)
+            self.assertEqual(_legacy_absence_cell("Оплачувана тимчасова непрацездатність"), "Лік")
 
     def test_p5_pdf_and_xlsx_smoke(self):
         with tempfile.TemporaryDirectory() as tmp:
