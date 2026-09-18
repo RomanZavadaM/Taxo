@@ -8,16 +8,17 @@
 from __future__ import annotations
 
 import calendar
+import sqlite3
 from datetime import date, datetime, timedelta
 
 
-APP_VERSION = "9.1 candidate r1"
+APP_VERSION = "9.1 candidate r2"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — Працівники, графіки та шляхівки"
 ABOUT_TITLE = f"Taxo {APP_VERSION}"
 ABOUT_TEXT = (
     "Облік роботи водіїв і персоналу, графіків, шляхових листів, табелів, "
     "бланків підтвердження діяльності та аналогових тахокарт.\n\n"
-    "9.1 candidate r1: місячне планування лікаря/механіка, оновлене оформлення "
+    "9.1 candidate r2: місячне планування лікаря/механіка, оновлене оформлення "
     "шляхового листа та виправлення відкриття табеля після закриття реєстру працівників.\n"
     "Схема робочої бази не змінюється."
 )
@@ -125,6 +126,37 @@ def widget_alive(widget) -> bool:
         return bool(widget.winfo_exists())
     except Exception:
         return False
+
+
+def _row_value(row, key, default=None):
+    try:
+        return row[key]
+    except Exception:
+        return getattr(row, key, default)
+
+
+def monthly_plan_action(own_rows, slot_rows, *, replace=False):
+    """Classify one target date before writing a monthly dispatch plan.
+
+    Database uniqueness is employee + role + work_date + shift_no; location is
+    deliberately not part of that key. Therefore an existing shift of the same
+    employee must be considered even when it belongs to another location.
+    """
+    own_rows = list(own_rows or [])
+    own_ids = {int(_row_value(row, "id", -1)) for row in own_rows}
+    other_slot = [
+        row for row in (slot_rows or [])
+        if int(_row_value(row, "id", -1)) not in own_ids
+    ]
+    if any(_row_value(row, "actual_hours") is not None for row in own_rows):
+        return "Факт — не змінювати"
+    if own_rows and not replace:
+        return "Вже є зміна працівника — пропустити"
+    if other_slot:
+        return "Зміна зайнята іншим працівником"
+    if own_rows and replace:
+        return "Замінити план"
+    return "Додати"
 
 
 def _replace_about_command(core, app):
@@ -483,8 +515,8 @@ def install(core, base_app):
             core.ttk.Checkbutton(
                 plan_outer,
                 text=(
-                    "Замінювати існуючий ПЛАН цієї ролі/зміни/місця "
-                    "(записи з фактом не змінюються)"
+                    "Замінювати існуючий ПЛАН цього працівника для цієї ролі/зміни "
+                    "(місце може змінитися; записи з фактом не змінюються)"
                 ),
                 variable=replace_var,
             ).grid(row=9, column=0, columnspan=3, sticky="w", pady=(5, 7))
@@ -695,7 +727,22 @@ def install(core, base_app):
                             (work_date, "Поза періодом роботи", "Працівник не працює на цю дату")
                         )
                         continue
-                    same = con.execute(
+
+                    own = con.execute(
+                        """SELECT sh.*,e.last_name,e.first_name,e.middle_name
+                           FROM employee_shifts sh
+                           JOIN employees e ON e.id=sh.employee_id
+                           WHERE sh.employee_id=? AND sh.work_date=?
+                             AND sh.role=? AND sh.shift_no=?
+                           ORDER BY sh.id""",
+                        (
+                            plan["employee"]["id"],
+                            work_date.isoformat(),
+                            plan["role"],
+                            plan["shift_no"],
+                        ),
+                    ).fetchall()
+                    slot = con.execute(
                         """SELECT sh.*,e.last_name,e.first_name,e.middle_name
                            FROM employee_shifts sh
                            JOIN employees e ON e.id=sh.employee_id
@@ -709,6 +756,11 @@ def install(core, base_app):
                             plan["location"],
                         ),
                     ).fetchall()
+
+                    action = monthly_plan_action(
+                        own, slot, replace=replace_var.get()
+                    )
+                    detail_rows = own if own else slot
                     current = "; ".join(
                         f"{_full_name(row)} {row['start_time']}–"
                         + (
@@ -716,17 +768,19 @@ def install(core, base_app):
                             if int(row["end_day_offset"] or 0)
                             else row["end_time"]
                         )
-                        for row in same
-                    )
-                    if any(row["actual_hours"] is not None for row in same):
-                        rows.append(
-                            (work_date, "Факт — не змінювати", current or "Є фактичний запис")
+                        + (
+                            f" · {row['location']}"
+                            if (row["location"] or "").strip()
+                            else ""
                         )
+                        for row in detail_rows
+                    )
+
+                    if action not in ("Додати", "Замінити план"):
+                        rows.append((work_date, action, current))
                         continue
-                    if same and not replace_var.get():
-                        rows.append((work_date, "Вже заплановано — пропустити", current))
-                        continue
-                    ignore_ids = [row["id"] for row in same] if replace_var.get() else []
+
+                    ignore_ids = [row["id"] for row in own] if replace_var.get() else []
                     overlap = self._v91_existing_overlap(
                         con,
                         role=plan["role"],
@@ -743,13 +797,16 @@ def install(core, base_app):
                                 work_date,
                                 "Конфлікт часу",
                                 f"{_full_name(overlap)} · {overlap['start_time']}–"
-                                f"D+{int(overlap['end_day_offset'] or 0)} {overlap['end_time']}",
+                                f"D+{int(overlap['end_day_offset'] or 0)} {overlap['end_time']}"
+                                + (
+                                    f" · {overlap['location']}"
+                                    if (overlap["location"] or "").strip()
+                                    else ""
+                                ),
                             )
                         )
-                    elif same and replace_var.get():
-                        rows.append((work_date, "Замінити план", current))
                     else:
-                        rows.append((work_date, "Додати", ""))
+                        rows.append((work_date, action, current))
                 con.close()
                 return plan, rows
 
@@ -818,10 +875,26 @@ def install(core, base_app):
                         if _action not in ("Додати", "Замінити план"):
                             skipped += 1
                             continue
-                        same = con.execute(
+
+                        # Re-read immediately before each write. Preview may be stale,
+                        # and SQLite uniqueness ignores location.
+                        own = con.execute(
+                            """SELECT * FROM employee_shifts
+                               WHERE employee_id=? AND work_date=?
+                                 AND role=? AND shift_no=?
+                               ORDER BY id""",
+                            (
+                                plan["employee"]["id"],
+                                work_date.isoformat(),
+                                plan["role"],
+                                plan["shift_no"],
+                            ),
+                        ).fetchall()
+                        slot = con.execute(
                             """SELECT * FROM employee_shifts
                                WHERE work_date=? AND role=? AND shift_no=?
-                                 AND lower(COALESCE(location,''))=lower(?)""",
+                                 AND lower(COALESCE(location,''))=lower(?)
+                               ORDER BY id""",
                             (
                                 work_date.isoformat(),
                                 plan["role"],
@@ -829,13 +902,15 @@ def install(core, base_app):
                                 plan["location"],
                             ),
                         ).fetchall()
-                        if any(row["actual_hours"] is not None for row in same):
+
+                        action = monthly_plan_action(
+                            own, slot, replace=replace_var.get()
+                        )
+                        if action not in ("Додати", "Замінити план"):
                             skipped += 1
                             continue
-                        ignore_ids = [row["id"] for row in same] if replace_var.get() else []
-                        if same and not replace_var.get():
-                            skipped += 1
-                            continue
+
+                        own_ids = [row["id"] for row in own]
                         overlap = self._v91_existing_overlap(
                             con,
                             role=plan["role"],
@@ -844,36 +919,49 @@ def install(core, base_app):
                             start_time=plan["start_time"],
                             end_time=plan["end_time"],
                             end_day_offset=plan["end_day"],
-                            ignore_ids=ignore_ids,
+                            ignore_ids=own_ids if replace_var.get() else [],
                         )
                         if overlap:
                             conflicts += 1
                             continue
-                        if same and replace_var.get():
-                            con.executemany(
-                                "DELETE FROM employee_shifts WHERE id=? AND actual_hours IS NULL",
-                                [(row["id"],) for row in same],
+
+                        savepoint = f"v91_day_{work_date.strftime('%Y%m%d')}"
+                        con.execute(f"SAVEPOINT {savepoint}")
+                        removed = 0
+                        try:
+                            if own and replace_var.get():
+                                con.executemany(
+                                    "DELETE FROM employee_shifts WHERE id=? AND actual_hours IS NULL",
+                                    [(row["id"],) for row in own],
+                                )
+                                removed = len(own)
+                            con.execute(
+                                """INSERT INTO employee_shifts(
+                                       employee_id,role,work_date,shift_no,start_time,
+                                       end_day_offset,end_time,location,planned_hours,
+                                       actual_hours,status,notes
+                                   ) VALUES(?,?,?,?,?,?,?,?,?,NULL,'planned',?)""",
+                                (
+                                    plan["employee"]["id"],
+                                    plan["role"],
+                                    work_date.isoformat(),
+                                    plan["shift_no"],
+                                    plan["start_time"],
+                                    plan["end_day"],
+                                    plan["end_time"],
+                                    plan["location"],
+                                    plan["minutes"] / 60.0,
+                                    note,
+                                ),
                             )
-                            replaced += len(same)
-                        con.execute(
-                            """INSERT INTO employee_shifts(
-                                   employee_id,role,work_date,shift_no,start_time,
-                                   end_day_offset,end_time,location,planned_hours,
-                                   actual_hours,status,notes
-                               ) VALUES(?,?,?,?,?,?,?,?,?,NULL,'planned',?)""",
-                            (
-                                plan["employee"]["id"],
-                                plan["role"],
-                                work_date.isoformat(),
-                                plan["shift_no"],
-                                plan["start_time"],
-                                plan["end_day"],
-                                plan["end_time"],
-                                plan["location"],
-                                plan["minutes"] / 60.0,
-                                note,
-                            ),
-                        )
+                            con.execute(f"RELEASE SAVEPOINT {savepoint}")
+                        except sqlite3.IntegrityError:
+                            con.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                            con.execute(f"RELEASE SAVEPOINT {savepoint}")
+                            conflicts += 1
+                            continue
+
+                        replaced += removed
                         added += 1
                     con.commit()
                 except Exception:
@@ -895,7 +983,7 @@ def install(core, base_app):
                     "План на місяць",
                     f"Записано змін: {added}.\n"
                     f"Замінено старих планових записів: {replaced}.\n"
-                    f"Пропущено: {skipped}. Конфліктів часу: {conflicts}.",
+                    f"Пропущено: {skipped}. Конфліктів часу/унікальності: {conflicts}.",
                     parent=win,
                 )
 
