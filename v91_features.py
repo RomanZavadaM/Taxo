@@ -728,6 +728,20 @@ def install(core, base_app):
                         )
                         continue
 
+                    absence = con.execute(
+                        "SELECT day_type,notes FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                        (plan["employee"]["id"], work_date.isoformat()),
+                    ).fetchone()
+                    if absence and str(absence["day_type"] or "") in getattr(core, "TAXO_NONWORK_OVERRIDE_TYPES", set()):
+                        rows.append(
+                            (
+                                work_date,
+                                "Відсутність — не планувати",
+                                f"{absence['day_type']} · {absence['notes'] or ''}",
+                            )
+                        )
+                        continue
+
                     own = con.execute(
                         """SELECT sh.*,e.last_name,e.first_name,e.middle_name
                            FROM employee_shifts sh
@@ -876,8 +890,17 @@ def install(core, base_app):
                             skipped += 1
                             continue
 
-                        # Re-read immediately before each write. Preview may be stale,
-                        # and SQLite uniqueness ignores location.
+                        # Re-read immediately before each write. Preview may be stale.
+                        # Табельна відсутність має вищий пріоритет за робочий план.
+                        absence = con.execute(
+                            "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                            (plan["employee"]["id"], work_date.isoformat()),
+                        ).fetchone()
+                        if absence and str(absence["day_type"] or "") in getattr(core, "TAXO_NONWORK_OVERRIDE_TYPES", set()):
+                            skipped += 1
+                            continue
+
+                        # SQLite uniqueness ignores location.
                         own = con.execute(
                             """SELECT * FROM employee_shifts
                                WHERE employee_id=? AND work_date=?
