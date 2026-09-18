@@ -34,7 +34,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "9.1 candidate r4"
+APP_VERSION = "9.1 candidate r5"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
@@ -136,7 +136,7 @@ P5_LEGEND = (
     ("Інші причини неявок", "І", "30"),
 )
 
-NONWORK_OVERRIDE_TYPES = set(ABSENCE_TYPES) | {"Відпустка", "Лікарняний", "Вихідний", "Відпочинок"}
+NONWORK_OVERRIDE_TYPES = (set(ABSENCE_TYPES) - {"Відрядження"}) | {"Відпустка", "Лікарняний", "Вихідний", "Відпочинок"}
 
 # Групи підсумкових колонок праворуч, як у наданому зразку П-5.
 P5_ABSENCE_GROUPS = (
@@ -239,6 +239,120 @@ def linked_route_plan_minutes(core, con, driver_id, target_date):
                 pass
         total += core.hours_value_to_minutes(seg["work_hours"] or 0)
     return int(total)
+
+
+def _interval_datetimes(day, start_text, end_text):
+    start_text = str(start_text or "").strip()
+    end_text = str(end_text or "").strip()
+    if not start_text or not end_text:
+        return None
+    start_dt = datetime.combine(day, datetime.min.time()) + timedelta(
+        minutes=parse_clock(start_text)
+    )
+    end_dt = datetime.combine(day, datetime.min.time()) + timedelta(
+        minutes=parse_clock(end_text)
+    )
+    if end_dt <= start_dt:
+        end_dt += timedelta(days=1)
+    return start_dt, end_dt
+
+
+def driver_work_intervals(core, con, driver_id, around_date):
+    """Exact driver work intervals touching around_date +/- 1 day.
+
+    Returns (intervals, unresolved_days).  unresolved_days contains worklog
+    dates with positive planned work but no exact time boundaries.
+    """
+    if not driver_id:
+        return [], []
+    rows = con.execute(
+        """SELECT * FROM worklog
+            WHERE driver_id=? AND work_date BETWEEN ? AND ?
+            ORDER BY work_date,id""",
+        (
+            driver_id,
+            (around_date - timedelta(days=1)).isoformat(),
+            (around_date + timedelta(days=1)).isoformat(),
+        ),
+    ).fetchall()
+    intervals = []
+    unresolved = []
+    for row in rows:
+        base = date.fromisoformat(row["work_date"])
+        segs = con.execute(
+            """SELECT * FROM work_segments
+                WHERE worklog_id=? ORDER BY segment_no""",
+            (row["id"],),
+        ).fetchall()
+        found = False
+        for seg in segs:
+            ws = (seg["work_start_time"] or seg["start_time"] or "").strip()
+            we = (seg["work_end_time"] or seg["end_time"] or "").strip()
+            span = _interval_datetimes(base, ws, we)
+            if span:
+                intervals.append((span[0], span[1], row, seg))
+                found = True
+        if found:
+            continue
+        ws = (row["work_start_time"] or row["start_time"] or "").strip()
+        we = (row["work_end_time"] or row["end_time"] or "").strip()
+        span = _interval_datetimes(base, ws, we)
+        if span:
+            intervals.append((span[0], span[1], row, None))
+            continue
+        if core.hours_value_to_minutes(row["work_hours"] or 0) > 0:
+            unresolved.append(base)
+    return intervals, unresolved
+
+
+def driver_plan_conflict(core, con, employee, start_dt, end_dt):
+    """Check another-role shift against the employee's driver schedule.
+
+    Non-overlapping internal concurrent work is allowed.  If driver work has
+    positive hours but no exact clock boundaries, planning is blocked because
+    the system cannot prove that the two roles do not overlap.
+    """
+    driver_id = employee["driver_id"]
+    if not driver_id:
+        return None
+    intervals, unresolved = driver_work_intervals(
+        core, con, driver_id, start_dt.date()
+    )
+    for work_start, work_end, row, _seg in intervals:
+        if start_dt < work_end and work_start < end_dt:
+            return {
+                "kind": "overlap",
+                "date": row["work_date"],
+                "start": work_start,
+                "end": work_end,
+                "route": (row["route_name"] if "route_name" in row.keys() else "") or "",
+            }
+    if unresolved:
+        return {
+            "kind": "unknown_time",
+            "date": unresolved[0].isoformat(),
+            "start": None,
+            "end": None,
+            "route": "",
+        }
+    return None
+
+
+def _legacy_absence_cell(day_type):
+    code, numeric, _label = p5_code(day_type)
+    if numeric in {"08","09","10","11","12","13","14","15","16","17","18","19"}:
+        return "Відп"
+    if numeric in {"26","27"}:
+        return "Лік"
+    if numeric == "23":
+        return "Прст"
+    if numeric == "24":
+        return "Прог"
+    if numeric == "25":
+        return "Стр"
+    if numeric in {"28","29","30"}:
+        return "Неяв"
+    return code or str(day_type or "")[:4]
 
 
 def collect_p5_data(core, year, month, active_only=True):
@@ -727,6 +841,55 @@ def install(core, base_app):
         return core.App
 
     original_employee_day_time = core.employee_day_time
+    original_collect_monthly_work_balance = core.collect_monthly_work_balance
+
+    def collect_monthly_work_balance_with_absence(year, month, active_only=True):
+        data = original_collect_monthly_work_balance(year, month, active_only)
+        con = core.db()
+        start = data["days"][0].isoformat()
+        end = data["days"][-1].isoformat()
+        links = con.execute(
+            """SELECT id,driver_id FROM employees
+                WHERE driver_id IS NOT NULL"""
+        ).fetchall()
+        employee_by_driver = {
+            int(row["driver_id"]): int(row["id"]) for row in links
+            if row["driver_id"] is not None
+        }
+        entries = con.execute(
+            """SELECT * FROM employee_time_entries
+                WHERE work_date BETWEEN ? AND ?""",
+            (start, end),
+        ).fetchall()
+        entry_by = {(int(row["employee_id"]), row["work_date"]): row for row in entries}
+        work_rows = con.execute(
+            """SELECT * FROM worklog
+                WHERE work_date BETWEEN ? AND ?""",
+            (start, end),
+        ).fetchall()
+        work_by = {(int(row["driver_id"]), row["work_date"]): row for row in work_rows}
+        con.close()
+
+        for driver in data["drivers"]:
+            employee_id = employee_by_driver.get(int(driver["driver_id"]))
+            if not employee_id:
+                continue
+            for idx, day in enumerate(data["days"]):
+                entry = entry_by.get((employee_id, day.isoformat()))
+                if not entry or str(entry["day_type"] or "") not in NONWORK_OVERRIDE_TYPES:
+                    continue
+                driver["cells"][idx] = _legacy_absence_cell(entry["day_type"])
+                work = work_by.get((int(driver["driver_id"]), day.isoformat()))
+                if work is not None:
+                    wm = core.hours_value_to_minutes(work["work_hours"])
+                    om = core.hours_value_to_minutes(work["overtime_hours"])
+                    driver["work_min"] = max(0, driver["work_min"] - wm)
+                    driver["over_min"] = max(0, driver["over_min"] - om)
+                    if wm > 0:
+                        driver["work_days"] = max(0, driver["work_days"] - 1)
+        return data
+
+    core.collect_monthly_work_balance = collect_monthly_work_balance_with_absence
 
     def employee_day_time_with_absence(con, employee_id, target_date):
         if isinstance(target_date, str):
@@ -1070,6 +1233,26 @@ def install(core, base_app):
                         if start_dt < re and rs < end_dt: conflict=rr; break
                     if conflict:
                         rows.append((d,"Конфлікт з іншою зміною",f"{conflict['role']} {conflict['start_time']}–{conflict['end_time']}")); continue
+
+                    driver_conflict = driver_plan_conflict(
+                        core, con, emp, start_dt, end_dt
+                    )
+                    if driver_conflict:
+                        if driver_conflict["kind"] == "overlap":
+                            rows.append((
+                                d,
+                                "Конфлікт з графіком водія",
+                                f"{driver_conflict['start'].strftime('%H:%M')}–"
+                                f"{driver_conflict['end'].strftime('%H:%M')}"
+                                + (f" · {driver_conflict['route']}" if driver_conflict['route'] else ""),
+                            ))
+                        else:
+                            rows.append((
+                                d,
+                                "Графік водія без точного часу",
+                                "Є план водія, але немає меж початок/кінець — потрібне ручне рішення",
+                            ))
+                        continue
                     rows.append((d,"Замінити план" if own else "Додати",""))
                 con.close(); return (emp,dates,dplus,minutes),rows
 
@@ -1098,6 +1281,10 @@ def install(core, base_app):
                     own=con.execute("SELECT * FROM employee_shifts WHERE employee_id=? AND role=? AND work_date=? AND shift_no=?",
                                     (emp["id"],role_var.get(),d.isoformat(),1 if shift_var.get()=="I" else 2)).fetchall()
                     if any(r["actual_hours"] is not None for r in own): skipped+=1; continue
+                    start_dt=datetime.combine(d,datetime.min.time())+timedelta(minutes=parse_clock(start_time.get()))
+                    end_dt=datetime.combine(d+timedelta(days=dplus),datetime.min.time())+timedelta(minutes=parse_clock(end_time.get()))
+                    if driver_plan_conflict(core, con, emp, start_dt, end_dt):
+                        skipped+=1; continue
                     if own and replace.get():
                         con.executemany("DELETE FROM employee_shifts WHERE id=? AND actual_hours IS NULL",[(r["id"],) for r in own])
                     elif own:
@@ -1288,6 +1475,56 @@ def install(core, base_app):
                 if not result[key]:
                     result[key]=row["full_name"]
             return result
+
+        def refresh_month(self):
+            """Legacy driver timesheet with personnel absence overlay."""
+            super().refresh_month()
+            tree = getattr(self, "work_tree", None)
+            driver_id = getattr(self, "driver_id", None)
+            if not widget_alive(tree) or not driver_id:
+                return
+            con = core.db()
+            employee = con.execute(
+                "SELECT id FROM employees WHERE driver_id=? ORDER BY active DESC,id LIMIT 1",
+                (driver_id,),
+            ).fetchone()
+            if employee is None:
+                con.close()
+                return
+            entries = {
+                row["work_date"]: row
+                for row in con.execute(
+                    """SELECT * FROM employee_time_entries
+                        WHERE employee_id=? AND substr(work_date,1,7)=?""",
+                    (
+                        employee["id"],
+                        f"{int(self.year_var.get()):04d}-{int(self.month_var.get()):02d}",
+                    ),
+                ).fetchall()
+            }
+            con.close()
+            for item in tree.get_children():
+                values = list(tree.item(item, "values"))
+                if len(values) < 13:
+                    continue
+                try:
+                    day = datetime.strptime(values[1], "%d.%m.%Y").date()
+                except Exception:
+                    continue
+                entry = entries.get(day.isoformat())
+                if not entry or str(entry["day_type"] or "") not in NONWORK_OVERRIDE_TYPES:
+                    continue
+                values[3] = entry["day_type"]
+                values[4] = "план перекрито відсутністю"
+                values[5] = ""
+                values[6] = "0:00"
+                values[7] = "0:00"
+                values[8] = "0:00"
+                note = str(entry["notes"] or "").strip()
+                values[11] = (
+                    f"Відсутність: {note}" if note else "Відсутність із табеля персоналу"
+                )
+                tree.item(item, values=values)
 
         def _open_last_p5(self, kind):
             path = (
