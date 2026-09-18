@@ -309,8 +309,8 @@ def driver_plan_conflict(core, con, employee, start_dt, end_dt):
     """Check another-role shift against the employee's driver schedule.
 
     Non-overlapping internal concurrent work is allowed.  If driver work has
-    positive hours but no exact clock boundaries, planning is blocked because
-    the system cannot prove that the two roles do not overlap.
+    positive duration but no exact clock boundaries, Taxo must not invent a
+    time-of-day. Such a day is advisory only: planning is allowed with a warning.
     """
     driver_id = employee["driver_id"]
     if not driver_id:
@@ -1249,9 +1249,10 @@ def install(core, base_app):
                         else:
                             rows.append((
                                 d,
-                                "Графік водія без точного часу",
-                                "Є план водія, але немає меж початок/кінець — потрібне ручне рішення",
+                                "Замінити план ⚠" if own else "Додати ⚠",
+                                "Є план водія лише за тривалістю; точний час не задано, перетин не перевіряється",
                             ))
+                            continue
                         continue
                     rows.append((d,"Замінити план" if own else "Додати",""))
                 con.close(); return (emp,dates,dplus,minutes),rows
@@ -1264,14 +1265,14 @@ def install(core, base_app):
             def apply():
                 plan,rows=evaluate()
                 if not plan: return
-                writable=[x for x in rows if x[1] in ("Додати","Замінити план")]
+                writable=[x for x in rows if x[1] in ("Додати","Замінити план","Додати ⚠","Замінити план ⚠")]
                 if not writable:
                     core.messagebox.showinfo("Планування","Немає дат для запису.",parent=win); return
                 if not core.messagebox.askyesno("Планування",f"Записати {len(writable)} змін(и)?",parent=win): return
                 emp,dates,dplus,minutes=plan; con=core.db(); added=0; skipped=0
                 now_note=note.get().strip()
                 for d,action,_curr in rows:
-                    if action not in ("Додати","Замінити план"): skipped+=1; continue
+                    if action not in ("Додати","Замінити план","Додати ⚠","Замінити план ⚠"): skipped+=1; continue
                     absence=con.execute(
                         "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
                         (emp["id"],d.isoformat())
@@ -1283,7 +1284,8 @@ def install(core, base_app):
                     if any(r["actual_hours"] is not None for r in own): skipped+=1; continue
                     start_dt=datetime.combine(d,datetime.min.time())+timedelta(minutes=parse_clock(start_time.get()))
                     end_dt=datetime.combine(d+timedelta(days=dplus),datetime.min.time())+timedelta(minutes=parse_clock(end_time.get()))
-                    if driver_plan_conflict(core, con, emp, start_dt, end_dt):
+                    driver_conflict=driver_plan_conflict(core, con, emp, start_dt, end_dt)
+                    if driver_conflict and driver_conflict["kind"]=="overlap":
                         skipped+=1; continue
                     if own and replace.get():
                         con.executemany("DELETE FROM employee_shifts WHERE id=? AND actual_hours IS NULL",[(r["id"],) for r in own])
