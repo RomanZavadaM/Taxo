@@ -1350,6 +1350,543 @@ def install(core, base_app):
             rows = _all_employee_rows(core, active_only=True)
             return {_employee_label(row): row for row in rows}
 
+        def show_employee_work_regime(self):
+            existing = getattr(self, "_work_regime_win", None)
+            if widget_alive(existing):
+                existing.lift()
+                return
+            win = core.tk.Toplevel(self)
+            self._work_regime_win = win
+            win.title("Режим робочого часу працівника")
+            core.fit_window_to_screen(win, 1040, 760, 820, 600)
+            body = core.ttk.Frame(win, padding=10)
+            body.pack(fill="both", expand=True)
+            body.columnconfigure(1, weight=1)
+            body.rowconfigure(11, weight=1)
+
+            rows = _all_employee_rows(core, active_only=False)
+            employees = {_employee_label(row): row for row in rows}
+            selected_id = None
+            tree = getattr(self, "personnel_overview_tree", None)
+            if widget_alive(tree) and tree.selection():
+                try:
+                    selected_id = int(tree.selection()[0])
+                except Exception:
+                    selected_id = None
+            initial = next(
+                (label for label, row in employees.items() if row["id"] == selected_id),
+                next(iter(employees), ""),
+            )
+
+            employee_var = core.tk.StringVar(value=initial)
+            effective_from = core.tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
+            effective_to = core.tk.StringVar()
+            regime_label = core.tk.StringVar(value=REGIME_LABELS[REGIME_FIVE_DAY])
+            period_label = core.tk.StringVar(value=PERIOD_LABELS[PERIOD_WEEK])
+            weekly_norm = core.tk.StringVar(value="40:00")
+            weekday_vars = [core.tk.StringVar(value=v) for v in ("8:00","8:00","8:00","8:00","8:00","0:00","0:00")]
+            notes = core.tk.StringVar()
+
+            def field(row_no, label, variable, calendar=False):
+                core.ttk.Label(body, text=label).grid(row=row_no, column=0, sticky="w", pady=4, padx=(0,8))
+                core.ttk.Entry(body, textvariable=variable).grid(row=row_no, column=1, sticky="ew", pady=4)
+                if calendar:
+                    core.calendar_button(body, variable).grid(row=row_no, column=2, sticky="w", padx=4)
+
+            core.ttk.Label(body, text="Працівник").grid(row=0, column=0, sticky="w", pady=4)
+            employee_combo = core.ttk.Combobox(
+                body, textvariable=employee_var, values=list(employees),
+                state="readonly", width=55
+            )
+            employee_combo.grid(row=0, column=1, sticky="ew", pady=4)
+            field(1, "Діє з", effective_from, True)
+            field(2, "Діє до (порожньо = безстроково)", effective_to, True)
+
+            core.ttk.Label(body, text="Режим").grid(row=3, column=0, sticky="w", pady=4)
+            core.ttk.Combobox(
+                body, textvariable=regime_label, values=list(REGIME_BY_LABEL),
+                state="readonly"
+            ).grid(row=3, column=1, sticky="ew", pady=4)
+
+            core.ttk.Label(body, text="Обліковий період").grid(row=4, column=0, sticky="w", pady=4)
+            core.ttk.Combobox(
+                body, textvariable=period_label, values=list(PERIOD_BY_LABEL),
+                state="readonly"
+            ).grid(row=4, column=1, sticky="ew", pady=4)
+
+            field(5, "Тижнева норма, ГГ:ХХ", weekly_norm)
+
+            days = core.ttk.LabelFrame(body, text="Норма за днями тижня", padding=8)
+            days.grid(row=6, column=0, columnspan=3, sticky="ew", pady=8)
+            for idx, label in enumerate(REGIME_WEEKDAY_LABELS):
+                core.ttk.Label(days, text=label).grid(row=0, column=idx, padx=3)
+                core.ttk.Entry(days, textvariable=weekday_vars[idx], width=8).grid(row=1, column=idx, padx=3, pady=3)
+
+            presets = core.ttk.Frame(body)
+            presets.grid(row=7, column=0, columnspan=3, sticky="w", pady=4)
+
+            def apply_preset(key):
+                day_values, weekly = PRESETS[key]()
+                regime_label.set(
+                    REGIME_LABELS[REGIME_FIVE_DAY if key.startswith("5/") else REGIME_SIX_DAY]
+                )
+                period_label.set(PERIOD_LABELS[PERIOD_WEEK])
+                weekly_norm.set(regime_hhmm(weekly))
+                for var, value in zip(weekday_vars, day_values):
+                    var.set(regime_hhmm(value))
+
+            core.ttk.Label(presets, text="Шаблони:").pack(side="left", padx=(0,4))
+            for key, label in (
+                ("5/40","5 днів / 40 год"),
+                ("6/40","6 днів / 40 год"),
+                ("6/36","6 днів / 36 год"),
+                ("6/24","6 днів / 24 год"),
+            ):
+                core.ttk.Button(
+                    presets, text=label, command=lambda k=key: apply_preset(k)
+                ).pack(side="left", padx=3)
+
+            field(8, "Примітка / підстава", notes)
+            info_var = core.tk.StringVar()
+            core.ttk.Label(
+                body, textvariable=info_var, foreground="gray",
+                wraplength=940, justify="left"
+            ).grid(row=9, column=0, columnspan=3, sticky="w", pady=(2,6))
+
+            history_frame = core.ttk.LabelFrame(body, text="Історія режимів", padding=6)
+            history_frame.grid(row=11, column=0, columnspan=3, sticky="nsew", pady=(8,0))
+            history_frame.rowconfigure(0, weight=1)
+            history_frame.columnconfigure(0, weight=1)
+            history = core.ttk.Treeview(
+                history_frame,
+                columns=("from","to","regime","period","weekly","schedule","notes"),
+                show="headings",
+            )
+            for key, label, width in (
+                ("from","З",90),("to","До",90),("regime","Режим",170),
+                ("period","Облік",100),("weekly","Норма",75),
+                ("schedule","Пн–Нд",280),("notes","Примітка",260),
+            ):
+                history.heading(key, text=label)
+                history.column(key, width=width, anchor="w")
+            sy = core.ttk.Scrollbar(history_frame, orient="vertical", command=history.yview)
+            sx = core.ttk.Scrollbar(history_frame, orient="horizontal", command=history.xview)
+            history.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)
+            history.grid(row=0, column=0, sticky="nsew")
+            sy.grid(row=0, column=1, sticky="ns")
+            sx.grid(row=1, column=0, sticky="ew")
+
+            def selected_employee():
+                row = employees.get(employee_var.get())
+                if not row:
+                    raise ValueError("Виберіть працівника.")
+                return row
+
+            def load_history(_event=None):
+                for item in history.get_children():
+                    history.delete(item)
+                try:
+                    employee = selected_employee()
+                except ValueError:
+                    return
+                con = core.db()
+                records = con.execute(
+                    """SELECT * FROM employee_work_regimes
+                       WHERE employee_id=?
+                       ORDER BY effective_from DESC,id DESC""",
+                    (employee["id"],),
+                ).fetchall()
+                latest = latest_regime(con, employee["id"])
+                con.close()
+                if records:
+                    for row in records:
+                        schedule = " ".join(
+                            f"{REGIME_WEEKDAY_LABELS[i]} {regime_hhmm(row[f'{key}_minutes'])}"
+                            for i, key in enumerate(("mon","tue","wed","thu","fri","sat","sun"))
+                            if int(row[f"{key}_minutes"] or 0) > 0
+                        )
+                        history.insert("", "end", iid=str(row["id"]), values=(
+                            core.fmt_date(row["effective_from"]),
+                            core.fmt_date(row["effective_to"]),
+                            REGIME_LABELS.get(row["regime_type"], row["regime_type"]),
+                            PERIOD_LABELS.get(row["accounting_period"], row["accounting_period"]),
+                            regime_hhmm(row["weekly_norm_minutes"]),
+                            schedule, row["notes"] or "",
+                        ))
+                else:
+                    history.insert("", "end", values=(
+                        "—","—",latest.label + " (типово)", latest.accounting_label,
+                        regime_hhmm(latest.weekly_norm_minutes),
+                        "Пн–Пт 8:00","Режим ще не задано явно",
+                    ))
+                info_var.set(
+                    "Звичайна норма за КЗпП — до 40:00/тиждень. Для 6-денного тижня "
+                    "Taxo контролює денні межі 7:00 при 40:00, 6:00 при 36:00 і 4:00 при 24:00. "
+                    "Для підсумованого обліку тижневий баланс довідковий; надурочні визначаються "
+                    "за підсумком установленого облікового періоду."
+                )
+
+            def load_selected_history(_event=None):
+                sel = history.selection()
+                if not sel:
+                    return
+                try:
+                    regime_id = int(sel[0])
+                except ValueError:
+                    return
+                con = core.db()
+                row = con.execute(
+                    "SELECT * FROM employee_work_regimes WHERE id=?", (regime_id,)
+                ).fetchone()
+                con.close()
+                if not row:
+                    return
+                effective_from.set(core.fmt_date(row["effective_from"]))
+                effective_to.set(core.fmt_date(row["effective_to"]))
+                regime_label.set(REGIME_LABELS.get(row["regime_type"], row["regime_type"]))
+                period_label.set(PERIOD_LABELS.get(row["accounting_period"], row["accounting_period"]))
+                weekly_norm.set(regime_hhmm(row["weekly_norm_minutes"]))
+                for idx, key in enumerate(("mon","tue","wed","thu","fri","sat","sun")):
+                    weekday_vars[idx].set(regime_hhmm(row[f"{key}_minutes"]))
+                notes.set(row["notes"] or "")
+
+            def new_period():
+                effective_from.set(date.today().strftime("%d.%m.%Y"))
+                effective_to.set("")
+                notes.set("")
+                apply_preset("5/40")
+
+            def save_current():
+                try:
+                    employee = selected_employee()
+                    start = datetime.strptime(effective_from.get().strip(), "%d.%m.%Y").date()
+                    end_text = effective_to.get().strip()
+                    end = datetime.strptime(end_text, "%d.%m.%Y").date() if end_text else None
+                    if end is not None and end < start:
+                        raise ValueError("Дата «до» раніше дати «з».")
+                    regime_type = REGIME_BY_LABEL[regime_label.get()]
+                    period = PERIOD_BY_LABEL[period_label.get()]
+                    weekly = regime_parse_hhmm(weekly_norm.get())
+                    day_values = tuple(regime_parse_hhmm(var.get()) for var in weekday_vars)
+                    errors, warnings = validate_regime(regime_type, weekly, day_values)
+                    if errors:
+                        raise ValueError("\n".join(errors))
+                except Exception as exc:
+                    core.messagebox.showerror("Режим робочого часу", str(exc), parent=win)
+                    return
+
+                if warnings and not core.messagebox.askyesno(
+                    "Перевірте правову підставу",
+                    "\n".join(warnings) + "\n\nЗберегти цей режим?",
+                    parent=win,
+                ):
+                    return
+
+                con = core.db()
+                try:
+                    # Close an older open-ended period when a genuinely new
+                    # effective date is inserted, preserving history.
+                    existing_same = con.execute(
+                        """SELECT id FROM employee_work_regimes
+                           WHERE employee_id=? AND effective_from=?""",
+                        (employee["id"], start.isoformat()),
+                    ).fetchone()
+                    if existing_same is None:
+                        previous = con.execute(
+                            """SELECT id,effective_from,effective_to
+                               FROM employee_work_regimes
+                               WHERE employee_id=? AND effective_from<?
+                               ORDER BY effective_from DESC,id DESC LIMIT 1""",
+                            (employee["id"], start.isoformat()),
+                        ).fetchone()
+                        if previous and (
+                            not (previous["effective_to"] or "").strip()
+                            or previous["effective_to"] >= start.isoformat()
+                        ):
+                            con.execute(
+                                "UPDATE employee_work_regimes SET effective_to=?,updated_at=? WHERE id=?",
+                                (
+                                    (start - timedelta(days=1)).isoformat(),
+                                    datetime.now().isoformat(timespec="seconds"),
+                                    previous["id"],
+                                ),
+                            )
+                    save_regime(
+                        con,
+                        employee_id=employee["id"],
+                        effective_from=start,
+                        effective_to=end,
+                        regime_type=regime_type,
+                        accounting_period=period,
+                        weekly_norm_minutes=weekly,
+                        weekday_minutes=day_values,
+                        notes=notes.get().strip(),
+                    )
+                    con.commit()
+                finally:
+                    con.close()
+                load_history()
+                self._refresh_personnel_overview()
+                core.messagebox.showinfo(
+                    "Режим робочого часу",
+                    "Режим збережено. Історичні табелі використовують режим, що діяв на відповідну дату.",
+                    parent=win,
+                )
+
+            actions = core.ttk.Frame(body)
+            actions.grid(row=10, column=0, columnspan=3, sticky="ew", pady=4)
+            core.ttk.Button(actions, text="Новий період", command=new_period).pack(side="left", padx=3)
+            core.ttk.Button(actions, text="Зберегти режим", command=save_current).pack(side="left", padx=3)
+            core.ttk.Button(actions, text="Закрити", command=win.destroy).pack(side="right", padx=3)
+            employee_combo.bind("<<ComboboxSelected>>", load_history)
+            history.bind("<<TreeviewSelect>>", load_selected_history)
+            load_history()
+
+        def show_personnel_week_balance(self):
+            existing = getattr(self, "_personnel_week_balance_win", None)
+            if widget_alive(existing):
+                existing.lift()
+                return
+            win = core.tk.Toplevel(self)
+            self._personnel_week_balance_win = win
+            win.title("Тижневий баланс робочого часу — весь персонал")
+            core.fit_window_to_screen(win, 1500, 760, 980, 560)
+            top = core.ttk.Frame(win, padding=8)
+            top.pack(fill="x")
+            anchor = core.tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
+            active_only = core.tk.BooleanVar(value=True)
+            core.ttk.Label(top, text="Дата у тижні").pack(side="left")
+            core.ttk.Entry(top, textvariable=anchor, width=12).pack(side="left", padx=(4,3))
+            core.calendar_button(top, anchor).pack(side="left", padx=(0,8))
+            core.ttk.Checkbutton(
+                top, text="Тільки активні працівники", variable=active_only
+            ).pack(side="left", padx=8)
+
+            frame = core.ttk.Frame(win)
+            frame.pack(fill="both", expand=True, padx=8, pady=(0,6))
+            frame.rowconfigure(0, weight=1)
+            frame.columnconfigure(0, weight=1)
+            cols = (
+                "personnel","name","roles","regime","norm","absence","adjusted",
+                "plan","fact","difference","missing","note"
+            )
+            tree = core.ttk.Treeview(frame, columns=cols, show="headings")
+            for key, label, width in (
+                ("personnel","Таб. №",80),("name","Працівник",260),("roles","Посада/ролі",180),
+                ("regime","Режим",170),("norm","Норма",75),("absence","− відсутн.",85),
+                ("adjusted","Скориг.",80),("plan","План",75),("fact","Факт",75),
+                ("difference","Δ",75),("missing","Без факту",75),("note","Примітка",390),
+            ):
+                tree.heading(key, text=label)
+                tree.column(key, width=width, anchor="w" if key in ("name","roles","regime","note") else "center")
+            sy = core.ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+            sx = core.ttk.Scrollbar(frame, orient="horizontal", command=tree.xview)
+            tree.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)
+            tree.grid(row=0, column=0, sticky="nsew")
+            sy.grid(row=0, column=1, sticky="ns")
+            sx.grid(row=1, column=0, sticky="ew")
+            status = core.tk.StringVar()
+            core.ttk.Label(win, textvariable=status, font=("TkDefaultFont",9,"bold")).pack(
+                fill="x", padx=10, pady=(0,3)
+            )
+            core.ttk.Label(
+                win,
+                text=(
+                    "Норма = календарна норма працівника за його режимом. "
+                    "«− відсутн.» коригує норму на законну відпустку/лікарняний у години, "
+                    "які за графіком мали бути робочими. Для підсумованого обліку тижневий Δ "
+                    "інформаційний — надурочні визначаються наприкінці облікового періоду."
+                ),
+                foreground="gray", wraplength=1450, justify="left",
+            ).pack(fill="x", padx=10, pady=(0,7))
+
+            def read_anchor():
+                try:
+                    return datetime.strptime(anchor.get().strip(), "%d.%m.%Y").date()
+                except ValueError:
+                    core.messagebox.showerror(
+                        "Тижневий баланс", "Дата має бути у форматі ДД.ММ.РРРР.", parent=win
+                    )
+                    return None
+
+            def refresh():
+                current = read_anchor()
+                if not current:
+                    return
+                data = collect_personnel_week_balance(core, current, active_only.get())
+                for item in tree.get_children():
+                    tree.delete(item)
+                for row in data["employees"]:
+                    tree.insert("", "end", values=(
+                        row["personnel_no"], row["name"], row["roles"], row["regime"],
+                        regime_hhmm(row["base_norm"]),
+                        ("-" + regime_hhmm(row["absence_reduction"])) if row["absence_reduction"] else "0:00",
+                        regime_hhmm(row["adjusted_norm"]),
+                        regime_hhmm(row["planned"]),
+                        regime_hhmm(row["actual"]),
+                        regime_hhmm(row["difference"]),
+                        row["missing"], row["note"],
+                    ))
+                status.set(
+                    f"{data['start'].strftime('%d.%m.%Y')}–{data['end'].strftime('%d.%m.%Y')}: "
+                    f"працівників {len(data['employees'])}"
+                )
+
+            def move_week(delta):
+                current = read_anchor()
+                if not current:
+                    return
+                anchor.set((current + timedelta(days=delta * 7)).strftime("%d.%m.%Y"))
+                refresh()
+
+            core.ttk.Button(top, text="← Тиждень", command=lambda: move_week(-1)).pack(side="left", padx=3)
+            core.ttk.Button(top, text="Оновити", command=refresh).pack(side="left", padx=3)
+            core.ttk.Button(top, text="Тиждень →", command=lambda: move_week(1)).pack(side="left", padx=3)
+            active_only.trace_add("write", lambda *_: refresh())
+            refresh()
+
+        def show_regime_month_plan_filler(self):
+            existing = getattr(self, "_regime_fill_win", None)
+            if widget_alive(existing):
+                existing.lift()
+                return
+            win = core.tk.Toplevel(self)
+            self._regime_fill_win = win
+            win.title("Заповнити план за режимом робочого часу")
+            core.fit_window_to_screen(win, 900, 650, 720, 520)
+            body = core.ttk.Frame(win, padding=10)
+            body.pack(fill="both", expand=True)
+            body.columnconfigure(1, weight=1)
+            body.rowconfigure(5, weight=1)
+
+            employees = self._active_employee_map()
+            employee_var = core.tk.StringVar(value=next(iter(employees), ""))
+            today = date.today()
+            month_var = core.tk.StringVar(value=str(today.month))
+            year_var = core.tk.StringVar(value=str(today.year))
+            core.ttk.Label(body, text="Працівник").grid(row=0,column=0,sticky="w",pady=4)
+            core.ttk.Combobox(
+                body,textvariable=employee_var,values=list(employees),state="readonly"
+            ).grid(row=0,column=1,sticky="ew",pady=4)
+            core.ttk.Label(body,text="Місяць").grid(row=1,column=0,sticky="w",pady=4)
+            mr=core.ttk.Frame(body); mr.grid(row=1,column=1,sticky="w")
+            core.ttk.Spinbox(mr,textvariable=month_var,from_=1,to=12,width=5).pack(side="left")
+            core.ttk.Label(mr,text="Рік").pack(side="left",padx=(10,3))
+            core.ttk.Spinbox(mr,textvariable=year_var,from_=2020,to=2100,width=7).pack(side="left")
+
+            info = core.tk.StringVar()
+            core.ttk.Label(
+                body,textvariable=info,foreground="gray",wraplength=820,justify="left"
+            ).grid(row=2,column=0,columnspan=2,sticky="w",pady=(4,8))
+
+            tree = core.ttk.Treeview(
+                body,columns=("date","weekday","norm","action"),show="headings"
+            )
+            for key,label,width in (
+                ("date","Дата",100),("weekday","День",70),
+                ("norm","Норма",90),("action","Дія",520),
+            ):
+                tree.heading(key,text=label); tree.column(key,width=width,anchor="w")
+            tree.grid(row=5,column=0,columnspan=2,sticky="nsew")
+            sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview)
+            tree.configure(yscrollcommand=sy.set); sy.grid(row=5,column=2,sticky="ns")
+
+            def evaluate():
+                employee = employees.get(employee_var.get())
+                if not employee:
+                    raise ValueError("Виберіть працівника.")
+                y=int(year_var.get()); m=int(month_var.get())
+                con=core.db(); rows=[]
+                summarized=False
+                for day_no in range(1,calendar.monthrange(y,m)[1]+1):
+                    d=date(y,m,day_no)
+                    if not core.employee_employed_on(employee,d):
+                        continue
+                    norm, regime = day_norm_minutes(con,employee["id"],d)
+                    summarized = summarized or regime.regime_type == REGIME_SUMMARIZED
+                    if norm<=0:
+                        continue
+                    entry=con.execute(
+                        "SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                        (employee["id"],d.isoformat())
+                    ).fetchone()
+                    driver=core._driver_plan_minutes_for_day(con,employee["driver_id"],d)
+                    shift,_actual,_found=core._employee_shift_minutes_for_day(con,employee["id"],d)
+                    if entry:
+                        action="Є ручний запис — не змінювати"
+                    elif driver>0 or shift>0:
+                        action="Є графік/зміна — не дублювати"
+                    else:
+                        action="Додати план за режимом"
+                    rows.append((d,norm,action))
+                con.close()
+                return employee,rows,summarized
+
+            def preview():
+                for item in tree.get_children(): tree.delete(item)
+                try:
+                    employee,rows,summarized=evaluate()
+                except Exception as exc:
+                    core.messagebox.showerror("План за режимом",str(exc),parent=win); return
+                for d,norm,action in rows:
+                    tree.insert("", "end", values=(
+                        d.strftime("%d.%m.%Y"),REGIME_WEEKDAY_LABELS[d.weekday()],
+                        regime_hhmm(norm),action
+                    ))
+                info.set(
+                    ("Підсумований облік: цей режим визначає норму, але робочі зміни мають задаватися затвердженим графіком. "
+                     "Автоматичне заповнення за тижневим шаблоном вимкнено."
+                     if summarized else
+                     "Заповнюються лише порожні нормативні робочі дні. Існуючі маршрути, зміни, ручні записи та факт не змінюються.")
+                )
+
+            def apply():
+                try:
+                    employee,rows,summarized=evaluate()
+                except Exception as exc:
+                    core.messagebox.showerror("План за режимом",str(exc),parent=win); return
+                if summarized:
+                    core.messagebox.showwarning(
+                        "Підсумований облік",
+                        "Для підсумованого обліку плануйте фактичний графік змін/маршрутів. "
+                        "Taxo використовує режим для норми облікового періоду, але не вигадує розподіл змін.",
+                        parent=win,
+                    )
+                    return
+                writable=[x for x in rows if x[2]=="Додати план за режимом"]
+                if not writable:
+                    core.messagebox.showinfo("План за режимом","Немає порожніх днів для запису.",parent=win); return
+                if not core.messagebox.askyesno(
+                    "План за режимом",
+                    f"Записати план за режимом на {len(writable)} дн. для {core.employee_name(employee)}?",
+                    parent=win,
+                ):
+                    return
+                con=core.db(); now=datetime.now().isoformat(timespec="seconds"); added=0
+                try:
+                    for d,norm,_action in writable:
+                        con.execute(
+                            """INSERT INTO employee_time_entries(
+                                 employee_id,work_date,day_type,planned_hours,actual_hours,
+                                 notes,created_at,updated_at
+                               ) VALUES(?,?,?, ?,NULL,?,?,?)""",
+                            (
+                                employee["id"],d.isoformat(),"Робота",
+                                norm/60.0,"План за режимом робочого часу",now,now
+                            ),
+                        )
+                        added+=1
+                    con.commit()
+                finally:
+                    con.close()
+                preview()
+                core.messagebox.showinfo("План за режимом",f"Додано планових днів: {added}.",parent=win)
+
+            actions=core.ttk.Frame(body); actions.grid(row=4,column=0,columnspan=2,sticky="w",pady=5)
+            core.ttk.Button(actions,text="Переглянути",command=preview).pack(side="left",padx=3)
+            core.ttk.Button(actions,text="Застосувати",command=apply).pack(side="left",padx=3)
+            preview()
+
         def show_general_personnel_shift_planner(self):
             existing = getattr(self, "_personnel_shift_win", None)
             if widget_alive(existing):
