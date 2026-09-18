@@ -37,6 +37,10 @@ from v91_features import (
 APP_VERSION = "9.1 candidate r3"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
+ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
+ABSENCE_RANGE_WEEKDAYS = "Пн–Пт"
+ABSENCE_RANGE_ALL = "Усі календарні дні"
+
 # Типи, які в ручному табелі перекривають автоматичний робочий план.
 # Старі значення «Відпустка»/«Лікарняний» лишаються сумісними.
 ABSENCE_TYPES = (
@@ -1007,13 +1011,14 @@ def install(core, base_app):
             win.title("Масове внесення відпусток / лікарняних / відсутностей")
             core.fit_window_to_screen(win,980,700,760,540)
             body=core.ttk.Frame(win,padding=10); body.pack(fill="both",expand=True)
-            body.columnconfigure(1,weight=1); body.rowconfigure(8,weight=1)
+            body.columnconfigure(1,weight=1); body.rowconfigure(9,weight=1)
             employees=self._active_employee_map()
             employee_var=core.tk.StringVar(value=next(iter(employees),""))
             dtype=core.tk.StringVar(value=ABSENCE_TYPES[0])
             start_var=core.tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
             end_var=core.tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
             notes=core.tk.StringVar()
+            fill_mode=core.tk.StringVar(value=ABSENCE_RANGE_PLANNED)
             replace=core.tk.BooleanVar(value=False)
 
             core.ttk.Label(body,text="Працівник").grid(row=0,column=0,sticky="w",pady=5)
@@ -1024,15 +1029,21 @@ def install(core, base_app):
                 core.ttk.Label(body,text=label).grid(row=row,column=0,sticky="w",pady=5)
                 core.ttk.Entry(body,textvariable=var).grid(row=row,column=1,sticky="ew",pady=5)
                 if row in (2,3): core.calendar_button(body,var).grid(row=row,column=2,sticky="w",padx=4)
-            core.ttk.Checkbutton(body,text="Замінювати існуючий ручний запис, якщо в ньому немає фактичних годин",variable=replace).grid(row=5,column=0,columnspan=3,sticky="w",pady=5)
+            core.ttk.Label(body,text="Заповнювати").grid(row=5,column=0,sticky="w",pady=5)
+            core.ttk.Combobox(
+                body,textvariable=fill_mode,
+                values=(ABSENCE_RANGE_PLANNED,ABSENCE_RANGE_WEEKDAYS,ABSENCE_RANGE_ALL),
+                state="readonly"
+            ).grid(row=5,column=1,sticky="ew",pady=5)
+            core.ttk.Checkbutton(body,text="Замінювати існуючий ручний запис, якщо в ньому немає фактичних годин",variable=replace).grid(row=6,column=0,columnspan=3,sticky="w",pady=5)
             code_label=core.tk.StringVar()
-            core.ttk.Label(body,textvariable=code_label,foreground="gray").grid(row=6,column=0,columnspan=3,sticky="w",pady=(0,5))
+            core.ttk.Label(body,textvariable=code_label,foreground="gray").grid(row=7,column=0,columnspan=3,sticky="w",pady=(0,5))
 
             tree=core.ttk.Treeview(body,columns=("date","before","action"),show="headings")
             for k,l,w in (("date","Дата",100),("before","Було",520),("action","Результат",250)):
                 tree.heading(k,text=l); tree.column(k,width=w,anchor="w")
             sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview); tree.configure(yscrollcommand=sy.set)
-            tree.grid(row=8,column=0,columnspan=2,sticky="nsew"); sy.grid(row=8,column=2,sticky="ns")
+            tree.grid(row=9,column=0,columnspan=2,sticky="nsew"); sy.grid(row=9,column=2,sticky="ns")
 
             def selected_period():
                 emp=employees.get(employee_var.get())
@@ -1051,6 +1062,13 @@ def install(core, base_app):
                 for d in dates:
                     if not core.employee_employed_on(emp,d):
                         rows.append((d,"поза періодом роботи","Пропустити")); continue
+                    driver_plan=core._driver_plan_minutes_for_day(con,emp["driver_id"],d)
+                    shift_plan,_shift_actual,_shift_found=core._employee_shift_minutes_for_day(con,emp["id"],d)
+                    automatic_plan=int(driver_plan+shift_plan)
+                    if fill_mode.get()==ABSENCE_RANGE_WEEKDAYS and d.weekday()>=5:
+                        rows.append((d,"вихідний день","Поза схемою")); continue
+                    if fill_mode.get()==ABSENCE_RANGE_PLANNED and automatic_plan<=0:
+                        rows.append((d,"немає робочого плану","Немає робочого плану — пропустити")); continue
                     current=original_employee_day_time(con,emp["id"],d)
                     entry=con.execute("SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",(emp["id"],d.isoformat())).fetchone()
                     if current["actual_minutes"] not in (None,0):
@@ -1077,25 +1095,34 @@ def install(core, base_app):
                 emp,_dates=plan; con=core.db(); now=datetime.now().isoformat(timespec="seconds"); added=0
                 for d,_before,action in rows:
                     if action not in ("Додати відсутність","Замінити ручний запис"): continue
+                    driver_plan=core._driver_plan_minutes_for_day(con,emp["driver_id"],d)
+                    shift_plan,_shift_actual,_shift_found=core._employee_shift_minutes_for_day(con,emp["id"],d)
+                    automatic_plan=int(driver_plan+shift_plan)
+                    if fill_mode.get()==ABSENCE_RANGE_WEEKDAYS and d.weekday()>=5: continue
+                    if fill_mode.get()==ABSENCE_RANGE_PLANNED and automatic_plan<=0: continue
                     current=original_employee_day_time(con,emp["id"],d)
                     if current["actual_minutes"] not in (None,0): continue
                     entry=con.execute("SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",(emp["id"],d.isoformat())).fetchone()
+                    if entry and entry["actual_hours"] not in (None,0): continue
                     if entry and not replace.get(): continue
                     note_text=notes.get().strip()
                     con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,planned_hours,actual_hours,notes,created_at,updated_at)
-                                   VALUES(?,?,?,0,0,?,?,?)
+                                   VALUES(?,?,?,0,NULL,?,?,?)
                                    ON CONFLICT(employee_id,work_date) DO UPDATE SET
-                                     day_type=excluded.day_type,planned_hours=0,actual_hours=0,
-                                     notes=excluded.notes,updated_at=excluded.updated_at""",
+                                     day_type=excluded.day_type,planned_hours=0,
+                                     actual_hours=employee_time_entries.actual_hours,
+                                     notes=excluded.notes,updated_at=excluded.updated_at
+                                   WHERE employee_time_entries.actual_hours IS NULL OR employee_time_entries.actual_hours=0""",
                                 (emp["id"],d.isoformat(),dtype.get(),note_text,now,now))
                     added+=1
                 con.commit(); con.close(); preview()
                 core.messagebox.showinfo("Відсутність",f"Записано днів: {added}. Робочі графіки фізично не видалялися.",parent=win)
 
-            btn=core.ttk.Frame(body); btn.grid(row=7,column=0,columnspan=3,sticky="ew",pady=5)
+            btn=core.ttk.Frame(body); btn.grid(row=8,column=0,columnspan=3,sticky="ew",pady=5)
             core.ttk.Button(btn,text="Переглянути",command=preview).pack(side="left",padx=3)
             core.ttk.Button(btn,text="Застосувати",command=apply).pack(side="left",padx=3)
             dtype.trace_add("write",lambda *_args:preview())
+            fill_mode.trace_add("write",lambda *_args:preview())
             preview()
 
         def _duty_staff_for_interval(self, start_dt, end_dt, location="", con=None):
