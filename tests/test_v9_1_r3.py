@@ -38,6 +38,16 @@ class FakeCore:
         return int(round(float(value) * 60))
 
     @staticmethod
+    def duration_minutes(start, end):
+        sh, sm = map(int, start.split(":"))
+        eh, em = map(int, end.split(":"))
+        a = sh * 60 + sm
+        b = eh * 60 + em
+        if b <= a:
+            b += 1440
+        return b - a
+
+    @staticmethod
     def minutes_hhmm(value):
         value = int(value or 0)
         return f"{value // 60}:{value % 60:02d}"
@@ -123,7 +133,26 @@ def make_db(path):
             id INTEGER PRIMARY KEY,
             driver_id INTEGER,
             work_date TEXT,
-            overtime_hours REAL
+            overtime_hours REAL,
+            route_id INTEGER,
+            work_hours REAL DEFAULT 0,
+            work_start_time TEXT DEFAULT '',
+            work_end_time TEXT DEFAULT ''
+        );
+        CREATE TABLE routes(
+            id INTEGER PRIMARY KEY,
+            name TEXT
+        );
+        CREATE TABLE route_segments(
+            id INTEGER PRIMARY KEY,
+            route_id INTEGER,
+            segment_no INTEGER,
+            start_time TEXT DEFAULT '',
+            end_time TEXT DEFAULT '',
+            work_start_time TEXT DEFAULT '',
+            work_end_time TEXT DEFAULT '',
+            work_hours REAL DEFAULT 0,
+            driving_hours REAL DEFAULT 0
         );
         INSERT INTO employees VALUES(1,'0001','Тестовий','Працівник','','механік','2026-01-01','',1,NULL);
         INSERT INTO employee_roles VALUES(1,'Механік');
@@ -204,6 +233,53 @@ class TestPersonnelR3(unittest.TestCase):
             self.assertEqual(row["day_type"], "Основна щорічна відпустка")
             self.assertEqual(row["planned_minutes"], 0)
             self.assertEqual(row["actual_minutes"], 0)
+
+    def test_route_schedule_plan_fills_p5_without_question_mark(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "db.sqlite3"
+            make_db(db_path)
+            con = sqlite3.connect(db_path)
+            con.execute("UPDATE employees SET driver_id=10 WHERE id=1")
+            con.execute("INSERT INTO routes(id,name) VALUES(1,'Маршрут 10')")
+            con.execute(
+                """INSERT INTO route_segments(
+                       id,route_id,segment_no,start_time,end_time,
+                       work_start_time,work_end_time,work_hours,driving_hours
+                   ) VALUES(1,1,1,'08:00','15:30','07:30','16:15',0,0)"""
+            )
+            con.execute(
+                """INSERT INTO worklog(
+                       id,driver_id,work_date,overtime_hours,route_id,
+                       work_hours,work_start_time,work_end_time
+                   ) VALUES(1,10,'2026-08-06',0,1,0,'','')"""
+            )
+            con.commit()
+            con.close()
+
+            core = FakeCore(db_path)
+            core.tk = SimpleNamespace(TclError=Exception)
+            core.ttk = SimpleNamespace()
+            core.messagebox = SimpleNamespace()
+            core.filedialog = SimpleNamespace()
+            core.fmt_date = lambda value: value
+            core.OUTPUT_DIR = Path(tmp)
+            core.write_output_file = lambda *a, **k: None
+
+            Base = type("Base", (), {})
+            install(core, Base)
+
+            con = core.db()
+            row = core.employee_day_time(con, 1, date(2026, 8, 6))
+            con.close()
+            self.assertEqual(row["planned_minutes"], 525)
+            self.assertIn("графік маршруту", row["source"])
+
+            data = collect_p5_data(core, 2026, 8, active_only=True)
+            cell = data["employees"][0]["cells"][5]  # 06.08
+            self.assertEqual(cell["code"], "Р")
+            self.assertEqual(cell["hours"], 525)
+            self.assertNotEqual(cell["code"], "?")
+            self.assertTrue(cell["missing"])
 
     def test_p5_pdf_and_xlsx_smoke(self):
         with tempfile.TemporaryDirectory() as tmp:
