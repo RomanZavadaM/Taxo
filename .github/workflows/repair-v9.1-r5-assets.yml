@@ -113,7 +113,7 @@ jobs:
         shell: bash
         run: |
           mkdir release-upload
-          cp release-assets/* release-upload/
+          find release-assets -type f -exec cp '{}' release-upload/ \\;
           git archive --format=zip --prefix='Taxo_v9_1_candidate_r5_START/' --output='release-upload/Taxo_v9_1_candidate_r5_START.zip' HEAD
           if unzip -l 'release-upload/Taxo_v9_1_candidate_r5_START.zip' | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
             exit 1
