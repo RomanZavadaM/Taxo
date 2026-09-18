@@ -12,6 +12,7 @@ on:
       - 'work_analysis_ext.py'
       - 'activity_register_60.py'
       - 'v91_features.py'
+      - 'personnel_v91.py'
       - 'workspace.py'
       - 'waybill.py'
       - 'tachograph.py'
@@ -100,7 +101,7 @@ jobs:
       - name: Compile and test source
         shell: pwsh
         run: |
-          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py workspace.py waybill.py tachograph.py attestation_render.py
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py workspace.py waybill.py tachograph.py attestation_render.py
           python -m unittest discover -s tests -v
 
       - name: Build Windows portable application
