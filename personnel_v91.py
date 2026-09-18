@@ -17,6 +17,30 @@ import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from work_regime import (
+    REGIME_FIVE_DAY,
+    REGIME_SIX_DAY,
+    REGIME_SUMMARIZED,
+    REGIME_CUSTOM,
+    REGIME_LABELS,
+    REGIME_BY_LABEL,
+    PERIOD_LABELS,
+    PERIOD_BY_LABEL,
+    PERIOD_WEEK,
+    PRESETS,
+    WEEKDAY_LABELS as REGIME_WEEKDAY_LABELS,
+    accounting_period_bounds,
+    day_norm_minutes,
+    ensure_schema as ensure_work_regime_schema,
+    hhmm as regime_hhmm,
+    latest_regime,
+    parse_hhmm as regime_parse_hhmm,
+    regime_for_date,
+    save_regime,
+    validate_regime,
+    week_start as regime_week_start,
+)
+
 from v91_features import (
     PATTERN_DAILY,
     PATTERN_WEEKDAYS,
@@ -34,7 +58,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "9.1 candidate r5"
+APP_VERSION = "9.1 candidate r6"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
