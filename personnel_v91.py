@@ -1229,6 +1229,9 @@ def install(core, base_app):
             return result
 
         def __init__(self, *args, **kwargs):
+            # App() is created only after core.init_db(), so this is the safe
+            # point for the additive r6 schema migration.
+            ensure_work_regime_schema(core)
             super().__init__(*args, **kwargs)
             self.title(WINDOW_TITLE)
 
@@ -1248,15 +1251,18 @@ def install(core, base_app):
             # Реєстр
             bar = core.ttk.Frame(overview, padding=8); bar.pack(fill="x")
             core.ttk.Button(bar, text="Відкрити картки працівників", command=self.show_employee_registry).pack(side="left", padx=3)
+            core.ttk.Button(bar, text="Режим робочого часу…", command=self.show_employee_work_regime).pack(side="left", padx=(12,3))
+            core.ttk.Button(bar, text="Тижневий баланс…", command=self.show_personnel_week_balance).pack(side="left", padx=3)
             core.ttk.Button(bar, text="Оновити", command=self._refresh_personnel_overview).pack(side="left", padx=3)
             frame = core.ttk.Frame(overview); frame.pack(fill="both", expand=True, padx=8, pady=(0,8))
             frame.rowconfigure(0, weight=1); frame.columnconfigure(0, weight=1)
-            cols = ("personnel","name","position","roles","employment","status")
+            cols = ("personnel","name","position","roles","regime","weeknorm","employment","status")
             tree = core.ttk.Treeview(frame, columns=cols, show="headings")
             self.personnel_overview_tree = tree
             for key,label,width in (
-                ("personnel","Таб. №",90),("name","ПІБ",290),("position","Посада",190),
-                ("roles","Спеціальні ролі",190),("employment","Прийнятий",100),("status","Стан",90),
+                ("personnel","Таб. №",90),("name","ПІБ",270),("position","Посада",175),
+                ("roles","Спеціальні ролі",175),("regime","Режим",180),("weeknorm","Норма/тиж.",90),
+                ("employment","Прийнятий",100),("status","Стан",90),
             ):
                 tree.heading(key,text=label); tree.column(key,width=width,anchor="w")
             sy=core.ttk.Scrollbar(frame,orient="vertical",command=tree.yview)
@@ -1322,15 +1328,23 @@ def install(core, base_app):
             if not widget_alive(tree):
                 return
             for item in tree.get_children(): tree.delete(item)
-            for row in _all_employee_rows(core, active_only=False):
-                tree.insert("", "end", values=(
-                    row["personnel_no"] or "",
-                    core.employee_name(row),
-                    row["position"] or "",
-                    row["roles"] or "",
-                    core.fmt_date(row["employment_date"]),
-                    "Працює" if row["active"] else "Звільнений",
-                ))
+            con = core.db()
+            try:
+                for row in _all_employee_rows(core, active_only=False):
+                    regime = latest_regime(con, row["id"])
+                    regime_text = regime.label + ("" if regime.explicit else " (типово)")
+                    tree.insert("", "end", iid=str(row["id"]), values=(
+                        row["personnel_no"] or "",
+                        core.employee_name(row),
+                        row["position"] or "",
+                        row["roles"] or "",
+                        regime_text,
+                        regime_hhmm(regime.weekly_norm_minutes),
+                        core.fmt_date(row["employment_date"]),
+                        "Працює" if row["active"] else "Звільнений",
+                    ))
+            finally:
+                con.close()
 
         def _active_employee_map(self):
             rows = _all_employee_rows(core, active_only=True)
