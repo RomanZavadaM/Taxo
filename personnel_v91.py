@@ -305,7 +305,7 @@ def _report_font(core):
     return font
 
 
-def export_p5_pdf(core, year, month, out_path, active_only=True):
+def export_p5_pdf(core, year, month, out_path, active_only=True, form_date=None, department="", edrpou=""):
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
@@ -329,12 +329,19 @@ def export_p5_pdf(core, year, month, out_path, active_only=True):
             c.drawString(x, y, s)
 
     # Page 1: header + legend
-    text(24, page_h - 26, company, 10, "left")
-    text(page_w / 2, page_h - 44, "ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ", 12, "center")
-    text(page_w - 24, page_h - 24, "Форма за структурою наданого зразка П-5", 6, "right")
+    form_date = form_date or date.today()
     first = data["days"][0].strftime("%d.%m.%Y")
     last = data["days"][-1].strftime("%d.%m.%Y")
-    text(page_w - 24, page_h - 38, f"Звітний період: {first} — {last}", 7, "right")
+    text(24, page_h - 22, company, 9.5, "left")
+    if department:
+        text(24, page_h - 34, department, 6.2, "left")
+    text(24, page_h - 46, f"Ідентифікаційний код ЄДРПОУ: {edrpou or ''}", 6.2, "left")
+    text(page_w / 2, page_h - 58, "ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ", 12, "center")
+    text(page_w - 24, page_h - 20, "Типова форма № П-5", 6.5, "right")
+    text(page_w - 24, page_h - 31, "ЗАТВЕРДЖЕНО", 5.8, "right")
+    text(page_w - 24, page_h - 42, "Наказ Держкомстату України 05.12.2008 № 489", 5.5, "right")
+    text(page_w - 24, page_h - 55, f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}", 6.2, "right")
+    text(page_w - 24, page_h - 67, f"Звітний період: {first} — {last}", 6.2, "right")
 
     legend = [(letter, numeric, label) for label, letter, numeric in P5_LEGEND]
     col_gap = 20
@@ -342,7 +349,7 @@ def export_p5_pdf(core, year, month, out_path, active_only=True):
     total_w = page_w - 48
     col_w = (total_w - col_gap) / 2
     row_h = 17
-    top = page_h - 78
+    top = page_h - 92
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
     def wrapped_lines(value, size, max_w):
@@ -385,6 +392,7 @@ def export_p5_pdf(core, year, month, out_path, active_only=True):
         top_y = page_h - 16
         text(margin, top_y, company, 7)
         text(page_w / 2, top_y, f"ТАБЕЛЬ — {core.month_name_ua(data['month']).upper()} {data['year']}", 9, "center")
+        text(page_w - margin, top_y, f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}", 5, "right")
         top_y -= 16
 
         fixed = [18, 49, 18, 98]
@@ -499,12 +507,13 @@ def export_p5_pdf(core, year, month, out_path, active_only=True):
     return data
 
 
-def export_p5_xlsx(core, year, month, out_path, active_only=True):
+def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None, department="", edrpou=""):
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from openpyxl.utils import get_column_letter
 
     data = collect_p5_data(core, year, month, active_only)
+    form_date = form_date or date.today()
     wb = Workbook()
     ws = wb.active
     ws.title = "Табель П-5"
@@ -524,9 +533,16 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True):
     ws.cell(1, 1, company)
     ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last_col)
     ws.cell(2, 1, f"ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ — {core.month_name_ua(data['month']).upper()} {data['year']}")
-    for row in (1, 2):
-        ws.cell(row, 1).font = Font(bold=True, size=13 if row == 2 else 11)
-        ws.cell(row, 1).alignment = Alignment(horizontal="center")
+    ws.merge_cells(start_row=3, start_column=1, end_row=3, end_column=last_col)
+    ws.cell(3, 1, (
+        f"Структурний підрозділ: {department or '—'}    "
+        f"ЄДРПОУ: {edrpou or '—'}    "
+        f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}    "
+        f"Звітний період: {data['days'][0].strftime('%d.%m.%Y')} — {data['days'][-1].strftime('%d.%m.%Y')}"
+    ))
+    for row in (1, 2, 3):
+        ws.cell(row, 1).font = Font(bold=(row != 3), size=13 if row == 2 else 11 if row == 1 else 8)
+        ws.cell(row, 1).alignment = Alignment(horizontal="center", wrap_text=True)
 
     fixed_headers = ["№", "Табельний номер", "Стать", "ПІБ, посада"]
     for col, label in enumerate(fixed_headers, 1):
@@ -623,13 +639,31 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True):
     ws.print_title_rows = "1:4"
     ws.print_area = f"A1:{get_column_letter(last_col)}{row}"
 
-    legend_ws.append(["Умовне позначення", "Буквений код", "Цифровий код"])
+    legend_ws.merge_cells("A1:C1")
+    legend_ws["A1"] = company
+    legend_ws["A1"].font = Font(bold=True, size=11)
+    legend_ws["A1"].alignment = Alignment(horizontal="center")
+    legend_ws.merge_cells("A2:C2")
+    legend_ws["A2"] = "ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ — УМОВНІ ПОЗНАЧЕННЯ"
+    legend_ws["A2"].font = Font(bold=True, size=12)
+    legend_ws["A2"].alignment = Alignment(horizontal="center")
+    legend_ws.merge_cells("A3:C3")
+    legend_ws["A3"] = (
+        f"Структурний підрозділ: {department or '—'}    ЄДРПОУ: {edrpou or '—'}    "
+        f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}"
+    )
+    legend_ws["A3"].alignment = Alignment(horizontal="center", wrap_text=True)
+    legend_ws.append([])
+    legend_ws.append([])
+    legend_ws.cell(6,1,"Умовне позначення")
+    legend_ws.cell(6,2,"Буквений код")
+    legend_ws.cell(6,3,"Цифровий код")
     for label, letter, numeric in P5_LEGEND:
         legend_ws.append([label, letter, numeric])
-    for row_cells in legend_ws.iter_rows():
+    for row_cells in legend_ws.iter_rows(min_row=6):
         for c in row_cells:
             c.border = border; c.alignment = Alignment(vertical="top", wrap_text=True)
-    for c in legend_ws[1]:
+    for c in legend_ws[6]:
         c.font = Font(bold=True); c.fill = header_fill
     legend_ws.column_dimensions["A"].width = 85
     legend_ws.column_dimensions["B"].width = 16
@@ -794,13 +828,24 @@ def install(core, base_app):
             now = date.today()
             self.personnel_report_month = core.tk.StringVar(value=str(now.month))
             self.personnel_report_year = core.tk.StringVar(value=str(now.year))
+            self.personnel_report_form_date = core.tk.StringVar(value=now.strftime("%d.%m.%Y"))
+            self.personnel_report_department = core.tk.StringVar(value=core.get_setting("personnel_report_department",""))
+            self.personnel_report_edrpou = core.tk.StringVar(value=core.get_setting("company_edrpou",""))
             self.personnel_report_active = core.tk.BooleanVar(value=True)
             row = core.ttk.Frame(rpanel); row.pack(fill="x")
             core.ttk.Label(row,text="Місяць").pack(side="left")
             core.ttk.Spinbox(row,textvariable=self.personnel_report_month,from_=1,to=12,width=5).pack(side="left",padx=(4,10))
             core.ttk.Label(row,text="Рік").pack(side="left")
             core.ttk.Spinbox(row,textvariable=self.personnel_report_year,from_=2020,to=2100,width=7).pack(side="left",padx=(4,10))
+            core.ttk.Label(row,text="Дата заповнення").pack(side="left")
+            core.ttk.Entry(row,textvariable=self.personnel_report_form_date,width=12).pack(side="left",padx=(4,4))
+            core.calendar_button(row,self.personnel_report_form_date).pack(side="left",padx=(0,10))
             core.ttk.Checkbutton(row,text="Тільки активні працівники",variable=self.personnel_report_active).pack(side="left",padx=10)
+            meta = core.ttk.Frame(rpanel); meta.pack(fill="x",pady=(8,0))
+            core.ttk.Label(meta,text="Структурний підрозділ").pack(side="left")
+            core.ttk.Entry(meta,textvariable=self.personnel_report_department,width=34).pack(side="left",padx=(4,12))
+            core.ttk.Label(meta,text="ЄДРПОУ").pack(side="left")
+            core.ttk.Entry(meta,textvariable=self.personnel_report_edrpou,width=16).pack(side="left",padx=(4,0))
             core.ttk.Label(rpanel,text="Табель П-5 — за структурою наданого зразка: умовні позначення, 1–31 число, відпрацьований час і причини неявок.",foreground="gray",wraplength=980,justify="left").pack(anchor="w",pady=(12,8))
             b = core.ttk.Frame(rpanel); b.pack(fill="x")
             core.ttk.Button(b,text="Табель П-5 — PDF",command=lambda:self._save_p5("pdf")).pack(side="left",padx=(0,5))
@@ -1179,8 +1224,13 @@ def install(core, base_app):
             try:
                 month=int(self.personnel_report_month.get()); year=int(self.personnel_report_year.get())
                 if not 1<=month<=12: raise ValueError
+                form_date=datetime.strptime(self.personnel_report_form_date.get().strip(),"%d.%m.%Y").date()
             except Exception:
-                core.messagebox.showerror("Табель П-5","Перевірте місяць і рік.",parent=self); return
+                core.messagebox.showerror("Табель П-5","Перевірте місяць, рік і дату заповнення.",parent=self); return
+            department=self.personnel_report_department.get().strip()
+            edrpou=self.personnel_report_edrpou.get().strip()
+            core.set_setting("personnel_report_department",department)
+            core.set_setting("company_edrpou",edrpou)
             suffix=".xlsx" if kind=="xlsx" else ".pdf"
             filename=f"Табель_П5_{year}_{month:02d}{suffix}"
             path=core.filedialog.asksaveasfilename(
@@ -1189,7 +1239,11 @@ def install(core, base_app):
                 filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")],
             )
             if not path: return
-            writer=(lambda out:export_p5_xlsx(core,year,month,out,self.personnel_report_active.get())) if kind=="xlsx" else (lambda out:export_p5_pdf(core,year,month,out,self.personnel_report_active.get()))
+            writer=(
+                (lambda out:export_p5_xlsx(core,year,month,out,self.personnel_report_active.get(),form_date,department,edrpou))
+                if kind=="xlsx" else
+                (lambda out:export_p5_pdf(core,year,month,out,self.personnel_report_active.get(),form_date,department,edrpou))
+            )
             actual=core.write_output_file(writer,path,parent=self,kind="Excel табеля П-5" if kind=="xlsx" else "PDF табеля П-5",error_title="Табель П-5")
             if actual is not None:
                 core.messagebox.showinfo("Табель П-5",f"Файл створено:\n{actual}",parent=self)
