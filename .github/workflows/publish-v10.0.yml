@@ -291,11 +291,28 @@ jobs:
           path: release-upload
           merge-multiple: true
 
-      - name: Create combined SHA-256 manifest
+      - name: Normalize release assets and create combined SHA-256 manifest
         shell: bash
         run: |
+          find release-upload -type f -name 'Taxo_v10_0_Setup_Windows_x64.exe' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_0_Windows_x64_Portable.zip' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_0_macOS_arm64_Portable.zip' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_0_macOS_x86_64_Portable.zip' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_0_START.zip' -exec cp '{}' release-upload/ \;
+
           cd release-upload
-          sha256sum Taxo_v10_0_*.zip Taxo_v10_0_*.exe | sort -k2 > SHA256SUMS_v10_0.txt
+          required=(
+            Taxo_v10_0_Setup_Windows_x64.exe
+            Taxo_v10_0_Windows_x64_Portable.zip
+            Taxo_v10_0_macOS_arm64_Portable.zip
+            Taxo_v10_0_macOS_x86_64_Portable.zip
+            Taxo_v10_0_START.zip
+          )
+          for file in "${required[@]}"; do
+            test -f "$file" || { echo "Missing stable release asset: $file" >&2; exit 1; }
+          done
+
+          sha256sum "${required[@]}" | sort -k2 > SHA256SUMS_v10_0.txt
           cat SHA256SUMS_v10_0.txt
 
       - name: Publish immutable stable release
