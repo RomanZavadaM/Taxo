@@ -5,10 +5,10 @@
 **Облік роботи водіїв і персоналу, графіків, табелів, шляхових листів, П-5, бланків підтвердження діяльності та аналогових тахокарт.**
 
 > **Stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) — поточна експлуатаційна версія і rollback point.  
-> **Candidate:** [Taxo 9.1 candidate r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) — pre-release для ручного operational gate.  
+> **Candidate:** [Taxo 9.1 candidate r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) — pre-release для ручного operational gate.  
 > **PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29) — **не merge у main до завершення ручної перевірки**.
 
-[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_4.md)
+[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_5.md)
 
 ---
 
@@ -72,7 +72,7 @@ Taxo 9.0.1 формує окремий документ за 60 календар
 
 ## Поточний етап
 
-**Taxo 9.0.1 залишається stable. Taxo 9.1 candidate r9.4 опублікований і автоматично перевірений, але ще проходить ручний operational gate на реальній Windows-базі.**
+**Taxo 9.0.1 залишається stable. Taxo 9.1 candidate r9.5 опублікований і автоматично перевірений, але ще проходить ручний operational gate на реальній Windows-базі.**
 
 У r9.4 вже зведені канонічні точні інтервали, модуль «Персонал», П-5 PDF/XLSX, архів підтверджень діяльності, місячний контроль та окремий центр «Аудит графіків…». Технічний аудит введення не змішується з нормативним «Контролем №340».
 
