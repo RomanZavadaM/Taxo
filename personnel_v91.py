@@ -242,27 +242,25 @@ def linked_route_plan_minutes(core, con, driver_id, target_date):
     ).fetchone()
     if row is None or not row["route_id"]:
         return 0
-    if core.hours_value_to_minutes(row["work_hours"] or 0) > 0:
-        return core.hours_value_to_minutes(row["work_hours"] or 0)
-
     segs = con.execute(
         """SELECT * FROM route_segments
             WHERE route_id=?
             ORDER BY segment_no""",
         (row["route_id"],),
     ).fetchall()
-    total = 0
-    for seg in segs:
-        ws = (seg["work_start_time"] or seg["start_time"] or "").strip()
-        we = (seg["work_end_time"] or seg["end_time"] or "").strip()
-        if ws and we:
-            try:
-                total += int(core.duration_minutes(ws, we))
-                continue
-            except Exception:
-                pass
-        total += core.hours_value_to_minutes(seg["work_hours"] or 0)
-    return int(total)
+    if segs:
+        exact = core.segments_union_minutes(segs, "work")
+        if exact > 0:
+            return int(exact)
+
+    # No exact route scenario available: only then fall back to the stored
+    # aggregate duration. Never prefer a legacy aggregate over exact intervals.
+    stored = core.hours_value_to_minutes(row["work_hours"] or 0)
+    if stored > 0:
+        return stored
+    return int(sum(
+        core.hours_value_to_minutes(seg["work_hours"] or 0) for seg in segs
+    ))
 
 
 def _interval_datetimes(day, start_text, end_text):
@@ -284,10 +282,10 @@ def _interval_datetimes(day, start_text, end_text):
 def driver_work_intervals(core, con, driver_id, around_date):
     """Known driver work intervals around a date, without inventing clock time.
 
-    Returns (intervals, unresolved_days).  An unresolved day means Taxo knows
-    positive work duration but cannot place all of it on the clock.  Known
-    intervals are still returned, so an actual overlap with a known driving or
-    work interval is blocked while non-overlapping extra work is only warned.
+    Exact work_segments/route_segments are normalized with the same canonical
+    interval algorithm as the driver tab and schedule. Overlaps remain visible
+    as overlaps; a clock rollback means next day only when the next segment
+    start itself rolls back.
     """
     if not driver_id:
         return [], []
@@ -301,131 +299,148 @@ def driver_work_intervals(core, con, driver_id, around_date):
             (around_date + timedelta(days=1)).isoformat(),
         ),
     ).fetchall()
-    intervals = []
-    unresolved = []
+    intervals=[]
+    unresolved=[]
 
     def span_minutes(span):
-        return int((span[1] - span[0]).total_seconds() // 60)
+        return int((span[1]-span[0]).total_seconds()//60)
+
+    def normalized_maps(items):
+        work_map={x["index"]:x for x in core.normalized_segment_intervals(items,"work")}
+        drive_map={x["index"]:x for x in core.normalized_segment_intervals(items,"drive")}
+        return work_map,drive_map
+
+    def dt_span(base,item):
+        origin=datetime.combine(base,datetime.min.time())
+        return (
+            origin+timedelta(minutes=item["start"]),
+            origin+timedelta(minutes=item["end"]),
+        )
+
+    def union_minutes(spans):
+        if not spans:
+            return 0
+        ordered=sorted(spans,key=lambda x:x[0])
+        merged=[]
+        for s,e in ordered:
+            if not merged or s>merged[-1][1]:
+                merged.append([s,e])
+            else:
+                merged[-1][1]=max(merged[-1][1],e)
+        return sum(int((e-s).total_seconds()//60) for s,e in merged)
 
     for row in rows:
-        base = date.fromisoformat(row["work_date"])
-        row_keys = set(row.keys()) if hasattr(row, "keys") else set()
-        planned_total = core.hours_value_to_minutes(
+        base=date.fromisoformat(row["work_date"])
+        row_keys=set(row.keys()) if hasattr(row,"keys") else set()
+        planned_total=core.hours_value_to_minutes(
             row["work_hours"] if "work_hours" in row_keys else 0
         )
 
-        segs = con.execute(
+        segs=con.execute(
             """SELECT * FROM work_segments
                 WHERE worklog_id=? ORDER BY segment_no""",
             (row["id"],),
         ).fetchall()
 
         if segs:
-            known_minutes = 0
-            expected_minutes = 0
-            for seg in segs:
-                seg_keys = set(seg.keys()) if hasattr(seg, "keys") else set()
-                seg_expected = core.hours_value_to_minutes(
+            work_map,drive_map=normalized_maps(segs)
+            local_exact=[]
+            fallback_busy=[]
+            unresolved_part=False
+            for idx,seg in enumerate(segs):
+                seg_keys=set(seg.keys()) if hasattr(seg,"keys") else set()
+                expected=core.hours_value_to_minutes(
                     seg["work_hours"] if "work_hours" in seg_keys else 0
                 )
-                expected_minutes += seg_expected
+                if idx in work_map:
+                    span=dt_span(base,work_map[idx])
+                    intervals.append((span[0],span[1],row,seg))
+                    local_exact.append(span)
+                    continue
+                if idx in drive_map:
+                    span=dt_span(base,drive_map[idx])
+                    intervals.append((span[0],span[1],row,seg))
+                    fallback_busy.append(span)
+                    if expected>span_minutes(span):
+                        unresolved_part=True
+                elif expected>0:
+                    unresolved_part=True
 
-                # Exact work interval is best. Legacy driving interval is only
-                # a known busy interval, not proof that the entire work day
-                # starts/ends there.
-                wstart = (seg["work_start_time"] if "work_start_time" in seg_keys else "") or ""
-                wend = (seg["work_end_time"] if "work_end_time" in seg_keys else "") or ""
-                span = _interval_datetimes(base, wstart, wend)
-                exact_work = bool(span)
-                if not span:
-                    dstart = (seg["start_time"] if "start_time" in seg_keys else "") or ""
-                    dend = (seg["end_time"] if "end_time" in seg_keys else "") or ""
-                    span = _interval_datetimes(base, dstart, dend)
-                if span:
-                    intervals.append((span[0], span[1], row, seg))
-                    known_minutes += span_minutes(span)
-                    if not exact_work and seg_expected > span_minutes(span):
-                        # Part of the segment's work time exists outside the
-                        # known driving interval but has no exact placement.
-                        unresolved.append(base)
-
-            expected = expected_minutes or planned_total
-            if expected > known_minutes and base not in unresolved:
-                unresolved.append(base)
-            elif expected > 0 and known_minutes == 0 and base not in unresolved:
+            exact_expected=core.segments_union_minutes(segs,"work")
+            known=union_minutes(local_exact)
+            if exact_expected>known:
+                unresolved_part=True
+            # If exact work is unavailable, retain the legacy aggregate only as
+            # evidence that some unplaced work exists.
+            if exact_expected<=0 and planned_total>union_minutes(fallback_busy):
+                unresolved_part=True
+            if unresolved_part:
                 unresolved.append(base)
             continue
 
-        # No copied work_segments: prefer exact daily work boundaries.
-        wstart = (row["work_start_time"] if "work_start_time" in row_keys else "") or ""
-        wend = (row["work_end_time"] if "work_end_time" in row_keys else "") or ""
-        span = _interval_datetimes(base, wstart, wend)
+        wstart=(row["work_start_time"] if "work_start_time" in row_keys else "") or ""
+        wend=(row["work_end_time"] if "work_end_time" in row_keys else "") or ""
+        span=_interval_datetimes(base,wstart,wend)
         if span:
-            intervals.append((span[0], span[1], row, None))
-            if planned_total > span_minutes(span):
+            intervals.append((span[0],span[1],row,None))
+            if planned_total>span_minutes(span):
                 unresolved.append(base)
             continue
 
-        # Older/incomplete worklog can have route_id only. Use exact route
-        # work boundaries where available. If only driving boundaries exist,
-        # they are known busy intervals but the remaining work duration stays
-        # unresolved.
-        route_id = row["route_id"] if "route_id" in row_keys else None
+        route_id=row["route_id"] if "route_id" in row_keys else None
         if route_id:
-            route_segs = con.execute(
+            route_segs=con.execute(
                 """SELECT * FROM route_segments
                     WHERE route_id=? ORDER BY segment_no""",
                 (route_id,),
             ).fetchall()
-            known_minutes = 0
-            expected_minutes = 0
-            route_found = False
-            route_unresolved = False
-            for seg in route_segs:
-                seg_keys = set(seg.keys()) if hasattr(seg, "keys") else set()
-                seg_expected = core.hours_value_to_minutes(
-                    seg["work_hours"] if "work_hours" in seg_keys else 0
-                )
-                expected_minutes += seg_expected
-                rws = (seg["work_start_time"] if "work_start_time" in seg_keys else "") or ""
-                rwe = (seg["work_end_time"] if "work_end_time" in seg_keys else "") or ""
-                rspan = _interval_datetimes(base, rws, rwe)
-                exact_work = bool(rspan)
-                if not rspan:
-                    rds = (seg["start_time"] if "start_time" in seg_keys else "") or ""
-                    rde = (seg["end_time"] if "end_time" in seg_keys else "") or ""
-                    rspan = _interval_datetimes(base, rds, rde)
-                if rspan:
-                    intervals.append((rspan[0], rspan[1], row, seg))
-                    route_found = True
-                    known_minutes += span_minutes(rspan)
-                    if not exact_work and seg_expected > span_minutes(rspan):
-                        route_unresolved = True
+            if route_segs:
+                work_map,drive_map=normalized_maps(route_segs)
+                local_exact=[]
+                fallback_busy=[]
+                unresolved_part=False
+                for idx,seg in enumerate(route_segs):
+                    seg_keys=set(seg.keys()) if hasattr(seg,"keys") else set()
+                    expected=core.hours_value_to_minutes(
+                        seg["work_hours"] if "work_hours" in seg_keys else 0
+                    )
+                    if idx in work_map:
+                        span=dt_span(base,work_map[idx])
+                        intervals.append((span[0],span[1],row,seg))
+                        local_exact.append(span)
+                    elif idx in drive_map:
+                        span=dt_span(base,drive_map[idx])
+                        intervals.append((span[0],span[1],row,seg))
+                        fallback_busy.append(span)
+                        if expected>span_minutes(span):
+                            unresolved_part=True
+                    elif expected>0:
+                        unresolved_part=True
 
-            expected = expected_minutes or planned_total
-            if route_found:
-                if route_unresolved or expected > known_minutes:
+                exact_expected=core.segments_union_minutes(route_segs,"work")
+                if exact_expected>union_minutes(local_exact):
+                    unresolved_part=True
+                if exact_expected<=0 and planned_total>union_minutes(fallback_busy):
+                    unresolved_part=True
+                if unresolved_part:
                     unresolved.append(base)
-                continue
+                if local_exact or fallback_busy:
+                    continue
 
-        # Last resort: legacy daily start/end is known driving/busy time.  It
-        # is not expanded to match a duration such as "8 hours".
-        dstart = (row["start_time"] if "start_time" in row_keys else "") or ""
-        dend = (row["end_time"] if "end_time" in row_keys else "") or ""
-        span = _interval_datetimes(base, dstart, dend)
+        dstart=(row["start_time"] if "start_time" in row_keys else "") or ""
+        dend=(row["end_time"] if "end_time" in row_keys else "") or ""
+        span=_interval_datetimes(base,dstart,dend)
         if span:
-            intervals.append((span[0], span[1], row, None))
-            if planned_total > span_minutes(span):
+            intervals.append((span[0],span[1],row,None))
+            if planned_total>span_minutes(span):
                 unresolved.append(base)
             continue
 
-        if planned_total > 0:
+        if planned_total>0:
             unresolved.append(base)
 
-    # Keep warning dates stable and unique.
-    unresolved = list(dict.fromkeys(unresolved))
-    return intervals, unresolved
-
+    unresolved=list(dict.fromkeys(unresolved))
+    return intervals,unresolved
 
 def _is_driver_role(value):
     text = str(value or "").strip().lower()
