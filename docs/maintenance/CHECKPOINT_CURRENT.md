@@ -4,7 +4,7 @@
 **Current candidate:** Taxo 9.1 candidate r9.7 · 19.09.2026.
 **Development PR:** #29.
 
-Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.7 готується як окремий GitHub Pre-release після зеленого CI і не оголошується stable до завершення реальної перевірки.
+Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.7 опублікований як окремий GitHub Pre-release і не оголошується stable до завершення реальної перевірки.
 
 ## Що входить у r9.5
 
@@ -84,3 +84,12 @@ r9.5 виявився непридатним для manual gate на реаль�
 - кнопка формує актуальний detail PDF і одразу відкриває його;
 - додано behavioral regression test;
 - START hardening r9.6 не змінено.
+
+
+## GitHub release r9.7
+
+- `v9.1-r9.7` опублікований;
+- immutable target: `8a16ef781e1b3334e664449725c217a120f9fe5d`;
+- START + SHA-256 доступні;
+- Windows/macOS: 107 regression tests — success;
+- нова кнопка «Відкрити деталізацію» покрита regression test.
