@@ -1,11 +1,7 @@
 name: Publish Taxo 9.1 candidate r8 source
 
 on:
-  push:
-    branches:
-      - 'work/v9.1-monthly-dispatch-waybill-ui'
-    paths:
-      - '.github/workflows/publish-v9.1-r8-source.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,6 +15,7 @@ jobs:
       - name: Отримати точний код r8
         uses: actions/checkout@v4
         with:
+          ref: v9.1-r8
           fetch-depth: 0
 
       - name: Налаштувати Python
@@ -56,12 +53,12 @@ jobs:
         shell: bash
         run: |
           if gh release view "v9.1-r8" >/dev/null 2>&1; then
-            gh release upload "v9.1-r8" release-upload/* --clobber
-          else
-            gh release create "v9.1-r8" \
-              release-upload/* \
-              --target "$GITHUB_SHA" \
-              --prerelease \
-              --title "Taxo 9.1 candidate r8" \
-              --notes-file "docs/releases/RELEASE_NOTES_v9_1_candidate_r8.md"
+            echo "v9.1-r8 already exists; refusing to overwrite historical release assets."
+            exit 1
           fi
+          gh release create "v9.1-r8" \
+            release-upload/* \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Taxo 9.1 candidate r8" \
+            --notes-file "docs/releases/RELEASE_NOTES_v9_1_candidate_r8.md"
