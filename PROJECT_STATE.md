@@ -4,14 +4,23 @@
 **Поточна лінія розробки:** Taxo 9.1 candidate r9.4  
 **Стабільний baseline:** Taxo 9.0.1  
 **Робоча гілка:** `work/v9.1-monthly-dispatch-waybill-ui`  
-**Pull Request:** #29 — Taxo 9.1 candidate r9.4: аудит графіків і передетапна стабілізація
+**Pull Request:** #29 — Taxo 9.1 candidate r9.4: аудит графіків і передетапна стабілізація  
+**Immutable release target r9.4:** `3da975ff3dc30740aeaf300d9e3471415075dbe0`  
+**Post-release docs checkpoint:** `docs/maintenance/NEW_CHAT_HANDOFF_v9_1_r9_4.md`
 
 ## Опубліковані контрольні релізи
 
 - **v9.0** — стабільний реліз; повний набір START / Windows Portable / Windows Setup / macOS ARM64 / macOS Intel / SHA-256.
 - **v9.0.1** — стабільне виправлення; повний набір START / Windows Portable / Windows Setup / macOS ARM64 / macOS Intel / SHA-256.
 - **v9.1-r5** — pre-release; повний набір пакетів.
-- **v9.1-r6** — pre-release; повний набір пакетів; зафіксований release target c049f99fe0546900a66b9f5dbc96821e58ee471b.
+- **v9.1-r6** — pre-release; повний набір пакетів; release target `c049f99fe0546900a66b9f5dbc96821e58ee471b`.
+- **v9.1-r7** — immutable source/START pre-release.
+- **v9.1-r8** — immutable source/START pre-release.
+- **v9.1-r9** — immutable source/START pre-release; захищений історичний tag.
+- **v9.1-r9.1** — immutable source/START pre-release.
+- **v9.1-r9.2** — immutable source/START pre-release.
+- **v9.1-r9.3** — immutable source/START pre-release.
+- **v9.1-r9.4** — поточний immutable source/START pre-release; release target `3da975ff3dc30740aeaf300d9e3471415075dbe0`; Windows/macOS/START/publisher CI — success.
 - **r1–r4** — не публікувати окремими Releases: це проміжні кандидати з уже відомими виправленими проблемами; історія збережена в Git/PR.
 
 ## Поточний r9.4
@@ -187,3 +196,14 @@
 - закрити PR #29 через захищений main;
 - сформувати наступну стабільну контрольну версію 9.1;
 - зберегти 9.0.1 як попередній stable rollback point.
+
+## Handoff у новий чат
+
+Для продовження в новому чаті використовувати:
+- `docs/maintenance/NEW_CHAT_HANDOFF_v9_1_r9_4.md`;
+- `docs/maintenance/AUDIT_v9_1_r9_4.md`;
+- цей `PROJECT_STATE.md`;
+- `VERSION.txt`;
+- release notes `docs/releases/RELEASE_NOTES_v9_1_candidate_r9_4.md`.
+
+Важливо: docs checkpoint може бути новішим за immutable release target r9.4. Це не означає зміну коду r9.4; старий tag не пересувати. Якщо після ручної перевірки з'являться кодові зміни — створювати **новий** candidate/tag/release.
