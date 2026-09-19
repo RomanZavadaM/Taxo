@@ -1,0 +1,85 @@
+name: Publish Taxo 9.1 candidate r9.5 source
+
+on:
+  push:
+    branches:
+      - 'work/v9.1-monthly-dispatch-waybill-ui'
+    paths:
+      - '.github/workflows/publish-v9.1-r9-5-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  test-and-publish:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Отримати точний код r9.5
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Налаштувати Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Встановити залежності
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Перевірити код і тести
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py release_naming.py
+          python -m unittest discover -s tests -v
+
+      - name: Підготувати START-пакет
+        shell: bash
+        run: |
+          mkdir release-upload
+          git archive --format=zip --prefix="Taxo_v9_1_candidate_r9_5_START/" --output="release-upload/Taxo_v9_1_candidate_r9_5_START.zip" "$GITHUB_SHA"
+
+          archive="release-upload/Taxo_v9_1_candidate_r9_5_START.zip"
+
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly bundled in START' >&2
+            exit 1
+          fi
+
+          required_files=(
+            START.bat
+            requirements.txt
+            taxo_app.py
+            00_README_START.txt
+            release_naming.py
+          )
+
+          for file in "${required_files[@]}"; do
+            if ! unzip -l "$archive" | grep -q "/${file}$"; then
+              echo "Required START file missing: ${file}" >&2
+              exit 1
+            fi
+          done
+
+          cd release-upload
+          sha256sum "Taxo_v9_1_candidate_r9_5_START.zip" > "SHA256SUMS_v9_1_candidate_r9_5.txt"
+          sha256sum -c "SHA256SUMS_v9_1_candidate_r9_5.txt"
+
+      - name: Створити immutable pre-release r9.5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "v9.1-r9.5" >/dev/null 2>&1; then
+            echo "v9.1-r9.5 already exists; refusing to overwrite an immutable candidate."
+            exit 1
+          fi
+          gh release create "v9.1-r9.5" \
+            release-upload/* \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Taxo 9.1 candidate r9.5" \
+            --notes-file "docs/releases/RELEASE_NOTES_v9_1_candidate_r9_5.md"
