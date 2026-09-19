@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import main
+from release_naming import version_from_file
 
 
 def make_audit_db(path):
@@ -178,10 +179,13 @@ class TestScheduleAuditR94(unittest.TestCase):
         self.assertIn("Taxo_v9_1_candidate_r*_Windows_x64_Portable.zip",gitignore)
         self.assertIn("SHA256SUMS_v9_1_candidate_r*.txt",gitignore)
 
+        current = version_from_file(root / "VERSION.txt")
+        self.assertRegex(current, r"^9\.1 candidate r\d+(?:\.\d+)*$")
         version=(root/"VERSION.txt").read_text("utf-8")
-        self.assertIn("Version: 9.1 candidate r9.4",version)
-        self.assertIn("9.1 candidate r9.4",(root/"v91_features.py").read_text("utf-8"))
-        self.assertIn("9.1 candidate r9.4",(root/"personnel_v91.py").read_text("utf-8"))
+        self.assertIn(f"Version: {current}",version)
+        self.assertIn(current,(root/"v91_features.py").read_text("utf-8"))
+        self.assertIn(current,(root/"personnel_v91.py").read_text("utf-8"))
+        self.assertIn(current,(root/"taxo_app.py").read_text("utf-8"))
 
 if __name__=="__main__":
     unittest.main()
