@@ -2,9 +2,16 @@
 
 Актуальна стабільна версія: **Taxo 9.0.1**.
 
+Актуальний перевірочний кандидат: **Taxo 9.1 candidate r9.4** (GitHub Pre-release; stable main не змінюється).
+
+- [Taxo 9.1 candidate r9.4 — примітки](RELEASE_NOTES_v9_1_candidate_r9_4.md)
+- [Taxo 9.1 candidate r9.3 — примітки](RELEASE_NOTES_v9_1_candidate_r9_3.md)
+- [Taxo 9.1 candidate r9.2 — примітки](RELEASE_NOTES_v9_1_candidate_r9_2.md)
+- [Taxo 9.1 candidate r9.1 — примітки](RELEASE_NOTES_v9_1_candidate_r9_1.md)
 - [Примітки до Taxo 9.0.1](RELEASE_NOTES_v9_0_1.md)
 - [Примітки до Taxo 9.0](RELEASE_NOTES_v9_0.md)
-- [Taxo 9.1 candidate r6 — примітки до pre-release](RELEASE_NOTES_v9_1_candidate_r6.md)
 - [Стабільний реліз Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)
+
+Кандидатні теги не пересуваються після публікації. Кожна нова контрольна точка отримує окремий tag/release.
 
 Історичні релізні матеріали версій 8.x винесені в гілку [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
