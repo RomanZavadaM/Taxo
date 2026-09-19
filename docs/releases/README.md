@@ -1,33 +1,23 @@
-# Релізи
+# Релізи Taxo
 
-Актуальна стабільна версія: **Taxo 9.0.1**.
+**Актуальна stable:** Taxo 10.0  
+**Previous stable / rollback:** Taxo 9.0.1
 
-Актуальний перевірочний кандидат: **Taxo 9.1 candidate r9.8** (GitHub Pre-release; stable `main` не змінюється до завершення manual operational gate).
-
-- **[Повний індекс усіх опублікованих релізів](RELEASE_INDEX.md)**
+- **[Taxo 10.0 — release notes](RELEASE_NOTES_v10_0.md)**
+- **[Повний індекс GitHub Releases](RELEASE_INDEX.md)**
 - [Taxo 9.1 candidate r9.8 — примітки](RELEASE_NOTES_v9_1_candidate_r9_8.md)
 - [Taxo 9.1 candidate r9.7 — примітки](RELEASE_NOTES_v9_1_candidate_r9_7.md)
 - [Taxo 9.1 candidate r9.6 — примітки](RELEASE_NOTES_v9_1_candidate_r9_6.md)
 - [Taxo 9.1 candidate r9.5 — примітки](RELEASE_NOTES_v9_1_candidate_r9_5.md)
 - [Taxo 9.1 candidate r9.4 — примітки](RELEASE_NOTES_v9_1_candidate_r9_4.md)
-- [Taxo 9.1 candidate r9.3 — примітки](RELEASE_NOTES_v9_1_candidate_r9_3.md)
-- [Taxo 9.1 candidate r9.2 — примітки](RELEASE_NOTES_v9_1_candidate_r9_2.md)
-- [Taxo 9.1 candidate r9.1 — примітки](RELEASE_NOTES_v9_1_candidate_r9_1.md)
-- [Примітки до Taxo 9.0.1](RELEASE_NOTES_v9_0_1.md)
-- [Примітки до Taxo 9.0](RELEASE_NOTES_v9_0.md)
-- [Стабільний реліз Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)
+- [Taxo 9.0.1 — примітки](RELEASE_NOTES_v9_0_1.md)
+- [Taxo 9.0 — примітки](RELEASE_NOTES_v9_0.md)
 
-Кандидатні теги не пересуваються після публікації. Кожна нова контрольна точка отримує окремий tag/release.
+## Політика
 
-Історичні релізні матеріали версій 8.x винесені в гілку [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
-
-## Поточна публікаційна політика
-
-- `v9.0.1` — stable і rollback point;
-- `v9.1-r9.8` — поточний candidate для ручної перевірки;
-- усі підготовлені 9.x releases опубліковані; draft-релізів немає;
-- candidate tags/releases не пересуваються і не перезаписуються;
-- новий код після r9.8 потребує нового candidate tag/release;
-- docs-only commits не змінюють release target r9.5.
-
-- `v9.1-r9.5` зберігається як immutable історичний release, але має відомий START.bat / Windows CMD parsing defect і не рекомендується для ручного тестування.
+- `v10.0` — stable, створюється один раз з commit у `main`;
+- `v9.1-r5` … `v9.1-r9.8` — immutable історичні candidates;
+- `v9.1-r9.5` має відомий historical START defect і не використовується;
+- старі tags/releases не пересуваються і не перезаписуються;
+- робочі БД/скани/персональні дані не включаються в releases;
+- stable executable packages формуються для Windows x64, macOS ARM64 та macOS Intel.
