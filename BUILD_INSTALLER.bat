@@ -11,4 +11,4 @@ if not exist "%ISCC%" (
 )
 "%ISCC%" installer\Taxo.iss
 if errorlevel 1 exit /b 1
-echo Installer ready: release_out\Taxo_v9_1_candidate_r9_8_Setup_Windows_x64.exe
+echo Installer ready: release_out\Taxo_v10_0_Setup_Windows_x64.exe
