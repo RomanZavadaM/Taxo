@@ -2,7 +2,7 @@
 
 **Стан перевірено:** 19.09.2026  
 **Поточний stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)  
-**Поточний candidate:** [Taxo 9.1 candidate r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4)  
+**Поточний candidate:** [Taxo 9.1 candidate r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5)  
 **Робочий PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29)
 
 > Stable `main` залишається на Taxo 9.0.1 до завершення ручного operational gate.  
@@ -12,7 +12,8 @@
 
 | Tag | Статус | Пакети | Призначення |
 |---|---|---|---|
-| [v9.1-r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) | Pre-release, поточний candidate | START + SHA-256 | Передетапна стабілізація, «Аудит графіків…», П-5, архів бланків, місячний контроль |
+| [v9.1-r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) | Pre-release, поточний candidate | START + SHA-256 | START ZIP extraction guard, коректні dotted revision names; функціональний baseline r9.4 |
+| [v9.1-r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) | Pre-release | START + SHA-256 | Передетапна стабілізація, «Аудит графіків…», П-5, архів бланків, місячний контроль |
 | [v9.1-r9.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.3) | Pre-release | START + SHA-256 | П-5, архів бланків, місячний контроль |
 | [v9.1-r9.2](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.2) | Pre-release | START + SHA-256 | Статуси відсутностей, попередній аудит графіків |
 | [v9.1-r9.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.1) | Pre-release | START + SHA-256 | Сумісність канонічного ядра |
@@ -40,7 +41,7 @@ GitHub також зберігає опубліковані історичні �
 
 Ці релізи не є поточною експлуатаційною рекомендацією. Вони зберігаються для історії та відтворюваності.
 
-## Поточна контрольна точка r9.4
+## Попередня функціональна контрольна точка r9.4
 
 - release tag: `v9.1-r9.4`;
 - release target: `3da975ff3dc30740aeaf300d9e3471415075dbe0`;
@@ -59,12 +60,13 @@ GitHub також зберігає опубліковані історичні �
 3. Windows/macOS executable packages випускаються на визначених контрольних точках.
 4. Старі candidate tags/releases не пересуваються, не видаляються і не перезаписуються.
 5. Робочі SQLite-бази, скани, кеші та персональні документи до релізів не включаються.
-6. Нові кодові контрольні точки після r9.4 повинні отримувати новий tag/release.
+6. Нові кодові контрольні точки після r9.5 повинні отримувати новий tag/release.
 
 ## Перед stable 9.1
 
 Залишається ручний operational gate на реальній Windows-базі. Його чекліст зафіксовано в:
-- [AUDIT_v9_1_r9_4.md](../maintenance/AUDIT_v9_1_r9_4.md);
+- [AUDIT_v9_1_r9_5.md](../maintenance/AUDIT_v9_1_r9_5.md);
+- [AUDIT_v9_1_r9_4.md](../maintenance/AUDIT_v9_1_r9_4.md) — функціональний baseline;
 - [NEW_CHAT_HANDOFF_v9_1_r9_4.md](../maintenance/NEW_CHAT_HANDOFF_v9_1_r9_4.md).
 
 До завершення gate PR #29 не зливати у `main`.
