@@ -8,13 +8,13 @@
 > **Candidate:** [Taxo 9.1 candidate r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) — pre-release для ручного operational gate.  
 > **PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29) — **не merge у main до завершення ручної перевірки**.
 
-[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_5.md)
+[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.5 START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.5/Taxo_v9_1_candidate_r9_5_START.zip) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_5.md)
 
 ---
 
 ## Для експлуатації
 
-Гілка `main` є **актуальною стабільною експлуатаційною гілкою Taxo 9.x** і зараз містить Taxo 9.0.1. Поточна гілка `work/v9.1-monthly-dispatch-waybill-ui` містить candidate 9.1 r9.4 та post-release документацію для ручного operational gate.
+Гілка `main` є **актуальною стабільною експлуатаційною гілкою Taxo 9.x** і зараз містить Taxo 9.0.1. Поточна гілка `work/v9.1-monthly-dispatch-waybill-ui` містить candidate 9.1 r9.5 та post-release документацію для ручного operational gate.
 
 Історичні checkpoint/test/publish-файли, старі патчі та ранні архіви версій 8.x прибрані з `main` і збережені окремо в гілці [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
 
@@ -62,7 +62,7 @@ Taxo 9.0.1 формує окремий документ за 60 календар
 
 У [стабільному релізі Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) доступні Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v9_0_1_START.zip` і файл контрольних сум SHA-256. Робочі бази та персональні дані до релізів **не входять**.
 
-Для звичайної експлуатації використовуйте готовий Windows/macOS пакет із розділу релізів. `START.bat` призначений насамперед для перевірки кандидатних змін і технічної діагностики.
+Для звичайної експлуатації використовуйте готовий Windows/macOS пакет із розділу релізів. `START.bat` призначений насамперед для перевірки кандидатних змін і технічної діагностики. **START ZIP потрібно спочатку повністю розпакувати; не запускайте `START.bat` безпосередньо з відкритого архіву.**
 
 ## Робоче сховище і безпека даних
 
