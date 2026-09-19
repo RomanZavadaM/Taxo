@@ -46,3 +46,15 @@ Stable 9.0.1 лишається точкою відкату. Кандидат r9
 - stable main не оновлюється автоматично після успішного CI.
 
 Повний передетапний звіт: [AUDIT_v9_1_r9_4.md](AUDIT_v9_1_r9_4.md).
+
+## Публікаційний стан
+
+GitHub оформлено і перевірено після r9.4:
+- release `v9.1-r9.4` опублікований із START + SHA-256;
+- release target — `3da975ff3dc30740aeaf300d9e3471415075dbe0`;
+- усі підготовлені 9.x release-контрольні точки опубліковані;
+- `Protect main` і `Protect releases` активні;
+- post-release documentation commits не змінюють код r9.4;
+- manual operational gate лишається відкритим.
+
+Деталі: [GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md](GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md) та [RELEASE_INDEX.md](../releases/RELEASE_INDEX.md).
