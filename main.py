@@ -4523,6 +4523,28 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         for s in segs:
             seg_by.setdefault(s["worklog_id"],[]).append(s)
 
+    override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+    absence_by={}
+    if override_types and drivers:
+        driver_ids=[dr["id"] for dr in drivers]
+        q=",".join("?" for _ in driver_ids)
+        params=[days[0].isoformat(),days[-1].isoformat(),*driver_ids]
+        for entry in con.execute(
+            f"""SELECT e.driver_id,t.work_date,t.day_type
+                FROM employee_time_entries t
+                JOIN employees e ON e.id=t.employee_id
+                WHERE t.work_date BETWEEN ? AND ?
+                  AND e.driver_id IN ({q})
+                ORDER BY e.active DESC,e.id""",
+            params
+        ).fetchall():
+            if (entry["driver_id"] is not None
+                    and str(entry["day_type"] or "") in override_types):
+                absence_by.setdefault(
+                    (int(entry["driver_id"]),entry["work_date"]),
+                    entry["day_type"],
+                )
+
     company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
     con.close()
 
@@ -4533,42 +4555,44 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         work_days=0
         work_min=0
         drive_min=0
+        overlap_min=0
         for d in days:
             if not driver_employed_on(dr,d):
                 cells.append("")
                 continue
             r=row_by.get((dr["id"],d.isoformat()))
             segs=seg_by.get(r["id"],[]) if r else []
-            cell=_monthly_shift_cell(r,segs)
+            override=absence_by.get((int(dr["id"]),d.isoformat()))
+            state=driver_day_view(
+                d,r,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            if override:
+                cell=SHIFT_DAY_CODES.get(str(override),str(override)[:4])
+            else:
+                cell=_monthly_shift_cell(r,segs)
             cells.append(cell)
 
-            if r:
-                if (r["day_type"] or "")=="Робота":
+            if r or override:
+                if state["day_type"]=="Робота" and state["work_minutes"]>0:
                     work_days+=1
-                if segs:
-                    dm_work=sum(hours_value_to_minutes(s["work_hours"]) for s in segs)
-                    dm_drive=sum(hours_value_to_minutes(s["driving_hours"]) for s in segs)
-                else:
-                    dm_work=hours_value_to_minutes(r["work_hours"])
-                    dm_drive=hours_value_to_minutes(r["driving_hours"])
-                work_min+=dm_work
-                drive_min+=dm_drive
+                work_min+=state["work_minutes"]
+                drive_min+=state["driving_minutes"]
+                overlap_min+=state["work_overlap_minutes"]
 
-                if (r["day_type"] or "")=="Робота":
-                    schedule=segments_summary(segs) if segs else (
-                        f"{r['start_time']}-{r['end_time']}" if r["start_time"] else ""
-                    )
+                if state["day_type"]=="Робота" and state["work_minutes"]>0:
                     details.append({
                         "driver": f"{dr['last_name']} {dr['first_name']} {dr['middle_name']}".strip(),
                         "date": d,
-                        "day_type": r["day_type"],
-                        "schedule": schedule,
-                        "breaks": gaps_summary(segs),
-                        "work_min": dm_work,
-                        "drive_min": dm_drive,
-                        "route": (r["route_name"] if "route_name" in r.keys() else "") or "",
-                        "vehicle": (r["vehicle"] if "vehicle" in r.keys() else "") or "",
-                        "notes": (r["notes"] if "notes" in r.keys() else "") or "",
+                        "day_type": state["day_type"],
+                        "schedule": state["schedule"],
+                        "breaks": state["breaks"],
+                        "work_min": state["work_minutes"],
+                        "drive_min": state["driving_minutes"],
+                        "route": (r["route_name"] if r is not None and "route_name" in r.keys() else "") or "",
+                        "vehicle": (r["vehicle"] if r is not None and "vehicle" in r.keys() else "") or "",
+                        "notes": (r["notes"] if r is not None and "notes" in r.keys() else "") or "",
                     })
 
         driver_rows.append({
@@ -4578,6 +4602,7 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
             "work_days":work_days,
             "work_min":work_min,
             "drive_min":drive_min,
+            "overlap_min":overlap_min,
         })
 
     return {
@@ -8521,13 +8546,20 @@ class App(tk.Tk):
         ).fetchall()
         out=[]
         for r in rows:
-            if (r["day_type"] or "") not in {"Робота","Готовність","Інше"} and float(r["work_hours"] or 0)<=0:
-                continue
-            segs=con.execute(
+            stored_segments=con.execute(
                 "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(r["id"],)
             ).fetchall()
-            if not segs:
-                segs=[r]
+            override=_driver_absence_for_day(con,r["driver_id"],work_date)
+            state=driver_day_view(
+                work_date,r,stored_segments,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            if override:
+                continue
+            if state["day_type"] not in {"Робота","Готовність","Інше"} and state["work_minutes"]<=0:
+                continue
+            segs=stored_segments if stored_segments else [r]
             drive_pairs=[]; work_pairs=[]
             for sg in segs:
                 ds=(sg["start_time"] or "").strip(); de=(sg["end_time"] or "").strip()
@@ -8585,7 +8617,11 @@ class App(tk.Tk):
                 "outbound_stop_count":int(stop_counts.get("outbound",0)),"return_stop_count":int(stop_counts.get("return",0)),
                 "work_span":f"{work_pairs[0][0]}-{work_pairs[-1][1]}" if work_pairs else "",
                 "drive_span":f"{drive_pairs[0][0]}-{drive_pairs[-1][1]}" if drive_pairs else "",
-                "work_hours":float(r["work_hours"] or 0),"driving_hours":float(r["driving_hours"] or 0),
+                "work_hours":minutes_to_db_hours(state["work_minutes"]),
+                "driving_hours":minutes_to_db_hours(state["driving_minutes"]),
+                "schedule_conflict":state["work_overlap_minutes"]>0,
+                "schedule_conflict_minutes":state["work_overlap_minutes"],
+                "schedule_conflict_message":segment_overlap_message(stored_segments,"work"),
                 "waybill_id":r["waybill_id"],"waybill_no":r["waybill_no"] or "",
                 "waybill_pdf":r["waybill_pdf"] or "","waybill_revision":r["waybill_revision"] or 0,
                 "waybill_status":r["waybill_status"] or "",
@@ -8657,6 +8693,7 @@ class App(tk.Tk):
             if not row["planned_departure"] or not row["planned_return"]: missing.append("час")
             if not row["start_location"] or not row["end_location"]: missing.append("точки початку/завершення")
             if not row["outbound_stop_count"] or not row["return_stop_count"]: missing.append("прямий/зворотний графік")
+            if row.get("schedule_conflict"): missing.append(f"перекриття часу {minutes_hhmm(row['schedule_conflict_minutes'])}")
             if row["waybill_no"] and row["waybill_status"]=="void":
                 status=f"АНУЛЬОВАНА № {row['waybill_no']}"
             elif row["waybill_no"]:
@@ -8769,11 +8806,16 @@ class App(tk.Tk):
         if not row["planned_departure"] or not row["planned_return"]: missing.append("плановий час виїзду/заїзду")
         if not row["start_location"] or not row["end_location"]: missing.append("точка початку/завершення маршруту")
         if not row["outbound_stop_count"] or not row["return_stop_count"]: missing.append("графік прямого і зворотного напрямків")
+        if row.get("schedule_conflict"):
+            missing.append(
+                "перекриття частин робочого часу "
+                + minutes_hhmm(row["schedule_conflict_minutes"])
+            )
         if missing:
             messagebox.showerror(
                 "Шляхівка",
-                "Бракує даних: "+", ".join(missing)+".\n\n"
-                "Відкрийте вкладку «Маршрути», виберіть цей маршрут і натисніть «Заповнити маршрут для шляхівки…».",
+                "Бракує або конфліктують дані: "+", ".join(missing)+".\n\n"
+                "Перевірте маршрут і часові частини дня. Для графіка зупинок відкрийте «Маршрути → Заповнити маршрут для шляхівки…».",
                 parent=self.waybill_win,
             ); return
         if build_waybill_pdf is None:
@@ -9609,17 +9651,12 @@ class App(tk.Tk):
         d=datetime.strptime(row["work_date"], "%Y-%m-%d").date()
         pieces=[]
         if segments:
-            for s in segments:
-                ws,we=_segment_work_pair(s)
-                try:
-                    sm=time_to_minutes(ws); em=time_to_minutes(we)
-                except Exception:
-                    continue
-                st=datetime.combine(d, datetime.min.time()) + timedelta(minutes=sm)
-                en=datetime.combine(d, datetime.min.time()) + timedelta(minutes=em)
-                if em <= sm:
-                    en += timedelta(days=1)
-                pieces.append((st,en))
+            base=datetime.combine(d,datetime.min.time())
+            for item in normalized_segment_intervals(segments,"work"):
+                pieces.append((
+                    base+timedelta(minutes=item["start"]),
+                    base+timedelta(minutes=item["end"]),
+                ))
         else:
             ws=(row["work_start_time"] if "work_start_time" in row.keys() else "") or row["start_time"]
             we=(row["work_end_time"] if "work_end_time" in row.keys() else "") or row["end_time"]
