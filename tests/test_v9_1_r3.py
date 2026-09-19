@@ -307,10 +307,20 @@ class TestPersonnelR3(unittest.TestCase):
 
             data = collect_p5_data(core, 2026, 8, active_only=True)
             cell = data["employees"][0]["cells"][5]  # 06.08
-            self.assertEqual(cell["code"], "Р")
-            self.assertEqual(cell["hours"], 525)
-            self.assertNotEqual(cell["code"], "?")
+            self.assertEqual(cell["code"], "")
+            self.assertIsNone(cell["hours"])
             self.assertTrue(cell["missing"])
+            self.assertFalse(cell["substituted_plan"])
+
+            substituted = collect_p5_data(
+                core, 2026, 8, active_only=True, use_plan_when_fact_missing=True
+            )
+            subcell = substituted["employees"][0]["cells"][5]
+            self.assertEqual(subcell["code"], "Р")
+            self.assertEqual(subcell["hours"], 525)
+            self.assertFalse(subcell["missing"])
+            self.assertTrue(subcell["substituted_plan"])
+            self.assertEqual(substituted["planned_substituted_total"], 1)
 
     def test_duration_only_driver_plan_does_not_invent_clock_time(self):
         with tempfile.TemporaryDirectory() as tmp:
