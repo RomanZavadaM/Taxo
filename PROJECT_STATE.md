@@ -1,12 +1,12 @@
 # PROJECT_STATE — Taxo
 
 **Дата фіксації:** 19.09.2026  
-**Поточна лінія розробки:** Taxo 9.1 candidate r9.4  
+**Поточна лінія розробки:** Taxo 9.1 candidate r9.5  
 **Стабільний baseline:** Taxo 9.0.1  
 **Робоча гілка:** `work/v9.1-monthly-dispatch-waybill-ui`  
-**Pull Request:** #29 — Taxo 9.1 candidate r9.4: аудит графіків і передетапна стабілізація  
+**Pull Request:** #29 — Taxo 9.1 candidate r9.5: START package hotfix + operational gate  
 **Immutable release target r9.4:** `3da975ff3dc30740aeaf300d9e3471415075dbe0`  
-**Post-release docs checkpoint:** `docs/maintenance/NEW_CHAT_HANDOFF_v9_1_r9_4.md`
+**Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_5.md`
 
 ## Опубліковані контрольні релізи
 
@@ -20,10 +20,22 @@
 - **v9.1-r9.1** — immutable source/START pre-release.
 - **v9.1-r9.2** — immutable source/START pre-release.
 - **v9.1-r9.3** — immutable source/START pre-release.
-- **v9.1-r9.4** — поточний immutable source/START pre-release; release target `3da975ff3dc30740aeaf300d9e3471415075dbe0`; Windows/macOS/START/publisher CI — success.
+- **v9.1-r9.4** — immutable source/START pre-release; release target `3da975ff3dc30740aeaf300d9e3471415075dbe0`; Windows/macOS/START/publisher CI — success.
+- **v9.1-r9.5** — поточний пакувально-запускний hotfix candidate; новий immutable source/START release створюється окремо після CI.
 - **r1–r4** — не публікувати окремими Releases: це проміжні кандидати з уже відомими виправленими проблемами; історія збережена в Git/PR.
 
-## Поточний r9.4
+## Поточний r9.5
+
+### START package hotfix — r9.5
+- виявлено, що запуск START.bat безпосередньо з ZIP може тимчасово витягнути лише BAT-файл;
+- START тепер перевіряє requirements.txt і taxo_app.py до pip;
+- при неповному пакеті показується інструкція «Видобути все / Extract all», exit code 2;
+- додано 00_README_START.txt;
+- виправлено формування назв dotted candidate revision через release_naming.py;
+- source workflow перевіряє обов'язкові файли в ZIP;
+- Windows CI відтворює сценарій із самотнім START.bat;
+- функціональна логіка r9.4 не змінювалась;
+- аудит: docs/maintenance/AUDIT_v9_1_r9_5.md.
 
 ### Персонал
 - окремий верхній розділ **Персонал**;
@@ -192,7 +204,7 @@
 
 ## Наступне рішення після експлуатаційної перевірки
 
-Якщо r9.4 проходить реальні дані без регресій:
+Якщо r9.5 проходить реальні дані без регресій:
 - закрити PR #29 через захищений main;
 - сформувати наступну стабільну контрольну версію 9.1;
 - зберегти 9.0.1 як попередній stable rollback point.
@@ -201,10 +213,11 @@
 
 Для продовження в новому чаті використовувати:
 - `docs/maintenance/NEW_CHAT_HANDOFF_v9_1_r9_4.md`;
-- `docs/maintenance/AUDIT_v9_1_r9_4.md`;
+- `docs/maintenance/AUDIT_v9_1_r9_5.md`;
+- `docs/maintenance/AUDIT_v9_1_r9_4.md` — функціональний baseline;
 - цей `PROJECT_STATE.md`;
 - `VERSION.txt`;
-- release notes `docs/releases/RELEASE_NOTES_v9_1_candidate_r9_4.md`.
+- release notes `docs/releases/RELEASE_NOTES_v9_1_candidate_r9_5.md`.
 
 Важливо: docs checkpoint може бути новішим за immutable release target r9.4. Це не означає зміну коду r9.4; старий tag не пересувати. Якщо після ручної перевірки з'являться кодові зміни — створювати **новий** candidate/tag/release.
 
