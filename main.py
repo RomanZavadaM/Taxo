@@ -745,6 +745,10 @@ def init_db():
         day_type TEXT NOT NULL DEFAULT 'Робота',
         planned_hours REAL,
         actual_hours REAL,
+        overtime_hours REAL,
+        night_hours REAL,
+        evening_hours REAL,
+        weekend_holiday_hours REAL,
         notes TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT DEFAULT '',
@@ -1017,6 +1021,16 @@ def init_db():
     ]:
         if name not in ecols:
             con.execute(f"ALTER TABLE employees ADD COLUMN {name} {ddl}")
+
+    tcols = {r[1] for r in con.execute("PRAGMA table_info(employee_time_entries)").fetchall()}
+    for name, ddl in [
+        ("overtime_hours", "REAL"),
+        ("night_hours", "REAL"),
+        ("evening_hours", "REAL"),
+        ("weekend_holiday_hours", "REAL"),
+    ]:
+        if name not in tcols:
+            con.execute(f"ALTER TABLE employee_time_entries ADD COLUMN {name} {ddl}")
 
     # v8.70 r3: єдиний реєстр працівників. Старі водії та працівники
     # випуску не дублюються при кожному запуску і не видаляються.
@@ -6817,42 +6831,113 @@ class App(tk.Tk):
             con=db(); current=employee_day_time(con,employee["id"],work_date)
             entry=con.execute("SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",(employee["id"],work_date.isoformat())).fetchone(); con.close()
             dialog=tk.Toplevel(win); dialog.title(f"Табель: {self.employee_full_name(employee)}, {work_date.strftime('%d.%m.%Y')}")
-            fit_window_to_screen(dialog,590,410,520,360); dialog.transient(win); dialog.grab_set()
+            fit_window_to_screen(dialog,720,650,620,540); dialog.transient(win); dialog.grab_set()
+            entry_keys=set(entry.keys()) if entry is not None and hasattr(entry,"keys") else set()
             day_type=tk.StringVar(value=entry["day_type"] if entry else current["day_type"])
             plan=tk.StringVar(value=hours_value_hhmm(entry["planned_hours"]) if entry and entry["planned_hours"] is not None else "")
             actual=tk.StringVar(value=hours_value_hhmm(entry["actual_hours"]) if entry and entry["actual_hours"] is not None else "")
+            overtime=tk.StringVar(value=hours_value_hhmm(entry["overtime_hours"]) if entry and "overtime_hours" in entry_keys and entry["overtime_hours"] is not None else "")
+            night=tk.StringVar(value=hours_value_hhmm(entry["night_hours"]) if entry and "night_hours" in entry_keys and entry["night_hours"] is not None else "")
+            evening=tk.StringVar(value=hours_value_hhmm(entry["evening_hours"]) if entry and "evening_hours" in entry_keys and entry["evening_hours"] is not None else "")
+            weekend_holiday=tk.StringVar(value=hours_value_hhmm(entry["weekend_holiday_hours"]) if entry and "weekend_holiday_hours" in entry_keys and entry["weekend_holiday_hours"] is not None else "")
             notes=tk.StringVar(value=entry["notes"] if entry else "")
-            ttk.Label(dialog,text="Вид дня").grid(row=0,column=0,sticky="w",padx=10,pady=8)
-            ttk.Combobox(dialog,textvariable=day_type,values=DAY_TYPES,state="readonly",width=35).grid(row=0,column=1,sticky="ew",padx=10,pady=8)
-            ttk.Label(dialog,text="План, ГГ:ХХ").grid(row=1,column=0,sticky="w",padx=10,pady=8)
-            ttk.Entry(dialog,textvariable=plan).grid(row=1,column=1,sticky="ew",padx=10,pady=8)
+            ttk.Label(dialog,text="Вид дня").grid(row=0,column=0,sticky="w",padx=10,pady=7)
+            ttk.Combobox(dialog,textvariable=day_type,values=DAY_TYPES,state="readonly",width=38).grid(row=0,column=1,sticky="ew",padx=10,pady=7)
+            ttk.Label(dialog,text="План, ГГ:ХХ").grid(row=1,column=0,sticky="w",padx=10,pady=7)
+            ttk.Entry(dialog,textvariable=plan).grid(row=1,column=1,sticky="ew",padx=10,pady=7)
             ttk.Label(dialog,text=f"Порожньо = автоматично {minutes_hhmm(current['planned_minutes'])}",foreground="gray").grid(row=2,column=1,sticky="w",padx=10)
-            ttk.Label(dialog,text="Факт, ГГ:ХХ").grid(row=3,column=0,sticky="w",padx=10,pady=8)
-            ttk.Entry(dialog,textvariable=actual).grid(row=3,column=1,sticky="ew",padx=10,pady=8)
-            ttk.Label(dialog,text="Примітка").grid(row=4,column=0,sticky="w",padx=10,pady=8)
-            ttk.Entry(dialog,textvariable=notes).grid(row=4,column=1,sticky="ew",padx=10,pady=8); dialog.columnconfigure(1,weight=1)
+            ttk.Label(dialog,text="Факт — відпрацьовано всього, ГГ:ХХ").grid(row=3,column=0,sticky="w",padx=10,pady=7)
+            ttk.Entry(dialog,textvariable=actual).grid(row=3,column=1,sticky="ew",padx=10,pady=7)
+
+            fact_box=ttk.LabelFrame(dialog,text="Фактичні категорії для типової форми П-5",padding=8)
+            fact_box.grid(row=4,column=0,columnspan=2,sticky="ew",padx=10,pady=8)
+            fact_box.columnconfigure(1,weight=1)
+            for rr,(label,var) in enumerate((
+                ("Надурочні години (НУ 05), ГГ:ХХ",overtime),
+                ("Нічні години 22:00–06:00 (РН 04), ГГ:ХХ",night),
+                ("Вечірні години (ВЧ 03), ГГ:ХХ",evening),
+                ("Робота у вихідні / святкові (РВ 06), ГГ:ХХ",weekend_holiday),
+            )):
+                ttk.Label(fact_box,text=label).grid(row=rr,column=0,sticky="w",padx=(0,8),pady=4)
+                ttk.Entry(fact_box,textvariable=var,width=14).grid(row=rr,column=1,sticky="w",pady=4)
+            ttk.Label(
+                fact_box,
+                text=("Ці поля — фактичні складові загального факту. Вечірні години Taxo не вигадує автоматично: "
+                      "їх вносять за правилом/колективним договором підприємства."),
+                foreground="gray",wraplength=620,justify="left"
+            ).grid(row=4,column=0,columnspan=2,sticky="w",pady=(5,0))
+
+            ttk.Label(dialog,text="Примітка").grid(row=5,column=0,sticky="w",padx=10,pady=7)
+            ttk.Entry(dialog,textvariable=notes).grid(row=5,column=1,sticky="ew",padx=10,pady=7)
+            dialog.columnconfigure(1,weight=1)
+
             def save_entry():
                 try:
                     plan_value=minutes_to_db_hours(hours_value_to_minutes(plan.get())) if plan.get().strip() else None
                     actual_value=minutes_to_db_hours(hours_value_to_minutes(actual.get())) if actual.get().strip() else None
+                    special_vars=(overtime,night,evening,weekend_holiday)
+                    special_values=[
+                        minutes_to_db_hours(hours_value_to_minutes(v.get())) if v.get().strip() else None
+                        for v in special_vars
+                    ]
+                    special_minutes=[
+                        hours_value_to_minutes(v.get()) if v.get().strip() else 0
+                        for v in special_vars
+                    ]
                 except ValueError as exc:
                     messagebox.showerror("Табель",str(exc),parent=dialog); return
+                if actual_value is None and any(special_minutes):
+                    messagebox.showerror(
+                        "Табель",
+                        "Спочатку внесіть загальний фактично відпрацьований час. Спеціальні категорії П-5 не можуть існувати без факту.",
+                        parent=dialog
+                    ); return
+                if actual_value is not None:
+                    total_actual=hours_value_to_minutes(actual.get())
+                    labels=("Надурочні","Нічні","Вечірні","Вихідні/святкові")
+                    for label,mins in zip(labels,special_minutes):
+                        if mins>total_actual:
+                            messagebox.showerror("Табель",f"{label} години не можуть перевищувати загальний факт.",parent=dialog); return
                 con=db(); now=datetime.now().isoformat(timespec="seconds")
-                con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,planned_hours,actual_hours,notes,created_at,updated_at)
-                    VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET day_type=excluded.day_type,
-                    planned_hours=excluded.planned_hours,actual_hours=excluded.actual_hours,notes=excluded.notes,updated_at=excluded.updated_at""",
-                    (employee["id"],work_date.isoformat(),day_type.get(),plan_value,actual_value,notes.get().strip(),now,now))
+                con.execute("""INSERT INTO employee_time_entries(
+                        employee_id,work_date,day_type,planned_hours,actual_hours,
+                        overtime_hours,night_hours,evening_hours,weekend_holiday_hours,
+                        notes,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(employee_id,work_date) DO UPDATE SET
+                        day_type=excluded.day_type,planned_hours=excluded.planned_hours,
+                        actual_hours=excluded.actual_hours,overtime_hours=excluded.overtime_hours,
+                        night_hours=excluded.night_hours,evening_hours=excluded.evening_hours,
+                        weekend_holiday_hours=excluded.weekend_holiday_hours,
+                        notes=excluded.notes,updated_at=excluded.updated_at""",
+                    (employee["id"],work_date.isoformat(),day_type.get(),plan_value,actual_value,
+                     special_values[0],special_values[1],special_values[2],special_values[3],
+                     notes.get().strip(),now,now))
                 con.commit(); con.close(); dialog.destroy(); refresh_summary()
-            ttk.Button(dialog,text="Зберегти",command=save_entry).grid(row=5,column=1,sticky="e",padx=10,pady=14)
+            ttk.Button(dialog,text="Зберегти",command=save_entry).grid(row=6,column=1,sticky="e",padx=10,pady=14)
 
         def copy_day():
             employee=employee_map.get(employee_choice.get()); work_date=selected_day()
             if not employee or not work_date:
                 messagebox.showwarning("Копіювання","Виберіть один день у щоденному табелі.",parent=win); return
-            con=db(); current=employee_day_time(con,employee["id"],work_date); con.close()
-            clipboard["value"]={"day_type":current["day_type"],"planned_hours":minutes_to_db_hours(current["planned_minutes"]),
-                                "actual_hours":minutes_to_db_hours(current["actual_minutes"]) if current["actual_minutes"] is not None else None,
-                                "notes":current["notes"],"source_date":work_date}
+            con=db()
+            current=employee_day_time(con,employee["id"],work_date)
+            manual=con.execute(
+                "SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                (employee["id"],work_date.isoformat())
+            ).fetchone()
+            con.close()
+            manual_keys=set(manual.keys()) if manual is not None and hasattr(manual,"keys") else set()
+            clipboard["value"]={
+                "day_type":current["day_type"],
+                "planned_hours":minutes_to_db_hours(current["planned_minutes"]),
+                "actual_hours":minutes_to_db_hours(current["actual_minutes"]) if current["actual_minutes"] is not None else None,
+                "overtime_hours":manual["overtime_hours"] if manual is not None and "overtime_hours" in manual_keys else None,
+                "night_hours":manual["night_hours"] if manual is not None and "night_hours" in manual_keys else None,
+                "evening_hours":manual["evening_hours"] if manual is not None and "evening_hours" in manual_keys else None,
+                "weekend_holiday_hours":manual["weekend_holiday_hours"] if manual is not None and "weekend_holiday_hours" in manual_keys else None,
+                "notes":current["notes"],"source_date":work_date
+            }
             try: win.clipboard_clear(); win.clipboard_append("taxo_personnel_day")
             except tk.TclError: pass
             messagebox.showinfo("Копіювання","День скопійовано. Виділіть одну або кілька дат і натисніть «Вставити день».",parent=win)
@@ -6872,10 +6957,20 @@ class App(tk.Tk):
             now=datetime.now().isoformat(timespec="seconds")
             for work_date in days:
                 if not employee_employed_on(employee,work_date): continue
-                con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,planned_hours,actual_hours,notes,created_at,updated_at)
-                    VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET day_type=excluded.day_type,planned_hours=excluded.planned_hours,
-                    actual_hours=excluded.actual_hours,notes=excluded.notes,updated_at=excluded.updated_at""",
-                    (employee["id"],work_date.isoformat(),clip["day_type"],clip["planned_hours"],clip["actual_hours"],clip["notes"],now,now))
+                con.execute("""INSERT INTO employee_time_entries(
+                        employee_id,work_date,day_type,planned_hours,actual_hours,
+                        overtime_hours,night_hours,evening_hours,weekend_holiday_hours,
+                        notes,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(employee_id,work_date) DO UPDATE SET
+                        day_type=excluded.day_type,planned_hours=excluded.planned_hours,
+                        actual_hours=excluded.actual_hours,overtime_hours=excluded.overtime_hours,
+                        night_hours=excluded.night_hours,evening_hours=excluded.evening_hours,
+                        weekend_holiday_hours=excluded.weekend_holiday_hours,
+                        notes=excluded.notes,updated_at=excluded.updated_at""",
+                    (employee["id"],work_date.isoformat(),clip["day_type"],clip["planned_hours"],clip["actual_hours"],
+                     clip.get("overtime_hours"),clip.get("night_hours"),clip.get("evening_hours"),clip.get("weekend_holiday_hours"),
+                     clip["notes"],now,now))
             con.commit(); con.close(); refresh_summary()
 
         def plan_to_fact():
