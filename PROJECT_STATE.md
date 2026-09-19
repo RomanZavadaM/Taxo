@@ -1,13 +1,13 @@
 # PROJECT_STATE — Taxo
 
 **Дата фіксації:** 19.09.2026  
-**Поточна лінія розробки:** Taxo 9.1 candidate r9.5  
+**Поточна лінія розробки:** Taxo 9.1 candidate r9.6  
 **Стабільний baseline:** Taxo 9.0.1  
 **Робоча гілка:** `work/v9.1-monthly-dispatch-waybill-ui`  
-**Pull Request:** #29 — Taxo 9.1 candidate r9.5: START package hotfix + operational gate  
+**Pull Request:** #29 — Taxo 9.1 candidate r9.6: Windows START compatibility + operational gate  
 **Immutable release target r9.4:** `3da975ff3dc30740aeaf300d9e3471415075dbe0`  
 **Immutable release target r9.5:** `f587c2cad71a22c6bded3a992fd27797c1e2c296`  
-**Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_5.md`
+**Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_6.md`
 
 ## Опубліковані контрольні релізи
 
@@ -22,10 +22,21 @@
 - **v9.1-r9.2** — immutable source/START pre-release.
 - **v9.1-r9.3** — immutable source/START pre-release.
 - **v9.1-r9.4** — immutable source/START pre-release; release target `3da975ff3dc30740aeaf300d9e3471415075dbe0`; Windows/macOS/START/publisher CI — success.
-- **v9.1-r9.5** — поточний immutable source/START pre-release; release target `f587c2cad71a22c6bded3a992fd27797c1e2c296`; START/publisher/Windows/macOS CI — success; 101 regression tests.
+- **v9.1-r9.5** — immutable історичний source/START pre-release; release target `f587c2cad71a22c6bded3a992fd27797c1e2c296`; має відомий Windows CMD parsing defect у START.bat, не використовувати для manual gate.
+- **v9.1-r9.6** — поточний candidate; ASCII/CRLF START hardening; публікація тільки після зеленого CI.
 - **r1–r4** — не публікувати окремими Releases: це проміжні кандидати з уже відомими виправленими проблемами; історія збережена в Git/PR.
 
-## Поточний r9.5
+## Поточний r9.6
+
+### Windows START compatibility — r9.6
+- START.bat переписаний у ASCII-only, без chcp;
+- Windows CRLF;
+- локалізована інструкція винесена в 00_README_START.txt;
+- full extracted-folder preflight перевіряється реальним cmd.exe на Windows CI;
+- incomplete-folder guard перевіряється окремо;
+- source ZIP перевіряє encoding/CRLF;
+- r9.5 не пересувається і лишається історичним release з known issue;
+- функціональний baseline r9.4 не змінений.
 
 ### START package hotfix — r9.5
 - виявлено, що запуск START.bat безпосередньо з ZIP може тимчасово витягнути лише BAT-файл;
