@@ -16,14 +16,19 @@ class Taxo901HotfixTests(unittest.TestCase):
 
     def test_version_file_marks_901(self):
         text = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
-        self.assertTrue("Version: 9.0.1" in text or "Baseline: Taxo 9.0.1" in text)
+        self.assertTrue(
+            "Version: 9.0.1" in text
+            or "Baseline: Taxo 9.0.1" in text
+            or "Previous stable / rollback point: Taxo 9.0.1" in text
+        )
+        release_type = next(
+            line for line in text.splitlines() if line.startswith("Release type:")
+        ).lower()
         if "Version: 9.0.1" in text:
-            self.assertIn("Release type: stable hotfix", text)
+            self.assertIn("stable hotfix", release_type)
+        elif "Version: 10.0" in text:
+            self.assertEqual(release_type, "release type: stable")
         else:
-            self.assertIn("Baseline: Taxo 9.0.1", text)
-            release_type = next(
-                line for line in text.splitlines() if line.startswith("Release type:")
-            ).lower()
             self.assertIn("candidate", release_type)
             self.assertIn("pre-release", release_type)
 
