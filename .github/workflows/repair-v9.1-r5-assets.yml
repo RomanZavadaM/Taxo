@@ -1,0 +1,129 @@
+name: Repair Taxo 9.1 r5 release assets
+
+on:
+  push:
+    branches:
+      - 'work/v9.1-monthly-dispatch-waybill-ui'
+    paths:
+      - '.github/workflows/repair-v9.1-r5-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v9.1-r5
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: 'x64'
+      - shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller==6.22.2
+          python -m unittest discover -s tests -v
+          python -m PyInstaller --noconfirm --clean Taxo.spec
+          Move-Item 'dist/Taxo' 'dist/Taxo_v9_1_candidate_r5_Windows_x64'
+          $db = Get-ChildItem 'dist/Taxo_v9_1_candidate_r5_Windows_x64' -Recurse -File -Include *.db,*.sqlite,*.sqlite3
+          if ($db) { throw "Database unexpectedly bundled: $($db.FullName -join ', ')" }
+          Compress-Archive -Path 'dist/Taxo_v9_1_candidate_r5_Windows_x64' -DestinationPath 'Taxo_v9_1_candidate_r5_Windows_x64_Portable.zip' -Force
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          & $iscc 'installer/Taxo.iss'
+          if (!(Test-Path 'release_out/Taxo_v9_1_candidate_r5_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repair-v9.1-r5-windows
+          path: |
+            Taxo_v9_1_candidate_r5_Windows_x64_Portable.zip
+            release_out/Taxo_v9_1_candidate_r5_Setup_Windows_x64.exe
+          retention-days: 7
+
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v9.1-r5
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - shell: bash
+        run: |
+          test "$(uname -m)" = "${{ matrix.arch }}"
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-build-macos.txt
+          python -m unittest discover -s tests -v
+          python -m PyInstaller --noconfirm --clean Taxo_macos.spec
+          test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
+          if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then
+            echo 'Database unexpectedly bundled' >&2
+            exit 1
+          fi
+          file 'dist/Taxo.app/Contents/MacOS/Taxo' | grep -q "${{ matrix.arch }}"
+          codesign --verify --deep --strict 'dist/Taxo.app'
+          bundle="Taxo_v9_1_candidate_r5_macOS_${{ matrix.arch }}"
+          mkdir "$bundle"
+          mv 'dist/Taxo.app' "$bundle/Taxo.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$bundle" "${bundle}_Portable.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repair-v9.1-r5-macos-${{ matrix.arch }}
+          path: Taxo_v9_1_candidate_r5_macOS_${{ matrix.arch }}_Portable.zip
+          retention-days: 7
+
+  publish:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v9.1-r5
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: repair-v9.1-r5-*
+          path: release-assets
+          merge-multiple: true
+      - name: Rebuild exact START package and checksums
+        shell: bash
+        run: |
+          mkdir release-upload
+          find release-assets -type f -exec cp '{}' release-upload/ \;
+          git archive --format=zip --prefix='Taxo_v9_1_candidate_r5_START/' --output='release-upload/Taxo_v9_1_candidate_r5_START.zip' HEAD
+          if unzip -l 'release-upload/Taxo_v9_1_candidate_r5_START.zip' | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            exit 1
+          fi
+          cd release-upload
+          sha256sum             Taxo_v9_1_candidate_r5_Setup_Windows_x64.exe             Taxo_v9_1_candidate_r5_Windows_x64_Portable.zip             Taxo_v9_1_candidate_r5_macOS_arm64_Portable.zip             Taxo_v9_1_candidate_r5_macOS_x86_64_Portable.zip             Taxo_v9_1_candidate_r5_START.zip             > SHA256SUMS_v9_1_candidate_r5.txt
+          sha256sum -c SHA256SUMS_v9_1_candidate_r5.txt
+      - name: Restore release assets from exact tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload v9.1-r5 release-upload/* --clobber

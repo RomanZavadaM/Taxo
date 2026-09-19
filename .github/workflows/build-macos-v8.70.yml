@@ -1,4 +1,4 @@
-name: Test Taxo v8.70 source / build macOS on demand
+name: Test Taxo 9.x source / build macOS on demand
 
 on:
   workflow_dispatch:
@@ -11,6 +11,9 @@ on:
       - 'taxo_app.py'
       - 'work_analysis_ext.py'
       - 'activity_register_60.py'
+      - 'v91_features.py'
+      - 'personnel_v91.py'
+      - 'work_regime.py'
       - 'workspace.py'
       - 'waybill.py'
       - 'tachograph.py'
@@ -48,7 +51,7 @@ jobs:
       PYTHONUTF8: '1'
 
     steps:
-      - name: Checkout v8.70 candidate
+      - name: Checkout current Taxo candidate
         uses: actions/checkout@v4
 
       - name: Set up Python 3.13
@@ -75,7 +78,7 @@ jobs:
       - name: Compile and test source
         shell: bash
         run: |
-          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py workspace.py waybill.py tachograph.py attestation_render.py
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py
           python -m unittest discover -s tests -v
 
       - name: Build native Taxo.app
@@ -101,20 +104,20 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
-          bundle_dir="Taxo_v8_70_TEST_r11_macOS_${{ matrix.arch }}"
+          bundle_dir="Taxo_v10_0_macOS_${{ matrix.arch }}"
           zip_name="${bundle_dir}_Portable.zip"
           mkdir "${bundle_dir}"
           mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle_dir}" "${zip_name}"
-          shasum -a 256 "${zip_name}" > "SHA256SUMS_v8_70_TEST_r11_macOS_${{ matrix.arch }}.txt"
+          shasum -a 256 "${zip_name}" > "SHA256SUMS_v10_0_macOS_${{ matrix.arch }}.txt"
 
       - name: Upload macOS candidate
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v8.70-macOS-${{ matrix.arch }}-candidate-r11
+          name: Taxo-v10.0-macOS-${{ matrix.arch }}
           path: |
-            Taxo_v8_70_TEST_r11_macOS_${{ matrix.arch }}_Portable.zip
-            SHA256SUMS_v8_70_TEST_r11_macOS_${{ matrix.arch }}.txt
+            Taxo_v10_0_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v10_0_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30

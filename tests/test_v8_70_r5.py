@@ -3,6 +3,9 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+import re
+
+from release_naming import version_from_file
 
 
 _temporary_home = tempfile.TemporaryDirectory()
@@ -188,8 +191,16 @@ class V870R5Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         windows = (root / ".github/workflows/build-windows-v8.70.yml").read_text("utf-8")
         macos = (root / ".github/workflows/build-macos-v8.70.yml").read_text("utf-8")
-        self.assertIn("Taxo_v8_70_TEST_r11_Setup_Windows_x64.exe", windows)
-        self.assertIn("Taxo_v8_70_TEST_r11_Windows_x64_Portable.zip", windows)
+        current = version_from_file(root / "VERSION.txt")
+        if current == "10.0":
+            prefix = "Taxo_v10_0"
+        else:
+            match = re.fullmatch(r"9\.1 candidate r(\d+(?:\.\d+)*)", current)
+            self.assertIsNotNone(match)
+            revision = match.group(1).replace(".", "_")
+            prefix = f"Taxo_v9_1_candidate_r{revision}"
+        self.assertIn(f"{prefix}_Setup_Windows_x64.exe", windows)
+        self.assertIn(f"{prefix}_Windows_x64_Portable.zip", windows)
         self.assertIn("$build = 'false'", windows)
         self.assertIn("runner: macos-15", macos)
         self.assertIn("runner: macos-15-intel", macos)

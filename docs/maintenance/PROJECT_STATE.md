@@ -1,28 +1,44 @@
-# Taxo 9.0.1 — технічний стан
+# Taxo — технічний стан 10.0
 
-Канонічний технічний стан актуальної експлуатаційної лінії зберігається в цьому розділі. Історичний детальний стан до очищення `main` винесено в окрему гілку.
+**Stable:** Taxo 10.0  
+**Previous stable / rollback:** 9.0.1  
+**Verified candidate:** v9.1-r9.8  
+**Date:** 19.09.2026
 
-Актуальна експлуатаційна база: **Taxo 9.0.1**. Базова архітектура й функціонал походять від стабільної Taxo 9.0; 9.0.1 є локальним hotfix без зміни схеми БД.
+## Технічний baseline
 
-## Що змінилось у 9.0.1
+Taxo 10.0 є стабілізованим результатом лінії 9.1. Ручний operational gate завершено; користувач підтвердив перехід у `main`.
 
-- виправлено застарілий напис `v8.70 r9` у заголовку головного вікна;
-- виправлено вікно **«Про програму»** — воно показує актуальну версію 9.0.1;
-- START-пакет тепер формується з очищеної експлуатаційної гілки й не містить старих `CHECKPOINT_v8*`, `TEST_REPORT_v8*`, `PUBLISH_STATUS_v8*` та `PATCH_v8*`;
-- дані користувача, структура SQLite і логіка розрахунків не змінюються.
+Ключові інваріанти:
+- Plan != Fact;
+- exact intervals > duration-only;
+- duration-only не створює вигаданих часових меж;
+- overlap duration = union;
+- historical conflicts не переписуються автоматично;
+- absence overlay зберігає історичний графік;
+- П-5 не підставляє план без підтвердження;
+- технічний аудит != нормативний контроль №340;
+- role+date+shift — один операційний slot лікаря/механіка;
+- user DB не входить у реліз.
 
-## Основні актуальні модулі
+## Релізна інфраструктура
 
-`taxo_app.py`, `main.py`, `workspace.py`, `tachograph.py`, `waybill.py`, `attestation_render.py`, `work_analysis_ext.py`, `activity_register_60.py`, `v9_release.py`, `hotfix_901.py`.
+- Windows build: PyInstaller onedir + Inno Setup;
+- macOS build: native Taxo.app окремо на ARM64 та Intel;
+- START/source package;
+- SHA-256 per-platform + combined manifest;
+- stable publisher працює з commit у `main`;
+- `v10.0` не перезаписується.
 
-## Відоме питання в діагностиці
+## Перевірка
 
-В експлуатації зафіксовано Tkinter-помилку `bad window path name`. Для точного виправлення потрібен traceback із локального `Taxo_errors.log`. До отримання traceback причина не підміняється припущенням.
+Перед merge:
+- весь unittest suite;
+- Windows START full/incomplete preflight;
+- Windows source CI;
+- macOS ARM64 source CI;
+- macOS Intel source CI.
 
-## Політика супроводу
+Після merge stable publisher повторює тести і будує executable artifacts.
 
-Реальна експлуатація, наповнення бази, локальні виправлення відтворюваних проблем, пріоритет цілісності даних і відсутності регресій над новими функціями. Перед змінами даних — резервна копія.
-
-Повний історичний стан версій 8.x: [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
-
-Повний опис актуального функціоналу: [../SYSTEM_OVERVIEW.md](../SYSTEM_OVERVIEW.md). Дані та сховище: [../DATA_MODEL_AND_STORAGE.md](../DATA_MODEL_AND_STORAGE.md).
+Фінальний звіт: [AUDIT_v10_0_STABLE.md](AUDIT_v10_0_STABLE.md).

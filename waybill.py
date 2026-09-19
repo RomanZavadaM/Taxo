@@ -104,6 +104,30 @@ def _text(c, x, y, w, h, text, size=7.2, *, bold=False, align="center", valign="
         else: c.drawCentredString(x + w / 2, yy, line)
 
 
+def _company_title(c, x, y, w, h, text):
+    """Render the filled company name prominently; prefer one or two lines."""
+    text = " ".join(str(text or "").split())
+    if not text: return
+    words=text.split(); max_width=max(4,w-10); chosen=None; actual=13.5
+    while actual>=5.0 and chosen is None:
+        if pdfmetrics.stringWidth(text,FONT_BOLD,actual)<=max_width:
+            chosen=[text]; break
+        candidates=[]
+        for split in range(1,len(words)):
+            left=" ".join(words[:split]); right=" ".join(words[split:])
+            lw=pdfmetrics.stringWidth(left,FONT_BOLD,actual); rw=pdfmetrics.stringWidth(right,FONT_BOLD,actual)
+            if lw<=max_width and rw<=max_width:
+                candidates.append((abs(lw-rw),max(lw,rw),left,right))
+        if candidates and 2*actual*1.16<=h-6:
+            _d,_w,left,right=min(candidates); chosen=[left,right]; break
+        actual-=.25
+    if chosen is None:
+        _text(c,x,y,w,h,text,6.0,bold=True,pad=5); return
+    leading=actual*1.16; total=len(chosen)*leading; baseline=_y(y+(h-total)/2+actual)
+    c.setFillColorRGB(*INK); c.setFont(FONT_BOLD,actual)
+    for idx,line in enumerate(chosen): c.drawCentredString(x+w/2,baseline-idx*leading,line)
+
+
 def _vtext(c, x, y, w, h, text, size=6.2, bold=False):
     text=str(text or "").replace("\n"," ").strip()
     if not text: return
@@ -120,11 +144,11 @@ def _cell(c, x, y, w, h, text="", size=6.8, *, bold=False, align="center", valig
     _text(c, x, y, w, h, text, size, bold=bold, align=align, valign=valign)
 
 
-def _value_line(c, x, y, w, label, value="", label_w=None, size=7.0):
+def _value_line(c, x, y, w, label, value="", label_w=None, size=7.0, value_size=None):
     label_w = label_w or min(w * .42, pdfmetrics.stringWidth(label, FONT, size) + 5)
     _text(c, x, y, label_w, 13, label, size, align="left")
     _line(c, x + label_w, y + 11, x + w, y + 11, .45)
-    _text(c, x + label_w, y, w - label_w, 11, value, size, bold=bool(value), align="left")
+    _text(c, x + label_w, y, w - label_w, 11, value, value_size if value_size is not None else size, bold=bool(value), align="left")
 
 
 def _scaled_widths(widths, total):
@@ -135,28 +159,31 @@ def _scaled_widths(widths, total):
 def _page_one(c, data):
     m, right = 18, W - 18
     _box(c, m, 18, 145, 92, .8)
-    _text(c, m + 4, 23, 137, 18, "Місце для штампа\навтопідприємства", 7, align="left", valign="top")
-    _text(c, m + 4, 51, 137, 48, data.get("company_name", ""), 7, bold=True, align="left", valign="top")
+    company_name=str(data.get("company_name","") or "").strip()
+    if company_name:
+        _company_title(c,m+4,22,137,82,company_name)
+    else:
+        _text(c,m+5,29,135,68,"Місце для штампа\nавтопідприємства",7.0,align="center",valign="middle")
 
     cx, cw = m + 145, 438
     _text(c, cx, 19, cw, 16, "Міністерство автомобільного транспорту України", 9, bold=True)
     _text(c, cx, 36, cw, 20, "ДОРОЖНІЙ ЛИСТ", 13, bold=True)
     _text(c, cx + 272, 37, 42, 18, "№", 9, bold=True, align="right")
-    _text(c, cx + 314, 35, 116, 22, data.get("waybill_no", ""), 11.5, bold=True, align="left")
-    _text(c, cx + 18, 58, 185, 14, data.get("date", ""), 8, bold=True)
-    _text(c, cx + 212, 58, 110, 14, f"Серія {data.get('waybill_series','АААТ')}", 8, bold=True)
-    _value_line(c, cx + 8, 77, cw - 16, "Маршрут (замовник)", data.get("route", ""), 92, 7.2)
+    _text(c, cx + 314, 35, 116, 22, data.get("waybill_no", ""), 12.5, bold=True, align="left")
+    _text(c, cx + 18, 58, 185, 14, data.get("date", ""), 9.2, bold=True)
+    _text(c, cx + 212, 58, 110, 14, f"Серія {data.get('waybill_series','АААТ')}", 8.8, bold=True)
+    _value_line(c, cx + 8, 77, cw - 16, "Маршрут (замовник)", data.get("route", ""), 92, 7.0, value_size=8.4)
     endpoints=""
     if data.get("start_location") or data.get("end_location"):
         endpoints=f"Початок роботи: {data.get('start_location','')}  →  завершення: {data.get('end_location','')}"
-    _text(c,cx+10,91,cw-20,15,endpoints,5.8,bold=bool(endpoints),align="left")
+    _text(c,cx+10,91,cw-20,15,endpoints,6.5,bold=bool(endpoints),align="left")
 
     rx, rw = cx + cw, right - (cx + cw)
     _text(c, rx, 18, rw, 12, "Форма № 1-АП", 6.6, bold=True, align="right")
     _text(c, rx, 29, rw, 13, "Затверджено Міністерством автотранспорту України 17.06.1980 р. № 185", 4.8, align="right")
-    _value_line(c, rx + 4, 46, rw - 66, "Колона", data.get("transport_column", ""), 34, 6.4)
-    _value_line(c, rx + 4, 61, rw - 66, "Бригада", data.get("brigade", ""), 34, 6.4)
-    _value_line(c, rx + 4, 76, rw - 66, "Автобус", data.get("vehicle", ""), 34, 6.4)
+    _value_line(c, rx + 4, 46, rw - 66, "Колона", data.get("transport_column", ""), 34, 6.2, value_size=7.2)
+    _value_line(c, rx + 4, 61, rw - 66, "Бригада", data.get("brigade", ""), 34, 6.2, value_size=7.2)
+    _value_line(c, rx + 4, 76, rw - 66, "Автобус", data.get("vehicle", ""), 34, 6.2, value_size=7.2)
     _text(c, rx + 37, 89, rw - 103, 11, "марка, держ №, гар. №", 5.1)
     bx = right - 62
     for i in range(3):
@@ -172,7 +199,7 @@ def _page_one(c, data):
         _cell(c, x + j * dep_w / 4, y + 30, dep_w / 4, 14, label, 5.8)
     for j in range(4):
         val = data.get("planned_departure", "") if j == 2 else ""
-        _cell(c, x + j * dep_w / 4, y + 44, dep_w / 4, 64, val, 8.2, bold=bool(val))
+        _cell(c, x + j * dep_w / 4, y + 44, dep_w / 4, 64, val, 9.5, bold=bool(val))
     x += dep_w
     _cell(c, x, y, driver_w, 16, "Водій", 7.3, bold=True)
     sub = [30, driver_w - 96, 66]
@@ -182,8 +209,8 @@ def _page_one(c, data):
     for row, shift in enumerate(("I", "II")):
         yy = y + 32 + row * 18
         _cell(c, x, yy, sub[0], 18, shift, 6.3)
-        _cell(c, x + sub[0], yy, sub[1], 18, data.get("driver", "") if row == 0 else "", 6.4, bold=row == 0, align="left")
-        _cell(c, x + sub[0] + sub[1], yy, sub[2], 18, data.get("driver_personnel_no", "") if row == 0 else "", 6.3)
+        _cell(c, x + sub[0], yy, sub[1], 18, data.get("driver", "") if row == 0 else "", 7.6, bold=row == 0, align="left")
+        _cell(c, x + sub[0] + sub[1], yy, sub[2], 18, data.get("driver_personnel_no", "") if row == 0 else "", 7.0, bold=row == 0 and bool(data.get("driver_personnel_no", "")))
     _cell(c, x, y + 68, driver_w, 14, "Кондуктор", 6.8, bold=True)
     for row, shift in enumerate(("I", "II")):
         yy = y + 82 + row * 13
@@ -200,7 +227,7 @@ def _page_one(c, data):
     _box(c, x, y + 68, trainee_w, 40)
     _text(c, x + 3, y + 68, trainee_w - 6, 11, "Автомобіль технічно справний", 5.7, align="left")
     _text(c, x + 3, y + 79, 115, 11, "Виїзд дозволено, механік", 5.5, align="left")
-    _text(c, x + 115, y + 79, trainee_w - 118, 11, data.get("mechanic_1", ""), 5.4, bold=bool(data.get("mechanic_1")), align="left")
+    _text(c, x + 115, y + 78, trainee_w - 118, 13, data.get("mechanic_1", ""), 6.7, bold=bool(data.get("mechanic_1")), align="left")
     _text(c, x + 3, y + 90, trainee_w - 6, 9, "Автомобіль прийняв, підпис водія __________________", 5.2, align="left")
     _text(c, x + 3, y + 99, trainee_w - 6, 9, "При поверненні: справний / несправний; здав водій ______ механік ______", 4.9, align="left")
     x += trainee_w
@@ -210,7 +237,7 @@ def _page_one(c, data):
         _cell(c, x + j * return_w / 4, y + 30, return_w / 4, 14, label, 5.6)
     for j in range(4):
         val = data.get("planned_return", "") if j == 0 else ""
-        _cell(c, x + j * return_w / 4, y + 44, return_w / 4, 64, val, 8.2, bold=bool(val))
+        _cell(c, x + j * return_w / 4, y + 44, return_w / 4, 64, val, 9.5, bold=bool(val))
 
     # Час / виручка, графи 12-36.
     y = 218
@@ -282,7 +309,7 @@ def _direction_table(c, x, y, w, h, title, rows, data):
         vals=[stop_label,row.get("arrival_time",""),"",row.get("departure_time",""),"","",row.get("note","")]
         xx=x
         for j,(ww,val) in enumerate(zip(widths,vals)):
-            _cell(c,xx,body_y+i*row_h,ww,row_h,val,5.6,bold=bool(val) and j in (0,1,3),align="left" if j in (0,6) else "center"); xx+=ww
+            _cell(c,xx,body_y+i*row_h,ww,row_h,val,6.2 if val else 5.6,bold=bool(val) and j in (0,1,3),align="left" if j in (0,6) else "center"); xx+=ww
 
 
 def _page_two(c,data):
@@ -301,8 +328,8 @@ def _page_two(c,data):
         _cell(c,x,y+30,ww,body_h)
         if idx==0:
             _line(c,x+ww/2,y+30,x+ww/2,y+30+body_h); _text(c,x,y+30,ww/2,14,"I",5.8,bold=True); _text(c,x+ww/2,y+30,ww/2,14,"II",5.8,bold=True)
-            _text(c,x+2,y+44,ww/2-4,body_h-16,data.get("doctor_1",""),5.6,bold=bool(data.get("doctor_1")),valign="top")
-            _text(c,x+ww/2+2,y+44,ww/2-4,body_h-16,data.get("doctor_2",""),5.6,bold=bool(data.get("doctor_2")),valign="top")
+            _text(c,x+2,y+44,ww/2-4,body_h-16,data.get("doctor_1",""),7.2,bold=bool(data.get("doctor_1")),valign="top")
+            _text(c,x+ww/2+2,y+44,ww/2-4,body_h-16,data.get("doctor_2",""),7.2,bold=bool(data.get("doctor_2")),valign="top")
         elif idx==1:
             _line(c,x+28,y+30,x+28,y+30+body_h); _line(c,x,y+30+body_h/2,x+ww,y+30+body_h/2)
             _text(c,x,y+30,28,body_h/2,"I",5.8,bold=True); _text(c,x,y+30+body_h/2,28,body_h/2,"II",5.8,bold=True)
@@ -315,12 +342,12 @@ def _page_two(c,data):
                 odometer_lines.append(f"пробіг {int(data['distance_km'])} км (факт)")
             if data.get("planned_distance_km") is not None:
                 odometer_lines.append(f"план {int(data['planned_distance_km'])} км")
-            _text(c,x+30,y+32,ww-32,body_h/2-4,"\n".join(odometer_lines),5.9,
+            _text(c,x+30,y+32,ww-32,body_h/2-4,"\n".join(odometer_lines),7.0,
                   bold=bool(odometer_lines),align="left",valign="top")
         elif idx==2:
             _line(c,x,y+30+body_h/2,x+ww,y+30+body_h/2)
-            _text(c,x+2,y+34,ww-4,body_h/2-6,data.get("mechanic_1",""),5.2,bold=bool(data.get("mechanic_1")),valign="top")
-            _text(c,x+2,y+32+body_h/2,ww-4,body_h/2-6,data.get("mechanic_2",""),5.2,bold=bool(data.get("mechanic_2")),valign="top")
+            _text(c,x+2,y+34,ww-4,body_h/2-6,data.get("mechanic_1",""),6.8,bold=bool(data.get("mechanic_1")),valign="top")
+            _text(c,x+2,y+32+body_h/2,ww-4,body_h/2-6,data.get("mechanic_2",""),6.8,bold=bool(data.get("mechanic_2")),valign="top")
         x+=ww
     c.showPage()
 

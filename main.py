@@ -99,6 +99,37 @@ def configure_runtime_workspace(root):
         pass
 
 
+def attestation_history_query(mode="Активні", driver_id=None, year=None, month=None):
+    """Build the archive query with explicit filters and newest periods first."""
+    sql="""SELECT a.*, d.last_name||' '||d.first_name AS driver_name
+             FROM attestations a JOIN drivers d ON d.id=a.driver_id"""
+    where=[]
+    params=[]
+    if mode=="Активні":
+        where.append("COALESCE(a.status,'active')='active'")
+    elif mode=="Вилучені":
+        where.append("COALESCE(a.status,'active')<>'active'")
+    if driver_id:
+        where.append("a.driver_id=?")
+        params.append(int(driver_id))
+    if year is not None and month is not None:
+        ym=f"{int(year):04d}-{int(month):02d}"
+        where.append(
+            "(CASE WHEN length(COALESCE(a.form_date,''))>=7 "
+            "THEN substr(a.form_date,1,7) ELSE substr(a.period_to,1,7) END)=?"
+        )
+        params.append(ym)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    # period_to is ISO YYYY-MM-DDTHH:MM, so lexical DESC is chronological DESC.
+    # form_date/id are stable fallbacks for old records.
+    sql += (
+        " ORDER BY COALESCE(NULLIF(a.period_to,''),NULLIF(a.form_date,''),a.created_at) DESC,"
+        " a.form_date DESC, a.id DESC"
+    )
+    return sql, params
+
+
 def db_stored_path(path):
     return stored_path(path,DATA_ROOT)
 
@@ -464,7 +495,25 @@ ACTIVITIES = {
     18: "Інша робота",
     19: "Готовий і доступний для виконання професійних обов'язків",
 }
-DAY_TYPES = ["Робота", "Вихідний", "Відпустка", "Лікарняний", "Відпочинок", "Інша робота", "Доступний", "Інше"]
+DAY_TYPES = [
+    "Робота", "Вихідний", "Відпустка", "Лікарняний", "Відпочинок",
+    "Основна щорічна відпустка", "Щорічна додаткова відпустка",
+    "Додаткова оплачувана відпустка працівникам з дітьми",
+    "Творча відпустка", "Додаткова відпустка у зв’язку з навчанням",
+    "Відпустка без збереження зарплати у зв’язку з навчанням",
+    "Відпустка без збереження зарплати в обов’язковому порядку",
+    "Відпустка без збереження зарплати за згодою сторін",
+    "Інші відпустки без збереження зарплати",
+    "Відпустка у зв’язку з вагітністю і пологами / догляд до 3 років",
+    "Відпустка для догляду за дитиною до 6 років",
+    "Оплачувана тимчасова непрацездатність",
+    "Неоплачувана тимчасова непрацездатність",
+    "Відрядження", "Простій", "Прогул", "Страйк",
+    "Інший невідпрацьований час",
+    "Інші види неявок за колективними договорами",
+    "Неявка з нез’ясованих причин", "Інша причина неявки",
+    "Інша робота", "Доступний", "Інше"
+]
 
 WORK_MODE_TACHO = "tacho"
 WORK_MODE_NO_TACHO = "no_tacho_8h"
@@ -684,6 +733,8 @@ def init_db():
         first_name TEXT NOT NULL,
         middle_name TEXT DEFAULT '',
         position TEXT DEFAULT '',
+        gender TEXT DEFAULT '',
+        tariff_rate REAL,
         phone TEXT DEFAULT '',
         employment_date TEXT DEFAULT '',
         dismissal_date TEXT DEFAULT '',
@@ -725,6 +776,10 @@ def init_db():
         day_type TEXT NOT NULL DEFAULT 'Робота',
         planned_hours REAL,
         actual_hours REAL,
+        overtime_hours REAL,
+        night_hours REAL,
+        evening_hours REAL,
+        weekend_holiday_hours REAL,
         notes TEXT DEFAULT '',
         created_at TEXT NOT NULL,
         updated_at TEXT DEFAULT '',
@@ -987,6 +1042,26 @@ def init_db():
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_waybills_document_no "
         "ON waybills(document_series,document_number) WHERE COALESCE(document_number,'')<>''"
     )
+
+    # v9.1 r9.3: реквізити типової форми П-5.
+    # Поля додаються без зміни/перезапису існуючих карток працівників.
+    ecols = {r[1] for r in con.execute("PRAGMA table_info(employees)").fetchall()}
+    for name, ddl in [
+        ("gender", "TEXT DEFAULT ''"),
+        ("tariff_rate", "REAL"),
+    ]:
+        if name not in ecols:
+            con.execute(f"ALTER TABLE employees ADD COLUMN {name} {ddl}")
+
+    tcols = {r[1] for r in con.execute("PRAGMA table_info(employee_time_entries)").fetchall()}
+    for name, ddl in [
+        ("overtime_hours", "REAL"),
+        ("night_hours", "REAL"),
+        ("evening_hours", "REAL"),
+        ("weekend_holiday_hours", "REAL"),
+    ]:
+        if name not in tcols:
+            con.execute(f"ALTER TABLE employee_time_entries ADD COLUMN {name} {ddl}")
 
     # v8.70 r3: єдиний реєстр працівників. Старі водії та працівники
     # випуску не дублюються при кожному запуску і не видаляються.
@@ -1879,42 +1954,53 @@ def _interval_overlap_minutes(start_dt, end_dt, target_date):
 def _driver_plan_minutes_for_day(con, driver_id, target_date):
     if not driver_id:
         return 0
-    total=0
     rows=con.execute(
         "SELECT * FROM worklog WHERE driver_id=? AND work_date BETWEEN ? AND ? ORDER BY work_date,id",
         (driver_id,(target_date-timedelta(days=7)).isoformat(),target_date.isoformat()),
     ).fetchall()
+    exact=[]
+    duration_only=0
     for work in rows:
         base=datetime.strptime(work["work_date"],"%Y-%m-%d")
         segments=con.execute(
             "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(work["id"],)
         ).fetchall()
-        pairs=[]
-        for segment in segments:
-            start=(segment["work_start_time"] or segment["start_time"] or "").strip()
-            end=(segment["work_end_time"] or segment["end_time"] or "").strip()
-            if start and end:
-                pairs.append((start,end))
-        if not pairs:
+        intervals=normalized_segment_intervals(segments,"work") if segments else []
+        if not intervals:
             start=(work["work_start_time"] or work["start_time"] or "").strip()
             end=(work["work_end_time"] or work["end_time"] or "").strip()
             if start and end:
-                pairs=[(start,end)]
-        previous_end=None
-        for start_raw,end_raw in pairs:
-            start_abs=parse_hhmm(start_raw)
-            while previous_end is not None and start_abs<previous_end:
-                start_abs+=1440
-            end_abs=parse_hhmm(end_raw)+(start_abs//1440)*1440
-            while end_abs<=start_abs:
-                end_abs+=1440
-            start_dt=base+timedelta(minutes=start_abs)
-            end_dt=base+timedelta(minutes=end_abs)
-            total+=_interval_overlap_minutes(start_dt,end_dt,target_date)
-            previous_end=end_abs
-        if not pairs and work["work_date"]==target_date.isoformat():
-            total+=hours_value_to_minutes(work["work_hours"] or 0)
-    return total
+                intervals=[{
+                    "start":parse_hhmm(start),
+                    "end":parse_hhmm(end),
+                }]
+                while intervals[0]["end"]<=intervals[0]["start"]:
+                    intervals[0]["end"]+=1440
+        if intervals:
+            for item in intervals:
+                exact.append((
+                    base+timedelta(minutes=item["start"]),
+                    base+timedelta(minutes=item["end"]),
+                ))
+        elif work["work_date"]==target_date.isoformat():
+            duration_only+=hours_value_to_minutes(work["work_hours"] or 0)
+
+    day_start=datetime.combine(target_date,datetime.min.time())
+    day_end=day_start+timedelta(days=1)
+    clipped=[]
+    for start_dt,end_dt in exact:
+        start=max(start_dt,day_start); end=min(end_dt,day_end)
+        if end>start:
+            clipped.append((start,end))
+    clipped.sort(key=lambda x:x[0])
+    merged=[]
+    for start,end in clipped:
+        if not merged or start>merged[-1][1]:
+            merged.append([start,end])
+        else:
+            merged[-1][1]=max(merged[-1][1],end)
+    exact_minutes=sum(int((end-start).total_seconds()//60) for start,end in merged)
+    return exact_minutes+duration_only
 
 
 def _employee_shift_minutes_for_day(con, employee_id, target_date):
@@ -2044,8 +2130,23 @@ def collect_personnel_monthly_balance(year, month, active_only=True):
     employees=con.execute(sql).fetchall()
     company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
     out=[]
-    codes={"Вихідний":"В","Відпустка":"Відп","Лікарняний":"Лік",
-           "Відпочинок":"Відпч","Доступний":"Гот","Інша робота":"Інш","Інше":"Інш"}
+    codes={
+        "Вихідний":"Вих","Відпустка":"В","Основна щорічна відпустка":"В",
+        "Щорічна додаткова відпустка":"Д","Додаткова оплачувана відпустка працівникам з дітьми":"ДО",
+        "Творча відпустка":"ТВ","Додаткова відпустка у зв’язку з навчанням":"Н",
+        "Відпустка без збереження зарплати у зв’язку з навчанням":"НБ",
+        "Відпустка без збереження зарплати в обов’язковому порядку":"ДБ",
+        "Відпустка без збереження зарплати за згодою сторін":"НА",
+        "Інші відпустки без збереження зарплати":"БЗ",
+        "Відпустка у зв’язку з вагітністю і пологами / догляд до 3 років":"ВП",
+        "Відпустка для догляду за дитиною до 6 років":"ДД",
+        "Лікарняний":"ТН","Оплачувана тимчасова непрацездатність":"ТН",
+        "Неоплачувана тимчасова непрацездатність":"НН",
+        "Відрядження":"ВД","Простій":"П","Прогул":"ПР","Страйк":"С",
+        "Інший невідпрацьований час":"ІН","Інші види неявок за колективними договорами":"ІВ",
+        "Неявка з нез’ясованих причин":"НЗ","Інша причина неявки":"І",
+        "Відпочинок":"Відпч","Доступний":"Гот","Інша робота":"Інш","Інше":"Інш"
+    }
     for employee in employees:
         if not any(employee_employed_on(employee,d) for d in days):
             continue
@@ -2170,33 +2271,506 @@ def segments_summary(segments):
     return " / ".join(parts)
 
 
-def gaps_minutes(segments, pair="work"):
-    if len(segments) < 2:
-        return []
+def normalized_segment_intervals(segments, pair="work"):
+    """Return exact segment intervals as absolute minutes in editor order.
+
+    Day rollover is inferred from a rollback of the *start* clock relative to
+    the previous segment start. Crucially, a start such as 15:30 after a
+    14:10–15:45 segment stays on the same day and is therefore recognized as
+    a 15-minute overlap instead of being turned into a fake 23:45 gap.
+    """
     out=[]
-    prepared=[]
-    for r in segments:
+    previous_start=None
+    for index,r in enumerate(segments or []):
         if pair=="drive":
-            a=(r["start_time"] or "").strip(); b=(r["end_time"] or "").strip()
+            a=str(_record_value(r,"start_time","") or "").strip()
+            b=str(_record_value(r,"end_time","") or "").strip()
         else:
-            a,b=_segment_work_pair(r); a=(a or "").strip(); b=(b or "").strip()
+            a,b=_segment_work_pair(r)
+            a=str(a or "").strip(); b=str(b or "").strip()
         if not a or not b:
             continue
-        prepared.append((time_to_minutes(a),a,b))
-    ordered=prepared  # порядок segment_no / порядок у редакторі є часовим порядком
-    for left,right in zip(ordered,ordered[1:]):
-        end=time_to_minutes(left[2])
-        start=time_to_minutes(right[1])
-        if start <= end:
+        start=time_to_minutes(a)
+        while previous_start is not None and start < previous_start:
             start += 24*60
-        gap=start-end
-        if gap > 0:
-            out.append(gap)
+        end=time_to_minutes(b)+(start//(24*60))*(24*60)
+        while end <= start:
+            end += 24*60
+        out.append({
+            "index":index,
+            "start":start,
+            "end":end,
+            "start_text":a,
+            "end_text":b,
+        })
+        previous_start=start
+    return out
+
+
+def segment_overlap_details(segments, pair="work"):
+    intervals=normalized_segment_intervals(segments,pair=pair)
+    if len(intervals)<2:
+        return []
+    overlaps=[]
+    active=intervals[0]
+    active_end=active["end"]
+    for current in intervals[1:]:
+        if current["start"] < active_end:
+            overlaps.append({
+                "left_index":active["index"],
+                "right_index":current["index"],
+                "left_start":active["start_text"],
+                "left_end":active["end_text"],
+                "right_start":current["start_text"],
+                "right_end":current["end_text"],
+                "minutes":min(active_end,current["end"])-current["start"],
+            })
+        if current["end"] > active_end:
+            active=current
+            active_end=current["end"]
+    return overlaps
+
+
+def segments_union_minutes(segments, pair="work"):
+    intervals=normalized_segment_intervals(segments,pair=pair)
+    if not intervals:
+        return 0
+    merged=[]
+    for item in intervals:
+        start=item["start"]; end=item["end"]
+        if not merged or start > merged[-1][1]:
+            merged.append([start,end])
+        else:
+            merged[-1][1]=max(merged[-1][1],end)
+    return sum(end-start for start,end in merged)
+
+
+def segments_overlap_minutes(segments, pair="work"):
+    intervals=normalized_segment_intervals(segments,pair=pair)
+    raw=sum(item["end"]-item["start"] for item in intervals)
+    return max(0,raw-segments_union_minutes(segments,pair=pair))
+
+
+def gaps_minutes(segments, pair="work"):
+    intervals=normalized_segment_intervals(segments,pair=pair)
+    if len(intervals)<2:
+        return []
+    out=[]
+    current_end=intervals[0]["end"]
+    for item in intervals[1:]:
+        if item["start"] > current_end:
+            out.append(item["start"]-current_end)
+        current_end=max(current_end,item["end"])
     return out
 
 
 def gaps_summary(segments, pair="work"):
     return ", ".join(minutes_hhmm(x) for x in gaps_minutes(segments,pair=pair))
+
+
+def segment_overlap_message(segments, pair="work"):
+    details=segment_overlap_details(segments,pair=pair)
+    if not details:
+        return ""
+    first=details[0]
+    return (
+        f"частини №{first['left_index']+1} "
+        f"({first['left_start']}–{first['left_end']}) і "
+        f"№{first['right_index']+1} "
+        f"({first['right_start']}–{first['right_end']}) "
+        f"перекриваються на {minutes_hhmm(first['minutes'])}"
+    )
+
+
+def segment_integrity_issues(segments):
+    """Validate one exact multi-part scenario without changing stored data."""
+    segments=list(segments or [])
+    issues=[]
+
+    for pair,label in (("work","Робочий час"),("drive","Керування")):
+        try:
+            overlaps=segment_overlap_details(segments,pair=pair)
+        except Exception as exc:
+            issues.append({
+                "kind":"invalid_time",
+                "label":label,
+                "minutes":0,
+                "message":f"{label}: некоректний час ({exc})",
+            })
+            continue
+        for item in overlaps:
+            issues.append({
+                "kind":f"{pair}_overlap",
+                "label":label,
+                "minutes":int(item["minutes"]),
+                "message":(
+                    f"{label}: частини №{item['left_index']+1} "
+                    f"({item['left_start']}–{item['left_end']}) і "
+                    f"№{item['right_index']+1} "
+                    f"({item['right_start']}–{item['right_end']}) "
+                    f"перекриваються на {minutes_hhmm(item['minutes'])}"
+                ),
+            })
+
+    for index,row in enumerate(segments,1):
+        ds=str(_record_value(row,"start_time","") or "").strip()
+        de=str(_record_value(row,"end_time","") or "").strip()
+        ws,we=_segment_work_pair(row)
+        ws=str(ws or "").strip(); we=str(we or "").strip()
+
+        if not any((ds,de,ws,we)):
+            issues.append({
+                "kind":"empty_segment",
+                "label":"Порожня частина",
+                "minutes":0,
+                "message":f"Частина №{index}: не задано жодних часових меж.",
+            })
+            continue
+
+        if bool(ds) != bool(de):
+            issues.append({
+                "kind":"incomplete_drive",
+                "label":"Керування",
+                "minutes":0,
+                "message":f"Частина №{index}: неповна пара часу керування ({ds or '—'}–{de or '—'}).",
+            })
+        if bool(ws) != bool(we):
+            issues.append({
+                "kind":"incomplete_work",
+                "label":"Робочий час",
+                "minutes":0,
+                "message":f"Частина №{index}: неповна пара робочого часу ({ws or '—'}–{we or '—'}).",
+            })
+        if ds and de and ws and we:
+            try:
+                if not interval_within(ds,de,ws,we):
+                    issues.append({
+                        "kind":"drive_outside_work",
+                        "label":"Керування поза роботою",
+                        "minutes":0,
+                        "message":(
+                            f"Частина №{index}: керування {ds}–{de} "
+                            f"не повністю лежить у робочому інтервалі {ws}–{we}."
+                        ),
+                    })
+            except Exception as exc:
+                issues.append({
+                    "kind":"invalid_time",
+                    "label":"Некоректний час",
+                    "minutes":0,
+                    "message":f"Частина №{index}: {exc}",
+                })
+
+    # Keep messages stable and unique if one malformed interval is noticed by
+    # more than one validation rule.
+    unique=[]
+    seen=set()
+    for issue in issues:
+        key=(issue["kind"],issue["message"])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(issue)
+    return unique
+
+
+def collect_schedule_integrity_audit(
+        year, month, active_routes_only=True, work_date=None,
+        include_days=True, include_routes=True):
+    """Scan stored driver days and/or route templates for input-time defects.
+
+    This is deliberately a technical data-integrity audit. It does not claim
+    to replace the separate regulatory control under Regulation №340.
+
+    work_date limits the driver-day scan to one ISO/date value while route
+    templates remain independently controlled through include_routes.
+    Legacy worklog rows without work_segments are still inspected whenever
+    they contain exact clock fields.
+    """
+    y=int(year); m=int(month)
+    days=month_dates(y,m)
+    month_start=days[0].isoformat(); month_end=days[-1].isoformat()
+    if isinstance(work_date,date):
+        day_iso=work_date.isoformat()
+    elif work_date:
+        day_iso=str(work_date)
+    else:
+        day_iso=None
+    start=day_iso or month_start
+    end=day_iso or month_end
+
+    con=db()
+    findings=[]
+    worklogs=[]
+    routes=[]
+    inspected_day_records=0
+    exact_day_records=0
+    legacy_exact_day_records=0
+    inspected_route_records=0
+
+    if include_days:
+        worklogs=con.execute(
+            """SELECT w.*,
+                      d.last_name,d.first_name,d.middle_name,
+                      COALESCE(r.name,w.route_name,'') AS audit_route_name,
+                      COALESCE(r.code,'') AS audit_route_code
+                 FROM worklog w
+                 JOIN drivers d ON d.id=w.driver_id
+                 LEFT JOIN routes r ON r.id=w.route_id
+                WHERE w.work_date BETWEEN ? AND ?
+                ORDER BY w.work_date,d.last_name,d.first_name,w.id""",
+            (start,end),
+        ).fetchall()
+
+        for row in worklogs:
+            inspected_day_records += 1
+            segs=con.execute(
+                "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",
+                (row["id"],),
+            ).fetchall()
+
+            check_segments=list(segs)
+            if check_segments:
+                exact_day_records += 1
+            else:
+                ds=str(_record_value(row,"start_time","") or "").strip()
+                de=str(_record_value(row,"end_time","") or "").strip()
+                ws=str(_record_value(row,"work_start_time","") or "").strip()
+                we=str(_record_value(row,"work_end_time","") or "").strip()
+                if any((ds,de,ws,we)):
+                    legacy_exact_day_records += 1
+                    exact_day_records += 1
+                    check_segments=[{
+                        "start_time":ds,
+                        "end_time":de,
+                        "work_start_time":ws or ds,
+                        "work_end_time":we or de,
+                    }]
+
+            driver=" ".join(
+                x for x in (row["last_name"],row["first_name"],row["middle_name"]) if x
+            ).strip()
+            route_name=(row["audit_route_name"] or "").strip()
+            route_code=(row["audit_route_code"] or "").strip()
+            route_label=" / ".join(x for x in (route_code,route_name) if x)
+
+            for issue in segment_integrity_issues(check_segments):
+                findings.append({
+                    **issue,
+                    "source_kind":"worklog",
+                    "source":"День водія",
+                    "worklog_id":row["id"],
+                    "driver_id":row["driver_id"],
+                    "route_id":row["route_id"] if "route_id" in row.keys() else None,
+                    "date":row["work_date"],
+                    "subject":driver,
+                    "route":route_label,
+                })
+
+    if include_routes:
+        route_sql="SELECT * FROM routes"
+        if active_routes_only:
+            route_sql += " WHERE active=1"
+        route_sql += " ORDER BY code,name,id"
+        routes=con.execute(route_sql).fetchall()
+        for route in routes:
+            inspected_route_records += 1
+            segs=con.execute(
+                "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",
+                (route["id"],),
+            ).fetchall()
+            code=str(route["code"] or "").strip() if "code" in route.keys() else ""
+            name=str(route["name"] or "").strip()
+            subject=" / ".join(x for x in (code,name) if x) or f"Маршрут #{route['id']}"
+            if not segs:
+                findings.append({
+                    "kind":"route_no_segments",
+                    "label":"Немає часових частин",
+                    "minutes":0,
+                    "message":"Активний маршрут не має жодної часової частини; його не можна надійно застосувати до графіка.",
+                    "source_kind":"route",
+                    "source":"Шаблон маршруту",
+                    "worklog_id":None,
+                    "driver_id":None,
+                    "route_id":route["id"],
+                    "date":"",
+                    "subject":subject,
+                    "route":subject,
+                })
+                continue
+            for issue in segment_integrity_issues(segs):
+                findings.append({
+                    **issue,
+                    "source_kind":"route",
+                    "source":"Шаблон маршруту",
+                    "worklog_id":None,
+                    "driver_id":None,
+                    "route_id":route["id"],
+                    "date":"",
+                    "subject":subject,
+                    "route":subject,
+                })
+
+    con.close()
+    day_findings=sum(1 for x in findings if x["source_kind"]=="worklog")
+    route_findings=sum(1 for x in findings if x["source_kind"]=="route")
+    return {
+        "year":y,
+        "month":m,
+        "period_start":start,
+        "period_end":end,
+        "work_date":day_iso,
+        "active_routes_only":bool(active_routes_only),
+        "include_days":bool(include_days),
+        "include_routes":bool(include_routes),
+        "findings":findings,
+        "day_findings":day_findings,
+        "route_findings":route_findings,
+        "worklog_count":len(worklogs),
+        "route_count":len(routes),
+        "inspected_day_records":inspected_day_records,
+        "exact_day_records":exact_day_records,
+        "legacy_exact_day_records":legacy_exact_day_records,
+        "inspected_route_records":inspected_route_records,
+    }
+
+
+def schedule_audit_day_status_text(data):
+    """Human-readable one-line status for the currently visible schedule day."""
+    data=data or {}
+    findings=list(data.get("findings") or [])
+    inspected=int(data.get("inspected_day_records") or 0)
+    if findings:
+        return f"⚠ день: {len(findings)} помилк."
+    if inspected<=0:
+        return "○ день: записів для аудиту немає"
+    exact=int(data.get("exact_day_records") or 0)
+    if exact<=0:
+        return "○ день: є запис, але точний час не задано"
+    return "✓ день: помилок введення немає"
+
+
+def _record_value(record, key, default=""):
+    """Read sqlite Row/dict values without forcing callers to care about the row type."""
+    if record is None:
+        return default
+    try:
+        if key in record.keys():
+            return record[key]
+    except Exception:
+        pass
+    if isinstance(record, dict):
+        return record.get(key, default)
+    return default
+
+
+def driver_day_view(work_day, worklog=None, segments=None, day_type_override=None,
+                    suppress_plan=False):
+    """Canonical state for one driver's day used by all driver-time views.
+
+    Exact intervals are the source of truth when available. Their UNION, not
+    the raw sum, defines work/driving duration, so overlapping parts cannot
+    double-count minutes. Historical rows stay unchanged in the database.
+    """
+    segments=list(segments or [])
+    raw_type=str(_record_value(worklog, "day_type", "") or "").strip()
+    default_type="Вихідний" if work_day.weekday() >= 5 else "Робота"
+    day_type=str(day_type_override or raw_type or default_type).strip()
+
+    effective_segments=[] if suppress_plan else segments
+    schedule=""
+    breaks=""
+    bands=[]
+    work_overlap_minutes=0
+    driving_overlap_minutes=0
+    exact_work_minutes=None
+    exact_driving_minutes=None
+
+    if effective_segments:
+        schedule=segments_summary(effective_segments)
+        gap_text=gaps_summary(effective_segments)
+        work_overlap_minutes=segments_overlap_minutes(effective_segments,"work")
+        driving_overlap_minutes=segments_overlap_minutes(effective_segments,"drive")
+        warning=(
+            f"⚠ перекриття {minutes_hhmm(work_overlap_minutes)}"
+            if work_overlap_minutes>0 else ""
+        )
+        breaks="; ".join(x for x in (warning,gap_text) if x)
+        exact_work_minutes=segments_union_minutes(effective_segments,"work")
+        exact_driving_minutes=segments_union_minutes(effective_segments,"drive")
+        for seg in effective_segments:
+            ws,we=_segment_work_pair(seg)
+            ds=str(_record_value(seg, "start_time", "") or "").strip()
+            de=str(_record_value(seg, "end_time", "") or "").strip()
+            if ws and we:
+                bands.append(("Робота", ws, we))
+            if ds and de:
+                bands.append(("Керування", ds, de))
+    elif worklog is not None and not suppress_plan:
+        ws=(str(_record_value(worklog, "work_start_time", "") or "").strip()
+            or str(_record_value(worklog, "start_time", "") or "").strip())
+        we=(str(_record_value(worklog, "work_end_time", "") or "").strip()
+            or str(_record_value(worklog, "end_time", "") or "").strip())
+        ds=str(_record_value(worklog, "start_time", "") or "").strip()
+        de=str(_record_value(worklog, "end_time", "") or "").strip()
+        drive=f"кер. {ds}-{de}" if ds and de else "кер. —"
+        schedule=f"роб. {ws}-{we}; {drive}" if ws and we else drive
+        if ws and we:
+            bands.append(("Робота", ws, we))
+            try:
+                exact_work_minutes=duration_minutes(ws,we)
+            except Exception:
+                exact_work_minutes=None
+        if ds and de:
+            bands.append(("Керування", ds, de))
+            try:
+                exact_driving_minutes=duration_minutes(ds,de)
+            except Exception:
+                exact_driving_minutes=None
+
+    explicit=worklog is not None
+    if bands:
+        status_label=""
+    elif suppress_plan and day_type:
+        status_label=day_type
+    elif day_type and day_type != "Робота":
+        status_label=day_type
+    elif explicit:
+        status_label="Робота · час не задано"
+    elif work_day.weekday() >= 5:
+        status_label="Вихідний"
+    else:
+        status_label="Немає плану"
+
+    if suppress_plan:
+        work_minutes=driving_minutes=overtime_minutes=0
+    else:
+        work_minutes=(
+            exact_work_minutes if exact_work_minutes is not None
+            else hours_value_to_minutes(_record_value(worklog, "work_hours", 0))
+        )
+        driving_minutes=(
+            exact_driving_minutes if exact_driving_minutes is not None
+            else hours_value_to_minutes(_record_value(worklog, "driving_hours", 0))
+        )
+        overtime_minutes=hours_value_to_minutes(
+            _record_value(worklog, "overtime_hours", 0)
+        )
+
+    return {
+        "day_type": day_type,
+        "schedule": schedule,
+        "breaks": breaks,
+        "bands": bands,
+        "status_label": status_label,
+        "work_minutes": int(work_minutes or 0),
+        "driving_minutes": int(driving_minutes or 0),
+        "overtime_minutes": int(overtime_minutes or 0),
+        "work_overlap_minutes":int(work_overlap_minutes or 0),
+        "driving_overlap_minutes":int(driving_overlap_minutes or 0),
+        "suppressed_plan": bool(suppress_plan),
+        "explicit_worklog": explicit,
+    }
 
 
 def month_dates(year, month):
@@ -2764,26 +3338,42 @@ def _row_segments(con, row):
     ).fetchall()
 
 
-def _export_row_values(con, d, r):
-    segs = _row_segments(con, r)
-    if segs:
-        schedule=segments_summary(segs)
-    elif r is not None:
-        ws=(r["work_start_time"] if "work_start_time" in r.keys() else "") or r["start_time"]
-        we=(r["work_end_time"] if "work_end_time" in r.keys() else "") or r["end_time"]
-        drive=f"кер. {r['start_time']}-{r['end_time']}" if r["start_time"] and r["end_time"] else "кер. —"
-        schedule=f"роб. {ws}-{we}; {drive}" if ws and we else drive
-    else:
-        schedule=""
+def _driver_absence_for_day(con, driver_id, d):
+    override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+    if not driver_id or not override_types:
+        return None
+    rows=con.execute(
+        """SELECT t.day_type
+           FROM employee_time_entries t
+           JOIN employees e ON e.id=t.employee_id
+           WHERE e.driver_id=? AND t.work_date=?
+           ORDER BY e.active DESC,e.id""",
+        (driver_id,d.isoformat())
+    ).fetchall()
+    for row in rows:
+        if str(row["day_type"] or "") in override_types:
+            return row["day_type"]
+    return None
+
+
+def _export_row_values(con, d, r, driver_id=None):
+    segs=_row_segments(con,r)
+    effective_driver_id=driver_id or (_record_value(r,"driver_id",None) if r is not None else None)
+    override=_driver_absence_for_day(con,effective_driver_id,d)
+    state=driver_day_view(
+        d,r,segs,
+        day_type_override=override,
+        suppress_plan=bool(override),
+    )
     return {
         "date": d.strftime("%d.%m.%Y"),
         "weekday": ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],
-        "day_type": r["day_type"] if r is not None else _default_export_day_type(d),
-        "schedule": schedule,
-        "breaks": gaps_summary(segs),
-        "work": _safe_num(r, "work_hours"),
-        "drive": _safe_num(r, "driving_hours"),
-        "over": _safe_num(r, "overtime_hours"),
+        "day_type": state["day_type"] if r is not None or override else _default_export_day_type(d),
+        "schedule": state["schedule"],
+        "breaks": state["breaks"],
+        "work": minutes_to_db_hours(state["work_minutes"]),
+        "drive": minutes_to_db_hours(state["driving_minutes"]),
+        "over": minutes_to_db_hours(state["overtime_minutes"]),
         "route": (r["route_name"] if r is not None and "route_name" in r.keys() else "") or "",
         "vehicle": (r["vehicle"] if r is not None else "") or "",
         "notes": (r["notes"] if r is not None else "") or "",
@@ -2810,7 +3400,7 @@ def export_xlsx(driver, year, month, rows, out_path):
     total_work = total_drive = total_over = 0.0
     work_days = 0
     for d, r in _month_export_items(year, month, rows):
-        v = _export_row_values(con, d, r)
+        v = _export_row_values(con, d, r, driver["id"])
         if v["work"] > 0:
             work_days += 1
         total_work += v["work"]
@@ -2901,7 +3491,7 @@ def export_pdf(driver, year, month, rows, out_path):
     work_days = 0
 
     for d, r in _month_export_items(year, month, rows):
-        v = _export_row_values(con, d, r)
+        v = _export_row_values(con, d, r, driver["id"])
         total_work += v["work"]
         total_drive += v["drive"]
         total_over += v["over"]
@@ -3770,23 +4360,19 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
 
 
 
-def _work_balance_cell(row, day):
+def _work_balance_cell(state, day):
     """Клітинка місячного робочого табеля: тільки години або код дня."""
-    if row is None:
+    if state is None:
         return "В" if day.weekday() >= 5 else ""
-
-    day_type=(row["day_type"] or "").strip()
+    day_type=(state["day_type"] or "").strip()
     if day_type and day_type != "Робота":
         return SHIFT_DAY_CODES.get(day_type, day_type[:4])
-
-    work_min=hours_value_to_minutes(row["work_hours"])
-    if work_min <= 0:
-        return ""
-    return minutes_hhmm(work_min)
+    work_min=int(state["work_minutes"] or 0)
+    return minutes_hhmm(work_min) if work_min>0 else ""
 
 
 def collect_monthly_work_balance(year, month, active_only=True):
-    """Місячний робочий табель / баланс часу по всіх водіях."""
+    """Місячний баланс на тому самому канонічному стані дня, що й графік."""
     y=int(year); m=int(month)
     days=month_dates(y,m)
     con=db()
@@ -3799,8 +4385,6 @@ def collect_monthly_work_balance(year, month, active_only=True):
         drivers=con.execute(
             "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
         ).fetchall()
-    # Водій з майбутньою датою прийняття не належить до табеля за цей місяць.
-    # Порожню дату лишаємо сумісною зі старими базами: вона означає "дата невідома".
     drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
 
     rows=con.execute(
@@ -3809,29 +4393,68 @@ def collect_monthly_work_balance(year, month, active_only=True):
            ORDER BY driver_id,work_date""",
         (days[0].isoformat(),days[-1].isoformat())
     ).fetchall()
+    row_by={(r["driver_id"],r["work_date"]):r for r in rows}
+
+    segment_by={}
+    if rows:
+        ids=[r["id"] for r in rows]
+        q=",".join("?" for _ in ids)
+        for seg in con.execute(
+            f"SELECT * FROM work_segments WHERE worklog_id IN ({q}) ORDER BY worklog_id,segment_no",
+            ids
+        ).fetchall():
+            segment_by.setdefault(seg["worklog_id"],[]).append(seg)
+
+    override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+    absence_by={}
+    if override_types and drivers:
+        driver_ids=[dr["id"] for dr in drivers]
+        q=",".join("?" for _ in driver_ids)
+        params=[days[0].isoformat(),days[-1].isoformat(),*driver_ids]
+        for entry in con.execute(
+            f"""SELECT e.driver_id,t.work_date,t.day_type
+                FROM employee_time_entries t
+                JOIN employees e ON e.id=t.employee_id
+                WHERE t.work_date BETWEEN ? AND ?
+                  AND e.driver_id IN ({q})
+                ORDER BY e.active DESC,e.id""",
+            params
+        ).fetchall():
+            if (entry["driver_id"] is not None
+                    and str(entry["day_type"] or "") in override_types):
+                absence_by.setdefault(
+                    (int(entry["driver_id"]),entry["work_date"]),
+                    entry["day_type"],
+                )
+
     company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
     con.close()
 
-    row_by={(r["driver_id"],r["work_date"]):r for r in rows}
     out=[]
     for dr in drivers:
         cells=[]
         total_work_min=0
         total_over_min=0
         work_days=0
+        overlap_min=0
         for d in days:
             if not driver_employed_on(dr,d):
                 cells.append("")
                 continue
             r=row_by.get((dr["id"],d.isoformat()))
-            cells.append(_work_balance_cell(r,d))
-            if r is not None:
-                wm=hours_value_to_minutes(r["work_hours"])
-                om=hours_value_to_minutes(r["overtime_hours"])
-                total_work_min += wm
-                total_over_min += om
-                if wm > 0:
-                    work_days += 1
+            segs=segment_by.get(r["id"],[]) if r else []
+            override=absence_by.get((int(dr["id"]),d.isoformat()))
+            state=driver_day_view(
+                d,r,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            cells.append(_work_balance_cell(state,d))
+            total_work_min += state["work_minutes"]
+            total_over_min += state["overtime_minutes"]
+            overlap_min += state["work_overlap_minutes"]
+            if state["work_minutes"]>0:
+                work_days += 1
 
         out.append({
             "driver_id":dr["id"],
@@ -3842,6 +4465,7 @@ def collect_monthly_work_balance(year, month, active_only=True):
             "work_days":work_days,
             "work_min":total_work_min,
             "over_min":total_over_min,
+            "overlap_min":overlap_min,
         })
 
     return {
@@ -3850,8 +4474,9 @@ def collect_monthly_work_balance(year, month, active_only=True):
         "days":days,
         "drivers":out,
         "company":company,
+        "absence_overlay_applied":bool(override_types),
+        "canonical_driver_day_view":True,
     }
-
 
 def export_monthly_work_balance_pdf(year, month, out_path, active_only=True):
     """Місячний табель робочого часу на A4 landscape.
@@ -4223,6 +4848,28 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         for s in segs:
             seg_by.setdefault(s["worklog_id"],[]).append(s)
 
+    override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+    absence_by={}
+    if override_types and drivers:
+        driver_ids=[dr["id"] for dr in drivers]
+        q=",".join("?" for _ in driver_ids)
+        params=[days[0].isoformat(),days[-1].isoformat(),*driver_ids]
+        for entry in con.execute(
+            f"""SELECT e.driver_id,t.work_date,t.day_type
+                FROM employee_time_entries t
+                JOIN employees e ON e.id=t.employee_id
+                WHERE t.work_date BETWEEN ? AND ?
+                  AND e.driver_id IN ({q})
+                ORDER BY e.active DESC,e.id""",
+            params
+        ).fetchall():
+            if (entry["driver_id"] is not None
+                    and str(entry["day_type"] or "") in override_types):
+                absence_by.setdefault(
+                    (int(entry["driver_id"]),entry["work_date"]),
+                    entry["day_type"],
+                )
+
     company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
     con.close()
 
@@ -4233,42 +4880,44 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         work_days=0
         work_min=0
         drive_min=0
+        overlap_min=0
         for d in days:
             if not driver_employed_on(dr,d):
                 cells.append("")
                 continue
             r=row_by.get((dr["id"],d.isoformat()))
             segs=seg_by.get(r["id"],[]) if r else []
-            cell=_monthly_shift_cell(r,segs)
+            override=absence_by.get((int(dr["id"]),d.isoformat()))
+            state=driver_day_view(
+                d,r,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            if override:
+                cell=SHIFT_DAY_CODES.get(str(override),str(override)[:4])
+            else:
+                cell=_monthly_shift_cell(r,segs)
             cells.append(cell)
 
-            if r:
-                if (r["day_type"] or "")=="Робота":
+            if r or override:
+                if state["day_type"]=="Робота" and state["work_minutes"]>0:
                     work_days+=1
-                if segs:
-                    dm_work=sum(hours_value_to_minutes(s["work_hours"]) for s in segs)
-                    dm_drive=sum(hours_value_to_minutes(s["driving_hours"]) for s in segs)
-                else:
-                    dm_work=hours_value_to_minutes(r["work_hours"])
-                    dm_drive=hours_value_to_minutes(r["driving_hours"])
-                work_min+=dm_work
-                drive_min+=dm_drive
+                work_min+=state["work_minutes"]
+                drive_min+=state["driving_minutes"]
+                overlap_min+=state["work_overlap_minutes"]
 
-                if (r["day_type"] or "")=="Робота":
-                    schedule=segments_summary(segs) if segs else (
-                        f"{r['start_time']}-{r['end_time']}" if r["start_time"] else ""
-                    )
+                if state["day_type"]=="Робота" and state["work_minutes"]>0:
                     details.append({
                         "driver": f"{dr['last_name']} {dr['first_name']} {dr['middle_name']}".strip(),
                         "date": d,
-                        "day_type": r["day_type"],
-                        "schedule": schedule,
-                        "breaks": gaps_summary(segs),
-                        "work_min": dm_work,
-                        "drive_min": dm_drive,
-                        "route": (r["route_name"] if "route_name" in r.keys() else "") or "",
-                        "vehicle": (r["vehicle"] if "vehicle" in r.keys() else "") or "",
-                        "notes": (r["notes"] if "notes" in r.keys() else "") or "",
+                        "day_type": state["day_type"],
+                        "schedule": state["schedule"],
+                        "breaks": state["breaks"],
+                        "work_min": state["work_minutes"],
+                        "drive_min": state["driving_minutes"],
+                        "route": (r["route_name"] if r is not None and "route_name" in r.keys() else "") or "",
+                        "vehicle": (r["vehicle"] if r is not None and "vehicle" in r.keys() else "") or "",
+                        "notes": (r["notes"] if r is not None and "notes" in r.keys() else "") or "",
                     })
 
         driver_rows.append({
@@ -4278,6 +4927,7 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
             "work_days":work_days,
             "work_min":work_min,
             "drive_min":drive_min,
+            "overlap_min":overlap_min,
         })
 
     return {
@@ -6058,10 +6708,10 @@ class App(tk.Tk):
         ttk.Label(win,text="Водій є працівником із додатковою водійською карткою. Лікаря, механіка, диспетчера та інших вводьте тут один раз.",foreground="gray",wraplength=1020,justify="left").pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6)
         frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
-        cols=("id","personnel","name","roles","position","employment","dismissal","phone","status")
+        cols=("id","personnel","name","gender","roles","position","tariff","employment","dismissal","phone","status")
         self.employee_tree=ttk.Treeview(frame,columns=cols,show="headings")
-        heads={"id":"ID","personnel":"Таб. №","name":"ПІБ","roles":"Ролі","position":"Посада","employment":"Прийнятий","dismissal":"Звільнений","phone":"Телефон","status":"Стан"}
-        widths={"id":45,"personnel":75,"name":240,"roles":180,"position":150,"employment":90,"dismissal":90,"phone":120,"status":80}
+        heads={"id":"ID","personnel":"Таб. №","name":"ПІБ","gender":"Стать","roles":"Ролі","position":"Посада","tariff":"Оклад / ставка","employment":"Прийнятий","dismissal":"Звільнений","phone":"Телефон","status":"Стан"}
+        widths={"id":45,"personnel":75,"name":220,"gender":55,"roles":170,"position":145,"tariff":105,"employment":90,"dismissal":90,"phone":120,"status":80}
         for key in cols: self.employee_tree.heading(key,text=heads[key]); self.employee_tree.column(key,width=widths[key],anchor="w")
         y=ttk.Scrollbar(frame,orient="vertical",command=self.employee_tree.yview); x=ttk.Scrollbar(frame,orient="horizontal",command=self.employee_tree.xview)
         self.employee_tree.configure(yscrollcommand=y.set,xscrollcommand=x.set)
@@ -6076,7 +6726,9 @@ class App(tk.Tk):
              LEFT JOIN employee_roles er ON er.employee_id=e.id GROUP BY e.id
              ORDER BY e.active DESC,e.last_name,e.first_name,e.middle_name""").fetchall(); con.close()
         for row in rows:
-            self.employee_tree.insert("","end",values=(row["id"],row["personnel_no"],self.employee_full_name(row),row["roles"] or "",row["position"],fmt_date(row["employment_date"]),fmt_date(row["dismissal_date"]),row["phone"],"Працює" if row["active"] else "Звільнений"))
+            tariff="" if "tariff_rate" not in row.keys() or row["tariff_rate"] is None else f"{float(row['tariff_rate']):.2f}"
+            gender=(row["gender"] if "gender" in row.keys() else "") or ""
+            self.employee_tree.insert("","end",values=(row["id"],row["personnel_no"],self.employee_full_name(row),gender,row["roles"] or "",row["position"],tariff,fmt_date(row["employment_date"]),fmt_date(row["dismissal_date"]),row["phone"],"Працює" if row["active"] else "Звільнений"))
 
     def selected_employee(self):
         sel=getattr(self,"employee_tree",None).selection() if hasattr(self,"employee_tree") else ()
@@ -6088,14 +6740,26 @@ class App(tk.Tk):
         parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Картка працівника")
         fit_window_to_screen(win,700,650,610,520); win.transient(parent); win.grab_set()
         con=db(); current_roles={r[0] for r in con.execute("SELECT role FROM employee_roles WHERE employee_id=?",(employee["id"],)).fetchall()} if employee else set(); con.close()
-        fields=(("personnel_no","Табельний номер"),("last_name","Прізвище"),("first_name","Ім'я"),("middle_name","По батькові"),("position","Основна посада"),("phone","Телефон"),("employment_date","Дата прийняття"),("dismissal_date","Дата звільнення"),("notes","Примітка"))
+        fields=(("personnel_no","Табельний номер"),("last_name","Прізвище"),("first_name","Ім'я"),("middle_name","По батькові"),("position","Основна посада"),("gender","Стать для П-5 (ч/ж)"),("tariff_rate","Оклад / тарифна ставка, грн"),("phone","Телефон"),("employment_date","Дата прийняття"),("dismissal_date","Дата звільнення"),("notes","Примітка"))
         values={}
         for i,(key,label) in enumerate(fields):
-            raw=(employee[key] if employee else "") or ""
+            if employee and key in employee.keys():
+                raw=employee[key]
+            else:
+                raw=""
+            if raw is None:
+                raw=""
+            if key=="tariff_rate" and raw!="":
+                try: raw=f"{float(raw):.2f}".rstrip("0").rstrip(".")
+                except Exception: raw=str(raw)
             if key in {"employment_date","dismissal_date"}: raw=fmt_date(raw)
             values[key]=tk.StringVar(value=raw)
             ttk.Label(win,text=label).grid(row=i,column=0,sticky="w",padx=10,pady=5)
-            ttk.Entry(win,textvariable=values[key],width=48).grid(row=i,column=1,sticky="ew",padx=10,pady=5)
+            if key=="gender":
+                widget=ttk.Combobox(win,textvariable=values[key],values=("", "ч", "ж"),state="readonly",width=12)
+            else:
+                widget=ttk.Entry(win,textvariable=values[key],width=48)
+            widget.grid(row=i,column=1,sticky="ew",padx=10,pady=5)
             if key in {"employment_date","dismissal_date"}: calendar_button(win,values[key]).grid(row=i,column=2,sticky="w",padx=(0,8))
         win.columnconfigure(1,weight=1)
         role_box=ttk.LabelFrame(win,text="Спеціальні ролі працівника (необов'язково)",padding=8); role_box.grid(row=len(fields),column=0,columnspan=3,sticky="ew",padx=10,pady=8)
@@ -6140,6 +6804,17 @@ class App(tk.Tk):
                     try: vals[key]=datetime.strptime(vals[key],"%d.%m.%Y").strftime("%Y-%m-%d")
                     except ValueError:
                         messagebox.showerror("Працівник","Дата має бути у форматі ДД.ММ.РРРР.",parent=win); return
+            vals["gender"]=vals["gender"].lower()
+            if vals["gender"] not in ("","ч","ж"):
+                messagebox.showerror("Працівник","Стать для П-5: залиште порожньо або виберіть «ч» / «ж».",parent=win); return
+            tariff_rate=None
+            if vals["tariff_rate"]:
+                try:
+                    tariff_rate=float(vals["tariff_rate"].replace(",","."))
+                    if tariff_rate < 0:
+                        raise ValueError
+                except ValueError:
+                    messagebox.showerror("Працівник","Оклад / тарифна ставка мають бути невід'ємним числом.",parent=win); return
             con=db()
             if vals["personnel_no"] and con.execute("SELECT 1 FROM employees WHERE personnel_no=? AND id<>?",(vals["personnel_no"],employee["id"] if employee else -1)).fetchone():
                 con.close(); messagebox.showerror("Працівник","Такий табельний номер уже використовується.",parent=win); return
@@ -6150,11 +6825,11 @@ class App(tk.Tk):
                 driver_id=cur.lastrowid
             if employee:
                 eid=employee["id"]
-                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position=?,phone=?,employment_date=?,dismissal_date=?,notes=?,active=?,driver_id=? WHERE id=?""",
-                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,eid))
+                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position=?,gender=?,tariff_rate=?,phone=?,employment_date=?,dismissal_date=?,notes=?,active=?,driver_id=? WHERE id=?""",
+                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["gender"],tariff_rate,vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,eid))
             else:
-                cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,phone,employment_date,dismissal_date,notes,active,driver_id,created_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,datetime.now().isoformat(timespec="seconds"))); eid=cur.lastrowid
+                cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,gender,tariff_rate,phone,employment_date,dismissal_date,notes,active,driver_id,created_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["gender"],tariff_rate,vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,datetime.now().isoformat(timespec="seconds"))); eid=cur.lastrowid
             con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
             con.executemany("INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",[(eid,r) for r in roles])
             if driver_id:
@@ -6292,42 +6967,113 @@ class App(tk.Tk):
             con=db(); current=employee_day_time(con,employee["id"],work_date)
             entry=con.execute("SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",(employee["id"],work_date.isoformat())).fetchone(); con.close()
             dialog=tk.Toplevel(win); dialog.title(f"Табель: {self.employee_full_name(employee)}, {work_date.strftime('%d.%m.%Y')}")
-            fit_window_to_screen(dialog,590,410,520,360); dialog.transient(win); dialog.grab_set()
+            fit_window_to_screen(dialog,720,650,620,540); dialog.transient(win); dialog.grab_set()
+            entry_keys=set(entry.keys()) if entry is not None and hasattr(entry,"keys") else set()
             day_type=tk.StringVar(value=entry["day_type"] if entry else current["day_type"])
             plan=tk.StringVar(value=hours_value_hhmm(entry["planned_hours"]) if entry and entry["planned_hours"] is not None else "")
             actual=tk.StringVar(value=hours_value_hhmm(entry["actual_hours"]) if entry and entry["actual_hours"] is not None else "")
+            overtime=tk.StringVar(value=hours_value_hhmm(entry["overtime_hours"]) if entry and "overtime_hours" in entry_keys and entry["overtime_hours"] is not None else "")
+            night=tk.StringVar(value=hours_value_hhmm(entry["night_hours"]) if entry and "night_hours" in entry_keys and entry["night_hours"] is not None else "")
+            evening=tk.StringVar(value=hours_value_hhmm(entry["evening_hours"]) if entry and "evening_hours" in entry_keys and entry["evening_hours"] is not None else "")
+            weekend_holiday=tk.StringVar(value=hours_value_hhmm(entry["weekend_holiday_hours"]) if entry and "weekend_holiday_hours" in entry_keys and entry["weekend_holiday_hours"] is not None else "")
             notes=tk.StringVar(value=entry["notes"] if entry else "")
-            ttk.Label(dialog,text="Вид дня").grid(row=0,column=0,sticky="w",padx=10,pady=8)
-            ttk.Combobox(dialog,textvariable=day_type,values=DAY_TYPES,state="readonly",width=35).grid(row=0,column=1,sticky="ew",padx=10,pady=8)
-            ttk.Label(dialog,text="План, ГГ:ХХ").grid(row=1,column=0,sticky="w",padx=10,pady=8)
-            ttk.Entry(dialog,textvariable=plan).grid(row=1,column=1,sticky="ew",padx=10,pady=8)
+            ttk.Label(dialog,text="Вид дня").grid(row=0,column=0,sticky="w",padx=10,pady=7)
+            ttk.Combobox(dialog,textvariable=day_type,values=DAY_TYPES,state="readonly",width=38).grid(row=0,column=1,sticky="ew",padx=10,pady=7)
+            ttk.Label(dialog,text="План, ГГ:ХХ").grid(row=1,column=0,sticky="w",padx=10,pady=7)
+            ttk.Entry(dialog,textvariable=plan).grid(row=1,column=1,sticky="ew",padx=10,pady=7)
             ttk.Label(dialog,text=f"Порожньо = автоматично {minutes_hhmm(current['planned_minutes'])}",foreground="gray").grid(row=2,column=1,sticky="w",padx=10)
-            ttk.Label(dialog,text="Факт, ГГ:ХХ").grid(row=3,column=0,sticky="w",padx=10,pady=8)
-            ttk.Entry(dialog,textvariable=actual).grid(row=3,column=1,sticky="ew",padx=10,pady=8)
-            ttk.Label(dialog,text="Примітка").grid(row=4,column=0,sticky="w",padx=10,pady=8)
-            ttk.Entry(dialog,textvariable=notes).grid(row=4,column=1,sticky="ew",padx=10,pady=8); dialog.columnconfigure(1,weight=1)
+            ttk.Label(dialog,text="Факт — відпрацьовано всього, ГГ:ХХ").grid(row=3,column=0,sticky="w",padx=10,pady=7)
+            ttk.Entry(dialog,textvariable=actual).grid(row=3,column=1,sticky="ew",padx=10,pady=7)
+
+            fact_box=ttk.LabelFrame(dialog,text="Фактичні категорії для типової форми П-5",padding=8)
+            fact_box.grid(row=4,column=0,columnspan=2,sticky="ew",padx=10,pady=8)
+            fact_box.columnconfigure(1,weight=1)
+            for rr,(label,var) in enumerate((
+                ("Надурочні години (НУ 05), ГГ:ХХ",overtime),
+                ("Нічні години 22:00–06:00 (РН 04), ГГ:ХХ",night),
+                ("Вечірні години (ВЧ 03), ГГ:ХХ",evening),
+                ("Робота у вихідні / святкові (РВ 06), ГГ:ХХ",weekend_holiday),
+            )):
+                ttk.Label(fact_box,text=label).grid(row=rr,column=0,sticky="w",padx=(0,8),pady=4)
+                ttk.Entry(fact_box,textvariable=var,width=14).grid(row=rr,column=1,sticky="w",pady=4)
+            ttk.Label(
+                fact_box,
+                text=("Ці поля — фактичні складові загального факту. Вечірні години Taxo не вигадує автоматично: "
+                      "їх вносять за правилом/колективним договором підприємства."),
+                foreground="gray",wraplength=620,justify="left"
+            ).grid(row=4,column=0,columnspan=2,sticky="w",pady=(5,0))
+
+            ttk.Label(dialog,text="Примітка").grid(row=5,column=0,sticky="w",padx=10,pady=7)
+            ttk.Entry(dialog,textvariable=notes).grid(row=5,column=1,sticky="ew",padx=10,pady=7)
+            dialog.columnconfigure(1,weight=1)
+
             def save_entry():
                 try:
                     plan_value=minutes_to_db_hours(hours_value_to_minutes(plan.get())) if plan.get().strip() else None
                     actual_value=minutes_to_db_hours(hours_value_to_minutes(actual.get())) if actual.get().strip() else None
+                    special_vars=(overtime,night,evening,weekend_holiday)
+                    special_values=[
+                        minutes_to_db_hours(hours_value_to_minutes(v.get())) if v.get().strip() else None
+                        for v in special_vars
+                    ]
+                    special_minutes=[
+                        hours_value_to_minutes(v.get()) if v.get().strip() else 0
+                        for v in special_vars
+                    ]
                 except ValueError as exc:
                     messagebox.showerror("Табель",str(exc),parent=dialog); return
+                if actual_value is None and any(special_minutes):
+                    messagebox.showerror(
+                        "Табель",
+                        "Спочатку внесіть загальний фактично відпрацьований час. Спеціальні категорії П-5 не можуть існувати без факту.",
+                        parent=dialog
+                    ); return
+                if actual_value is not None:
+                    total_actual=hours_value_to_minutes(actual.get())
+                    labels=("Надурочні","Нічні","Вечірні","Вихідні/святкові")
+                    for label,mins in zip(labels,special_minutes):
+                        if mins>total_actual:
+                            messagebox.showerror("Табель",f"{label} години не можуть перевищувати загальний факт.",parent=dialog); return
                 con=db(); now=datetime.now().isoformat(timespec="seconds")
-                con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,planned_hours,actual_hours,notes,created_at,updated_at)
-                    VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET day_type=excluded.day_type,
-                    planned_hours=excluded.planned_hours,actual_hours=excluded.actual_hours,notes=excluded.notes,updated_at=excluded.updated_at""",
-                    (employee["id"],work_date.isoformat(),day_type.get(),plan_value,actual_value,notes.get().strip(),now,now))
+                con.execute("""INSERT INTO employee_time_entries(
+                        employee_id,work_date,day_type,planned_hours,actual_hours,
+                        overtime_hours,night_hours,evening_hours,weekend_holiday_hours,
+                        notes,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(employee_id,work_date) DO UPDATE SET
+                        day_type=excluded.day_type,planned_hours=excluded.planned_hours,
+                        actual_hours=excluded.actual_hours,overtime_hours=excluded.overtime_hours,
+                        night_hours=excluded.night_hours,evening_hours=excluded.evening_hours,
+                        weekend_holiday_hours=excluded.weekend_holiday_hours,
+                        notes=excluded.notes,updated_at=excluded.updated_at""",
+                    (employee["id"],work_date.isoformat(),day_type.get(),plan_value,actual_value,
+                     special_values[0],special_values[1],special_values[2],special_values[3],
+                     notes.get().strip(),now,now))
                 con.commit(); con.close(); dialog.destroy(); refresh_summary()
-            ttk.Button(dialog,text="Зберегти",command=save_entry).grid(row=5,column=1,sticky="e",padx=10,pady=14)
+            ttk.Button(dialog,text="Зберегти",command=save_entry).grid(row=6,column=1,sticky="e",padx=10,pady=14)
 
         def copy_day():
             employee=employee_map.get(employee_choice.get()); work_date=selected_day()
             if not employee or not work_date:
                 messagebox.showwarning("Копіювання","Виберіть один день у щоденному табелі.",parent=win); return
-            con=db(); current=employee_day_time(con,employee["id"],work_date); con.close()
-            clipboard["value"]={"day_type":current["day_type"],"planned_hours":minutes_to_db_hours(current["planned_minutes"]),
-                                "actual_hours":minutes_to_db_hours(current["actual_minutes"]) if current["actual_minutes"] is not None else None,
-                                "notes":current["notes"],"source_date":work_date}
+            con=db()
+            current=employee_day_time(con,employee["id"],work_date)
+            manual=con.execute(
+                "SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                (employee["id"],work_date.isoformat())
+            ).fetchone()
+            con.close()
+            manual_keys=set(manual.keys()) if manual is not None and hasattr(manual,"keys") else set()
+            clipboard["value"]={
+                "day_type":current["day_type"],
+                "planned_hours":minutes_to_db_hours(current["planned_minutes"]),
+                "actual_hours":minutes_to_db_hours(current["actual_minutes"]) if current["actual_minutes"] is not None else None,
+                "overtime_hours":manual["overtime_hours"] if manual is not None and "overtime_hours" in manual_keys else None,
+                "night_hours":manual["night_hours"] if manual is not None and "night_hours" in manual_keys else None,
+                "evening_hours":manual["evening_hours"] if manual is not None and "evening_hours" in manual_keys else None,
+                "weekend_holiday_hours":manual["weekend_holiday_hours"] if manual is not None and "weekend_holiday_hours" in manual_keys else None,
+                "notes":current["notes"],"source_date":work_date
+            }
             try: win.clipboard_clear(); win.clipboard_append("taxo_personnel_day")
             except tk.TclError: pass
             messagebox.showinfo("Копіювання","День скопійовано. Виділіть одну або кілька дат і натисніть «Вставити день».",parent=win)
@@ -6347,10 +7093,20 @@ class App(tk.Tk):
             now=datetime.now().isoformat(timespec="seconds")
             for work_date in days:
                 if not employee_employed_on(employee,work_date): continue
-                con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,planned_hours,actual_hours,notes,created_at,updated_at)
-                    VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET day_type=excluded.day_type,planned_hours=excluded.planned_hours,
-                    actual_hours=excluded.actual_hours,notes=excluded.notes,updated_at=excluded.updated_at""",
-                    (employee["id"],work_date.isoformat(),clip["day_type"],clip["planned_hours"],clip["actual_hours"],clip["notes"],now,now))
+                con.execute("""INSERT INTO employee_time_entries(
+                        employee_id,work_date,day_type,planned_hours,actual_hours,
+                        overtime_hours,night_hours,evening_hours,weekend_holiday_hours,
+                        notes,created_at,updated_at)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                    ON CONFLICT(employee_id,work_date) DO UPDATE SET
+                        day_type=excluded.day_type,planned_hours=excluded.planned_hours,
+                        actual_hours=excluded.actual_hours,overtime_hours=excluded.overtime_hours,
+                        night_hours=excluded.night_hours,evening_hours=excluded.evening_hours,
+                        weekend_holiday_hours=excluded.weekend_holiday_hours,
+                        notes=excluded.notes,updated_at=excluded.updated_at""",
+                    (employee["id"],work_date.isoformat(),clip["day_type"],clip["planned_hours"],clip["actual_hours"],
+                     clip.get("overtime_hours"),clip.get("night_hours"),clip.get("evening_hours"),clip.get("weekend_holiday_hours"),
+                     clip["notes"],now,now))
             con.commit(); con.close(); refresh_summary()
 
         def plan_to_fact():
@@ -7388,6 +8144,17 @@ class App(tk.Tk):
         ).pack(side="left",padx=5)
         ttk.Button(
             actions,
+            text="Аудит графіків…",
+            command=self.show_schedule_integrity_audit
+        ).pack(side="left",padx=5)
+        self.schedule_audit_day_status=tk.StringVar(value="Аудит дня: …")
+        self.schedule_audit_day_status_label=ttk.Label(
+            actions,textvariable=self.schedule_audit_day_status,
+            foreground="#555555"
+        )
+        self.schedule_audit_day_status_label.pack(side="left",padx=(4,10))
+        ttk.Button(
+            actions,
             text="Шляхівки на день",
             command=self.show_waybills_for_schedule
         ).pack(side="left",padx=5)
@@ -7432,6 +8199,320 @@ class App(tk.Tk):
         self.schedule_hitboxes=[]
         self.schedule_driver_rows=[]
         self.after(100,self.refresh_schedule)
+
+    def show_schedule_integrity_audit(self):
+        """Open a visible, scoped audit of stored schedule input defects."""
+        source_date=self._monthly_shift_source_date()
+        if hasattr(self,"schedule_audit_win") and self.schedule_audit_win.winfo_exists():
+            self.schedule_audit_win.deiconify()
+            self.schedule_audit_win.lift()
+            self.schedule_audit_win.after_idle(self.schedule_audit_win.focus_force)
+            self.refresh_schedule_integrity_audit()
+            return
+
+        win=tk.Toplevel(self)
+        self.schedule_audit_win=win
+        win.title("Аудит графіків — перевірка помилок введення")
+        fit_window_to_screen(win,1320,720,900,520)
+        win.transient(self)
+        win.lift()
+        win.after_idle(win.focus_force)
+
+        top=ttk.Frame(win,padding=8)
+        top.pack(fill="x")
+        self.schedule_audit_scope=tk.StringVar(value="Поточний день")
+        self.schedule_audit_all_routes=tk.BooleanVar(value=False)
+        self.schedule_audit_period=tk.StringVar(value=source_date.strftime("%d.%m.%Y"))
+        self.schedule_audit_summary=tk.StringVar(value="Перевірка…")
+        self.schedule_audit_result=tk.StringVar(value="")
+
+        ttk.Label(top,text="Перевірити:",font=("TkDefaultFont",9,"bold")).pack(side="left")
+        scope=ttk.Combobox(
+            top,textvariable=self.schedule_audit_scope,state="readonly",width=22,
+            values=("Поточний день","Весь місяць","Шаблони маршрутів","Місяць + маршрути")
+        )
+        scope.pack(side="left",padx=(5,12))
+        scope.bind("<<ComboboxSelected>>",lambda _e:self._schedule_audit_scope_changed())
+        ttk.Label(top,text="Період:").pack(side="left")
+        ttk.Label(top,textvariable=self.schedule_audit_period,font=("TkDefaultFont",9,"bold")).pack(side="left",padx=(4,12))
+        self.schedule_audit_all_routes_cb=ttk.Checkbutton(
+            top,text="включити неактивні маршрути",
+            variable=self.schedule_audit_all_routes,
+            command=self.refresh_schedule_integrity_audit
+        )
+        self.schedule_audit_all_routes_cb.pack(side="left",padx=(0,8))
+        ttk.Button(top,text="Перевірити зараз",command=self.refresh_schedule_integrity_audit).pack(side="left",padx=3)
+
+        actions=ttk.Frame(win,padding=(8,0,8,5))
+        actions.pack(fill="x")
+        ttk.Button(actions,text="Відкрити запис",command=self.open_schedule_audit_finding).pack(side="left",padx=(0,5))
+        ttk.Button(actions,text="Контроль №340 для вибраного дня",command=self.open_schedule_audit_regulatory).pack(side="left",padx=5)
+        ttk.Label(
+            actions,
+            text="Це аудит помилок введення. Норми Положення №340 перевіряються окремим контролем.",
+            foreground="#555555"
+        ).pack(side="left",padx=(15,0))
+
+        result_bar=ttk.Frame(win,padding=(10,2,10,5))
+        result_bar.pack(fill="x")
+        self.schedule_audit_result_label=ttk.Label(
+            result_bar,textvariable=self.schedule_audit_result,
+            font=("TkDefaultFont",10,"bold")
+        )
+        self.schedule_audit_result_label.pack(anchor="w")
+        ttk.Label(result_bar,textvariable=self.schedule_audit_summary,foreground="#444444").pack(anchor="w",pady=(2,0))
+
+        notebook=ttk.Notebook(win)
+        notebook.pack(fill="both",expand=True,padx=10,pady=(0,10))
+
+        problems=ttk.Frame(notebook)
+        notebook.add(problems,text="Знайдені проблеми")
+        problems.rowconfigure(0,weight=1); problems.columnconfigure(0,weight=1)
+        cols=("source","date","subject","route","type","duration","detail")
+        tree=ttk.Treeview(problems,columns=cols,show="headings",selectmode="browse")
+        self.schedule_audit_tree=tree
+        heads={
+            "source":"Джерело","date":"Дата","subject":"Водій / маршрут",
+            "route":"Маршрут","type":"Проблема","duration":"Тривалість","detail":"Деталі"
+        }
+        widths={
+            "source":115,"date":95,"subject":220,"route":190,
+            "type":155,"duration":85,"detail":500
+        }
+        for key in cols:
+            tree.heading(key,text=heads[key])
+            tree.column(key,width=widths[key],anchor="w",stretch=(key in {"subject","route","detail"}))
+        tree.tag_configure("problem",foreground="#8A1C1C")
+        ybar=ttk.Scrollbar(problems,orient="vertical",command=tree.yview)
+        xbar=ttk.Scrollbar(problems,orient="horizontal",command=tree.xview)
+        tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+        tree.grid(row=0,column=0,sticky="nsew")
+        ybar.grid(row=0,column=1,sticky="ns")
+        xbar.grid(row=1,column=0,sticky="ew")
+        tree.bind("<Double-1>",lambda _e:self.open_schedule_audit_finding())
+
+        info_tab=ttk.Frame(notebook)
+        notebook.add(info_tab,text="Що саме перевірено")
+        info_frame=ttk.Frame(info_tab)
+        info_frame.pack(fill="both",expand=True,padx=8,pady=8)
+        info_frame.rowconfigure(0,weight=1); info_frame.columnconfigure(0,weight=1)
+        info=tk.Text(info_frame,wrap="word",padx=10,pady=10,height=16)
+        self.schedule_audit_info_text=info
+        info_scroll=ttk.Scrollbar(info_frame,orient="vertical",command=info.yview)
+        info.configure(yscrollcommand=info_scroll.set)
+        info.grid(row=0,column=0,sticky="nsew")
+        info_scroll.grid(row=0,column=1,sticky="ns")
+
+        self.schedule_audit_rows={}
+        self._schedule_audit_scope_changed()
+        def refocus_refresh(event):
+            if event.widget is win:
+                win.after_idle(self.refresh_schedule_integrity_audit)
+        win.bind("<FocusIn>",refocus_refresh,add="+")
+
+    def _schedule_audit_scope_changed(self):
+        """Keep route-only controls relevant to the selected audit scope."""
+        if hasattr(self,"schedule_audit_all_routes_cb"):
+            scope=(self.schedule_audit_scope.get().strip()
+                   if hasattr(self,"schedule_audit_scope") else "Поточний день")
+            includes_routes=scope in ("Шаблони маршрутів","Активні маршрути","Місяць + маршрути")
+            self.schedule_audit_all_routes_cb.configure(
+                state="normal" if includes_routes else "disabled"
+            )
+        self.refresh_schedule_integrity_audit()
+
+    def _schedule_audit_scope_args(self):
+        source_date=self._monthly_shift_source_date()
+        scope=(self.schedule_audit_scope.get().strip() if hasattr(self,"schedule_audit_scope") else "Поточний день")
+        include_days=scope in ("Поточний день","Весь місяць","Місяць + маршрути")
+        include_routes=scope in ("Шаблони маршрутів","Активні маршрути","Місяць + маршрути")
+        one_day=source_date if scope=="Поточний день" else None
+        return source_date,scope,include_days,include_routes,one_day
+
+    def refresh_schedule_integrity_audit(self):
+        if not hasattr(self,"schedule_audit_tree") or not self.schedule_audit_tree.winfo_exists():
+            return
+        source_date,scope,include_days,include_routes,one_day=self._schedule_audit_scope_args()
+        active_routes_only=not bool(self.schedule_audit_all_routes.get())
+        data=collect_schedule_integrity_audit(
+            source_date.year,source_date.month,
+            active_routes_only=active_routes_only,
+            work_date=one_day,
+            include_days=include_days,
+            include_routes=include_routes,
+        )
+
+        if scope=="Поточний день":
+            period_text=source_date.strftime("%d.%m.%Y")
+        elif scope in ("Шаблони маршрутів","Активні маршрути"):
+            period_text="шаблони маршрутів"
+        else:
+            period_text=f"{month_name_ua(source_date.month)} {source_date.year}"
+        self.schedule_audit_period.set(period_text)
+
+        tree=self.schedule_audit_tree
+        for item in tree.get_children():
+            tree.delete(item)
+        self.schedule_audit_rows={}
+        day_problem_ids=set()
+        route_problem_ids=set()
+        for finding in data["findings"]:
+            if finding["source_kind"]=="worklog":
+                day_problem_ids.add(finding["worklog_id"])
+            elif finding["source_kind"]=="route":
+                route_problem_ids.add(finding["route_id"])
+            iid=tree.insert("","end",values=(
+                finding["source"],
+                (datetime.strptime(finding["date"],"%Y-%m-%d").strftime("%d.%m.%Y")
+                 if finding["date"] else "—"),
+                finding["subject"],
+                finding["route"] or "—",
+                finding["label"],
+                minutes_hhmm(finding["minutes"]) if finding["minutes"] else "—",
+                finding["message"],
+            ),tags=("problem",))
+            self.schedule_audit_rows[iid]=finding
+
+        if data["findings"]:
+            self.schedule_audit_result.set(f"⚠ Знайдено проблем: {len(data['findings'])}")
+            self.schedule_audit_result_label.configure(foreground="#8A1C1C")
+            self.schedule_audit_summary.set(
+                f"Днів із проблемами: {len(day_problem_ids)}; шаблонів маршрутів із проблемами: {len(route_problem_ids)}. "
+                "Подвійний клік відкриває запис для ручного виправлення."
+            )
+        else:
+            inspected_total=(data["inspected_day_records"]+data["inspected_route_records"])
+            if inspected_total==0:
+                self.schedule_audit_result.set("○ Немає записів у вибраній області")
+                self.schedule_audit_result_label.configure(foreground="#555555")
+            else:
+                self.schedule_audit_result.set("✓ Помилок введення не знайдено")
+                self.schedule_audit_result_label.configure(foreground="#1B5E20")
+            self.schedule_audit_summary.set(
+                f"Перевірено записів днів: {data['inspected_day_records']} "
+                f"(з точним часом: {data['exact_day_records']}); "
+                f"шаблонів маршрутів: {data['inspected_route_records']}."
+            )
+
+        info=self.schedule_audit_info_text
+        info.configure(state="normal")
+        info.delete("1.0","end")
+        info_lines=[
+            "ЩО ПЕРЕВІРЯЄ ЦЕЙ АУДИТ\n",
+            "• перекриття частин робочого часу;\n",
+            "• перекриття інтервалів керування;\n",
+            "• неповні пари часу «від–до»;\n",
+            "• керування, яке виходить за межі робочого інтервалу;\n",
+            "• порожні часові частини;\n",
+            "• активні маршрути без часового сценарію;\n",
+            "• старі записи без work_segments, якщо в них збережено точні години.\n\n",
+            "ЩО ЦЕЙ АУДИТ НЕ ЗАМІНЮЄ\n",
+            "Контроль Положення №340: 4:30 без належної перерви, добове/тижневе керування, "
+            "міжзмінний і щотижневий відпочинок та інші нормативні обмеження перевіряються "
+            "окремим вікном «Підсумки та контроль №340».\n\n",
+            "ПОЛІТИКА ВИПРАВЛЕННЯ\n",
+            "Аудит нічого не переписує автоматично. Нові перекриття блокуються під час збереження; "
+            "старі помилки показуються для ручного виправлення. Після закриття редактора список "
+            "перевіряється повторно.\n\n",
+            f"ПОТОЧНА ОБЛАСТЬ: {scope}.\n",
+            f"Перевірено записів днів: {data['inspected_day_records']}; з точним часом: {data['exact_day_records']}; "
+            f"legacy-точних записів: {data['legacy_exact_day_records']}; маршрутів: {data['inspected_route_records']}.\n",
+        ]
+        info.insert("end","".join(info_lines))
+        info.configure(state="disabled")
+
+    def refresh_schedule_audit_day_status(self, work_date=None):
+        if not hasattr(self,"schedule_audit_day_status"):
+            return
+        d=work_date or self._schedule_parse_date()
+        if not d:
+            self.schedule_audit_day_status.set("Аудит дня: —")
+            return
+        try:
+            data=collect_schedule_integrity_audit(
+                d.year,d.month,work_date=d,include_days=True,include_routes=False
+            )
+            text=schedule_audit_day_status_text(data)
+            self.schedule_audit_day_status.set(text)
+            if hasattr(self,"schedule_audit_day_status_label"):
+                color=("#8A1C1C" if text.startswith("⚠")
+                       else "#1B5E20" if text.startswith("✓")
+                       else "#555555")
+                self.schedule_audit_day_status_label.configure(foreground=color)
+        except Exception:
+            self.schedule_audit_day_status.set("Аудит дня: помилка перевірки")
+            if hasattr(self,"schedule_audit_day_status_label"):
+                self.schedule_audit_day_status_label.configure(foreground="#8A1C1C")
+
+    def _selected_schedule_audit_finding(self):
+        tree=getattr(self,"schedule_audit_tree",None)
+        if tree is None:
+            return None
+        sel=tree.selection()
+        return self.schedule_audit_rows.get(sel[0]) if sel else None
+
+    def open_schedule_audit_finding(self):
+        finding=self._selected_schedule_audit_finding()
+        if not finding:
+            messagebox.showinfo(
+                "Аудит графіків","Виберіть проблему у списку.",
+                parent=getattr(self,"schedule_audit_win",self)
+            )
+            return
+        if finding["source_kind"]=="worklog":
+            try:
+                work_date=datetime.strptime(finding["date"],"%Y-%m-%d").date()
+            except Exception:
+                return
+            self.open_schedule_worklog(finding["driver_id"],work_date)
+            return
+
+        route_id=finding.get("route_id")
+        if not route_id:
+            return
+        con=db()
+        route=con.execute("SELECT * FROM routes WHERE id=?",(route_id,)).fetchone()
+        segs=con.execute(
+            "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",(route_id,)
+        ).fetchall()
+        stops=con.execute(
+            "SELECT * FROM route_stops WHERE route_id=? ORDER BY direction,stop_no",(route_id,)
+        ).fetchall()
+        con.close()
+        if route:
+            self.route_catalog_form((route,segs,stops))
+            self.load_route_catalog()
+
+    def open_schedule_audit_regulatory(self):
+        """Open №340 analysis only for an explicitly selected driver-day finding."""
+        finding=self._selected_schedule_audit_finding()
+        if not finding or finding.get("source_kind")!="worklog" or not finding.get("driver_id"):
+            messagebox.showinfo(
+                "Контроль №340",
+                "Виберіть у списку проблему конкретного дня водія. "
+                "Для загального контролю водія використовуйте «Підсумки / контроль» у вкладці «Табель».",
+                parent=getattr(self,"schedule_audit_win",self)
+            )
+            return
+        driver_id=finding["driver_id"]
+        try:
+            source_date=datetime.strptime(finding["date"],"%Y-%m-%d").date()
+        except Exception:
+            source_date=self._monthly_shift_source_date()
+        self.driver_id=driver_id
+        self.year_var.set(source_date.year)
+        self.month_var.set(source_date.month)
+        self.refresh_work_driver_choices()
+        driver=self.driver_by_id(driver_id)
+        if driver:
+            label=next(
+                (k for k,v in getattr(self,"work_driver_map",{}).items() if v==driver_id),
+                self.driver_full_name(driver)
+            )
+            self.work_driver_var.set(label)
+        self.refresh_month()
+        self.show_work_analysis()
+
 
     def _monthly_shift_source_date(self):
         """Дата, від якої відкриваємо місячний графік змінності."""
@@ -7508,10 +8589,13 @@ class App(tk.Tk):
             exports,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
         ).pack(side="left",padx=3)
         ttk.Button(
-            exports,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
+            exports,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
         ).pack(side="left",padx=3)
         ttk.Button(
-            exports,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
+            exports,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
+        ).pack(side="left",padx=(10,3))
+        ttk.Button(
+            exports,text="Відкрити деталізацію",command=self.open_monthly_shift_detail_pdf
         ).pack(side="left",padx=3)
 
         ttk.Label(
@@ -7522,6 +8606,7 @@ class App(tk.Tk):
                 "PDF графіка автоматично ділить місяць на три читабельні частини (для 31 дня: 1–11, 12–21, 22–31). "
                 "«PDF — деталізація» формує окремий A4-документ з точними частинами змін, перервами, "
                 "робочим часом, часом керування, маршрутом та автомобілем. "
+                "«Відкрити деталізацію» формує актуальний PDF без діалогу збереження та одразу відкриває його. "
                 "Для ручного редагування використовуйте «Excel — редагувати»."
             ),
             foreground="gray",
@@ -7696,6 +8781,37 @@ class App(tk.Tk):
             parent=self.monthly_shift_win
         )
 
+    def _monthly_shift_default_detail_pdf(self):
+        y=int(self.monthly_shift_year.get())
+        m=int(self.monthly_shift_month.get())
+        return OUTPUT_DIR / f"Деталізація_графіка_змінності_{y}_{m:02d}.pdf"
+
+    def open_monthly_shift_detail_pdf(self):
+        """Сформувати актуальну деталізацію місячного графіка і одразу відкрити PDF."""
+        y=int(self.monthly_shift_year.get())
+        m=int(self.monthly_shift_month.get())
+        path=self._monthly_shift_default_detail_pdf()
+        try:
+            actual=write_output_file(
+                lambda out: export_monthly_shift_detail_pdf(
+                    y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+                ),
+                path,
+                parent=self.monthly_shift_win,
+                kind="PDF деталізації графіка змінності",
+                error_title="Помилка PDF деталізації"
+            )
+            if actual is None:
+                return
+            self.monthly_shift_last_detail_pdf=Path(actual)
+            open_external(actual)
+        except Exception as exc:
+            messagebox.showerror(
+                "Деталізація графіка",
+                f"Не вдалося відкрити деталізацію:\n{exc}",
+                parent=self.monthly_shift_win
+            )
+
     def _monthly_shift_default_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
@@ -7818,9 +8934,29 @@ class App(tk.Tk):
         if rows:
             ids=[r["id"] for r in rows]
             q=",".join("?" for _ in ids)
-            segs=con.execute(f"SELECT * FROM work_segments WHERE worklog_id IN ({q}) ORDER BY segment_no",ids).fetchall()
+            segs=con.execute(f"SELECT * FROM work_segments WHERE worklog_id IN ({q}) ORDER BY worklog_id,segment_no",ids).fetchall()
             for seg in segs: seg_by.setdefault(seg["worklog_id"],[]).append(seg)
+
+        absence_by_driver={}
+        override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES", set()) or ())
+        if override_types and drivers:
+            driver_ids=[dr["id"] for dr in drivers]
+            q=",".join("?" for _ in driver_ids)
+            params=[d.isoformat(),*driver_ids]
+            for entry in con.execute(
+                f"""SELECT e.driver_id,t.day_type
+                    FROM employee_time_entries t
+                    JOIN employees e ON e.id=t.employee_id
+                    WHERE t.work_date=? AND e.driver_id IN ({q})
+                    ORDER BY e.active DESC,e.id""",
+                params
+            ).fetchall():
+                if (entry["driver_id"] is not None
+                        and str(entry["day_type"] or "") in override_types
+                        and entry["driver_id"] not in absence_by_driver):
+                    absence_by_driver[entry["driver_id"]]=entry["day_type"]
         con.close()
+
         left=185; hour_w=72; top=48; row_h=54; width=left+24*hour_w+20
         height=max(top+len(drivers)*row_h+30,300)
         c.configure(scrollregion=(0,0,width,height))
@@ -7832,57 +8968,72 @@ class App(tk.Tk):
             if h<24:
                 c.create_text(x+3,top/2,text=f"{h:02d}:00",anchor="w",font=("TkDefaultFont",9))
         c.create_line(0,top,width,top,fill="#999")
+
         for idx,dr in enumerate(drivers):
             y=top+idx*row_h; self.schedule_driver_rows.append((y,y+row_h,dr["id"],dr))
             if idx%2==0: c.create_rectangle(0,y,width,y+row_h,fill="#fafafa",outline="")
             full=(f"{dr['last_name']} {dr['first_name']} {dr['middle_name']}").strip()
-            c.create_text(12,y+row_h/2,text=full,anchor="w",font=("TkDefaultFont",9,"bold"))
+
             wl=by_driver.get(dr["id"])
             segs=seg_by.get(wl["id"],[]) if wl else []
-            if not segs and wl and ((wl["work_start_time"] or "") or (wl["start_time"] or "")):
-                segs=[{
-                    "start_time":wl["start_time"],"end_time":wl["end_time"],
-                    "work_start_time":wl["work_start_time"],"work_end_time":wl["work_end_time"],
-                    "activity_type":wl["day_type"],"work_hours":wl["work_hours"],
-                    "driving_hours":wl["driving_hours"],"note":wl["notes"]
-                }]
-            for seg in segs:
-                seg_id = seg["id"] if "id" in seg.keys() else None
-                ws,we=_segment_work_pair(seg)
-                bands=[("Робота",ws,we,y+6,y+25)]
-                ds=(seg["start_time"] or "").strip(); de=(seg["end_time"] or "").strip()
-                if ds and de:
-                    bands.append(("Керування",ds,de,y+29,y+48))
-                for group,a,b,y1,y2 in bands:
-                    if not a or not b: continue
-                    try: sm=time_to_minutes(a); em=time_to_minutes(b)
-                    except Exception: continue
-                    if em<=sm: em+=1440
-                    for base_sm,base_em in ((sm,em),(sm-1440,em-1440)):
-                        vis_s=max(0,base_sm); vis_e=min(1440,base_em)
-                        if vis_e<=vis_s: continue
-                        x1=left+vis_s/60*hour_w; x2=left+vis_e/60*hour_w
-                        c.create_rectangle(x1,y1,x2,y2,fill=self._schedule_fill(group),outline="#777")
-                        band_w=x2-x1
-                        # Підпис не можна просто ховати для коротких інтервалів:
-                        # саме після ручного редагування частини часто стають коротшими
-                        # за старий поріг 95 px, через що здавалося, що дані не збереглись.
-                        # Вибираємо компактніший текст, але підписуємо КОЖНУ смугу.
-                        if band_w>=125:
-                            label=f"{a}–{b} {group}"
-                            font=("TkDefaultFont",8)
-                        elif band_w>=72:
-                            label=f"{a}–{b}"
-                            font=("TkDefaultFont",8)
-                        elif band_w>=38:
-                            label="Роб." if group=="Робота" else ("Кер." if group=="Керування" else group[:4]+".")
-                            font=("TkDefaultFont",8)
-                        else:
-                            label="Р" if group=="Робота" else ("К" if group=="Керування" else "•")
-                            font=("TkDefaultFont",8,"bold")
-                        c.create_text((x1+x2)/2,(y1+y2)/2,text=label,anchor="center",font=font)
-                        self.schedule_hitboxes.append((x1,y1,x2,y2,dr["id"],d,seg_id,wl["id"] if wl else None))
+            override=absence_by_driver.get(dr["id"])
+            state=driver_day_view(
+                d,wl,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            name_text=full
+            if state["work_overlap_minutes"]>0:
+                name_text += f"\n⚠ перекриття {minutes_hhmm(state['work_overlap_minutes'])}"
+            c.create_text(
+                12,y+row_h/2,text=name_text,anchor="w",
+                font=("TkDefaultFont",8 if state["work_overlap_minutes"] else 9,"bold")
+            )
+
+            band_rows={
+                "Робота":(y+6,y+25),
+                "Керування":(y+29,y+48),
+            }
+            for group,a,b in state["bands"]:
+                y1,y2=band_rows.get(group,(y+6,y+25))
+                if not a or not b: continue
+                try: sm=time_to_minutes(a); em=time_to_minutes(b)
+                except Exception: continue
+                if em<=sm: em+=1440
+                for base_sm,base_em in ((sm,em),(sm-1440,em-1440)):
+                    vis_s=max(0,base_sm); vis_e=min(1440,base_em)
+                    if vis_e<=vis_s: continue
+                    x1=left+vis_s/60*hour_w; x2=left+vis_e/60*hour_w
+                    c.create_rectangle(x1,y1,x2,y2,fill=self._schedule_fill(group),outline="#777")
+                    band_w=x2-x1
+                    if band_w>=125:
+                        label=f"{a}–{b} {group}"
+                        font=("TkDefaultFont",8)
+                    elif band_w>=72:
+                        label=f"{a}–{b}"
+                        font=("TkDefaultFont",8)
+                    elif band_w>=38:
+                        label="Роб." if group=="Робота" else ("Кер." if group=="Керування" else group[:4]+".")
+                        font=("TkDefaultFont",8)
+                    else:
+                        label="Р" if group=="Робота" else ("К" if group=="Керування" else "•")
+                        font=("TkDefaultFont",8,"bold")
+                    c.create_text((x1+x2)/2,(y1+y2)/2,text=label,anchor="center",font=font)
+                    self.schedule_hitboxes.append(
+                        (x1,y1,x2,y2,dr["id"],d,None,wl["id"] if wl else None)
+                    )
+
+            if state["status_label"]:
+                status=state["status_label"]
+                c.create_text(
+                    left+12,y+row_h/2,
+                    text=status,anchor="w",
+                    font=("TkDefaultFont",9,"bold" if override else "normal"),
+                    fill="#666666",
+                )
+
         c.create_line(0,top+len(drivers)*row_h,width,top+len(drivers)*row_h,fill="#999")
+        self.refresh_schedule_audit_day_status(d)
 
     def _schedule_hit(self,event):
         c=self.schedule_canvas; x=c.canvasx(event.x); y=c.canvasy(event.y)
@@ -8101,7 +9252,10 @@ class App(tk.Tk):
                     WHERE er.role=? AND e.active=1 AND e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END=? LIMIT 1""",(role,name)).fetchone()
             if not employee:
                 con.close(); messagebox.showerror("Зміна персоналу",f"Працівник не має активної ролі «{role}». Спочатку виправте картку у реєстрі працівників.",parent=win); return
-            duplicate=con.execute("SELECT id FROM employee_shifts WHERE work_date=? AND shift_no=? AND role=? AND lower(COALESCE(location,''))=lower(?) AND id<>?",(work_date.isoformat(),shift_no,role,values["location"].get().strip(),existing["id"] if existing else -1)).fetchone()
+            duplicate=con.execute(
+                "SELECT id FROM employee_shifts WHERE work_date=? AND shift_no=? AND role=? AND id<>?",
+                (work_date.isoformat(),shift_no,role,existing["id"] if existing else -1)
+            ).fetchone()
             if duplicate:
                 con.close(); messagebox.showerror("Зміна персоналу",f"На цю дату для ролі «{role}», зміна {values['shift'].get()}, уже є призначення.",parent=win); return
             new_start=datetime.combine(work_date,datetime.min.time())+timedelta(minutes=start_min)
@@ -8129,6 +9283,73 @@ class App(tk.Tk):
         if not row: return
         if messagebox.askyesno("Зміни персоналу","Видалити це призначення?",parent=self.dispatch_win):
             con=db(); con.execute("DELETE FROM employee_shifts WHERE id=?",(row["id"],)); con.commit(); con.close(); self.refresh_dispatch_shifts()
+
+    def _duty_staff_for_work_date(self, work_date, con=None):
+        """Єдиний лікар/механік для I/II зміни конкретної дати графіка.
+
+        Шляхівка може переходити через 00:00, але її поля «I/II зміна»
+        належать даті графіка. Тому наступний календарний день не має права
+        перезаписувати персонал тієї самої зміни у нічному рейсі.
+        """
+        own=con is None
+        if own:
+            con=db()
+        rows=con.execute(
+            """SELECT sh.*,e.last_name||' '||e.first_name||
+                      CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END full_name
+               FROM employee_shifts sh
+               JOIN employees e ON e.id=sh.employee_id
+               WHERE sh.work_date=? AND e.active=1
+                 AND sh.role IN ('Лікар','Механік')
+               ORDER BY sh.role,sh.shift_no,sh.id""",
+            (work_date.isoformat(),),
+        ).fetchall()
+
+        override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+        grouped={}
+        for row in rows:
+            base=datetime.strptime(row["work_date"],"%Y-%m-%d")
+            sh,sm=map(int,row["start_time"].split(":"))
+            eh,em=map(int,row["end_time"].split(":"))
+            row_start=base.replace(hour=sh,minute=sm)
+            row_end=(base+timedelta(days=int(row["end_day_offset"] or 0))).replace(hour=eh,minute=em)
+
+            unavailable=False
+            cursor=row_start.date()
+            while override_types and cursor<=row_end.date():
+                entry=con.execute(
+                    "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                    (row["employee_id"],cursor.isoformat()),
+                ).fetchone()
+                if entry and str(entry["day_type"] or "") in override_types:
+                    unavailable=True
+                    break
+                cursor+=timedelta(days=1)
+            if unavailable:
+                continue
+
+            key=(row["role"],int(row["shift_no"]))
+            grouped.setdefault(key,[]).append(row)
+
+        result={
+            "doctor_1":"","doctor_2":"",
+            "mechanic_1":"","mechanic_2":"",
+            "staff_conflicts":[],
+        }
+        for (role,shift_no),slot_rows in grouped.items():
+            prefix="doctor" if role=="Лікар" else "mechanic"
+            key=f"{prefix}_{shift_no}"
+            if len(slot_rows)==1:
+                result[key]=slot_rows[0]["full_name"]
+                continue
+            names=", ".join(row["full_name"] for row in slot_rows)
+            roman="I" if shift_no==1 else "II"
+            result["staff_conflicts"].append(
+                f"{role} {roman}: {len(slot_rows)} призначення ({names})"
+            )
+        if own:
+            con.close()
+        return result
 
     def _duty_staff_for_interval(self, start_dt, end_dt, location="", con=None):
         """Працівники, чиї зміни реально перекривають випуск/рейс."""
@@ -8186,14 +9407,22 @@ class App(tk.Tk):
             (work_date.isoformat(),)
         ).fetchall()
         out=[]
+        day_duty=self._duty_staff_for_work_date(work_date,con)
         for r in rows:
-            if (r["day_type"] or "") not in {"Робота","Готовність","Інше"} and float(r["work_hours"] or 0)<=0:
-                continue
-            segs=con.execute(
+            stored_segments=con.execute(
                 "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(r["id"],)
             ).fetchall()
-            if not segs:
-                segs=[r]
+            override=_driver_absence_for_day(con,r["driver_id"],work_date)
+            state=driver_day_view(
+                work_date,r,stored_segments,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            if override:
+                continue
+            if state["day_type"] not in {"Робота","Готовність","Інше"} and state["work_minutes"]<=0:
+                continue
+            segs=stored_segments if stored_segments else [r]
             drive_pairs=[]; work_pairs=[]
             for sg in segs:
                 ds=(sg["start_time"] or "").strip(); de=(sg["end_time"] or "").strip()
@@ -8212,7 +9441,7 @@ class App(tk.Tk):
             multiday=end_dt.date()>work_date
             start_location=(r["route_start_location"] or "").strip()
             end_location=(r["route_end_location"] or "").strip()
-            duty=self._duty_staff_for_interval(start_dt,end_dt,start_location,con)
+            duty=day_duty
             stop_counts={x["direction"]:x["n"] for x in con.execute("SELECT direction,COUNT(*) n FROM route_stops WHERE route_id=? GROUP BY direction",(r["route_id"],)).fetchall()} if r["route_id"] else {}
             route_code=(r["route_code"] or "").strip()
             route_name=(r["route_catalog_name"] or "").strip() or (r["route_name"] or "").strip()
@@ -8251,7 +9480,11 @@ class App(tk.Tk):
                 "outbound_stop_count":int(stop_counts.get("outbound",0)),"return_stop_count":int(stop_counts.get("return",0)),
                 "work_span":f"{work_pairs[0][0]}-{work_pairs[-1][1]}" if work_pairs else "",
                 "drive_span":f"{drive_pairs[0][0]}-{drive_pairs[-1][1]}" if drive_pairs else "",
-                "work_hours":float(r["work_hours"] or 0),"driving_hours":float(r["driving_hours"] or 0),
+                "work_hours":minutes_to_db_hours(state["work_minutes"]),
+                "driving_hours":minutes_to_db_hours(state["driving_minutes"]),
+                "schedule_conflict":state["work_overlap_minutes"]>0,
+                "schedule_conflict_minutes":state["work_overlap_minutes"],
+                "schedule_conflict_message":segment_overlap_message(stored_segments,"work"),
                 "waybill_id":r["waybill_id"],"waybill_no":r["waybill_no"] or "",
                 "waybill_pdf":r["waybill_pdf"] or "","waybill_revision":r["waybill_revision"] or 0,
                 "waybill_status":r["waybill_status"] or "",
@@ -8323,6 +9556,9 @@ class App(tk.Tk):
             if not row["planned_departure"] or not row["planned_return"]: missing.append("час")
             if not row["start_location"] or not row["end_location"]: missing.append("точки початку/завершення")
             if not row["outbound_stop_count"] or not row["return_stop_count"]: missing.append("прямий/зворотний графік")
+            if row.get("schedule_conflict"): missing.append(f"перекриття часу {minutes_hhmm(row['schedule_conflict_minutes'])}")
+            if row.get("staff_conflicts"):
+                missing.append("конфлікт чергових: "+"; ".join(row["staff_conflicts"]))
             if row["waybill_no"] and row["waybill_status"]=="void":
                 status=f"АНУЛЬОВАНА № {row['waybill_no']}"
             elif row["waybill_no"]:
@@ -8435,11 +9671,20 @@ class App(tk.Tk):
         if not row["planned_departure"] or not row["planned_return"]: missing.append("плановий час виїзду/заїзду")
         if not row["start_location"] or not row["end_location"]: missing.append("точка початку/завершення маршруту")
         if not row["outbound_stop_count"] or not row["return_stop_count"]: missing.append("графік прямого і зворотного напрямків")
+        if row.get("schedule_conflict"):
+            missing.append(
+                "перекриття частин робочого часу "
+                + minutes_hhmm(row["schedule_conflict_minutes"])
+            )
+        if row.get("staff_conflicts"):
+            missing.append(
+                "конфлікт чергових: " + "; ".join(row["staff_conflicts"])
+            )
         if missing:
             messagebox.showerror(
                 "Шляхівка",
-                "Бракує даних: "+", ".join(missing)+".\n\n"
-                "Відкрийте вкладку «Маршрути», виберіть цей маршрут і натисніть «Заповнити маршрут для шляхівки…».",
+                "Бракує або конфліктують дані: "+", ".join(missing)+".\n\n"
+                "Перевірте маршрут і часові частини дня. Для графіка зупинок відкрийте «Маршрути → Заповнити маршрут для шляхівки…».",
                 parent=self.waybill_win,
             ); return
         if build_waybill_pdf is None:
@@ -8579,29 +9824,73 @@ class App(tk.Tk):
         driver=self.driver_by_id(self.driver_id)
         if not driver or not driver_employed_on(driver,month_dates(y,m)[-1]):
             return
-        con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{y:04d}-{m:02d}")).fetchall(); con.close()
+
+        con=db()
+        rows=con.execute(
+            "SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",
+            (self.driver_id,f"{y:04d}-{m:02d}")
+        ).fetchall()
         existing={r["work_date"]:r for r in rows}
+
+        absence_overrides={}
+        override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES", set()) or ())
+        if override_types:
+            employee=con.execute(
+                "SELECT id FROM employees WHERE driver_id=? ORDER BY active DESC,id LIMIT 1",
+                (self.driver_id,)
+            ).fetchone()
+            if employee is not None:
+                for entry in con.execute(
+                    """SELECT work_date,day_type FROM employee_time_entries
+                       WHERE employee_id=? AND substr(work_date,1,7)=?""",
+                    (employee["id"],f"{y:04d}-{m:02d}")
+                ).fetchall():
+                    if str(entry["day_type"] or "") in override_types:
+                        absence_overrides[entry["work_date"]]=entry["day_type"]
+
+        segment_map={}
+        if rows:
+            ids=[r["id"] for r in rows]
+            q=",".join("?" for _ in ids)
+            for seg in con.execute(
+                f"SELECT * FROM work_segments WHERE worklog_id IN ({q}) ORDER BY worklog_id,segment_no",
+                ids
+            ).fetchall():
+                segment_map.setdefault(seg["worklog_id"],[]).append(seg)
+        con.close()
+
         for d in month_dates(y,m):
             if not driver_employed_on(driver,d):
                 continue
             r=existing.get(d.isoformat())
-            segs=self.get_work_segments(r["id"]) if r else []
-            if segs:
-                schedule=segments_summary(segs)
-            elif r:
-                ws=(r["work_start_time"] if "work_start_time" in r.keys() else "") or r["start_time"]
-                we=(r["work_end_time"] if "work_end_time" in r.keys() else "") or r["end_time"]
-                drive=(f"кер. {r['start_time']}-{r['end_time']}" if r["start_time"] and r["end_time"] else "кер. —")
-                schedule=(f"роб. {ws}-{we}; {drive}" if ws and we else drive)
-            else:
-                schedule=""
-            breaks=gaps_summary(segs)
-            vals=(r["id"] if r else "",d.strftime("%d.%m.%Y"),["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],r["day_type"] if r else ("Вихідний" if d.weekday()>=5 else "Робота"),schedule,breaks,
-                  hours_value_hhmm(r["work_hours"]) if r else "0:00",
-                  hours_value_hhmm(r["driving_hours"]) if r else "0:00",
-                  hours_value_hhmm(r["overtime_hours"]) if r else "0:00",
-                  r["route_name"] if r and "route_name" in r.keys() else "",r["vehicle"] if r else "",r["notes"] if r else "",
-                  work_mode_label(r["accounting_mode"] if r and "accounting_mode" in r.keys() else WORK_MODE_MANUAL))
+            segs=segment_map.get(r["id"],[]) if r else []
+            override=absence_overrides.get(d.isoformat())
+            state=driver_day_view(
+                d,r,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            vals=(
+                r["id"] if r else "",
+                d.strftime("%d.%m.%Y"),
+                ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],
+                state["day_type"],
+                state["schedule"],
+                state["breaks"],
+                minutes_hhmm(state["work_minutes"]),
+                minutes_hhmm(state["driving_minutes"]),
+                minutes_hhmm(state["overtime_minutes"]),
+                r["route_name"] if r and "route_name" in r.keys() else "",
+                r["vehicle"] if r else "",
+                (f"Відсутність із табеля персоналу"
+                 if override and not (r and r["notes"])
+                 else (r["notes"] if r else "")),
+                ("ВІДСУТНІСТЬ" if override else
+                 work_mode_label(
+                     r["accounting_mode"] if r and "accounting_mode" in r.keys()
+                     else WORK_MODE_MANUAL
+                 )),
+            )
             self.work_tree.insert("","end",values=vals)
 
     def edit_work_row(self,_=None):
@@ -8730,7 +10019,6 @@ class App(tk.Tk):
 
         def redraw():
             for x in tree.get_children(): tree.delete(x)
-            total_min=0; drive_min=0
             for i,r in enumerate(seg_data,1):
                 tree.insert("","end",values=(
                     i,r.get("work_start_time",""),r.get("work_end_time",""),
@@ -8738,13 +10026,19 @@ class App(tk.Tk):
                     hours_value_hhmm(r["work_hours"]),hours_value_hhmm(r["driving_hours"]),
                     r["activity_type"],r["note"]
                 ))
-                total_min += hours_value_to_minutes(r["work_hours"])
-                drive_min += hours_value_to_minutes(r["driving_hours"])
+            total_min=segments_union_minutes(seg_data,"work")
+            drive_min=segments_union_minutes(seg_data,"drive")
+            overlap_min=segments_overlap_minutes(seg_data,"work")
             br=gaps_summary(seg_data,pair="work")
+            warning=(
+                f" | ⚠ перекриття робочих частин: {minutes_hhmm(overlap_min)}"
+                if overlap_min>0 else ""
+            )
             summary_var.set(
                 f"План роботи: {minutes_dual(total_min)} | "
                 f"план керування: {minutes_dual(drive_min)} | "
                 f"перерви між робочими частинами: {br or '—'}"
+                + warning
             )
 
         def segment_form(item=None, index=None):
@@ -8927,8 +10221,17 @@ class App(tk.Tk):
                 template_id_var.set(0)
                 shift_var.set("Безперервна")
             else:
-                total_work_min=sum(hours_value_to_minutes(r["work_hours"]) for r in seg_data)
-                total_drive_min=sum(hours_value_to_minutes(r["driving_hours"]) for r in seg_data)
+                overlap_text=segment_overlap_message(seg_data,"work")
+                if overlap_text:
+                    messagebox.showerror(
+                        "Перекриття робочого часу",
+                        "Частини робочої зміни не можуть накладатися одна на одну.\n\n"
+                        + overlap_text
+                        + "\n\nВиправте часові межі перед збереженням.",
+                        parent=win
+                    ); return
+                total_work_min=segments_union_minutes(seg_data,"work")
+                total_drive_min=segments_union_minutes(seg_data,"drive")
                 if total_drive_min > total_work_min:
                     messagebox.showerror(
                         "Помилка",
@@ -9036,6 +10339,24 @@ class App(tk.Tk):
         if not sel:
             messagebox.showwarning("Вставлення","Виберіть одну або кілька дат у табелі."); return
         clip=self.work_clipboard
+        clip_segments=list(clip.get("segments",[]) or [])
+        overlap_text=segment_overlap_message(clip_segments,"work")
+        if overlap_text:
+            messagebox.showerror(
+                "Вставлення дня",
+                "Скопійований день містить перекриття частин робочого часу.\n\n"
+                + overlap_text
+                + "\n\nСпочатку виправте вихідний день; поширювати такий конфлікт на інші дати заборонено.",
+                parent=self
+            ); return
+        canonical_work=(
+            minutes_to_db_hours(segments_union_minutes(clip_segments,"work"))
+            if clip_segments else clip.get("work_hours",0)
+        )
+        canonical_drive=(
+            minutes_to_db_hours(segments_union_minutes(clip_segments,"drive"))
+            if clip_segments else clip.get("driving_hours",0)
+        )
         dates=[self.work_tree.item(i,"values")[1] for i in sel]
         con=db()
         for date_text in dates:
@@ -9058,7 +10379,7 @@ class App(tk.Tk):
                 (
                     self.driver_id,wd,clip.get("day_type","Робота"),clip.get("start_time",""),
                     clip.get("end_time",""),clip.get("work_start_time",clip.get("start_time","")),
-                    clip.get("work_end_time",clip.get("end_time","")),clip.get("work_hours",0),clip.get("driving_hours",0),
+                    clip.get("work_end_time",clip.get("end_time","")),canonical_work,canonical_drive,
                     clip.get("overtime_hours",0),clip.get("vehicle",""),clip.get("notes",""),
                     clip.get("route_name",""),clip.get("route_id"),clip.get("template_id"),
                     clip.get("shift_type","Безперервна"),clip.get("vehicle_id"),
@@ -9199,17 +10520,12 @@ class App(tk.Tk):
         d=datetime.strptime(row["work_date"], "%Y-%m-%d").date()
         pieces=[]
         if segments:
-            for s in segments:
-                ws,we=_segment_work_pair(s)
-                try:
-                    sm=time_to_minutes(ws); em=time_to_minutes(we)
-                except Exception:
-                    continue
-                st=datetime.combine(d, datetime.min.time()) + timedelta(minutes=sm)
-                en=datetime.combine(d, datetime.min.time()) + timedelta(minutes=em)
-                if em <= sm:
-                    en += timedelta(days=1)
-                pieces.append((st,en))
+            base=datetime.combine(d,datetime.min.time())
+            for item in normalized_segment_intervals(segments,"work"):
+                pieces.append((
+                    base+timedelta(minutes=item["start"]),
+                    base+timedelta(minutes=item["end"]),
+                ))
         else:
             ws=(row["work_start_time"] if "work_start_time" in row.keys() else "") or row["start_time"]
             we=(row["work_end_time"] if "work_end_time" in row.keys() else "") or row["end_time"]
@@ -9253,14 +10569,8 @@ class App(tk.Tk):
         """Тривалості завжди виводимо з часових меж, якщо вони є."""
         segments = segments or []
         if segments:
-            work=0; drive=0
-            for s in segments:
-                ws,we=_segment_work_pair(s)
-                try: work += duration_minutes(ws,we) if ws and we else hours_value_to_minutes(s["work_hours"])
-                except Exception: work += hours_value_to_minutes(s["work_hours"])
-                ds=(s["start_time"] or "").strip(); de=(s["end_time"] or "").strip()
-                try: drive += duration_minutes(ds,de) if ds and de else 0
-                except Exception: drive += hours_value_to_minutes(s["driving_hours"])
+            work=segments_union_minutes(segments,"work")
+            drive=segments_union_minutes(segments,"drive")
         else:
             ws=(row["work_start_time"] if "work_start_time" in row.keys() else "") or ""
             we=(row["work_end_time"] if "work_end_time" in row.keys() else "") or ""
@@ -9655,6 +10965,93 @@ class App(tk.Tk):
                 f"{minutes_hhmm(avg4_min)} на тиждень > 48:00."
             )
 
+        # r9.3: compact day-by-day dashboard for the analysis window.
+        # It deliberately uses the same canonical driver_day_view as the
+        # driver timesheet and graphical schedule.
+        month_by_date={r["work_date"]:r for r in month_rows}
+        absence_by_date={}
+        override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+        if override_types:
+            try:
+                employee=con.execute(
+                    "SELECT id FROM employees WHERE driver_id=? ORDER BY active DESC,id LIMIT 1",
+                    (self.driver_id,)
+                ).fetchone()
+                if employee:
+                    entries=con.execute(
+                        """SELECT work_date,day_type FROM employee_time_entries
+                           WHERE employee_id=? AND work_date BETWEEN ? AND ?""",
+                        (employee["id"],month_start.isoformat(),month_end.isoformat())
+                    ).fetchall()
+                    for entry in entries:
+                        if str(entry["day_type"] or "") in override_types:
+                            absence_by_date[entry["work_date"]]=entry["day_type"]
+            except Exception:
+                # Older/minimal databases may not yet expose personnel tables.
+                absence_by_date={}
+
+        day_rows=[]
+        for day in month_dates(y,m):
+            row=month_by_date.get(day.isoformat())
+            segs=seg_map.get(row["id"],[]) if row else []
+            override=absence_by_date.get(day.isoformat())
+            state=driver_day_view(
+                day,row,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+
+            issues=[]
+            if state["work_overlap_minutes"]>0:
+                issues.append(f"перекриття {minutes_hhmm(state['work_overlap_minutes'])}")
+            if state["driving_overlap_minutes"]>0:
+                issues.append(f"керування перекрито {minutes_hhmm(state['driving_overlap_minutes'])}")
+            if state["driving_minutes"]>state["work_minutes"] and state["driving_minutes"]>0:
+                issues.append("керування > робочого часу")
+            if state["driving_minutes"]>600:
+                issues.append("керування >10:00")
+            elif state["driving_minutes"]>540:
+                issues.append("керування >9:00")
+
+            break_ctl=self._driving_break_control_for_row(row,segs) if row else {
+                "warnings":[],"max_continuous_drive":0
+            }
+            if break_ctl.get("warnings"):
+                issues.append("контроль 4:30")
+            if break_ctl.get("max_continuous_drive",0)>270:
+                issues.append(
+                    f"без завершеної перерви {minutes_hhmm(break_ctl['max_continuous_drive'])}"
+                )
+
+            result="; ".join(dict.fromkeys(issues))
+            if not result:
+                if override:
+                    result="Відсутність"
+                elif state["work_minutes"]>0:
+                    result="Норма"
+                elif state["status_label"]:
+                    result=state["status_label"]
+                else:
+                    result="—"
+
+            day_rows.append({
+                "date":day,
+                "weekday":["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][day.weekday()],
+                "day_type":state["day_type"],
+                "schedule":state["schedule"] or state["status_label"] or "—",
+                "breaks":state["breaks"] or "—",
+                "work_min":state["work_minutes"],
+                "drive_min":state["driving_minutes"],
+                "over_min":state["overtime_minutes"],
+                "route":(
+                    (row["route_name"] if row is not None and "route_name" in row.keys() else "")
+                    or "—"
+                ),
+                "result":result,
+                "has_issue":bool(issues),
+                "worklog_id":row["id"] if row else None,
+            })
+
         con.close()
 
         transport_profile=current_transport_profile()
@@ -9672,7 +11069,41 @@ class App(tk.Tk):
             "daily_rests":daily_display,
             "weekly_rests":weekly_display,
             "driving_break_days":driving_break_days,
+            "day_rows":day_rows,
         }
+
+    def open_work_month_detail_pdf(self, parent=None):
+        """Generate and open the detailed monthly PDF for the selected driver."""
+        if not self.driver_id:
+            messagebox.showwarning("Деталізація","Спочатку виберіть водія.",parent=parent or self)
+            return
+        y,m=int(self.year_var.get()),int(self.month_var.get())
+        driver=self.driver_by_id(self.driver_id)
+        if driver is None:
+            messagebox.showerror("Деталізація","Водія не знайдено.",parent=parent or self)
+            return
+        con=db()
+        rows=con.execute(
+            """SELECT * FROM worklog
+               WHERE driver_id=? AND work_date BETWEEN ? AND ?
+               ORDER BY work_date""",
+            (self.driver_id,date(y,m,1).isoformat(),month_dates(y,m)[-1].isoformat())
+        ).fetchall()
+        con.close()
+
+        driver_name=self.driver_full_name(driver)
+        safe="".join(ch if ch.isalnum() or ch in " _-" else "_" for ch in driver_name)
+        safe=safe.strip().replace(" ","_") or f"driver_{self.driver_id}"
+        target=OUTPUT_DIR / f"Деталізація_{safe}_{y}_{m:02d}.pdf"
+        actual=write_output_file(
+            lambda out: export_pdf(driver,y,m,rows,out),
+            target,
+            parent=parent or self,
+            kind="PDF деталізації робочого часу",
+            error_title="Помилка деталізації"
+        )
+        if actual is not None:
+            open_external(actual)
 
     def show_work_analysis(self):
         data=self.calculate_work_analysis()
@@ -9687,7 +11118,7 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         win.title("Підсумки та контроль №340")
-        fit_window_to_screen(win,980,760,760,500)
+        fit_window_to_screen(win,1220,790,900,580)
         win.transient(self)
 
         head=ttk.Frame(win,padding=10)
@@ -9697,12 +11128,12 @@ class App(tk.Tk):
         title_frame.pack(fill="x")
         ttk.Label(
             title_frame,
-            text=f"Підсумки за {data['month']:02d}.{data['year']}",
-            font=("TkDefaultFont",11,"bold")
+            text=f"{driver_name} — {month_name_ua(data['month'])} {data['year']}",
+            font=("TkDefaultFont",12,"bold")
         ).pack(side="left")
 
         def save_pdf():
-            safe="".join(c if c.isalnum() or c in " _-" else "_" for c in driver_name).strip().replace(" ","_")
+            safe="".join(ch if ch.isalnum() or ch in " _-" else "_" for ch in driver_name).strip().replace(" ","_")
             default=f"Аналіз_340_{safe}_{data['year']}_{data['month']:02d}.pdf"
             path=filedialog.asksaveasfilename(
                 parent=win,
@@ -9724,37 +11155,119 @@ class App(tk.Tk):
             if actual is not None:
                 messagebox.showinfo("PDF",f"Збережено:\n{actual}",parent=win)
 
-        ttk.Button(title_frame,text="Зберегти PDF",command=save_pdf).pack(side="right",padx=(8,0))
+        ttk.Button(
+            title_frame,text="Відкрити деталізацію",
+            command=lambda:self.open_work_month_detail_pdf(win)
+        ).pack(side="right",padx=(8,0))
+        ttk.Button(title_frame,text="Зберегти PDF контролю",command=save_pdf).pack(side="right",padx=(8,0))
+
+        # Compact dashboard: the most useful month figures remain visible on
+        # both notebook pages instead of being buried in a long sentence.
+        cards=ttk.Frame(head)
+        cards.pack(fill="x",pady=(8,4))
+        metrics=[
+            ("Робочих днів",str(data["work_days"])),
+            ("Робота, план",minutes_hhmm(data["total_work_min"])),
+            ("Керування, план",minutes_hhmm(data["total_drive_min"])),
+            ("Надурочні",minutes_hhmm(data["total_over_min"])),
+            ("Середнє за 4 міс.",minutes_hhmm(data["avg4_min"])+"/тиж."),
+            ("Зауважень",str(len(data.get("warnings") or []))),
+        ]
+        for col,(label,value) in enumerate(metrics):
+            box=ttk.LabelFrame(cards,text=label,padding=(8,5))
+            box.grid(row=0,column=col,sticky="nsew",padx=3)
+            ttk.Label(box,text=value,font=("TkDefaultFont",10,"bold")).pack()
+            cards.columnconfigure(col,weight=1)
 
         ttk.Label(
             head,
-            text=(
-                f"Водій: {driver_name}    "
-                f"Профіль: {data.get('transport_profile', DEFAULT_TRANSPORT_PROFILE)}    "
-                f"Робочих днів: {data['work_days']}    "
-                f"Робота, план: {minutes_dual(data['total_work_min'])}    "
-                f"Керування, план: {minutes_dual(data['total_drive_min'])}    "
-                f"Надурочні: {minutes_dual(data['total_over_min'])}    "
-                f"Середнє за 4 міс.: {minutes_hhmm(data['avg4_min'])}/тиж."
-            )
-        ).pack(anchor="w",pady=(5,0))
+            text=f"Профіль контролю: {data.get('transport_profile',DEFAULT_TRANSPORT_PROFILE)}",
+            foreground="gray"
+        ).pack(anchor="w",pady=(2,0))
 
-        legend=ttk.Frame(head)
-        legend.pack(anchor="w",pady=(7,1))
+        notebook=ttk.Notebook(win)
+        notebook.pack(fill="both",expand=True,padx=10,pady=(2,10))
+
+        # Day-by-day table: quick operational view.
+        day_tab=ttk.Frame(notebook)
+        notebook.add(day_tab,text="Дні місяця")
+        day_tools=ttk.Frame(day_tab,padding=(6,6,6,2))
+        day_tools.pack(fill="x")
+        ttk.Label(
+            day_tools,
+            text="Подвійний клік — відкрити день для редагування.",
+            foreground="gray"
+        ).pack(side="left")
+
+        day_frame=ttk.Frame(day_tab)
+        day_frame.pack(fill="both",expand=True,padx=6,pady=6)
+        day_frame.rowconfigure(0,weight=1); day_frame.columnconfigure(0,weight=1)
+        cols=("date","weekday","type","schedule","breaks","work","drive","over","route","result")
+        tree=ttk.Treeview(day_frame,columns=cols,show="headings",selectmode="browse")
+        heads={
+            "date":"Дата","weekday":"День","type":"Вид","schedule":"Графік / частини",
+            "breaks":"Перерви","work":"Робота","drive":"Керування","over":"Надур.",
+            "route":"Маршрут","result":"Результат"
+        }
+        widths={
+            "date":90,"weekday":50,"type":100,"schedule":260,"breaks":150,
+            "work":75,"drive":80,"over":70,"route":210,"result":230
+        }
+        for key in cols:
+            tree.heading(key,text=heads[key])
+            tree.column(key,width=widths[key],anchor="w",stretch=(key in {"schedule","route","result"}))
+        ybar=ttk.Scrollbar(day_frame,orient="vertical",command=tree.yview)
+        xbar=ttk.Scrollbar(day_frame,orient="horizontal",command=tree.xview)
+        tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+        tree.grid(row=0,column=0,sticky="nsew")
+        ybar.grid(row=0,column=1,sticky="ns")
+        xbar.grid(row=1,column=0,sticky="ew")
+        tree.tag_configure("issue",background="#FDE8E8",foreground="#8A1C1C")
+        tree.tag_configure("absence",background="#FFF4CC")
+        tree.tag_configure("weekend",background="#F3F4F6")
+        tree.tag_configure("ok",background="#EAF7EA")
+
+        row_by_iid={}
+        for row in data.get("day_rows",[]):
+            tag=(
+                "issue" if row["has_issue"] else
+                "absence" if row["result"]=="Відсутність" else
+                "ok" if row["work_min"]>0 else
+                "weekend"
+            )
+            iid=tree.insert("","end",values=(
+                row["date"].strftime("%d.%m.%Y"),row["weekday"],row["day_type"],
+                row["schedule"],row["breaks"],minutes_hhmm(row["work_min"]),
+                minutes_hhmm(row["drive_min"]),minutes_hhmm(row["over_min"]),
+                row["route"],row["result"]
+            ),tags=(tag,))
+            row_by_iid[iid]=row
+
+        def edit_selected_day(_event=None):
+            sel=tree.selection()
+            if not sel:
+                messagebox.showinfo("Підсумки","Виберіть день у таблиці.",parent=win)
+                return
+            row=row_by_iid.get(sel[0])
+            if row is None:
+                return
+            self.open_schedule_worklog(self.driver_id,row["date"])
+
+        ttk.Button(day_tools,text="Редагувати вибраний день",command=edit_selected_day).pack(side="right",padx=3)
+        tree.bind("<Double-1>",edit_selected_day)
+
+        # Full explanatory protocol.
+        control_tab=ttk.Frame(notebook)
+        notebook.add(control_tab,text="Контроль №340")
+        legend=ttk.Frame(control_tab,padding=(8,6,8,2))
+        legend.pack(fill="x")
         tk.Label(legend,text="  Норма  ",bg="#E6F4EA",fg="#1B5E20").pack(side="left",padx=(0,5))
         tk.Label(legend,text="  Увага  ",bg="#FFF4CC",fg="#7A4A00").pack(side="left",padx=5)
         tk.Label(legend,text="  Помилка / перевищення  ",bg="#FDE8E8",fg="#8A1C1C").pack(side="left",padx=5)
         tk.Label(legend,text="  Інформація  ",bg="#EAF2FF",fg="#174EA6").pack(side="left",padx=5)
 
-        ttk.Label(
-            head,
-            text="Усі нормативні порівняння виконуються в цілих хвилинах. "
-                 "Наприклад: 8:55 = 8.92 десяткових год; 8:30 = 8.50, а не 8.30.",
-            foreground="gray"
-        ).pack(anchor="w",pady=(5,0))
-
-        body=ttk.Frame(win)
-        body.pack(fill="both",expand=True,padx=10,pady=(0,10))
+        body=ttk.Frame(control_tab)
+        body.pack(fill="both",expand=True,padx=6,pady=(2,6))
         txt=tk.Text(body,wrap="word",padx=8,pady=8)
         scr=ttk.Scrollbar(body,orient="vertical",command=txt.yview)
         txt.configure(yscrollcommand=scr.set)
@@ -9763,7 +11276,6 @@ class App(tk.Tk):
         body.rowconfigure(0,weight=1)
         body.columnconfigure(0,weight=1)
 
-        # Кольорова схема.
         txt.tag_configure("heading",foreground="#1F4E79",font=("TkDefaultFont",10,"bold"),spacing1=9,spacing3=4)
         txt.tag_configure("subheading",foreground="#243B53",background="#EEF3F8",font=("TkDefaultFont",9,"bold"),spacing1=2,spacing3=2)
         txt.tag_configure("error",foreground="#8A1C1C",background="#FDE8E8",spacing1=2,spacing3=2,lmargin1=5,lmargin2=5)
@@ -9776,8 +11288,11 @@ class App(tk.Tk):
         for kind,content in build_work_analysis_report_items(data):
             tag=kind if kind in ("heading","subheading","error","warn","ok","info","note","normal") else "normal"
             txt.insert("end",content+"\n",tag)
-
         txt.configure(state="disabled")
+
+        if data.get("warnings"):
+            notebook.select(control_tab)
+
 
     def build_route_catalog(self):
         top=ttk.Frame(self.tab_route_catalog); top.pack(fill="x",padx=10,pady=8)
@@ -10350,6 +11865,15 @@ class App(tk.Tk):
                 messagebox.showerror(
                     "Помилка","Активний маршрут повинен мати хоча б одну точну частину робочої зміни.",parent=win
                 ); return
+            overlap_text=segment_overlap_message(seg_data,"work")
+            if overlap_text:
+                messagebox.showerror(
+                    "Перекриття робочого часу",
+                    "Частини маршруту не можуть накладатися одна на одну.\n\n"
+                    + overlap_text
+                    + "\n\nВиправте часові межі перед збереженням маршруту.",
+                    parent=win
+                ); return
             try:
                 start_day=int(vv["start_day_offset"].get()); end_day=int(vv["end_day_offset"].get())
             except ValueError:
@@ -10546,18 +12070,48 @@ class App(tk.Tk):
         ttk.Button(manage_bar,text="Історія змін",command=self.show_attestation_audit).pack(side="left",padx=3)
 
         filter_bar=ttk.Frame(hist)
-        filter_bar.pack(fill="x",padx=6,pady=(2,4))
+        filter_bar.pack(fill="x",padx=6,pady=(2,2))
         ttk.Label(filter_bar,text="Показати:").pack(side="left",padx=(0,4))
         self.att_filter=tk.StringVar(value="Активні")
         att_filter_cb=ttk.Combobox(
-            filter_bar,textvariable=self.att_filter,state="readonly",width=15,
+            filter_bar,textvariable=self.att_filter,state="readonly",width=12,
             values=("Активні","Вилучені","Усі")
         )
         att_filter_cb.pack(side="left")
         att_filter_cb.bind("<<ComboboxSelected>>",lambda e:self.load_att_history())
-        ttk.Button(filter_bar,text="Оновити список",command=self.load_att_history).pack(side="left",padx=6)
+
+        self.att_filter_driver_only=tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            filter_bar,text="Тільки вибраний водій",
+            variable=self.att_filter_driver_only,
+            command=self.load_att_history
+        ).pack(side="left",padx=(12,4))
+
+        self.att_filter_month_enabled=tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            filter_bar,text="За місяць",
+            variable=self.att_filter_month_enabled,
+            command=self.load_att_history
+        ).pack(side="left",padx=(10,3))
+        today=date.today()
+        self.att_filter_month=tk.StringVar(value=str(today.month))
+        self.att_filter_year=tk.StringVar(value=str(today.year))
+        month_box=ttk.Spinbox(filter_bar,textvariable=self.att_filter_month,from_=1,to=12,width=4)
+        month_box.pack(side="left",padx=(1,2))
+        ttk.Label(filter_bar,text="/").pack(side="left")
+        year_box=ttk.Spinbox(filter_bar,textvariable=self.att_filter_year,from_=2020,to=2100,width=6)
+        year_box.pack(side="left",padx=(2,5))
+        month_box.bind("<Return>",lambda _e:self.load_att_history())
+        year_box.bind("<Return>",lambda _e:self.load_att_history())
+
+        ttk.Button(filter_bar,text="Оновити",command=self.load_att_history).pack(side="left",padx=4)
+        ttk.Button(filter_bar,text="Скинути відбір",command=self.reset_att_history_filters).pack(side="left",padx=4)
+        ttk.Label(filter_bar,text="Новіші ↑",foreground="gray").pack(side="left",padx=(10,2))
+
+        summary_bar=ttk.Frame(hist)
+        summary_bar.pack(fill="x",padx=6,pady=(0,3))
         self.att_list_summary=tk.StringVar(value="")
-        ttk.Label(filter_bar,textvariable=self.att_list_summary,foreground="gray").pack(side="right",padx=6)
+        ttk.Label(summary_bar,textvariable=self.att_list_summary,foreground="gray").pack(side="left",padx=2)
 
         cols=("id","driver","from","to","activity","place","date","status","revision","formats","file")
         tree_frame=ttk.Frame(hist)
@@ -11387,6 +12941,21 @@ class App(tk.Tk):
 
         ttk.Button(win,text="Закрити",command=win.destroy).pack(anchor="e",padx=10,pady=(0,10))
 
+    def reset_att_history_filters(self):
+        """Show the normal active archive without driver/month restrictions."""
+        if hasattr(self,"att_filter"):
+            self.att_filter.set("Активні")
+        if hasattr(self,"att_filter_driver_only"):
+            self.att_filter_driver_only.set(False)
+        if hasattr(self,"att_filter_month_enabled"):
+            self.att_filter_month_enabled.set(False)
+        today=date.today()
+        if hasattr(self,"att_filter_month"):
+            self.att_filter_month.set(str(today.month))
+        if hasattr(self,"att_filter_year"):
+            self.att_filter_year.set(str(today.year))
+        self.load_att_history()
+
     def load_att_history(self):
         if not hasattr(self,"att_tree"):
             return
@@ -11395,25 +12964,55 @@ class App(tk.Tk):
             self.att_tree.delete(x)
 
         mode=(self.att_filter.get().strip() if hasattr(self,"att_filter") else "Активні")
+        driver_filter_enabled=bool(
+            hasattr(self,"att_filter_driver_only") and self.att_filter_driver_only.get()
+        )
+        driver_id=(getattr(self,"att_driver_id",None) if driver_filter_enabled else None)
+
+        filter_year=filter_month=None
+        month_filter_enabled=bool(
+            hasattr(self,"att_filter_month_enabled") and self.att_filter_month_enabled.get()
+        )
+        if month_filter_enabled:
+            try:
+                filter_month=int(self.att_filter_month.get())
+                filter_year=int(self.att_filter_year.get())
+                if not 1<=filter_month<=12 or not 1900<=filter_year<=2200:
+                    raise ValueError
+            except Exception:
+                messagebox.showerror(
+                    "Відбір бланків",
+                    "Перевірте місяць (1–12) і рік.",
+                    parent=self
+                )
+                return
+
         con=db()
         total=con.execute("SELECT COUNT(*) FROM attestations").fetchone()[0]
         active_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')='active'").fetchone()[0]
         deleted_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')<>'active'").fetchone()[0]
-        sql="""SELECT a.*, d.last_name||' '||d.first_name AS driver_name
-                 FROM attestations a JOIN drivers d ON d.id=a.driver_id"""
-        params=[]
-        if mode=="Активні":
-            sql += " WHERE COALESCE(a.status,'active')='active'"
-        elif mode=="Вилучені":
-            sql += " WHERE COALESCE(a.status,'active')<>'active'"
-        # mode == "Усі": жодного прихованого фільтра і жодного LIMIT.
-        sql += " ORDER BY a.id DESC"
+        sql,params=attestation_history_query(
+            mode=mode,
+            driver_id=driver_id,
+            year=filter_year,
+            month=filter_month,
+        )
         rows=con.execute(sql,params).fetchall()
         con.close()
 
         if hasattr(self,"att_list_summary"):
+            filters=[]
+            if driver_filter_enabled:
+                if driver_id:
+                    filters.append(f"водій: {self.att_driver_var.get().strip()}")
+                else:
+                    filters.append("водій: не вибраний (показано всіх)")
+            if month_filter_enabled:
+                filters.append(f"місяць: {filter_month:02d}.{filter_year}")
+            filter_text=(" | відбір: "+", ".join(filters)) if filters else ""
             self.att_list_summary.set(
                 f"Показано: {len(rows)} з {total} | активних: {active_count} | вилучених: {deleted_count}"
+                + filter_text
             )
 
         selected_iid=None

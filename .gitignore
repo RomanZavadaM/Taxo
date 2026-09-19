@@ -17,3 +17,11 @@ Taxo_v8_70_TEST_r*_Windows_x64_Portable.zip
 Taxo_v8_70_TEST_r*_Setup_Windows_x64.exe
 SHA256SUMS_v8_70_TEST_r*_Windows_x64.txt
 
+
+# Taxo 9.1 candidate build outputs
+Taxo_v9_1_candidate_r*_Windows_x64_Portable.zip
+Taxo_v9_1_candidate_r*_Setup_Windows_x64.exe
+Taxo_v9_1_candidate_r*_macOS_*_Portable.zip
+Taxo_v9_1_candidate_r*_macOS_*/
+Taxo_v9_1_candidate_r*_START.zip
+SHA256SUMS_v9_1_candidate_r*.txt
