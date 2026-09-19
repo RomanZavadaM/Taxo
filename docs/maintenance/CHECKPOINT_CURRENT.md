@@ -1,10 +1,10 @@
 # Taxo — поточна контрольна точка
 
 **Stable:** Taxo 9.0.1 · 17.09.2026.
-**Current candidate:** Taxo 9.1 candidate r9.7 · 19.09.2026.
+**Current candidate:** Taxo 9.1 candidate r9.8 · 19.09.2026.
 **Development PR:** #29.
 
-Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.7 опублікований як окремий GitHub Pre-release і не оголошується stable до завершення реальної перевірки.
+Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.8 готується як окремий GitHub Pre-release після зеленого CI і не оголошується stable до завершення реальної перевірки.
 
 ## Що входить у r9.5
 
@@ -93,3 +93,11 @@ r9.5 виявився непридатним для manual gate на реаль�
 - START + SHA-256 доступні;
 - Windows/macOS: 107 regression tests — success;
 - нова кнопка «Відкрити деталізацію» покрита regression test.
+
+
+## Candidate r9.8
+
+- one ATP: role+date+shift = one duty slot;
+- шляхівки використовують staff дати графіка, а не всього рейсового інтервалу;
+- night route next-day contamination усунено;
+- legacy duplicate slots блокують видачу до ручного виправлення.
