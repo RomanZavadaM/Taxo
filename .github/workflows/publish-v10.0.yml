@@ -324,8 +324,25 @@ jobs:
             echo 'v10.0 already exists; refusing to overwrite the stable release.'
             exit 1
           fi
+
+          files=(
+            release-upload/Taxo_v10_0_Setup_Windows_x64.exe
+            release-upload/Taxo_v10_0_Windows_x64_Portable.zip
+            release-upload/Taxo_v10_0_macOS_arm64_Portable.zip
+            release-upload/Taxo_v10_0_macOS_x86_64_Portable.zip
+            release-upload/Taxo_v10_0_START.zip
+            release-upload/SHA256SUMS_v10_0_Windows_x64.txt
+            release-upload/SHA256SUMS_v10_0_macOS_arm64.txt
+            release-upload/SHA256SUMS_v10_0_macOS_x86_64.txt
+            release-upload/SHA256SUMS_v10_0_START.txt
+            release-upload/SHA256SUMS_v10_0.txt
+          )
+          for file in "${files[@]}"; do
+            test -f "$file" || { echo "Missing release file before publish: $file" >&2; exit 1; }
+          done
+
           gh release create 'v10.0' \
-            release-upload/* \
+            "${files[@]}" \
             --target "$GITHUB_SHA" \
             --title 'Taxo 10.0' \
             --notes-file 'docs/releases/RELEASE_NOTES_v10_0.md' \
