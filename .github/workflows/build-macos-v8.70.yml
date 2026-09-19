@@ -25,6 +25,7 @@ on:
       - 'Taxo_macos.spec'
       - 'tests/**'
       - '.github/workflows/build-macos-v8.70.yml'
+      - '.github/workflows/publish-v10.0.yml'
       - 'VERSION.txt'
 
 permissions:
