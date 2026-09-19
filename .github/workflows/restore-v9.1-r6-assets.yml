@@ -1,0 +1,70 @@
+name: Restore immutable Taxo 9.1 r6 release assets
+
+on:
+  push:
+    branches:
+      - 'work/v9.1-monthly-dispatch-waybill-ui'
+    paths:
+      - '.github/workflows/restore-v9.1-r6-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Отримати репозиторій для release notes
+        uses: actions/checkout@v4
+        with:
+          ref: v9.1-r6
+          fetch-depth: 0
+
+      - name: Завантажити оригінальні artifacts успішного r6 run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir artifacts extracted upload
+          for spec in \
+            "10579606461:macos-x86.zip" \
+            "10579421785:manifest.zip" \
+            "10578924242:macos-arm.zip" \
+            "10578534655:windows.zip"
+          do
+            id="${spec%%:*}"
+            out="${spec#*:}"
+            gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "artifacts/${out}"
+            unzip -q "artifacts/${out}" -d "extracted/${id}"
+          done
+
+      - name: Зібрати рівно оригінальний набір r6
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in \
+            Taxo_v9_1_candidate_r6_START.zip \
+            Taxo_v9_1_candidate_r6_Windows_x64_Portable.zip \
+            Taxo_v9_1_candidate_r6_Setup_Windows_x64.exe \
+            Taxo_v9_1_candidate_r6_macOS_arm64_Portable.zip \
+            Taxo_v9_1_candidate_r6_macOS_x86_64_Portable.zip \
+            SHA256SUMS_v9_1_candidate_r6.txt
+          do
+            found="$(find extracted -type f -name "${name}" -print -quit)"
+            test -n "${found}"
+            cp "${found}" "upload/${name}"
+          done
+          cd upload
+          sha256sum -c SHA256SUMS_v9_1_candidate_r6.txt
+
+      - name: Відновити активи pre-release v9.1-r6
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh release view v9.1-r6 --json targetCommitish --jq .targetCommitish)" = "c049f99fe0546900a66b9f5dbc96821e58ee471b"
+          gh release upload v9.1-r6 upload/* --clobber
