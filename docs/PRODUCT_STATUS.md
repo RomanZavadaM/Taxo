@@ -74,7 +74,7 @@
 ## GitHub publication status — 19.09.2026
 
 Публікаційний стан перевірено фактично через GitHub:
-- `v9.0`, `v9.0.1`, `v9.1-r5` … `v9.1-r9.4` опубліковані; r9.5 готується як наступний immutable pre-release як GitHub Releases;
+- `v9.0`, `v9.0.1`, `v9.1-r5` … `v9.1-r9.5` опубліковані як GitHub Releases як GitHub Releases;
 - draft-релізів у поточному наборі немає;
 - r9.4 має START package і SHA-256;
 - release target r9.4 — `3da975ff3dc30740aeaf300d9e3471415075dbe0`;
@@ -87,6 +87,15 @@ Rulesets `Protect main` і `Protect releases` активні. До заверш�
 
 ## r9.5 — START package hotfix
 
-Під час manual gate виявлено запуск `START.bat` прямо з ZIP. r9.5 додає ранню перевірку повноти пакета, зрозумілу інструкцію розпакування, `00_README_START.txt`, коректне іменування dotted candidate revisions і Windows regression simulation цього сценарію. Функціональний код r9.4 не змінювався.
+Під час manual gate виявлено запуск `START.bat` прямо з ZIP. r9.5 опублікований як `v9.1-r9.5` і додає ранню перевірку повноти пакета, зрозумілу інструкцію розпакування, `00_README_START.txt`, коректне іменування dotted candidate revisions і Windows regression simulation цього сценарію. Функціональний код r9.4 не змінювався.
 
 Аудит: [AUDIT_v9_1_r9_5.md](maintenance/AUDIT_v9_1_r9_5.md).
+
+
+### Публікація r9.5
+
+- release target r9.5 — `f587c2cad71a22c6bded3a992fd27797c1e2c296`;
+- START + SHA-256 опубліковані;
+- Windows/macOS — 101 regression tests, success;
+- Windows окремо перевірив негативний сценарій неповного ZIP extraction;
+- stable 9.0.1 та `main` не змінені.
