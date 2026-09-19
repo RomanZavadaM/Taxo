@@ -1,10 +1,10 @@
 # Taxo — поточна контрольна точка
 
 **Stable:** Taxo 9.0.1 · 17.09.2026.
-**Current candidate:** Taxo 9.1 candidate r9.6 · 19.09.2026.
+**Current candidate:** Taxo 9.1 candidate r9.7 · 19.09.2026.
 **Development PR:** #29.
 
-Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.6 опублікований як окремий GitHub Pre-release і не оголошується stable до завершення реальної перевірки.
+Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.7 готується як окремий GitHub Pre-release після зеленого CI і не оголошується stable до завершення реальної перевірки.
 
 ## Що входить у r9.5
 
@@ -76,3 +76,11 @@ r9.5 виявився непридатним для manual gate на реаль�
 - Windows/macOS: 105 regression tests — success;
 - Windows full/incomplete START preflight — success;
 - r9.5 не використовувати для manual gate.
+
+
+## Candidate r9.7
+
+- у місячному графіку додано `Відкрити деталізацію`;
+- кнопка формує актуальний detail PDF і одразу відкриває його;
+- додано behavioral regression test;
+- START hardening r9.6 не змінено.
