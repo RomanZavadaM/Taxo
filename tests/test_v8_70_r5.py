@@ -192,7 +192,9 @@ class V870R5Tests(unittest.TestCase):
         windows = (root / ".github/workflows/build-windows-v8.70.yml").read_text("utf-8")
         macos = (root / ".github/workflows/build-macos-v8.70.yml").read_text("utf-8")
         current = version_from_file(root / "VERSION.txt")
-        if current == "10.0":
+        if current == "10.0" or re.fullmatch(r"10\.0\.1 candidate r\d+(?:\.\d+)*", current):
+            # Executable workflows remain pinned to the current stable 10.0
+            # while patch candidates are distributed as START/source only.
             prefix = "Taxo_v10_0"
         else:
             match = re.fullmatch(r"9\.1 candidate r(\d+(?:\.\d+)*)", current)
