@@ -9549,18 +9549,7 @@ class App(tk.Tk):
         self.waybill_date_label.set(d.strftime("%d.%m.%Y"))
         for item in self.waybill_tree.get_children(): self.waybill_tree.delete(item)
         self.waybill_rows={}
-        rows=list(self._waybill_schedule_rows(d))
-        # Runtime invariant: regardless of any upstream row construction or
-        # subclass layer, every waybill shown/issued for one schedule date must
-        # use the same duty staff for each numbered shift. This second
-        # normalization is intentionally close to the UI because the selected
-        # row is also the source used by issue_selected_waybill().
-        ui_day_duty=self._duty_staff_for_work_date(d)
-        staff_keys=("doctor_1","doctor_2","mechanic_1","mechanic_2","staff_conflicts")
-        for row in rows:
-            for key in staff_keys:
-                row[key]=ui_day_duty.get(key, [] if key=="staff_conflicts" else "")
-        for row in rows:
+        for row in self._waybill_schedule_rows(d):
             missing=[]
             if not row["route"]: missing.append("маршрут")
             if not row["vehicle"]: missing.append("авто")
