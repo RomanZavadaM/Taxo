@@ -14,7 +14,7 @@
 - [GitHub publication summary r9.4](GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md)
 - [Handoff для нового чату](NEW_CHAT_HANDOFF_v9_1_r9_4.md)
 
-Stable Taxo 9.0.1 лишається експлуатаційною точкою відкату. Поточна перевірочна лінія — Taxo 9.1 candidate r9.8 у PR #29.
+Stable Taxo 9.0.1 лишається експлуатаційною точкою відкату. Поточна перевірочна лінія — Taxo 9.1 candidate r9.8 (published) у PR #29.
 
 Історія розробки версій 8.x винесена з `main` у гілку [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
 
