@@ -7,6 +7,7 @@
 **Pull Request:** #29 — Taxo 9.1 candidate r9.6: Windows START compatibility + operational gate  
 **Immutable release target r9.4:** `3da975ff3dc30740aeaf300d9e3471415075dbe0`  
 **Immutable release target r9.5:** `f587c2cad71a22c6bded3a992fd27797c1e2c296`  
+**Immutable release target r9.6:** `49d36f5140986f54639835164a3ba22cf28323b7`  
 **Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_6.md`
 
 ## Опубліковані контрольні релізи
@@ -23,7 +24,7 @@
 - **v9.1-r9.3** — immutable source/START pre-release.
 - **v9.1-r9.4** — immutable source/START pre-release; release target `3da975ff3dc30740aeaf300d9e3471415075dbe0`; Windows/macOS/START/publisher CI — success.
 - **v9.1-r9.5** — immutable історичний source/START pre-release; release target `f587c2cad71a22c6bded3a992fd27797c1e2c296`; має відомий Windows CMD parsing defect у START.bat, не використовувати для manual gate.
-- **v9.1-r9.6** — поточний candidate; ASCII/CRLF START hardening; публікація тільки після зеленого CI.
+- **v9.1-r9.6** — поточний immutable source/START pre-release; release target `49d36f5140986f54639835164a3ba22cf28323b7`; Windows/macOS/source/publisher CI — success; 105 regression tests.
 - **r1–r4** — не публікувати окремими Releases: це проміжні кандидати з уже відомими виправленими проблемами; історія збережена в Git/PR.
 
 ## Поточний r9.6
@@ -262,3 +263,21 @@
 - stable `main` не змінено; stable baseline залишається 9.0.1.
 
 Manual operational gate продовжується вже на r9.5. Архів перед запуском потрібно повністю розпакувати.
+
+
+## Publication checkpoint r9.6 — 19.09.2026
+
+- tag/release: `v9.1-r9.6`;
+- immutable target: `49d36f5140986f54639835164a3ba22cf28323b7`;
+- asset: `Taxo_v9_1_candidate_r9_6_START.zip`;
+- checksum: `SHA256SUMS_v9_1_candidate_r9_6.txt`;
+- Windows: 105 regression tests — OK;
+- Windows complete-folder START preflight — success;
+- Windows incomplete-folder START guard — success;
+- macOS ARM64: 105 regression tests — OK;
+- macOS Intel: 105 regression tests — OK;
+- source package encoding/content verification — success;
+- publisher — success;
+- stable `main` не змінено; stable baseline 9.0.1.
+
+Manual operational gate продовжується на r9.6. r9.5 не використовувати для ручного тестування.
