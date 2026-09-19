@@ -198,3 +198,12 @@ Copy everything between the lines below into a new chat:
 
 ---
 
+## Post-release documentation/publication checkpoint
+
+Після початкового handoff оформлення GitHub додатково впорядковано без зміни коду r9.4:
+- створено `docs/releases/RELEASE_INDEX.md`;
+- створено `docs/maintenance/GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md`;
+- README та індекси документації чітко показують stable 9.0.1 / candidate r9.4 / PR #29 / manual gate;
+- підтверджено, що всі підготовлені 9.x GitHub Releases опубліковані й draft-релізів немає.
+
+Не використовувати новий documentation head як новий release target. Незмінний r9.4 залишається на `3da975ff3dc30740aeaf300d9e3471415075dbe0`. Наступний tag/release створювати тільки після нової кодової контрольної точки.
