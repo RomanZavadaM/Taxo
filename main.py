@@ -9108,7 +9108,6 @@ class App(tk.Tk):
 
         def redraw():
             for x in tree.get_children(): tree.delete(x)
-            total_min=0; drive_min=0
             for i,r in enumerate(seg_data,1):
                 tree.insert("","end",values=(
                     i,r.get("work_start_time",""),r.get("work_end_time",""),
@@ -9116,13 +9115,19 @@ class App(tk.Tk):
                     hours_value_hhmm(r["work_hours"]),hours_value_hhmm(r["driving_hours"]),
                     r["activity_type"],r["note"]
                 ))
-                total_min += hours_value_to_minutes(r["work_hours"])
-                drive_min += hours_value_to_minutes(r["driving_hours"])
+            total_min=segments_union_minutes(seg_data,"work")
+            drive_min=segments_union_minutes(seg_data,"drive")
+            overlap_min=segments_overlap_minutes(seg_data,"work")
             br=gaps_summary(seg_data,pair="work")
+            warning=(
+                f" | ⚠ перекриття робочих частин: {minutes_hhmm(overlap_min)}"
+                if overlap_min>0 else ""
+            )
             summary_var.set(
                 f"План роботи: {minutes_dual(total_min)} | "
                 f"план керування: {minutes_dual(drive_min)} | "
                 f"перерви між робочими частинами: {br or '—'}"
+                + warning
             )
 
         def segment_form(item=None, index=None):
