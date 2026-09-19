@@ -153,8 +153,8 @@ jobs:
           $lines = foreach ($file in $files) {
             "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
           }
-          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v8_70_TEST_r11_Windows_x64.txt'
-          Get-Content 'SHA256SUMS_v8_70_TEST_r11_Windows_x64.txt'
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v9_1_candidate_r9_4_Windows_x64.txt'
+          Get-Content 'SHA256SUMS_v9_1_candidate_r9_4_Windows_x64.txt'
 
       - name: Upload Windows executables
         if: steps.changes.outputs.build == 'true'
@@ -164,6 +164,6 @@ jobs:
           path: |
             Taxo_v9_1_candidate_r9_4_Windows_x64_Portable.zip
             release_out/Taxo_v9_1_candidate_r9_4_Setup_Windows_x64.exe
-            SHA256SUMS_v8_70_TEST_r11_Windows_x64.txt
+            SHA256SUMS_v9_1_candidate_r9_4_Windows_x64.txt
           if-no-files-found: error
           retention-days: 30
