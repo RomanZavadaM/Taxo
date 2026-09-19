@@ -117,3 +117,12 @@ GitHub оформлено і перевірено після r9.4:
 - role+date+shift slot ignores location;
 - duplicate slot => explicit conflict and issue block;
 - overnight route cannot overwrite current-day I/II staff.
+
+
+### r9.8 publication
+
+- `v9.1-r9.8` published;
+- release target `c13e3dfc8b2934876e2068809123b65d729b58b9`;
+- START + SHA-256 available;
+- Windows/macOS: 111 tests — success;
+- `main` remains stable 9.0.1.
