@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.1 candidate r7 — модуль «Персонал», режими й табелі.
+"""Taxo 9.1 candidate r8 — модуль «Персонал», режими й табелі.
 
 Модуль:
 - додає окремий верхній розділ «Персонал»;
@@ -58,7 +58,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "9.1 candidate r7"
+APP_VERSION = "9.1 candidate r8"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
