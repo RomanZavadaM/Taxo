@@ -114,9 +114,9 @@ r9.4 підготовлено як окрему стабілізаційну к�
 2. fixture нового тесту аудиту очікував два активні маршрути, але створював лише один.
 
 Після виправлення:
-- **Windows:** 96 unittest — success;
-- **macOS ARM64:** 96 unittest — success;
-- **macOS Intel x86_64:** 96 unittest — success;
+- **Windows:** 97 unittest — success;
+- **macOS ARM64:** 97 unittest — success;
+- **macOS Intel x86_64:** 97 unittest — success;
 - START/source package workflow — success.
 
 Додатково:
