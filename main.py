@@ -658,6 +658,58 @@ def set_employee_active_state(con, employee_id, new_state, effective_date):
         )
 
 
+def sync_employee_driver_role(
+    con,
+    employee_id,
+    driver_id,
+    *,
+    last_name,
+    first_name,
+    middle_name,
+    personnel_no,
+    employment_date,
+    notes,
+    employee_active,
+    has_driver_role,
+    closing_driver=False,
+    driver_end_date="",
+):
+    """Synchronize linked driver card without conflating role and employment.
+
+    driver_end_date belongs to the driver role. It is cleared only when the
+    role is explicitly active again; ordinary employee edits preserve it.
+    """
+    driver_active = int(bool(employee_active) and bool(has_driver_role))
+    common = (
+        last_name,
+        first_name,
+        middle_name,
+        personnel_no,
+        employment_date,
+        notes,
+    )
+    if has_driver_role:
+        con.execute(
+            """UPDATE drivers
+                  SET last_name=?,first_name=?,middle_name=?,personnel_no=?,
+                      employment_date=?,notes=?,active=?,driver_end_date=''
+                WHERE id=?""",
+            common + (driver_active, driver_id),
+        )
+    else:
+        con.execute(
+            """UPDATE drivers
+                  SET last_name=?,first_name=?,middle_name=?,personnel_no=?,
+                      employment_date=?,notes=?,active=0
+                WHERE id=?""",
+            common + (driver_id,),
+        )
+    if closing_driver:
+        finish_driver_role(con, employee_id, driver_id, driver_end_date)
+
+
+
+
 def get_setting(key, default=""):
     try:
         con=db(); r=con.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone(); con.close()
@@ -6904,19 +6956,19 @@ class App(tk.Tk):
             con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
             con.executemany("INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",[(eid,r) for r in roles])
             if driver_id:
-                has_driver_role="Водій" in roles
-                driver_active=int(active.get() and has_driver_role)
-                if has_driver_role:
-                    # Explicitly restoring/keeping the driver role reopens it.
-                    con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,driver_end_date='',notes=?,active=? WHERE id=?""",
-                        (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],vals["notes"],driver_active,driver_id))
-                else:
-                    # Keep the historical driver-role end date.  Merely editing
-                    # the employee card must not erase it.
-                    con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,notes=?,active=0 WHERE id=?""",
-                        (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],vals["notes"],driver_id))
-                if closing_driver:
-                    finish_driver_role(con,eid,driver_id,driver_end_date)
+                sync_employee_driver_role(
+                    con,eid,driver_id,
+                    last_name=vals["last_name"],
+                    first_name=vals["first_name"],
+                    middle_name=vals["middle_name"],
+                    personnel_no=vals["personnel_no"],
+                    employment_date=vals["employment_date"],
+                    notes=vals["notes"],
+                    employee_active=active.get(),
+                    has_driver_role=("Водій" in roles),
+                    closing_driver=closing_driver,
+                    driver_end_date=driver_end_date,
+                )
             con.commit(); con.close(); self.load_employee_registry(); self.load_drivers(); win.destroy()
         ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+2,column=1,sticky="e",padx=10,pady=12)
 
