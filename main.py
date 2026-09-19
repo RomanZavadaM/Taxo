@@ -10576,6 +10576,93 @@ class App(tk.Tk):
                 f"{minutes_hhmm(avg4_min)} на тиждень > 48:00."
             )
 
+        # r9.3: compact day-by-day dashboard for the analysis window.
+        # It deliberately uses the same canonical driver_day_view as the
+        # driver timesheet and graphical schedule.
+        month_by_date={r["work_date"]:r for r in month_rows}
+        absence_by_date={}
+        override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+        if override_types:
+            try:
+                employee=con.execute(
+                    "SELECT id FROM employees WHERE driver_id=? ORDER BY active DESC,id LIMIT 1",
+                    (self.driver_id,)
+                ).fetchone()
+                if employee:
+                    entries=con.execute(
+                        """SELECT work_date,day_type FROM employee_time_entries
+                           WHERE employee_id=? AND work_date BETWEEN ? AND ?""",
+                        (employee["id"],month_start.isoformat(),month_end.isoformat())
+                    ).fetchall()
+                    for entry in entries:
+                        if str(entry["day_type"] or "") in override_types:
+                            absence_by_date[entry["work_date"]]=entry["day_type"]
+            except Exception:
+                # Older/minimal databases may not yet expose personnel tables.
+                absence_by_date={}
+
+        day_rows=[]
+        for day in month_dates(y,m):
+            row=month_by_date.get(day.isoformat())
+            segs=seg_map.get(row["id"],[]) if row else []
+            override=absence_by_date.get(day.isoformat())
+            state=driver_day_view(
+                day,row,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+
+            issues=[]
+            if state["work_overlap_minutes"]>0:
+                issues.append(f"перекриття {minutes_hhmm(state['work_overlap_minutes'])}")
+            if state["driving_overlap_minutes"]>0:
+                issues.append(f"керування перекрито {minutes_hhmm(state['driving_overlap_minutes'])}")
+            if state["driving_minutes"]>state["work_minutes"] and state["driving_minutes"]>0:
+                issues.append("керування > робочого часу")
+            if state["driving_minutes"]>600:
+                issues.append("керування >10:00")
+            elif state["driving_minutes"]>540:
+                issues.append("керування >9:00")
+
+            break_ctl=self._driving_break_control_for_row(row,segs) if row else {
+                "warnings":[],"max_continuous_drive":0
+            }
+            if break_ctl.get("warnings"):
+                issues.append("контроль 4:30")
+            if break_ctl.get("max_continuous_drive",0)>270:
+                issues.append(
+                    f"без завершеної перерви {minutes_hhmm(break_ctl['max_continuous_drive'])}"
+                )
+
+            result="; ".join(dict.fromkeys(issues))
+            if not result:
+                if override:
+                    result="Відсутність"
+                elif state["work_minutes"]>0:
+                    result="Норма"
+                elif state["status_label"]:
+                    result=state["status_label"]
+                else:
+                    result="—"
+
+            day_rows.append({
+                "date":day,
+                "weekday":["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][day.weekday()],
+                "day_type":state["day_type"],
+                "schedule":state["schedule"] or state["status_label"] or "—",
+                "breaks":state["breaks"] or "—",
+                "work_min":state["work_minutes"],
+                "drive_min":state["driving_minutes"],
+                "over_min":state["overtime_minutes"],
+                "route":(
+                    (row["route_name"] if row is not None and "route_name" in row.keys() else "")
+                    or "—"
+                ),
+                "result":result,
+                "has_issue":bool(issues),
+                "worklog_id":row["id"] if row else None,
+            })
+
         con.close()
 
         transport_profile=current_transport_profile()
@@ -10593,7 +10680,41 @@ class App(tk.Tk):
             "daily_rests":daily_display,
             "weekly_rests":weekly_display,
             "driving_break_days":driving_break_days,
+            "day_rows":day_rows,
         }
+
+    def open_work_month_detail_pdf(self, parent=None):
+        """Generate and open the detailed monthly PDF for the selected driver."""
+        if not self.driver_id:
+            messagebox.showwarning("Деталізація","Спочатку виберіть водія.",parent=parent or self)
+            return
+        y,m=int(self.year_var.get()),int(self.month_var.get())
+        driver=self.driver_by_id(self.driver_id)
+        if driver is None:
+            messagebox.showerror("Деталізація","Водія не знайдено.",parent=parent or self)
+            return
+        con=db()
+        rows=con.execute(
+            """SELECT * FROM worklog
+               WHERE driver_id=? AND work_date BETWEEN ? AND ?
+               ORDER BY work_date""",
+            (self.driver_id,date(y,m,1).isoformat(),month_dates(y,m)[-1].isoformat())
+        ).fetchall()
+        con.close()
+
+        driver_name=self.driver_full_name(driver)
+        safe="".join(ch if ch.isalnum() or ch in " _-" else "_" for ch in driver_name)
+        safe=safe.strip().replace(" ","_") or f"driver_{self.driver_id}"
+        target=OUTPUT_DIR / f"Деталізація_{safe}_{y}_{m:02d}.pdf"
+        actual=write_output_file(
+            lambda out: export_pdf(driver,y,m,rows,out),
+            target,
+            parent=parent or self,
+            kind="PDF деталізації робочого часу",
+            error_title="Помилка деталізації"
+        )
+        if actual is not None:
+            open_external(actual)
 
     def show_work_analysis(self):
         data=self.calculate_work_analysis()
@@ -10608,7 +10729,7 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         win.title("Підсумки та контроль №340")
-        fit_window_to_screen(win,980,760,760,500)
+        fit_window_to_screen(win,1220,790,900,580)
         win.transient(self)
 
         head=ttk.Frame(win,padding=10)
@@ -10618,12 +10739,12 @@ class App(tk.Tk):
         title_frame.pack(fill="x")
         ttk.Label(
             title_frame,
-            text=f"Підсумки за {data['month']:02d}.{data['year']}",
-            font=("TkDefaultFont",11,"bold")
+            text=f"{driver_name} — {month_name_ua(data['month'])} {data['year']}",
+            font=("TkDefaultFont",12,"bold")
         ).pack(side="left")
 
         def save_pdf():
-            safe="".join(c if c.isalnum() or c in " _-" else "_" for c in driver_name).strip().replace(" ","_")
+            safe="".join(ch if ch.isalnum() or ch in " _-" else "_" for ch in driver_name).strip().replace(" ","_")
             default=f"Аналіз_340_{safe}_{data['year']}_{data['month']:02d}.pdf"
             path=filedialog.asksaveasfilename(
                 parent=win,
@@ -10645,37 +10766,119 @@ class App(tk.Tk):
             if actual is not None:
                 messagebox.showinfo("PDF",f"Збережено:\n{actual}",parent=win)
 
-        ttk.Button(title_frame,text="Зберегти PDF",command=save_pdf).pack(side="right",padx=(8,0))
+        ttk.Button(
+            title_frame,text="Відкрити деталізацію",
+            command=lambda:self.open_work_month_detail_pdf(win)
+        ).pack(side="right",padx=(8,0))
+        ttk.Button(title_frame,text="Зберегти PDF контролю",command=save_pdf).pack(side="right",padx=(8,0))
+
+        # Compact dashboard: the most useful month figures remain visible on
+        # both notebook pages instead of being buried in a long sentence.
+        cards=ttk.Frame(head)
+        cards.pack(fill="x",pady=(8,4))
+        metrics=[
+            ("Робочих днів",str(data["work_days"])),
+            ("Робота, план",minutes_hhmm(data["total_work_min"])),
+            ("Керування, план",minutes_hhmm(data["total_drive_min"])),
+            ("Надурочні",minutes_hhmm(data["total_over_min"])),
+            ("Середнє за 4 міс.",minutes_hhmm(data["avg4_min"])+"/тиж."),
+            ("Зауважень",str(len(data.get("warnings") or []))),
+        ]
+        for col,(label,value) in enumerate(metrics):
+            box=ttk.LabelFrame(cards,text=label,padding=(8,5))
+            box.grid(row=0,column=col,sticky="nsew",padx=3)
+            ttk.Label(box,text=value,font=("TkDefaultFont",10,"bold")).pack()
+            cards.columnconfigure(col,weight=1)
 
         ttk.Label(
             head,
-            text=(
-                f"Водій: {driver_name}    "
-                f"Профіль: {data.get('transport_profile', DEFAULT_TRANSPORT_PROFILE)}    "
-                f"Робочих днів: {data['work_days']}    "
-                f"Робота, план: {minutes_dual(data['total_work_min'])}    "
-                f"Керування, план: {minutes_dual(data['total_drive_min'])}    "
-                f"Надурочні: {minutes_dual(data['total_over_min'])}    "
-                f"Середнє за 4 міс.: {minutes_hhmm(data['avg4_min'])}/тиж."
-            )
-        ).pack(anchor="w",pady=(5,0))
+            text=f"Профіль контролю: {data.get('transport_profile',DEFAULT_TRANSPORT_PROFILE)}",
+            foreground="gray"
+        ).pack(anchor="w",pady=(2,0))
 
-        legend=ttk.Frame(head)
-        legend.pack(anchor="w",pady=(7,1))
+        notebook=ttk.Notebook(win)
+        notebook.pack(fill="both",expand=True,padx=10,pady=(2,10))
+
+        # Day-by-day table: quick operational view.
+        day_tab=ttk.Frame(notebook)
+        notebook.add(day_tab,text="Дні місяця")
+        day_tools=ttk.Frame(day_tab,padding=(6,6,6,2))
+        day_tools.pack(fill="x")
+        ttk.Label(
+            day_tools,
+            text="Подвійний клік — відкрити день для редагування.",
+            foreground="gray"
+        ).pack(side="left")
+
+        day_frame=ttk.Frame(day_tab)
+        day_frame.pack(fill="both",expand=True,padx=6,pady=6)
+        day_frame.rowconfigure(0,weight=1); day_frame.columnconfigure(0,weight=1)
+        cols=("date","weekday","type","schedule","breaks","work","drive","over","route","result")
+        tree=ttk.Treeview(day_frame,columns=cols,show="headings",selectmode="browse")
+        heads={
+            "date":"Дата","weekday":"День","type":"Вид","schedule":"Графік / частини",
+            "breaks":"Перерви","work":"Робота","drive":"Керування","over":"Надур.",
+            "route":"Маршрут","result":"Результат"
+        }
+        widths={
+            "date":90,"weekday":50,"type":100,"schedule":260,"breaks":150,
+            "work":75,"drive":80,"over":70,"route":210,"result":230
+        }
+        for key in cols:
+            tree.heading(key,text=heads[key])
+            tree.column(key,width=widths[key],anchor="w",stretch=(key in {"schedule","route","result"}))
+        ybar=ttk.Scrollbar(day_frame,orient="vertical",command=tree.yview)
+        xbar=ttk.Scrollbar(day_frame,orient="horizontal",command=tree.xview)
+        tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+        tree.grid(row=0,column=0,sticky="nsew")
+        ybar.grid(row=0,column=1,sticky="ns")
+        xbar.grid(row=1,column=0,sticky="ew")
+        tree.tag_configure("issue",background="#FDE8E8",foreground="#8A1C1C")
+        tree.tag_configure("absence",background="#FFF4CC")
+        tree.tag_configure("weekend",background="#F3F4F6")
+        tree.tag_configure("ok",background="#EAF7EA")
+
+        row_by_iid={}
+        for row in data.get("day_rows",[]):
+            tag=(
+                "issue" if row["has_issue"] else
+                "absence" if row["result"]=="Відсутність" else
+                "ok" if row["work_min"]>0 else
+                "weekend"
+            )
+            iid=tree.insert("","end",values=(
+                row["date"].strftime("%d.%m.%Y"),row["weekday"],row["day_type"],
+                row["schedule"],row["breaks"],minutes_hhmm(row["work_min"]),
+                minutes_hhmm(row["drive_min"]),minutes_hhmm(row["over_min"]),
+                row["route"],row["result"]
+            ),tags=(tag,))
+            row_by_iid[iid]=row
+
+        def edit_selected_day(_event=None):
+            sel=tree.selection()
+            if not sel:
+                messagebox.showinfo("Підсумки","Виберіть день у таблиці.",parent=win)
+                return
+            row=row_by_iid.get(sel[0])
+            if row is None:
+                return
+            self.open_schedule_worklog(self.driver_id,row["date"])
+
+        ttk.Button(day_tools,text="Редагувати вибраний день",command=edit_selected_day).pack(side="right",padx=3)
+        tree.bind("<Double-1>",edit_selected_day)
+
+        # Full explanatory protocol.
+        control_tab=ttk.Frame(notebook)
+        notebook.add(control_tab,text="Контроль №340")
+        legend=ttk.Frame(control_tab,padding=(8,6,8,2))
+        legend.pack(fill="x")
         tk.Label(legend,text="  Норма  ",bg="#E6F4EA",fg="#1B5E20").pack(side="left",padx=(0,5))
         tk.Label(legend,text="  Увага  ",bg="#FFF4CC",fg="#7A4A00").pack(side="left",padx=5)
         tk.Label(legend,text="  Помилка / перевищення  ",bg="#FDE8E8",fg="#8A1C1C").pack(side="left",padx=5)
         tk.Label(legend,text="  Інформація  ",bg="#EAF2FF",fg="#174EA6").pack(side="left",padx=5)
 
-        ttk.Label(
-            head,
-            text="Усі нормативні порівняння виконуються в цілих хвилинах. "
-                 "Наприклад: 8:55 = 8.92 десяткових год; 8:30 = 8.50, а не 8.30.",
-            foreground="gray"
-        ).pack(anchor="w",pady=(5,0))
-
-        body=ttk.Frame(win)
-        body.pack(fill="both",expand=True,padx=10,pady=(0,10))
+        body=ttk.Frame(control_tab)
+        body.pack(fill="both",expand=True,padx=6,pady=(2,6))
         txt=tk.Text(body,wrap="word",padx=8,pady=8)
         scr=ttk.Scrollbar(body,orient="vertical",command=txt.yview)
         txt.configure(yscrollcommand=scr.set)
@@ -10684,7 +10887,6 @@ class App(tk.Tk):
         body.rowconfigure(0,weight=1)
         body.columnconfigure(0,weight=1)
 
-        # Кольорова схема.
         txt.tag_configure("heading",foreground="#1F4E79",font=("TkDefaultFont",10,"bold"),spacing1=9,spacing3=4)
         txt.tag_configure("subheading",foreground="#243B53",background="#EEF3F8",font=("TkDefaultFont",9,"bold"),spacing1=2,spacing3=2)
         txt.tag_configure("error",foreground="#8A1C1C",background="#FDE8E8",spacing1=2,spacing3=2,lmargin1=5,lmargin2=5)
@@ -10697,8 +10899,11 @@ class App(tk.Tk):
         for kind,content in build_work_analysis_report_items(data):
             tag=kind if kind in ("heading","subheading","error","warn","ok","info","note","normal") else "normal"
             txt.insert("end",content+"\n",tag)
-
         txt.configure(state="disabled")
+
+        if data.get("warnings"):
+            notebook.select(control_tab)
+
 
     def build_route_catalog(self):
         top=ttk.Frame(self.tab_route_catalog); top.pack(fill="x",padx=10,pady=8)
