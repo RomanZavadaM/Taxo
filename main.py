@@ -1897,42 +1897,53 @@ def _interval_overlap_minutes(start_dt, end_dt, target_date):
 def _driver_plan_minutes_for_day(con, driver_id, target_date):
     if not driver_id:
         return 0
-    total=0
     rows=con.execute(
         "SELECT * FROM worklog WHERE driver_id=? AND work_date BETWEEN ? AND ? ORDER BY work_date,id",
         (driver_id,(target_date-timedelta(days=7)).isoformat(),target_date.isoformat()),
     ).fetchall()
+    exact=[]
+    duration_only=0
     for work in rows:
         base=datetime.strptime(work["work_date"],"%Y-%m-%d")
         segments=con.execute(
             "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(work["id"],)
         ).fetchall()
-        pairs=[]
-        for segment in segments:
-            start=(segment["work_start_time"] or segment["start_time"] or "").strip()
-            end=(segment["work_end_time"] or segment["end_time"] or "").strip()
-            if start and end:
-                pairs.append((start,end))
-        if not pairs:
+        intervals=normalized_segment_intervals(segments,"work") if segments else []
+        if not intervals:
             start=(work["work_start_time"] or work["start_time"] or "").strip()
             end=(work["work_end_time"] or work["end_time"] or "").strip()
             if start and end:
-                pairs=[(start,end)]
-        previous_end=None
-        for start_raw,end_raw in pairs:
-            start_abs=parse_hhmm(start_raw)
-            while previous_end is not None and start_abs<previous_end:
-                start_abs+=1440
-            end_abs=parse_hhmm(end_raw)+(start_abs//1440)*1440
-            while end_abs<=start_abs:
-                end_abs+=1440
-            start_dt=base+timedelta(minutes=start_abs)
-            end_dt=base+timedelta(minutes=end_abs)
-            total+=_interval_overlap_minutes(start_dt,end_dt,target_date)
-            previous_end=end_abs
-        if not pairs and work["work_date"]==target_date.isoformat():
-            total+=hours_value_to_minutes(work["work_hours"] or 0)
-    return total
+                intervals=[{
+                    "start":parse_hhmm(start),
+                    "end":parse_hhmm(end),
+                }]
+                while intervals[0]["end"]<=intervals[0]["start"]:
+                    intervals[0]["end"]+=1440
+        if intervals:
+            for item in intervals:
+                exact.append((
+                    base+timedelta(minutes=item["start"]),
+                    base+timedelta(minutes=item["end"]),
+                ))
+        elif work["work_date"]==target_date.isoformat():
+            duration_only+=hours_value_to_minutes(work["work_hours"] or 0)
+
+    day_start=datetime.combine(target_date,datetime.min.time())
+    day_end=day_start+timedelta(days=1)
+    clipped=[]
+    for start_dt,end_dt in exact:
+        start=max(start_dt,day_start); end=min(end_dt,day_end)
+        if end>start:
+            clipped.append((start,end))
+    clipped.sort(key=lambda x:x[0])
+    merged=[]
+    for start,end in clipped:
+        if not merged or start>merged[-1][1]:
+            merged.append([start,end])
+        else:
+            merged[-1][1]=max(merged[-1][1],end)
+    exact_minutes=sum(int((end-start).total_seconds()//60) for start,end in merged)
+    return exact_minutes+duration_only
 
 
 def _employee_shift_minutes_for_day(con, employee_id, target_date):
@@ -2203,33 +2214,115 @@ def segments_summary(segments):
     return " / ".join(parts)
 
 
-def gaps_minutes(segments, pair="work"):
-    if len(segments) < 2:
-        return []
+def normalized_segment_intervals(segments, pair="work"):
+    """Return exact segment intervals as absolute minutes in editor order.
+
+    Day rollover is inferred from a rollback of the *start* clock relative to
+    the previous segment start. Crucially, a start such as 15:30 after a
+    14:10–15:45 segment stays on the same day and is therefore recognized as
+    a 15-minute overlap instead of being turned into a fake 23:45 gap.
+    """
     out=[]
-    prepared=[]
-    for r in segments:
+    previous_start=None
+    for index,r in enumerate(segments or []):
         if pair=="drive":
-            a=(r["start_time"] or "").strip(); b=(r["end_time"] or "").strip()
+            a=str(_record_value(r,"start_time","") or "").strip()
+            b=str(_record_value(r,"end_time","") or "").strip()
         else:
-            a,b=_segment_work_pair(r); a=(a or "").strip(); b=(b or "").strip()
+            a,b=_segment_work_pair(r)
+            a=str(a or "").strip(); b=str(b or "").strip()
         if not a or not b:
             continue
-        prepared.append((time_to_minutes(a),a,b))
-    ordered=prepared  # порядок segment_no / порядок у редакторі є часовим порядком
-    for left,right in zip(ordered,ordered[1:]):
-        end=time_to_minutes(left[2])
-        start=time_to_minutes(right[1])
-        if start <= end:
+        start=time_to_minutes(a)
+        while previous_start is not None and start < previous_start:
             start += 24*60
-        gap=start-end
-        if gap > 0:
-            out.append(gap)
+        end=time_to_minutes(b)+(start//(24*60))*(24*60)
+        while end <= start:
+            end += 24*60
+        out.append({
+            "index":index,
+            "start":start,
+            "end":end,
+            "start_text":a,
+            "end_text":b,
+        })
+        previous_start=start
+    return out
+
+
+def segment_overlap_details(segments, pair="work"):
+    intervals=normalized_segment_intervals(segments,pair=pair)
+    if len(intervals)<2:
+        return []
+    overlaps=[]
+    active=intervals[0]
+    active_end=active["end"]
+    for current in intervals[1:]:
+        if current["start"] < active_end:
+            overlaps.append({
+                "left_index":active["index"],
+                "right_index":current["index"],
+                "left_start":active["start_text"],
+                "left_end":active["end_text"],
+                "right_start":current["start_text"],
+                "right_end":current["end_text"],
+                "minutes":min(active_end,current["end"])-current["start"],
+            })
+        if current["end"] > active_end:
+            active=current
+            active_end=current["end"]
+    return overlaps
+
+
+def segments_union_minutes(segments, pair="work"):
+    intervals=normalized_segment_intervals(segments,pair=pair)
+    if not intervals:
+        return 0
+    merged=[]
+    for item in intervals:
+        start=item["start"]; end=item["end"]
+        if not merged or start > merged[-1][1]:
+            merged.append([start,end])
+        else:
+            merged[-1][1]=max(merged[-1][1],end)
+    return sum(end-start for start,end in merged)
+
+
+def segments_overlap_minutes(segments, pair="work"):
+    intervals=normalized_segment_intervals(segments,pair=pair)
+    raw=sum(item["end"]-item["start"] for item in intervals)
+    return max(0,raw-segments_union_minutes(segments,pair=pair))
+
+
+def gaps_minutes(segments, pair="work"):
+    intervals=normalized_segment_intervals(segments,pair=pair)
+    if len(intervals)<2:
+        return []
+    out=[]
+    current_end=intervals[0]["end"]
+    for item in intervals[1:]:
+        if item["start"] > current_end:
+            out.append(item["start"]-current_end)
+        current_end=max(current_end,item["end"])
     return out
 
 
 def gaps_summary(segments, pair="work"):
     return ", ".join(minutes_hhmm(x) for x in gaps_minutes(segments,pair=pair))
+
+
+def segment_overlap_message(segments, pair="work"):
+    details=segment_overlap_details(segments,pair=pair)
+    if not details:
+        return ""
+    first=details[0]
+    return (
+        f"частини №{first['left_index']+1} "
+        f"({first['left_start']}–{first['left_end']}) і "
+        f"№{first['right_index']+1} "
+        f"({first['right_start']}–{first['right_end']}) "
+        f"перекриваються на {minutes_hhmm(first['minutes'])}"
+    )
 
 
 def _record_value(record, key, default=""):
@@ -2248,12 +2341,11 @@ def _record_value(record, key, default=""):
 
 def driver_day_view(work_day, worklog=None, segments=None, day_type_override=None,
                     suppress_plan=False):
-    """Canonical presentation state for one driver's day.
+    """Canonical state for one driver's day used by all driver-time views.
 
-    The same result is used by the legacy driver timesheet and the graphical
-    driver schedule so a day cannot silently look like two different states.
-    Historical worklog/segments remain untouched; an absence override only
-    changes the effective presentation.
+    Exact intervals are the source of truth when available. Their UNION, not
+    the raw sum, defines work/driving duration, so overlapping parts cannot
+    double-count minutes. Historical rows stay unchanged in the database.
     """
     segments=list(segments or [])
     raw_type=str(_record_value(worklog, "day_type", "") or "").strip()
@@ -2264,10 +2356,23 @@ def driver_day_view(work_day, worklog=None, segments=None, day_type_override=Non
     schedule=""
     breaks=""
     bands=[]
+    work_overlap_minutes=0
+    driving_overlap_minutes=0
+    exact_work_minutes=None
+    exact_driving_minutes=None
 
     if effective_segments:
         schedule=segments_summary(effective_segments)
-        breaks=gaps_summary(effective_segments)
+        gap_text=gaps_summary(effective_segments)
+        work_overlap_minutes=segments_overlap_minutes(effective_segments,"work")
+        driving_overlap_minutes=segments_overlap_minutes(effective_segments,"drive")
+        warning=(
+            f"⚠ перекриття {minutes_hhmm(work_overlap_minutes)}"
+            if work_overlap_minutes>0 else ""
+        )
+        breaks="; ".join(x for x in (warning,gap_text) if x)
+        exact_work_minutes=segments_union_minutes(effective_segments,"work")
+        exact_driving_minutes=segments_union_minutes(effective_segments,"drive")
         for seg in effective_segments:
             ws,we=_segment_work_pair(seg)
             ds=str(_record_value(seg, "start_time", "") or "").strip()
@@ -2287,8 +2392,16 @@ def driver_day_view(work_day, worklog=None, segments=None, day_type_override=Non
         schedule=f"роб. {ws}-{we}; {drive}" if ws and we else drive
         if ws and we:
             bands.append(("Робота", ws, we))
+            try:
+                exact_work_minutes=duration_minutes(ws,we)
+            except Exception:
+                exact_work_minutes=None
         if ds and de:
             bands.append(("Керування", ds, de))
+            try:
+                exact_driving_minutes=duration_minutes(ds,de)
+            except Exception:
+                exact_driving_minutes=None
 
     explicit=worklog is not None
     if bands:
@@ -2304,15 +2417,20 @@ def driver_day_view(work_day, worklog=None, segments=None, day_type_override=Non
     else:
         status_label="Немає плану"
 
-    work_minutes=0 if suppress_plan else hours_value_to_minutes(
-        _record_value(worklog, "work_hours", 0)
-    )
-    driving_minutes=0 if suppress_plan else hours_value_to_minutes(
-        _record_value(worklog, "driving_hours", 0)
-    )
-    overtime_minutes=0 if suppress_plan else hours_value_to_minutes(
-        _record_value(worklog, "overtime_hours", 0)
-    )
+    if suppress_plan:
+        work_minutes=driving_minutes=overtime_minutes=0
+    else:
+        work_minutes=(
+            exact_work_minutes if exact_work_minutes is not None
+            else hours_value_to_minutes(_record_value(worklog, "work_hours", 0))
+        )
+        driving_minutes=(
+            exact_driving_minutes if exact_driving_minutes is not None
+            else hours_value_to_minutes(_record_value(worklog, "driving_hours", 0))
+        )
+        overtime_minutes=hours_value_to_minutes(
+            _record_value(worklog, "overtime_hours", 0)
+        )
 
     return {
         "day_type": day_type,
@@ -2320,9 +2438,11 @@ def driver_day_view(work_day, worklog=None, segments=None, day_type_override=Non
         "breaks": breaks,
         "bands": bands,
         "status_label": status_label,
-        "work_minutes": work_minutes,
-        "driving_minutes": driving_minutes,
-        "overtime_minutes": overtime_minutes,
+        "work_minutes": int(work_minutes or 0),
+        "driving_minutes": int(driving_minutes or 0),
+        "overtime_minutes": int(overtime_minutes or 0),
+        "work_overlap_minutes":int(work_overlap_minutes or 0),
+        "driving_overlap_minutes":int(driving_overlap_minutes or 0),
         "suppressed_plan": bool(suppress_plan),
         "explicit_worklog": explicit,
     }
@@ -2893,26 +3013,42 @@ def _row_segments(con, row):
     ).fetchall()
 
 
-def _export_row_values(con, d, r):
-    segs = _row_segments(con, r)
-    if segs:
-        schedule=segments_summary(segs)
-    elif r is not None:
-        ws=(r["work_start_time"] if "work_start_time" in r.keys() else "") or r["start_time"]
-        we=(r["work_end_time"] if "work_end_time" in r.keys() else "") or r["end_time"]
-        drive=f"кер. {r['start_time']}-{r['end_time']}" if r["start_time"] and r["end_time"] else "кер. —"
-        schedule=f"роб. {ws}-{we}; {drive}" if ws and we else drive
-    else:
-        schedule=""
+def _driver_absence_for_day(con, driver_id, d):
+    override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+    if not driver_id or not override_types:
+        return None
+    rows=con.execute(
+        """SELECT t.day_type
+           FROM employee_time_entries t
+           JOIN employees e ON e.id=t.employee_id
+           WHERE e.driver_id=? AND t.work_date=?
+           ORDER BY e.active DESC,e.id""",
+        (driver_id,d.isoformat())
+    ).fetchall()
+    for row in rows:
+        if str(row["day_type"] or "") in override_types:
+            return row["day_type"]
+    return None
+
+
+def _export_row_values(con, d, r, driver_id=None):
+    segs=_row_segments(con,r)
+    effective_driver_id=driver_id or (_record_value(r,"driver_id",None) if r is not None else None)
+    override=_driver_absence_for_day(con,effective_driver_id,d)
+    state=driver_day_view(
+        d,r,segs,
+        day_type_override=override,
+        suppress_plan=bool(override),
+    )
     return {
         "date": d.strftime("%d.%m.%Y"),
         "weekday": ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],
-        "day_type": r["day_type"] if r is not None else _default_export_day_type(d),
-        "schedule": schedule,
-        "breaks": gaps_summary(segs),
-        "work": _safe_num(r, "work_hours"),
-        "drive": _safe_num(r, "driving_hours"),
-        "over": _safe_num(r, "overtime_hours"),
+        "day_type": state["day_type"] if r is not None or override else _default_export_day_type(d),
+        "schedule": state["schedule"],
+        "breaks": state["breaks"],
+        "work": minutes_to_db_hours(state["work_minutes"]),
+        "drive": minutes_to_db_hours(state["driving_minutes"]),
+        "over": minutes_to_db_hours(state["overtime_minutes"]),
         "route": (r["route_name"] if r is not None and "route_name" in r.keys() else "") or "",
         "vehicle": (r["vehicle"] if r is not None else "") or "",
         "notes": (r["notes"] if r is not None else "") or "",
@@ -2939,7 +3075,7 @@ def export_xlsx(driver, year, month, rows, out_path):
     total_work = total_drive = total_over = 0.0
     work_days = 0
     for d, r in _month_export_items(year, month, rows):
-        v = _export_row_values(con, d, r)
+        v = _export_row_values(con, d, r, driver["id"])
         if v["work"] > 0:
             work_days += 1
         total_work += v["work"]
@@ -3030,7 +3166,7 @@ def export_pdf(driver, year, month, rows, out_path):
     work_days = 0
 
     for d, r in _month_export_items(year, month, rows):
-        v = _export_row_values(con, d, r)
+        v = _export_row_values(con, d, r, driver["id"])
         total_work += v["work"]
         total_drive += v["drive"]
         total_over += v["over"]
@@ -3899,23 +4035,19 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
 
 
 
-def _work_balance_cell(row, day):
+def _work_balance_cell(state, day):
     """Клітинка місячного робочого табеля: тільки години або код дня."""
-    if row is None:
+    if state is None:
         return "В" if day.weekday() >= 5 else ""
-
-    day_type=(row["day_type"] or "").strip()
+    day_type=(state["day_type"] or "").strip()
     if day_type and day_type != "Робота":
         return SHIFT_DAY_CODES.get(day_type, day_type[:4])
-
-    work_min=hours_value_to_minutes(row["work_hours"])
-    if work_min <= 0:
-        return ""
-    return minutes_hhmm(work_min)
+    work_min=int(state["work_minutes"] or 0)
+    return minutes_hhmm(work_min) if work_min>0 else ""
 
 
 def collect_monthly_work_balance(year, month, active_only=True):
-    """Місячний робочий табель / баланс часу по всіх водіях."""
+    """Місячний баланс на тому самому канонічному стані дня, що й графік."""
     y=int(year); m=int(month)
     days=month_dates(y,m)
     con=db()
@@ -3928,8 +4060,6 @@ def collect_monthly_work_balance(year, month, active_only=True):
         drivers=con.execute(
             "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
         ).fetchall()
-    # Водій з майбутньою датою прийняття не належить до табеля за цей місяць.
-    # Порожню дату лишаємо сумісною зі старими базами: вона означає "дата невідома".
     drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
 
     rows=con.execute(
@@ -3938,29 +4068,68 @@ def collect_monthly_work_balance(year, month, active_only=True):
            ORDER BY driver_id,work_date""",
         (days[0].isoformat(),days[-1].isoformat())
     ).fetchall()
+    row_by={(r["driver_id"],r["work_date"]):r for r in rows}
+
+    segment_by={}
+    if rows:
+        ids=[r["id"] for r in rows]
+        q=",".join("?" for _ in ids)
+        for seg in con.execute(
+            f"SELECT * FROM work_segments WHERE worklog_id IN ({q}) ORDER BY worklog_id,segment_no",
+            ids
+        ).fetchall():
+            segment_by.setdefault(seg["worklog_id"],[]).append(seg)
+
+    override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+    absence_by={}
+    if override_types and drivers:
+        driver_ids=[dr["id"] for dr in drivers]
+        q=",".join("?" for _ in driver_ids)
+        params=[days[0].isoformat(),days[-1].isoformat(),*driver_ids]
+        for entry in con.execute(
+            f"""SELECT e.driver_id,t.work_date,t.day_type
+                FROM employee_time_entries t
+                JOIN employees e ON e.id=t.employee_id
+                WHERE t.work_date BETWEEN ? AND ?
+                  AND e.driver_id IN ({q})
+                ORDER BY e.active DESC,e.id""",
+            params
+        ).fetchall():
+            if (entry["driver_id"] is not None
+                    and str(entry["day_type"] or "") in override_types):
+                absence_by.setdefault(
+                    (int(entry["driver_id"]),entry["work_date"]),
+                    entry["day_type"],
+                )
+
     company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
     con.close()
 
-    row_by={(r["driver_id"],r["work_date"]):r for r in rows}
     out=[]
     for dr in drivers:
         cells=[]
         total_work_min=0
         total_over_min=0
         work_days=0
+        overlap_min=0
         for d in days:
             if not driver_employed_on(dr,d):
                 cells.append("")
                 continue
             r=row_by.get((dr["id"],d.isoformat()))
-            cells.append(_work_balance_cell(r,d))
-            if r is not None:
-                wm=hours_value_to_minutes(r["work_hours"])
-                om=hours_value_to_minutes(r["overtime_hours"])
-                total_work_min += wm
-                total_over_min += om
-                if wm > 0:
-                    work_days += 1
+            segs=segment_by.get(r["id"],[]) if r else []
+            override=absence_by.get((int(dr["id"]),d.isoformat()))
+            state=driver_day_view(
+                d,r,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            cells.append(_work_balance_cell(state,d))
+            total_work_min += state["work_minutes"]
+            total_over_min += state["overtime_minutes"]
+            overlap_min += state["work_overlap_minutes"]
+            if state["work_minutes"]>0:
+                work_days += 1
 
         out.append({
             "driver_id":dr["id"],
@@ -3971,6 +4140,7 @@ def collect_monthly_work_balance(year, month, active_only=True):
             "work_days":work_days,
             "work_min":total_work_min,
             "over_min":total_over_min,
+            "overlap_min":overlap_min,
         })
 
     return {
@@ -3979,8 +4149,9 @@ def collect_monthly_work_balance(year, month, active_only=True):
         "days":days,
         "drivers":out,
         "company":company,
+        "absence_overlay_applied":bool(override_types),
+        "canonical_driver_day_view":True,
     }
-
 
 def export_monthly_work_balance_pdf(year, month, out_path, active_only=True):
     """Місячний табель робочого часу на A4 landscape.
@@ -7986,7 +8157,6 @@ class App(tk.Tk):
             y=top+idx*row_h; self.schedule_driver_rows.append((y,y+row_h,dr["id"],dr))
             if idx%2==0: c.create_rectangle(0,y,width,y+row_h,fill="#fafafa",outline="")
             full=(f"{dr['last_name']} {dr['first_name']} {dr['middle_name']}").strip()
-            c.create_text(12,y+row_h/2,text=full,anchor="w",font=("TkDefaultFont",9,"bold"))
 
             wl=by_driver.get(dr["id"])
             segs=seg_by.get(wl["id"],[]) if wl else []
@@ -7995,6 +8165,13 @@ class App(tk.Tk):
                 d,wl,segs,
                 day_type_override=override,
                 suppress_plan=bool(override),
+            )
+            name_text=full
+            if state["work_overlap_minutes"]>0:
+                name_text += f"\n⚠ перекриття {minutes_hhmm(state['work_overlap_minutes'])}"
+            c.create_text(
+                12,y+row_h/2,text=name_text,anchor="w",
+                font=("TkDefaultFont",8 if state["work_overlap_minutes"] else 9,"bold")
             )
 
             band_rows={
@@ -9128,8 +9305,17 @@ class App(tk.Tk):
                 template_id_var.set(0)
                 shift_var.set("Безперервна")
             else:
-                total_work_min=sum(hours_value_to_minutes(r["work_hours"]) for r in seg_data)
-                total_drive_min=sum(hours_value_to_minutes(r["driving_hours"]) for r in seg_data)
+                overlap_text=segment_overlap_message(seg_data,"work")
+                if overlap_text:
+                    messagebox.showerror(
+                        "Перекриття робочого часу",
+                        "Частини робочої зміни не можуть накладатися одна на одну.\n\n"
+                        + overlap_text
+                        + "\n\nВиправте часові межі перед збереженням.",
+                        parent=win
+                    ); return
+                total_work_min=segments_union_minutes(seg_data,"work")
+                total_drive_min=segments_union_minutes(seg_data,"drive")
                 if total_drive_min > total_work_min:
                     messagebox.showerror(
                         "Помилка",
@@ -9454,14 +9640,8 @@ class App(tk.Tk):
         """Тривалості завжди виводимо з часових меж, якщо вони є."""
         segments = segments or []
         if segments:
-            work=0; drive=0
-            for s in segments:
-                ws,we=_segment_work_pair(s)
-                try: work += duration_minutes(ws,we) if ws and we else hours_value_to_minutes(s["work_hours"])
-                except Exception: work += hours_value_to_minutes(s["work_hours"])
-                ds=(s["start_time"] or "").strip(); de=(s["end_time"] or "").strip()
-                try: drive += duration_minutes(ds,de) if ds and de else 0
-                except Exception: drive += hours_value_to_minutes(s["driving_hours"])
+            work=segments_union_minutes(segments,"work")
+            drive=segments_union_minutes(segments,"drive")
         else:
             ws=(row["work_start_time"] if "work_start_time" in row.keys() else "") or ""
             we=(row["work_end_time"] if "work_end_time" in row.keys() else "") or ""
@@ -10550,6 +10730,15 @@ class App(tk.Tk):
             if active.get() and not seg_data:
                 messagebox.showerror(
                     "Помилка","Активний маршрут повинен мати хоча б одну точну частину робочої зміни.",parent=win
+                ); return
+            overlap_text=segment_overlap_message(seg_data,"work")
+            if overlap_text:
+                messagebox.showerror(
+                    "Перекриття робочого часу",
+                    "Частини маршруту не можуть накладатися одна на одну.\n\n"
+                    + overlap_text
+                    + "\n\nВиправте часові межі перед збереженням маршруту.",
+                    parent=win
                 ); return
             try:
                 start_day=int(vv["start_day_offset"].get()); end_day=int(vv["end_day_offset"].get())
