@@ -974,14 +974,14 @@ def _p5_day_text(core, cell):
     return f"{code}\n{value}" if code else value
 
 
-def export_p5_pdf(core, year, month, out_path, active_only=True, form_date=None, department="", edrpou=""):
+def export_p5_pdf(core, year, month, out_path, active_only=True, form_date=None, department="", edrpou="", use_plan_when_fact_missing=False):
     """A4 landscape rendering preserving all indicators of standard form № P-5."""
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
-    data=collect_p5_data(core,year,month,active_only)
+    data=collect_p5_data(core,year,month,active_only,use_plan_when_fact_missing)
     page_w,page_h=landscape(A4)
     pdf=canvas.Canvas(str(out_path),pagesize=(page_w,page_h))
     font=_report_font(core)
@@ -1192,8 +1192,8 @@ def export_p5_pdf(core, year, month, out_path, active_only=True, form_date=None,
                     if day_no>len(emp["cells"]):
                         continue
                     cell=emp["cells"][day_no-1]
-                    if cell.get("missing"):
-                        pdf.setFillColor(colors.HexColor("#FFF2CC"))
+                    if cell.get("missing") or cell.get("substituted_plan"):
+                        pdf.setFillColor(colors.HexColor("#FFF2CC" if cell.get("missing") else "#EAF2FF"))
                         pdf.rect(xs[idx],cell_y,widths[idx],row_half,fill=1,stroke=0)
                         pdf.setFillColor(colors.black)
                         pdf.rect(xs[idx],cell_y,widths[idx],row_half,fill=0,stroke=1)
@@ -1289,7 +1289,14 @@ def export_p5_pdf(core, year, month, out_path, active_only=True, form_date=None,
 
         if page_index==len(chunks)-1:
             footer_y=max(18,y-62)
-            if data["missing_fact_total"]:
+            if data["used_plan_for_missing_fact"]:
+                txt(
+                    margin,footer_y+50,
+                    f"Примітка: за рішенням відповідальної особи у {data['planned_substituted_total']} дн. "
+                    "планові години підставлено замість відсутнього факту (виділено блакитним).",
+                    5.0
+                )
+            elif data["missing_fact_total"]:
                 txt(
                     margin,footer_y+50,
                     f"* Увага: {data['missing_fact_total']} дн. мають план, але не мають підтвердженого факту; "
@@ -1327,13 +1334,13 @@ def export_p5_pdf(core, year, month, out_path, active_only=True, form_date=None,
     return data
 
 
-def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None, department="", edrpou=""):
+def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None, department="", edrpou="", use_plan_when_fact_missing=False):
     """Editable A4-landscape workbook preserving the standard P-5 indicators."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from openpyxl.utils import get_column_letter
 
-    data=collect_p5_data(core,year,month,active_only)
+    data=collect_p5_data(core,year,month,active_only,use_plan_when_fact_missing)
     form_date=form_date or date.today()
     wb=Workbook()
     ws=wb.active
@@ -1444,6 +1451,8 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None
                 cell.value=_p5_day_text(core,info)
                 if info.get("missing"):
                     cell.fill=missing_fill
+                elif info.get("substituted_plan"):
+                    cell.fill=PatternFill("solid",fgColor="D9EAF7")
 
         summary_values=[
             emp["work_days"],emp["work_minutes"]/60.0 if emp["work_minutes"] else None,
@@ -1523,7 +1532,16 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None
         cell.font=Font(bold=True,size=8); cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
 
     info_row=total_row+2
-    if data["missing_fact_total"]:
+    if data["used_plan_for_missing_fact"]:
+        ws.merge_cells(start_row=info_row,start_column=1,end_row=info_row,end_column=last_col)
+        ws.cell(info_row,1)=(
+            f"Примітка: за рішенням відповідальної особи у {data['planned_substituted_total']} дн. "
+            "планові години підставлено замість відсутнього факту (блакитні клітинки)."
+        )
+        ws.cell(info_row,1).fill=PatternFill("solid",fgColor="D9EAF7")
+        ws.cell(info_row,1).alignment=Alignment(wrap_text=True)
+        info_row+=1
+    elif data["missing_fact_total"]:
         ws.merge_cells(start_row=info_row,start_column=1,end_row=info_row,end_column=last_col)
         ws.cell(info_row,1)=(
             f"* Увага: {data['missing_fact_total']} дн. мають план, але не мають підтвердженого факту; "
