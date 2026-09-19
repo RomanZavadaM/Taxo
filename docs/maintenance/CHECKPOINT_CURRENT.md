@@ -4,7 +4,7 @@
 **Current candidate:** Taxo 9.1 candidate r9.8 · 19.09.2026.
 **Development PR:** #29.
 
-Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.8 готується як окремий GitHub Pre-release після зеленого CI і не оголошується stable до завершення реальної перевірки.
+Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.8 опублікований як окремий GitHub Pre-release і не оголошується stable до завершення реальної перевірки.
 
 ## Що входить у r9.5
 
@@ -101,3 +101,12 @@ r9.5 виявився непридатним для manual gate на реаль�
 - шляхівки використовують staff дати графіка, а не всього рейсового інтервалу;
 - night route next-day contamination усунено;
 - legacy duplicate slots блокують видачу до ручного виправлення.
+
+
+## GitHub release r9.8
+
+- `v9.1-r9.8` опублікований;
+- immutable target: `c13e3dfc8b2934876e2068809123b65d729b58b9`;
+- START + SHA-256 доступні;
+- Windows/macOS: 111 tests — success;
+- overnight duty-staff regression і legacy duplicate conflict tests — success.
