@@ -32,7 +32,7 @@ r9.4 не виконує масового переписування істор�
 
 ## Автоматична перевірка
 
-96 regression tests успішно пройдено на Windows, macOS ARM64 та macOS Intel. START/source package workflow також проходить.
+97 regression tests успішно пройдено на Windows, macOS ARM64 та macOS Intel. START/source package workflow також проходить.
 
 ## Перед наступним етапом
 
