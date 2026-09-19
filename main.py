@@ -8106,9 +8106,14 @@ class App(tk.Tk):
         ).pack(side="left",padx=5)
         ttk.Button(
             actions,
-            text="Перевірити графіки",
+            text="Аудит графіків…",
             command=self.show_schedule_integrity_audit
         ).pack(side="left",padx=5)
+        self.schedule_audit_day_status=tk.StringVar(value="Аудит дня: …")
+        ttk.Label(
+            actions,textvariable=self.schedule_audit_day_status,
+            foreground="#555555"
+        ).pack(side="left",padx=(4,10))
         ttk.Button(
             actions,
             text="Шляхівки на день",
