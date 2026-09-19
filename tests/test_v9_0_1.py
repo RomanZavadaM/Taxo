@@ -22,12 +22,15 @@ class Taxo901HotfixTests(unittest.TestCase):
             or "Previous stable / rollback point: Taxo 9.0.1" in text
             or "Current stable / rollback point: Taxo 10.0" in text
         )
+        version_line = next(
+            line.strip() for line in text.splitlines() if line.startswith("Version:")
+        )
         release_type = next(
             line for line in text.splitlines() if line.startswith("Release type:")
         ).lower()
-        if "Version: 9.0.1" in text:
+        if version_line == "Version: 9.0.1":
             self.assertIn("stable hotfix", release_type)
-        elif "Version: 10.0" in text:
+        elif version_line == "Version: 10.0":
             self.assertEqual(release_type, "release type: stable")
         else:
             self.assertIn("candidate", release_type)
