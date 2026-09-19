@@ -33,3 +33,10 @@
 ## Версія документації
 
 Документація описує stable **Taxo 9.0.1** та зміни поточного перевірочного кандидата **Taxo 9.1 candidate r9.4**. Кандидат не вважається stable до завершення ручної експлуатаційної перевірки.
+
+## Публікація і релізи
+
+- [Повний індекс GitHub Releases](releases/RELEASE_INDEX.md)
+- [GitHub publication summary r9.4](maintenance/GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md)
+
+Усі підготовлені 9.x release-контрольні точки опубліковані. Stable лишається 9.0.1; r9.4 є pre-release до завершення manual operational gate.
