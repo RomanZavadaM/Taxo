@@ -1,14 +1,14 @@
 # PROJECT_STATE — Taxo
 
 **Дата фіксації:** 19.09.2026  
-**Поточна лінія розробки:** Taxo 9.1 candidate r9.6  
+**Поточна лінія розробки:** Taxo 9.1 candidate r9.7  
 **Стабільний baseline:** Taxo 9.0.1  
 **Робоча гілка:** `work/v9.1-monthly-dispatch-waybill-ui`  
-**Pull Request:** #29 — Taxo 9.1 candidate r9.6: Windows START compatibility + operational gate  
+**Pull Request:** #29 — Taxo 9.1 candidate r9.7: monthly detail open + operational gate  
 **Immutable release target r9.4:** `3da975ff3dc30740aeaf300d9e3471415075dbe0`  
 **Immutable release target r9.5:** `f587c2cad71a22c6bded3a992fd27797c1e2c296`  
 **Immutable release target r9.6:** `49d36f5140986f54639835164a3ba22cf28323b7`  
-**Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_6.md`
+**Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_7.md`
 
 ## Опубліковані контрольні релізи
 
@@ -24,7 +24,8 @@
 - **v9.1-r9.3** — immutable source/START pre-release.
 - **v9.1-r9.4** — immutable source/START pre-release; release target `3da975ff3dc30740aeaf300d9e3471415075dbe0`; Windows/macOS/START/publisher CI — success.
 - **v9.1-r9.5** — immutable історичний source/START pre-release; release target `f587c2cad71a22c6bded3a992fd27797c1e2c296`; має відомий Windows CMD parsing defect у START.bat, не використовувати для manual gate.
-- **v9.1-r9.6** — поточний immutable source/START pre-release; release target `49d36f5140986f54639835164a3ba22cf28323b7`; Windows/macOS/source/publisher CI — success; 105 regression tests.
+- **v9.1-r9.6** — immutable source/START pre-release; release target `49d36f5140986f54639835164a3ba22cf28323b7`; Windows/macOS/source/publisher CI — success; 105 regression tests.
+- **v9.1-r9.7** — поточний candidate; додає пряме відкриття PDF деталізації з місячного графіка змінності; публікація після зеленого CI.
 - **r1–r4** — не публікувати окремими Releases: це проміжні кандидати з уже відомими виправленими проблемами; історія збережена в Git/PR.
 
 ## Поточний r9.6
@@ -281,3 +282,13 @@ Manual operational gate продовжується вже на r9.5. Архів 
 - stable `main` не змінено; stable baseline 9.0.1.
 
 Manual operational gate продовжується на r9.6. r9.5 не використовувати для ручного тестування.
+
+
+### Місячний графік — відкриття деталізації r9.7
+
+- додано кнопку `Відкрити деталізацію`;
+- дія формує актуальний PDF деталізації для вибраного періоду та active-only filter;
+- PDF одразу відкривається без Save As;
+- повторно використано наявний export, без дублювання розрахунків;
+- regression test перевіряє UI binding та фактичний виклик export/open;
+- START hardening r9.6 збережено.
