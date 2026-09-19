@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.1 candidate r9.1 — модуль «Персонал», режими й табелі.
+"""Taxo 9.1 candidate r9.2 — модуль «Персонал», режими й табелі.
 
 Модуль:
 - додає окремий верхній розділ «Персонал»;
@@ -58,7 +58,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "9.1 candidate r9.1"
+APP_VERSION = "9.1 candidate r9.2"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
@@ -2477,7 +2477,7 @@ def install(core, base_app):
                 if not entry or str(entry["day_type"] or "") not in NONWORK_OVERRIDE_TYPES:
                     continue
                 values[3] = entry["day_type"]
-                values[4] = "план перекрито відсутністю"
+                values[4] = "План збережено; день позначено як відсутність"
                 values[5] = ""
                 values[6] = "0:00"
                 values[7] = "0:00"
