@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.1 candidate r9.3 application entry point."""
+"""Taxo 9.1 candidate r9.4 application entry point."""
 import main as core
 from work_analysis_ext import install as install_work_analysis
 from activity_register_60 import install as install_activity_register
