@@ -1,15 +1,15 @@
 # PROJECT_STATE — Taxo
 
 **Дата фіксації:** 19.09.2026  
-**Поточна лінія розробки:** Taxo 9.1 candidate r9.7  
+**Поточна лінія розробки:** Taxo 9.1 candidate r9.8  
 **Стабільний baseline:** Taxo 9.0.1  
 **Робоча гілка:** `work/v9.1-monthly-dispatch-waybill-ui`  
-**Pull Request:** #29 — Taxo 9.1 candidate r9.7: monthly detail open + operational gate  
+**Pull Request:** #29 — Taxo 9.1 candidate r9.8: waybill duty staff consistency + operational gate  
 **Immutable release target r9.4:** `3da975ff3dc30740aeaf300d9e3471415075dbe0`  
 **Immutable release target r9.5:** `f587c2cad71a22c6bded3a992fd27797c1e2c296`  
 **Immutable release target r9.6:** `49d36f5140986f54639835164a3ba22cf28323b7`  
 **Immutable release target r9.7:** `8a16ef781e1b3334e664449725c217a120f9fe5d`  
-**Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_7.md`
+**Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_8.md`
 
 ## Опубліковані контрольні релізи
 
@@ -26,7 +26,8 @@
 - **v9.1-r9.4** — immutable source/START pre-release; release target `3da975ff3dc30740aeaf300d9e3471415075dbe0`; Windows/macOS/START/publisher CI — success.
 - **v9.1-r9.5** — immutable історичний source/START pre-release; release target `f587c2cad71a22c6bded3a992fd27797c1e2c296`; має відомий Windows CMD parsing defect у START.bat, не використовувати для manual gate.
 - **v9.1-r9.6** — immutable source/START pre-release; release target `49d36f5140986f54639835164a3ba22cf28323b7`; Windows/macOS/source/publisher CI — success; 105 regression tests.
-- **v9.1-r9.7** — поточний immutable source/START pre-release; release target `8a16ef781e1b3334e664449725c217a120f9fe5d`; додає пряме відкриття PDF деталізації з місячного графіка; Windows/macOS/source/publisher CI — success; 107 regression tests.
+- **v9.1-r9.7** — immutable source/START pre-release; release target `8a16ef781e1b3334e664449725c217a120f9fe5d`; Windows/macOS/source/publisher CI — success; 107 regression tests.
+- **v9.1-r9.8** — поточний candidate; фіксує єдиний склад лікаря/механіка на дату+номер зміни у шляхівках; публікація після зеленого CI.
 - **r1–r4** — не публікувати окремими Releases: це проміжні кандидати з уже відомими виправленими проблемами; історія збережена в Git/PR.
 
 ## Поточний r9.6
@@ -310,3 +311,13 @@ Manual operational gate продовжується на r9.6. r9.5 не вико
 - stable `main` лишається 9.0.1.
 
 Manual operational gate продовжується на r9.7.
+
+
+### Waybill duty staff consistency r9.8
+
+- duty staff визначається один раз на дату графіка;
+- нічний рейс не може взяти I/II зміну наступної дати;
+- роль + дата + номер зміни = один слот для одного АТП;
+- location не створює другий slot;
+- старі duplicate slots не переписуються: показуються як `конфлікт чергових` і блокують видачу;
+- додані regression tests на overnight route, duplicates і day-duty reuse.
