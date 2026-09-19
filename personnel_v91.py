@@ -731,13 +731,13 @@ def _p5_absence_minutes(core, con, employee, work_date, fallback_planned=0):
     return int(fallback_planned or 0)
 
 
-def collect_p5_data(core, year, month, active_only=True):
+def collect_p5_data(core, year, month, active_only=True, use_plan_when_fact_missing=False):
     """Collect factual data for the recommended standard form № P-5.
 
-    The legal/statistical form records actual use of working time. A planned
-    route/shift is therefore *not* silently promoted to fact: if a work day has
-    plan but no actual confirmation, its P-5 day cell stays blank and is marked
-    as missing fact for the operator.
+    Planned route/shift time is never silently promoted to fact. If the caller
+    explicitly confirms use_plan_when_fact_missing=True, the planned value is
+    used only for otherwise-missing factual work days and is visibly marked in
+    the exported document.
     """
     y, m = int(year), int(month)
     days = core.month_dates(y, m)
@@ -746,6 +746,7 @@ def collect_p5_data(core, year, month, active_only=True):
     company = con.execute("SELECT * FROM company WHERE id=1").fetchone()
     out = []
     missing_fact_total=0
+    planned_substituted_total=0
     missing_profile_fields=0
 
     for employee in employees:
@@ -761,6 +762,7 @@ def collect_p5_data(core, year, month, active_only=True):
         work_days = 0
         work_minutes = 0
         missing_fact = 0
+        planned_substituted = 0
         overtime_minutes = 0
         night_minutes = 0
         evening_minutes = 0
@@ -798,6 +800,7 @@ def collect_p5_data(core, year, month, active_only=True):
             code, numeric, _label = p5_code(dtype)
             hours=None
             missing=False
+            substituted_plan=False
 
             if dtype in NONWORK_OVERRIDE_TYPES:
                 # An absence is itself factual when entered in the personnel
@@ -844,13 +847,24 @@ def collect_p5_data(core, year, month, active_only=True):
                     code=""
                     numeric=""
             elif planned>0:
-                # P-5 is factual. Do not print planned hours as if they were
-                # actually worked; make the incompleteness explicit to the UI.
-                code=""
-                numeric=""
-                hours=None
-                missing=True
                 missing_fact += 1
+                if use_plan_when_fact_missing:
+                    if dtype=="Неповний робочий день":
+                        code,numeric="РС","02"
+                    elif dtype=="Відрядження":
+                        code,numeric="ВД","07"
+                    else:
+                        code,numeric="Р","01"
+                    hours=planned
+                    work_days += 1
+                    work_minutes += planned
+                    substituted_plan=True
+                    planned_substituted += 1
+                else:
+                    code=""
+                    numeric=""
+                    hours=None
+                    missing=True
             else:
                 # Ordinary empty/weekend day has no annual-leave code.
                 if dtype in ("Вихідний","Відпочинок","Робота",""):
@@ -871,9 +885,11 @@ def collect_p5_data(core, year, month, active_only=True):
                 "day_type":dtype,
                 "missing":missing,
                 "planned_minutes":planned,
+                "substituted_plan":substituted_plan,
             })
 
         missing_fact_total += missing_fact
+        planned_substituted_total += planned_substituted
         absence_counts={label:item["days"] for label,item in absence_details.items()}
         out.append({
             "employee_id": employee["id"],
@@ -893,6 +909,7 @@ def collect_p5_data(core, year, month, active_only=True):
             "absence_details": absence_details,
             "absence_counts":absence_counts,  # backward-compatible API
             "missing_fact": missing_fact,
+            "planned_substituted": planned_substituted,
             "tariff_rate": "" if tariff in (None,"") else tariff,
         })
 
@@ -900,8 +917,10 @@ def collect_p5_data(core, year, month, active_only=True):
     return {
         "year": y, "month": m, "days": days, "employees": out, "company": company,
         "missing_fact_total":missing_fact_total,
+        "planned_substituted_total":planned_substituted_total,
         "missing_profile_fields":missing_profile_fields,
-        "strict_fact_only":True,
+        "strict_fact_only":not bool(use_plan_when_fact_missing),
+        "used_plan_for_missing_fact":bool(use_plan_when_fact_missing and planned_substituted_total),
         "form_reference":"Типова форма № П-5, наказ Держкомстату України 05.12.2008 № 489",
     }
 
