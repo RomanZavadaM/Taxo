@@ -138,9 +138,9 @@ def _row_value(row, key, default=None):
 def monthly_plan_action(own_rows, slot_rows, *, replace=False):
     """Classify one target date before writing a monthly dispatch plan.
 
-    Database uniqueness is employee + role + work_date + shift_no; location is
-    deliberately not part of that key. Therefore an existing shift of the same
-    employee must be considered even when it belongs to another location.
+    Operational slot uniqueness is role + work_date + shift_no for one ATP.
+    Location is descriptive and must not create a second doctor/mechanic for the
+    same numbered shift. Existing legacy duplicates are treated as conflicts.
     """
     own_rows = list(own_rows or [])
     own_ids = {int(_row_value(row, "id", -1)) for row in own_rows}
@@ -761,13 +761,11 @@ def install(core, base_app):
                            FROM employee_shifts sh
                            JOIN employees e ON e.id=sh.employee_id
                            WHERE sh.work_date=? AND sh.role=? AND sh.shift_no=?
-                             AND lower(COALESCE(sh.location,''))=lower(?)
                            ORDER BY sh.id""",
                         (
                             work_date.isoformat(),
                             plan["role"],
                             plan["shift_no"],
-                            plan["location"],
                         ),
                     ).fetchall()
 
@@ -916,13 +914,11 @@ def install(core, base_app):
                         slot = con.execute(
                             """SELECT * FROM employee_shifts
                                WHERE work_date=? AND role=? AND shift_no=?
-                                 AND lower(COALESCE(location,''))=lower(?)
                                ORDER BY id""",
                             (
                                 work_date.isoformat(),
                                 plan["role"],
                                 plan["shift_no"],
-                                plan["location"],
                             ),
                         ).fetchall()
 
