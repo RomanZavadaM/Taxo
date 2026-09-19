@@ -225,6 +225,65 @@ def _employee_role_choices(row):
     return roles
 
 
+def _canonical_segment_intervals(core, segments, pair="work"):
+    """Compatibility wrapper for canonical interval normalization.
+
+    Production Taxo exposes normalized_segment_intervals from main.py. Tests,
+    older embedding adapters, and lightweight cores may not; keep the same
+    algorithm locally instead of requiring every caller to implement it.
+    """
+    fn=getattr(core,"normalized_segment_intervals",None)
+    if callable(fn):
+        return fn(segments,pair)
+
+    out=[]
+    previous_start=None
+    for index,row in enumerate(segments or []):
+        keys=set(row.keys()) if hasattr(row,"keys") else set()
+        if pair=="drive":
+            start_text=(row["start_time"] if "start_time" in keys else "") or ""
+            end_text=(row["end_time"] if "end_time" in keys else "") or ""
+        else:
+            start_text=(row["work_start_time"] if "work_start_time" in keys else "") or ""
+            end_text=(row["work_end_time"] if "work_end_time" in keys else "") or ""
+            if not start_text:
+                start_text=(row["start_time"] if "start_time" in keys else "") or ""
+            if not end_text:
+                end_text=(row["end_time"] if "end_time" in keys else "") or ""
+        start_text=str(start_text).strip(); end_text=str(end_text).strip()
+        if not start_text or not end_text:
+            continue
+        start=parse_clock(start_text)
+        while previous_start is not None and start<previous_start:
+            start+=1440
+        end=parse_clock(end_text)+(start//1440)*1440
+        while end<=start:
+            end+=1440
+        out.append({
+            "index":index,"start":start,"end":end,
+            "start_text":start_text,"end_text":end_text,
+        })
+        previous_start=start
+    return out
+
+
+def _canonical_segments_union_minutes(core, segments, pair="work"):
+    fn=getattr(core,"segments_union_minutes",None)
+    if callable(fn):
+        return int(fn(segments,pair) or 0)
+    intervals=_canonical_segment_intervals(core,segments,pair)
+    if not intervals:
+        return 0
+    merged=[]
+    for item in intervals:
+        start=item["start"]; end=item["end"]
+        if not merged or start>merged[-1][1]:
+            merged.append([start,end])
+        else:
+            merged[-1][1]=max(merged[-1][1],end)
+    return sum(end-start for start,end in merged)
+
+
 def linked_route_plan_minutes(core, con, driver_id, target_date):
     """Fallback for old/incomplete driver-day rows linked to a route.
 
@@ -249,7 +308,7 @@ def linked_route_plan_minutes(core, con, driver_id, target_date):
         (row["route_id"],),
     ).fetchall()
     if segs:
-        exact = core.segments_union_minutes(segs, "work")
+        exact = _canonical_segments_union_minutes(core,segs,"work")
         if exact > 0:
             return int(exact)
 
@@ -306,8 +365,8 @@ def driver_work_intervals(core, con, driver_id, around_date):
         return int((span[1]-span[0]).total_seconds()//60)
 
     def normalized_maps(items):
-        work_map={x["index"]:x for x in core.normalized_segment_intervals(items,"work")}
-        drive_map={x["index"]:x for x in core.normalized_segment_intervals(items,"drive")}
+        work_map={x["index"]:x for x in _canonical_segment_intervals(core,items,"work")}
+        drive_map={x["index"]:x for x in _canonical_segment_intervals(core,items,"drive")}
         return work_map,drive_map
 
     def dt_span(base,item):
@@ -417,7 +476,7 @@ def driver_work_intervals(core, con, driver_id, around_date):
                     elif expected>0:
                         unresolved_part=True
 
-                exact_expected=core.segments_union_minutes(route_segs,"work")
+                exact_expected=_canonical_segments_union_minutes(core,route_segs,"work")
                 if exact_expected>union_minutes(local_exact):
                     unresolved_part=True
                 if exact_expected<=0 and planned_total>union_minutes(fallback_busy):
