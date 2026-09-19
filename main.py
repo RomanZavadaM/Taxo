@@ -2325,6 +2325,169 @@ def segment_overlap_message(segments, pair="work"):
     )
 
 
+def segment_integrity_issues(segments):
+    """Validate one exact multi-part scenario without changing stored data."""
+    segments=list(segments or [])
+    issues=[]
+
+    for pair,label in (("work","Робочий час"),("drive","Керування")):
+        try:
+            overlaps=segment_overlap_details(segments,pair=pair)
+        except Exception as exc:
+            issues.append({
+                "kind":"invalid_time",
+                "label":label,
+                "minutes":0,
+                "message":f"{label}: некоректний час ({exc})",
+            })
+            continue
+        for item in overlaps:
+            issues.append({
+                "kind":f"{pair}_overlap",
+                "label":label,
+                "minutes":int(item["minutes"]),
+                "message":(
+                    f"{label}: частини №{item['left_index']+1} "
+                    f"({item['left_start']}–{item['left_end']}) і "
+                    f"№{item['right_index']+1} "
+                    f"({item['right_start']}–{item['right_end']}) "
+                    f"перекриваються на {minutes_hhmm(item['minutes'])}"
+                ),
+            })
+
+    for index,row in enumerate(segments,1):
+        ds=str(_record_value(row,"start_time","") or "").strip()
+        de=str(_record_value(row,"end_time","") or "").strip()
+        ws,we=_segment_work_pair(row)
+        ws=str(ws or "").strip(); we=str(we or "").strip()
+
+        if bool(ds) != bool(de):
+            issues.append({
+                "kind":"incomplete_drive",
+                "label":"Керування",
+                "minutes":0,
+                "message":f"Частина №{index}: неповна пара часу керування ({ds or '—'}–{de or '—'}).",
+            })
+        if bool(ws) != bool(we):
+            issues.append({
+                "kind":"incomplete_work",
+                "label":"Робочий час",
+                "minutes":0,
+                "message":f"Частина №{index}: неповна пара робочого часу ({ws or '—'}–{we or '—'}).",
+            })
+        if ds and de and ws and we:
+            try:
+                if not interval_within(ds,de,ws,we):
+                    issues.append({
+                        "kind":"drive_outside_work",
+                        "label":"Керування поза роботою",
+                        "minutes":0,
+                        "message":(
+                            f"Частина №{index}: керування {ds}–{de} "
+                            f"не повністю лежить у робочому інтервалі {ws}–{we}."
+                        ),
+                    })
+            except Exception as exc:
+                issues.append({
+                    "kind":"invalid_time",
+                    "label":"Некоректний час",
+                    "minutes":0,
+                    "message":f"Частина №{index}: {exc}",
+                })
+
+    # Keep messages stable and unique if one malformed interval is noticed by
+    # more than one validation rule.
+    unique=[]
+    seen=set()
+    for issue in issues:
+        key=(issue["kind"],issue["message"])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(issue)
+    return unique
+
+
+def collect_schedule_integrity_audit(year, month, active_routes_only=True):
+    """Scan existing driver days plus route templates for interval mistakes."""
+    y=int(year); m=int(month)
+    days=month_dates(y,m)
+    start=days[0].isoformat(); end=days[-1].isoformat()
+    con=db()
+    findings=[]
+
+    worklogs=con.execute(
+        """SELECT w.*,d.last_name,d.first_name,d.middle_name
+             FROM worklog w
+             JOIN drivers d ON d.id=w.driver_id
+            WHERE w.work_date BETWEEN ? AND ?
+            ORDER BY w.work_date,d.last_name,d.first_name,w.id""",
+        (start,end),
+    ).fetchall()
+    for row in worklogs:
+        segs=con.execute(
+            "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",
+            (row["id"],),
+        ).fetchall()
+        if not segs:
+            continue
+        driver=" ".join(
+            x for x in (row["last_name"],row["first_name"],row["middle_name"]) if x
+        ).strip()
+        for issue in segment_integrity_issues(segs):
+            findings.append({
+                **issue,
+                "source_kind":"worklog",
+                "source":"День водія",
+                "worklog_id":row["id"],
+                "driver_id":row["driver_id"],
+                "route_id":row["route_id"] if "route_id" in row.keys() else None,
+                "date":row["work_date"],
+                "subject":driver,
+                "route":(row["route_name"] if "route_name" in row.keys() else "") or "",
+            })
+
+    route_sql="SELECT * FROM routes"
+    if active_routes_only:
+        route_sql += " WHERE active=1"
+    route_sql += " ORDER BY code,name,id"
+    routes=con.execute(route_sql).fetchall()
+    for route in routes:
+        segs=con.execute(
+            "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",
+            (route["id"],),
+        ).fetchall()
+        if not segs:
+            continue
+        code=str(route["code"] or "").strip() if "code" in route.keys() else ""
+        name=str(route["name"] or "").strip()
+        subject=" / ".join(x for x in (code,name) if x) or f"Маршрут #{route['id']}"
+        for issue in segment_integrity_issues(segs):
+            findings.append({
+                **issue,
+                "source_kind":"route",
+                "source":"Маршрут",
+                "worklog_id":None,
+                "driver_id":None,
+                "route_id":route["id"],
+                "date":"",
+                "subject":subject,
+                "route":subject,
+            })
+
+    con.close()
+    return {
+        "year":y,
+        "month":m,
+        "period_start":start,
+        "period_end":end,
+        "active_routes_only":bool(active_routes_only),
+        "findings":findings,
+        "worklog_count":len(worklogs),
+        "route_count":len(routes),
+    }
+
+
 def _record_value(record, key, default=""):
     """Read sqlite Row/dict values without forcing callers to care about the row type."""
     if record is None:
@@ -7713,6 +7876,11 @@ class App(tk.Tk):
         ).pack(side="left",padx=5)
         ttk.Button(
             actions,
+            text="Перевірити графіки",
+            command=self.show_schedule_integrity_audit
+        ).pack(side="left",padx=5)
+        ttk.Button(
+            actions,
             text="Шляхівки на день",
             command=self.show_waybills_for_schedule
         ).pack(side="left",padx=5)
@@ -7757,6 +7925,155 @@ class App(tk.Tk):
         self.schedule_hitboxes=[]
         self.schedule_driver_rows=[]
         self.after(100,self.refresh_schedule)
+
+    def show_schedule_integrity_audit(self):
+        """Audit selected month plus active route templates for time conflicts."""
+        source_date=self._monthly_shift_source_date()
+        if hasattr(self,"schedule_audit_win") and self.schedule_audit_win.winfo_exists():
+            self.schedule_audit_win.lift()
+            self.refresh_schedule_integrity_audit()
+            return
+
+        win=tk.Toplevel(self)
+        self.schedule_audit_win=win
+        win.title("Контроль графіків — перекриття та часові помилки")
+        fit_window_to_screen(win,1250,650,850,460)
+
+        top=ttk.Frame(win,padding=8); top.pack(fill="x")
+        self.schedule_audit_period=tk.StringVar(
+            value=f"{month_name_ua(source_date.month)} {source_date.year}"
+        )
+        self.schedule_audit_summary=tk.StringVar(value="Перевірка…")
+        ttk.Label(top,text="Період:",font=("TkDefaultFont",9,"bold")).pack(side="left")
+        ttk.Label(top,textvariable=self.schedule_audit_period).pack(side="left",padx=(4,15))
+        ttk.Button(
+            top,text="Перевірити повторно",
+            command=self.refresh_schedule_integrity_audit
+        ).pack(side="left",padx=3)
+        ttk.Button(
+            top,text="Відкрити запис",
+            command=self.open_schedule_audit_finding
+        ).pack(side="left",padx=3)
+        ttk.Label(
+            win,
+            text=(
+                "Перевіряються всі дні водіїв вибраного місяця та всі активні маршрути. "
+                "Контроль шукає перекриття робочих частин, перекриття керування, неповні "
+                "пари часу та керування поза межами робочого інтервалу. Дані автоматично не виправляються."
+            ),
+            foreground="gray",wraplength=1180,justify="left"
+        ).pack(fill="x",padx=10,pady=(0,5))
+        ttk.Label(
+            win,textvariable=self.schedule_audit_summary,
+            font=("TkDefaultFont",9,"bold")
+        ).pack(fill="x",padx=10,pady=(0,5))
+
+        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
+        frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+        cols=("source","date","subject","route","type","duration","detail")
+        tree=ttk.Treeview(frame,columns=cols,show="headings")
+        self.schedule_audit_tree=tree
+        heads={
+            "source":"Джерело","date":"Дата","subject":"Водій / маршрут",
+            "route":"Маршрут","type":"Проблема","duration":"Тривалість","detail":"Деталі"
+        }
+        widths={
+            "source":100,"date":95,"subject":220,"route":180,
+            "type":145,"duration":85,"detail":480
+        }
+        for key in cols:
+            tree.heading(key,text=heads[key])
+            tree.column(key,width=widths[key],anchor="w")
+        ybar=ttk.Scrollbar(frame,orient="vertical",command=tree.yview)
+        xbar=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview)
+        tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+        tree.grid(row=0,column=0,sticky="nsew")
+        ybar.grid(row=0,column=1,sticky="ns")
+        xbar.grid(row=1,column=0,sticky="ew")
+        tree.bind("<Double-1>",lambda _e:self.open_schedule_audit_finding())
+        self.schedule_audit_rows={}
+        self.refresh_schedule_integrity_audit()
+
+    def refresh_schedule_integrity_audit(self):
+        if not hasattr(self,"schedule_audit_tree") or not self.schedule_audit_tree.winfo_exists():
+            return
+        source_date=self._monthly_shift_source_date()
+        data=collect_schedule_integrity_audit(source_date.year,source_date.month)
+        self.schedule_audit_period.set(f"{month_name_ua(source_date.month)} {source_date.year}")
+        tree=self.schedule_audit_tree
+        for item in tree.get_children():
+            tree.delete(item)
+        self.schedule_audit_rows={}
+        day_problem_ids=set()
+        route_problem_ids=set()
+        for finding in data["findings"]:
+            if finding["source_kind"]=="worklog":
+                day_problem_ids.add(finding["worklog_id"])
+            elif finding["source_kind"]=="route":
+                route_problem_ids.add(finding["route_id"])
+            iid=tree.insert("","end",values=(
+                finding["source"],
+                (datetime.strptime(finding["date"],"%Y-%m-%d").strftime("%d.%m.%Y")
+                 if finding["date"] else "—"),
+                finding["subject"],
+                finding["route"] or "—",
+                finding["label"],
+                minutes_hhmm(finding["minutes"]) if finding["minutes"] else "—",
+                finding["message"],
+            ))
+            self.schedule_audit_rows[iid]=finding
+
+        if data["findings"]:
+            self.schedule_audit_summary.set(
+                f"Знайдено проблем: {len(data['findings'])}. "
+                f"Днів із проблемами: {len(day_problem_ids)}; "
+                f"активних маршрутів із проблемами: {len(route_problem_ids)}."
+            )
+        else:
+            self.schedule_audit_summary.set(
+                f"Проблем не знайдено. Перевірено днів із записами: {data['worklog_count']}; "
+                f"активних маршрутів: {data['route_count']}."
+            )
+
+    def open_schedule_audit_finding(self):
+        tree=getattr(self,"schedule_audit_tree",None)
+        if tree is None:
+            return
+        sel=tree.selection()
+        if not sel:
+            messagebox.showinfo(
+                "Контроль графіків","Виберіть проблему у списку.",
+                parent=getattr(self,"schedule_audit_win",self)
+            )
+            return
+        finding=self.schedule_audit_rows.get(sel[0])
+        if not finding:
+            return
+        if finding["source_kind"]=="worklog":
+            try:
+                work_date=datetime.strptime(finding["date"],"%Y-%m-%d").date()
+            except Exception:
+                return
+            self.open_schedule_worklog(finding["driver_id"],work_date)
+            self.refresh_schedule_integrity_audit()
+            return
+
+        route_id=finding.get("route_id")
+        if not route_id:
+            return
+        con=db()
+        route=con.execute("SELECT * FROM routes WHERE id=?",(route_id,)).fetchone()
+        segs=con.execute(
+            "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",(route_id,)
+        ).fetchall()
+        stops=con.execute(
+            "SELECT * FROM route_stops WHERE route_id=? ORDER BY direction,stop_no",(route_id,)
+        ).fetchall()
+        con.close()
+        if route:
+            self.route_catalog_form((route,segs,stops))
+            self.load_route_catalog()
+            self.refresh_schedule_integrity_audit()
 
     def _monthly_shift_source_date(self):
         """Дата, від якої відкриваємо місячний графік змінності."""
