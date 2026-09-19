@@ -53,6 +53,7 @@ def make_audit_db(path):
 
     INSERT INTO drivers VALUES(1,'Дробот','Олег','Богданович');
     INSERT INTO routes VALUES(10,'Львів АС-2 - Бібрка','674',1);
+    INSERT INTO routes VALUES(11,'Порожній активний маршрут','999',1);
 
     INSERT INTO worklog(
         id,driver_id,work_date,start_time,end_time,
