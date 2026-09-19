@@ -9281,6 +9281,73 @@ class App(tk.Tk):
         if messagebox.askyesno("Зміни персоналу","Видалити це призначення?",parent=self.dispatch_win):
             con=db(); con.execute("DELETE FROM employee_shifts WHERE id=?",(row["id"],)); con.commit(); con.close(); self.refresh_dispatch_shifts()
 
+    def _duty_staff_for_work_date(self, work_date, con=None):
+        """Єдиний лікар/механік для I/II зміни конкретної дати графіка.
+
+        Шляхівка може переходити через 00:00, але її поля «I/II зміна»
+        належать даті графіка. Тому наступний календарний день не має права
+        перезаписувати персонал тієї самої зміни у нічному рейсі.
+        """
+        own=con is None
+        if own:
+            con=db()
+        rows=con.execute(
+            """SELECT sh.*,e.last_name||' '||e.first_name||
+                      CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END full_name
+               FROM employee_shifts sh
+               JOIN employees e ON e.id=sh.employee_id
+               WHERE sh.work_date=? AND e.active=1
+                 AND sh.role IN ('Лікар','Механік')
+               ORDER BY sh.role,sh.shift_no,sh.id""",
+            (work_date.isoformat(),),
+        ).fetchall()
+
+        override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES",set()) or ())
+        grouped={}
+        for row in rows:
+            base=datetime.strptime(row["work_date"],"%Y-%m-%d")
+            sh,sm=map(int,row["start_time"].split(":"))
+            eh,em=map(int,row["end_time"].split(":"))
+            row_start=base.replace(hour=sh,minute=sm)
+            row_end=(base+timedelta(days=int(row["end_day_offset"] or 0))).replace(hour=eh,minute=em)
+
+            unavailable=False
+            cursor=row_start.date()
+            while override_types and cursor<=row_end.date():
+                entry=con.execute(
+                    "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                    (row["employee_id"],cursor.isoformat()),
+                ).fetchone()
+                if entry and str(entry["day_type"] or "") in override_types:
+                    unavailable=True
+                    break
+                cursor+=timedelta(days=1)
+            if unavailable:
+                continue
+
+            key=(row["role"],int(row["shift_no"]))
+            grouped.setdefault(key,[]).append(row)
+
+        result={
+            "doctor_1":"","doctor_2":"",
+            "mechanic_1":"","mechanic_2":"",
+            "staff_conflicts":[],
+        }
+        for (role,shift_no),slot_rows in grouped.items():
+            prefix="doctor" if role=="Лікар" else "mechanic"
+            key=f"{prefix}_{shift_no}"
+            if len(slot_rows)==1:
+                result[key]=slot_rows[0]["full_name"]
+                continue
+            names=", ".join(row["full_name"] for row in slot_rows)
+            roman="I" if shift_no==1 else "II"
+            result["staff_conflicts"].append(
+                f"{role} {roman}: {len(slot_rows)} призначення ({names})"
+            )
+        if own:
+            con.close()
+        return result
+
     def _duty_staff_for_interval(self, start_dt, end_dt, location="", con=None):
         """Працівники, чиї зміни реально перекривають випуск/рейс."""
         own=con is None
@@ -9337,6 +9404,7 @@ class App(tk.Tk):
             (work_date.isoformat(),)
         ).fetchall()
         out=[]
+        day_duty=self._duty_staff_for_work_date(work_date,con)
         for r in rows:
             stored_segments=con.execute(
                 "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",(r["id"],)
@@ -9370,7 +9438,7 @@ class App(tk.Tk):
             multiday=end_dt.date()>work_date
             start_location=(r["route_start_location"] or "").strip()
             end_location=(r["route_end_location"] or "").strip()
-            duty=self._duty_staff_for_interval(start_dt,end_dt,start_location,con)
+            duty=day_duty
             stop_counts={x["direction"]:x["n"] for x in con.execute("SELECT direction,COUNT(*) n FROM route_stops WHERE route_id=? GROUP BY direction",(r["route_id"],)).fetchall()} if r["route_id"] else {}
             route_code=(r["route_code"] or "").strip()
             route_name=(r["route_catalog_name"] or "").strip() or (r["route_name"] or "").strip()
@@ -9486,6 +9554,8 @@ class App(tk.Tk):
             if not row["start_location"] or not row["end_location"]: missing.append("точки початку/завершення")
             if not row["outbound_stop_count"] or not row["return_stop_count"]: missing.append("прямий/зворотний графік")
             if row.get("schedule_conflict"): missing.append(f"перекриття часу {minutes_hhmm(row['schedule_conflict_minutes'])}")
+            if row.get("staff_conflicts"):
+                missing.append("конфлікт чергових: "+"; ".join(row["staff_conflicts"]))
             if row["waybill_no"] and row["waybill_status"]=="void":
                 status=f"АНУЛЬОВАНА № {row['waybill_no']}"
             elif row["waybill_no"]:
@@ -9602,6 +9672,10 @@ class App(tk.Tk):
             missing.append(
                 "перекриття частин робочого часу "
                 + minutes_hhmm(row["schedule_conflict_minutes"])
+            )
+        if row.get("staff_conflicts"):
+            missing.append(
+                "конфлікт чергових: " + "; ".join(row["staff_conflicts"])
             )
         if missing:
             messagebox.showerror(
