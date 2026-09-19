@@ -9,6 +9,7 @@
 **Immutable release target r9.5:** `f587c2cad71a22c6bded3a992fd27797c1e2c296`  
 **Immutable release target r9.6:** `49d36f5140986f54639835164a3ba22cf28323b7`  
 **Immutable release target r9.7:** `8a16ef781e1b3334e664449725c217a120f9fe5d`  
+**Immutable release target r9.8:** `c13e3dfc8b2934876e2068809123b65d729b58b9`  
 **Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_8.md`
 
 ## Опубліковані контрольні релізи
@@ -27,7 +28,7 @@
 - **v9.1-r9.5** — immutable історичний source/START pre-release; release target `f587c2cad71a22c6bded3a992fd27797c1e2c296`; має відомий Windows CMD parsing defect у START.bat, не використовувати для manual gate.
 - **v9.1-r9.6** — immutable source/START pre-release; release target `49d36f5140986f54639835164a3ba22cf28323b7`; Windows/macOS/source/publisher CI — success; 105 regression tests.
 - **v9.1-r9.7** — immutable source/START pre-release; release target `8a16ef781e1b3334e664449725c217a120f9fe5d`; Windows/macOS/source/publisher CI — success; 107 regression tests.
-- **v9.1-r9.8** — поточний candidate; фіксує єдиний склад лікаря/механіка на дату+номер зміни у шляхівках; публікація після зеленого CI.
+- **v9.1-r9.8** — поточний immutable source/START pre-release; release target `c13e3dfc8b2934876e2068809123b65d729b58b9`; єдиний склад лікаря/механіка на дату+номер зміни; Windows/macOS/source/publisher CI — success; 111 regression tests.
 - **r1–r4** — не публікувати окремими Releases: це проміжні кандидати з уже відомими виправленими проблемами; історія збережена в Git/PR.
 
 ## Поточний r9.6
@@ -321,3 +322,20 @@ Manual operational gate продовжується на r9.7.
 - location не створює другий slot;
 - старі duplicate slots не переписуються: показуються як `конфлікт чергових` і блокують видачу;
 - додані regression tests на overnight route, duplicates і day-duty reuse.
+
+
+## Publication checkpoint r9.8 — 19.09.2026
+
+- tag/release: `v9.1-r9.8`;
+- immutable target: `c13e3dfc8b2934876e2068809123b65d729b58b9`;
+- START: `Taxo_v9_1_candidate_r9_8_START.zip`;
+- checksum: `SHA256SUMS_v9_1_candidate_r9_8.txt`;
+- Windows: 111 regression tests — OK;
+- Windows START full/incomplete preflight — success;
+- macOS ARM64: 111 tests — OK;
+- macOS Intel: 111 tests — OK;
+- source package — success;
+- publisher — success;
+- stable `main` залишається 9.0.1.
+
+Manual operational gate продовжується на r9.8 з повторної перевірки шляхівок 20.09.2026.
