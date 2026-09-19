@@ -923,373 +923,688 @@ def _report_font(core):
     return font
 
 
+def _p5_reason_caption(label):
+    return {
+        "8-10":"Основна та дод. відпустки",
+        "11-15,17,22":"Навч., творчі, обов. та інші",
+        "18":"Без з/п за згодою сторін",
+        "19":"Без з/п на період припинення робіт",
+        "20":"Неповний роб. день/тиждень",
+        "21":"Тимчас. переведення",
+        "23":"Простої",
+        "24":"Прогули",
+        "25":"Страйки",
+        "26-27":"Тимчас. непрацездатність",
+        "28-30":"Інші",
+    }.get(label,label)
+
+
+def _p5_hhmm(core, minutes):
+    minutes=int(minutes or 0)
+    return core.minutes_hhmm(minutes) if minutes else ""
+
+
+def _p5_day_text(core, cell):
+    if cell.get("missing"):
+        return "*"
+    code=str(cell.get("code") or "")
+    hours=cell.get("hours")
+    if hours is None:
+        return code
+    value=core.minutes_hhmm(int(hours))
+    return f"{code}\n{value}" if code else value
+
+
 def export_p5_pdf(core, year, month, out_path, active_only=True, form_date=None, department="", edrpou=""):
+    """A4 landscape rendering preserving all indicators of standard form № P-5."""
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
-    from reportlab.pdfbase import pdfmetrics
-
-    data = collect_p5_data(core, year, month, active_only)
-    page_w, page_h = landscape(A4)
-    c = canvas.Canvas(str(out_path), pagesize=(page_w, page_h))
-    font = _report_font(core)
-    bold = font
-    company = (data["company"]["name"] if data["company"] else "") or ""
-
-    def text(x, y, value, size=6, align="left", font_name=None):
-        c.setFont(font_name or font, size)
-        s = str(value or "")
-        if align == "center":
-            c.drawCentredString(x, y, s)
-        elif align == "right":
-            c.drawRightString(x, y, s)
-        else:
-            c.drawString(x, y, s)
-
-    # Page 1: header + legend
-    form_date = form_date or date.today()
-    first = data["days"][0].strftime("%d.%m.%Y")
-    last = data["days"][-1].strftime("%d.%m.%Y")
-    text(24, page_h - 22, company, 9.5, "left")
-    if department:
-        text(24, page_h - 34, department, 6.2, "left")
-    text(24, page_h - 46, f"Ідентифікаційний код ЄДРПОУ: {edrpou or ''}", 6.2, "left")
-    text(page_w / 2, page_h - 58, "ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ", 12, "center")
-    text(page_w - 24, page_h - 20, "Типова форма № П-5", 6.5, "right")
-    text(page_w - 24, page_h - 31, "ЗАТВЕРДЖЕНО", 5.8, "right")
-    text(page_w - 24, page_h - 42, "Наказ Держкомстату України 05.12.2008 № 489", 5.5, "right")
-    text(page_w - 24, page_h - 55, f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}", 6.2, "right")
-    text(page_w - 24, page_h - 67, f"Звітний період: {first} — {last}", 6.2, "right")
-
-    legend = [(letter, numeric, label) for label, letter, numeric in P5_LEGEND]
-    col_gap = 20
-    x0 = 24
-    total_w = page_w - 48
-    col_w = (total_w - col_gap) / 2
-    row_h = 17
-    top = page_h - 92
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
-    def wrapped_lines(value, size, max_w):
-        words = str(value).split()
-        lines, cur = [], ""
-        for w in words:
-            trial = (cur + " " + w).strip()
-            if not cur or stringWidth(trial, font, size) <= max_w:
-                cur = trial
+    data=collect_p5_data(core,year,month,active_only)
+    page_w,page_h=landscape(A4)
+    pdf=canvas.Canvas(str(out_path),pagesize=(page_w,page_h))
+    font=_report_font(core)
+    company=(data["company"]["name"] if data["company"] else "") or ""
+    form_date=form_date or date.today()
+
+    def txt(x,y,value,size=6,align="left"):
+        pdf.setFont(font,size)
+        value=str(value or "")
+        if align=="center":
+            pdf.drawCentredString(x,y,value)
+        elif align=="right":
+            pdf.drawRightString(x,y,value)
+        else:
+            pdf.drawString(x,y,value)
+
+    def wrap(value,size,max_w):
+        words=str(value or "").split()
+        lines=[]; current=""
+        for word in words:
+            trial=(current+" "+word).strip()
+            if not current or stringWidth(trial,font,size)<=max_w:
+                current=trial
             else:
-                lines.append(cur); cur = w
-        if cur: lines.append(cur)
+                lines.append(current); current=word
+        if current:
+            lines.append(current)
         return lines or [""]
 
-    half = (len(legend) + 1) // 2
+    def header(title_suffix=""):
+        txt(20,page_h-20,company,9)
+        if department:
+            txt(20,page_h-32,department,6)
+        txt(20,page_h-44,f"Ідентифікаційний код ЄДРПОУ: {edrpou or ''}",6)
+        txt(page_w-20,page_h-18,"Типова форма № П-5",6.5,"right")
+        txt(page_w-20,page_h-29,"ЗАТВЕРДЖЕНО",5.5,"right")
+        txt(page_w-20,page_h-40,"Наказ Держкомстату України 05.12.2008 № 489",5.3,"right")
+        txt(page_w/2,page_h-57,"ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ",11.5,"center")
+        txt(page_w/2,page_h-69,f"{core.month_name_ua(data['month'])} {data['year']} року{title_suffix}",7,"center")
+        txt(
+            page_w-20,page_h-55,
+            f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}",
+            5.5,"right"
+        )
+        txt(
+            page_w-20,page_h-66,
+            f"Звітний період: {data['days'][0].strftime('%d.%m.%Y')} – {data['days'][-1].strftime('%d.%m.%Y')}",
+            5.2,"right"
+        )
+
+    # Page 1: official legend of 30 codes.
+    header(" — умовні позначення")
+    legend=[(label,letter,numeric) for label,letter,numeric in P5_LEGEND]
+    gap=14
+    margin=22
+    col_w=(page_w-2*margin-gap)/2
+    top=page_h-86
+    half=(len(legend)+1)//2
     for col in range(2):
-        subset = legend[col * half:(col + 1) * half]
-        x = x0 + col * (col_w + col_gap)
-        y = top
-        c.setLineWidth(.5)
-        for letter, numeric, label in subset:
-            lines = wrapped_lines(label, 5.2, col_w - 58)
-            h = max(row_h, 7 + len(lines) * 6)
-            c.rect(x, y - h, col_w, h)
-            c.line(x + col_w - 56, y - h, x + col_w - 56, y)
-            c.line(x + col_w - 28, y - h, x + col_w - 28, y)
-            for i, ln in enumerate(lines):
-                text(x + 3, y - 8 - i * 6, ln, 5.2)
-            text(x + col_w - 42, y - h / 2 - 2, letter, 6.5, "center")
-            text(x + col_w - 14, y - h / 2 - 2, numeric, 6.5, "center")
-            y -= h
-    c.showPage()
+        y=top
+        for label,letter,numeric in legend[col*half:(col+1)*half]:
+            x=margin+col*(col_w+gap)
+            lines=wrap(label,5.0,col_w-65)
+            h=max(17,7+len(lines)*5.6)
+            pdf.rect(x,y-h,col_w,h)
+            pdf.line(x+col_w-64,y-h,x+col_w-64,y)
+            pdf.line(x+col_w-31,y-h,x+col_w-31,y)
+            for ii,line in enumerate(lines):
+                txt(x+3,y-8-ii*5.6,line,5.0)
+            txt(x+col_w-47,y-h/2-2,letter,6,"center")
+            txt(x+col_w-15.5,y-h/2-2,numeric,6,"center")
+            y-=h
+    txt(
+        margin,18,
+        "П-5 є рекомендованою типовою формою; Taxo зберігає всі передбачені нею показники. "
+        "Офіційний табель нижче використовує лише підтверджений фактичний час.",
+        5.2
+    )
+    pdf.showPage()
 
-    # Page 2+: timesheet table
-    employees = data["employees"]
-    per_page = 18
-    chunks = [employees[i:i + per_page] for i in range(0, len(employees), per_page)] or [[]]
-    for page_index, chunk in enumerate(chunks):
-        margin = 12
-        top_y = page_h - 16
-        text(margin, top_y, company, 7)
-        text(page_w / 2, top_y, f"ТАБЕЛЬ — {core.month_name_ua(data['month']).upper()} {data['year']}", 9, "center")
-        text(page_w - margin, top_y, f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}", 5, "right")
-        top_y -= 16
+    # Main form: 16 calendar slots, upper half 01–15 + X, lower half 16–31.
+    employees=data["employees"]
+    per_page=10
+    chunks=[employees[i:i+per_page] for i in range(0,len(employees),per_page)] or [[]]
 
-        fixed = [18, 49, 18, 98]
-        day_w = 10.0
-        summary = [22, 28, 22, 22, 22]
-        abs_w = [13.2] * len(P5_ABSENCE_GROUPS)
-        widths = fixed + [day_w] * len(data["days"]) + summary + abs_w + [30]
-        table_w = sum(widths)
-        scale = min(1.0, (page_w - 2 * margin) / table_w)
-        widths = [w * scale for w in widths]
-        header_h = 48
-        row_h = 24
+    fixed=[18,44,18,95]
+    day_widths=[10.5]*16
+    summary=[20,25,20,20,20,22]
+    absence_total=[29]
+    abs_widths=[19.3]*len(P5_ABSENCE_GROUPS)
+    tariff=[34]
+    widths=fixed+day_widths+summary+absence_total+abs_widths+tariff
+    scale=min(1.0,(page_w-24)/sum(widths))
+    widths=[w*scale for w in widths]
 
-        x_positions = [margin]
+    for page_index,chunk in enumerate(chunks):
+        header(f" — стор. {page_index+1}/{len(chunks)}")
+        margin=12
+        top_y=page_h-80
+        header_h=70
+        row_half=15
+        row_h=row_half*2
+        xs=[margin]
         for w in widths:
-            x_positions.append(x_positions[-1] + w)
-        y_header_bottom = top_y - header_h
-        c.setStrokeColor(colors.black)
-        c.setLineWidth(.35)
+            xs.append(xs[-1]+w)
+        bottom=top_y-header_h
+        pdf.setLineWidth(.35)
 
-        labels = ["№", "Таб. №", "Ст.", "ПІБ, посада"]
-        for i, label in enumerate(labels):
-            c.rect(x_positions[i], y_header_bottom, widths[i], header_h)
-            text(x_positions[i] + widths[i]/2, y_header_bottom + header_h/2 - 2, label, 4.6, "center")
+        # Fixed headers.
+        fixed_labels=["№","Таб. №","Стать","ПІБ, посада"]
+        for idx,label in enumerate(fixed_labels):
+            pdf.rect(xs[idx],bottom,widths[idx],header_h)
+            txt(xs[idx]+widths[idx]/2,bottom+header_h/2-2,label,4.1,"center")
 
-        base = len(fixed)
-        for j, d in enumerate(data["days"]):
-            idx = base + j
-            c.rect(x_positions[idx], y_header_bottom, widths[idx], header_h)
-            text(x_positions[idx] + widths[idx]/2, y_header_bottom + 28, f"{d.day:02d}", 4.5, "center")
-            text(x_positions[idx] + widths[idx]/2, y_header_bottom + 17, WEEKDAY_NAMES[d.weekday()], 4.1, "center")
+        day_start=4
+        day_end=day_start+16
+        pdf.rect(xs[day_start],bottom,sum(widths[day_start:day_end]),header_h)
+        txt(
+            xs[day_start]+sum(widths[day_start:day_end])/2,
+            top_y-9,
+            "Відмітки про явки та неявки за числами місяця (код / годин)",
+            4.2,"center"
+        )
+        slot_y=bottom
+        slot_h=header_h-18
+        for slot in range(16):
+            idx=day_start+slot
+            if slot>0:
+                pdf.line(xs[idx],bottom,xs[idx],top_y-18)
+            upper=f"{slot+1:02d}" if slot<15 else "X"
+            lower=f"{slot+16:02d}" if slot<16 else ""
+            txt(xs[idx]+widths[idx]/2,bottom+31,upper,4.7,"center")
+            txt(xs[idx]+widths[idx]/2,bottom+10,lower,4.7,"center")
+        pdf.line(xs[day_start],bottom+slot_h/2,xs[day_end],bottom+slot_h/2)
 
-        idx = base + len(data["days"])
-        sum_labels = ["дні", "год.", "НУ", "РН", "РВ"]
-        for label, w in zip(sum_labels, summary):
-            c.rect(x_positions[idx], y_header_bottom, widths[idx], header_h)
-            text(x_positions[idx] + widths[idx]/2, y_header_bottom + 20, label, 4.2, "center")
-            idx += 1
-        for label, _codes in P5_ABSENCE_GROUPS:
-            c.rect(x_positions[idx], y_header_bottom, widths[idx], header_h)
-            c.saveState()
-            c.translate(x_positions[idx] + widths[idx]/2 + 1, y_header_bottom + 3)
-            c.rotate(90)
-            c.setFont(font, 3.8)
-            c.drawString(0, 0, label)
-            c.restoreState()
-            idx += 1
-        c.rect(x_positions[idx], y_header_bottom, widths[idx], header_h)
-        text(x_positions[idx] + widths[idx]/2, y_header_bottom + 17, "Оклад", 4.2, "center")
+        summary_start=day_end
+        summary_end=summary_start+6
+        pdf.rect(xs[summary_start],bottom,sum(widths[summary_start:summary_end]),header_h)
+        txt(
+            xs[summary_start]+sum(widths[summary_start:summary_end])/2,
+            top_y-9,"Відпрацьовано за місяць",4.4,"center"
+        )
+        sum_labels=["днів","годин","надур.","нічних","вечірніх","вих./свят."]
+        for off,label in enumerate(sum_labels):
+            idx=summary_start+off
+            if off>0:
+                pdf.line(xs[idx],bottom,xs[idx],top_y-18)
+            for ll,line in enumerate(wrap(label,3.7,widths[idx]-2)[:3]):
+                txt(xs[idx]+widths[idx]/2,bottom+31-ll*5,line,3.7,"center")
 
-        y = y_header_bottom
-        page_work_days = page_work_min = 0
-        for n, emp in enumerate(chunk, start=page_index * per_page + 1):
-            y -= row_h
-            values = [n, emp["personnel_no"], emp["gender"], f"{emp['name']}\n{emp['position']}"]
-            for i, value in enumerate(values):
-                c.rect(x_positions[i], y, widths[i], row_h)
-                if i == 3:
-                    parts = str(value).split("\n")
-                    text(x_positions[i] + 2, y + 14, parts[0], 4.7)
-                    if len(parts) > 1:
-                        text(x_positions[i] + 2, y + 6, parts[1], 4.0)
+        total_abs_idx=summary_end
+        pdf.rect(xs[total_abs_idx],bottom,widths[total_abs_idx],header_h)
+        for ll,line in enumerate(("Всього","неявок","дні/год.")):
+            txt(xs[total_abs_idx]+widths[total_abs_idx]/2,bottom+43-ll*9,line,3.8,"center")
+
+        abs_start=total_abs_idx+1
+        abs_end=abs_start+len(P5_ABSENCE_GROUPS)
+        pdf.rect(xs[abs_start],bottom,sum(widths[abs_start:abs_end]),header_h)
+        txt(
+            xs[abs_start]+sum(widths[abs_start:abs_end])/2,
+            top_y-9,"З причин за місяць — дні / години",4.1,"center"
+        )
+        for off,(label,_codes) in enumerate(P5_ABSENCE_GROUPS):
+            idx=abs_start+off
+            if off>0:
+                pdf.line(xs[idx],bottom,xs[idx],top_y-18)
+            pdf.saveState()
+            pdf.translate(xs[idx]+widths[idx]/2+1,bottom+3)
+            pdf.rotate(90)
+            pdf.setFont(font,3.2)
+            pdf.drawString(0,0,f"{_p5_reason_caption(label)} [{label}]")
+            pdf.restoreState()
+
+        tariff_idx=abs_end
+        pdf.rect(xs[tariff_idx],bottom,widths[tariff_idx],header_h)
+        for ll,line in enumerate(("Оклад /","тарифна","ставка, грн")):
+            txt(xs[tariff_idx]+widths[tariff_idx]/2,bottom+43-ll*9,line,3.8,"center")
+
+        y=bottom
+        chunk_totals={
+            "work_days":0,"work_minutes":0,"overtime":0,"night":0,
+            "evening":0,"holiday":0,"absence_days":0,"absence_minutes":0,
+            "reasons":{label:{"days":0,"minutes":0} for label,_ in P5_ABSENCE_GROUPS},
+        }
+
+        for seq,emp in enumerate(chunk,start=page_index*per_page+1):
+            y-=row_h
+            # Fixed merged columns.
+            fixed_values=[seq,emp["personnel_no"],emp["gender"],f"{emp['name']}\n{emp['position']}"]
+            for idx,value in enumerate(fixed_values):
+                pdf.rect(xs[idx],y,widths[idx],row_h)
+                if idx==3:
+                    parts=str(value).split("\n")
+                    txt(xs[idx]+2,y+19,parts[0],4.4)
+                    if len(parts)>1:
+                        txt(xs[idx]+2,y+7,parts[1],3.8)
                 else:
-                    text(x_positions[i] + widths[i]/2, y + 9, value, 4.7, "center")
+                    txt(xs[idx]+widths[idx]/2,y+row_h/2-2,value,4.4,"center")
 
-            for j, cell in enumerate(emp["cells"]):
-                pos = base + j
-                c.rect(x_positions[pos], y, widths[pos], row_h)
-                if cell["code"]:
-                    text(x_positions[pos] + widths[pos]/2, y + 14, cell["code"], 4.5, "center")
-                if cell["hours"] is not None:
-                    hours = core.minutes_hhmm(cell["hours"]).replace(":00", "")
-                    text(x_positions[pos] + widths[pos]/2, y + 5, hours, 4.5, "center")
-            pos = base + len(data["days"])
-            summary_vals = [
-                emp["work_days"],
-                core.minutes_hhmm(emp["work_minutes"]),
-                core.minutes_hhmm(emp["overtime_minutes"]) if emp["overtime_minutes"] else "",
-                "",
-                "",
+            # Day slots: top 01–15; bottom 16–31.
+            for slot in range(16):
+                idx=day_start+slot
+                pdf.rect(xs[idx],y,widths[idx],row_half)
+                pdf.rect(xs[idx],y+row_half,widths[idx],row_half)
+                day1=slot+1
+                day2=slot+16
+                for cell_y,day_no in ((y+row_half,day1),(y,day2)):
+                    if day_no>len(emp["cells"]):
+                        continue
+                    cell=emp["cells"][day_no-1]
+                    if cell.get("missing"):
+                        pdf.setFillColor(colors.HexColor("#FFF2CC"))
+                        pdf.rect(xs[idx],cell_y,widths[idx],row_half,fill=1,stroke=0)
+                        pdf.setFillColor(colors.black)
+                        pdf.rect(xs[idx],cell_y,widths[idx],row_half,fill=0,stroke=1)
+                    value=_p5_day_text(core,cell)
+                    parts=str(value).split("\n")
+                    if len(parts)==1:
+                        txt(xs[idx]+widths[idx]/2,cell_y+5,parts[0],3.8,"center")
+                    else:
+                        txt(xs[idx]+widths[idx]/2,cell_y+8,parts[0],3.6,"center")
+                        txt(xs[idx]+widths[idx]/2,cell_y+2,parts[1],3.4,"center")
+
+            # Worked summary.
+            summary_values=[
+                emp["work_days"],_p5_hhmm(core,emp["work_minutes"]),
+                _p5_hhmm(core,emp["overtime_minutes"]),
+                _p5_hhmm(core,emp["night_minutes"]),
+                _p5_hhmm(core,emp["evening_minutes"]),
+                _p5_hhmm(core,emp["holiday_minutes"]),
             ]
-            for value in summary_vals:
-                c.rect(x_positions[pos], y, widths[pos], row_h)
-                text(x_positions[pos] + widths[pos]/2, y + 9, value, 4.4, "center"); pos += 1
-            for label, _codes in P5_ABSENCE_GROUPS:
-                c.rect(x_positions[pos], y, widths[pos], row_h)
-                value = emp["absence_counts"][label]
-                text(x_positions[pos] + widths[pos]/2, y + 9, value if value else "", 4.4, "center"); pos += 1
-            c.rect(x_positions[pos], y, widths[pos], row_h)
-            text(x_positions[pos] + widths[pos]/2, y + 9, emp["tariff_rate"], 4.2, "center")
-            page_work_days += emp["work_days"]
-            page_work_min += emp["work_minutes"]
+            for off,value in enumerate(summary_values):
+                idx=summary_start+off
+                pdf.rect(xs[idx],y,widths[idx],row_h)
+                txt(xs[idx]+widths[idx]/2,y+row_h/2-2,value,4.0,"center")
 
-        y -= row_h
-        c.rect(margin, y, sum(widths[:4]), row_h)
-        text(margin + 2, y + 9, "Всього на сторінці", 5.0)
-        pos = 4
-        # Blank day totals: report totals are shown in summary columns.
-        for _ in data["days"]:
-            c.rect(x_positions[pos], y, widths[pos], row_h); pos += 1
-        totals = [page_work_days, core.minutes_hhmm(page_work_min), "", "", ""]
-        for value in totals:
-            c.rect(x_positions[pos], y, widths[pos], row_h)
-            text(x_positions[pos] + widths[pos]/2, y + 9, value, 4.5, "center"); pos += 1
-        while pos < len(widths):
-            c.rect(x_positions[pos], y, widths[pos], row_h); pos += 1
+            pdf.rect(xs[total_abs_idx],y,widths[total_abs_idx],row_h)
+            absence_value=(
+                f"{emp['total_absence_days']}/"
+                f"{_p5_hhmm(core,emp['total_absence_minutes']) or '0:00'}"
+                if emp["total_absence_days"] or emp["total_absence_minutes"] else ""
+            )
+            txt(xs[total_abs_idx]+widths[total_abs_idx]/2,y+row_h/2-2,absence_value,3.8,"center")
 
-        text(margin, 18, "Якщо факт ще не внесено, П-5 використовує планові години з графіка/маршруту; після внесення факту він має пріоритет. Поля статі та окладу поки не ведуться в Taxo.", 4.8)
-        c.showPage()
+            for off,(label,_codes) in enumerate(P5_ABSENCE_GROUPS):
+                idx=abs_start+off
+                item=emp["absence_details"][label]
+                value=(
+                    f"{item['days']}/{_p5_hhmm(core,item['minutes']) or '0:00'}"
+                    if item["days"] or item["minutes"] else ""
+                )
+                pdf.rect(xs[idx],y,widths[idx],row_h)
+                txt(xs[idx]+widths[idx]/2,y+row_h/2-2,value,3.5,"center")
 
-    c.save()
+            pdf.rect(xs[tariff_idx],y,widths[tariff_idx],row_h)
+            tariff_value=emp["tariff_rate"]
+            if tariff_value not in ("",None):
+                try:
+                    tariff_value=f"{float(tariff_value):.2f}"
+                except Exception:
+                    pass
+            txt(xs[tariff_idx]+widths[tariff_idx]/2,y+row_h/2-2,tariff_value,3.9,"center")
+
+            chunk_totals["work_days"]+=emp["work_days"]
+            chunk_totals["work_minutes"]+=emp["work_minutes"]
+            chunk_totals["overtime"]+=emp["overtime_minutes"]
+            chunk_totals["night"]+=emp["night_minutes"]
+            chunk_totals["evening"]+=emp["evening_minutes"]
+            chunk_totals["holiday"]+=emp["holiday_minutes"]
+            chunk_totals["absence_days"]+=emp["total_absence_days"]
+            chunk_totals["absence_minutes"]+=emp["total_absence_minutes"]
+            for label,_codes in P5_ABSENCE_GROUPS:
+                chunk_totals["reasons"][label]["days"]+=emp["absence_details"][label]["days"]
+                chunk_totals["reasons"][label]["minutes"]+=emp["absence_details"][label]["minutes"]
+
+        # Page total.
+        y-=20
+        pdf.rect(margin,y,sum(widths[:day_end]),20)
+        txt(margin+3,y+7,"РАЗОМ НА СТОРІНЦІ",4.7)
+        total_values=[
+            chunk_totals["work_days"],_p5_hhmm(core,chunk_totals["work_minutes"]),
+            _p5_hhmm(core,chunk_totals["overtime"]),_p5_hhmm(core,chunk_totals["night"]),
+            _p5_hhmm(core,chunk_totals["evening"]),_p5_hhmm(core,chunk_totals["holiday"]),
+        ]
+        for off,value in enumerate(total_values):
+            idx=summary_start+off
+            pdf.rect(xs[idx],y,widths[idx],20)
+            txt(xs[idx]+widths[idx]/2,y+7,value,3.8,"center")
+        pdf.rect(xs[total_abs_idx],y,widths[total_abs_idx],20)
+        abs_total=(
+            f"{chunk_totals['absence_days']}/{_p5_hhmm(core,chunk_totals['absence_minutes']) or '0:00'}"
+            if chunk_totals["absence_days"] or chunk_totals["absence_minutes"] else ""
+        )
+        txt(xs[total_abs_idx]+widths[total_abs_idx]/2,y+7,abs_total,3.5,"center")
+        for off,(label,_codes) in enumerate(P5_ABSENCE_GROUPS):
+            idx=abs_start+off
+            item=chunk_totals["reasons"][label]
+            value=(
+                f"{item['days']}/{_p5_hhmm(core,item['minutes']) or '0:00'}"
+                if item["days"] or item["minutes"] else ""
+            )
+            pdf.rect(xs[idx],y,widths[idx],20)
+            txt(xs[idx]+widths[idx]/2,y+7,value,3.2,"center")
+        pdf.rect(xs[tariff_idx],y,widths[tariff_idx],20)
+
+        if page_index==len(chunks)-1:
+            footer_y=max(18,y-62)
+            if data["missing_fact_total"]:
+                txt(
+                    margin,footer_y+50,
+                    f"* Увага: {data['missing_fact_total']} дн. мають план, але не мають підтвердженого факту; "
+                    "у відпрацьовані години П-5 вони не включені.",
+                    5.0
+                )
+            if data["missing_profile_fields"]:
+                txt(
+                    margin,footer_y+40,
+                    f"Контроль реквізитів: у {data['missing_profile_fields']} працівн. не заповнено стать та/або оклад/ставку.",
+                    4.8
+                )
+
+            sig_y=footer_y+24
+            blocks=[
+                ("Відповідальна особа",margin),
+                ("Керівник структурного підрозділу",page_w/3+8),
+                ("Працівник кадрової служби",2*page_w/3+4),
+            ]
+            for label,x in blocks:
+                txt(x,sig_y,label,4.9)
+                txt(x,sig_y-10,"посада ____________  підпис ____________  ПІБ __________________",4.1)
+                txt(x,sig_y-20,'"___" __________ 20__ р.',4.1)
+
+            txt(
+                margin,10,
+                "Примітка: для підсумованого обліку фонд часу визначається за встановленим обліковим періодом "
+                "у межах нормальної тривалості. Форма має рекомендаційний характер і може доповнюватися показниками підприємства.",
+                4.0
+            )
+
+        pdf.showPage()
+
+    pdf.save()
     return data
 
 
 def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None, department="", edrpou=""):
+    """Editable A4-landscape workbook preserving the standard P-5 indicators."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from openpyxl.utils import get_column_letter
 
-    data = collect_p5_data(core, year, month, active_only)
-    form_date = form_date or date.today()
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Табель П-5"
-    legend_ws = wb.create_sheet("Умовні позначення")
-    company = (data["company"]["name"] if data["company"] else "") or ""
+    data=collect_p5_data(core,year,month,active_only)
+    form_date=form_date or date.today()
+    wb=Workbook()
+    ws=wb.active
+    ws.title="Табель П-5"
+    legend_ws=wb.create_sheet("Умовні позначення")
+    company=(data["company"]["name"] if data["company"] else "") or ""
 
-    thin = Side(style="thin", color="333333")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
-    header_fill = PatternFill("solid", fgColor="D9E6F2")
-    conflict_fill = PatternFill("solid", fgColor="FFF2CC")
+    thin=Side(style="thin",color="555555")
+    border=Border(left=thin,right=thin,top=thin,bottom=thin)
+    header_fill=PatternFill("solid",fgColor="D9E6F2")
+    missing_fill=PatternFill("solid",fgColor="FFF2CC")
+    total_fill=PatternFill("solid",fgColor="EAF2F8")
 
-    day_start_col = 5
-    summary_start = day_start_col + len(data["days"])
-    abs_start = summary_start + 5
-    last_col = abs_start + len(P5_ABSENCE_GROUPS)
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=last_col)
-    ws.cell(1, 1, company)
-    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=last_col)
-    ws.cell(2, 1, f"ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ — {core.month_name_ua(data['month']).upper()} {data['year']}")
-    ws.merge_cells(start_row=3, start_column=1, end_row=3, end_column=last_col)
-    ws.cell(3, 1, (
-        f"Структурний підрозділ: {department or '—'}    "
-        f"ЄДРПОУ: {edrpou or '—'}    "
+    fixed_count=4
+    day_start=5
+    day_end=day_start+16-1
+    summary_start=day_end+1
+    total_abs_col=summary_start+6
+    absence_start=total_abs_col+1
+    tariff_col=absence_start+len(P5_ABSENCE_GROUPS)
+    last_col=tariff_col
+
+    # Header metadata.
+    ws.merge_cells(start_row=1,start_column=1,end_row=1,end_column=last_col)
+    ws["A1"]=company
+    ws.merge_cells(start_row=2,start_column=1,end_row=2,end_column=last_col)
+    ws["A2"]="ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ"
+    ws.merge_cells(start_row=3,start_column=1,end_row=3,end_column=last_col)
+    ws["A3"]=(
+        f"Типова форма № П-5; наказ Держкомстату України 05.12.2008 № 489    "
+        f"Підрозділ: {department or '—'}    ЄДРПОУ: {edrpou or '—'}    "
         f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}    "
-        f"Звітний період: {data['days'][0].strftime('%d.%m.%Y')} — {data['days'][-1].strftime('%d.%m.%Y')}"
-    ))
-    for row in (1, 2, 3):
-        ws.cell(row, 1).font = Font(bold=(row != 3), size=13 if row == 2 else 11 if row == 1 else 8)
-        ws.cell(row, 1).alignment = Alignment(horizontal="center", wrap_text=True)
+        f"Звітний період: {data['days'][0].strftime('%d.%m.%Y')}–{data['days'][-1].strftime('%d.%m.%Y')}"
+    )
+    for rr in (1,2,3):
+        ws.cell(rr,1).font=Font(bold=(rr<3),size=13 if rr==2 else 10 if rr==1 else 8)
+        ws.cell(rr,1).alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
 
-    fixed_headers = ["№", "Табельний номер", "Стать", "ПІБ, посада"]
-    for col, label in enumerate(fixed_headers, 1):
-        c = ws.cell(4, col, label); c.font = Font(bold=True); c.fill = header_fill; c.border = border
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    for j, d in enumerate(data["days"], day_start_col):
-        c = ws.cell(4, j, f"{d.day:02d}\n{WEEKDAY_NAMES[d.weekday()]}")
-        c.font = Font(bold=True, size=8); c.fill = header_fill; c.border = border
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    # Two-row header preserving the official 01–15/X and 16–31 structure.
+    fixed_headers=["№","Табельний номер","Стать (ч/ж)","ПІБ, посада"]
+    for col,label in enumerate(fixed_headers,1):
+        ws.merge_cells(start_row=4,start_column=col,end_row=5,end_column=col)
+        cell=ws.cell(4,col,label); cell.font=Font(bold=True,size=8); cell.fill=header_fill
+        cell.border=border; cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
 
-    summary_headers = ["Роб. дні", "Години", "Надур.", "Нічні", "Вих./святк."]
-    for off, label in enumerate(summary_headers):
-        c = ws.cell(4, summary_start + off, label); c.font = Font(bold=True, size=8); c.fill = header_fill; c.border = border
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    for off, (label, _codes) in enumerate(P5_ABSENCE_GROUPS):
-        c = ws.cell(4, abs_start + off, label); c.font = Font(bold=True, size=7); c.fill = header_fill; c.border = border
-        c.alignment = Alignment(horizontal="center", vertical="center", text_rotation=90, wrap_text=True)
-    c = ws.cell(4, last_col, "Оклад / тарифна ставка")
-    c.font = Font(bold=True, size=8); c.fill = header_fill; c.border = border
-    c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    ws.merge_cells(start_row=4,start_column=day_start,end_row=4,end_column=day_end)
+    ws.cell(4,day_start,"Відмітки про явки та неявки за числами місяця (код / годин)")
+    for slot in range(16):
+        col=day_start+slot
+        upper=f"{slot+1:02d}" if slot<15 else "X"
+        lower=f"{slot+16:02d}"
+        cell=ws.cell(5,col,f"{upper}\n{lower}")
+        cell.font=Font(bold=True,size=7); cell.fill=header_fill; cell.border=border
+        cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
 
-    row = 5
-    for seq, emp in enumerate(data["employees"], 1):
-        code_row = row
-        hour_row = row + 1
-        for col, value in enumerate([seq, emp["personnel_no"], emp["gender"], f"{emp['name']}\n{emp['position']}"], 1):
-            ws.merge_cells(start_row=code_row, start_column=col, end_row=hour_row, end_column=col)
-            c = ws.cell(code_row, col, value); c.border = border
-            c.alignment = Alignment(horizontal="left" if col == 4 else "center", vertical="center", wrap_text=True)
+    ws.merge_cells(start_row=4,start_column=summary_start,end_row=4,end_column=summary_start+5)
+    ws.cell(4,summary_start,"Відпрацьовано за місяць")
+    for off,label in enumerate(("днів","годин","надурочно","нічних","вечірніх","вих./свят.")):
+        cell=ws.cell(5,summary_start+off,label)
+        cell.font=Font(bold=True,size=7); cell.fill=header_fill; cell.border=border
+        cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
 
-        for j, cell in enumerate(emp["cells"], day_start_col):
-            cc = ws.cell(code_row, j, cell["code"])
-            hc = ws.cell(hour_row, j, (cell["hours"] / 60.0) if cell["hours"] is not None else None)
-            for cell_obj in (cc, hc):
-                cell_obj.border = border
-                cell_obj.alignment = Alignment(horizontal="center", vertical="center")
-            if cell["missing"]:
-                cc.fill = conflict_fill
-        first_letter = get_column_letter(day_start_col)
-        last_letter = get_column_letter(day_start_col + len(data["days"]) - 1)
-        # Формули працюють на нижньому (годинному) рядку.
-        ws.cell(code_row, summary_start, "дні")
-        ws.cell(hour_row, summary_start, f"=COUNT({first_letter}{hour_row}:{last_letter}{hour_row})")
-        ws.cell(code_row, summary_start + 1, "год.")
-        ws.cell(hour_row, summary_start + 1, f"=SUM({first_letter}{hour_row}:{last_letter}{hour_row})")
-        ws.cell(hour_row, summary_start + 2, emp["overtime_minutes"] / 60.0 if emp["overtime_minutes"] else None)
-        ws.cell(hour_row, summary_start + 3, None)
-        ws.cell(hour_row, summary_start + 4, None)
-        for col in range(summary_start, summary_start + 5):
-            for rr in (code_row, hour_row):
-                ws.cell(rr, col).border = border
-                ws.cell(rr, col).alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=4,start_column=total_abs_col,end_row=5,end_column=total_abs_col)
+    ws.cell(4,total_abs_col,"Всього неявок\nдні / години")
 
-        code_range = f"{first_letter}{code_row}:{last_letter}{code_row}"
-        for off, (_label, codes) in enumerate(P5_ABSENCE_GROUPS):
-            formula = "+".join(f'COUNTIF({code_range},"{letter}")' for dtype, (letter, num, _desc) in P5_CODES.items() if num in codes and letter)
-            # Deduplicate repeated legacy aliases such as «Відпустка»/«Лікарняний».
-            unique_letters = []
-            for dtype, (letter, num, _desc) in P5_CODES.items():
-                if num in codes and letter and letter not in unique_letters:
-                    unique_letters.append(letter)
-            formula = "+".join(f'COUNTIF({code_range},"{letter}")' for letter in unique_letters) or "0"
-            ws.merge_cells(start_row=code_row, start_column=abs_start + off, end_row=hour_row, end_column=abs_start + off)
-            cell = ws.cell(code_row, abs_start + off, f"={formula}")
-            cell.border = border; cell.alignment = Alignment(horizontal="center", vertical="center")
-        ws.merge_cells(start_row=code_row, start_column=last_col, end_row=hour_row, end_column=last_col)
-        ws.cell(code_row, last_col, emp["tariff_rate"]).border = border
-        row += 2
+    ws.merge_cells(start_row=4,start_column=absence_start,end_row=4,end_column=absence_start+len(P5_ABSENCE_GROUPS)-1)
+    ws.cell(4,absence_start,"З причин за місяць — дні / години")
+    for off,(label,_codes) in enumerate(P5_ABSENCE_GROUPS):
+        cell=ws.cell(5,absence_start+off,f"{_p5_reason_caption(label)}\n[{label}]")
+        cell.font=Font(bold=True,size=6); cell.fill=header_fill; cell.border=border
+        cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
 
-    # Total row
-    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=4)
-    ws.cell(row, 1, "Всього")
-    for col in range(1, last_col + 1):
-        ws.cell(row, col).border = border
-    ws.cell(row, summary_start, f"=SUM({get_column_letter(summary_start)}6:{get_column_letter(summary_start)}{row-1})")
-    ws.cell(row, summary_start + 1, f"=SUM({get_column_letter(summary_start+1)}6:{get_column_letter(summary_start+1)}{row-1})")
+    ws.merge_cells(start_row=4,start_column=tariff_col,end_row=5,end_column=tariff_col)
+    ws.cell(4,tariff_col,"Оклад / тарифна ставка, грн")
 
-    ws.column_dimensions["A"].width = 5
-    ws.column_dimensions["B"].width = 14
-    ws.column_dimensions["C"].width = 7
-    ws.column_dimensions["D"].width = 30
-    for col in range(day_start_col, day_start_col + len(data["days"])):
-        ws.column_dimensions[get_column_letter(col)].width = 4.1
-    for col in range(summary_start, last_col + 1):
-        ws.column_dimensions[get_column_letter(col)].width = 7.5
-    ws.row_dimensions[4].height = 72
-    ws.freeze_panes = "E5"
-    ws.sheet_view.showGridLines = False
-    ws.page_setup.orientation = "landscape"
-    ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.page_setup.fitToWidth = 1
-    ws.page_setup.fitToHeight = 0
-    ws.sheet_properties.pageSetUpPr.fitToPage = True
-    ws.print_title_rows = "1:4"
-    ws.print_area = f"A1:{get_column_letter(last_col)}{row}"
+    for row in (4,5):
+        for col in range(1,last_col+1):
+            cell=ws.cell(row,col)
+            cell.fill=header_fill
+            cell.border=border
+            cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
+            if cell.font is None or not cell.font.bold:
+                cell.font=Font(bold=True,size=7)
 
+    row=6
+    for seq,emp in enumerate(data["employees"],1):
+        upper=row
+        lower=row+1
+        fixed_values=[seq,emp["personnel_no"],emp["gender"],f"{emp['name']}\n{emp['position']}"]
+        for col,value in enumerate(fixed_values,1):
+            ws.merge_cells(start_row=upper,start_column=col,end_row=lower,end_column=col)
+            cell=ws.cell(upper,col,value)
+            cell.border=border
+            cell.alignment=Alignment(
+                horizontal="left" if col==4 else "center",
+                vertical="center",wrap_text=True
+            )
+
+        for slot in range(16):
+            col=day_start+slot
+            for target_row,day_no in ((upper,slot+1),(lower,slot+16)):
+                cell=ws.cell(target_row,col)
+                cell.border=border
+                cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
+                if day_no>len(emp["cells"]):
+                    continue
+                info=emp["cells"][day_no-1]
+                cell.value=_p5_day_text(core,info)
+                if info.get("missing"):
+                    cell.fill=missing_fill
+
+        summary_values=[
+            emp["work_days"],emp["work_minutes"]/60.0 if emp["work_minutes"] else None,
+            emp["overtime_minutes"]/60.0 if emp["overtime_minutes"] else None,
+            emp["night_minutes"]/60.0 if emp["night_minutes"] else None,
+            emp["evening_minutes"]/60.0 if emp["evening_minutes"] else None,
+            emp["holiday_minutes"]/60.0 if emp["holiday_minutes"] else None,
+        ]
+        for off,value in enumerate(summary_values):
+            col=summary_start+off
+            ws.merge_cells(start_row=upper,start_column=col,end_row=lower,end_column=col)
+            cell=ws.cell(upper,col,value); cell.border=border
+            cell.alignment=Alignment(horizontal="center",vertical="center")
+
+        ws.merge_cells(start_row=upper,start_column=total_abs_col,end_row=lower,end_column=total_abs_col)
+        total_abs=(
+            f"{emp['total_absence_days']} / {_p5_hhmm(core,emp['total_absence_minutes']) or '0:00'}"
+            if emp["total_absence_days"] or emp["total_absence_minutes"] else ""
+        )
+        ws.cell(upper,total_abs_col,total_abs).border=border
+        ws.cell(upper,total_abs_col).alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
+
+        for off,(label,_codes) in enumerate(P5_ABSENCE_GROUPS):
+            col=absence_start+off
+            item=emp["absence_details"][label]
+            value=(
+                f"{item['days']} / {_p5_hhmm(core,item['minutes']) or '0:00'}"
+                if item["days"] or item["minutes"] else ""
+            )
+            ws.merge_cells(start_row=upper,start_column=col,end_row=lower,end_column=col)
+            ws.cell(upper,col,value).border=border
+            ws.cell(upper,col).alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
+
+        ws.merge_cells(start_row=upper,start_column=tariff_col,end_row=lower,end_column=tariff_col)
+        ws.cell(upper,tariff_col,emp["tariff_rate"] if emp["tariff_rate"] not in ("",None) else "").border=border
+        ws.cell(upper,tariff_col).alignment=Alignment(horizontal="center",vertical="center")
+        row+=2
+
+    # Overall totals.
+    total_row=row
+    ws.merge_cells(start_row=total_row,start_column=1,end_row=total_row,end_column=day_end)
+    ws.cell(total_row,1,"РАЗОМ")
+    totals={
+        "work_days":sum(e["work_days"] for e in data["employees"]),
+        "work_minutes":sum(e["work_minutes"] for e in data["employees"]),
+        "overtime":sum(e["overtime_minutes"] for e in data["employees"]),
+        "night":sum(e["night_minutes"] for e in data["employees"]),
+        "evening":sum(e["evening_minutes"] for e in data["employees"]),
+        "holiday":sum(e["holiday_minutes"] for e in data["employees"]),
+        "absence_days":sum(e["total_absence_days"] for e in data["employees"]),
+        "absence_minutes":sum(e["total_absence_minutes"] for e in data["employees"]),
+    }
+    vals=[
+        totals["work_days"],totals["work_minutes"]/60.0 if totals["work_minutes"] else None,
+        totals["overtime"]/60.0 if totals["overtime"] else None,
+        totals["night"]/60.0 if totals["night"] else None,
+        totals["evening"]/60.0 if totals["evening"] else None,
+        totals["holiday"]/60.0 if totals["holiday"] else None,
+    ]
+    for off,value in enumerate(vals):
+        ws.cell(total_row,summary_start+off,value)
+    ws.cell(
+        total_row,total_abs_col,
+        f"{totals['absence_days']} / {_p5_hhmm(core,totals['absence_minutes']) or '0:00'}"
+        if totals["absence_days"] or totals["absence_minutes"] else ""
+    )
+    for off,(label,_codes) in enumerate(P5_ABSENCE_GROUPS):
+        days_total=sum(e["absence_details"][label]["days"] for e in data["employees"])
+        min_total=sum(e["absence_details"][label]["minutes"] for e in data["employees"])
+        ws.cell(
+            total_row,absence_start+off,
+            f"{days_total} / {_p5_hhmm(core,min_total) or '0:00'}"
+            if days_total or min_total else ""
+        )
+    for col in range(1,last_col+1):
+        cell=ws.cell(total_row,col); cell.border=border; cell.fill=total_fill
+        cell.font=Font(bold=True,size=8); cell.alignment=Alignment(horizontal="center",vertical="center",wrap_text=True)
+
+    info_row=total_row+2
+    if data["missing_fact_total"]:
+        ws.merge_cells(start_row=info_row,start_column=1,end_row=info_row,end_column=last_col)
+        ws.cell(info_row,1)=(
+            f"* Увага: {data['missing_fact_total']} дн. мають план, але не мають підтвердженого факту; "
+            "вони не включені до відпрацьованих годин П-5."
+        )
+        ws.cell(info_row,1).fill=missing_fill
+        ws.cell(info_row,1).alignment=Alignment(wrap_text=True)
+        info_row+=1
+    if data["missing_profile_fields"]:
+        ws.merge_cells(start_row=info_row,start_column=1,end_row=info_row,end_column=last_col)
+        ws.cell(info_row,1)=(
+            f"Контроль реквізитів: у {data['missing_profile_fields']} працівн. "
+            "не заповнено стать та/або оклад/тарифну ставку."
+        )
+        ws.cell(info_row,1).alignment=Alignment(wrap_text=True)
+        info_row+=1
+
+    # Signature blocks required by the standard form.
+    sig_row=info_row+1
+    spans=[
+        (1,13,"Відповідальна особа"),
+        (14,26,"Керівник структурного підрозділу"),
+        (27,last_col,"Працівник кадрової служби"),
+    ]
+    for c1,c2,label in spans:
+        ws.merge_cells(start_row=sig_row,start_column=c1,end_row=sig_row,end_column=c2)
+        ws.cell(sig_row,c1,label).font=Font(bold=True,size=8)
+        ws.merge_cells(start_row=sig_row+1,start_column=c1,end_row=sig_row+1,end_column=c2)
+        ws.cell(sig_row+1,c1,"посада ____________   підпис ____________   ПІБ __________________")
+        ws.merge_cells(start_row=sig_row+2,start_column=c1,end_row=sig_row+2,end_column=c2)
+        ws.cell(sig_row+2,c1,'"___" __________ 20__ р.')
+
+    note_row=sig_row+4
+    ws.merge_cells(start_row=note_row,start_column=1,end_row=note_row+1,end_column=last_col)
+    ws.cell(note_row,1)=(
+        "Примітка. Для підсумованого обліку фонд часу визначається за встановленим обліковим періодом "
+        "у межах нормальної тривалості. Форма має рекомендаційний характер і може доповнюватися "
+        "іншими показниками, необхідними підприємству."
+    )
+    ws.cell(note_row,1).alignment=Alignment(wrap_text=True,vertical="top")
+
+    # Widths / printing.
+    widths={
+        1:5,2:12,3:7,4:28,
+    }
+    for col in range(day_start,day_end+1):
+        widths[col]=4.6
+    for col in range(summary_start,summary_start+6):
+        widths[col]=7.5
+    widths[total_abs_col]=9
+    for col in range(absence_start,tariff_col):
+        widths[col]=9.0
+    widths[tariff_col]=11
+    for col,width in widths.items():
+        ws.column_dimensions[get_column_letter(col)].width=width
+    ws.row_dimensions[4].height=24
+    ws.row_dimensions[5].height=42
+    ws.freeze_panes="E6"
+    ws.sheet_view.showGridLines=False
+    ws.page_setup.orientation="landscape"
+    ws.page_setup.paperSize=ws.PAPERSIZE_A4
+    ws.page_setup.fitToWidth=1
+    ws.page_setup.fitToHeight=0
+    ws.sheet_properties.pageSetUpPr.fitToPage=True
+    ws.print_title_rows="1:5"
+    ws.print_area=f"A1:{get_column_letter(last_col)}{note_row+1}"
+
+    # Official legend sheet.
     legend_ws.merge_cells("A1:C1")
-    legend_ws["A1"] = company
-    legend_ws["A1"].font = Font(bold=True, size=11)
-    legend_ws["A1"].alignment = Alignment(horizontal="center")
+    legend_ws["A1"]=company
+    legend_ws["A1"].font=Font(bold=True,size=11)
+    legend_ws["A1"].alignment=Alignment(horizontal="center")
     legend_ws.merge_cells("A2:C2")
-    legend_ws["A2"] = "ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ — УМОВНІ ПОЗНАЧЕННЯ"
-    legend_ws["A2"].font = Font(bold=True, size=12)
-    legend_ws["A2"].alignment = Alignment(horizontal="center")
+    legend_ws["A2"]="ТАБЕЛЬ ОБЛІКУ ВИКОРИСТАННЯ РОБОЧОГО ЧАСУ — УМОВНІ ПОЗНАЧЕННЯ П-5"
+    legend_ws["A2"].font=Font(bold=True,size=12)
+    legend_ws["A2"].alignment=Alignment(horizontal="center")
     legend_ws.merge_cells("A3:C3")
-    legend_ws["A3"] = (
-        f"Структурний підрозділ: {department or '—'}    ЄДРПОУ: {edrpou or '—'}    "
+    legend_ws["A3"]=(
+        f"Типова форма № П-5; наказ Держкомстату України 05.12.2008 № 489; "
         f"Дата заповнення: {form_date.strftime('%d.%m.%Y')}"
     )
-    legend_ws["A3"].alignment = Alignment(horizontal="center", wrap_text=True)
-    legend_ws.append([])
-    legend_ws.append([])
+    legend_ws["A3"].alignment=Alignment(horizontal="center",wrap_text=True)
     legend_ws.cell(6,1,"Умовне позначення")
     legend_ws.cell(6,2,"Буквений код")
     legend_ws.cell(6,3,"Цифровий код")
-    for label, letter, numeric in P5_LEGEND:
-        legend_ws.append([label, letter, numeric])
-    for row_cells in legend_ws.iter_rows(min_row=6):
-        for c in row_cells:
-            c.border = border; c.alignment = Alignment(vertical="top", wrap_text=True)
-    for c in legend_ws[6]:
-        c.font = Font(bold=True); c.fill = header_fill
-    legend_ws.column_dimensions["A"].width = 85
-    legend_ws.column_dimensions["B"].width = 16
-    legend_ws.column_dimensions["C"].width = 16
-    legend_ws.page_setup.orientation = "landscape"
-    legend_ws.page_setup.paperSize = legend_ws.PAPERSIZE_A4
-    legend_ws.page_setup.fitToWidth = 1
-    legend_ws.sheet_properties.pageSetUpPr.fitToPage = True
+    for label,letter,numeric in P5_LEGEND:
+        legend_ws.append([label,letter,numeric])
+    for cells in legend_ws.iter_rows(min_row=6):
+        for cell in cells:
+            cell.border=border
+            cell.alignment=Alignment(vertical="top",wrap_text=True)
+    for cell in legend_ws[6]:
+        cell.font=Font(bold=True); cell.fill=header_fill
+    legend_ws.column_dimensions["A"].width=90
+    legend_ws.column_dimensions["B"].width=16
+    legend_ws.column_dimensions["C"].width=16
+    legend_ws.page_setup.orientation="landscape"
+    legend_ws.page_setup.paperSize=legend_ws.PAPERSIZE_A4
+    legend_ws.page_setup.fitToWidth=1
+    legend_ws.sheet_properties.pageSetUpPr.fitToPage=True
 
     wb.save(str(out_path))
     return data
