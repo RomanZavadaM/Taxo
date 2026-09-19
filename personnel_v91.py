@@ -1534,7 +1534,7 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None
     info_row=total_row+2
     if data["used_plan_for_missing_fact"]:
         ws.merge_cells(start_row=info_row,start_column=1,end_row=info_row,end_column=last_col)
-        ws.cell(info_row,1)=(
+        ws.cell(info_row,1).value=(
             f"Примітка: за рішенням відповідальної особи у {data['planned_substituted_total']} дн. "
             "планові години підставлено замість відсутнього факту (блакитні клітинки)."
         )
@@ -1543,7 +1543,7 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None
         info_row+=1
     elif data["missing_fact_total"]:
         ws.merge_cells(start_row=info_row,start_column=1,end_row=info_row,end_column=last_col)
-        ws.cell(info_row,1)=(
+        ws.cell(info_row,1).value=(
             f"* Увага: {data['missing_fact_total']} дн. мають план, але не мають підтвердженого факту; "
             "вони не включені до відпрацьованих годин П-5."
         )
@@ -1552,7 +1552,7 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None
         info_row+=1
     if data["missing_profile_fields"]:
         ws.merge_cells(start_row=info_row,start_column=1,end_row=info_row,end_column=last_col)
-        ws.cell(info_row,1)=(
+        ws.cell(info_row,1).value=(
             f"Контроль реквізитів: у {data['missing_profile_fields']} працівн. "
             "не заповнено стать та/або оклад/тарифну ставку."
         )
