@@ -99,3 +99,12 @@ GitHub оформлено і перевірено після r9.4:
 - використовується спільний exporter;
 - додано regression test;
 - r9.6 START compatibility збережено без змін.
+
+
+### r9.7 publication
+
+- `v9.1-r9.7` published;
+- release target `8a16ef781e1b3334e664449725c217a120f9fe5d`;
+- START + SHA-256 available;
+- Windows/macOS: 107 tests — success;
+- `main` remains stable 9.0.1.
