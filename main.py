@@ -8589,10 +8589,13 @@ class App(tk.Tk):
             exports,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
         ).pack(side="left",padx=3)
         ttk.Button(
-            exports,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
+            exports,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
         ).pack(side="left",padx=3)
         ttk.Button(
-            exports,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
+            exports,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
+        ).pack(side="left",padx=(10,3))
+        ttk.Button(
+            exports,text="Відкрити деталізацію",command=self.open_monthly_shift_detail_pdf
         ).pack(side="left",padx=3)
 
         ttk.Label(
@@ -8603,6 +8606,7 @@ class App(tk.Tk):
                 "PDF графіка автоматично ділить місяць на три читабельні частини (для 31 дня: 1–11, 12–21, 22–31). "
                 "«PDF — деталізація» формує окремий A4-документ з точними частинами змін, перервами, "
                 "робочим часом, часом керування, маршрутом та автомобілем. "
+                "«Відкрити деталізацію» формує актуальний PDF без діалогу збереження та одразу відкриває його. "
                 "Для ручного редагування використовуйте «Excel — редагувати»."
             ),
             foreground="gray",
@@ -8776,6 +8780,37 @@ class App(tk.Tk):
             f"PDF деталізації створено:\n{actual}",
             parent=self.monthly_shift_win
         )
+
+    def _monthly_shift_default_detail_pdf(self):
+        y=int(self.monthly_shift_year.get())
+        m=int(self.monthly_shift_month.get())
+        return OUTPUT_DIR / f"Деталізація_графіка_змінності_{y}_{m:02d}.pdf"
+
+    def open_monthly_shift_detail_pdf(self):
+        """Сформувати актуальну деталізацію місячного графіка і одразу відкрити PDF."""
+        y=int(self.monthly_shift_year.get())
+        m=int(self.monthly_shift_month.get())
+        path=self._monthly_shift_default_detail_pdf()
+        try:
+            actual=write_output_file(
+                lambda out: export_monthly_shift_detail_pdf(
+                    y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+                ),
+                path,
+                parent=self.monthly_shift_win,
+                kind="PDF деталізації графіка змінності",
+                error_title="Помилка PDF деталізації"
+            )
+            if actual is None:
+                return
+            self.monthly_shift_last_detail_pdf=Path(actual)
+            open_external(actual)
+        except Exception as exc:
+            messagebox.showerror(
+                "Деталізація графіка",
+                f"Не вдалося відкрити деталізацію:\n{exc}",
+                parent=self.monthly_shift_win
+            )
 
     def _monthly_shift_default_pdf(self):
         y=int(self.monthly_shift_year.get())
