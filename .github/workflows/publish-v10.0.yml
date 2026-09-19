@@ -1,0 +1,315 @@
+name: Publish Taxo 10.0 stable
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'VERSION.txt'
+      - '.github/workflows/publish-v10.0.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout stable source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify stable version
+        shell: bash
+        run: |
+          grep -Fxq 'Version: 10.0' VERSION.txt
+          grep -Fxq 'Release type: stable' VERSION.txt
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Compile and test source
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py release_naming.py
+          python -m unittest discover -s tests -v
+
+  build-windows:
+    needs: verify-source
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout stable source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: 'x64'
+
+      - name: Install application and packaging dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller==6.22.2
+
+      - name: Run Windows regression suite
+        shell: pwsh
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py release_naming.py
+          python -m unittest discover -s tests -v
+
+      - name: Verify START preflight on Windows
+        shell: pwsh
+        run: |
+          $stdout = Join-Path $env:RUNNER_TEMP 'taxo-start-full-stdout.txt'
+          $stderr = Join-Path $env:RUNNER_TEMP 'taxo-start-full-stderr.txt'
+          $env:TAXO_START_PREFLIGHT_ONLY = '1'
+          try {
+            $process = Start-Process -FilePath $env:ComSpec -ArgumentList @('/d','/c','call START.bat') -WorkingDirectory $PWD.Path -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          }
+          finally {
+            Remove-Item Env:TAXO_START_PREFLIGHT_ONLY -ErrorAction SilentlyContinue
+          }
+          $out = (Get-Content $stdout -Raw -Encoding ascii) + (Get-Content $stderr -Raw -Encoding ascii -ErrorAction SilentlyContinue)
+          if ($process.ExitCode -ne 0) { throw "Expected START preflight exit 0, got $($process.ExitCode)" }
+          if (!$out.Contains('START preflight OK.')) { throw 'START preflight marker missing' }
+
+      - name: Build Windows portable application
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo.spec
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_0_Windows_x64'
+
+      - name: Verify Windows portable bundle
+        shell: pwsh
+        run: |
+          $bundle = 'dist/Taxo_v10_0_Windows_x64'
+          if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
+          if (!(Test-Path "$bundle/_internal/Бланк підтвердження.docx")) { throw 'DOCX template not found' }
+          if (!(Test-Path "$bundle/_internal/attestation_visual_template.pdf")) { throw 'PDF template not found' }
+          $db = Get-ChildItem $bundle -Recurse -File -Include *.db,*.sqlite,*.sqlite3
+          if ($db) { throw "Database unexpectedly bundled: $($db.FullName -join ', ')" }
+
+      - name: Create Windows portable ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path 'dist/Taxo_v10_0_Windows_x64' -DestinationPath 'Taxo_v10_0_Windows_x64_Portable.zip' -Force
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
+          & $iscc 'installer/Taxo.iss'
+          if (!(Test-Path 'release_out/Taxo_v10_0_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+
+      - name: Create Windows checksum manifest
+        shell: pwsh
+        run: |
+          $files = @(
+            'Taxo_v10_0_Windows_x64_Portable.zip',
+            'release_out/Taxo_v10_0_Setup_Windows_x64.exe'
+          )
+          $lines = foreach ($file in $files) {
+            "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
+          }
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_0_Windows_x64.txt'
+
+      - name: Upload Windows packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.0-Windows-x64
+          path: |
+            Taxo_v10_0_Windows_x64_Portable.zip
+            release_out/Taxo_v10_0_Setup_Windows_x64.exe
+            SHA256SUMS_v10_0_Windows_x64.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  build-macos:
+    needs: verify-source
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout stable source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Verify runner architecture
+        shell: bash
+        run: test "$(uname -m)" = "${{ matrix.arch }}"
+
+      - name: Install application and packaging dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-build-macos.txt
+
+      - name: Run macOS regression suite
+        shell: bash
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py release_naming.py
+          python -m unittest discover -s tests -v
+
+      - name: Build native Taxo.app
+        shell: bash
+        run: python -m PyInstaller --noconfirm --clean Taxo_macos.spec
+
+      - name: Verify application bundle
+        shell: bash
+        run: |
+          test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
+          find 'dist/Taxo.app' -name 'Бланк підтвердження.docx' -print -quit | grep -q .
+          find 'dist/Taxo.app' -name 'attestation_visual_template.pdf' -print -quit | grep -q .
+          if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then
+            echo 'Database unexpectedly bundled in Taxo.app' >&2
+            exit 1
+          fi
+          file 'dist/Taxo.app/Contents/MacOS/Taxo' | grep -q "${{ matrix.arch }}"
+          codesign --verify --deep --strict 'dist/Taxo.app'
+
+      - name: Create macOS portable ZIP and checksum
+        shell: bash
+        run: |
+          bundle_dir="Taxo_v10_0_macOS_${{ matrix.arch }}"
+          zip_name="${bundle_dir}_Portable.zip"
+          mkdir "${bundle_dir}"
+          mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle_dir}" "${zip_name}"
+          shasum -a 256 "${zip_name}" > "SHA256SUMS_v10_0_macOS_${{ matrix.arch }}.txt"
+
+      - name: Upload macOS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.0-macOS-${{ matrix.arch }}
+          path: |
+            Taxo_v10_0_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v10_0_macOS_${{ matrix.arch }}.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  build-start:
+    needs: verify-source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout stable source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create stable START archive
+        shell: bash
+        run: |
+          git archive --format=zip --prefix='Taxo_v10_0_START/' --output='Taxo_v10_0_START.zip' HEAD
+
+      - name: Verify clean START package
+        shell: bash
+        run: |
+          archive='Taxo_v10_0_START.zip'
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly bundled in START' >&2
+            exit 1
+          fi
+          for file in START.bat requirements.txt taxo_app.py 00_README_START.txt release_naming.py; do
+            unzip -l "$archive" | grep -q "/${file}$" || {
+              echo "Required START file missing: ${file}" >&2
+              exit 1
+            }
+          done
+          unzip -p "$archive" '*/START.bat' > /tmp/START.bat
+          python - <<'PY'
+          data = open('/tmp/START.bat', 'rb').read()
+          if any(byte >= 128 for byte in data):
+              raise SystemExit('START.bat must be ASCII-only')
+          if b'chcp' in data.lower():
+              raise SystemExit('START.bat must not switch code pages')
+          if b'\r\n' not in data:
+              raise SystemExit('START.bat must contain CRLF')
+          PY
+          sha256sum "$archive" > 'SHA256SUMS_v10_0_START.txt'
+
+      - name: Upload START package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.0-START
+          path: |
+            Taxo_v10_0_START.zip
+            SHA256SUMS_v10_0_START.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs:
+      - verify-source
+      - build-windows
+      - build-macos
+      - build-start
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout stable source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all stable artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Taxo-v10.0-*
+          path: release-upload
+          merge-multiple: true
+
+      - name: Create combined SHA-256 manifest
+        shell: bash
+        run: |
+          cd release-upload
+          sha256sum Taxo_v10_0_*.zip Taxo_v10_0_*.exe | sort -k2 > SHA256SUMS_v10_0.txt
+          cat SHA256SUMS_v10_0.txt
+
+      - name: Publish immutable stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view 'v10.0' >/dev/null 2>&1; then
+            echo 'v10.0 already exists; refusing to overwrite the stable release.'
+            exit 1
+          fi
+          gh release create 'v10.0' \
+            release-upload/* \
+            --target "$GITHUB_SHA" \
+            --title 'Taxo 10.0' \
+            --notes-file 'docs/releases/RELEASE_NOTES_v10_0.md' \
+            --latest
