@@ -2,7 +2,7 @@
 
 **Стан перевірено:** 19.09.2026  
 **Поточний stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)  
-**Поточний candidate:** [Taxo 9.1 candidate r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5)  
+**Поточний candidate:** Taxo 9.1 candidate r9.6 — публікується після зеленого CI  
 **Робочий PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29)
 
 > Stable `main` залишається на Taxo 9.0.1 до завершення ручного operational gate.  
@@ -12,7 +12,8 @@
 
 | Tag | Статус | Пакети | Призначення |
 |---|---|---|---|
-| [v9.1-r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) | Pre-release, поточний candidate | START + SHA-256 | START ZIP extraction guard, коректні dotted revision names; функціональний baseline r9.4 |
+| v9.1-r9.6 | **Current candidate — pending publication after CI** | START + SHA-256 | ASCII/CRLF START.bat, real Windows full/incomplete preflight |
+| [v9.1-r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) | Pre-release, **known broken START on real Windows** | START + SHA-256 | Не використовувати для manual gate; CMD parsing regression |
 | [v9.1-r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) | Pre-release | START + SHA-256 | Передетапна стабілізація, «Аудит графіків…», П-5, архів бланків, місячний контроль |
 | [v9.1-r9.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.3) | Pre-release | START + SHA-256 | П-5, архів бланків, місячний контроль |
 | [v9.1-r9.2](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.2) | Pre-release | START + SHA-256 | Статуси відсутностей, попередній аудит графіків |
@@ -41,7 +42,15 @@ GitHub також зберігає опубліковані історичні �
 
 Ці релізи не є поточною експлуатаційною рекомендацією. Вони зберігаються для історії та відтворюваності.
 
-## Поточна контрольна точка r9.5
+## Поточна контрольна точка r9.6
+
+- START.bat: ASCII-only, без chcp, Windows CRLF;
+- full-folder Windows preflight + incomplete-folder guard;
+- source ZIP verification контролює encoding/line endings;
+- функціональний baseline r9.4 не змінюється;
+- release публікується тільки після зеленого CI.
+
+## Попередня контрольна точка r9.5
 
 - release tag: `v9.1-r9.5`;
 - release target: `f587c2cad71a22c6bded3a992fd27797c1e2c296`;
@@ -73,7 +82,7 @@ r9.5 є пакувально-запускним hotfix поверх функці
 3. Windows/macOS executable packages випускаються на визначених контрольних точках.
 4. Старі candidate tags/releases не пересуваються, не видаляються і не перезаписуються.
 5. Робочі SQLite-бази, скани, кеші та персональні документи до релізів не включаються.
-6. Нові кодові контрольні точки після r9.5 повинні отримувати новий tag/release.
+6. Нові кодові контрольні точки після r9.6 повинні отримувати новий tag/release.
 
 ## Перед stable 9.1
 
