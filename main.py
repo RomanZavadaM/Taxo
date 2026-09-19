@@ -9423,6 +9423,24 @@ class App(tk.Tk):
         if not sel:
             messagebox.showwarning("Вставлення","Виберіть одну або кілька дат у табелі."); return
         clip=self.work_clipboard
+        clip_segments=list(clip.get("segments",[]) or [])
+        overlap_text=segment_overlap_message(clip_segments,"work")
+        if overlap_text:
+            messagebox.showerror(
+                "Вставлення дня",
+                "Скопійований день містить перекриття частин робочого часу.\n\n"
+                + overlap_text
+                + "\n\nСпочатку виправте вихідний день; поширювати такий конфлікт на інші дати заборонено.",
+                parent=self
+            ); return
+        canonical_work=(
+            minutes_to_db_hours(segments_union_minutes(clip_segments,"work"))
+            if clip_segments else clip.get("work_hours",0)
+        )
+        canonical_drive=(
+            minutes_to_db_hours(segments_union_minutes(clip_segments,"drive"))
+            if clip_segments else clip.get("driving_hours",0)
+        )
         dates=[self.work_tree.item(i,"values")[1] for i in sel]
         con=db()
         for date_text in dates:
@@ -9445,7 +9463,7 @@ class App(tk.Tk):
                 (
                     self.driver_id,wd,clip.get("day_type","Робота"),clip.get("start_time",""),
                     clip.get("end_time",""),clip.get("work_start_time",clip.get("start_time","")),
-                    clip.get("work_end_time",clip.get("end_time","")),clip.get("work_hours",0),clip.get("driving_hours",0),
+                    clip.get("work_end_time",clip.get("end_time","")),canonical_work,canonical_drive,
                     clip.get("overtime_hours",0),clip.get("vehicle",""),clip.get("notes",""),
                     clip.get("route_name",""),clip.get("route_id"),clip.get("template_id"),
                     clip.get("shift_type","Безперервна"),clip.get("vehicle_id"),
