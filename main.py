@@ -9252,7 +9252,10 @@ class App(tk.Tk):
                     WHERE er.role=? AND e.active=1 AND e.last_name||' '||e.first_name||CASE WHEN COALESCE(e.middle_name,'')<>'' THEN ' '||e.middle_name ELSE '' END=? LIMIT 1""",(role,name)).fetchone()
             if not employee:
                 con.close(); messagebox.showerror("Зміна персоналу",f"Працівник не має активної ролі «{role}». Спочатку виправте картку у реєстрі працівників.",parent=win); return
-            duplicate=con.execute("SELECT id FROM employee_shifts WHERE work_date=? AND shift_no=? AND role=? AND lower(COALESCE(location,''))=lower(?) AND id<>?",(work_date.isoformat(),shift_no,role,values["location"].get().strip(),existing["id"] if existing else -1)).fetchone()
+            duplicate=con.execute(
+                "SELECT id FROM employee_shifts WHERE work_date=? AND shift_no=? AND role=? AND id<>?",
+                (work_date.isoformat(),shift_no,role,existing["id"] if existing else -1)
+            ).fetchone()
             if duplicate:
                 con.close(); messagebox.showerror("Зміна персоналу",f"На цю дату для ролі «{role}», зміна {values['shift'].get()}, уже є призначення.",parent=win); return
             new_start=datetime.combine(work_date,datetime.min.time())+timedelta(minutes=start_min)
