@@ -20,6 +20,7 @@ class Taxo901HotfixTests(unittest.TestCase):
             "Version: 9.0.1" in text
             or "Baseline: Taxo 9.0.1" in text
             or "Previous stable / rollback point: Taxo 9.0.1" in text
+            or "Current stable / rollback point: Taxo 10.0" in text
         )
         release_type = next(
             line for line in text.splitlines() if line.startswith("Release type:")
