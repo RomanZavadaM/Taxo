@@ -70,3 +70,16 @@
 10. нічні переходи та поділені зміни на реальних даних.
 
 Після цієї ручної перевірки окремо приймається рішення про наступну стабільну точку.
+
+## GitHub publication status — 19.09.2026
+
+Публікаційний стан перевірено фактично через GitHub:
+- `v9.0`, `v9.0.1`, `v9.1-r5` … `v9.1-r9.4` опубліковані як GitHub Releases;
+- draft-релізів у поточному наборі немає;
+- r9.4 має START package і SHA-256;
+- release target r9.4 — `3da975ff3dc30740aeaf300d9e3471415075dbe0`;
+- документаційні commits після release target не змінюють код r9.4 і не є підставою пересувати tag;
+- повний індекс: [RELEASE_INDEX.md](releases/RELEASE_INDEX.md);
+- зведений звіт: [GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md](maintenance/GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md).
+
+Rulesets `Protect main` і `Protect releases` активні. До завершення manual operational gate PR #29 лишається відкритим, а `main` — на stable 9.0.1.
