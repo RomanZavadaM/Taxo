@@ -571,6 +571,93 @@ def finish_driver_role(con, employee_id, driver_id, end_date):
     )
 
 
+def ensure_legacy_driver_employee(con, driver_row):
+    """One-time bridge from the old drivers registry into Personnel.
+
+    Once an employee already exists for driver_id, Personnel is authoritative
+    for employment status and current roles.  Re-running startup migration must
+    never resurrect role «Водій» or copy drivers.active into employees.active.
+    """
+    existing = con.execute(
+        "SELECT id FROM employees WHERE driver_id=?",
+        (driver_row["id"],),
+    ).fetchone()
+    if existing:
+        return existing["id"], False
+
+    cur = con.execute(
+        """INSERT INTO employees(
+               personnel_no,last_name,first_name,middle_name,position,
+               employment_date,notes,active,driver_id,created_at
+           ) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (
+            driver_row["personnel_no"] or "",
+            driver_row["last_name"],
+            driver_row["first_name"],
+            driver_row["middle_name"] or "",
+            "Водій",
+            driver_row["employment_date"] or "",
+            driver_row["notes"] or "",
+            int(driver_row["active"]),
+            driver_row["id"],
+            driver_row["created_at"] or datetime.now().isoformat(timespec="seconds"),
+        ),
+    )
+    employee_id = cur.lastrowid
+    con.execute(
+        "INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",
+        (employee_id, "Водій"),
+    )
+    return employee_id, True
+
+
+def set_employee_active_state(con, employee_id, new_state, effective_date):
+    """Change employment status without inventing/restoring special roles."""
+    row = con.execute(
+        "SELECT driver_id FROM employees WHERE id=?",
+        (employee_id,),
+    ).fetchone()
+    if row is None:
+        return
+
+    state = int(bool(new_state))
+    con.execute(
+        """UPDATE employees
+              SET active=?,
+                  dismissal_date=CASE
+                      WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ?
+                      WHEN ?=1 THEN ''
+                      ELSE dismissal_date
+                  END
+            WHERE id=?""",
+        (state, state, effective_date, state, employee_id),
+    )
+
+    driver_id = row["driver_id"]
+    if not driver_id:
+        return
+
+    has_driver_role = bool(
+        con.execute(
+            "SELECT 1 FROM employee_roles WHERE employee_id=? AND role='Водій'",
+            (employee_id,),
+        ).fetchone()
+    )
+    driver_active = int(bool(state) and has_driver_role)
+    if driver_active:
+        con.execute(
+            "UPDATE drivers SET active=1,driver_end_date='' WHERE id=?",
+            (driver_id,),
+        )
+    else:
+        # Employment state may deactivate a driver, but it must not create or
+        # erase a driver-role end date.  That date belongs to finish_driver_role().
+        con.execute(
+            "UPDATE drivers SET active=0 WHERE id=?",
+            (driver_id,),
+        )
+
+
 def get_setting(key, default=""):
     try:
         con=db(); r=con.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone(); con.close()
@@ -1074,25 +1161,9 @@ def init_db():
         )
 
     for dr in con.execute("SELECT * FROM drivers ORDER BY id").fetchall():
-        employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(dr["id"],)).fetchone()
-        if employee:
-            eid=employee["id"]
-            con.execute(
-                """UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,
-                       employment_date=?,notes=?,active=? WHERE id=?""",
-                (dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
-                 dr["employment_date"] or "",dr["notes"] or "",int(dr["active"]),eid)
-            )
-        else:
-            cur=con.execute(
-                """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
-                       employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                (dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
-                 "Водій",dr["employment_date"] or "",dr["notes"] or "",int(dr["active"]),dr["id"],
-                 dr["created_at"] or datetime.now().isoformat(timespec="seconds"))
-            )
-            eid=cur.lastrowid
-        con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(eid,"Водій"))
+        # Legacy bridge is intentionally one-way and one-time.  Existing
+        # Personnel rows must keep their own employment state and current roles.
+        ensure_legacy_driver_employee(con, dr)
 
     staff_map={}
     for st in con.execute("SELECT * FROM dispatch_staff ORDER BY id").fetchall():
@@ -6833,9 +6904,17 @@ class App(tk.Tk):
             con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
             con.executemany("INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",[(eid,r) for r in roles])
             if driver_id:
-                driver_active=int(active.get() and "Водій" in roles)
-                con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,driver_end_date=?,notes=?,active=? WHERE id=?""",
-                    (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],"",vals["notes"],driver_active,driver_id))
+                has_driver_role="Водій" in roles
+                driver_active=int(active.get() and has_driver_role)
+                if has_driver_role:
+                    # Explicitly restoring/keeping the driver role reopens it.
+                    con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,driver_end_date='',notes=?,active=? WHERE id=?""",
+                        (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],vals["notes"],driver_active,driver_id))
+                else:
+                    # Keep the historical driver-role end date.  Merely editing
+                    # the employee card must not erase it.
+                    con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,notes=?,active=0 WHERE id=?""",
+                        (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],vals["notes"],driver_id))
                 if closing_driver:
                     finish_driver_role(con,eid,driver_id,driver_end_date)
             con.commit(); con.close(); self.load_employee_registry(); self.load_drivers(); win.destroy()
@@ -6849,8 +6928,8 @@ class App(tk.Tk):
         row=self.selected_employee()
         if not row: return
         new_state=0 if row["active"] else 1
-        con=db(); con.execute("UPDATE employees SET active=?,dismissal_date=CASE WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",(new_state,new_state,date.today().isoformat(),new_state,row["id"]))
-        if row["driver_id"]: con.execute("UPDATE drivers SET active=? WHERE id=?",(new_state,row["driver_id"]))
+        con=db()
+        set_employee_active_state(con,row["id"],new_state,date.today().isoformat())
         con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
 
     def show_employee_timesheet(self):
@@ -7389,16 +7468,21 @@ class App(tk.Tk):
                      vals["license_issue_date"],vals["employment_date"],vals["notes"],
                      int(active.get()),datetime.now().isoformat(timespec="seconds")))
                 saved_driver_id=cur.lastrowid
-            emp=con.execute("SELECT id FROM employees WHERE driver_id=?",(saved_driver_id,)).fetchone()
+            emp=con.execute("SELECT id,active FROM employees WHERE driver_id=?",(saved_driver_id,)).fetchone()
             if emp:
                 employee_id=emp["id"]
-                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position='Водій',employment_date=?,notes=?,active=? WHERE id=?""",
-                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],int(active.get()),employee_id))
+                # Driver-card edits synchronize identity fields only. Employment
+                # state belongs to Personnel and must not follow drivers.active.
+                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,employment_date=?,notes=? WHERE id=?""",
+                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],employee_id))
             else:
                 cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,employment_date,notes,active,driver_id,created_at)
                     VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],int(active.get()),saved_driver_id,datetime.now().isoformat(timespec="seconds")))
                 employee_id=cur.lastrowid
-            con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
+            if active.get():
+                # Reactivation in the Driver card is explicit; only then restore
+                # the current driver role. Inactive historical cards stay historical.
+                con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
             con.commit(); con.close()
             self.load_drivers(); self.load_employee_registry(); win.destroy()
 
