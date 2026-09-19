@@ -133,11 +133,11 @@ class TestR98WaybillDutyStaff(unittest.TestCase):
         source = inspect.getsource(main.App.dispatch_shift_form)
         normalized = " ".join(source.split())
         self.assertIn(
-            "SELECT id FROM employee_shifts WHERE role=? AND shift_no=? AND work_date=? AND id<>?",
+            "SELECT id FROM employee_shifts WHERE work_date=? AND shift_no=? AND role=? AND id<>?",
             normalized,
         )
         self.assertNotIn(
-            "role=? AND shift_no=? AND work_date=? AND lower(COALESCE(location",
+            "work_date=? AND shift_no=? AND role=? AND lower(COALESCE(location",
             normalized,
         )
 
