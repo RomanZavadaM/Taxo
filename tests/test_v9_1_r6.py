@@ -8,6 +8,7 @@ from pathlib import Path
 from personnel_v91 import (
     NONWORK_OVERRIDE_TYPES,
     collect_personnel_week_balance,
+    insert_regime_month_plan_if_empty,
 )
 from work_regime import (
     REGIME_SIX_DAY,
@@ -195,6 +196,53 @@ class TestWorkRegimeLawModel(unittest.TestCase):
             saturday_norm, _ = day_norm_minutes(con, 1, date(2026, 9, 19))
             con.close()
             self.assertEqual(saturday_norm, 5 * 60)
+
+    def test_regime_month_plan_rechecks_before_insert_and_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "db.sqlite3"
+            make_db(db_path)
+            core = FakeCore(db_path)
+            con = core.db()
+            employee = con.execute("SELECT * FROM employees WHERE id=1").fetchone()
+
+            first = insert_regime_month_plan_if_empty(
+                core, con, employee, date(2026, 9, 14), 8 * 60, "2026-09-19T10:00:00"
+            )
+            second = insert_regime_month_plan_if_empty(
+                core, con, employee, date(2026, 9, 14), 8 * 60, "2026-09-19T10:00:01"
+            )
+            con.commit()
+            count = con.execute(
+                "SELECT COUNT(*) FROM employee_time_entries WHERE employee_id=1 AND work_date='2026-09-14'"
+            ).fetchone()[0]
+            con.close()
+
+            self.assertTrue(first)
+            self.assertFalse(second)
+            self.assertEqual(count, 1)
+
+    def test_regime_month_plan_recheck_skips_new_driver_or_shift_plan(self):
+        class ChangedCore(FakeCore):
+            @staticmethod
+            def _driver_plan_minutes_for_day(con, driver_id, target_date):
+                return 480
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = Path(tmp) / "db.sqlite3"
+            make_db(db_path)
+            core = ChangedCore(db_path)
+            con = core.db()
+            employee = con.execute("SELECT * FROM employees WHERE id=1").fetchone()
+            inserted = insert_regime_month_plan_if_empty(
+                core, con, employee, date(2026, 9, 15), 8 * 60, "2026-09-19T10:00:00"
+            )
+            count = con.execute(
+                "SELECT COUNT(*) FROM employee_time_entries WHERE employee_id=1 AND work_date='2026-09-15'"
+            ).fetchone()[0]
+            con.close()
+
+            self.assertFalse(inserted)
+            self.assertEqual(count, 0)
 
     def test_summarized_weekly_difference_is_marked_informational(self):
         with tempfile.TemporaryDirectory() as tmp:
