@@ -1,20 +1,20 @@
-# Taxo / Driver Worktime
+# Taxo / Driver Worktime 10.0
 
 [Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
 
 **Облік роботи водіїв і персоналу, графіків, табелів, шляхових листів, П-5, бланків підтвердження діяльності та аналогових тахокарт.**
 
-> **Stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) — поточна експлуатаційна версія і rollback point.  
-> **Candidate:** [Taxo 9.1 candidate r9.8](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.8) — pre-release для ручного operational gate.  
-> **PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29) — **не merge у main до завершення ручної перевірки**.
+> **Stable:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) — актуальна експлуатаційна версія.  
+> **Previous stable / rollback:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1).  
+> Лінія candidate 9.1 завершена після ручного operational gate на реальній Windows-базі.
 
-[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.7 START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.5/Taxo_v9_1_candidate_r9_8_START.zip) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_8.md)
+[Завантажити Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) · [Release notes](docs/releases/RELEASE_NOTES_v10_0.md) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Фінальний аудит](docs/maintenance/AUDIT_v10_0_STABLE.md)
 
 ---
 
 ## Для експлуатації
 
-Гілка `main` є **актуальною стабільною експлуатаційною гілкою Taxo 9.x** і зараз містить Taxo 9.0.1. Поточна гілка `work/v9.1-monthly-dispatch-waybill-ui` містить candidate 9.1 r9.6 та post-release документацію для ручного operational gate.
+Гілка `main` є **стабільною експлуатаційною гілкою Taxo 10.0**. Робочі БД, скани, кеші та персональні документи не входять до GitHub-релізів; оновлення програми не потребує повторного введення робочої бази.
 
 Історичні checkpoint/test/publish-файли, старі патчі та ранні архіви версій 8.x прибрані з `main` і збережені окремо в гілці [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
 
@@ -72,29 +72,14 @@ Taxo 9.0.1 формує окремий документ за 60 календар
 
 ## Поточний етап
 
-**Taxo 9.0.1 залишається stable. Taxo 9.1 candidate r9.7 опублікований і автоматично перевірений, але ще проходить ручний operational gate на реальній Windows-базі.**
+**Taxo 10.0 — stable.** Лінія 9.1 завершена після автоматичних перевірок і ручного operational gate. Останній кандидат перед stable — `v9.1-r9.8`.
 
-У r9.7 збережені функціональні зміни r9.4 та START hardening r9.6: канонічні точні інтервали, модуль «Персонал», П-5 PDF/XLSX, архів підтверджень діяльності, місячний контроль та окремий центр «Аудит графіків…». Технічний аудит введення не змішується з нормативним «Контролем №340».
+У 10.0 стабілізовано канонічні точні інтервали, «Персонал», режими робочого часу, П-5 PDF/XLSX, архів підтверджень діяльності, місячний контроль, «Аудит графіків…», шляхівки та черговий персонал випуску. Технічний аудит введення залишається окремим від нормативного «Контролю №340».
 
-До завершення manual gate:
-- `main` не оновлюється;
-- PR #29 не зливається;
-- stable rollback point — 9.0.1;
-- нові кодові контрольні точки публікуються новими immutable candidate tags/releases.
-
-Матеріали технічного супроводу: [docs/maintenance](docs/maintenance/README.md). Повний список опублікованих версій: [Release Index](docs/releases/RELEASE_INDEX.md).
+Виконавчі пакети stable формуються для Windows x64, macOS ARM64, macOS Intel x86_64 та START/source. Повний підсумок: [Release notes 10.0](docs/releases/RELEASE_NOTES_v10_0.md).
 
 ## Важливо
 
 Taxo допомагає вести облік і формувати документи на підставі введених та підтверджених даних. Автоматичне розпізнавання тахокарт і розрахункові підказки потрібно перевіряти відповідальним працівником. Система не повинна підміняти відсутні факти припущеннями.
 
 Бази користувачів, скани тахокарт і персональні документи в GitHub не публікуються.
-
-
-> **Відомий дефект:** r9.5 не рекомендується для ручного тестування через Windows CMD parsing regression у `START.bat`. Використовуйте r9.6 або новіший candidate.
-
-
-> **r9.7:** у «Місячному графіку змінності водіїв» додано кнопку «Відкрити деталізацію», яка формує актуальний PDF деталізації та одразу відкриває його.
-
-
-> **r9.8:** шляхівки одного дня використовують єдиний склад Лікар I/II та Механік I/II за датою графіка; нічний рейс більше не підхоплює персонал наступної дати.
