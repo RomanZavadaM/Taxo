@@ -2,6 +2,7 @@
 
 **Дата фіксації:** 19.09.2026  
 **Поточна stable:** Taxo 10.0  
+**Поточний hotfix candidate:** Taxo 10.0.1 candidate r1  
 **Попередня stable / rollback:** Taxo 9.0.1  
 **Останній кандидат перед stable:** v9.1-r9.8  
 **Stable release tag:** `v10.0`  
@@ -107,3 +108,18 @@
 - [Release notes 10.0](docs/releases/RELEASE_NOTES_v10_0.md)
 - [Фінальний аудит](docs/maintenance/AUDIT_v10_0_STABLE.md)
 - [Release index](docs/releases/RELEASE_INDEX.md)
+
+
+## Hotfix candidate 10.0.1 r1 — driver role lifecycle
+
+Виявлено після stable 10.0:
+- legacy startup sync міг відновити зняту роль «Водій»;
+- `drivers.active=0` міг помилково зробити `employees.active=0`;
+- при повторному employee save могла губитися `driver_end_date`.
+
+r1 розділяє:
+- кадровий статус працівника;
+- поточні спеціальні ролі;
+- історичний стан водійської картки.
+
+Stable `main`/ `v10.0` не змінюються до ручного підтвердження r1.
