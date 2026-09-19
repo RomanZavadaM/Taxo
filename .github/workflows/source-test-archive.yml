@@ -29,12 +29,15 @@ jobs:
 
           from release_naming import start_archive_stem, version_from_file
 
-          stem = start_archive_stem(version_from_file('VERSION.txt'))
-          archive = stem + '.zip'
+          stem = start_archive_stem(version_from_file("VERSION.txt"))
+          archive = stem + ".zip"
           subprocess.check_call([
-              'git', 'archive', '--format=zip', f'--prefix={stem}/', f'--output={archive}', 'HEAD'
+              "git", "archive", "--format=zip",
+              f"--prefix={stem}/",
+              f"--output={archive}",
+              "HEAD",
           ])
-          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
               out.write(f"archive={archive}\n")
               out.write(f"stem={stem}\n")
           print(archive)
@@ -43,94 +46,37 @@ jobs:
       - name: Verify clean operational package
         shell: bash
         run: |
-          if unzip -l "${{ steps.pack.outputs.archive }}" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+          archive="${{ steps.pack.outputs.archive }}"
+
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
             echo 'Database or cache unexpectedly included in source archive' >&2
             exit 1
           fi
-          if unzip -l "${{ steps.pack.outputs.archive }}" | grep -Eiq '/(CHECKPOINT_v8|TEST_REPORT_v8|PUBLISH_STATUS_v8|PATCH_v8)'; then
+
+          if unzip -l "$archive" | grep -Eiq '/(CHECKPOINT_v8|TEST_REPORT_v8|PUBLISH_STATUS_v8|PATCH_v8)'; then
             echo 'Legacy v8 development clutter unexpectedly included in START archive' >&2
             exit 1
           fi
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/START.bat
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/hotfix_901.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v91_features.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/personnel_v91.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/work_regime.py$'
 
-      - name: Upload source archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.pack.outputs.stem }}
-          path: ${{ steps.pack.outputs.archive }}
-          if-no-files-found: error
-          retention-days: 30
+          required_files=(
+            START.bat
+            requirements.txt
+            taxo_app.py
+            00_README_START.txt
+            release_naming.py
+            v9_release.py
+            hotfix_901.py
+            v91_features.py
+            personnel_v91.py
+            work_regime.py
+          )
 
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/requirements.txt
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/hotfix_901.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v91_features.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/personnel_v91.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/work_regime.py$'
-
-      - name: Upload source archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.pack.outputs.stem }}
-          path: ${{ steps.pack.outputs.archive }}
-          if-no-files-found: error
-          retention-days: 30
-
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/taxo_app.py
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/hotfix_901.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v91_features.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/personnel_v91.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/work_regime.py$'
-
-      - name: Upload source archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.pack.outputs.stem }}
-          path: ${{ steps.pack.outputs.archive }}
-          if-no-files-found: error
-          retention-days: 30
-
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/00_README_START.txt
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/hotfix_901.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v91_features.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/personnel_v91.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/work_regime.py$'
-
-      - name: Upload source archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.pack.outputs.stem }}
-          path: ${{ steps.pack.outputs.archive }}
-          if-no-files-found: error
-          retention-days: 30
-
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/release_naming.py
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/hotfix_901.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v91_features.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/personnel_v91.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/work_regime.py$'
-
-      - name: Upload source archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ steps.pack.outputs.stem }}
-          path: ${{ steps.pack.outputs.archive }}
-          if-no-files-found: error
-          retention-days: 30
-
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v9_release.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/hotfix_901.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/v91_features.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/personnel_v91.py$'
-          unzip -l "${{ steps.pack.outputs.archive }}" | grep -q '/work_regime.py$'
+          for file in "${required_files[@]}"; do
+            if ! unzip -l "$archive" | grep -q "/${file}$"; then
+              echo "Required START package file missing: ${file}" >&2
+              exit 1
+            fi
+          done
 
       - name: Upload source archive
         uses: actions/upload-artifact@v4
