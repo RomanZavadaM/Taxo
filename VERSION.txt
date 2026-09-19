@@ -1,10 +1,10 @@
 Taxo / Driver Worktime
-Version: 9.1 candidate r9.5
+Version: 9.1 candidate r9.6
 Candidate date: 2026-09-19
-Release type: functional candidate / pre-release
+Release type: START compatibility hotfix candidate / pre-release
 Baseline: Taxo 9.0.1
 
-Taxo 9.1 candidate r9.5 — виправлення START-пакета поверх r9.4.
+Taxo 9.1 candidate r9.6 — Windows CMD compatibility hotfix for START.bat.
 
 Основне:
 - окремий верхній розділ «Персонал»: Реєстр / Планування / Табель / Звіти;
@@ -31,7 +31,7 @@ Taxo 9.1 candidate r9.5 — виправлення START-пакета повер
 - існуючі робочі дані не переписуються;
 - бази, скани та персональні дані не включаються в релізні пакети.
 
-Стабільний baseline лишається 9.0.1. Поточний кандидат r9.5 перевіряється окремо; main не оновлюється до завершення експлуатаційної перевірки.
+Стабільний baseline лишається 9.0.1. Поточний кандидат r9.6 перевіряється окремо; main не оновлюється до завершення експлуатаційної перевірки.
 
 Додатково в r7:
 - «План за режимом → місяць» повторно перевіряє ручний запис, маршрут і зміну безпосередньо перед INSERT;
@@ -106,3 +106,15 @@ Taxo 9.1 candidate r9.5 — виправлення START-пакета повер
 - source package workflow тепер окремо перевіряє наявність requirements.txt, taxo_app.py, START.bat, 00_README_START.txt і release_naming.py у ZIP;
 - додано regression tests для START guard та release naming;
 - функціональний код r9.4 не змінювався; r9.5 є пакувально-запускним hotfix candidate.
+
+Додатково в r9.6:
+- START.bat переписано у чистий ASCII без chcp і без не-ASCII тексту всередині BAT;
+- START.bat збережено з Windows CRLF для максимальної сумісності cmd.exe;
+- українська інструкція лишається окремим UTF-8 файлом 00_README_START.txt;
+- додано режим TAXO_START_PREFLIGHT_ONLY=1 для безпечної CI-перевірки повністю розпакованого пакета без встановлення залежностей і запуску GUI;
+- Windows CI реально запускає START.bat у повній папці та очікує START preflight OK / exit 0;
+- Windows CI окремо запускає самотній START.bat у порожній папці та очікує контрольований exit 2;
+- source packaging CI перевіряє, що START.bat ASCII-only, без chcp і містить CRLF;
+- додано tests/test_v9_1_r9_6.py;
+- r9.5 зберігається як immutable історичний release, але не рекомендується для ручного тестування через Windows CMD parsing regression;
+- функціональна логіка r9.4 не змінювалась; r9.6 є лише START compatibility hotfix.
