@@ -5,10 +5,10 @@
 **Облік роботи водіїв і персоналу, графіків, табелів, шляхових листів, П-5, бланків підтвердження діяльності та аналогових тахокарт.**
 
 > **Stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) — поточна експлуатаційна версія і rollback point.  
-> **Candidate:** [Taxo 9.1 candidate r9.7](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.7) — pre-release для ручного operational gate.  
+> **Candidate:** [Taxo 9.1 candidate r9.8](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.8) — pre-release для ручного operational gate.  
 > **PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29) — **не merge у main до завершення ручної перевірки**.
 
-[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.7 START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.5/Taxo_v9_1_candidate_r9_7_START.zip) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_7.md)
+[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.7 START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.5/Taxo_v9_1_candidate_r9_8_START.zip) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_8.md)
 
 ---
 
@@ -95,3 +95,6 @@ Taxo допомагає вести облік і формувати докуме
 
 
 > **r9.7:** у «Місячному графіку змінності водіїв» додано кнопку «Відкрити деталізацію», яка формує актуальний PDF деталізації та одразу відкриває його.
+
+
+> **r9.8:** шляхівки одного дня використовують єдиний склад Лікар I/II та Механік I/II за датою графіка; нічний рейс більше не підхоплює персонал наступної дати.
