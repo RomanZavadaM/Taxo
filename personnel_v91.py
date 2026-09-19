@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.1 candidate r6 — модуль «Персонал», режими й табелі.
+"""Taxo 9.1 candidate r7 — модуль «Персонал», режими й табелі.
 
 Модуль:
 - додає окремий верхній розділ «Персонал»;
@@ -58,7 +58,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "9.1 candidate r6"
+APP_VERSION = "9.1 candidate r7"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
@@ -508,6 +508,51 @@ def _employee_absence_adjustment_minutes(core, con, employee, work_date, regime,
             core, con, employee["driver_id"], work_date
         )
     return int(scheduled or base_norm)
+
+
+def insert_regime_month_plan_if_empty(core, con, employee, work_date, norm_minutes, now=None):
+    """Insert one regime-based monthly plan row only if the day is still empty.
+
+    This is deliberately called immediately before the write, after UI preview/
+    confirmation, so a route, personnel shift, or manual timesheet row created
+    in the meantime is not overwritten or duplicated.
+    """
+    if isinstance(work_date, str):
+        work_date = date.fromisoformat(work_date)
+    norm_minutes = int(norm_minutes or 0)
+    if norm_minutes <= 0:
+        return False
+
+    entry = con.execute(
+        "SELECT id FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+        (employee["id"], work_date.isoformat()),
+    ).fetchone()
+    if entry:
+        return False
+
+    driver_plan = core._driver_plan_minutes_for_day(
+        con, employee["driver_id"], work_date
+    )
+    shift_plan, _shift_actual, _shift_found = core._employee_shift_minutes_for_day(
+        con, employee["id"], work_date
+    )
+    if int(driver_plan or 0) > 0 or int(shift_plan or 0) > 0:
+        return False
+
+    stamp = now or datetime.now().isoformat(timespec="seconds")
+    cur = con.execute(
+        """INSERT INTO employee_time_entries(
+             employee_id,work_date,day_type,planned_hours,actual_hours,
+             notes,created_at,updated_at
+           ) VALUES(?,?,?, ?,NULL,?,?,?)
+           ON CONFLICT(employee_id,work_date) DO NOTHING""",
+        (
+            employee["id"], work_date.isoformat(), "Робота",
+            norm_minutes / 60.0, "План за режимом робочого часу",
+            stamp, stamp,
+        ),
+    )
+    return cur.rowcount > 0
 
 
 def collect_personnel_week_balance(core, anchor_date, active_only=True):
@@ -1894,17 +1939,10 @@ def install(core, base_app):
                 con=core.db(); now=datetime.now().isoformat(timespec="seconds"); added=0
                 try:
                     for d,norm,_action in writable:
-                        con.execute(
-                            """INSERT INTO employee_time_entries(
-                                 employee_id,work_date,day_type,planned_hours,actual_hours,
-                                 notes,created_at,updated_at
-                               ) VALUES(?,?,?, ?,NULL,?,?,?)""",
-                            (
-                                employee["id"],d.isoformat(),"Робота",
-                                norm/60.0,"План за режимом робочого часу",now,now
-                            ),
-                        )
-                        added+=1
+                        if insert_regime_month_plan_if_empty(
+                            core, con, employee, d, norm, now
+                        ):
+                            added+=1
                     con.commit()
                 finally:
                     con.close()
