@@ -66,7 +66,7 @@
 - historical publisher r7/r8 переведено у manual-only режим і pinned до власних тегів;
 - r7/r8 більше не можуть перезаписати існуючі assets через `--clobber`;
 - `.gitignore` доповнено шаблонами candidate ZIP/Setup/checksum;
-- 96 regression tests пройшли на Windows, macOS ARM64 та macOS Intel;
+- 97 regression tests пройшли на Windows, macOS ARM64 та macOS Intel;
 - повний звіт: `docs/maintenance/AUDIT_v9_1_r9_4.md`.
 
 ### Архів бланків — r9.3
