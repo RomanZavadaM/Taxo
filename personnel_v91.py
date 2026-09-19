@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.1 candidate r9.2 — модуль «Персонал», режими й табелі.
+"""Taxo 9.1 candidate r9.3 — модуль «Персонал», режими й табелі.
 
 Модуль:
 - додає окремий верхній розділ «Персонал»;
 - залишає стару вкладку водіїв як «Водії»;
 - додає загальне масове планування робочих змін для будь-якого працівника;
 - додає масове внесення відсутностей/відпусток у табель;
-- надає PDF/XLSX табеля у форматі, наближеному до П-5 за наданим зразком;
+- надає PDF/XLSX чинної типової форми № П-5 з фактичним, а не плановим часом;
 - не видаляє історичні графіки при внесенні відсутності.
 """
 from __future__ import annotations
@@ -58,7 +58,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "9.1 candidate r9.2"
+APP_VERSION = "9.1 candidate r9.3"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
@@ -96,6 +96,7 @@ ABSENCE_TYPES = (
 
 P5_CODES = {
     "Робота": ("Р", "01", "Години роботи, передбачені колективним договором"),
+    "Неповний робочий день": ("РС", "02", "Години роботи при неповному робочому дні (тижні) згідно із законодавством"),
     "Відрядження": ("ВД", "07", "Відрядження"),
     "Основна щорічна відпустка": ("В", "08", "Основна щорічна відпустка"),
     "Відпустка": ("В", "08", "Основна щорічна відпустка"),
@@ -707,96 +708,202 @@ def collect_personnel_week_balance(core, anchor_date, active_only=True):
     return {"start": monday, "end": monday + timedelta(days=6), "days": days, "employees": out}
 
 
+def _p5_entry_minutes(core, entry, key):
+    if entry is None or not hasattr(entry, "keys") or key not in entry.keys():
+        return 0
+    value=entry[key]
+    if value is None:
+        return 0
+    return int(core.hours_value_to_minutes(value) or 0)
+
+
+def _p5_absence_minutes(core, con, employee, work_date, fallback_planned=0):
+    """Scheduled hours lost to an absence, for the P-5 reason columns."""
+    try:
+        base_norm, regime=day_norm_minutes(con, employee["id"], work_date)
+        value=_employee_absence_adjustment_minutes(
+            core, con, employee, work_date, regime, base_norm
+        )
+        if value is not None:
+            return int(value or 0)
+    except Exception:
+        pass
+    return int(fallback_planned or 0)
+
+
 def collect_p5_data(core, year, month, active_only=True):
+    """Collect factual data for the recommended standard form № P-5.
+
+    The legal/statistical form records actual use of working time. A planned
+    route/shift is therefore *not* silently promoted to fact: if a work day has
+    plan but no actual confirmation, its P-5 day cell stays blank and is marked
+    as missing fact for the operator.
+    """
     y, m = int(year), int(month)
     days = core.month_dates(y, m)
     employees = _all_employee_rows(core, active_only=active_only)
     con = core.db()
     company = con.execute("SELECT * FROM company WHERE id=1").fetchone()
     out = []
+    missing_fact_total=0
+    missing_profile_fields=0
+
     for employee in employees:
         if not any(core.employee_employed_on(employee, d) for d in days):
             continue
+        ekeys=set(employee.keys()) if hasattr(employee,"keys") else set()
+        gender=(str(employee["gender"] or "").strip().lower() if "gender" in ekeys else "")
+        tariff=employee["tariff_rate"] if "tariff_rate" in ekeys else None
+        if not gender or tariff in (None,""):
+            missing_profile_fields += 1
+
         cells = []
         work_days = 0
         work_minutes = 0
         missing_fact = 0
-        absence_counts = {label: 0 for label, _codes in P5_ABSENCE_GROUPS}
         overtime_minutes = 0
+        night_minutes = 0
+        evening_minutes = 0
+        holiday_minutes = 0
+        total_absence_days=0
+        total_absence_minutes=0
+        absence_details = {
+            label: {"days":0,"minutes":0} for label,_codes in P5_ABSENCE_GROUPS
+        }
+
         for d in days:
             if not core.employee_employed_on(employee, d):
-                cells.append({"code": "", "hours": None, "day_type": "—", "missing": False})
+                cells.append({
+                    "code":"","numeric":"","hours":None,"day_type":"—",
+                    "missing":False,"planned_minutes":0,
+                })
                 continue
+
             row = core.employee_day_time(con, employee["id"], d)
             dtype = str(row["day_type"] or "")
-            code, numeric, _label = p5_code(dtype)
             actual = row["actual_minutes"]
-            planned = row["planned_minutes"]
+            planned = int(row["planned_minutes"] or 0)
+
+            entry=con.execute(
+                "SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                (employee["id"],d.isoformat())
+            ).fetchone()
+            entry_keys=set(entry.keys()) if entry is not None and hasattr(entry,"keys") else set()
+
+            day_over=_p5_entry_minutes(core,entry,"overtime_hours")
+            day_night=_p5_entry_minutes(core,entry,"night_hours")
+            day_evening=_p5_entry_minutes(core,entry,"evening_hours")
+            day_holiday=_p5_entry_minutes(core,entry,"weekend_holiday_hours")
+
+            code, numeric, _label = p5_code(dtype)
+            hours=None
+            missing=False
+
             if dtype in NONWORK_OVERRIDE_TYPES:
-                hours = actual if actual not in (None, 0) else None
-                # A non-zero actual on an absence day is deliberately visible as conflict.
-                if hours:
+                # An absence is itself factual when entered in the personnel
+                # timesheet. Its cell carries the P-5 reason code; the reason
+                # summary uses scheduled lost hours where that schedule is known.
+                absence_minutes=_p5_absence_minutes(
+                    core,con,employee,d,fallback_planned=planned
+                )
+                if numeric:
+                    total_absence_days += 1
+                    total_absence_minutes += max(0,absence_minutes)
+                    for label,codes in P5_ABSENCE_GROUPS:
+                        if numeric in codes:
+                            absence_details[label]["days"] += 1
+                            absence_details[label]["minutes"] += max(0,absence_minutes)
+                            break
+                # Any non-zero work fact on an absence day is a conflict that
+                # must remain visible rather than being hidden by the code.
+                if actual not in (None,0):
+                    hours=int(actual)
+                    missing=True
                     missing_fact += 1
-            elif actual is not None and actual > 0:
-                hours = int(actual)
-                code = "РВ" if d.weekday() >= 5 else "Р"
-                numeric = "06" if d.weekday() >= 5 else "01"
-                work_days += 1
-                work_minutes += int(actual)
-            elif planned > 0:
-                # Для експлуатаційного П-5 план із графіка/маршруту є
-                # робочим джерелом до появи факту. Факт, коли він з'явиться,
-                # автоматично має пріоритет.
-                hours = int(planned)
-                code = "РВ" if d.weekday() >= 5 else "Р"
-                numeric = "06" if d.weekday() >= 5 else "01"
-                work_days += 1
-                work_minutes += int(planned)
+            elif actual is not None:
+                actual=int(actual or 0)
+                if actual>0:
+                    # Weekend/holiday work is only code 06 when explicitly
+                    # classified as such; shift workers may normally work Sat/Sun.
+                    if day_holiday>0:
+                        code,numeric="РВ","06"
+                    elif dtype=="Неповний робочий день":
+                        code,numeric="РС","02"
+                    elif dtype=="Відрядження":
+                        code,numeric="ВД","07"
+                    else:
+                        code,numeric="Р","01"
+                    hours=actual
+                    work_days += 1
+                    work_minutes += actual
+                elif dtype not in ("Робота","Вихідний","Відпочинок",""):
+                    # Preserve an explicitly entered factual code (e.g. business
+                    # trip) even when no worked-hour quantity accompanies it.
+                    code,numeric,_label=p5_code(dtype)
+                else:
+                    code=""
+                    numeric=""
+            elif planned>0:
+                # P-5 is factual. Do not print planned hours as if they were
+                # actually worked; make the incompleteness explicit to the UI.
+                code=""
+                numeric=""
+                hours=None
+                missing=True
                 missing_fact += 1
             else:
-                hours = None
-                # Ordinary weekend / empty day is not annual-leave code «В».
-                code = "" if dtype in ("Вихідний", "Відпочинок", "") else code
+                # Ordinary empty/weekend day has no annual-leave code.
+                if dtype in ("Вихідний","Відпочинок","Робота",""):
+                    code=""; numeric=""
+                else:
+                    code,numeric,_label=p5_code(dtype)
 
-            if numeric:
-                for label, codes in P5_ABSENCE_GROUPS:
-                    if numeric in codes:
-                        absence_counts[label] += 1
-                        break
-
-            if employee["driver_id"]:
-                wl = con.execute(
-                    "SELECT overtime_hours FROM worklog WHERE driver_id=? AND work_date=?",
-                    (employee["driver_id"], d.isoformat()),
-                ).fetchone()
-                if wl:
-                    overtime_minutes += core.hours_value_to_minutes(wl["overtime_hours"] or 0)
+            if actual is not None:
+                overtime_minutes += day_over
+                night_minutes += day_night
+                evening_minutes += day_evening
+                holiday_minutes += day_holiday
 
             cells.append({
-                "code": code,
-                "numeric": numeric,
-                "hours": hours,
-                "day_type": dtype,
-                "missing": bool(actual is None and planned > 0 and dtype not in NONWORK_OVERRIDE_TYPES),
+                "code":code,
+                "numeric":numeric,
+                "hours":hours,
+                "day_type":dtype,
+                "missing":missing,
+                "planned_minutes":planned,
             })
+
+        missing_fact_total += missing_fact
+        absence_counts={label:item["days"] for label,item in absence_details.items()}
         out.append({
             "employee_id": employee["id"],
             "personnel_no": employee["personnel_no"] or "",
             "name": core.employee_name(employee),
             "position": employee["position"] or employee["roles"] or "",
-            "gender": "",  # у поточній БД поле не ведеться
+            "gender": gender,
             "cells": cells,
             "work_days": work_days,
             "work_minutes": work_minutes,
             "overtime_minutes": overtime_minutes,
-            "night_minutes": 0,
-            "holiday_minutes": 0,
-            "absence_counts": absence_counts,
+            "night_minutes": night_minutes,
+            "evening_minutes": evening_minutes,
+            "holiday_minutes": holiday_minutes,
+            "total_absence_days":total_absence_days,
+            "total_absence_minutes":total_absence_minutes,
+            "absence_details": absence_details,
+            "absence_counts":absence_counts,  # backward-compatible API
             "missing_fact": missing_fact,
-            "tariff_rate": "",  # у поточній БД поле не ведеться
+            "tariff_rate": "" if tariff in (None,"") else tariff,
         })
+
     con.close()
-    return {"year": y, "month": m, "days": days, "employees": out, "company": company}
+    return {
+        "year": y, "month": m, "days": days, "employees": out, "company": company,
+        "missing_fact_total":missing_fact_total,
+        "missing_profile_fields":missing_profile_fields,
+        "strict_fact_only":True,
+        "form_reference":"Типова форма № П-5, наказ Держкомстату України 05.12.2008 № 489",
+    }
 
 
 def _report_font(core):
