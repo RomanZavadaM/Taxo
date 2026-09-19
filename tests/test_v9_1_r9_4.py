@@ -134,6 +134,36 @@ class TestScheduleAuditR94(unittest.TestCase):
         }])
         self.assertTrue(any(x["kind"]=="empty_segment" for x in issues))
 
+    def test_daily_status_distinguishes_no_records_from_clean_exact_data(self):
+        self.assertEqual(
+            main.schedule_audit_day_status_text({
+                "findings":[], "inspected_day_records":0, "exact_day_records":0
+            }),
+            "○ день: записів для аудиту немає",
+        )
+        self.assertEqual(
+            main.schedule_audit_day_status_text({
+                "findings":[], "inspected_day_records":1, "exact_day_records":0
+            }),
+            "○ день: є запис, але точний час не задано",
+        )
+        self.assertEqual(
+            main.schedule_audit_day_status_text({
+                "findings":[], "inspected_day_records":1, "exact_day_records":1
+            }),
+            "✓ день: помилок введення немає",
+        )
+
+    def test_daily_status_reports_problem_count(self):
+        self.assertEqual(
+            main.schedule_audit_day_status_text({
+                "findings":[{"kind":"x"},{"kind":"y"}],
+                "inspected_day_records":1,
+                "exact_day_records":1,
+            }),
+            "⚠ день: 2 помилк.",
+        )
+
 
 if __name__=="__main__":
     unittest.main()
