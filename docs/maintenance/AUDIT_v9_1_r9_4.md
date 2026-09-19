@@ -180,3 +180,17 @@ r9.4 підготовлено як окрему стабілізаційну к�
 - stable лишається 9.0.1;
 - PR #29 не зливати;
 - наступний великий функціональний етап не починати поверх неперевірених змін r9.4.
+
+## 12. Post-release GitHub publication verification
+
+Після публікації r9.4 додатково перевірено оформлення GitHub:
+- PR #29 відкритий і не merged;
+- tag `v9.1-r9.4` вказує на `3da975ff3dc30740aeaf300d9e3471415075dbe0`;
+- release r9.4 опублікований із START та SHA-256;
+- усі release-worthy контрольні точки лінії 9.x опубліковані, draft-релізів немає;
+- `Protect main` і `Protect releases` активні;
+- документаційні commits після r9.4 не змінюють код release і не рухають tag.
+
+Зведення: `docs/maintenance/GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md`. Повний перелік релізів: `docs/releases/RELEASE_INDEX.md`.
+
+Operational gate від цього не вважається пройденим: ручна перевірка на робочій Windows-базі все ще обов'язкова.
