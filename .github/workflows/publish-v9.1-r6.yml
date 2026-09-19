@@ -5,6 +5,20 @@ on:
     branches:
       - 'work/v9.1-monthly-dispatch-waybill-ui'
     paths:
+      - 'VERSION.txt'
+      - 'taxo_app.py'
+      - 'personnel_v91.py'
+      - 'work_regime.py'
+      - 'v91_features.py'
+      - 'waybill.py'
+      - 'Taxo.spec'
+      - 'Taxo_macos.spec'
+      - 'installer/Taxo.iss'
+      - 'BUILD_WINDOWS.bat'
+      - 'BUILD_INSTALLER.bat'
+      - 'BUILD_MACOS.sh'
+      - 'docs/releases/RELEASE_NOTES_v9_1_candidate_r6.md'
+      - 'PROJECT_STATE.md'
       - '.github/workflows/publish-v9.1-r6.yml'
   workflow_dispatch:
 
