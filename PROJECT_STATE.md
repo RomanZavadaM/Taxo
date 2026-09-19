@@ -6,6 +6,7 @@
 **Робоча гілка:** `work/v9.1-monthly-dispatch-waybill-ui`  
 **Pull Request:** #29 — Taxo 9.1 candidate r9.5: START package hotfix + operational gate  
 **Immutable release target r9.4:** `3da975ff3dc30740aeaf300d9e3471415075dbe0`  
+**Immutable release target r9.5:** `f587c2cad71a22c6bded3a992fd27797c1e2c296`  
 **Поточний audit:** `docs/maintenance/AUDIT_v9_1_r9_5.md`
 
 ## Опубліковані контрольні релізи
@@ -21,7 +22,7 @@
 - **v9.1-r9.2** — immutable source/START pre-release.
 - **v9.1-r9.3** — immutable source/START pre-release.
 - **v9.1-r9.4** — immutable source/START pre-release; release target `3da975ff3dc30740aeaf300d9e3471415075dbe0`; Windows/macOS/START/publisher CI — success.
-- **v9.1-r9.5** — поточний пакувально-запускний hotfix candidate; новий immutable source/START release створюється окремо після CI.
+- **v9.1-r9.5** — поточний immutable source/START pre-release; release target `f587c2cad71a22c6bded3a992fd27797c1e2c296`; START/publisher/Windows/macOS CI — success; 101 regression tests.
 - **r1–r4** — не публікувати окремими Releases: це проміжні кандидати з уже відомими виправленими проблемами; історія збережена в Git/PR.
 
 ## Поточний r9.5
@@ -234,3 +235,19 @@
 - `v9.1-r9.4` не пересунуто і не перезаписано.
 
 Ці post-release documentation commits не створюють нової кодової версії. Наступний новий tag/release потрібен лише після наступної кодової зміни.
+
+
+## Publication checkpoint r9.5 — 19.09.2026
+
+- tag/release: `v9.1-r9.5`;
+- immutable target: `f587c2cad71a22c6bded3a992fd27797c1e2c296`;
+- asset: `Taxo_v9_1_candidate_r9_5_START.zip`;
+- checksum: `SHA256SUMS_v9_1_candidate_r9_5.txt`;
+- Windows: 101 tests — OK; START incomplete-package simulation — success;
+- macOS ARM64: 101 tests — OK;
+- macOS Intel: 101 tests — OK;
+- source/START package verification — success;
+- publisher — success;
+- stable `main` не змінено; stable baseline залишається 9.0.1.
+
+Manual operational gate продовжується вже на r9.5. Архів перед запуском потрібно повністю розпакувати.
