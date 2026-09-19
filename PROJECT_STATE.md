@@ -207,3 +207,17 @@
 - release notes `docs/releases/RELEASE_NOTES_v9_1_candidate_r9_4.md`.
 
 Важливо: docs checkpoint може бути новішим за immutable release target r9.4. Це не означає зміну коду r9.4; старий tag не пересувати. Якщо після ручної перевірки з'являться кодові зміни — створювати **новий** candidate/tag/release.
+
+## GitHub publication checkpoint — 19.09.2026
+
+Після release r9.4 GitHub оформлено як окрему публікаційну контрольну точку без зміни коду кандидата:
+- перевірено, що всі підготовлені 9.x Releases (`v9.0`, `v9.0.1`, `v9.1-r5` … `v9.1-r9.4`) опубліковані;
+- draft-релізів немає;
+- додано `docs/releases/RELEASE_INDEX.md`;
+- додано `docs/maintenance/GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md`;
+- README та індекси документації чітко розділяють stable 9.0.1 і candidate r9.4;
+- PR #29 залишається open;
+- `main` не змінено;
+- `v9.1-r9.4` не пересунуто і не перезаписано.
+
+Ці post-release documentation commits не створюють нової кодової версії. Наступний новий tag/release потрібен лише після наступної кодової зміни.
