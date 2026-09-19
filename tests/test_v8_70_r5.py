@@ -192,10 +192,13 @@ class V870R5Tests(unittest.TestCase):
         windows = (root / ".github/workflows/build-windows-v8.70.yml").read_text("utf-8")
         macos = (root / ".github/workflows/build-macos-v8.70.yml").read_text("utf-8")
         current = version_from_file(root / "VERSION.txt")
-        match = re.fullmatch(r"9\.1 candidate r(\d+(?:\.\d+)*)", current)
-        self.assertIsNotNone(match)
-        revision = match.group(1).replace(".", "_")
-        prefix = f"Taxo_v9_1_candidate_r{revision}"
+        if current == "10.0":
+            prefix = "Taxo_v10_0"
+        else:
+            match = re.fullmatch(r"9\.1 candidate r(\d+(?:\.\d+)*)", current)
+            self.assertIsNotNone(match)
+            revision = match.group(1).replace(".", "_")
+            prefix = f"Taxo_v9_1_candidate_r{revision}"
         self.assertIn(f"{prefix}_Setup_Windows_x64.exe", windows)
         self.assertIn(f"{prefix}_Windows_x64_Portable.zip", windows)
         self.assertIn("$build = 'false'", windows)
