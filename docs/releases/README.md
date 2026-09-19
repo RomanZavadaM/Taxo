@@ -2,9 +2,10 @@
 
 Актуальна стабільна версія: **Taxo 9.0.1**.
 
-Актуальний перевірочний кандидат: **Taxo 9.1 candidate r9.7** (GitHub Pre-release; stable `main` не змінюється до завершення manual operational gate).
+Актуальний перевірочний кандидат: **Taxo 9.1 candidate r9.8** (GitHub Pre-release; stable `main` не змінюється до завершення manual operational gate).
 
 - **[Повний індекс усіх опублікованих релізів](RELEASE_INDEX.md)**
+- [Taxo 9.1 candidate r9.8 — примітки](RELEASE_NOTES_v9_1_candidate_r9_8.md)
 - [Taxo 9.1 candidate r9.7 — примітки](RELEASE_NOTES_v9_1_candidate_r9_7.md)
 - [Taxo 9.1 candidate r9.6 — примітки](RELEASE_NOTES_v9_1_candidate_r9_6.md)
 - [Taxo 9.1 candidate r9.5 — примітки](RELEASE_NOTES_v9_1_candidate_r9_5.md)
@@ -23,10 +24,10 @@
 ## Поточна публікаційна політика
 
 - `v9.0.1` — stable і rollback point;
-- `v9.1-r9.7` — поточний candidate для ручної перевірки;
+- `v9.1-r9.8` — поточний candidate для ручної перевірки;
 - усі підготовлені 9.x releases опубліковані; draft-релізів немає;
 - candidate tags/releases не пересуваються і не перезаписуються;
-- новий код після r9.7 потребує нового candidate tag/release;
+- новий код після r9.8 потребує нового candidate tag/release;
 - docs-only commits не змінюють release target r9.5.
 
 - `v9.1-r9.5` зберігається як immutable історичний release, але має відомий START.bat / Windows CMD parsing defect і не рекомендується для ручного тестування.
