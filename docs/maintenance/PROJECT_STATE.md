@@ -1,128 +1,44 @@
-# Taxo — технічний стан: stable 9.0.1 / candidate 9.1 r9.8
+# Taxo — технічний стан 10.0
 
-Канонічний технічний стан експлуатаційної лінії: **stable 9.0.1**. Поточна гілка перевірки — **Taxo 9.1 candidate r9.8**, PR #29.
+**Stable:** Taxo 10.0  
+**Previous stable / rollback:** 9.0.1  
+**Verified candidate:** v9.1-r9.8  
+**Date:** 19.09.2026
 
-## Головний принцип
+## Технічний baseline
 
-Stable 9.0.1 лишається точкою відкату. Кандидат r9.8 не зливається в main до завершення ручної експлуатаційної перевірки. Історичні дані користувача не переписуються автоматично заради виправлення старих конфліктів.
+Taxo 10.0 є стабілізованим результатом лінії 9.1. Ручний operational gate завершено; користувач підтвердив перехід у `main`.
 
-## Ключові зміни лінії 9.1
+Ключові інваріанти:
+- Plan != Fact;
+- exact intervals > duration-only;
+- duration-only не створює вигаданих часових меж;
+- overlap duration = union;
+- historical conflicts не переписуються автоматично;
+- absence overlay зберігає історичний графік;
+- П-5 не підставляє план без підтвердження;
+- технічний аудит != нормативний контроль №340;
+- role+date+shift — один операційний slot лікаря/механіка;
+- user DB не входить у реліз.
 
-- окремий модуль персоналу, ролі та режими робочого часу;
-- масове планування і масові відсутності;
-- канонічні інтервали водійського графіка;
-- П-5 PDF/XLSX з явним рішенням щодо плану замість факту;
-- місячний контроль і деталізація;
-- фільтрований архів бланків;
-- аудит часових помилок у графіках і маршрутах.
+## Релізна інфраструктура
 
-## r9.4 — стабілізація аудиту графіків
+- Windows build: PyInstaller onedir + Inno Setup;
+- macOS build: native Taxo.app окремо на ARM64 та Intel;
+- START/source package;
+- SHA-256 per-platform + combined manifest;
+- stable publisher працює з commit у `main`;
+- `v10.0` не перезаписується.
 
-- «Перевірити графіки» замінено на зрозумілий «Аудит графіків…»;
-- результат поточного дня видно прямо на добовому графіку;
-- область аудиту вибирається користувачем;
-- legacy exact worklog без work_segments також перевіряються;
-- у результатах дня показується маршрут;
-- порожні часові частини і активні маршрути без сценарію виявляються;
-- технічний аудит чітко відділено від нормативного контролю №340.
+## Перевірка
 
-## Build/release audit
+Перед merge:
+- весь unittest suite;
+- Windows START full/incomplete preflight;
+- Windows source CI;
+- macOS ARM64 source CI;
+- macOS Intel source CI.
 
-- `taxo_app.py`, `v91_features.py`, `personnel_v91.py`, `Taxo.spec`, `Taxo_macos.spec` синхронізовані з r9.4;
-- `installer/Taxo.iss`, BUILD_WINDOWS/BUILD_MACOS/BUILD_INSTALLER синхронізовані з r9.4;
-- поточні Windows/macOS workflow-артефакти більше не називаються v8.70/r11;
-- release source workflow має створювати новий immutable tag, а не рухати попередній;
-- START-пакет перевіряється на відсутність SQLite/кешів.
+Після merge stable publisher повторює тести і будує executable artifacts.
 
-## Тести
-
-Основні регресійні набори: `tests/test_v9_1*.py`, включно з `tests/test_v9_1_r9_4.py` для областей аудиту, legacy exact rows, маршрутних перекриттів, порожніх частин та маршрутів без сценарію.
-
-## Відомі межі
-
-- технічний аудит графіків не замінює контроль Положення №340;
-- GUI layout/зручність остаточно підтверджуються ручною перевіркою на робочому Windows-середовищі;
-- автоматична корекція історичних конфліктів навмисно відсутня;
-- stable main не оновлюється автоматично після успішного CI.
-
-Повний передетапний звіт: [AUDIT_v9_1_r9_4.md](AUDIT_v9_1_r9_4.md).
-
-## Публікаційний стан
-
-GitHub оформлено і перевірено після r9.4:
-- release `v9.1-r9.4` опублікований із START + SHA-256;
-- release target — `3da975ff3dc30740aeaf300d9e3471415075dbe0`;
-- усі підготовлені 9.x release-контрольні точки опубліковані;
-- `Protect main` і `Protect releases` активні;
-- post-release documentation commits не змінюють код r9.4;
-- manual operational gate лишається відкритим.
-
-Деталі: [GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md](GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md) та [RELEASE_INDEX.md](../releases/RELEASE_INDEX.md).
-
-
-## r9.5 — START package hotfix
-
-- рання перевірка `requirements.txt` / `taxo_app.py` у START;
-- явне пояснення помилки запуску з ZIP;
-- `00_README_START.txt` у корені пакета;
-- `release_naming.py` для коректних назв r9.4/r9.5;
-- source package перевіряє обов'язкові файли;
-- Windows CI відтворює неповне extraction-середовище;
-- функціональний код r9.4 не змінено.
-
-Деталі: [AUDIT_v9_1_r9_5.md](AUDIT_v9_1_r9_5.md).
-
-
-## r9.6 — Windows CMD compatibility (published)
-
-- r9.5 manual test показав parsing corruption самого BAT у повністю розпакованій папці;
-- START.bat тепер ASCII-only + CRLF, без chcp;
-- Windows CI запускає full-folder preflight і incomplete-folder guard;
-- source package CI контролює encoding/line endings;
-- r9.5 не використовувати для manual gate;
-- функціональна логіка r9.4 не змінена.
-
-
-### r9.6 publication
-
-- release target — `49d36f5140986f54639835164a3ba22cf28323b7`;
-- START + SHA-256 published;
-- 105 tests OK on Windows, macOS ARM64, macOS Intel;
-- Windows complete/incomplete START preflight OK;
-- `main` remains 9.0.1.
-
-
-## r9.7 — monthly shift detail open
-
-- додано симетричну кнопку `Відкрити деталізацію` поруч із `PDF — деталізація`;
-- відкриття завжди регенерує актуальний PDF для поточного періоду;
-- використовується спільний exporter;
-- додано regression test;
-- r9.6 START compatibility збережено без змін.
-
-
-### r9.7 publication
-
-- `v9.1-r9.7` published;
-- release target `8a16ef781e1b3334e664449725c217a120f9fe5d`;
-- START + SHA-256 available;
-- Windows/macOS: 107 tests — success;
-- `main` remains stable 9.0.1.
-
-
-## r9.8 — waybill duty slot
-
-- exact schedule-date staff resolver;
-- one day-duty map for all waybill rows;
-- role+date+shift slot ignores location;
-- duplicate slot => explicit conflict and issue block;
-- overnight route cannot overwrite current-day I/II staff.
-
-
-### r9.8 publication
-
-- `v9.1-r9.8` published;
-- release target `c13e3dfc8b2934876e2068809123b65d729b58b9`;
-- START + SHA-256 available;
-- Windows/macOS: 111 tests — success;
-- `main` remains stable 9.0.1.
+Фінальний звіт: [AUDIT_v10_0_STABLE.md](AUDIT_v10_0_STABLE.md).
