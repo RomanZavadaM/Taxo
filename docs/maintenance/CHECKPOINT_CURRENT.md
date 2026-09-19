@@ -1,10 +1,10 @@
 # Taxo — поточна контрольна точка
 
 **Stable:** Taxo 9.0.1 · 17.09.2026.
-**Current candidate:** Taxo 9.1 candidate r9.5 · 19.09.2026.
+**Current candidate:** Taxo 9.1 candidate r9.6 · 19.09.2026.
 **Development PR:** #29.
 
-Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.5 опублікований окремим GitHub Pre-release і не оголошується stable до завершення реальної перевірки.
+Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.6 готується як окремий GitHub Pre-release після зеленого CI і не оголошується stable до завершення реальної перевірки.
 
 ## Що входить у r9.5
 
@@ -61,3 +61,8 @@ r9.5 виправляє START-пакет: запуск прямо з ZIP теп�
 - START + SHA-256 доступні в GitHub Release;
 - Windows/macOS: 101 regression tests — success;
 - START guard simulation на Windows — success.
+
+
+## Hotfix r9.6
+
+r9.5 виявився непридатним для manual gate на реальному Windows через CMD parsing regression. r9.6 переводить START.bat у ASCII-only/CRLF, прибирає chcp і додає реальні Windows full/incomplete preflight tests. r9.5 залишається immutable історичним release.
