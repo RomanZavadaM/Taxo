@@ -1,10 +1,10 @@
-# Taxo — технічний стан: stable 9.0.1 / candidate 9.1 r9.7
+# Taxo — технічний стан: stable 9.0.1 / candidate 9.1 r9.8
 
-Канонічний технічний стан експлуатаційної лінії: **stable 9.0.1**. Поточна гілка перевірки — **Taxo 9.1 candidate r9.7**, PR #29.
+Канонічний технічний стан експлуатаційної лінії: **stable 9.0.1**. Поточна гілка перевірки — **Taxo 9.1 candidate r9.8**, PR #29.
 
 ## Головний принцип
 
-Stable 9.0.1 лишається точкою відкату. Кандидат r9.7 не зливається в main до завершення ручної експлуатаційної перевірки. Історичні дані користувача не переписуються автоматично заради виправлення старих конфліктів.
+Stable 9.0.1 лишається точкою відкату. Кандидат r9.8 не зливається в main до завершення ручної експлуатаційної перевірки. Історичні дані користувача не переписуються автоматично заради виправлення старих конфліктів.
 
 ## Ключові зміни лінії 9.1
 
@@ -108,3 +108,12 @@ GitHub оформлено і перевірено після r9.4:
 - START + SHA-256 available;
 - Windows/macOS: 107 tests — success;
 - `main` remains stable 9.0.1.
+
+
+## r9.8 — waybill duty slot
+
+- exact schedule-date staff resolver;
+- one day-duty map for all waybill rows;
+- role+date+shift slot ignores location;
+- duplicate slot => explicit conflict and issue block;
+- overnight route cannot overwrite current-day I/II staff.
