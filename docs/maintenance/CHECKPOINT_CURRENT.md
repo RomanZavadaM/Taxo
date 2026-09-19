@@ -4,7 +4,7 @@
 **Current candidate:** Taxo 9.1 candidate r9.5 · 19.09.2026.
 **Development PR:** #29.
 
-Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.5 публікується окремим GitHub Pre-release і не оголошується stable до завершення реальної перевірки.
+Stable 9.0.1 залишається експлуатаційною точкою відкату. Candidate r9.5 опублікований окремим GitHub Pre-release і не оголошується stable до завершення реальної перевірки.
 
 ## Що входить у r9.5
 
@@ -52,3 +52,12 @@ r9.4 не виконує масового переписування істор�
 ## Hotfix r9.5
 
 r9.5 виправляє START-пакет: запуск прямо з ZIP тепер блокується зрозумілим повідомленням, додано `00_README_START.txt`, виправлено імена dotted candidate archives та додано Windows regression simulation. Функціональна поведінка r9.4 збережена.
+
+
+## GitHub release r9.5
+
+- `v9.1-r9.5` опублікований;
+- immutable target: `f587c2cad71a22c6bded3a992fd27797c1e2c296`;
+- START + SHA-256 доступні в GitHub Release;
+- Windows/macOS: 101 regression tests — success;
+- START guard simulation на Windows — success.
