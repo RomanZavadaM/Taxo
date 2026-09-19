@@ -1,6 +1,10 @@
 # Документація Taxo
 
-Цей розділ є основною точкою входу до **експлуатаційної документації** Taxo. Stable залишається **9.0.1**; поточна перевірочна лінія — **9.1 candidate r9.8** у PR #29.
+Цей розділ є основною точкою входу до **експлуатаційної документації Taxo 10.0**.
+
+**Stable:** Taxo 10.0  
+**Previous stable / rollback:** Taxo 9.0.1  
+**Verified candidate before stable:** v9.1-r9.8
 
 ## Керівництва
 
@@ -15,32 +19,27 @@
 ## Опис системи
 
 - [Огляд системи та функціоналу](SYSTEM_OVERVIEW.md)
-- [Стан продукту та правила подальшої розробки](PRODUCT_STATUS.md)
+- [Стан продукту](PRODUCT_STATUS.md)
 - [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
 
-## Поточний супровід
+## Stable 10.0
 
-- [Технічний стан і контрольна точка](maintenance/README.md)
-- [Поточний аудит Taxo 9.1 candidate r9.8](maintenance/AUDIT_v9_1_r9_8.md)
-- [Аудит r9.7](maintenance/AUDIT_v9_1_r9_7.md)
-- [Аудит Windows START r9.6](maintenance/AUDIT_v9_1_r9_6.md)
-- [Аудит проблеми START r9.5](maintenance/AUDIT_v9_1_r9_5.md)
-- [Функціональний аудит r9.4](maintenance/AUDIT_v9_1_r9_4.md)
-- [Примітки до актуального релізу](releases/README.md)
+- [Release notes 10.0](releases/RELEASE_NOTES_v10_0.md)
+- [Фінальний аудит 10.0](maintenance/AUDIT_v10_0_STABLE.md)
+- [Поточний технічний стан](maintenance/PROJECT_STATE.md)
+- [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
+- [Повний індекс GitHub Releases](releases/RELEASE_INDEX.md)
+
+## Історичні аудити кандидатів 9.1
+
+- [r9.8 — duty staff шляхівок](maintenance/AUDIT_v9_1_r9_8.md)
+- [r9.7 — відкриття деталізації місячного графіка](maintenance/AUDIT_v9_1_r9_7.md)
+- [r9.6 — Windows START compatibility](maintenance/AUDIT_v9_1_r9_6.md)
+- [r9.5 — START package hotfix](maintenance/AUDIT_v9_1_r9_5.md)
+- [r9.4 — передетапний функціональний аудит](maintenance/AUDIT_v9_1_r9_4.md)
 
 ## Історія розробки
 
-Історичні `CHECKPOINT_*`, `TEST_REPORT_*`, `PUBLISH_STATUS_*`, старі примітки до релізів, патчі та ранні архіви версій 8.x **не знаходяться в `main`**. Вони збережені в окремій гілці [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
+Історичні матеріали 8.x збережені в окремій гілці [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
 
 Докладніше: [Історія розвитку](HISTORY.md).
-
-## Версія документації
-
-Документація описує stable **Taxo 9.0.1** та зміни поточного перевірочного кандидата **Taxo 9.1 candidate r9.7**. Кандидат не вважається stable до завершення ручної експлуатаційної перевірки.
-
-## Публікація і релізи
-
-- [Повний індекс GitHub Releases](releases/RELEASE_INDEX.md)
-- [GitHub publication summary r9.4](maintenance/GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md)
-
-Усі підготовлені 9.x release-контрольні точки опубліковані. Stable лишається 9.0.1; r9.5 є pre-release до завершення manual operational gate.
