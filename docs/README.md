@@ -1,6 +1,6 @@
 # Документація Taxo
 
-Цей розділ є основною точкою входу до **експлуатаційної документації** Taxo. Stable залишається **9.0.1**; поточна перевірочна лінія — **9.1 candidate r9.7** у PR #29.
+Цей розділ є основною точкою входу до **експлуатаційної документації** Taxo. Stable залишається **9.0.1**; поточна перевірочна лінія — **9.1 candidate r9.8** у PR #29.
 
 ## Керівництва
 
@@ -21,7 +21,8 @@
 ## Поточний супровід
 
 - [Технічний стан і контрольна точка](maintenance/README.md)
-- [Поточний аудит Taxo 9.1 candidate r9.7](maintenance/AUDIT_v9_1_r9_7.md)
+- [Поточний аудит Taxo 9.1 candidate r9.8](maintenance/AUDIT_v9_1_r9_8.md)
+- [Аудит r9.7](maintenance/AUDIT_v9_1_r9_7.md)
 - [Аудит Windows START r9.6](maintenance/AUDIT_v9_1_r9_6.md)
 - [Аудит проблеми START r9.5](maintenance/AUDIT_v9_1_r9_5.md)
 - [Функціональний аудит r9.4](maintenance/AUDIT_v9_1_r9_4.md)
