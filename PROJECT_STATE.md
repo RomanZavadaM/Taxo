@@ -4,8 +4,10 @@
 **Поточна stable:** Taxo 10.0  
 **Попередня stable / rollback:** Taxo 9.0.1  
 **Останній кандидат перед stable:** v9.1-r9.8  
-**Гілка релізної підготовки:** `work/v9.1-monthly-dispatch-waybill-ui`  
-**PR:** #29 — завершується merge у `main` після зеленого CI  
+**Stable release tag:** `v10.0`  
+**Stable release target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`  
+**PR #29:** merged  
+**Release pipeline fixes:** PR #30 і #31 merged  
 **Фінальний аудит:** `docs/maintenance/AUDIT_v10_0_STABLE.md`
 
 ## Рішення про stable
@@ -79,22 +81,27 @@
 - `v9.1-r9.5` лишається історичним known-bad START release і не пересувається.
 
 Нова stable:
-- `v10.0` — створюється тільки з merge commit у `main`;
+- `v10.0` — опублікований stable release;
+- target commit: `91c0d6365a40eb09fe40f97a2965da40b314bc15`;
 - Windows x64 Setup;
 - Windows x64 Portable;
 - macOS ARM64;
 - macOS Intel x86_64;
 - START/source;
-- SHA-256 manifests.
+- per-platform і combined SHA-256 manifests.
 
-## Stable release procedure
+## Stable release result
 
-1. PR #29 CI green.
-2. Merge PR #29 у `main`.
-3. `Publish Taxo 10.0 stable` запускається на merge commit.
-4. Усі OS-build jobs повинні бути green.
-5. Publisher створює `v10.0` один раз; overwrite заборонений.
-6. Після публікації `main` + `v10.0` є новим source of truth.
+1. PR #29 — merged у `main`.
+2. PR #30/#31 — release-pipeline hardening merged.
+3. `Publish Taxo 10.0 stable` — success.
+4. Source verify — 117 tests / OK.
+5. Windows — 117 tests / OK, Setup + Portable success.
+6. macOS ARM64 — 117 tests / OK, Taxo.app package success.
+7. macOS Intel x86_64 — 117 tests / OK, Taxo.app package success.
+8. START/source verification — success.
+9. GitHub Release `v10.0` — published, 10 assets.
+10. `main` + protected tag `v10.0` є новим stable source of truth.
 
 Деталі:
 - [Release notes 10.0](docs/releases/RELEASE_NOTES_v10_0.md)
