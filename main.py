@@ -2232,6 +2232,102 @@ def gaps_summary(segments, pair="work"):
     return ", ".join(minutes_hhmm(x) for x in gaps_minutes(segments,pair=pair))
 
 
+def _record_value(record, key, default=""):
+    """Read sqlite Row/dict values without forcing callers to care about the row type."""
+    if record is None:
+        return default
+    try:
+        if key in record.keys():
+            return record[key]
+    except Exception:
+        pass
+    if isinstance(record, dict):
+        return record.get(key, default)
+    return default
+
+
+def driver_day_view(work_day, worklog=None, segments=None, day_type_override=None,
+                    suppress_plan=False):
+    """Canonical presentation state for one driver's day.
+
+    The same result is used by the legacy driver timesheet and the graphical
+    driver schedule so a day cannot silently look like two different states.
+    Historical worklog/segments remain untouched; an absence override only
+    changes the effective presentation.
+    """
+    segments=list(segments or [])
+    raw_type=str(_record_value(worklog, "day_type", "") or "").strip()
+    default_type="Вихідний" if work_day.weekday() >= 5 else "Робота"
+    day_type=str(day_type_override or raw_type or default_type).strip()
+
+    effective_segments=[] if suppress_plan else segments
+    schedule=""
+    breaks=""
+    bands=[]
+
+    if effective_segments:
+        schedule=segments_summary(effective_segments)
+        breaks=gaps_summary(effective_segments)
+        for seg in effective_segments:
+            ws,we=_segment_work_pair(seg)
+            ds=str(_record_value(seg, "start_time", "") or "").strip()
+            de=str(_record_value(seg, "end_time", "") or "").strip()
+            if ws and we:
+                bands.append(("Робота", ws, we))
+            if ds and de:
+                bands.append(("Керування", ds, de))
+    elif worklog is not None and not suppress_plan:
+        ws=(str(_record_value(worklog, "work_start_time", "") or "").strip()
+            or str(_record_value(worklog, "start_time", "") or "").strip())
+        we=(str(_record_value(worklog, "work_end_time", "") or "").strip()
+            or str(_record_value(worklog, "end_time", "") or "").strip())
+        ds=str(_record_value(worklog, "start_time", "") or "").strip()
+        de=str(_record_value(worklog, "end_time", "") or "").strip()
+        drive=f"кер. {ds}-{de}" if ds and de else "кер. —"
+        schedule=f"роб. {ws}-{we}; {drive}" if ws and we else drive
+        if ws and we:
+            bands.append(("Робота", ws, we))
+        if ds and de:
+            bands.append(("Керування", ds, de))
+
+    explicit=worklog is not None
+    if bands:
+        status_label=""
+    elif suppress_plan and day_type:
+        status_label=day_type
+    elif day_type and day_type != "Робота":
+        status_label=day_type
+    elif explicit:
+        status_label="Робота · час не задано"
+    elif work_day.weekday() >= 5:
+        status_label="Вихідний"
+    else:
+        status_label="Немає плану"
+
+    work_minutes=0 if suppress_plan else hours_value_to_minutes(
+        _record_value(worklog, "work_hours", 0)
+    )
+    driving_minutes=0 if suppress_plan else hours_value_to_minutes(
+        _record_value(worklog, "driving_hours", 0)
+    )
+    overtime_minutes=0 if suppress_plan else hours_value_to_minutes(
+        _record_value(worklog, "overtime_hours", 0)
+    )
+
+    return {
+        "day_type": day_type,
+        "schedule": schedule,
+        "breaks": breaks,
+        "bands": bands,
+        "status_label": status_label,
+        "work_minutes": work_minutes,
+        "driving_minutes": driving_minutes,
+        "overtime_minutes": overtime_minutes,
+        "suppressed_plan": bool(suppress_plan),
+        "explicit_worklog": explicit,
+    }
+
+
 def month_dates(year, month):
     days = calendar.monthrange(year, month)[1]
     return [date(year, month, d) for d in range(1, days + 1)]
@@ -7851,9 +7947,29 @@ class App(tk.Tk):
         if rows:
             ids=[r["id"] for r in rows]
             q=",".join("?" for _ in ids)
-            segs=con.execute(f"SELECT * FROM work_segments WHERE worklog_id IN ({q}) ORDER BY segment_no",ids).fetchall()
+            segs=con.execute(f"SELECT * FROM work_segments WHERE worklog_id IN ({q}) ORDER BY worklog_id,segment_no",ids).fetchall()
             for seg in segs: seg_by.setdefault(seg["worklog_id"],[]).append(seg)
+
+        absence_by_driver={}
+        override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES", set()) or ())
+        if override_types and drivers:
+            driver_ids=[dr["id"] for dr in drivers]
+            q=",".join("?" for _ in driver_ids)
+            params=[d.isoformat(),*driver_ids]
+            for entry in con.execute(
+                f"""SELECT e.driver_id,t.day_type
+                    FROM employee_time_entries t
+                    JOIN employees e ON e.id=t.employee_id
+                    WHERE t.work_date=? AND e.driver_id IN ({q})
+                    ORDER BY e.active DESC,e.id""",
+                params
+            ).fetchall():
+                if (entry["driver_id"] is not None
+                        and str(entry["day_type"] or "") in override_types
+                        and entry["driver_id"] not in absence_by_driver):
+                    absence_by_driver[entry["driver_id"]]=entry["day_type"]
         con.close()
+
         left=185; hour_w=72; top=48; row_h=54; width=left+24*hour_w+20
         height=max(top+len(drivers)*row_h+30,300)
         c.configure(scrollregion=(0,0,width,height))
@@ -7865,56 +7981,64 @@ class App(tk.Tk):
             if h<24:
                 c.create_text(x+3,top/2,text=f"{h:02d}:00",anchor="w",font=("TkDefaultFont",9))
         c.create_line(0,top,width,top,fill="#999")
+
         for idx,dr in enumerate(drivers):
             y=top+idx*row_h; self.schedule_driver_rows.append((y,y+row_h,dr["id"],dr))
             if idx%2==0: c.create_rectangle(0,y,width,y+row_h,fill="#fafafa",outline="")
             full=(f"{dr['last_name']} {dr['first_name']} {dr['middle_name']}").strip()
             c.create_text(12,y+row_h/2,text=full,anchor="w",font=("TkDefaultFont",9,"bold"))
+
             wl=by_driver.get(dr["id"])
             segs=seg_by.get(wl["id"],[]) if wl else []
-            if not segs and wl and ((wl["work_start_time"] or "") or (wl["start_time"] or "")):
-                segs=[{
-                    "start_time":wl["start_time"],"end_time":wl["end_time"],
-                    "work_start_time":wl["work_start_time"],"work_end_time":wl["work_end_time"],
-                    "activity_type":wl["day_type"],"work_hours":wl["work_hours"],
-                    "driving_hours":wl["driving_hours"],"note":wl["notes"]
-                }]
-            for seg in segs:
-                seg_id = seg["id"] if "id" in seg.keys() else None
-                ws,we=_segment_work_pair(seg)
-                bands=[("Робота",ws,we,y+6,y+25)]
-                ds=(seg["start_time"] or "").strip(); de=(seg["end_time"] or "").strip()
-                if ds and de:
-                    bands.append(("Керування",ds,de,y+29,y+48))
-                for group,a,b,y1,y2 in bands:
-                    if not a or not b: continue
-                    try: sm=time_to_minutes(a); em=time_to_minutes(b)
-                    except Exception: continue
-                    if em<=sm: em+=1440
-                    for base_sm,base_em in ((sm,em),(sm-1440,em-1440)):
-                        vis_s=max(0,base_sm); vis_e=min(1440,base_em)
-                        if vis_e<=vis_s: continue
-                        x1=left+vis_s/60*hour_w; x2=left+vis_e/60*hour_w
-                        c.create_rectangle(x1,y1,x2,y2,fill=self._schedule_fill(group),outline="#777")
-                        band_w=x2-x1
-                        # Підпис не можна просто ховати для коротких інтервалів:
-                        # саме після ручного редагування частини часто стають коротшими
-                        # за старий поріг 95 px, через що здавалося, що дані не збереглись.
-                        # Вибираємо компактніший текст, але підписуємо КОЖНУ смугу.
-                        if band_w>=125:
-                            label=f"{a}–{b} {group}"
-                            font=("TkDefaultFont",8)
-                        elif band_w>=72:
-                            label=f"{a}–{b}"
-                            font=("TkDefaultFont",8)
-                        elif band_w>=38:
-                            label="Роб." if group=="Робота" else ("Кер." if group=="Керування" else group[:4]+".")
-                            font=("TkDefaultFont",8)
-                        else:
-                            label="Р" if group=="Робота" else ("К" if group=="Керування" else "•")
-                            font=("TkDefaultFont",8,"bold")
-                        c.create_text((x1+x2)/2,(y1+y2)/2,text=label,anchor="center",font=font)
-                        self.schedule_hitboxes.append((x1,y1,x2,y2,dr["id"],d,seg_id,wl["id"] if wl else None))
+            override=absence_by_driver.get(dr["id"])
+            state=driver_day_view(
+                d,wl,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+
+            band_rows={
+                "Робота":(y+6,y+25),
+                "Керування":(y+29,y+48),
+            }
+            for group,a,b in state["bands"]:
+                y1,y2=band_rows.get(group,(y+6,y+25))
+                if not a or not b: continue
+                try: sm=time_to_minutes(a); em=time_to_minutes(b)
+                except Exception: continue
+                if em<=sm: em+=1440
+                for base_sm,base_em in ((sm,em),(sm-1440,em-1440)):
+                    vis_s=max(0,base_sm); vis_e=min(1440,base_em)
+                    if vis_e<=vis_s: continue
+                    x1=left+vis_s/60*hour_w; x2=left+vis_e/60*hour_w
+                    c.create_rectangle(x1,y1,x2,y2,fill=self._schedule_fill(group),outline="#777")
+                    band_w=x2-x1
+                    if band_w>=125:
+                        label=f"{a}–{b} {group}"
+                        font=("TkDefaultFont",8)
+                    elif band_w>=72:
+                        label=f"{a}–{b}"
+                        font=("TkDefaultFont",8)
+                    elif band_w>=38:
+                        label="Роб." if group=="Робота" else ("Кер." if group=="Керування" else group[:4]+".")
+                        font=("TkDefaultFont",8)
+                    else:
+                        label="Р" if group=="Робота" else ("К" if group=="Керування" else "•")
+                        font=("TkDefaultFont",8,"bold")
+                    c.create_text((x1+x2)/2,(y1+y2)/2,text=label,anchor="center",font=font)
+                    self.schedule_hitboxes.append(
+                        (x1,y1,x2,y2,dr["id"],d,None,wl["id"] if wl else None)
+                    )
+
+            if state["status_label"]:
+                status=state["status_label"]
+                c.create_text(
+                    left+12,y+row_h/2,
+                    text=status,anchor="w",
+                    font=("TkDefaultFont",9,"bold" if override else "normal"),
+                    fill="#666666",
+                )
+
         c.create_line(0,top+len(drivers)*row_h,width,top+len(drivers)*row_h,fill="#999")
 
     def _schedule_hit(self,event):
@@ -8612,29 +8736,73 @@ class App(tk.Tk):
         driver=self.driver_by_id(self.driver_id)
         if not driver or not driver_employed_on(driver,month_dates(y,m)[-1]):
             return
-        con=db(); rows=con.execute("SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",(self.driver_id,f"{y:04d}-{m:02d}")).fetchall(); con.close()
+
+        con=db()
+        rows=con.execute(
+            "SELECT * FROM worklog WHERE driver_id=? AND substr(work_date,1,7)=? ORDER BY work_date",
+            (self.driver_id,f"{y:04d}-{m:02d}")
+        ).fetchall()
         existing={r["work_date"]:r for r in rows}
+
+        absence_overrides={}
+        override_types=set(globals().get("TAXO_NONWORK_OVERRIDE_TYPES", set()) or ())
+        if override_types:
+            employee=con.execute(
+                "SELECT id FROM employees WHERE driver_id=? ORDER BY active DESC,id LIMIT 1",
+                (self.driver_id,)
+            ).fetchone()
+            if employee is not None:
+                for entry in con.execute(
+                    """SELECT work_date,day_type FROM employee_time_entries
+                       WHERE employee_id=? AND substr(work_date,1,7)=?""",
+                    (employee["id"],f"{y:04d}-{m:02d}")
+                ).fetchall():
+                    if str(entry["day_type"] or "") in override_types:
+                        absence_overrides[entry["work_date"]]=entry["day_type"]
+
+        segment_map={}
+        if rows:
+            ids=[r["id"] for r in rows]
+            q=",".join("?" for _ in ids)
+            for seg in con.execute(
+                f"SELECT * FROM work_segments WHERE worklog_id IN ({q}) ORDER BY worklog_id,segment_no",
+                ids
+            ).fetchall():
+                segment_map.setdefault(seg["worklog_id"],[]).append(seg)
+        con.close()
+
         for d in month_dates(y,m):
             if not driver_employed_on(driver,d):
                 continue
             r=existing.get(d.isoformat())
-            segs=self.get_work_segments(r["id"]) if r else []
-            if segs:
-                schedule=segments_summary(segs)
-            elif r:
-                ws=(r["work_start_time"] if "work_start_time" in r.keys() else "") or r["start_time"]
-                we=(r["work_end_time"] if "work_end_time" in r.keys() else "") or r["end_time"]
-                drive=(f"кер. {r['start_time']}-{r['end_time']}" if r["start_time"] and r["end_time"] else "кер. —")
-                schedule=(f"роб. {ws}-{we}; {drive}" if ws and we else drive)
-            else:
-                schedule=""
-            breaks=gaps_summary(segs)
-            vals=(r["id"] if r else "",d.strftime("%d.%m.%Y"),["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],r["day_type"] if r else ("Вихідний" if d.weekday()>=5 else "Робота"),schedule,breaks,
-                  hours_value_hhmm(r["work_hours"]) if r else "0:00",
-                  hours_value_hhmm(r["driving_hours"]) if r else "0:00",
-                  hours_value_hhmm(r["overtime_hours"]) if r else "0:00",
-                  r["route_name"] if r and "route_name" in r.keys() else "",r["vehicle"] if r else "",r["notes"] if r else "",
-                  work_mode_label(r["accounting_mode"] if r and "accounting_mode" in r.keys() else WORK_MODE_MANUAL))
+            segs=segment_map.get(r["id"],[]) if r else []
+            override=absence_overrides.get(d.isoformat())
+            state=driver_day_view(
+                d,r,segs,
+                day_type_override=override,
+                suppress_plan=bool(override),
+            )
+            vals=(
+                r["id"] if r else "",
+                d.strftime("%d.%m.%Y"),
+                ["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][d.weekday()],
+                state["day_type"],
+                state["schedule"],
+                state["breaks"],
+                minutes_hhmm(state["work_minutes"]),
+                minutes_hhmm(state["driving_minutes"]),
+                minutes_hhmm(state["overtime_minutes"]),
+                r["route_name"] if r and "route_name" in r.keys() else "",
+                r["vehicle"] if r else "",
+                (f"Відсутність із табеля персоналу"
+                 if override and not (r and r["notes"])
+                 else (r["notes"] if r else "")),
+                ("ВІДСУТНІСТЬ" if override else
+                 work_mode_label(
+                     r["accounting_mode"] if r and "accounting_mode" in r.keys()
+                     else WORK_MODE_MANUAL
+                 )),
+            )
             self.work_tree.insert("","end",values=vals)
 
     def edit_work_row(self,_=None):
