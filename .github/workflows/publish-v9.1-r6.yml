@@ -1,27 +1,7 @@
 name: Build and publish Taxo 9.1 candidate r6
 
 on:
-  push:
-    branches:
-      - 'work/v9.1-monthly-dispatch-waybill-ui'
-    paths:
-      - 'VERSION.txt'
-      - 'taxo_app.py'
-      - 'personnel_v91.py'
-      - 'work_regime.py'
-      - 'v91_features.py'
-      - 'waybill.py'
-      - 'Taxo.spec'
-      - 'Taxo_macos.spec'
-      - 'installer/Taxo.iss'
-      - 'BUILD_WINDOWS.bat'
-      - 'BUILD_INSTALLER.bat'
-      - 'BUILD_MACOS.sh'
-      - 'docs/releases/RELEASE_NOTES_v9_1_candidate_r6.md'
-      - 'PROJECT_STATE.md'
-      - '.github/workflows/publish-v9.1-r6.yml'
   workflow_dispatch:
-
 permissions:
   contents: write
 
@@ -34,6 +14,7 @@ jobs:
       - name: Отримати код Taxo 9.1 r6
         uses: actions/checkout@v4
         with:
+          ref: v9.1-r6
           fetch-depth: 0
 
       - name: Налаштувати Python 3.13 x64
@@ -114,6 +95,7 @@ jobs:
       - name: Отримати код Taxo 9.1 r6
         uses: actions/checkout@v4
         with:
+          ref: v9.1-r6
           fetch-depth: 0
 
       - name: Налаштувати Python 3.13
@@ -177,6 +159,7 @@ jobs:
       - name: Отримати точний код 9.1 r6
         uses: actions/checkout@v4
         with:
+          ref: v9.1-r6
           fetch-depth: 0
 
       - name: Завантажити перевірені пакети
