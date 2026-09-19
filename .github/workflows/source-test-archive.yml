@@ -78,6 +78,19 @@ jobs:
             fi
           done
 
+          unzip -p "$archive" "*/START.bat" > /tmp/START.bat
+          python - <<'PY'
+          data = open('/tmp/START.bat', 'rb').read()
+          if not data:
+              raise SystemExit('START.bat is empty')
+          if any(byte >= 128 for byte in data):
+              raise SystemExit('START.bat must remain ASCII-only for Windows cmd.exe compatibility')
+          if b'chcp' in data.lower():
+              raise SystemExit('START.bat must not switch code pages')
+          if b'\r\n' not in data:
+              raise SystemExit('START.bat must contain Windows CRLF line endings')
+          PY
+
       - name: Upload source archive
         uses: actions/upload-artifact@v4
         with:
