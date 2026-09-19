@@ -2,16 +2,6 @@ name: Build and publish Taxo 9.0.1
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'VERSION.txt'
-      - 'taxo_app.py'
-      - 'hotfix_901.py'
-      - 'installer/Taxo.iss'
-      - 'docs/releases/RELEASE_NOTES_v9_0_1.md'
-      - '.github/workflows/publish-v9.0.1.yml'
 
 permissions:
   contents: write
