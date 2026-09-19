@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.1 candidate r3 — планування персоналу випуску та UI fixes.
+"""Taxo 9.1 candidate r9.4 — планування персоналу випуску та UI fixes.
 
 Модуль не змінює схему БД. Він працює поверх наявної таблиці employee_shifts,
 додаючи безпечне масове планування лікарів/механіків на місяць, і усуває
@@ -12,13 +12,13 @@ import sqlite3
 from datetime import date, datetime, timedelta
 
 
-APP_VERSION = "9.1 candidate r3"
+APP_VERSION = "9.1 candidate r9.4"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — Працівники, графіки та шляхівки"
 ABOUT_TITLE = f"Taxo {APP_VERSION}"
 ABOUT_TEXT = (
     "Облік роботи водіїв і персоналу, графіків, шляхових листів, табелів, "
     "бланків підтвердження діяльності та аналогових тахокарт.\n\n"
-    "9.1 candidate r3: окремий модуль персоналу, масове планування та оформлення "
+    "9.1 candidate r9.4: окремий модуль персоналу, масове планування та оформлення "
     "шляхового листа та виправлення відкриття табеля після закриття реєстру працівників.\n"
     "Схема робочої бази не змінюється."
 )
@@ -212,7 +212,7 @@ def _row_interval(row):
 
 
 def install(core, base_app):
-    """Install Taxo 9.1 candidate r3 behavior."""
+    """Install Taxo 9.1 candidate r9.4 behavior."""
     if getattr(core, "_TAXO_V91_INSTALLED", False):
         return core.App
 
