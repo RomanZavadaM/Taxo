@@ -1576,7 +1576,7 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None
 
     note_row=sig_row+4
     ws.merge_cells(start_row=note_row,start_column=1,end_row=note_row+1,end_column=last_col)
-    ws.cell(note_row,1)=(
+    ws.cell(note_row,1).value=(
         "Примітка. Для підсумованого обліку фонд часу визначається за встановленим обліковим періодом "
         "у межах нормальної тривалості. Форма має рекомендаційний характер і може доповнюватися "
         "іншими показниками, необхідними підприємству."
