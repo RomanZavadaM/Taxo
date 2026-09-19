@@ -51,7 +51,7 @@ jobs:
       PYTHONUTF8: '1'
 
     steps:
-      - name: Checkout v8.70 candidate
+      - name: Checkout current Taxo candidate
         uses: actions/checkout@v4
 
       - name: Set up Python 3.13
@@ -104,7 +104,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
-          bundle_dir="Taxo_v8_70_TEST_r11_macOS_${{ matrix.arch }}"
+          bundle_dir="Taxo_v9_1_candidate_r9_4_macOS_${{ matrix.arch }}"
           zip_name="${bundle_dir}_Portable.zip"
           mkdir "${bundle_dir}"
           mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
@@ -115,9 +115,9 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v8.70-macOS-${{ matrix.arch }}-candidate-r11
+          name: Taxo-v9.1-macOS-${{ matrix.arch }}-candidate-r9.4
           path: |
-            Taxo_v8_70_TEST_r11_macOS_${{ matrix.arch }}_Portable.zip
+            Taxo_v9_1_candidate_r9_4_macOS_${{ matrix.arch }}_Portable.zip
             SHA256SUMS_v8_70_TEST_r11_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30
