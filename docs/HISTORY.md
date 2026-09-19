@@ -1,37 +1,49 @@
 # Історія розвитку Taxo
 
-Починаючи з Taxo 9.0, основна гілка `main` використовується як **експлуатаційна гілка продукту** і не містить великого масиву службових файлів попередньої розробки.
+Починаючи з Taxo 9.0, гілка `main` використовується як **експлуатаційна stable-гілка продукту**.
 
-Повний стан репозиторію до очищення зафіксований у гілці:
-
+Історична розробка 8.x збережена в:
 [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8)
 
-У ній збережено:
+## Stable 9.x
 
-- `CHECKPOINT_v*` — контрольні точки окремих етапів;
-- `TEST_REPORT_v*` — результати тестування кандидатів;
-- `PUBLISH_STATUS_v*` — стани старих публікацій;
-- `RELEASE_NOTES_v8*` — примітки до релізів 8.x;
-- `PATCH_v*` — службові патчі;
-- `UI_AUDIT_*` — історичні аудити інтерфейсу;
-- стару папку `releases/` з ранніми джерельними архівами;
-- повний `PROJECT_STATE.md` і `CHECKPOINT_CURRENT.md` на момент переходу до експлуатаційної 9.0.
+- **9.0** — базова експлуатаційна версія;
+- **9.0.1** — hotfix версії в інтерфейсі та чистого START-пакета.
 
-## Стабільна лінія 9.x
+## Candidate line 9.1
 
-- **9.0** — нова базова стабільна версія для реальної експлуатації;
-- **9.0.1** — перший експлуатаційний hotfix: актуальні написи версії в інтерфейсі та чистий START-пакет без старих службових матеріалів v8.x.
+Розвиток 9.1 проходив через PR #29 та immutable pre-releases:
+`v9.1-r5` … `v9.1-r9.8`.
 
-## Кандидатна лінія 9.1
+Ключові етапи:
+- r7 — hardening планування;
+- r8 — єдиний стан дня;
+- r9 — канонічні exact intervals і union overlap;
+- r9.3 — П-5, архів бланків, місячний контроль;
+- r9.4 — «Аудит графіків…»;
+- r9.5/r9.6 — START package і Windows CMD compatibility;
+- r9.7 — «Відкрити деталізацію» у місячному графіку;
+- r9.8 — один duty staff slot за role + date + shift.
 
-Після stable 9.0.1 розвиток 9.1 ведеться в `work/v9.1-monthly-dispatch-waybill-ui` через PR #29. Опубліковані контрольні точки `v9.1-r5` … `v9.1-r9.4`; r1–r4 лишилися проміжними Git-станами та навмисно не оформлювалися окремими Releases.
+r1–r4 лишилися проміжними Git-станами й навмисно не оформлювалися окремими GitHub Releases.
 
-Поточний candidate — **9.1 r9.4**. Він пройшов автоматичні regression tests і опублікований як START/source pre-release, але не стає stable до завершення manual operational gate на реальній Windows-базі.
+## Taxo 10.0
 
-Повний індекс: [releases/RELEASE_INDEX.md](releases/RELEASE_INDEX.md).
+**19.09.2026** — candidate line 9.1 завершена після manual operational gate і промотована в **stable Taxo 10.0**.
+
+10.0 включає:
+- Personnel / regimes / P-5;
+- canonical time intervals;
+- technical schedule audit + separate №340 control;
+- monthly schedule/detail workflows;
+- waybill duty-staff consistency;
+- Windows-safe START;
+- full Windows/macOS stable packaging.
 
 ## Що використовувати зараз
 
-Для штатної експлуатації використовуйте `main` і актуальний stable GitHub Release **v9.0.1**. `v9.1-r9.4` використовуйте лише як поточний candidate для контрольованої ручної перевірки.
+Для штатної експлуатації використовуйте **`main` + GitHub Release `v10.0`**.
 
-Історична гілка потрібна лише для відновлення контексту розробки, аналізу старих рішень або регресій. Вона не є джерелом актуальних інструкцій для персоналу.
+`v9.0.1` зберігається як попередня stable/rollback точка. Candidate releases 9.1 — історичні контрольні точки, а не актуальні пакети для експлуатації.
+
+Повний індекс: [releases/RELEASE_INDEX.md](releases/RELEASE_INDEX.md).
