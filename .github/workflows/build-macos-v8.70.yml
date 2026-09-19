@@ -109,7 +109,7 @@ jobs:
           mkdir "${bundle_dir}"
           mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle_dir}" "${zip_name}"
-          shasum -a 256 "${zip_name}" > "SHA256SUMS_v8_70_TEST_r11_macOS_${{ matrix.arch }}.txt"
+          shasum -a 256 "${zip_name}" > "SHA256SUMS_v9_1_candidate_r9_4_macOS_${{ matrix.arch }}.txt"
 
       - name: Upload macOS candidate
         if: github.event_name == 'workflow_dispatch'
@@ -118,6 +118,6 @@ jobs:
           name: Taxo-v9.1-macOS-${{ matrix.arch }}-candidate-r9.4
           path: |
             Taxo_v9_1_candidate_r9_4_macOS_${{ matrix.arch }}_Portable.zip
-            SHA256SUMS_v8_70_TEST_r11_macOS_${{ matrix.arch }}.txt
+            SHA256SUMS_v9_1_candidate_r9_4_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30
