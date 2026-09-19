@@ -73,7 +73,7 @@ GitHub оформлено і перевірено після r9.4:
 Деталі: [AUDIT_v9_1_r9_5.md](AUDIT_v9_1_r9_5.md).
 
 
-## r9.6 — Windows CMD compatibility
+## r9.6 — Windows CMD compatibility (published)
 
 - r9.5 manual test показав parsing corruption самого BAT у повністю розпакованій папці;
 - START.bat тепер ASCII-only + CRLF, без chcp;
@@ -81,3 +81,12 @@ GitHub оформлено і перевірено після r9.4:
 - source package CI контролює encoding/line endings;
 - r9.5 не використовувати для manual gate;
 - функціональна логіка r9.4 не змінена.
+
+
+### r9.6 publication
+
+- release target — `49d36f5140986f54639835164a3ba22cf28323b7`;
+- START + SHA-256 published;
+- 105 tests OK on Windows, macOS ARM64, macOS Intel;
+- Windows complete/incomplete START preflight OK;
+- `main` remains 9.0.1.
