@@ -1,24 +1,24 @@
-# Супровід Taxo 9.x
+# Супровід Taxo 10.0
 
-Цей розділ містить технічні документи, потрібні для супроводу актуальної стабільної лінії, але не для щоденної роботи персоналу.
+Цей розділ містить технічні документи для супроводу stable Taxo 10.0.
 
 - [Поточний технічний стан](PROJECT_STATE.md)
 - [Поточна контрольна точка](CHECKPOINT_CURRENT.md)
+- [Фінальний аудит Taxo 10.0](AUDIT_v10_0_STABLE.md)
 - [Політика гілки main](MAIN_BRANCH_POLICY.md)
 - [Чекліст випуску](RELEASE_CHECKLIST.md)
-- [Поточний аудит candidate r9.8 — персонал шляхівок за датою/зміною](AUDIT_v9_1_r9_8.md)
-- [Аудит candidate r9.7 — відкриття деталізації місячного графіка](AUDIT_v9_1_r9_7.md)
-- [Аудит candidate r9.6 — Windows START compatibility](AUDIT_v9_1_r9_6.md)
-- [Аудит candidate r9.5 — START package hotfix](AUDIT_v9_1_r9_5.md)
-- [Передетапний функціональний аудит candidate r9.4](AUDIT_v9_1_r9_4.md)
+
+## Історичні аудити 9.1
+
+- [r9.8 — duty staff шляхівок](AUDIT_v9_1_r9_8.md)
+- [r9.7 — відкриття деталізації](AUDIT_v9_1_r9_7.md)
+- [r9.6 — Windows START compatibility](AUDIT_v9_1_r9_6.md)
+- [r9.5 — START package hotfix](AUDIT_v9_1_r9_5.md)
+- [r9.4 — передетапний аудит](AUDIT_v9_1_r9_4.md)
 - [GitHub publication summary r9.4](GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md)
-- [Handoff для нового чату](NEW_CHAT_HANDOFF_v9_1_r9_4.md)
 
-Stable Taxo 9.0.1 лишається експлуатаційною точкою відкату. Поточна перевірочна лінія — Taxo 9.1 candidate r9.8 (published) у PR #29.
+## Поточний статус
 
-Історія розробки версій 8.x винесена з `main` у гілку [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
+Manual operational gate завершено. PR #29 промотує перевірений r9.8 у stable 10.0. Після merge багатоплатформний publisher збирає Windows/macOS/START artifacts і створює `v10.0`.
 
-
-## Поточний gate
-
-r9.5 виявився непридатним для manual gate через Windows CMD parsing regression. r9.6 стабілізував START. r9.7 закриває відсутню дію «Відкрити деталізацію» у місячному графіку й уже опублікований; перевірити її та продовжити manual operational gate на реальній Windows-базі. До його завершення `main` і stable 9.0.1 не змінюються.
+Історія 8.x: [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
