@@ -147,13 +147,13 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean Taxo.spec
-          Move-Item 'dist/Taxo' 'dist/Taxo_v9_1_candidate_r9_6_Windows_x64'
+          Move-Item 'dist/Taxo' 'dist/Taxo_v9_1_candidate_r9_7_Windows_x64'
 
       - name: Verify portable bundle
         if: steps.changes.outputs.build == 'true'
         shell: pwsh
         run: |
-          $bundle = 'dist/Taxo_v9_1_candidate_r9_6_Windows_x64'
+          $bundle = 'dist/Taxo_v9_1_candidate_r9_7_Windows_x64'
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
           if (!(Test-Path "$bundle/_internal/Бланк підтвердження.docx")) { throw 'DOCX template not found' }
           if (!(Test-Path "$bundle/_internal/attestation_visual_template.pdf")) { throw 'PDF template not found' }
@@ -164,7 +164,7 @@ jobs:
         if: steps.changes.outputs.build == 'true'
         shell: pwsh
         run: |
-          Compress-Archive -Path 'dist/Taxo_v9_1_candidate_r9_6_Windows_x64' -DestinationPath 'Taxo_v9_1_candidate_r9_6_Windows_x64_Portable.zip' -Force
+          Compress-Archive -Path 'dist/Taxo_v9_1_candidate_r9_7_Windows_x64' -DestinationPath 'Taxo_v9_1_candidate_r9_7_Windows_x64_Portable.zip' -Force
 
       - name: Build Windows installer
         if: steps.changes.outputs.build == 'true'
@@ -177,30 +177,30 @@ jobs:
           }
           if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
           & $iscc 'installer/Taxo.iss'
-          if (!(Test-Path 'release_out/Taxo_v9_1_candidate_r9_6_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+          if (!(Test-Path 'release_out/Taxo_v9_1_candidate_r9_7_Setup_Windows_x64.exe')) { throw 'Installer not found' }
 
       - name: Create checksums
         if: steps.changes.outputs.build == 'true'
         shell: pwsh
         run: |
           $files = @(
-            'Taxo_v9_1_candidate_r9_6_Windows_x64_Portable.zip',
-            'release_out/Taxo_v9_1_candidate_r9_6_Setup_Windows_x64.exe'
+            'Taxo_v9_1_candidate_r9_7_Windows_x64_Portable.zip',
+            'release_out/Taxo_v9_1_candidate_r9_7_Setup_Windows_x64.exe'
           )
           $lines = foreach ($file in $files) {
             "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
           }
-          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v9_1_candidate_r9_6_Windows_x64.txt'
-          Get-Content 'SHA256SUMS_v9_1_candidate_r9_6_Windows_x64.txt'
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v9_1_candidate_r9_7_Windows_x64.txt'
+          Get-Content 'SHA256SUMS_v9_1_candidate_r9_7_Windows_x64.txt'
 
       - name: Upload Windows executables
         if: steps.changes.outputs.build == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v9.1-Windows-x64-candidate-r9.6
+          name: Taxo-v9.1-Windows-x64-candidate-r9.7
           path: |
-            Taxo_v9_1_candidate_r9_6_Windows_x64_Portable.zip
-            release_out/Taxo_v9_1_candidate_r9_6_Setup_Windows_x64.exe
-            SHA256SUMS_v9_1_candidate_r9_6_Windows_x64.txt
+            Taxo_v9_1_candidate_r9_7_Windows_x64_Portable.zip
+            release_out/Taxo_v9_1_candidate_r9_7_Setup_Windows_x64.exe
+            SHA256SUMS_v9_1_candidate_r9_7_Windows_x64.txt
           if-no-files-found: error
           retention-days: 30
