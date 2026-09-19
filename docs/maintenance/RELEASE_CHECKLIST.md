@@ -16,3 +16,6 @@
 12. Оновити `PROJECT_STATE.md`, `docs/PRODUCT_STATUS.md`, maintenance checkpoint та користувацькі інструкції.
 13. Перед переходом до наступного етапу зафіксувати технічний аудит: що перевірено, що виправлено, що лишається ручною перевіркою.
 14. `main` оновлювати тільки після експлуатаційного підтвердження кандидата.
+15. Після публікації перевірити GitHub Releases: release target, assets, відсутність draft-релізів і відповідність release index.
+16. Документаційні commits після immutable release не повинні пересувати tag або змінювати `VERSION.txt`; новий tag потрібен лише для нової кодової контрольної точки.
+17. Перевірити активність rulesets `Protect main` і `Protect releases` перед stable merge/release.
