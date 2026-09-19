@@ -131,11 +131,15 @@ class TestR98WaybillDutyStaff(unittest.TestCase):
 
     def test_manual_shift_slot_no_longer_depends_on_location(self):
         source = inspect.getsource(main.App.dispatch_shift_form)
-        duplicate_line = next(
-            line for line in source.splitlines()
-            if "SELECT id FROM employee_shifts WHERE role=?" in line
+        normalized = " ".join(source.split())
+        self.assertIn(
+            "SELECT id FROM employee_shifts WHERE role=? AND shift_no=? AND work_date=? AND id<>?",
+            normalized,
         )
-        self.assertNotIn("location", duplicate_line.lower())
+        self.assertNotIn(
+            "role=? AND shift_no=? AND work_date=? AND lower(COALESCE(location",
+            normalized,
+        )
 
 
 if __name__ == "__main__":
