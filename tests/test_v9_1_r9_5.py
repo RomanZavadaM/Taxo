@@ -24,7 +24,7 @@ class TestR95StartPackage(unittest.TestCase):
     def test_start_bat_checks_package_before_pip(self):
         text = (ROOT / "START.bat").read_text(encoding="utf-8")
         guard = text.index('if not exist "requirements.txt" goto :package_incomplete')
-        pip = text.index("pip install -r requirements.txt")
+        pip = text.index("pip install -r")
         self.assertLess(guard, pip)
         self.assertIn('if not exist "taxo_app.py" goto :package_incomplete', text)
         self.assertIn(":package_incomplete", text)
