@@ -19,4 +19,4 @@ Stable Taxo 9.0.1 лишається експлуатаційною точкою
 
 ## Поточний gate
 
-r9.5 виявився непридатним для manual gate через Windows CMD parsing regression. r9.6 прибирає UTF-8/chcp із BAT і проходить додатковий Windows preflight gate; після його публікації повторити запуск START і продовжити manual operational gate на реальній Windows-базі. До його завершення `main` і stable 9.0.1 не змінюються.
+r9.5 виявився непридатним для manual gate через Windows CMD parsing regression. r9.6 прибирає UTF-8/chcp із BAT, пройшов Windows preflight gate і вже опублікований; тепер повторити запуск START і продовжити manual operational gate на реальній Windows-базі. До його завершення `main` і stable 9.0.1 не змінюються.
