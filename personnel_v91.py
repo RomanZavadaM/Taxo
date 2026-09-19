@@ -1901,7 +1901,16 @@ def install(core, base_app):
             core.ttk.Entry(meta,textvariable=self.personnel_report_department,width=34).pack(side="left",padx=(4,12))
             core.ttk.Label(meta,text="ЄДРПОУ").pack(side="left")
             core.ttk.Entry(meta,textvariable=self.personnel_report_edrpou,width=16).pack(side="left",padx=(4,0))
-            core.ttk.Label(rpanel,text="Табель П-5 — за структурою наданого зразка: умовні позначення, 1–31 число, відпрацьований час і причини неявок.",foreground="gray",wraplength=980,justify="left").pack(anchor="w",pady=(12,8))
+            core.ttk.Label(
+                rpanel,
+                text=(
+                    "Типова форма № П-5 (наказ Держкомстату України 05.12.2008 № 489): "
+                    "умовні позначення 01–30, календарні дні, відпрацьований час, "
+                    "причини неявок і підсумкові показники. Якщо є план без факту, Taxo "
+                    "перед формуванням окремо запитає, чи підставляти план."
+                ),
+                foreground="gray",wraplength=980,justify="left"
+            ).pack(anchor="w",pady=(12,8))
             b = core.ttk.Frame(rpanel); b.pack(fill="x")
             core.ttk.Button(b,text="Табель П-5 — PDF",command=lambda:self._save_p5("pdf")).pack(side="left",padx=(0,5))
             core.ttk.Button(b,text="Відкрити останній PDF",command=lambda:self._open_last_p5("pdf")).pack(side="left",padx=5)
@@ -2982,6 +2991,28 @@ def install(core, base_app):
             edrpou=self.personnel_report_edrpou.get().strip()
             core.set_setting("personnel_report_department",department)
             core.set_setting("company_edrpou",edrpou)
+            preview=collect_p5_data(
+                core,year,month,self.personnel_report_active.get(),
+                use_plan_when_fact_missing=False
+            )
+            use_plan=False
+            if preview["missing_fact_total"]>0:
+                decision=core.messagebox.askyesnocancel(
+                    "Табель П-5 — план замість факту?",
+                    (
+                        f"Знайдено {preview['missing_fact_total']} дн., де є план робочого часу, "
+                        "але немає внесеного факту.\n\n"
+                        "Так — підставити планові години замість відсутнього факту у цьому П-5.\n"
+                        "Ні — сформувати П-5 лише за внесеним фактом; такі дні залишаться незаповненими.\n"
+                        "Скасувати — не формувати документ.\n\n"
+                        "Якщо план буде підставлено, Taxo додасть до документа явну примітку."
+                    ),
+                    parent=self,
+                )
+                if decision is None:
+                    return
+                use_plan=bool(decision)
+
             suffix=".xlsx" if kind=="xlsx" else ".pdf"
             filename=f"Табель_П5_{year}_{month:02d}{suffix}"
             path=core.filedialog.asksaveasfilename(
@@ -2991,9 +3022,15 @@ def install(core, base_app):
             )
             if not path: return
             writer=(
-                (lambda out:export_p5_xlsx(core,year,month,out,self.personnel_report_active.get(),form_date,department,edrpou))
+                (lambda out:export_p5_xlsx(
+                    core,year,month,out,self.personnel_report_active.get(),
+                    form_date,department,edrpou,use_plan
+                ))
                 if kind=="xlsx" else
-                (lambda out:export_p5_pdf(core,year,month,out,self.personnel_report_active.get(),form_date,department,edrpou))
+                (lambda out:export_p5_pdf(
+                    core,year,month,out,self.personnel_report_active.get(),
+                    form_date,department,edrpou,use_plan
+                ))
             )
             actual=core.write_output_file(writer,path,parent=self,kind="Excel табеля П-5" if kind=="xlsx" else "PDF табеля П-5",error_title="Табель П-5")
             if actual is not None:
