@@ -1,12 +1,14 @@
-# Taxo 9.0.1
+# Taxo / Driver Worktime
 
 [Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-**Облік роботи водіїв, графіків, шляхових листів, бланків підтвердження діяльності та аналогових тахокарт.**
+**Облік роботи водіїв і персоналу, графіків, табелів, шляхових листів, П-5, бланків підтвердження діяльності та аналогових тахокарт.**
 
-Поточний стабільний реліз: **v9.0.1** · 17.09.2026
+> **Stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) — поточна експлуатаційна версія і rollback point.  
+> **Candidate:** [Taxo 9.1 candidate r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) — pre-release для ручного operational gate.  
+> **PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29) — **не merge у main до завершення ручної перевірки**.
 
-[Завантажити Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Документація](docs/README.md) · [Інструкція для персоналу](docs/guides/USER_MANUAL.md) · [Швидкий старт](docs/guides/QUICK_START.md)
+[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_4.md)
 
 ---
 
@@ -70,9 +72,17 @@ Taxo 9.0.1 формує окремий документ за 60 календар
 
 ## Поточний етап
 
-**Taxo 9.0.1 — актуальна стабільна експлуатаційна версія.** Вона виправляє оформлення версії та формування чистого START-пакета поверх базової 9.0. Наступний етап — реальна експлуатація, наповнення бази даними та локальне виправлення відтворюваних проблем.
+**Taxo 9.0.1 залишається stable. Taxo 9.1 candidate r9.4 опублікований і автоматично перевірений, але ще проходить ручний operational gate на реальній Windows-базі.**
 
-Матеріали технічного супроводу: [docs/maintenance](docs/maintenance/README.md). Актуальні примітки до релізів: [docs/releases](docs/releases/README.md).
+У r9.4 вже зведені канонічні точні інтервали, модуль «Персонал», П-5 PDF/XLSX, архів підтверджень діяльності, місячний контроль та окремий центр «Аудит графіків…». Технічний аудит введення не змішується з нормативним «Контролем №340».
+
+До завершення manual gate:
+- `main` не оновлюється;
+- PR #29 не зливається;
+- stable rollback point — 9.0.1;
+- нові кодові контрольні точки публікуються новими immutable candidate tags/releases.
+
+Матеріали технічного супроводу: [docs/maintenance](docs/maintenance/README.md). Повний список опублікованих версій: [Release Index](docs/releases/RELEASE_INDEX.md).
 
 ## Важливо
 
