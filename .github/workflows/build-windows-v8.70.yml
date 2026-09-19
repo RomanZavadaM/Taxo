@@ -115,11 +115,13 @@ jobs:
           Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -ItemType Directory -Path $tmp | Out-Null
           $bat = Join-Path $tmp 'START.bat'
+          $stdout = Join-Path $tmp 'stdout.txt'
+          $stderr = Join-Path $tmp 'stderr.txt'
           Copy-Item 'START.bat' $bat
           $command = "echo.| call `"$bat`""
-          cmd /d /c $command *> (Join-Path $tmp 'output.txt')
-          $code = $LASTEXITCODE
-          $out = Get-Content (Join-Path $tmp 'output.txt') -Raw -Encoding utf8
+          $process = Start-Process -FilePath $env:ComSpec -ArgumentList @('/d','/c',$command) -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          $code = $process.ExitCode
+          $out = (Get-Content $stdout -Raw -Encoding utf8) + (Get-Content $stderr -Raw -Encoding utf8 -ErrorAction SilentlyContinue)
           if ($code -ne 2) { throw "Expected START.bat exit code 2 for incomplete package, got $code" }
           if (!$out.Contains('ZIP')) { throw 'Expected extraction guidance mentioning ZIP' }
           if ($out.Contains('pip install')) { throw 'START guard did not stop before pip' }
