@@ -1,3 +1,9 @@
+Taxo 10.0.1 candidate r1 — START test package
+Stable rollback: Taxo 10.0
+
+Цей пакет перевіряє hotfix життєвого циклу ролі «Водій».
+Після повного розпакування запускайте START.bat.
+
 TAXO — ПЕРЕД ПЕРШИМ ЗАПУСКОМ
 
 1. НЕ запускайте START.bat прямо всередині ZIP-архіву.
