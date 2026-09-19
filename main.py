@@ -2418,6 +2418,15 @@ def segment_integrity_issues(segments):
         ws,we=_segment_work_pair(row)
         ws=str(ws or "").strip(); we=str(we or "").strip()
 
+        if not any((ds,de,ws,we)):
+            issues.append({
+                "kind":"empty_segment",
+                "label":"Порожня частина",
+                "minutes":0,
+                "message":f"Частина №{index}: не задано жодних часових меж.",
+            })
+            continue
+
         if bool(ds) != bool(de):
             issues.append({
                 "kind":"incomplete_drive",
@@ -2570,11 +2579,25 @@ def collect_schedule_integrity_audit(
                 "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",
                 (route["id"],),
             ).fetchall()
-            if not segs:
-                continue
             code=str(route["code"] or "").strip() if "code" in route.keys() else ""
             name=str(route["name"] or "").strip()
             subject=" / ".join(x for x in (code,name) if x) or f"Маршрут #{route['id']}"
+            if not segs:
+                findings.append({
+                    "kind":"route_no_segments",
+                    "label":"Немає часових частин",
+                    "minutes":0,
+                    "message":"Активний маршрут не має жодної часової частини; його не можна надійно застосувати до графіка.",
+                    "source_kind":"route",
+                    "source":"Шаблон маршруту",
+                    "worklog_id":None,
+                    "driver_id":None,
+                    "route_id":route["id"],
+                    "date":"",
+                    "subject":subject,
+                    "route":subject,
+                })
+                continue
             for issue in segment_integrity_issues(segs):
                 findings.append({
                     **issue,
