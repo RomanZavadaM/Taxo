@@ -8162,79 +8162,143 @@ class App(tk.Tk):
         self.after(100,self.refresh_schedule)
 
     def show_schedule_integrity_audit(self):
-        """Audit selected month plus active route templates for time conflicts."""
+        """Open a visible, scoped audit of stored schedule input defects."""
         source_date=self._monthly_shift_source_date()
         if hasattr(self,"schedule_audit_win") and self.schedule_audit_win.winfo_exists():
+            self.schedule_audit_win.deiconify()
             self.schedule_audit_win.lift()
+            self.schedule_audit_win.after_idle(self.schedule_audit_win.focus_force)
             self.refresh_schedule_integrity_audit()
             return
 
         win=tk.Toplevel(self)
         self.schedule_audit_win=win
-        win.title("Контроль графіків — перекриття та часові помилки")
-        fit_window_to_screen(win,1250,650,850,460)
+        win.title("Аудит графіків — перевірка помилок введення")
+        fit_window_to_screen(win,1320,720,900,520)
+        win.transient(self)
+        win.lift()
+        win.after_idle(win.focus_force)
 
-        top=ttk.Frame(win,padding=8); top.pack(fill="x")
-        self.schedule_audit_period=tk.StringVar(
-            value=f"{month_name_ua(source_date.month)} {source_date.year}"
-        )
+        top=ttk.Frame(win,padding=8)
+        top.pack(fill="x")
+        self.schedule_audit_scope=tk.StringVar(value="Поточний день")
+        self.schedule_audit_all_routes=tk.BooleanVar(value=False)
+        self.schedule_audit_period=tk.StringVar(value=source_date.strftime("%d.%m.%Y"))
         self.schedule_audit_summary=tk.StringVar(value="Перевірка…")
-        ttk.Label(top,text="Період:",font=("TkDefaultFont",9,"bold")).pack(side="left")
-        ttk.Label(top,textvariable=self.schedule_audit_period).pack(side="left",padx=(4,15))
-        ttk.Button(
-            top,text="Перевірити повторно",
-            command=self.refresh_schedule_integrity_audit
-        ).pack(side="left",padx=3)
-        ttk.Button(
-            top,text="Відкрити запис",
-            command=self.open_schedule_audit_finding
-        ).pack(side="left",padx=3)
-        ttk.Label(
-            win,
-            text=(
-                "Перевіряються всі дні водіїв вибраного місяця та всі активні маршрути. "
-                "Контроль шукає перекриття робочих частин, перекриття керування, неповні "
-                "пари часу та керування поза межами робочого інтервалу. Дані автоматично не виправляються."
-            ),
-            foreground="gray",wraplength=1180,justify="left"
-        ).pack(fill="x",padx=10,pady=(0,5))
-        ttk.Label(
-            win,textvariable=self.schedule_audit_summary,
-            font=("TkDefaultFont",9,"bold")
-        ).pack(fill="x",padx=10,pady=(0,5))
+        self.schedule_audit_result=tk.StringVar(value="")
 
-        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
-        frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+        ttk.Label(top,text="Перевірити:",font=("TkDefaultFont",9,"bold")).pack(side="left")
+        scope=ttk.Combobox(
+            top,textvariable=self.schedule_audit_scope,state="readonly",width=22,
+            values=("Поточний день","Весь місяць","Активні маршрути","Місяць + маршрути")
+        )
+        scope.pack(side="left",padx=(5,12))
+        scope.bind("<<ComboboxSelected>>",lambda _e:self.refresh_schedule_integrity_audit())
+        ttk.Label(top,text="Період:").pack(side="left")
+        ttk.Label(top,textvariable=self.schedule_audit_period,font=("TkDefaultFont",9,"bold")).pack(side="left",padx=(4,12))
+        ttk.Checkbutton(
+            top,text="включити неактивні маршрути",
+            variable=self.schedule_audit_all_routes,
+            command=self.refresh_schedule_integrity_audit
+        ).pack(side="left",padx=(0,8))
+        ttk.Button(top,text="Перевірити зараз",command=self.refresh_schedule_integrity_audit).pack(side="left",padx=3)
+
+        actions=ttk.Frame(win,padding=(8,0,8,5))
+        actions.pack(fill="x")
+        ttk.Button(actions,text="Відкрити запис",command=self.open_schedule_audit_finding).pack(side="left",padx=(0,5))
+        ttk.Button(actions,text="Контроль №340 для водія",command=self.open_schedule_audit_regulatory).pack(side="left",padx=5)
+        ttk.Label(
+            actions,
+            text="Це аудит помилок введення. Норми Положення №340 перевіряються окремим контролем.",
+            foreground="#555555"
+        ).pack(side="left",padx=(15,0))
+
+        result_bar=ttk.Frame(win,padding=(10,2,10,5))
+        result_bar.pack(fill="x")
+        self.schedule_audit_result_label=ttk.Label(
+            result_bar,textvariable=self.schedule_audit_result,
+            font=("TkDefaultFont",10,"bold")
+        )
+        self.schedule_audit_result_label.pack(anchor="w")
+        ttk.Label(result_bar,textvariable=self.schedule_audit_summary,foreground="#444444").pack(anchor="w",pady=(2,0))
+
+        notebook=ttk.Notebook(win)
+        notebook.pack(fill="both",expand=True,padx=10,pady=(0,10))
+
+        problems=ttk.Frame(notebook)
+        notebook.add(problems,text="Знайдені проблеми")
+        problems.rowconfigure(0,weight=1); problems.columnconfigure(0,weight=1)
         cols=("source","date","subject","route","type","duration","detail")
-        tree=ttk.Treeview(frame,columns=cols,show="headings")
+        tree=ttk.Treeview(problems,columns=cols,show="headings",selectmode="browse")
         self.schedule_audit_tree=tree
         heads={
             "source":"Джерело","date":"Дата","subject":"Водій / маршрут",
             "route":"Маршрут","type":"Проблема","duration":"Тривалість","detail":"Деталі"
         }
         widths={
-            "source":100,"date":95,"subject":220,"route":180,
-            "type":145,"duration":85,"detail":480
+            "source":115,"date":95,"subject":220,"route":190,
+            "type":155,"duration":85,"detail":500
         }
         for key in cols:
             tree.heading(key,text=heads[key])
-            tree.column(key,width=widths[key],anchor="w")
-        ybar=ttk.Scrollbar(frame,orient="vertical",command=tree.yview)
-        xbar=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview)
+            tree.column(key,width=widths[key],anchor="w",stretch=(key in {"subject","route","detail"}))
+        tree.tag_configure("problem",foreground="#8A1C1C")
+        ybar=ttk.Scrollbar(problems,orient="vertical",command=tree.yview)
+        xbar=ttk.Scrollbar(problems,orient="horizontal",command=tree.xview)
         tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
         tree.grid(row=0,column=0,sticky="nsew")
         ybar.grid(row=0,column=1,sticky="ns")
         xbar.grid(row=1,column=0,sticky="ew")
         tree.bind("<Double-1>",lambda _e:self.open_schedule_audit_finding())
+
+        info_tab=ttk.Frame(notebook)
+        notebook.add(info_tab,text="Що саме перевірено")
+        info_frame=ttk.Frame(info_tab)
+        info_frame.pack(fill="both",expand=True,padx=8,pady=8)
+        info_frame.rowconfigure(0,weight=1); info_frame.columnconfigure(0,weight=1)
+        info=tk.Text(info_frame,wrap="word",padx=10,pady=10,height=16)
+        self.schedule_audit_info_text=info
+        info_scroll=ttk.Scrollbar(info_frame,orient="vertical",command=info.yview)
+        info.configure(yscrollcommand=info_scroll.set)
+        info.grid(row=0,column=0,sticky="nsew")
+        info_scroll.grid(row=0,column=1,sticky="ns")
+
         self.schedule_audit_rows={}
+        def refocus_refresh(event):
+            if event.widget is win:
+                win.after_idle(self.refresh_schedule_integrity_audit)
+        win.bind("<FocusIn>",refocus_refresh,add="+")
         self.refresh_schedule_integrity_audit()
+
+    def _schedule_audit_scope_args(self):
+        source_date=self._monthly_shift_source_date()
+        scope=(self.schedule_audit_scope.get().strip() if hasattr(self,"schedule_audit_scope") else "Поточний день")
+        include_days=scope in ("Поточний день","Весь місяць","Місяць + маршрути")
+        include_routes=scope in ("Активні маршрути","Місяць + маршрути")
+        one_day=source_date if scope=="Поточний день" else None
+        return source_date,scope,include_days,include_routes,one_day
 
     def refresh_schedule_integrity_audit(self):
         if not hasattr(self,"schedule_audit_tree") or not self.schedule_audit_tree.winfo_exists():
             return
-        source_date=self._monthly_shift_source_date()
-        data=collect_schedule_integrity_audit(source_date.year,source_date.month)
-        self.schedule_audit_period.set(f"{month_name_ua(source_date.month)} {source_date.year}")
+        source_date,scope,include_days,include_routes,one_day=self._schedule_audit_scope_args()
+        active_routes_only=not bool(self.schedule_audit_all_routes.get())
+        data=collect_schedule_integrity_audit(
+            source_date.year,source_date.month,
+            active_routes_only=active_routes_only,
+            work_date=one_day,
+            include_days=include_days,
+            include_routes=include_routes,
+        )
+
+        if scope=="Поточний день":
+            period_text=source_date.strftime("%d.%m.%Y")
+        elif scope=="Активні маршрути":
+            period_text="шаблони маршрутів"
+        else:
+            period_text=f"{month_name_ua(source_date.month)} {source_date.year}"
+        self.schedule_audit_period.set(period_text)
+
         tree=self.schedule_audit_tree
         for item in tree.get_children():
             tree.delete(item)
@@ -8255,34 +8319,83 @@ class App(tk.Tk):
                 finding["label"],
                 minutes_hhmm(finding["minutes"]) if finding["minutes"] else "—",
                 finding["message"],
-            ))
+            ),tags=("problem",))
             self.schedule_audit_rows[iid]=finding
 
         if data["findings"]:
+            self.schedule_audit_result.set(f"⚠ Знайдено проблем: {len(data['findings'])}")
+            self.schedule_audit_result_label.configure(foreground="#8A1C1C")
             self.schedule_audit_summary.set(
-                f"Знайдено проблем: {len(data['findings'])}. "
-                f"Днів із проблемами: {len(day_problem_ids)}; "
-                f"активних маршрутів із проблемами: {len(route_problem_ids)}."
+                f"Днів із проблемами: {len(day_problem_ids)}; шаблонів маршрутів із проблемами: {len(route_problem_ids)}. "
+                "Подвійний клік відкриває запис для ручного виправлення."
             )
         else:
+            self.schedule_audit_result.set("✓ Помилок введення не знайдено")
+            self.schedule_audit_result_label.configure(foreground="#1B5E20")
             self.schedule_audit_summary.set(
-                f"Проблем не знайдено. Перевірено днів із записами: {data['worklog_count']}; "
-                f"активних маршрутів: {data['route_count']}."
+                f"Перевірено записів днів: {data['inspected_day_records']} "
+                f"(з точним часом: {data['exact_day_records']}); "
+                f"шаблонів маршрутів: {data['inspected_route_records']}."
             )
 
-    def open_schedule_audit_finding(self):
+        info=self.schedule_audit_info_text
+        info.configure(state="normal")
+        info.delete("1.0","end")
+        info_lines=[
+            "ЩО ПЕРЕВІРЯЄ ЦЕЙ АУДИТ\n",
+            "• перекриття частин робочого часу;\n",
+            "• перекриття інтервалів керування;\n",
+            "• неповні пари часу «від–до»;\n",
+            "• керування, яке виходить за межі робочого інтервалу;\n",
+            "• старі записи без work_segments, якщо в них збережено точні години.\n\n",
+            "ЩО ЦЕЙ АУДИТ НЕ ЗАМІНЮЄ\n",
+            "Контроль Положення №340: 4:30 без належної перерви, добове/тижневе керування, "
+            "міжзмінний і щотижневий відпочинок та інші нормативні обмеження перевіряються "
+            "окремим вікном «Підсумки та контроль №340».\n\n",
+            "ПОЛІТИКА ВИПРАВЛЕННЯ\n",
+            "Аудит нічого не переписує автоматично. Нові перекриття блокуються під час збереження; "
+            "старі помилки показуються для ручного виправлення. Після закриття редактора список "
+            "перевіряється повторно.\n\n",
+            f"ПОТОЧНА ОБЛАСТЬ: {scope}.\n",
+            f"Перевірено записів днів: {data['inspected_day_records']}; з точним часом: {data['exact_day_records']}; "
+            f"legacy-точних записів: {data['legacy_exact_day_records']}; маршрутів: {data['inspected_route_records']}.\n",
+        ]
+        info.insert("end","".join(info_lines))
+        info.configure(state="disabled")
+
+    def refresh_schedule_audit_day_status(self, work_date=None):
+        if not hasattr(self,"schedule_audit_day_status"):
+            return
+        d=work_date or self._schedule_parse_date()
+        if not d:
+            self.schedule_audit_day_status.set("Аудит дня: —")
+            return
+        try:
+            data=collect_schedule_integrity_audit(
+                d.year,d.month,work_date=d,include_days=True,include_routes=False
+            )
+            n=len(data["findings"])
+            if n:
+                self.schedule_audit_day_status.set(f"⚠ день: {n} помилк." )
+            else:
+                self.schedule_audit_day_status.set("✓ день: помилок немає")
+        except Exception:
+            self.schedule_audit_day_status.set("Аудит дня: помилка перевірки")
+
+    def _selected_schedule_audit_finding(self):
         tree=getattr(self,"schedule_audit_tree",None)
         if tree is None:
-            return
+            return None
         sel=tree.selection()
-        if not sel:
+        return self.schedule_audit_rows.get(sel[0]) if sel else None
+
+    def open_schedule_audit_finding(self):
+        finding=self._selected_schedule_audit_finding()
+        if not finding:
             messagebox.showinfo(
-                "Контроль графіків","Виберіть проблему у списку.",
+                "Аудит графіків","Виберіть проблему у списку.",
                 parent=getattr(self,"schedule_audit_win",self)
             )
-            return
-        finding=self.schedule_audit_rows.get(sel[0])
-        if not finding:
             return
         if finding["source_kind"]=="worklog":
             try:
@@ -8290,7 +8403,6 @@ class App(tk.Tk):
             except Exception:
                 return
             self.open_schedule_worklog(finding["driver_id"],work_date)
-            self.refresh_schedule_integrity_audit()
             return
 
         route_id=finding.get("route_id")
@@ -8308,7 +8420,31 @@ class App(tk.Tk):
         if route:
             self.route_catalog_form((route,segs,stops))
             self.load_route_catalog()
-            self.refresh_schedule_integrity_audit()
+
+    def open_schedule_audit_regulatory(self):
+        finding=self._selected_schedule_audit_finding()
+        driver_id=(finding.get("driver_id") if finding and finding.get("source_kind")=="worklog" else self.driver_id)
+        if not driver_id:
+            messagebox.showinfo(
+                "Контроль №340",
+                "Виберіть проблему дня водія або спочатку виберіть водія у табелі.",
+                parent=getattr(self,"schedule_audit_win",self)
+            )
+            return
+        source_date=self._monthly_shift_source_date()
+        self.driver_id=driver_id
+        self.year_var.set(source_date.year)
+        self.month_var.set(source_date.month)
+        self.refresh_work_driver_choices()
+        driver=self.driver_by_id(driver_id)
+        if driver:
+            label=next(
+                (k for k,v in getattr(self,"work_driver_map",{}).items() if v==driver_id),
+                self.driver_full_name(driver)
+            )
+            self.work_driver_var.set(label)
+        self.refresh_month()
+        self.show_work_analysis()
 
     def _monthly_shift_source_date(self):
         """Дата, від якої відкриваємо місячний графік змінності."""
