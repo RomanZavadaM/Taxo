@@ -2,7 +2,7 @@
 
 **Стан перевірено:** 19.09.2026  
 **Поточний stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)  
-**Поточний candidate:** [Taxo 9.1 candidate r9.6](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.6)  
+**Поточний candidate:** Taxo 9.1 candidate r9.7 — публікується після зеленого CI  
 **Робочий PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29)
 
 > Stable `main` залишається на Taxo 9.0.1 до завершення ручного operational gate.  
@@ -12,7 +12,8 @@
 
 | Tag | Статус | Пакети | Призначення |
 |---|---|---|---|
-| [v9.1-r9.6](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.6) | **Pre-release, current candidate** | START + SHA-256 | ASCII/CRLF START.bat, real Windows full/incomplete preflight |
+| v9.1-r9.7 | **Current candidate — pending publication after CI** | START + SHA-256 | «Відкрити деталізацію» у місячному графіку змінності |
+| [v9.1-r9.6](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.6) | Pre-release | START + SHA-256 | ASCII/CRLF START.bat, real Windows full/incomplete preflight |
 | [v9.1-r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) | Pre-release, **known broken START on real Windows** | START + SHA-256 | Не використовувати для manual gate; CMD parsing regression |
 | [v9.1-r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) | Pre-release | START + SHA-256 | Передетапна стабілізація, «Аудит графіків…», П-5, архів бланків, місячний контроль |
 | [v9.1-r9.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.3) | Pre-release | START + SHA-256 | П-5, архів бланків, місячний контроль |
@@ -42,7 +43,15 @@ GitHub також зберігає опубліковані історичні �
 
 Ці релізи не є поточною експлуатаційною рекомендацією. Вони зберігаються для історії та відтворюваності.
 
-## Поточна контрольна точка r9.6
+## Поточна контрольна точка r9.7
+
+- у «Місячному графіку змінності водіїв» додано `Відкрити деталізацію`;
+- дія формує актуальний detail PDF і одразу відкриває його;
+- behavioral regression test перевіряє exporter і open_external;
+- START hardening r9.6 збережено;
+- release публікується після зеленого CI.
+
+## Попередня контрольна точка r9.6
 
 - START.bat: ASCII-only, без chcp, Windows CRLF;
 - full-folder Windows preflight + incomplete-folder guard;
@@ -87,7 +96,7 @@ r9.5 є пакувально-запускним hotfix поверх функці
 3. Windows/macOS executable packages випускаються на визначених контрольних точках.
 4. Старі candidate tags/releases не пересуваються, не видаляються і не перезаписуються.
 5. Робочі SQLite-бази, скани, кеші та персональні документи до релізів не включаються.
-6. Нові кодові контрольні точки після r9.6 повинні отримувати новий tag/release.
+6. Нові кодові контрольні точки після r9.7 повинні отримувати новий tag/release.
 
 ## Перед stable 9.1
 
