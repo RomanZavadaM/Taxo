@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 9.1 candidate r8 — модуль «Персонал», режими й табелі.
+"""Taxo 9.1 candidate r9 — модуль «Персонал», режими й табелі.
 
 Модуль:
 - додає окремий верхній розділ «Персонал»;
@@ -58,7 +58,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "9.1 candidate r8"
+APP_VERSION = "9.1 candidate r9"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
@@ -1123,6 +1123,11 @@ def install(core, base_app):
 
     def collect_monthly_work_balance_with_absence(year, month, active_only=True):
         data = original_collect_monthly_work_balance(year, month, active_only)
+        # r9: base collector already uses the canonical driver-day view and
+        # applies personnel absence overlays. Do not subtract stored
+        # work_hours a second time (they may differ from exact interval union).
+        if data.get("absence_overlay_applied"):
+            return data
         con = core.db()
         start = data["days"][0].isoformat()
         end = data["days"][-1].isoformat()
