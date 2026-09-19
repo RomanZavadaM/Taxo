@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo 9.1 candidate r9.8 — native macOS application bundle.
+# Taxo 10.0 — stable native macOS application bundle.
 # Build separately on Apple Silicon and Intel; user databases are forbidden.
 
 a = Analysis(
@@ -50,12 +50,12 @@ app = BUNDLE(
     name='Taxo.app',
     icon=None,
     bundle_identifier='com.romanzavadam.taxo',
-    version='9.1',
+    version='10.0',
     info_plist={
         'CFBundleDisplayName': 'Taxo',
         'CFBundleName': 'Taxo',
-        'CFBundleShortVersionString': '9.1',
-        'CFBundleVersion': '9.1',
+        'CFBundleShortVersionString': '10.0',
+        'CFBundleVersion': '10.0',
         'LSApplicationCategoryType': 'public.app-category.productivity',
         'NSPrincipalClass': 'NSApplication',
         'NSHighResolutionCapable': True,
