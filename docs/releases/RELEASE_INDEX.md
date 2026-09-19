@@ -24,6 +24,10 @@
 | [v9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) | **Stable / rollback point** | Windows Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Поточна стабільна експлуатаційна версія |
 | [v9.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0) | Stable history | Windows Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Базовий реліз лінії 9.x |
 
+## Щодо r1–r4
+
+`v9.1-r1`–`v9.1-r4` **не публікуються окремими GitHub Releases навмисно**. Це проміжні кандидатні стани з уже відомими та виправленими проблемами; їхня історія збережена в Git/PR #29. Публікувати їх заднім числом означало б створити хибні контрольні точки, тому release-лінія 9.1 починається з опублікованого `v9.1-r5`.
+
 ## Історичні 8.x Releases
 
 GitHub також зберігає опубліковані історичні релізи:
