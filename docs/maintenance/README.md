@@ -6,14 +6,15 @@
 - [Поточна контрольна точка](CHECKPOINT_CURRENT.md)
 - [Політика гілки main](MAIN_BRANCH_POLICY.md)
 - [Чекліст випуску](RELEASE_CHECKLIST.md)
-- [Поточний аудит candidate r9.7 — відкриття деталізації місячного графіка](AUDIT_v9_1_r9_7.md)
+- [Поточний аудит candidate r9.8 — персонал шляхівок за датою/зміною](AUDIT_v9_1_r9_8.md)
+- [Аудит candidate r9.7 — відкриття деталізації місячного графіка](AUDIT_v9_1_r9_7.md)
 - [Аудит candidate r9.6 — Windows START compatibility](AUDIT_v9_1_r9_6.md)
 - [Аудит candidate r9.5 — START package hotfix](AUDIT_v9_1_r9_5.md)
 - [Передетапний функціональний аудит candidate r9.4](AUDIT_v9_1_r9_4.md)
 - [GitHub publication summary r9.4](GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md)
 - [Handoff для нового чату](NEW_CHAT_HANDOFF_v9_1_r9_4.md)
 
-Stable Taxo 9.0.1 лишається експлуатаційною точкою відкату. Поточна перевірочна лінія — Taxo 9.1 candidate r9.7 у PR #29.
+Stable Taxo 9.0.1 лишається експлуатаційною точкою відкату. Поточна перевірочна лінія — Taxo 9.1 candidate r9.8 у PR #29.
 
 Історія розробки версій 8.x винесена з `main` у гілку [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
 
