@@ -117,11 +117,21 @@ class TestScheduleAuditR94(unittest.TestCase):
                 2026,9,include_days=False,include_routes=True
             )
         self.assertEqual(data["inspected_day_records"],0)
-        self.assertEqual(data["inspected_route_records"],1)
+        self.assertEqual(data["inspected_route_records"],2)
         overlaps=[x for x in data["findings"] if x["kind"]=="drive_overlap"]
         self.assertEqual(len(overlaps),1)
         self.assertEqual(overlaps[0]["source"],"Шаблон маршруту")
         self.assertEqual(overlaps[0]["route"],"674 / Львів АС-2 - Бібрка")
+        missing=[x for x in data["findings"] if x["kind"]=="route_no_segments"]
+        self.assertEqual(len(missing),1)
+        self.assertEqual(missing[0]["route"],"999 / Порожній активний маршрут")
+
+    def test_empty_segment_is_flagged(self):
+        issues=main.segment_integrity_issues([{
+            "start_time":"","end_time":"",
+            "work_start_time":"","work_end_time":"",
+        }])
+        self.assertTrue(any(x["kind"]=="empty_segment" for x in issues))
 
 
 if __name__=="__main__":
