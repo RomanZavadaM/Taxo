@@ -5,10 +5,10 @@
 **Облік роботи водіїв і персоналу, графіків, табелів, шляхових листів, П-5, бланків підтвердження діяльності та аналогових тахокарт.**
 
 > **Stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) — поточна експлуатаційна версія і rollback point.  
-> **Candidate:** [Taxo 9.1 candidate r9.6](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.6) — pre-release для ручного operational gate.  
+> **Candidate:** [Taxo 9.1 candidate r9.7](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.7) — pre-release для ручного operational gate.  
 > **PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29) — **не merge у main до завершення ручної перевірки**.
 
-[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.6 START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.5/Taxo_v9_1_candidate_r9_6_START.zip) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_6.md)
+[Завантажити stable 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) · [Завантажити candidate r9.7 START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.5/Taxo_v9_1_candidate_r9_7_START.zip) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Operational gate](docs/maintenance/AUDIT_v9_1_r9_7.md)
 
 ---
 
@@ -72,9 +72,9 @@ Taxo 9.0.1 формує окремий документ за 60 календар
 
 ## Поточний етап
 
-**Taxo 9.0.1 залишається stable. Taxo 9.1 candidate r9.6 опублікований і автоматично перевірений, але ще проходить ручний operational gate на реальній Windows-базі.**
+**Taxo 9.0.1 залишається stable. Taxo 9.1 candidate r9.7 опублікований і автоматично перевірений, але ще проходить ручний operational gate на реальній Windows-базі.**
 
-У r9.6 збережені функціональні зміни r9.4: канонічні точні інтервали, модуль «Персонал», П-5 PDF/XLSX, архів підтверджень діяльності, місячний контроль та окремий центр «Аудит графіків…». Технічний аудит введення не змішується з нормативним «Контролем №340».
+У r9.7 збережені функціональні зміни r9.4 та START hardening r9.6: канонічні точні інтервали, модуль «Персонал», П-5 PDF/XLSX, архів підтверджень діяльності, місячний контроль та окремий центр «Аудит графіків…». Технічний аудит введення не змішується з нормативним «Контролем №340».
 
 До завершення manual gate:
 - `main` не оновлюється;
@@ -92,3 +92,6 @@ Taxo допомагає вести облік і формувати докуме
 
 
 > **Відомий дефект:** r9.5 не рекомендується для ручного тестування через Windows CMD parsing regression у `START.bat`. Використовуйте r9.6 або новіший candidate.
+
+
+> **r9.7:** у «Місячному графіку змінності водіїв» додано кнопку «Відкрити деталізацію», яка формує актуальний PDF деталізації та одразу відкриває його.
