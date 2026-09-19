@@ -2,7 +2,7 @@
 
 **Стан перевірено:** 19.09.2026  
 **Поточний stable:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)  
-**Поточний candidate:** Taxo 9.1 candidate r9.7 — публікується після зеленого CI  
+**Поточний candidate:** [Taxo 9.1 candidate r9.7](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.7)  
 **Робочий PR:** [#29](https://github.com/RomanZavadaM/Taxo/pull/29)
 
 > Stable `main` залишається на Taxo 9.0.1 до завершення ручного operational gate.  
@@ -12,7 +12,7 @@
 
 | Tag | Статус | Пакети | Призначення |
 |---|---|---|---|
-| v9.1-r9.7 | **Current candidate — pending publication after CI** | START + SHA-256 | «Відкрити деталізацію» у місячному графіку змінності |
+| [v9.1-r9.7](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.7) | **Pre-release, current candidate** | START + SHA-256 | «Відкрити деталізацію» у місячному графіку змінності |
 | [v9.1-r9.6](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.6) | Pre-release | START + SHA-256 | ASCII/CRLF START.bat, real Windows full/incomplete preflight |
 | [v9.1-r9.5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.5) | Pre-release, **known broken START on real Windows** | START + SHA-256 | Не використовувати для manual gate; CMD parsing regression |
 | [v9.1-r9.4](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r9.4) | Pre-release | START + SHA-256 | Передетапна стабілізація, «Аудит графіків…», П-5, архів бланків, місячний контроль |
@@ -49,7 +49,11 @@ GitHub також зберігає опубліковані історичні �
 - дія формує актуальний detail PDF і одразу відкриває його;
 - behavioral regression test перевіряє exporter і open_external;
 - START hardening r9.6 збережено;
-- release публікується після зеленого CI.
+- release target: `8a16ef781e1b3334e664449725c217a120f9fe5d`;
+- START: [Taxo_v9_1_candidate_r9_7_START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.7/Taxo_v9_1_candidate_r9_7_START.zip);
+- SHA-256: [SHA256SUMS_v9_1_candidate_r9_7.txt](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.7/SHA256SUMS_v9_1_candidate_r9_7.txt);
+- Windows/macOS: 107 regression tests — success;
+- source package + publisher — success.
 
 ## Попередня контрольна точка r9.6
 
