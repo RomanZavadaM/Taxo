@@ -35,19 +35,31 @@
 - робочі БД/скани/персональні файли не входять у GitHub artifacts;
 - старі version tags/releases не пересуваються.
 
-## Stable release gate
+## Stable release gate — результат
 
-Перед створенням `v10.0` обов'язкові:
-1. PR #29 CI green.
-2. Merge у `main`.
-3. Stable publisher запускається на merge commit.
-4. Regression suite success на Windows, macOS ARM64 та Intel.
-5. Windows Setup/Portable success.
-6. macOS ARM64/Intel application bundles success.
-7. START/source verification success.
-8. SHA-256 manifests success.
-9. GitHub Release `v10.0` створюється один раз; overwrite заборонений.
+Усі пункти виконані:
+1. PR #29 — green і merged.
+2. Release-pipeline hardening PR #30/#31 — green і merged.
+3. Stable publisher run — success.
+4. Source verify — **117 tests / OK**.
+5. Windows — **117 tests / OK**, Setup + Portable зібрані.
+6. macOS ARM64 — **117 tests / OK**, native Taxo.app зібрано й перевірено.
+7. macOS Intel x86_64 — **117 tests / OK**, native Taxo.app зібрано й перевірено.
+8. START/source verification — success.
+9. Combined і per-platform SHA-256 manifests — success.
+10. GitHub Release `v10.0` — published.
+
+### Release identity
+
+- tag: `v10.0`;
+- target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`;
+- draft: no;
+- prerelease: no;
+- assets: 10;
+- previous stable/rollback: `v9.0.1`.
+
+Перші два publisher attempts виявили лише технічні помилки release pipeline (шлях до installer artifact і wildcard, що захоплював каталог). Самі source tests та OS executable builds у цих спробах були green. Обидві помилки виправлено окремими PR #30/#31 до фінальної успішної публікації.
 
 ## Після релізу
 
-`main` і `v10.0` стають джерелом stable. Candidate r9.8 та попередні releases лишаються історією/rollback reference; тег 9.0.1 теж не змінюється.
+`main` і `v10.0` є stable source of truth. Candidate r9.8 та попередні releases лишаються історією/rollback reference; тег 9.0.1 теж не змінюється.
