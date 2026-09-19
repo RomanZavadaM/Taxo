@@ -13,11 +13,14 @@ def version_from_file(path: str | Path = "VERSION.txt") -> str:
 
 
 def start_archive_stem(version: str) -> str:
-    candidate = re.search(r"(\d+)\.(\d+).*?r(\d+(?:\.\d+)*)", version, re.I)
+    candidate = re.search(r"(\d+)\.(\d+)(?:\.(\d+))?.*?r(\d+(?:\.\d+)*)", version, re.I)
     stable = re.fullmatch(r"(\d+)\.(\d+)(?:\.(\d+))?", version.strip())
     if candidate:
-        revision = candidate.group(3).replace(".", "_")
-        return f"Taxo_v{candidate.group(1)}_{candidate.group(2)}_candidate_r{revision}_START"
+        parts = [candidate.group(1), candidate.group(2)]
+        if candidate.group(3) is not None:
+            parts.append(candidate.group(3))
+        revision = candidate.group(4).replace(".", "_")
+        return "Taxo_v" + "_".join(parts) + f"_candidate_r{revision}_START"
     if stable:
         parts = [stable.group(1), stable.group(2)]
         if stable.group(3) is not None:
