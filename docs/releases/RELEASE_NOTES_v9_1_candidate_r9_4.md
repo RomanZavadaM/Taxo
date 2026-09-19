@@ -78,7 +78,7 @@ Stable baseline залишається **Taxo 9.0.1**. r9.4 публікуєть
 - активного маршруту без часового сценарію;
 - порожньої часової частини.
 
-Автоматична перевірка фінальної кодової точки: **96 regression tests** успішно на Windows, macOS ARM64 та macOS Intel.
+Автоматична перевірка фінальної кодової точки: **97 regression tests** успішно на Windows, macOS ARM64 та macOS Intel.
 
 Повний передетапний звіт: `docs/maintenance/AUDIT_v9_1_r9_4.md`.
 
