@@ -1400,7 +1400,7 @@ def install(core, base_app):
             core.ttk.Label(panel, text="Планування персоналу", font=("TkDefaultFont", 13, "bold")).pack(anchor="w")
             core.ttk.Label(
                 panel,
-                text="Робочі зміни плануються для будь-якого працівника. Відсутності вносяться інтервалом і перекривають автоматичний план у табелі, не видаляючи історичний графік.",
+                text="Робочі зміни плануються для будь-якого працівника. Відсутність позначає день як відсутній у табелі, але зберігає історичний робочий графік.",
                 foreground="gray", wraplength=950, justify="left"
             ).pack(anchor="w", pady=(4,12))
             core.ttk.Button(panel, text="Режими робочого часу працівників…", command=self.show_employee_work_regime).pack(anchor="w", pady=4)
