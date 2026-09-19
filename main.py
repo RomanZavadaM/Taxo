@@ -8930,6 +8930,7 @@ class App(tk.Tk):
                 )
 
         c.create_line(0,top+len(drivers)*row_h,width,top+len(drivers)*row_h,fill="#999")
+        self.refresh_schedule_audit_day_status(d)
 
     def _schedule_hit(self,event):
         c=self.schedule_canvas; x=c.canvasx(event.x); y=c.canvasy(event.y)
