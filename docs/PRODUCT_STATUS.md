@@ -20,7 +20,7 @@
 - застарілі назви артефактів v8.70/r11 у поточних Windows/macOS build workflows;
 - відставання експлуатаційної документації від кандидатів r7–r9.4.
 
-Автоматична перевірка: **96 regression tests** успішно на Windows, macOS ARM64 та macOS Intel.
+Автоматична перевірка: **97 regression tests** успішно на Windows, macOS ARM64 та macOS Intel.
 
 Повний звіт: [Передетапний аудит r9.4](maintenance/AUDIT_v9_1_r9_4.md).
 
