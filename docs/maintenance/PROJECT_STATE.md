@@ -3,6 +3,7 @@
 **Stable:** Taxo 10.0  
 **Previous stable / rollback:** 9.0.1  
 **Verified candidate:** v9.1-r9.8  
+**Release target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`  
 **Date:** 19.09.2026
 
 ## Технічний baseline
@@ -32,13 +33,14 @@ Taxo 10.0 є стабілізованим результатом лінії 9.1.
 
 ## Перевірка
 
-Перед merge:
-- весь unittest suite;
-- Windows START full/incomplete preflight;
-- Windows source CI;
-- macOS ARM64 source CI;
-- macOS Intel source CI.
-
-Після merge stable publisher повторює тести і будує executable artifacts.
+Фінальний stable publisher завершився успішно:
+- source verify — 117 tests / OK;
+- Windows — 117 tests / OK + START full/incomplete preflight;
+- Windows Setup/Portable — success;
+- macOS ARM64 — 117 tests / OK + native Taxo.app;
+- macOS Intel x86_64 — 117 tests / OK + native Taxo.app;
+- START/source package — success;
+- per-platform і combined SHA-256 — success;
+- GitHub Release v10.0 — published.
 
 Фінальний звіт: [AUDIT_v10_0_STABLE.md](AUDIT_v10_0_STABLE.md).

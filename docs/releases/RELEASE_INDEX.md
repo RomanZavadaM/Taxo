@@ -4,7 +4,7 @@
 **Поточна stable:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)  
 **Previous stable / rollback:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)
 
-> Stable 10.0 створюється з merge commit у `main` після завершеного manual operational gate. Старі tags/releases не пересуваються.
+> Stable 10.0 опублікований з commit `91c0d6365a40eb09fe40f97a2965da40b314bc15` після завершеного manual operational gate. Старі tags/releases не пересуваються.
 
 ## Stable line
 
@@ -45,14 +45,16 @@
 
 ## Taxo 10.0 package set
 
-Stable publisher створює:
-- `Taxo_v10_0_Setup_Windows_x64.exe`;
-- `Taxo_v10_0_Windows_x64_Portable.zip`;
-- `Taxo_v10_0_macOS_arm64_Portable.zip`;
-- `Taxo_v10_0_macOS_x86_64_Portable.zip`;
-- `Taxo_v10_0_START.zip`;
+Опубліковано:
+- [Taxo_v10_0_Setup_Windows_x64.exe](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_Setup_Windows_x64.exe);
+- [Taxo_v10_0_Windows_x64_Portable.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_Windows_x64_Portable.zip);
+- [Taxo_v10_0_macOS_arm64_Portable.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_macOS_arm64_Portable.zip);
+- [Taxo_v10_0_macOS_x86_64_Portable.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_macOS_x86_64_Portable.zip);
+- [Taxo_v10_0_START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_START.zip);
 - per-platform SHA-256 manifests;
-- `SHA256SUMS_v10_0.txt`.
+- [SHA256SUMS_v10_0.txt](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/SHA256SUMS_v10_0.txt).
+
+Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Stable publisher — success; Windows/macOS/source regression suites — 117 tests / OK.
 
 ## Release policy
 

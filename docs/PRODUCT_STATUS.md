@@ -24,13 +24,15 @@
 
 ## Stable release packages
 
-GitHub Release **v10.0** формує:
+GitHub Release **v10.0** опублікований з target `91c0d6365a40eb09fe40f97a2965da40b314bc15` і містить:
 - Windows x64 Setup;
 - Windows x64 Portable;
 - macOS ARM64 Portable;
 - macOS Intel x86_64 Portable;
 - START/source archive;
-- SHA-256 manifests.
+- per-platform і combined SHA-256 manifests.
+
+Фінальний regression suite: **117 tests / OK** на Windows, macOS ARM64 та macOS Intel.
 
 Релізні пакети не містять робочих БД, сканів, кешів або персональних документів.
 

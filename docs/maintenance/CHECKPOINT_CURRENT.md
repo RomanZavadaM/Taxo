@@ -3,7 +3,8 @@
 **Stable:** Taxo 10.0 · 19.09.2026  
 **Previous stable / rollback:** Taxo 9.0.1  
 **Verified candidate:** v9.1-r9.8  
-**Stable release:** v10.0
+**Stable release:** v10.0  
+**Release target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`
 
 ## Статус
 
@@ -19,14 +20,15 @@ Manual operational gate завершено. Лінія 9.1 більше не є 
 - П-5, Персонал, аудит, №340, архів бланків і місячний контроль входять у stable;
 - бази/скани/персональні файли не публікуються.
 
-## Build matrix 10.0
+## Build matrix 10.0 — success
 
-- Windows x64 Setup;
-- Windows x64 Portable;
-- macOS ARM64;
-- macOS Intel x86_64;
-- START/source;
-- SHA-256.
+- Windows x64 Setup — published;
+- Windows x64 Portable — published;
+- macOS ARM64 — published;
+- macOS Intel x86_64 — published;
+- START/source — published;
+- SHA-256 per-platform + combined — published;
+- Windows/macOS/source regression suites — 117 tests / OK.
 
 ## Політика
 

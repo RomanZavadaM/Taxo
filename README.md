@@ -8,7 +8,7 @@
 > **Previous stable / rollback:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1).  
 > Лінія candidate 9.1 завершена після ручного operational gate на реальній Windows-базі.
 
-[Завантажити Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) · [Release notes](docs/releases/RELEASE_NOTES_v10_0.md) · [Індекс релізів](docs/releases/RELEASE_INDEX.md) · [Документація](docs/README.md) · [Фінальний аудит](docs/maintenance/AUDIT_v10_0_STABLE.md)
+[Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_Setup_Windows_x64.exe) · [Windows Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_Windows_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/SHA256SUMS_v10_0.txt)
 
 ---
 
@@ -56,11 +56,11 @@ Taxo — настільна система для одного автотран�
 
 ## 60-денний реєстр діяльності
 
-Taxo 9.0.1 формує окремий документ за 60 календарних днів. Кожна доба розкладається до 24:00 на керування, іншу роботу, готовність, перерви, відпочинок, підтверджену відсутність і невизначений час. Якщо джерел недостатньо, система явно показує **«Невизначено»**, а не домальовує відпочинок.
+Taxo 10.0 формує окремий документ за 60 календарних днів. Кожна доба розкладається до 24:00 на керування, іншу роботу, готовність, перерви, відпочинок, підтверджену відсутність і невизначений час. Якщо джерел недостатньо, система явно показує **«Невизначено»**, а не домальовує відпочинок.
 
 ## Завантаження
 
-У [стабільному релізі Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) доступні Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v9_0_1_START.zip` і файл контрольних сум SHA-256. Робочі бази та персональні дані до релізів **не входять**.
+У [стабільному релізі Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) опубліковані Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v10_0_START.zip` і SHA-256 manifests. Робочі бази та персональні дані до релізів **не входять**.
 
 Для звичайної експлуатації використовуйте готовий Windows/macOS пакет із розділу релізів. `START.bat` призначений насамперед для перевірки кандидатних змін і технічної діагностики. **START ZIP потрібно спочатку повністю розпакувати; не запускайте `START.bat` безпосередньо з відкритого архіву.**
 
@@ -72,7 +72,7 @@ Taxo 9.0.1 формує окремий документ за 60 календар
 
 ## Поточний етап
 
-**Taxo 10.0 — stable.** Лінія 9.1 завершена після автоматичних перевірок і ручного operational gate. Останній кандидат перед stable — `v9.1-r9.8`.
+**Taxo 10.0 — stable і повністю опублікований.** Лінія 9.1 завершена після автоматичних перевірок і ручного operational gate. Останній кандидат перед stable — `v9.1-r9.8`. Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`.
 
 У 10.0 стабілізовано канонічні точні інтервали, «Персонал», режими робочого часу, П-5 PDF/XLSX, архів підтверджень діяльності, місячний контроль, «Аудит графіків…», шляхівки та черговий персонал випуску. Технічний аудит введення залишається окремим від нормативного «Контролю №340».
 

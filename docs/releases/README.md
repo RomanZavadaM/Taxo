@@ -4,6 +4,8 @@
 **Previous stable / rollback:** Taxo 9.0.1
 
 - **[Taxo 10.0 — release notes](RELEASE_NOTES_v10_0.md)**
+- [GitHub Release v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)
+- [Combined SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/SHA256SUMS_v10_0.txt)
 - **[Повний індекс GitHub Releases](RELEASE_INDEX.md)**
 - [Taxo 9.1 candidate r9.8 — примітки](RELEASE_NOTES_v9_1_candidate_r9_8.md)
 - [Taxo 9.1 candidate r9.7 — примітки](RELEASE_NOTES_v9_1_candidate_r9_7.md)
@@ -21,3 +23,8 @@
 - старі tags/releases не пересуваються і не перезаписуються;
 - робочі БД/скани/персональні дані не включаються в releases;
 - stable executable packages формуються для Windows x64, macOS ARM64 та macOS Intel.
+
+
+## Stable 10.0 — published
+
+Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Windows x64 Setup/Portable, macOS ARM64/Intel, START/source та SHA-256 manifests опубліковані. Stable publisher завершився успішно; regression suite — 117 tests / OK на Windows і обох macOS архітектурах.

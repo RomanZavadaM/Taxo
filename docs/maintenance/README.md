@@ -19,6 +19,6 @@
 
 ## Поточний статус
 
-Manual operational gate завершено. PR #29 промотує перевірений r9.8 у stable 10.0. Після merge багатоплатформний publisher збирає Windows/macOS/START artifacts і створює `v10.0`.
+Manual operational gate завершено. PR #29 merged; release-pipeline fixes PR #30/#31 merged. Stable `v10.0` опублікований з target `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Windows/macOS/START artifacts і SHA-256 manifests доступні в GitHub Release.
 
 Історія 8.x: [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).

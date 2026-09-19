@@ -29,7 +29,7 @@ r1–r4 лишилися проміжними Git-станами й навмис
 
 ## Taxo 10.0
 
-**19.09.2026** — candidate line 9.1 завершена після manual operational gate і промотована в **stable Taxo 10.0**.
+**19.09.2026** — candidate line 9.1 завершена після manual operational gate і промотована в **stable Taxo 10.0**. Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`; Windows/macOS/START stable packages опубліковані.
 
 10.0 включає:
 - Personnel / regimes / P-5;

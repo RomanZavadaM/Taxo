@@ -24,6 +24,9 @@
 
 ## Stable 10.0
 
+- [GitHub Release v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)
+- [Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_Setup_Windows_x64.exe)
+- [START/source](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_START.zip)
 - [Release notes 10.0](releases/RELEASE_NOTES_v10_0.md)
 - [Фінальний аудит 10.0](maintenance/AUDIT_v10_0_STABLE.md)
 - [Поточний технічний стан](maintenance/PROJECT_STATE.md)
