@@ -2465,83 +2465,150 @@ def segment_integrity_issues(segments):
     return unique
 
 
-def collect_schedule_integrity_audit(year, month, active_routes_only=True):
-    """Scan existing driver days plus route templates for interval mistakes."""
+def collect_schedule_integrity_audit(
+        year, month, active_routes_only=True, work_date=None,
+        include_days=True, include_routes=True):
+    """Scan stored driver days and/or route templates for input-time defects.
+
+    This is deliberately a technical data-integrity audit. It does not claim
+    to replace the separate regulatory control under Regulation №340.
+
+    work_date limits the driver-day scan to one ISO/date value while route
+    templates remain independently controlled through include_routes.
+    Legacy worklog rows without work_segments are still inspected whenever
+    they contain exact clock fields.
+    """
     y=int(year); m=int(month)
     days=month_dates(y,m)
-    start=days[0].isoformat(); end=days[-1].isoformat()
+    month_start=days[0].isoformat(); month_end=days[-1].isoformat()
+    if isinstance(work_date,date):
+        day_iso=work_date.isoformat()
+    elif work_date:
+        day_iso=str(work_date)
+    else:
+        day_iso=None
+    start=day_iso or month_start
+    end=day_iso or month_end
+
     con=db()
     findings=[]
+    worklogs=[]
+    routes=[]
+    inspected_day_records=0
+    exact_day_records=0
+    legacy_exact_day_records=0
+    inspected_route_records=0
 
-    worklogs=con.execute(
-        """SELECT w.*,d.last_name,d.first_name,d.middle_name
-             FROM worklog w
-             JOIN drivers d ON d.id=w.driver_id
-            WHERE w.work_date BETWEEN ? AND ?
-            ORDER BY w.work_date,d.last_name,d.first_name,w.id""",
-        (start,end),
-    ).fetchall()
-    for row in worklogs:
-        segs=con.execute(
-            "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",
-            (row["id"],),
+    if include_days:
+        worklogs=con.execute(
+            """SELECT w.*,
+                      d.last_name,d.first_name,d.middle_name,
+                      COALESCE(r.name,w.route_name,'') AS audit_route_name,
+                      COALESCE(r.code,'') AS audit_route_code
+                 FROM worklog w
+                 JOIN drivers d ON d.id=w.driver_id
+                 LEFT JOIN routes r ON r.id=w.route_id
+                WHERE w.work_date BETWEEN ? AND ?
+                ORDER BY w.work_date,d.last_name,d.first_name,w.id""",
+            (start,end),
         ).fetchall()
-        if not segs:
-            continue
-        driver=" ".join(
-            x for x in (row["last_name"],row["first_name"],row["middle_name"]) if x
-        ).strip()
-        for issue in segment_integrity_issues(segs):
-            findings.append({
-                **issue,
-                "source_kind":"worklog",
-                "source":"День водія",
-                "worklog_id":row["id"],
-                "driver_id":row["driver_id"],
-                "route_id":row["route_id"] if "route_id" in row.keys() else None,
-                "date":row["work_date"],
-                "subject":driver,
-                "route":(row["route_name"] if "route_name" in row.keys() else "") or "",
-            })
 
-    route_sql="SELECT * FROM routes"
-    if active_routes_only:
-        route_sql += " WHERE active=1"
-    route_sql += " ORDER BY code,name,id"
-    routes=con.execute(route_sql).fetchall()
-    for route in routes:
-        segs=con.execute(
-            "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",
-            (route["id"],),
-        ).fetchall()
-        if not segs:
-            continue
-        code=str(route["code"] or "").strip() if "code" in route.keys() else ""
-        name=str(route["name"] or "").strip()
-        subject=" / ".join(x for x in (code,name) if x) or f"Маршрут #{route['id']}"
-        for issue in segment_integrity_issues(segs):
-            findings.append({
-                **issue,
-                "source_kind":"route",
-                "source":"Маршрут",
-                "worklog_id":None,
-                "driver_id":None,
-                "route_id":route["id"],
-                "date":"",
-                "subject":subject,
-                "route":subject,
-            })
+        for row in worklogs:
+            inspected_day_records += 1
+            segs=con.execute(
+                "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",
+                (row["id"],),
+            ).fetchall()
+
+            check_segments=list(segs)
+            if check_segments:
+                exact_day_records += 1
+            else:
+                ds=str(_record_value(row,"start_time","") or "").strip()
+                de=str(_record_value(row,"end_time","") or "").strip()
+                ws=str(_record_value(row,"work_start_time","") or "").strip()
+                we=str(_record_value(row,"work_end_time","") or "").strip()
+                if any((ds,de,ws,we)):
+                    legacy_exact_day_records += 1
+                    exact_day_records += 1
+                    check_segments=[{
+                        "start_time":ds,
+                        "end_time":de,
+                        "work_start_time":ws or ds,
+                        "work_end_time":we or de,
+                    }]
+
+            driver=" ".join(
+                x for x in (row["last_name"],row["first_name"],row["middle_name"]) if x
+            ).strip()
+            route_name=(row["audit_route_name"] or "").strip()
+            route_code=(row["audit_route_code"] or "").strip()
+            route_label=" / ".join(x for x in (route_code,route_name) if x)
+
+            for issue in segment_integrity_issues(check_segments):
+                findings.append({
+                    **issue,
+                    "source_kind":"worklog",
+                    "source":"День водія",
+                    "worklog_id":row["id"],
+                    "driver_id":row["driver_id"],
+                    "route_id":row["route_id"] if "route_id" in row.keys() else None,
+                    "date":row["work_date"],
+                    "subject":driver,
+                    "route":route_label,
+                })
+
+    if include_routes:
+        route_sql="SELECT * FROM routes"
+        if active_routes_only:
+            route_sql += " WHERE active=1"
+        route_sql += " ORDER BY code,name,id"
+        routes=con.execute(route_sql).fetchall()
+        for route in routes:
+            inspected_route_records += 1
+            segs=con.execute(
+                "SELECT * FROM route_segments WHERE route_id=? ORDER BY segment_no",
+                (route["id"],),
+            ).fetchall()
+            if not segs:
+                continue
+            code=str(route["code"] or "").strip() if "code" in route.keys() else ""
+            name=str(route["name"] or "").strip()
+            subject=" / ".join(x for x in (code,name) if x) or f"Маршрут #{route['id']}"
+            for issue in segment_integrity_issues(segs):
+                findings.append({
+                    **issue,
+                    "source_kind":"route",
+                    "source":"Шаблон маршруту",
+                    "worklog_id":None,
+                    "driver_id":None,
+                    "route_id":route["id"],
+                    "date":"",
+                    "subject":subject,
+                    "route":subject,
+                })
 
     con.close()
+    day_findings=sum(1 for x in findings if x["source_kind"]=="worklog")
+    route_findings=sum(1 for x in findings if x["source_kind"]=="route")
     return {
         "year":y,
         "month":m,
         "period_start":start,
         "period_end":end,
+        "work_date":day_iso,
         "active_routes_only":bool(active_routes_only),
+        "include_days":bool(include_days),
+        "include_routes":bool(include_routes),
         "findings":findings,
+        "day_findings":day_findings,
+        "route_findings":route_findings,
         "worklog_count":len(worklogs),
         "route_count":len(routes),
+        "inspected_day_records":inspected_day_records,
+        "exact_day_records":exact_day_records,
+        "legacy_exact_day_records":legacy_exact_day_records,
+        "inspected_route_records":inspected_route_records,
     }
 
 
