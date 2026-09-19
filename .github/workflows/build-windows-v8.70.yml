@@ -108,6 +108,22 @@ jobs:
           python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py
           python -m unittest discover -s tests -v
 
+      - name: Test START preflight in complete extracted folder
+        shell: pwsh
+        run: |
+          $stdout = Join-Path $env:RUNNER_TEMP 'taxo-start-full-stdout.txt'
+          $stderr = Join-Path $env:RUNNER_TEMP 'taxo-start-full-stderr.txt'
+          $env:TAXO_START_PREFLIGHT_ONLY = '1'
+          try {
+            $process = Start-Process -FilePath $env:ComSpec -ArgumentList @('/d','/c','call START.bat') -WorkingDirectory $PWD.Path -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          }
+          finally {
+            Remove-Item Env:TAXO_START_PREFLIGHT_ONLY -ErrorAction SilentlyContinue
+          }
+          $out = (Get-Content $stdout -Raw -Encoding ascii) + (Get-Content $stderr -Raw -Encoding ascii -ErrorAction SilentlyContinue)
+          if ($process.ExitCode -ne 0) { throw "Expected complete START preflight exit code 0, got $($process.ExitCode)" }
+          if (!$out.Contains('START preflight OK.')) { throw 'Expected successful START preflight marker' }
+
       - name: Test START guard for launch from incomplete ZIP extraction
         shell: pwsh
         run: |
@@ -121,7 +137,7 @@ jobs:
           $command = "echo.| call `"$bat`""
           $process = Start-Process -FilePath $env:ComSpec -ArgumentList @('/d','/c',$command) -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdout -RedirectStandardError $stderr
           $code = $process.ExitCode
-          $out = (Get-Content $stdout -Raw -Encoding utf8) + (Get-Content $stderr -Raw -Encoding utf8 -ErrorAction SilentlyContinue)
+          $out = (Get-Content $stdout -Raw -Encoding ascii) + (Get-Content $stderr -Raw -Encoding ascii -ErrorAction SilentlyContinue)
           if ($code -ne 2) { throw "Expected START.bat exit code 2 for incomplete package, got $code" }
           if (!$out.Contains('ZIP')) { throw 'Expected extraction guidance mentioning ZIP' }
           if ($out.Contains('pip install')) { throw 'START guard did not stop before pip' }
