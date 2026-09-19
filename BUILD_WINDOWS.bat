@@ -1,17 +1,17 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-echo [Taxo 9.1 candidate r9.6] Installing build dependencies...
+echo [Taxo 9.1 candidate r9.7] Installing build dependencies...
 py -3.13 -m pip install -r requirements.txt pyinstaller==6.22.2
 if errorlevel 1 goto :fail
 
-echo [Taxo 9.1 candidate r9.6] Building portable onedir...
+echo [Taxo 9.1 candidate r9.7] Building portable onedir...
 py -3.13 -m PyInstaller --noconfirm --clean Taxo.spec
 if errorlevel 1 goto :fail
-move "dist\Taxo" "dist\Taxo_v9_1_candidate_r9_6_Windows_x64"
+move "dist\Taxo" "dist\Taxo_v9_1_candidate_r9_7_Windows_x64"
 if errorlevel 1 goto :fail
 
-echo Portable build ready: dist\Taxo_v9_1_candidate_r9_6_Windows_x64\Taxo.exe
+echo Portable build ready: dist\Taxo_v9_1_candidate_r9_7_Windows_x64\Taxo.exe
 echo User data remains in the selected Taxo workspace.
 exit /b 0
 
