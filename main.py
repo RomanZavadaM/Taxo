@@ -99,6 +99,37 @@ def configure_runtime_workspace(root):
         pass
 
 
+def attestation_history_query(mode="Активні", driver_id=None, year=None, month=None):
+    """Build the archive query with explicit filters and newest periods first."""
+    sql="""SELECT a.*, d.last_name||' '||d.first_name AS driver_name
+             FROM attestations a JOIN drivers d ON d.id=a.driver_id"""
+    where=[]
+    params=[]
+    if mode=="Активні":
+        where.append("COALESCE(a.status,'active')='active'")
+    elif mode=="Вилучені":
+        where.append("COALESCE(a.status,'active')<>'active'")
+    if driver_id:
+        where.append("a.driver_id=?")
+        params.append(int(driver_id))
+    if year is not None and month is not None:
+        ym=f"{int(year):04d}-{int(month):02d}"
+        where.append(
+            "(CASE WHEN length(COALESCE(a.form_date,''))>=7 "
+            "THEN substr(a.form_date,1,7) ELSE substr(a.period_to,1,7) END)=?"
+        )
+        params.append(ym)
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    # period_to is ISO YYYY-MM-DDTHH:MM, so lexical DESC is chronological DESC.
+    # form_date/id are stable fallbacks for old records.
+    sql += (
+        " ORDER BY COALESCE(NULLIF(a.period_to,''),NULLIF(a.form_date,''),a.created_at) DESC,"
+        " a.form_date DESC, a.id DESC"
+    )
+    return sql, params
+
+
 def db_stored_path(path):
     return stored_path(path,DATA_ROOT)
 
@@ -11445,18 +11476,48 @@ class App(tk.Tk):
         ttk.Button(manage_bar,text="Історія змін",command=self.show_attestation_audit).pack(side="left",padx=3)
 
         filter_bar=ttk.Frame(hist)
-        filter_bar.pack(fill="x",padx=6,pady=(2,4))
+        filter_bar.pack(fill="x",padx=6,pady=(2,2))
         ttk.Label(filter_bar,text="Показати:").pack(side="left",padx=(0,4))
         self.att_filter=tk.StringVar(value="Активні")
         att_filter_cb=ttk.Combobox(
-            filter_bar,textvariable=self.att_filter,state="readonly",width=15,
+            filter_bar,textvariable=self.att_filter,state="readonly",width=12,
             values=("Активні","Вилучені","Усі")
         )
         att_filter_cb.pack(side="left")
         att_filter_cb.bind("<<ComboboxSelected>>",lambda e:self.load_att_history())
-        ttk.Button(filter_bar,text="Оновити список",command=self.load_att_history).pack(side="left",padx=6)
+
+        self.att_filter_driver_only=tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            filter_bar,text="Тільки вибраний водій",
+            variable=self.att_filter_driver_only,
+            command=self.load_att_history
+        ).pack(side="left",padx=(12,4))
+
+        self.att_filter_month_enabled=tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            filter_bar,text="За місяць",
+            variable=self.att_filter_month_enabled,
+            command=self.load_att_history
+        ).pack(side="left",padx=(10,3))
+        today=date.today()
+        self.att_filter_month=tk.StringVar(value=str(today.month))
+        self.att_filter_year=tk.StringVar(value=str(today.year))
+        month_box=ttk.Spinbox(filter_bar,textvariable=self.att_filter_month,from_=1,to=12,width=4)
+        month_box.pack(side="left",padx=(1,2))
+        ttk.Label(filter_bar,text="/").pack(side="left")
+        year_box=ttk.Spinbox(filter_bar,textvariable=self.att_filter_year,from_=2020,to=2100,width=6)
+        year_box.pack(side="left",padx=(2,5))
+        month_box.bind("<Return>",lambda _e:self.load_att_history())
+        year_box.bind("<Return>",lambda _e:self.load_att_history())
+
+        ttk.Button(filter_bar,text="Оновити",command=self.load_att_history).pack(side="left",padx=4)
+        ttk.Button(filter_bar,text="Скинути відбір",command=self.reset_att_history_filters).pack(side="left",padx=4)
+        ttk.Label(filter_bar,text="Новіші ↑",foreground="gray").pack(side="left",padx=(10,2))
+
+        summary_bar=ttk.Frame(hist)
+        summary_bar.pack(fill="x",padx=6,pady=(0,3))
         self.att_list_summary=tk.StringVar(value="")
-        ttk.Label(filter_bar,textvariable=self.att_list_summary,foreground="gray").pack(side="right",padx=6)
+        ttk.Label(summary_bar,textvariable=self.att_list_summary,foreground="gray").pack(side="left",padx=2)
 
         cols=("id","driver","from","to","activity","place","date","status","revision","formats","file")
         tree_frame=ttk.Frame(hist)
@@ -12286,6 +12347,21 @@ class App(tk.Tk):
 
         ttk.Button(win,text="Закрити",command=win.destroy).pack(anchor="e",padx=10,pady=(0,10))
 
+    def reset_att_history_filters(self):
+        """Show the normal active archive without driver/month restrictions."""
+        if hasattr(self,"att_filter"):
+            self.att_filter.set("Активні")
+        if hasattr(self,"att_filter_driver_only"):
+            self.att_filter_driver_only.set(False)
+        if hasattr(self,"att_filter_month_enabled"):
+            self.att_filter_month_enabled.set(False)
+        today=date.today()
+        if hasattr(self,"att_filter_month"):
+            self.att_filter_month.set(str(today.month))
+        if hasattr(self,"att_filter_year"):
+            self.att_filter_year.set(str(today.year))
+        self.load_att_history()
+
     def load_att_history(self):
         if not hasattr(self,"att_tree"):
             return
@@ -12294,25 +12370,55 @@ class App(tk.Tk):
             self.att_tree.delete(x)
 
         mode=(self.att_filter.get().strip() if hasattr(self,"att_filter") else "Активні")
+        driver_filter_enabled=bool(
+            hasattr(self,"att_filter_driver_only") and self.att_filter_driver_only.get()
+        )
+        driver_id=(getattr(self,"att_driver_id",None) if driver_filter_enabled else None)
+
+        filter_year=filter_month=None
+        month_filter_enabled=bool(
+            hasattr(self,"att_filter_month_enabled") and self.att_filter_month_enabled.get()
+        )
+        if month_filter_enabled:
+            try:
+                filter_month=int(self.att_filter_month.get())
+                filter_year=int(self.att_filter_year.get())
+                if not 1<=filter_month<=12 or not 1900<=filter_year<=2200:
+                    raise ValueError
+            except Exception:
+                messagebox.showerror(
+                    "Відбір бланків",
+                    "Перевірте місяць (1–12) і рік.",
+                    parent=self
+                )
+                return
+
         con=db()
         total=con.execute("SELECT COUNT(*) FROM attestations").fetchone()[0]
         active_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')='active'").fetchone()[0]
         deleted_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')<>'active'").fetchone()[0]
-        sql="""SELECT a.*, d.last_name||' '||d.first_name AS driver_name
-                 FROM attestations a JOIN drivers d ON d.id=a.driver_id"""
-        params=[]
-        if mode=="Активні":
-            sql += " WHERE COALESCE(a.status,'active')='active'"
-        elif mode=="Вилучені":
-            sql += " WHERE COALESCE(a.status,'active')<>'active'"
-        # mode == "Усі": жодного прихованого фільтра і жодного LIMIT.
-        sql += " ORDER BY a.id DESC"
+        sql,params=attestation_history_query(
+            mode=mode,
+            driver_id=driver_id,
+            year=filter_year,
+            month=filter_month,
+        )
         rows=con.execute(sql,params).fetchall()
         con.close()
 
         if hasattr(self,"att_list_summary"):
+            filters=[]
+            if driver_filter_enabled:
+                if driver_id:
+                    filters.append(f"водій: {self.att_driver_var.get().strip()}")
+                else:
+                    filters.append("водій: не вибраний (показано всіх)")
+            if month_filter_enabled:
+                filters.append(f"місяць: {filter_month:02d}.{filter_year}")
+            filter_text=(" | відбір: "+", ".join(filters)) if filters else ""
             self.att_list_summary.set(
                 f"Показано: {len(rows)} з {total} | активних: {active_count} | вилучених: {deleted_count}"
+                + filter_text
             )
 
         selected_iid=None
