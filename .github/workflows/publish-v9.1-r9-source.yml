@@ -2,12 +2,7 @@ name: Publish Taxo 9.1 candidate r9 source
 # r9-final-canonical-intervals
 
 on:
-  push:
-    branches:
-      - 'work/v9.1-monthly-dispatch-waybill-ui'
-    paths:
-      - '.github/workflows/publish-v9.1-r9-source.yml'
-
+  workflow_dispatch:
 permissions:
   contents: write
 
@@ -51,27 +46,18 @@ jobs:
           sha256sum "Taxo_v9_1_candidate_r9_START.zip" > "SHA256SUMS_v9_1_candidate_r9.txt"
           sha256sum -c "SHA256SUMS_v9_1_candidate_r9.txt"
 
-      - name: Створити pre-release r9
+      - name: Створити pre-release r9 тільки якщо тега ще немає
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           if gh release view "v9.1-r9" >/dev/null 2>&1; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag -f "v9.1-r9" "$GITHUB_SHA"
-            git push origin "refs/tags/v9.1-r9" --force
-            gh release edit "v9.1-r9" \
-              --target "$GITHUB_SHA" \
-              --prerelease \
-              --title "Taxo 9.1 candidate r9" \
-              --notes-file "docs/releases/RELEASE_NOTES_v9_1_candidate_r9.md"
-            gh release upload "v9.1-r9" release-upload/* --clobber
-          else
-            gh release create "v9.1-r9" \
-              release-upload/* \
-              --target "$GITHUB_SHA" \
-              --prerelease \
-              --title "Taxo 9.1 candidate r9" \
-              --notes-file "docs/releases/RELEASE_NOTES_v9_1_candidate_r9.md"
+            echo "v9.1-r9 is immutable and already exists; refusing to overwrite or move its protected tag."
+            exit 0
           fi
+          gh release create "v9.1-r9" \
+            release-upload/* \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Taxo 9.1 candidate r9" \
+            --notes-file "docs/releases/RELEASE_NOTES_v9_1_candidate_r9.md"
