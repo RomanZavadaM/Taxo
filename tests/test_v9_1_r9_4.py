@@ -165,5 +165,23 @@ class TestScheduleAuditR94(unittest.TestCase):
         )
 
 
+    def test_release_safety_and_version_markers(self):
+        root=Path(__file__).resolve().parents[1]
+        for ver in ("r7","r8"):
+            workflow=(root/f".github/workflows/publish-v9.1-{ver}-source.yml").read_text("utf-8")
+            self.assertIn("workflow_dispatch:",workflow)
+            self.assertNotIn("gh release upload",workflow)
+            self.assertIn(f"ref: v9.1-{ver}",workflow)
+            self.assertIn("refusing to overwrite",workflow)
+
+        gitignore=(root/".gitignore").read_text("utf-8")
+        self.assertIn("Taxo_v9_1_candidate_r*_Windows_x64_Portable.zip",gitignore)
+        self.assertIn("SHA256SUMS_v9_1_candidate_r*.txt",gitignore)
+
+        version=(root/"VERSION.txt").read_text("utf-8")
+        self.assertIn("Version: 9.1 candidate r9.4",version)
+        self.assertIn("9.1 candidate r9.4",(root/"v91_features.py").read_text("utf-8"))
+        self.assertIn("9.1 candidate r9.4",(root/"personnel_v91.py").read_text("utf-8"))
+
 if __name__=="__main__":
     unittest.main()
