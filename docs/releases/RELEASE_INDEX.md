@@ -41,6 +41,19 @@ GitHub також зберігає опубліковані історичні �
 
 Ці релізи не є поточною експлуатаційною рекомендацією. Вони зберігаються для історії та відтворюваності.
 
+## Поточна контрольна точка r9.5
+
+- release tag: `v9.1-r9.5`;
+- release target: `f587c2cad71a22c6bded3a992fd27797c1e2c296`;
+- START: [Taxo_v9_1_candidate_r9_5_START.zip](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.5/Taxo_v9_1_candidate_r9_5_START.zip);
+- SHA-256: [SHA256SUMS_v9_1_candidate_r9_5.txt](https://github.com/RomanZavadaM/Taxo/releases/download/v9.1-r9.5/SHA256SUMS_v9_1_candidate_r9_5.txt);
+- Windows: 101 regression tests + START guard simulation — success;
+- macOS ARM64: 101 regression tests — success;
+- macOS Intel x86_64: 101 regression tests — success;
+- source package + publisher — success.
+
+r9.5 є пакувально-запускним hotfix поверх функціонального baseline r9.4. Для тестування ZIP потрібно спочатку повністю розпакувати.
+
 ## Попередня функціональна контрольна точка r9.4
 
 - release tag: `v9.1-r9.4`;
