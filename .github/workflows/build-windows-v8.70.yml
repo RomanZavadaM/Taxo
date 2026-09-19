@@ -21,6 +21,9 @@ on:
       - 'Бланк підтвердження.docx'
       - 'attestation_visual_template.pdf'
       - 'requirements.txt'
+      - 'START.bat'
+      - '00_README_START.txt'
+      - 'release_naming.py'
       - 'Taxo.spec'
       - 'installer/**'
       - 'tests/**'
@@ -104,6 +107,20 @@ jobs:
         run: |
           python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py
           python -m unittest discover -s tests -v
+
+      - name: Test START guard for launch from incomplete ZIP extraction
+        shell: pwsh
+        run: |
+          $tmp = Join-Path $env:RUNNER_TEMP 'taxo-start-incomplete'
+          Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $tmp | Out-Null
+          Copy-Item 'START.bat' (Join-Path $tmp 'START.bat')
+          cmd /d /c "echo.| call \"$tmp\START.bat\"" *> (Join-Path $tmp 'output.txt')
+          $code = $LASTEXITCODE
+          $out = Get-Content (Join-Path $tmp 'output.txt') -Raw -Encoding utf8
+          if ($code -ne 2) { throw "Expected START.bat exit code 2 for incomplete package, got $code" }
+          if (!$out.Contains('ZIP')) { throw 'Expected extraction guidance mentioning ZIP' }
+          if ($out.Contains('pip install')) { throw 'START guard did not stop before pip' }
 
       - name: Build Windows portable application
         if: steps.changes.outputs.build == 'true'
