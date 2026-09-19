@@ -30,6 +30,7 @@ on:
       - 'README*.md'
       - '.github/workflows/build-windows-v8.70.yml'
       - '.github/workflows/source-test-archive.yml'
+      - '.github/workflows/publish-v10.0.yml'
       - 'VERSION.txt'
 
 permissions:
