@@ -1856,50 +1856,91 @@ def install(core, base_app):
             book.add(reports, text="Звіти")
 
             # Реєстр — основна сторінка «Працівники» у затвердженому shell.
-            title = core.ttk.Frame(overview, padding=(12,10,12,2))
-            title.pack(fill="x")
+            hero = core.ttk.Frame(overview, padding=(16,14,16,8))
+            hero.pack(fill="x")
+            hero_left = core.ttk.Frame(hero)
+            hero_left.pack(side="left", fill="x", expand=True)
             core.ttk.Label(
-                title, text="Реєстр працівників", style="HeroTitle.TLabel"
-            ).pack(side="left")
+                hero_left, text="Реєстр працівників", style="HeroTitle.TLabel"
+            ).pack(anchor="w")
             core.ttk.Label(
-                title,
-                text="Єдиний реєстр персоналу, посад, ролей та режимів",
+                hero_left,
+                text="Єдиний реєстр персоналу, посад, ролей та режимів робочого часу",
                 style="Muted.TLabel",
-            ).pack(side="left", padx=(16,0), pady=(5,0))
-
-            bar = core.ttk.Frame(overview, padding=(12,6,12,8)); bar.pack(fill="x")
+            ).pack(anchor="w", pady=(3,0))
             core.ttk.Button(
-                bar, text="＋  Новий працівник", style="Accent.TButton",
+                hero, text="＋  Новий працівник", style="Accent.TButton",
                 command=self.employee_form
+            ).pack(side="right", padx=(8,0))
+            core.ttk.Button(
+                hero, text="Відкрити картку", command=self._open_personnel_overview_employee
+            ).pack(side="right")
+
+            stats = core.ttk.Frame(overview, padding=(16,0,16,8))
+            stats.pack(fill="x")
+            self.personnel_stat_vars = {
+                "all": core.tk.StringVar(value="0"),
+                "active": core.tk.StringVar(value="0"),
+                "drivers": core.tk.StringVar(value="0"),
+                "inactive": core.tk.StringVar(value="0"),
+            }
+            def personnel_stat_card(parent, title, variable, bg, fg):
+                card = core.tk.Frame(
+                    parent, bg=bg, highlightthickness=1,
+                    highlightbackground=core.PALETTE["line"]
+                )
+                core.tk.Label(
+                    card, text=title, bg=bg, fg=core.PALETTE["navy"],
+                    font=("TkDefaultFont",9,"bold")
+                ).pack(anchor="w", padx=12, pady=(7,0))
+                core.tk.Label(
+                    card, textvariable=variable, bg=bg, fg=fg,
+                    font=("TkDefaultFont",16,"bold")
+                ).pack(anchor="w", padx=12, pady=(1,7))
+                return card
+            for idx,(key,title,bg,fg) in enumerate((
+                ("all","Всього",core.PALETTE["info_soft"],core.PALETTE["navy"]),
+                ("active","Працюють",core.PALETTE["success_soft"],core.PALETTE["success"]),
+                ("drivers","Водії",core.PALETTE["info_soft"],core.PALETTE["blue"]),
+                ("inactive","Звільнені",core.PALETTE["warning_soft"],core.PALETTE["warning"]),
+            )):
+                stats.columnconfigure(idx,weight=1)
+                personnel_stat_card(
+                    stats,title,self.personnel_stat_vars[key],bg,fg
+                ).grid(
+                    row=0,column=idx,sticky="ew",
+                    padx=(0 if idx==0 else 4,4 if idx<3 else 0)
+                )
+
+            tools = core.ttk.Frame(overview, padding=(16,4,16,8))
+            tools.pack(fill="x")
+            tool_left = core.ttk.Frame(tools)
+            tool_left.pack(side="left", fill="x", expand=True)
+            core.ttk.Button(
+                tool_left, text="Звільнити / поновити", command=self.toggle_employee_active
             ).pack(side="left", padx=(0,4))
             core.ttk.Button(
-                bar, text="Відкрити картку", command=self._open_personnel_overview_employee
+                tool_left, text="Режим робочого часу…", command=self.show_employee_work_regime
             ).pack(side="left", padx=4)
             core.ttk.Button(
-                bar, text="Звільнити / поновити", command=self.toggle_employee_active
+                tool_left, text="Планування змін…", command=self.show_general_personnel_shift_planner
             ).pack(side="left", padx=4)
             core.ttk.Button(
-                bar, text="Режим робочого часу…", command=self.show_employee_work_regime
-            ).pack(side="left", padx=(12,4))
-            core.ttk.Button(
-                bar, text="Тижневий баланс…", command=self.show_personnel_week_balance
+                tool_left, text="Відсутності…", command=self.show_personnel_absence_planner
             ).pack(side="left", padx=4)
             core.ttk.Button(
-                bar, text="Планування змін…", command=self.show_general_personnel_shift_planner
+                tool_left, text="Тижневий баланс…", command=self.show_personnel_week_balance
             ).pack(side="left", padx=4)
             core.ttk.Button(
-                bar, text="Відсутності…", command=self.show_personnel_absence_planner
-            ).pack(side="left", padx=4)
-            core.ttk.Button(
-                bar, text="Оновити", command=self._refresh_personnel_overview
+                tool_left, text="Оновити", command=self._refresh_personnel_overview
             ).pack(side="left", padx=4)
 
-            search_box=core.ttk.Frame(bar)
-            search_box.pack(side="right")
+            search_box=core.ttk.Frame(tools)
+            search_box.pack(side="right", padx=(12,0))
             core.ttk.Label(search_box,text="Пошук").pack(side="left",padx=(0,5))
             self.personnel_search_var=core.tk.StringVar()
             search_entry=core.ttk.Entry(
-                search_box,textvariable=self.personnel_search_var,width=30
+                search_box,textvariable=self.personnel_search_var,width=28
             )
             search_entry.pack(side="left")
             self.personnel_search_var.trace_add(
@@ -2037,6 +2078,9 @@ def install(core, base_app):
                     query=""
             con = core.db()
             count=0
+            active_count=0
+            driver_count=0
+            inactive_count=0
             try:
                 for row in _all_employee_rows(core, active_only=False):
                     name=core.employee_name(row)
@@ -2064,11 +2108,25 @@ def install(core, base_app):
                         tags=(() if row["active"] else ("inactive",)),
                     )
                     count+=1
+                    if row["active"]:
+                        active_count+=1
+                    else:
+                        inactive_count+=1
+                    if "Водій" in roles:
+                        driver_count+=1
             finally:
                 con.close()
             count_var=getattr(self,"personnel_count_var",None)
             if count_var is not None:
                 count_var.set(f"Всього: {count}")
+            stat_vars=getattr(self,"personnel_stat_vars",{})
+            for key,value in (
+                ("all",count),("active",active_count),
+                ("drivers",driver_count),("inactive",inactive_count),
+            ):
+                variable=stat_vars.get(key)
+                if variable is not None:
+                    variable.set(str(value))
 
         def _active_employee_map(self):
             rows = _all_employee_rows(core, active_only=True)

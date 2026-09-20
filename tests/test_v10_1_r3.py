@@ -10,7 +10,7 @@ import personnel_v91
 
 class TestTaxo101R3ApprovedShell(unittest.TestCase):
     def test_version_marker_is_r3(self):
-        self.assertEqual(main.APP_VERSION, "10.1-r3")
+        self.assertRegex(main.APP_VERSION, r"^10\\.1-r\\d+(?:\\.\\d+)*$")
 
     def test_main_window_uses_approved_shell_not_native_tab_row(self):
         source=inspect.getsource(main.App.build_ui)

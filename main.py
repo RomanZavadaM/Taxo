@@ -70,7 +70,7 @@ try:
 except ImportError:
     build_waybill_pdf = None
 
-APP_VERSION = "10.1-r3"
+APP_VERSION = "10.1-r4"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -6225,7 +6225,7 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         self._about_win=win
-        win.title("Про програму — Taxo")
+        win.title(f"Taxo / {self._company_name_value()} — Про програму")
         fit_window_to_screen(win,900,690,760,580)
         configure_toplevel(win)
         win.transient(self)
@@ -6342,7 +6342,7 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         self._help_win=win
-        win.title("Довідка — Taxo")
+        win.title(f"Taxo / {self._company_name_value()} — Довідка")
         fit_window_to_screen(win,1160,780,900,620)
         configure_toplevel(win)
 
@@ -8017,6 +8017,10 @@ class App(tk.Tk):
 
         toolbar=ttk.Frame(workspace,padding=(14,4,14,6))
         toolbar.pack(fill="x")
+        toolbar_actions=ttk.Frame(toolbar)
+        toolbar_actions.pack(fill="x")
+        toolbar_reports=ttk.Frame(toolbar)
+        toolbar_reports.pack(fill="x",pady=(5,0))
 
         stats=ttk.Frame(workspace,padding=(14,0,14,8))
         stats.pack(fill="x")
@@ -8643,28 +8647,38 @@ class App(tk.Tk):
                     "П-5","Модуль типової форми П-5 недоступний у цій збірці.",parent=win
                 )
 
+        ttk.Label(
+            toolbar_actions,text="Робота з табелем:",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,6))
         ttk.Button(
-            toolbar,text="Оновити",command=refresh_summary
+            toolbar_actions,text="Оновити",command=refresh_summary
         ).pack(side="left",padx=(0,4))
         ttk.Button(
-            toolbar,text="Відкрити деталізацію",style="Accent.TButton",
+            toolbar_actions,text="Відкрити деталізацію",style="Accent.TButton",
             command=lambda:select_summary_employee(True)
         ).pack(side="left",padx=4)
         ttk.Button(
-            toolbar,text="PDF звіт",command=lambda:export_all("pdf")
+            toolbar_actions,text="Підсумки / контроль",command=show_selected_control
+        ).pack(side="left",padx=4)
+
+        ttk.Label(
+            toolbar_reports,text="Звіти та друк:",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,6))
+        ttk.Button(
+            toolbar_reports,text="PDF — весь персонал",command=lambda:export_all("pdf")
+        ).pack(side="left",padx=(0,4))
+        ttk.Button(
+            toolbar_reports,text="Excel — весь персонал",command=lambda:export_all("xlsx")
         ).pack(side="left",padx=4)
         ttk.Button(
-            toolbar,text="Excel звіт",command=lambda:export_all("xlsx")
+            toolbar_reports,text="Місячний табель / баланс",command=show_personnel_balance
         ).pack(side="left",padx=4)
         ttk.Button(
-            toolbar,text="Підсумки / контроль",command=show_selected_control
+            toolbar_reports,text="П-5",style="Gold.TButton",command=open_p5_report
         ).pack(side="left",padx=4)
         ttk.Button(
-            toolbar,text="Місячний табель / баланс",command=show_personnel_balance
-        ).pack(side="left",padx=4)
-        ttk.Button(
-            toolbar,text="П-5",style="Gold.TButton",command=open_p5_report
-        ).pack(side="right",padx=(4,0))
+            toolbar_reports,text="Папка звітів",command=lambda:open_external(OUTPUT_DIR)
+        ).pack(side="right",padx=(8,0))
 
         ttk.Button(
             edit_bar,text="Новий / редагувати день",style="Accent.TButton",command=edit_day
@@ -8688,6 +8702,9 @@ class App(tk.Tk):
         ttk.Button(
             report_bar,text="Підсумки / контроль",command=show_control
         ).pack(side="left",padx=3)
+        ttk.Button(
+            report_bar,text="Папка звітів",command=lambda:open_external(OUTPUT_DIR)
+        ).pack(side="left",padx=(10,3))
         ttk.Label(
             report_bar,
             text="Масове «8 год у порожні будні» прибрано: план формується лише з режиму/графіка.",
