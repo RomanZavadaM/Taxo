@@ -7,7 +7,11 @@ build can be used by any carrier.
 """
 from __future__ import annotations
 
+import base64
+from io import BytesIO
 from pathlib import Path
+
+from branding_asset import APPROVED_LOGO_PNG_BASE64
 
 PALETTE = {
     "navy": "#0F3A67",
@@ -222,37 +226,19 @@ def _draw_bus(draw, x, y, w, h):
 
 
 def create_brand_image(size=512):
-    """Create the approved text-free cream/yellow bus mark."""
-    from PIL import Image, ImageDraw
+    """Return the approved user-supplied Taxo logo with the enterprise name removed.
 
-    size = int(size)
-    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
-    cream = "#FFF8D8"
-    gold = "#F1D15A"
-    edge = "#E6DDAF"
+    The artwork is embedded as a PNG so the application icon and every branded
+    window use the same mark instead of a programmatically redrawn approximation.
+    """
+    from PIL import Image
 
-    # The supplied reference uses two irregular paper/sun shapes behind the bus.
-    draw.polygon([
-        (int(size*.29), int(size*.12)),
-        (int(size*.72), int(size*.31)),
-        (int(size*.64), int(size*.91)),
-        (int(size*.24), int(size*.72)),
-    ], fill=gold)
-    draw.polygon([
-        (int(size*.17), int(size*.24)),
-        (int(size*.79), int(size*.27)),
-        (int(size*.73), int(size*.76)),
-        (int(size*.29), int(size*.85)),
-    ], fill=cream, outline=edge)
-
-    _draw_bus(
-        draw,
-        int(size * .14),
-        int(size * .38),
-        int(size * .72),
-        int(size * .27),
-    )
+    size=max(16,int(size))
+    raw=base64.b64decode(APPROVED_LOGO_PNG_BASE64)
+    with Image.open(BytesIO(raw)) as source:
+        image=source.convert("RGBA")
+    if image.size != (size,size):
+        image=image.resize((size,size),Image.Resampling.LANCZOS)
     return image
 
 
