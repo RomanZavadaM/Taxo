@@ -7449,19 +7449,37 @@ class App(tk.Tk):
             if not vals["last_name"] or not vals["first_name"]:
                 messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win)
                 return
+            role_end_date=""
+            if driver and bool(driver["active"]) and not active.get():
+                raw_end=simpledialog.askstring(
+                    "Дата завершення ролі",
+                    "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                    initialvalue=date.today().strftime("%d.%m.%Y"),
+                    parent=win,
+                )
+                if raw_end is None:
+                    return
+                try:
+                    role_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                except ValueError:
+                    messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
+                    return
             con=db()
             if driver:
                 saved_driver_id=driver["id"]
+                next_driver_end="" if active.get() else (
+                    role_end_date or (driver["driver_end_date"] or "").strip()
+                )
                 con.execute("""UPDATE drivers SET
                     last_name=?,first_name=?,middle_name=?,
                     last_name_en=?,first_name_en=?,middle_name_en=?,
                     personnel_no=?,birth_date=?,license_series=?,license_number=?,license_issue_date=?,
-                    employment_date=?,notes=?,active=? WHERE id=?""",
+                    employment_date=?,notes=?,active=?,driver_end_date=? WHERE id=?""",
                     (vals["last_name"],vals["first_name"],vals["middle_name"],
                      vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
                      vals["personnel_no"],vals["birth_date"],vals["license_series"],vals["license_number"],
                      vals["license_issue_date"],vals["employment_date"],vals["notes"],
-                     int(active.get()),saved_driver_id))
+                     int(active.get()),next_driver_end,saved_driver_id))
             else:
                 cur=con.execute("""INSERT INTO drivers(
                     last_name,first_name,middle_name,last_name_en,first_name_en,middle_name_en,
