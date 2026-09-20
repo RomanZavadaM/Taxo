@@ -6179,19 +6179,348 @@ class App(tk.Tk):
             service_menu.add_command(label="Тахограф — шайби", command=lambda: self.show_tab(self.tab_tacho))
         menubar.add_cascade(label="Сервіс", menu=service_menu)
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(
-            label="Про програму",
-            command=lambda: messagebox.showinfo(
-                "Taxo 10.1-r2",
-                "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "10.1-r2: UI refresh, новий табель, «Про програму» та вбудована довідка; "
-                "почергова робота кількох копій Taxo.\n"
-                "База, резервні копії, документи, журнали та скани зберігаються разом.",
-                parent=self
-            )
-        )
+        help_menu.add_command(label="Довідка користувача", accelerator="F1", command=self.show_help)
+        help_menu.add_command(label="Гарячі клавіші", command=lambda:self.show_help("Гарячі клавіші"))
+        help_menu.add_separator()
+        help_menu.add_command(label="Про програму", command=self.show_about)
         menubar.add_cascade(label="Довідка", menu=help_menu)
         self.config(menu=menubar)
+        self.bind_all("<F1>", lambda _event:self.show_help(), add="+")
+
+    def _company_name_value(self):
+        vars_=getattr(self,"company_vars",{})
+        if "name" in vars_:
+            try:
+                value=vars_["name"].get().strip()
+                if value:
+                    return value
+            except tk.TclError:
+                pass
+        try:
+            con=db()
+            row=con.execute("SELECT name FROM company WHERE id=1").fetchone()
+            con.close()
+            if row and (row["name"] or "").strip():
+                return row["name"].strip()
+        except Exception:
+            pass
+        return "Назва підприємства"
+
+    def show_about(self):
+        existing=getattr(self,"_about_win",None)
+        if existing is not None:
+            try:
+                if existing.winfo_exists():
+                    existing.lift()
+                    return
+            except tk.TclError:
+                pass
+
+        win=tk.Toplevel(self)
+        self._about_win=win
+        win.title("Про програму — Taxo")
+        fit_window_to_screen(win,900,690,760,580)
+        configure_toplevel(win)
+        win.transient(self)
+
+        banner=tk.Canvas(win,height=98,bg=PALETTE["header"],highlightthickness=0)
+        banner.pack(fill="x")
+        draw_brand_header(banner,self._company_name_value(),f"Taxo {APP_VERSION} / Driver Worktime")
+        banner.bind(
+            "<Configure>",
+            lambda _e:draw_brand_header(
+                banner,self._company_name_value(),f"Taxo {APP_VERSION} / Driver Worktime"
+            ),
+            add="+",
+        )
+
+        body=ttk.Frame(win,padding=16)
+        body.pack(fill="both",expand=True)
+        body.columnconfigure(1,weight=1)
+
+        logo=brand_photo(win,220)
+        win._about_logo=logo
+        left=ttk.Frame(body,style="Card.TFrame",padding=14)
+        left.grid(row=0,column=0,rowspan=2,sticky="nsew",padx=(0,14))
+        ttk.Label(left,image=logo).pack(pady=(4,8))
+        ttk.Label(
+            left,text="Рухаємо людей\nдо кращого завтра!",
+            foreground="#1556C0",font=("TkDefaultFont",12,"italic"),justify="center"
+        ).pack(pady=4)
+        ttk.Separator(left,orient="horizontal").pack(fill="x",pady=10)
+        ttk.Label(
+            left,text="Система обліку персоналу,\nробочого часу, маршрутів,\nдокументів і тахографів.",
+            justify="center",foreground=PALETTE["muted"]
+        ).pack()
+
+        info=ttk.Frame(body,style="Card.TFrame",padding=16)
+        info.grid(row=0,column=1,sticky="new")
+        ttk.Label(info,text="Taxo / Driver Worktime",style="HeroTitle.TLabel").grid(
+            row=0,column=0,columnspan=2,sticky="w"
+        )
+        ttk.Label(
+            info,text=self._company_name_value(),
+            foreground=PALETTE["blue"],font=("TkDefaultFont",13,"bold")
+        ).grid(row=1,column=0,columnspan=2,sticky="w",pady=(3,12))
+
+        info_rows=(
+            ("Версія",APP_VERSION),
+            ("Тип","candidate / test checkpoint"),
+            ("Платформа",f"{platform.system()} {platform.machine()}"),
+            ("База даних","SQLite workspace"),
+            ("Робоче сховище",str(DATA_ROOT)),
+            ("Резервні копії",str(BACKUP_DIR)),
+        )
+        for rr,(label,value) in enumerate(info_rows,start=2):
+            ttk.Label(info,text=f"{label}:",font=("TkDefaultFont",10,"bold")).grid(
+                row=rr,column=0,sticky="nw",padx=(0,12),pady=3
+            )
+            ttk.Label(
+                info,text=value,wraplength=500,justify="left"
+            ).grid(row=rr,column=1,sticky="w",pady=3)
+        info.columnconfigure(1,weight=1)
+
+        cards=ttk.Frame(body)
+        cards.grid(row=1,column=1,sticky="nsew",pady=(12,0))
+        cards.columnconfigure((0,1),weight=1)
+
+        modules=ttk.LabelFrame(cards,text="Основні модулі",padding=10)
+        modules.grid(row=0,column=0,sticky="nsew",padx=(0,6))
+        ttk.Label(
+            modules,
+            text=(
+                "• Працівники й ролі\n"
+                "• Табель і графіки\n"
+                "• Транспорт і маршрути\n"
+                "• Шляхові листи та П-5\n"
+                "• Підтвердження діяльності\n"
+                "• Аналогові тахокарти"
+            ),
+            justify="left",
+        ).pack(anchor="w")
+
+        resources=ttk.LabelFrame(cards,text="Підтримка / ресурси",padding=10)
+        resources.grid(row=0,column=1,sticky="nsew",padx=(6,0))
+        ttk.Button(
+            resources,text="Довідка користувача",command=lambda:self.show_help()
+        ).pack(fill="x",pady=3)
+        ttk.Button(
+            resources,text="GitHub / поточний реліз",
+            command=lambda:open_external("https://github.com/RomanZavadaM/Taxo/releases")
+        ).pack(fill="x",pady=3)
+        ttk.Button(resources,text="Відкрити папку даних",command=self.open_data_folder).pack(
+            fill="x",pady=3
+        )
+
+        footer=ttk.Frame(win,padding=(16,8,16,14))
+        footer.pack(fill="x")
+        ttk.Label(
+            footer,
+            text=f"© 2026 {self._company_name_value()} · Taxo {APP_VERSION}",
+            foreground=PALETTE["muted"],
+        ).pack(side="left")
+        ttk.Button(footer,text="Закрити",style="Accent.TButton",command=win.destroy).pack(side="right")
+
+    def show_help(self, initial_topic=None):
+        existing=getattr(self,"_help_win",None)
+        if existing is not None:
+            try:
+                if existing.winfo_exists():
+                    existing.lift()
+                    if initial_topic and hasattr(existing,"_taxo_select_topic"):
+                        existing._taxo_select_topic(initial_topic)
+                    return
+            except tk.TclError:
+                pass
+
+        win=tk.Toplevel(self)
+        self._help_win=win
+        win.title("Довідка — Taxo")
+        fit_window_to_screen(win,1160,780,900,620)
+        configure_toplevel(win)
+
+        banner=tk.Canvas(win,height=92,bg=PALETTE["header"],highlightthickness=0)
+        banner.pack(fill="x")
+        draw_brand_header(banner,self._company_name_value(),"Taxo — Довідка користувача")
+        banner.bind(
+            "<Configure>",
+            lambda _e:draw_brand_header(
+                banner,self._company_name_value(),"Taxo — Довідка користувача"
+            ),
+            add="+",
+        )
+
+        topics={
+            "Початок роботи":(
+                "ПОЧАТОК РОБОТИ\n\n"
+                "1. Заповніть реквізити підприємства, насамперед поле «Назва підприємства».\n"
+                "2. Додайте працівників і призначте їм ролі. Статус працівника та роль «Водій» — різні поняття.\n"
+                "3. Налаштуйте режими робочого часу та планові зміни.\n"
+                "4. Додайте транспорт і маршрути.\n"
+                "5. Вносьте або підтверджуйте фактичний час.\n"
+                "6. Формуйте табелі, П-5, шляхові листи та інші звіти.\n\n"
+                "Перед оновленням програми або масовими змінами зробіть резервну копію."
+            ),
+            "Працівники й ролі":(
+                "ПРАЦІВНИКИ Й РОЛІ\n\n"
+                "У картці працівника зберігається статус «Працює / Звільнений». "
+                "Ролі «Водій», «Диспетчер», «Лікар», «Механік», «Кондуктор» ведуться окремо.\n\n"
+                "Зняття ролі «Водій» не звільняє працівника. Для ролі водія зберігається окрема дата завершення. "
+                "Після повторного запуску завершена роль не повинна відновлюватися."
+            ),
+            "Табелі":(
+                "ТАБЕЛІ ТА РОБОЧИЙ ЧАС\n\n"
+                "«Підсумок місяця» показує план, факт, відхилення та кількість днів без факту для всіх працівників. "
+                "Подвійний клік по працівнику відкриває щоденну деталізацію.\n\n"
+                "У «Щоденному табелі» можна внести ручний факт, скопіювати день, перенести план у факт, "
+                "очистити ручний запис і сформувати PDF/Excel.\n\n"
+                "План не підміняє факт автоматично. Для офіційного П-5 підстановка плану допускається лише після явного підтвердження."
+            ),
+            "Маршрути і транспорт":(
+                "МАРШРУТИ І ТРАНСПОРТ\n\n"
+                "У довіднику автомобілів зберігайте транспортні засоби, а в маршрутах — часові сценарії рейсів. "
+                "Точні інтервали підтримують поділені зміни та переходи через 00:00.\n\n"
+                "Після вибору шаблону маршруту часові параметри можна коригувати вручну."
+            ),
+            "Документи і П-5":(
+                "ДОКУМЕНТИ І П-5\n\n"
+                "Taxo формує шляхові листи, П-5, підтвердження діяльності, місячні графіки та деталізації. "
+                "PDF призначений для друку, XLSX — для контрольованого редагування та подальшого опрацювання.\n\n"
+                "Архів підтверджень діяльності зберігає історію сформованих документів."
+            ),
+            "Тахограф":(
+                "ТАХОГРАФ\n\n"
+                "Модуль аналогових тахокарт використовується для сканів, інтервалів, ручного підтвердження та протоколів. "
+                "Автоматичне розпізнавання є допоміжним: відповідальний працівник має перевірити результат перед використанням у факті."
+            ),
+            "Резервні копії":(
+                "РЕЗЕРВНІ КОПІЇ\n\n"
+                "Робоча база не входить у програмний ZIP або GitHub release. Вона зберігається у вибраному workspace.\n\n"
+                "Користуйтеся «Файл → Резервна копія» перед оновленням, масовими змінами або перенесенням даних. "
+                "Для мережевого чи синхронізованого сховища не запускайте дві копії Taxo одночасно поверх тих самих даних."
+            ),
+            "Гарячі клавіші":(
+                "ГАРЯЧІ КЛАВІШІ\n\n"
+                "Ctrl+C — копіювати\n"
+                "Ctrl+V — вставити\n"
+                "Ctrl+X — вирізати\n"
+                "Ctrl+A — виділити все\n"
+                "Shift+F10 — контекстне меню\n"
+                "F1 — відкрити довідку\n\n"
+                "На macOS замість Ctrl для основних команд використовується Command."
+            ),
+            "FAQ":(
+                "ЧАСТІ ЗАПИТАННЯ\n\n"
+                "Чому є план, але факт 0:00? — План і факт ведуться окремо; внесіть або підтвердьте фактичний час.\n\n"
+                "Чому працівник працює, але не є водієм? — Це нормальний стан: працевлаштування і спеціальна роль розділені.\n\n"
+                "Де моя база? — «Файл → Робоче сховище…» або «Файл → Відкрити папку даних».\n\n"
+                "Що перевіряти після оновлення? — Запуск, працівників/ролі, табель, документи та резервне копіювання."
+            ),
+        }
+
+        search_bar=ttk.Frame(win,padding=(12,10,12,6))
+        search_bar.pack(fill="x")
+        ttk.Label(search_bar,text="Пошук у довідці:",font=("TkDefaultFont",10,"bold")).pack(side="left")
+        query=tk.StringVar()
+        entry=ttk.Entry(search_bar,textvariable=query,width=45)
+        entry.pack(side="left",padx=8)
+
+        body=ttk.Frame(win,padding=(12,0,12,8))
+        body.pack(fill="both",expand=True)
+        body.columnconfigure(1,weight=1)
+        body.rowconfigure(0,weight=1)
+
+        left=ttk.Frame(body,style="Card.TFrame",padding=8)
+        left.grid(row=0,column=0,sticky="ns",padx=(0,10))
+        ttk.Label(left,text="Розділи",style="SectionTitle.TLabel").pack(anchor="w",pady=(2,8))
+        topic_list=tk.Listbox(
+            left,width=27,activestyle="none",exportselection=False,
+            bg="#F7FCFF",fg=PALETTE["navy"],selectbackground=PALETTE["blue"],
+            selectforeground="#FFFFFF",relief="flat",highlightthickness=1,
+            highlightbackground=PALETTE["line"],font=("TkDefaultFont",11)
+        )
+        topic_list.pack(fill="y",expand=True)
+
+        right=ttk.Frame(body,style="Card.TFrame",padding=12)
+        right.grid(row=0,column=1,sticky="nsew")
+        right.rowconfigure(1,weight=1)
+        right.columnconfigure(0,weight=1)
+        title_var=tk.StringVar()
+        ttk.Label(right,textvariable=title_var,style="HeroTitle.TLabel").grid(
+            row=0,column=0,sticky="w",pady=(0,8)
+        )
+        text_box=tk.Text(
+            right,wrap="word",relief="flat",borderwidth=0,
+            bg="#FFFFFF",fg=PALETTE["text"],font=("TkDefaultFont",11),
+            padx=10,pady=10
+        )
+        scroll=ttk.Scrollbar(right,orient="vertical",command=text_box.yview)
+        text_box.configure(yscrollcommand=scroll.set)
+        text_box.grid(row=1,column=0,sticky="nsew")
+        scroll.grid(row=1,column=1,sticky="ns")
+
+        visible=list(topics)
+
+        def populate(names):
+            nonlocal visible
+            visible=list(names)
+            topic_list.delete(0,"end")
+            for name in visible:
+                topic_list.insert("end",name)
+
+        def select_topic(name):
+            if name not in topics:
+                name=visible[0] if visible else next(iter(topics))
+            if name in visible:
+                idx=visible.index(name)
+                topic_list.selection_clear(0,"end")
+                topic_list.selection_set(idx)
+                topic_list.see(idx)
+            title_var.set(name)
+            text_box.configure(state="normal")
+            text_box.delete("1.0","end")
+            text_box.insert("1.0",topics[name])
+            text_box.configure(state="disabled")
+
+        def on_select(_event=None):
+            sel=topic_list.curselection()
+            if sel:
+                select_topic(visible[sel[0]])
+
+        def apply_search(*_args):
+            needle=query.get().strip().lower()
+            if not needle:
+                populate(topics)
+            else:
+                populate([
+                    name for name,content in topics.items()
+                    if needle in name.lower() or needle in content.lower()
+                ])
+            if visible:
+                select_topic(visible[0])
+            else:
+                title_var.set("Нічого не знайдено")
+                text_box.configure(state="normal")
+                text_box.delete("1.0","end")
+                text_box.insert("1.0","Спробуйте інше слово або коротший запит.")
+                text_box.configure(state="disabled")
+
+        win._taxo_select_topic=select_topic
+        topic_list.bind("<<ListboxSelect>>",on_select)
+        query.trace_add("write",apply_search)
+        populate(topics)
+        select_topic(initial_topic if initial_topic in topics else "Початок роботи")
+
+        footer=ttk.Frame(win,padding=(12,0,12,12))
+        footer.pack(fill="x")
+        ttk.Label(
+            footer,
+            text="Порада: подвійний клік у таблицях зазвичай відкриває деталізацію або редагування.",
+            foreground=PALETTE["muted"]
+        ).pack(side="left")
+        ttk.Button(footer,text="Про програму",command=self.show_about).pack(side="right",padx=4)
+        ttk.Button(footer,text="Закрити",style="Accent.TButton",command=win.destroy).pack(side="right")
+        entry.focus_set()
 
     def show_tab(self, tab):
         for child in self.winfo_children():
