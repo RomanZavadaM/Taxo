@@ -14,7 +14,7 @@
 **Робоча гілка:** `work/v10.1-driver-role-ui-refresh`  
 **Candidate audit:** `docs/maintenance/AUDIT_v10_1_r3.md`  
 **Previous candidates:** `v10.1-r1`, `v10.1-r2` — immutable prereleases
-**Candidate regression:** pending final r3 gate
+**Candidate regression:** 144 tests / OK — START/source + Windows; latest macOS PR jobs queued
 
 ## Після stable 10.0 — Taxo 10.1-r3 candidate
 
