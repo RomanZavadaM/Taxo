@@ -6602,29 +6602,22 @@ class App(tk.Tk):
             self.destroy()
 
     def _refresh_brand_header(self):
+        company_name=self._company_name_value()
+        title_var=getattr(self,"main_title_var",None)
+        if title_var is not None:
+            title_var.set(f"Taxo / {company_name}")
+        footer_var=getattr(self,"footer_company_var",None)
+        if footer_var is not None:
+            footer_var.set(f"Taxo / {company_name}")
         canvas=getattr(self,"brand_canvas",None)
-        if canvas is None:
-            return
-        company_name=""
-        vars_=getattr(self,"company_vars",{})
-        if "name" in vars_:
-            try:
-                company_name=vars_["name"].get().strip()
-            except tk.TclError:
-                company_name=""
-        draw_brand_header(canvas, company_name, "Taxo 10.1-r2 / Driver Worktime")
+        if canvas is not None:
+            draw_brand_header(canvas,company_name,f"Taxo {APP_VERSION} / Driver Worktime")
 
     def _refresh_company_preview(self):
         canvas=getattr(self,"company_preview_canvas",None)
         if canvas is None:
             return
-        name=""
-        vars_=getattr(self,"company_vars",{})
-        if "name" in vars_:
-            try:
-                name=vars_["name"].get().strip()
-            except tk.TclError:
-                name=""
+        name=self._company_name_value()
         draw_brand_header(canvas,name,"Так виглядатиме шапка Taxo")
 
     def build_ui(self):
@@ -6635,75 +6628,282 @@ class App(tk.Tk):
             # Branding must never prevent access to operational data.
             pass
 
-        self.brand_canvas=tk.Canvas(
-            self,height=92,bg=PALETTE["navy"],highlightthickness=0,borderwidth=0
-        )
-        self.brand_canvas.pack(fill="x",padx=8,pady=(8,0))
-        self.brand_canvas.bind(
-            "<Configure>",lambda _event:self._refresh_brand_header(),add="+"
-        )
-        self.after_idle(self._refresh_brand_header)
+        # ------------------------------------------------------------------
+        # Approved application shell: light header + blue sidebar + content.
+        # The old Notebook remains only as an internal page container; its
+        # native tab strip is hidden and navigation lives in the sidebar.
+        # ------------------------------------------------------------------
+        header=tk.Frame(self,bg=PALETTE["header"],height=116)
+        header.pack(side="top",fill="x")
+        header.pack_propagate(False)
 
-        modifier="Command" if sys.platform=="darwin" else "Ctrl"
-        self.ui_status_var=tk.StringVar(
-            value=f"Підказка: контекстне меню у полі — Вирізати / Копіювати / Вставити; {modifier}-команди працюють і в українській розкладці."
-        )
-        ttk.Label(
-            self,
-            textvariable=self.ui_status_var,
-            anchor="w",
-            relief="sunken",
-            padding=(8, 3)
-        ).pack(side="bottom", fill="x")
+        self._main_logo=brand_photo(header,86)
+        tk.Label(
+            header,image=self._main_logo,bg=PALETTE["header"],bd=0
+        ).pack(side="left",padx=(18,10),pady=10)
 
-        nb = ttk.Notebook(self)
-        nb.pack(fill="both", expand=True, padx=8, pady=8)
+        brand_block=tk.Frame(header,bg=PALETTE["header"])
+        brand_block.pack(side="left",fill="y",pady=(15,8))
+        self.main_title_var=tk.StringVar(value="Taxo / Назва підприємства")
+        tk.Label(
+            brand_block,textvariable=self.main_title_var,
+            bg=PALETTE["header"],fg="#151A73",
+            font=("TkDefaultFont",20,"bold"),anchor="w"
+        ).pack(anchor="w")
+        tk.Label(
+            brand_block,text="Автотранспортне підприємство",
+            bg=PALETTE["header"],fg=PALETTE["blue_dark"],
+            font=("TkDefaultFont",11),anchor="w"
+        ).pack(anchor="w",pady=(2,0))
+
+        slogan=tk.Frame(header,bg=PALETTE["header"])
+        slogan.pack(side="left",expand=True,fill="both",padx=(26,12))
+        tk.Label(
+            slogan,text="Рухаємо людей\nдо кращого завтра!",
+            bg=PALETTE["header"],fg="#1556C0",
+            justify="center",font=("TkDefaultFont",13,"italic")
+        ).place(relx=.48,rely=.43,anchor="center")
+        accent=tk.Canvas(
+            slogan,height=16,bg=PALETTE["header"],highlightthickness=0,bd=0
+        )
+        accent.place(relx=.48,rely=.78,anchor="center",relwidth=.48)
+        def draw_slogan_accent(event):
+            accent.delete("all")
+            w=max(10,event.width)
+            accent.create_line(
+                8,event.height-3,w-10,3,
+                fill=PALETTE["gold"],width=4,smooth=True
+            )
+        accent.bind("<Configure>",draw_slogan_accent,add="+")
+
+        header_right=tk.Frame(header,bg=PALETTE["header"])
+        header_right.pack(side="right",fill="y",padx=(8,16),pady=10)
+
+        self.header_clock_var=tk.StringVar()
+        tk.Label(
+            header_right,textvariable=self.header_clock_var,
+            bg=PALETTE["header"],fg=PALETTE["navy"],
+            justify="left",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,16))
+
+        tk.Frame(header_right,bg=PALETTE["line"],width=1).pack(
+            side="left",fill="y",pady=7
+        )
+        tk.Label(
+            header_right,text="●",bg=PALETTE["header"],fg=PALETTE["blue"],
+            font=("TkDefaultFont",17)
+        ).pack(side="left",padx=(12,5))
+        tk.Label(
+            header_right,text="Користувач\nАдміністратор",
+            bg=PALETTE["header"],fg=PALETTE["navy"],
+            justify="left",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,14))
+
+        self.header_settings_button=tk.Button(
+            header_right,text="⚙  Налаштування",
+            command=lambda:self.show_tab(self.tab_company),
+            bg=PALETTE["header"],fg=PALETTE["navy"],
+            activebackground=PALETTE["soft_blue_2"],
+            activeforeground=PALETTE["navy"],
+            relief="flat",bd=0,padx=8,pady=6,
+            font=("TkDefaultFont",9,"bold"),cursor="hand2"
+        )
+        self.header_settings_button.pack(side="left",padx=3)
+
+        self.header_menu_button=tk.Button(
+            header_right,text="☰",
+            command=self._show_app_menu,
+            bg=PALETTE["header"],fg=PALETTE["navy"],
+            activebackground=PALETTE["soft_blue_2"],
+            activeforeground=PALETTE["navy"],
+            relief="flat",bd=0,padx=8,pady=6,
+            font=("TkDefaultFont",13,"bold"),cursor="hand2"
+        )
+        self.header_menu_button.pack(side="left",padx=(3,0))
+
+        tk.Frame(self,bg="#79C8EC",height=2).pack(side="top",fill="x")
+
+        # Bottom operational status bar from the approved mock-up.
+        status=tk.Frame(self,bg="#F7FCFF",height=34)
+        status.pack(side="bottom",fill="x")
+        status.pack_propagate(False)
+        tk.Label(
+            status,text="●",bg="#F7FCFF",fg=PALETTE["success"],
+            font=("TkDefaultFont",12)
+        ).pack(side="left",padx=(16,4))
+        tk.Label(
+            status,text="База даних: Підключено",bg="#F7FCFF",
+            fg=PALETTE["navy"],font=("TkDefaultFont",9)
+        ).pack(side="left")
+        tk.Label(
+            status,text="│  Користувач: Адміністратор  │",
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9)
+        ).pack(side="left",padx=10)
+        workstation=(platform.node() or "—").upper()
+        tk.Label(
+            status,text=f"Робоче місце: {workstation}",
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9)
+        ).pack(side="left")
+
+        self.ui_status_var=tk.StringVar(value="Готово")
+        tk.Label(
+            status,textvariable=self.ui_status_var,
+            bg="#F7FCFF",fg=PALETTE["muted"],
+            font=("TkDefaultFont",9),anchor="w"
+        ).pack(side="left",fill="x",expand=True,padx=16)
+
+        self.footer_company_var=tk.StringVar(value="Taxo")
+        self._footer_logo=brand_photo(status,28)
+        tk.Label(
+            status,textvariable=self.footer_company_var,
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9)
+        ).pack(side="right",padx=(8,12))
+        tk.Label(
+            status,text=f"v{APP_VERSION}",bg="#F7FCFF",
+            fg=PALETTE["navy"],font=("TkDefaultFont",9,"bold")
+        ).pack(side="right",padx=8)
+        tk.Label(status,image=self._footer_logo,bg="#F7FCFF",bd=0).pack(
+            side="right",padx=(8,0)
+        )
+
+        shell=tk.Frame(self,bg=PALETTE["paper"])
+        shell.pack(side="top",fill="both",expand=True)
+
+        sidebar=tk.Frame(shell,bg=PALETTE["sidebar"],width=176)
+        sidebar.pack(side="left",fill="y")
+        sidebar.pack_propagate(False)
+
+        nav_holder=tk.Frame(sidebar,bg=PALETTE["sidebar"])
+        nav_holder.pack(side="top",fill="x",pady=(8,0))
+        self._nav_buttons={}
+        self._nav_icons={}
+
+        content_outer=tk.Frame(shell,bg="#D9EEF8",padx=10,pady=10)
+        content_outer.pack(side="left",fill="both",expand=True)
+        content=tk.Frame(
+            content_outer,bg=PALETTE["panel"],
+            highlightthickness=1,highlightbackground="#B7DCEB"
+        )
+        content.pack(fill="both",expand=True)
+
+        style=ttk.Style(self)
+        try:
+            style.layout("Shell.TNotebook.Tab",[])
+            style.configure("Shell.TNotebook",borderwidth=0,tabmargins=0)
+        except tk.TclError:
+            pass
+
+        nb=ttk.Notebook(content,style="Shell.TNotebook")
+        nb.pack(fill="both",expand=True)
         self.notebook=nb
+        self.main_notebook=nb
 
-        self.tab_company = ttk.Frame(nb)
-        self.tab_drivers = ttk.Frame(nb)
-        self.tab_vehicles = ttk.Frame(nb)
-        self.tab_work = ttk.Frame(nb)
-        self.tab_schedule = ttk.Frame(nb)
-        self.tab_route_catalog = ttk.Frame(nb)
-        self.tab_att = ttk.Frame(nb)
-        self.tab_tacho = ttk.Frame(nb)
-        nb.add(self.tab_company, text="Підприємство")
-        nb.add(self.tab_drivers, text="Працівники")
-        nb.add(self.tab_vehicles, text="Автомобілі")
-        nb.add(self.tab_work, text="Табель")
-        nb.add(self.tab_schedule, text="Графік водіїв")
-        nb.add(self.tab_route_catalog, text="Маршрути")
-        nb.add(self.tab_att, text="Підтвердження діяльності")
-        nb.add(self.tab_tacho, text="Тахограф — шайби")
+        self.tab_company=ttk.Frame(nb)
+        self.tab_drivers=ttk.Frame(nb)
+        self.tab_vehicles=ttk.Frame(nb)
+        self.tab_work=ttk.Frame(nb)
+        self.tab_schedule=ttk.Frame(nb)
+        self.tab_route_catalog=ttk.Frame(nb)
+        self.tab_att=ttk.Frame(nb)
+        self.tab_tacho=ttk.Frame(nb)
+        nb.add(self.tab_company,text="Підприємство")
+        nb.add(self.tab_drivers,text="Працівники")
+        nb.add(self.tab_vehicles,text="Автомобілі")
+        nb.add(self.tab_work,text="Табель")
+        nb.add(self.tab_schedule,text="Графік водіїв")
+        nb.add(self.tab_route_catalog,text="Маршрути")
+        nb.add(self.tab_att,text="Підтвердження діяльності")
+        nb.add(self.tab_tacho,text="Тахограф — шайби")
+
+        def add_nav(label,kind,tab=None,command=None):
+            icon=nav_photo(nav_holder,kind,26)
+            self._nav_icons[label]=icon
+            if command is None:
+                command=lambda t=tab:self.show_tab(t)
+            btn=tk.Button(
+                nav_holder,image=icon,text=label,compound="left",
+                command=command,anchor="w",
+                bg=PALETTE["sidebar"],fg="#FFFFFF",
+                activebackground=PALETTE["blue_dark"],
+                activeforeground="#FFFFFF",
+                relief="flat",bd=0,highlightthickness=0,
+                padx=16,pady=10,font=("TkDefaultFont",10,"bold"),
+                cursor="hand2"
+            )
+            btn.pack(fill="x")
+            if tab is not None:
+                self._nav_buttons[str(tab)]=btn
+            return btn
+
+        add_nav("Працівники","people",self.tab_drivers)
+        add_nav("Табель обліку","calendar",self.tab_work)
+        add_nav("Графіки","chart",self.tab_schedule)
+        add_nav("Транспорт","bus",self.tab_vehicles)
+        add_nav("Маршрути","route",self.tab_route_catalog)
+        add_nav("Документи","document",self.tab_att)
+        add_nav("Тахограф","disc",self.tab_tacho)
+        add_nav("Звіти","chart",command=self.show_employee_timesheet)
+        add_nav("Налаштування","gear",self.tab_company)
+
+        road=tk.Canvas(
+            sidebar,bg="#125E87",highlightthickness=0,bd=0,height=170
+        )
+        road.pack(side="bottom",fill="both",expand=True)
+        def draw_road(event):
+            road.delete("all")
+            w=max(176,event.width)
+            h=max(120,event.height)
+            road.create_rectangle(0,0,w,h,fill="#125E87",outline="")
+            road.create_polygon(
+                w*.18,h,w*.46,h*.42,w*.58,h*.42,w*.90,h,
+                fill="#2B7193",outline=""
+            )
+            road.create_line(
+                w*.54,h*.47,w*.54,h*.98,
+                fill="#F4CF3A",width=3
+            )
+            road.create_line(
+                w*.30,h*.70,w*.15,h*.60,w*.03,h*.62,
+                fill="#75AAC2",width=2,smooth=True
+            )
+            road.create_line(
+                w*.70,h*.68,w*.86,h*.60,w*.98,h*.64,
+                fill="#75AAC2",width=2,smooth=True
+            )
+            road.create_text(
+                18,h-48,anchor="w",text="Дороги\nоб’єднують!",
+                fill="#FFFFFF",font=("TkDefaultFont",12,"italic"),justify="left"
+            )
+            road.create_line(
+                20,h-13,w-18,h-30,fill=PALETTE["gold"],width=3
+            )
+        road.bind("<Configure>",draw_road,add="+")
 
         def remember_tab(_event=None):
             try:
-                set_setting("main_last_tab", str(nb.index(nb.select())))
-            except (tk.TclError, ValueError):
+                set_setting("main_last_tab",str(nb.index(nb.select())))
+                self._refresh_nav_selection()
+            except (tk.TclError,ValueError):
                 pass
-        nb.bind("<<NotebookTabChanged>>", remember_tab, add="+")
-        self.main_notebook=nb
-        # Alt+1…Alt+8 — швидкий перехід між розділами, навіть якщо вкладка
-        # фізично не помістилась у рядку Notebook.
+        nb.bind("<<NotebookTabChanged>>",remember_tab,add="+")
+
         for tab_index in range(8):
             self.bind_all(
                 f"<Alt-Key-{tab_index+1}>",
-                lambda _event, idx=tab_index: (nb.select(idx), "break")[1],
+                lambda _event,idx=tab_index:(nb.select(idx),"break")[1],
                 add="+"
             )
+
         try:
-            saved_tab=int(get_setting("main_last_tab", "0") or 0)
-            # r9 прибрав окрему вкладку «Шаблони маршрутів». Переносимо
-            # індекс останньої вкладки зі старої 9-вкладкової схеми.
-            if not get_setting("main_tabs_r9_migrated", ""):
-                saved_tab={5:5, 6:5, 7:6, 8:7}.get(saved_tab, saved_tab)
-                set_setting("main_last_tab", saved_tab)
-                set_setting("main_tabs_r9_migrated", "1")
+            saved_tab=int(get_setting("main_last_tab","1") or 1)
+            if not get_setting("main_tabs_r9_migrated",""):
+                saved_tab={5:5,6:5,7:6,8:7}.get(saved_tab,saved_tab)
+                set_setting("main_last_tab",saved_tab)
+                set_setting("main_tabs_r9_migrated","1")
             if 0 <= saved_tab < nb.index("end"):
                 nb.select(saved_tab)
-        except (ValueError, tk.TclError):
-            pass
+        except (ValueError,tk.TclError):
+            nb.select(self.tab_drivers)
 
         self.build_company()
         self.build_drivers()
@@ -6713,14 +6913,22 @@ class App(tk.Tk):
         self.build_route_catalog()
         self.build_attestation()
         if TachographModule:
-            # v8.53: тахокарти — тільки контроль. Модуль не отримує callback,
-            # який міг би змінювати основний графік/табель.
-            self.tacho_module = TachographModule(
-                self.tab_tacho, self.tacho_drivers, self.tacho_vehicles
+            self.tacho_module=TachographModule(
+                self.tab_tacho,self.tacho_drivers,self.tacho_vehicles
             )
-            self.tacho_module.seed_examples([APP_DIR / "tachograph_test_scan_01.jpg", APP_DIR / "tachograph_test_scan_02.jpg"])
+            self.tacho_module.seed_examples([
+                APP_DIR/"tachograph_test_scan_01.jpg",
+                APP_DIR/"tachograph_test_scan_02.jpg",
+            ])
         else:
-            ttk.Label(self.tab_tacho, text="Модуль тахографа не завантажено. Запустіть START.bat для встановлення залежностей.").pack(padx=20, pady=20)
+            ttk.Label(
+                self.tab_tacho,
+                text="Модуль тахографа не завантажено. Запустіть START.bat для встановлення залежностей."
+            ).pack(padx=20,pady=20)
+
+        self._refresh_brand_header()
+        self._refresh_nav_selection()
+        self._refresh_header_clock()
 
     def _make_scrollable_tab_body(self, tab, key):
         """Створює двонапрямно прокручувану область для всього вмісту вкладки."""
