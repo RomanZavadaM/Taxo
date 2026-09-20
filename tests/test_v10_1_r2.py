@@ -46,6 +46,34 @@ class TestTaxo101R2TimesheetUi(unittest.TestCase):
         self.assertIn("днів із планом без факту", source)
         self.assertIn("missing_total", source)
 
+    def test_help_menu_uses_real_windows_not_messagebox(self):
+        menu_source = inspect.getsource(main.App.build_menu)
+        self.assertIn('label="Довідка користувача"', menu_source)
+        self.assertIn("command=self.show_help_center", menu_source)
+        self.assertIn("command=self.show_about_dialog", menu_source)
+        self.assertNotIn("messagebox.showinfo", menu_source)
+
+    def test_about_window_is_dynamic_and_branded(self):
+        source = inspect.getsource(main.App.show_about_dialog)
+        self.assertIn("Taxo / Driver Worktime", source)
+        self.assertIn("self._current_company_name()", source)
+        self.assertIn("draw_brand_header", source)
+        self.assertIn("GitHub репозиторій", source)
+        self.assertIn("Відкрити папку даних", source)
+
+    def test_help_center_contains_core_sections(self):
+        source = inspect.getsource(main.App.show_help_center)
+        for marker in (
+            "Початок роботи",
+            "Працівники і ролі",
+            "Табель",
+            "План і факт",
+            "Звіти і документи",
+            "Резервні копії",
+            "Тахограф",
+        ):
+            self.assertIn(marker, source)
+
 
 if __name__ == "__main__":
     unittest.main()
