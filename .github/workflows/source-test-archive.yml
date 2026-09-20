@@ -20,6 +20,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install regression dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run regression suite
+        run: python -m unittest discover -s tests -v
+
       - name: Create START.bat source archive
         id: pack
         shell: bash
