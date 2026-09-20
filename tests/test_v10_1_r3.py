@@ -3,6 +3,7 @@ import inspect
 import unittest
 
 import branding
+import branding_asset
 import main
 
 
@@ -45,6 +46,10 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         self.assertIn('title_var.set(f"Taxo / {company_name}")',header)
         self.assertNotIn("АТП Завада",branding_source)
         self.assertIn("create_nav_icon",branding_source)
+        self.assertIn("APPROVED_LOGO_PNG_BASE64",branding_source)
+        self.assertGreater(len(branding_asset.APPROVED_LOGO_PNG_BASE64),8000)
+        image=branding.create_brand_image(256)
+        self.assertEqual(image.size,(256,256))
 
 
 if __name__=="__main__":
