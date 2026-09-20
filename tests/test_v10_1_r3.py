@@ -32,6 +32,18 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         popup_source=inspect.getsource(main.App._show_app_menu)
         self.assertIn('getattr(self,"header_menu_button",None)',popup_source)
 
+    def test_workers_sidebar_opens_personnel_registry_not_legacy_driver_list(self):
+        source=inspect.getsource(main.App)
+        # PersonnelApp wraps the core App, so verify through installed runtime class.
+        runtime_source=inspect.getsource(type(main.App))
+        combined=source+"\n"+runtime_source
+        # Structural behavior is implemented in personnel_v91 and visible in the
+        # source package; the approved shell must remap the existing nav button.
+        personnel_source=inspect.getsource(__import__("personnel_v91"))
+        self.assertIn('nav_buttons.pop(driver_key,None)',personnel_source)
+        self.assertIn('command=lambda:self.show_tab(self.tab_personnel)',personnel_source)
+        self.assertIn('nb.select(self.tab_personnel)',personnel_source)
+
     def test_personnel_timesheet_uses_same_sidebar_shell(self):
         source=inspect.getsource(main.App.show_employee_timesheet)
         self.assertIn('sidebar=tk.Frame(shell,bg=PALETTE["sidebar"],width=176)',source)
