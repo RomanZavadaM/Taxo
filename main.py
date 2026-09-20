@@ -7494,34 +7494,83 @@ class App(tk.Tk):
 
         def refresh_daily():
             start,days=selected_month()
-            if not start: return
+            if not start:
+                return
             employee=employee_map.get(employee_choice.get())
-            for item in daily_tree.get_children(): daily_tree.delete(item)
-            if not employee: return
+            for item in daily_tree.get_children():
+                daily_tree.delete(item)
+            if not employee:
+                for var in daily_stat_vars.values():
+                    var.set("0")
+                return
+
             con=db()
             weekday_names=("Пн","Вт","Ср","Чт","Пт","Сб","Нд")
+            total_plan=0
+            total_actual=0
+            missing_count=0
             for day_no in range(1,days+1):
                 work_date=start.replace(day=day_no)
                 if employee_employed_on(employee,work_date):
                     row=employee_day_time(con,employee["id"],work_date)
                 else:
-                    row={"day_type":"—","planned_minutes":0,"actual_minutes":None,"source":"поза періодом роботи","notes":""}
+                    row={
+                        "day_type":"—","planned_minutes":0,"actual_minutes":None,
+                        "source":"поза періодом роботи","notes":""
+                    }
+                planned=row["planned_minutes"]
                 actual=row["actual_minutes"]
-                difference=(actual-row["planned_minutes"]) if actual is not None else None
-                daily_tree.insert("","end",iid=work_date.isoformat(),values=(
-                    work_date.strftime("%d.%m.%Y"),weekday_names[work_date.weekday()],row["day_type"],
-                    minutes_hhmm(row["planned_minutes"]),minutes_hhmm(actual) if actual is not None else "—",
-                    signed_hours_hhmm((difference or 0)/60) if difference is not None else "—",
-                    row["source"],row["notes"],
-                ))
+                difference=(actual-planned) if actual is not None else None
+                total_plan+=planned
+                if actual is not None:
+                    total_actual+=actual
+                elif planned>0:
+                    missing_count+=1
+
+                day_type=(row["day_type"] or "").lower()
+                source=(row["source"] or "").lower()
+                tag=""
+                if planned>0 and actual is None:
+                    tag="missing"
+                elif "лікар" in day_type:
+                    tag="absence"
+                elif "відпуст" in day_type:
+                    tag="vacation"
+                elif "вихід" in day_type or "свят" in day_type:
+                    tag="weekend"
+                elif "ручн" in source:
+                    tag="manual"
+
+                daily_tree.insert(
+                    "","end",iid=work_date.isoformat(),
+                    values=(
+                        work_date.strftime("%d.%m.%Y"),
+                        weekday_names[work_date.weekday()],
+                        row["day_type"],
+                        minutes_hhmm(planned),
+                        minutes_hhmm(actual) if actual is not None else "—",
+                        signed_hours_hhmm((difference or 0)/60) if difference is not None else "—",
+                        row["source"],row["notes"],
+                    ),
+                    tags=(tag,) if tag else (),
+                )
             con.close()
+            daily_stat_vars["planned"].set(minutes_hhmm(total_plan))
+            daily_stat_vars["actual"].set(minutes_hhmm(total_actual))
+            daily_stat_vars["difference"].set(signed_hours_hhmm((total_actual-total_plan)/60))
+            daily_stat_vars["missing"].set(str(missing_count))
 
         def refresh_summary():
             start,days=selected_month()
-            if not start: return
+            if not start:
+                return
             rows=load_employees()
-            for item in summary_tree.get_children(): summary_tree.delete(item)
+            for item in summary_tree.get_children():
+                summary_tree.delete(item)
             con=db()
+            total_plan=0
+            total_actual=0
+            total_missing=0
             for employee in rows:
                 planned=actual=missing=0
                 for day_no in range(1,days+1):
@@ -7530,11 +7579,47 @@ class App(tk.Tk):
                         continue
                     row=employee_day_time(con,employee["id"],work_date)
                     planned+=row["planned_minutes"]
-                    if row["actual_minutes"] is not None: actual+=row["actual_minutes"]
-                    elif row["planned_minutes"]>0: missing+=1
-                summary_tree.insert("","end",values=(employee["id"],employee["personnel_no"],self.employee_full_name(employee),employee["roles"] or employee["position"] or "",
-                    minutes_hhmm(planned),minutes_hhmm(actual),signed_hours_hhmm((actual-planned)/60),str(missing)))
-            con.close(); refresh_daily()
+                    if row["actual_minutes"] is not None:
+                        actual+=row["actual_minutes"]
+                    elif row["planned_minutes"]>0:
+                        missing+=1
+
+                total_plan+=planned
+                total_actual+=actual
+                total_missing+=missing
+                if planned==0 and actual==0:
+                    status="Немає даних"
+                    tag="no_data"
+                elif missing>0:
+                    status="Немає факту"
+                    tag="missing"
+                elif actual<planned:
+                    status="Частково"
+                    tag="warning"
+                else:
+                    status="Працює" if bool(employee["active"]) else "Звільнений"
+                    tag="good"
+
+                summary_tree.insert(
+                    "","end",
+                    values=(
+                        employee["id"],employee["personnel_no"],
+                        self.employee_full_name(employee),
+                        employee["roles"] or employee["position"] or "",
+                        minutes_hhmm(planned),minutes_hhmm(actual),
+                        signed_hours_hhmm((actual-planned)/60),str(missing),status,
+                    ),
+                    tags=(tag,),
+                )
+            con.close()
+            summary_stat_vars["employees"].set(str(len(rows)))
+            summary_stat_vars["planned"].set(minutes_hhmm(total_plan))
+            summary_stat_vars["actual"].set(minutes_hhmm(total_actual))
+            summary_stat_vars["difference"].set(
+                signed_hours_hhmm((total_actual-total_plan)/60)
+            )
+            summary_stat_vars["missing"].set(str(total_missing))
+            refresh_daily()
 
         def selected_days():
             return [datetime.strptime(item,"%Y-%m-%d").date() for item in daily_tree.selection()]
