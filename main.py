@@ -8665,10 +8665,10 @@ class App(tk.Tk):
             toolbar_reports,text="Звіти та друк:",font=("TkDefaultFont",9,"bold")
         ).pack(side="left",padx=(0,6))
         ttk.Button(
-            toolbar_reports,text="PDF — весь персонал",command=lambda:export_all("pdf")
+            toolbar_reports,text="PDF звіт — весь персонал",command=lambda:export_all("pdf")
         ).pack(side="left",padx=(0,4))
         ttk.Button(
-            toolbar_reports,text="Excel — весь персонал",command=lambda:export_all("xlsx")
+            toolbar_reports,text="Excel звіт — весь персонал",command=lambda:export_all("xlsx")
         ).pack(side="left",padx=4)
         ttk.Button(
             toolbar_reports,text="Місячний табель / баланс",command=show_personnel_balance

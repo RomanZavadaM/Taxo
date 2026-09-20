@@ -35,8 +35,8 @@ class TestTaxo101R4ApprovedUiPolish(unittest.TestCase):
         self.assertIn("toolbar_reports",source)
         self.assertIn('text="Робота з табелем:"',source)
         self.assertIn('text="Звіти та друк:"',source)
-        self.assertIn('text="PDF — весь персонал"',source)
-        self.assertIn('text="Excel — весь персонал"',source)
+        self.assertIn('text="PDF звіт — весь персонал"',source)
+        self.assertIn('text="Excel звіт — весь персонал"',source)
         self.assertIn('text="Папка звітів"',source)
 
     def test_about_and_help_titles_use_enterprise_name(self):
