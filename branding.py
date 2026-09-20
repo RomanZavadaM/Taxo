@@ -263,6 +263,74 @@ def brand_photo(master, size=96):
     return ImageTk.PhotoImage(create_brand_image(size), master=master)
 
 
+def create_nav_icon(kind, size=28, color="#FFFFFF"):
+    """Create small monochrome sidebar icons used by the approved shell."""
+    from PIL import Image, ImageDraw
+
+    size=int(size)
+    img=Image.new("RGBA",(size,size),(0,0,0,0))
+    d=ImageDraw.Draw(img)
+    w=max(2,size//10)
+    c=color
+    k=(kind or "").lower()
+
+    if k=="people":
+        r=size*.16
+        d.ellipse((size*.16,size*.10,size*.16+2*r,size*.10+2*r),outline=c,width=w)
+        d.ellipse((size*.50,size*.16,size*.50+2*r,size*.16+2*r),outline=c,width=w)
+        d.arc((size*.08,size*.40,size*.55,size*.92),190,350,fill=c,width=w)
+        d.arc((size*.38,size*.44,size*.92,size*.94),190,350,fill=c,width=w)
+    elif k=="calendar":
+        d.rounded_rectangle((size*.12,size*.18,size*.88,size*.88),radius=max(2,size//10),outline=c,width=w)
+        d.line((size*.12,size*.36,size*.88,size*.36),fill=c,width=w)
+        for x in (size*.32,size*.56,size*.76):
+            d.ellipse((x-size*.035,size*.52-size*.035,x+size*.035,size*.52+size*.035),fill=c)
+            d.ellipse((x-size*.035,size*.70-size*.035,x+size*.035,size*.70+size*.035),fill=c)
+        d.line((size*.30,size*.08,size*.30,size*.27),fill=c,width=w)
+        d.line((size*.70,size*.08,size*.70,size*.27),fill=c,width=w)
+    elif k=="bus":
+        d.rounded_rectangle((size*.08,size*.25,size*.88,size*.72),radius=max(2,size//10),outline=c,width=w)
+        for x0,x1 in ((.18,.35),(.40,.57),(.62,.78)):
+            d.rectangle((size*x0,size*.34,size*x1,size*.49),outline=c,width=max(1,w-1))
+        d.ellipse((size*.19,size*.66,size*.36,size*.83),outline=c,width=w)
+        d.ellipse((size*.63,size*.66,size*.80,size*.83),outline=c,width=w)
+    elif k=="route":
+        d.ellipse((size*.10,size*.12,size*.34,size*.36),outline=c,width=w)
+        d.ellipse((size*.66,size*.64,size*.90,size*.88),outline=c,width=w)
+        d.line((size*.24,size*.34,size*.35,size*.56,size*.55,size*.44,size*.76,size*.66),fill=c,width=w)
+    elif k=="document":
+        d.polygon([(size*.18,size*.10),(size*.64,size*.10),(size*.84,size*.30),(size*.84,size*.90),(size*.18,size*.90)],outline=c)
+        d.line((size*.64,size*.10,size*.64,size*.30,size*.84,size*.30),fill=c,width=w)
+        for y in (.45,.60,.75):
+            d.line((size*.30,size*y,size*.72,size*y),fill=c,width=max(1,w-1))
+    elif k=="book":
+        d.arc((size*.08,size*.16,size*.49,size*.88),80,280,fill=c,width=w)
+        d.arc((size*.51,size*.16,size*.92,size*.88),260,100,fill=c,width=w)
+        d.line((size*.50,size*.20,size*.50,size*.86),fill=c,width=w)
+    elif k=="chart":
+        for x,h in ((.18,.30),(.42,.48),(.66,.68)):
+            d.rectangle((size*x,size*(.88-h),size*(x+.14),size*.88),outline=c,width=w)
+    elif k=="gear":
+        d.ellipse((size*.27,size*.27,size*.73,size*.73),outline=c,width=w)
+        d.ellipse((size*.42,size*.42,size*.58,size*.58),outline=c,width=w)
+        for a,b,cx,cy in (
+            (.44,.06,.50,.20),(.44,.74,.50,.94),(.06,.44,.20,.50),(.74,.44,.94,.50),
+        ):
+            d.rectangle((size*a,size*b,size*cx,size*cy),outline=c,width=max(1,w-1))
+    elif k=="disc":
+        d.ellipse((size*.12,size*.12,size*.88,size*.88),outline=c,width=w)
+        d.ellipse((size*.40,size*.40,size*.60,size*.60),outline=c,width=w)
+        d.arc((size*.22,size*.22,size*.78,size*.78),20,150,fill=c,width=max(1,w-1))
+    else:
+        d.ellipse((size*.22,size*.22,size*.78,size*.78),outline=c,width=w)
+    return img
+
+
+def nav_photo(master, kind, size=28, color="#FFFFFF"):
+    from PIL import ImageTk
+    return ImageTk.PhotoImage(create_nav_icon(kind,size,color),master=master)
+
+
 def install_runtime_icon(root):
     """Set the same text-free logo as the application icon."""
     photo = brand_photo(root, 128)
