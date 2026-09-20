@@ -7870,32 +7870,133 @@ class App(tk.Tk):
             ttk.Button(bar,text="Оновити",command=refresh_balance).pack(side="left",padx=5); ttk.Button(bar,text="Excel — редагувати",command=lambda:save_balance("xlsx")).pack(side="left",padx=(12,3)); ttk.Button(bar,text="PDF — друк",command=lambda:save_balance("pdf")).pack(side="left",padx=3)
             active_only.trace_add("write",lambda *_args:refresh_balance()); refresh_balance()
 
-        def open_summary_employee(_event=None):
+        def select_summary_employee(switch_tab=False):
             sel=summary_tree.selection()
-            if not sel: return
+            if not sel:
+                messagebox.showinfo(
+                    "Табель","Виберіть працівника у підсумку місяця.",parent=win
+                )
+                return False
             eid=int(summary_tree.item(sel[0],"values")[0])
             for label,row in employee_map.items():
-                if row["id"]==eid: employee_choice.set(label); break
-            notebook.select(daily_tab); refresh_daily()
+                if row["id"]==eid:
+                    employee_choice.set(label)
+                    break
+            if switch_tab:
+                notebook.select(daily_tab)
+            refresh_daily()
+            return True
 
-        ttk.Button(top,text="Оновити",command=refresh_summary).pack(side="left",padx=8)
-        ttk.Button(edit_bar,text="Новий / редагувати день",command=edit_day).pack(side="left",padx=3)
+        def open_summary_employee(_event=None):
+            select_summary_employee(switch_tab=True)
+
+        def show_selected_control():
+            if notebook.index(notebook.select())==0 and not select_summary_employee(False):
+                return
+            show_control()
+
+        def export_all(kind):
+            start,_days=selected_month()
+            if not start:
+                return
+            suffix=".xlsx" if kind=="xlsx" else ".pdf"
+            path=filedialog.asksaveasfilename(
+                parent=win,
+                title="Зберегти звіт по всьому персоналу",
+                initialdir=str(OUTPUT_DIR),
+                initialfile=f"Табель_усього_персоналу_{start.year}_{start.month:02d}{suffix}",
+                defaultextension=suffix,
+                filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")],
+            )
+            if not path:
+                return
+            writer=(
+                (lambda out:export_personnel_monthly_balance_xlsx(
+                    start.year,start.month,out,False
+                ))
+                if kind=="xlsx"
+                else
+                (lambda out:export_personnel_monthly_balance_pdf(
+                    start.year,start.month,out,False
+                ))
+            )
+            actual=write_output_file(
+                writer,path,parent=win,
+                kind="Excel-звіт по персоналу" if kind=="xlsx" else "PDF-звіт по персоналу",
+                error_title="Табель персоналу",
+            )
+            if actual is not None:
+                messagebox.showinfo("Готово",f"Файл створено:\n{actual}",parent=win)
+
+        def open_p5_report():
+            action=getattr(self,"_save_p5",None)
+            if callable(action):
+                action("pdf")
+            else:
+                messagebox.showwarning(
+                    "П-5","Модуль типової форми П-5 недоступний у цій збірці.",parent=win
+                )
+
+        ttk.Button(
+            toolbar,text="Оновити",command=refresh_summary
+        ).pack(side="left",padx=(0,4))
+        ttk.Button(
+            toolbar,text="Відкрити деталізацію",style="Accent.TButton",
+            command=lambda:select_summary_employee(True)
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar,text="PDF звіт",command=lambda:export_all("pdf")
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar,text="Excel звіт",command=lambda:export_all("xlsx")
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar,text="Підсумки / контроль",command=show_selected_control
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar,text="Місячний табель / баланс",command=show_personnel_balance
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar,text="П-5",style="Gold.TButton",command=open_p5_report
+        ).pack(side="right",padx=(4,0))
+
+        ttk.Button(
+            edit_bar,text="Новий / редагувати день",style="Accent.TButton",command=edit_day
+        ).pack(side="left",padx=3)
         ttk.Button(edit_bar,text="Копіювати день",command=copy_day).pack(side="left",padx=3)
         ttk.Button(edit_bar,text="Вставити день",command=paste_day).pack(side="left",padx=3)
         ttk.Button(edit_bar,text="План → факт",command=plan_to_fact).pack(side="left",padx=(12,3))
-        ttk.Button(edit_bar,text="Очистити ручний запис",command=clear_manual).pack(side="left",padx=3)
-        ttk.Button(edit_bar,text="⚠ Порожні будні — план 8 год",command=autofill_empty_weekdays).pack(side="right",padx=3)
-        ttk.Label(report_bar,text="Звіти:").pack(side="left",padx=(0,3))
-        ttk.Button(report_bar,text="Excel",command=lambda:export_selected("xlsx")).pack(side="left",padx=3)
-        ttk.Button(report_bar,text="PDF",command=lambda:export_selected("pdf")).pack(side="left",padx=3)
-        ttk.Button(report_bar,text="Підсумки / контроль",command=show_control).pack(side="left",padx=3)
-        ttk.Button(report_bar,text="Місячний табель / баланс",command=show_personnel_balance).pack(side="left",padx=3)
+        ttk.Button(
+            edit_bar,text="Очистити ручний запис",command=clear_manual
+        ).pack(side="left",padx=3)
+
+        ttk.Label(
+            report_bar,text="Звіт вибраного працівника:",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,3))
+        ttk.Button(
+            report_bar,text="Excel",command=lambda:export_selected("xlsx")
+        ).pack(side="left",padx=3)
+        ttk.Button(
+            report_bar,text="PDF",command=lambda:export_selected("pdf")
+        ).pack(side="left",padx=3)
+        ttk.Button(
+            report_bar,text="Підсумки / контроль",command=show_control
+        ).pack(side="left",padx=3)
+        ttk.Label(
+            report_bar,
+            text="Масове «8 год у порожні будні» прибрано: план формується лише з режиму/графіка.",
+            foreground=PALETTE["muted"]
+        ).pack(side="right",padx=6)
+
         employee_combo.bind("<<ComboboxSelected>>",lambda _e:refresh_daily())
+        month_combo.bind("<<ComboboxSelected>>",lambda _e:refresh_summary())
+        year.trace_add("write",lambda *_args:refresh_summary() if len(year.get())==4 else None)
         daily_tree.bind("<Double-1>",lambda _e:edit_day())
         daily_tree.bind("<Control-c>",lambda _e:copy_day())
         daily_tree.bind("<Control-v>",lambda _e:paste_day())
         if sys.platform=="darwin":
-            daily_tree.bind("<Command-c>",lambda _e:copy_day()); daily_tree.bind("<Command-v>",lambda _e:paste_day())
+            daily_tree.bind("<Command-c>",lambda _e:copy_day())
+            daily_tree.bind("<Command-v>",lambda _e:paste_day())
         summary_tree.bind("<Double-1>",open_summary_employee)
         refresh_summary()
 
