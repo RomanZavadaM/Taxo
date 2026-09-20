@@ -20,6 +20,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 
+from branding import PALETTE, apply_theme, draw_brand_header, install_runtime_icon
 from workspace import (
     WorkspaceBusyError,
     WorkspaceLock,
@@ -571,6 +572,61 @@ def finish_driver_role(con, employee_id, driver_id, end_date):
     )
 
 
+def sync_legacy_driver_employee(con, dr):
+    """Synchronize legacy driver identity without mixing employment and role state.
+
+    drivers.active means only that the current driver role is active.
+    employees.active means that the person is employed.  Existing personnel
+    status is authoritative and must never be overwritten from drivers.active.
+    """
+    driver_end=(dr["driver_end_date"] or "").strip() if "driver_end_date" in dr.keys() else ""
+    driver_active=bool(dr["active"]) and not bool(driver_end)
+    employee=con.execute(
+        "SELECT id,active,dismissal_date FROM employees WHERE driver_id=?",
+        (dr["id"],),
+    ).fetchone()
+    if employee:
+        eid=employee["id"]
+        con.execute(
+            """UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,
+                   employment_date=?,notes=? WHERE id=?""",
+            (
+                dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
+                dr["employment_date"] or "",dr["notes"] or "",eid,
+            ),
+        )
+        # Repair the exact legacy corruption produced by old startup sync:
+        # role was ended (driver_end_date exists), dismissal was never recorded,
+        # but employees.active was copied from drivers.active and became 0.
+        if driver_end and not (employee["dismissal_date"] or "").strip() and not bool(employee["active"]):
+            con.execute("UPDATE employees SET active=1 WHERE id=?",(eid,))
+    else:
+        # A stored driver role end date is not an employee dismissal date.
+        employee_active=1 if driver_end else int(bool(dr["active"]))
+        cur=con.execute(
+            """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
+                   employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (
+                dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
+                "Водій",dr["employment_date"] or "",dr["notes"] or "",employee_active,dr["id"],
+                dr["created_at"] or datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+        eid=cur.lastrowid
+
+    if driver_active:
+        con.execute(
+            "INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",
+            (eid,"Водій"),
+        )
+    else:
+        con.execute(
+            "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
+            (eid,),
+        )
+    return eid
+
+
 def get_setting(key, default=""):
     try:
         con=db(); r=con.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone(); con.close()
@@ -1074,25 +1130,7 @@ def init_db():
         )
 
     for dr in con.execute("SELECT * FROM drivers ORDER BY id").fetchall():
-        employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(dr["id"],)).fetchone()
-        if employee:
-            eid=employee["id"]
-            con.execute(
-                """UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,
-                       employment_date=?,notes=?,active=? WHERE id=?""",
-                (dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
-                 dr["employment_date"] or "",dr["notes"] or "",int(dr["active"]),eid)
-            )
-        else:
-            cur=con.execute(
-                """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
-                       employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                (dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
-                 "Водій",dr["employment_date"] or "",dr["notes"] or "",int(dr["active"]),dr["id"],
-                 dr["created_at"] or datetime.now().isoformat(timespec="seconds"))
-            )
-            eid=cur.lastrowid
-        con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(eid,"Водій"))
+        sync_legacy_driver_employee(con, dr)
 
     staff_map={}
     for st in con.execute("SELECT * FROM dispatch_staff ORDER BY id").fetchall():
@@ -6037,7 +6075,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("Taxo v8.70 r9 — Працівники, графіки та шляхівки")
+        self.title("Taxo 10.1-r1 — Працівники, графіки та шляхівки")
         fit_window_to_screen(self,1200,760,900,600)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
         self.bind("<Control-q>", lambda e: self.exit_app())
@@ -6135,9 +6173,9 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo v8.70 candidate r9",
+                "Taxo 10.1-r1",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "v8.70 r9: змінні локальні, мережеві та синхронізовані робочі сховища; "
+                "10.1-r1: виправлення незалежності статусу працівника/ролі водія та UI refresh; "
                 "почергова робота кількох копій Taxo.\n"
                 "База, резервні копії, документи, журнали та скани зберігаються разом.",
                 parent=self
@@ -6167,15 +6205,35 @@ class App(tk.Tk):
                 lock.release()
             self.destroy()
 
+    def _refresh_brand_header(self):
+        canvas=getattr(self,"brand_canvas",None)
+        if canvas is None:
+            return
+        company_name=""
+        vars_=getattr(self,"company_vars",{})
+        if "name" in vars_:
+            try:
+                company_name=vars_["name"].get().strip()
+            except tk.TclError:
+                company_name=""
+        draw_brand_header(canvas, company_name, "Taxo 10.1-r1 / Driver Worktime")
+
     def build_ui(self):
-        style = ttk.Style(self)
+        apply_theme(self, ttk)
         try:
-            style.theme_use("vista")
+            install_runtime_icon(self)
         except Exception:
+            # Branding must never prevent access to operational data.
             pass
 
-        style.configure("TButton", padding=(8, 4))
-        style.configure("Treeview", rowheight=24)
+        self.brand_canvas=tk.Canvas(
+            self,height=92,bg=PALETTE["navy"],highlightthickness=0,borderwidth=0
+        )
+        self.brand_canvas.pack(fill="x",padx=8,pady=(8,0))
+        self.brand_canvas.bind(
+            "<Configure>",lambda _event:self._refresh_brand_header(),add="+"
+        )
+        self.after_idle(self._refresh_brand_header)
 
         modifier="Command" if sys.platform=="darwin" else "Ctrl"
         self.ui_status_var=tk.StringVar(
@@ -6334,7 +6392,7 @@ class App(tk.Tk):
         f.pack(fill="x", padx=12, pady=(12,6))
         self.company_vars = {}
         labels = [
-            ("name", "Найменування / ПІБ суб'єкта господарювання"),
+            ("name", "Назва підприємства"),
             ("address", "Адреса"),
             ("phone", "Телефон"),
             ("fax", "Факс"),
@@ -6346,6 +6404,8 @@ class App(tk.Tk):
             ttk.Label(f, text=label).grid(row=i, column=0, sticky="w", padx=8, pady=5)
             v = tk.StringVar()
             self.company_vars[key] = v
+            if key=="name":
+                v.trace_add("write",lambda *_args:self._refresh_brand_header())
             ttk.Entry(f, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
         f.columnconfigure(1, weight=1)
 
@@ -6399,7 +6459,8 @@ class App(tk.Tk):
         ttk.Button(
             company_save_bar,
             text="Зберегти реквізити підприємства",
-            command=self.save_company
+            command=self.save_company,
+            style="Accent.TButton"
         ).pack(side="left")
         ttk.Label(
             company_save_bar,
@@ -6833,9 +6894,19 @@ class App(tk.Tk):
             con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
             con.executemany("INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",[(eid,r) for r in roles])
             if driver_id:
+                driver_row=con.execute(
+                    "SELECT driver_end_date FROM drivers WHERE id=?",(driver_id,)
+                ).fetchone()
+                stored_driver_end=((driver_row["driver_end_date"] if driver_row else "") or "").strip()
+                if "Водій" in roles:
+                    next_driver_end=""
+                elif closing_driver:
+                    next_driver_end=driver_end_date
+                else:
+                    next_driver_end=stored_driver_end
                 driver_active=int(active.get() and "Водій" in roles)
                 con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,driver_end_date=?,notes=?,active=? WHERE id=?""",
-                    (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],"",vals["notes"],driver_active,driver_id))
+                    (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],next_driver_end,vals["notes"],driver_active,driver_id))
                 if closing_driver:
                     finish_driver_role(con,eid,driver_id,driver_end_date)
             con.commit(); con.close(); self.load_employee_registry(); self.load_drivers(); win.destroy()
@@ -6849,8 +6920,21 @@ class App(tk.Tk):
         row=self.selected_employee()
         if not row: return
         new_state=0 if row["active"] else 1
-        con=db(); con.execute("UPDATE employees SET active=?,dismissal_date=CASE WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",(new_state,new_state,date.today().isoformat(),new_state,row["id"]))
-        if row["driver_id"]: con.execute("UPDATE drivers SET active=? WHERE id=?",(new_state,row["driver_id"]))
+        today=date.today().isoformat()
+        con=db()
+        con.execute(
+            "UPDATE employees SET active=?,dismissal_date=CASE WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",
+            (new_state,new_state,today,new_state,row["id"]),
+        )
+        if row["driver_id"] and new_state==0:
+            # Dismissal ends the current driver role. Re-employment is separate
+            # and must not silently restore that role.
+            driver=con.execute(
+                "SELECT active,driver_end_date FROM drivers WHERE id=?",(row["driver_id"],)
+            ).fetchone()
+            if driver and bool(driver["active"]):
+                end_date=(driver["driver_end_date"] or "").strip() or today
+                finish_driver_role(con,row["id"],row["driver_id"],end_date)
         con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
 
     def show_employee_timesheet(self):
@@ -7392,13 +7476,17 @@ class App(tk.Tk):
             emp=con.execute("SELECT id FROM employees WHERE driver_id=?",(saved_driver_id,)).fetchone()
             if emp:
                 employee_id=emp["id"]
-                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position='Водій',employment_date=?,notes=?,active=? WHERE id=?""",
-                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],int(active.get()),employee_id))
+                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,employment_date=?,notes=? WHERE id=?""",
+                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],employee_id))
             else:
                 cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,employment_date,notes,active,driver_id,created_at)
                     VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],int(active.get()),saved_driver_id,datetime.now().isoformat(timespec="seconds")))
                 employee_id=cur.lastrowid
-            con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
+            if active.get():
+                con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
+                con.execute("UPDATE drivers SET driver_end_date='' WHERE id=?",(saved_driver_id,))
+            else:
+                con.execute("DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",(employee_id,))
             con.commit(); con.close()
             self.load_drivers(); self.load_employee_registry(); win.destroy()
 
