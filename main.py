@@ -6185,7 +6185,13 @@ class App(tk.Tk):
         help_menu.add_separator()
         help_menu.add_command(label="Про програму", command=self.show_about)
         menubar.add_cascade(label="Довідка", menu=help_menu)
-        self.config(menu=menubar)
+        # Windows/Linux use the approved in-window header instead of the
+        # legacy native menu row.  The full menu remains available from ☰.
+        self._app_menu=menubar
+        if sys.platform=="darwin":
+            self.config(menu=menubar)
+        else:
+            self.config(menu="")
         self.bind_all("<F1>", lambda _event:self.show_help(), add="+")
 
     def _company_name_value(self):
