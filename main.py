@@ -7869,7 +7869,85 @@ class App(tk.Tk):
             add="+",
         )
 
-        title_row=ttk.Frame(win,padding=(14,10,14,4))
+        shell=tk.Frame(win,bg=PALETTE["paper"])
+        shell.pack(fill="both",expand=True)
+        sidebar=tk.Frame(shell,bg=PALETTE["sidebar"],width=176)
+        sidebar.pack(side="left",fill="y")
+        sidebar.pack_propagate(False)
+        workspace=ttk.Frame(shell)
+        workspace.pack(side="left",fill="both",expand=True)
+
+        side_title=tk.Label(
+            sidebar,text="РОЗДІЛИ",bg=PALETTE["sidebar"],fg="#BFE8F8",
+            font=("TkDefaultFont",8,"bold"),anchor="w"
+        )
+        side_title.pack(fill="x",padx=16,pady=(12,5))
+        side_icons=[]
+        def side_action(label,kind,command,active=False):
+            icon=nav_photo(sidebar,kind,24)
+            side_icons.append(icon)
+            btn=tk.Button(
+                sidebar,image=icon,text=label,compound="left",command=command,
+                anchor="w",bg="#0D8FD2" if active else PALETTE["sidebar"],
+                fg="#FFFFFF",activebackground="#0D8FD2",
+                activeforeground="#FFFFFF",relief="flat",bd=0,
+                highlightthickness=0,padx=15,pady=9,
+                font=("TkDefaultFont",10,"bold"),cursor="hand2"
+            )
+            btn.pack(fill="x")
+            return btn
+
+        side_action(
+            "Працівники","people",
+            lambda:(win.destroy(),self.show_employee_registry())
+        )
+        side_action("Табель обліку","calendar",lambda:None,active=True)
+        side_action(
+            "Графіки","chart",
+            lambda:(win.destroy(),self.show_tab(self.tab_schedule))
+        )
+        side_action(
+            "Транспорт","bus",
+            lambda:(win.destroy(),self.show_tab(self.tab_vehicles))
+        )
+        side_action(
+            "Маршрути","route",
+            lambda:(win.destroy(),self.show_tab(self.tab_route_catalog))
+        )
+        side_action(
+            "Документи","document",
+            lambda:(win.destroy(),self.show_tab(self.tab_att))
+        )
+        side_action(
+            "Тахограф","disc",
+            lambda:(win.destroy(),self.show_tab(self.tab_tacho))
+        )
+        side_action("Довідка","book",lambda:self.show_help("Табелі"))
+        side_action(
+            "Налаштування","gear",
+            lambda:(win.destroy(),self.show_tab(self.tab_company))
+        )
+        win._taxo_side_icons=side_icons
+
+        road=tk.Canvas(sidebar,bg="#125E87",highlightthickness=0,bd=0,height=145)
+        road.pack(side="bottom",fill="both",expand=True)
+        def draw_side_road(event):
+            road.delete("all")
+            w=max(176,event.width); h=max(110,event.height)
+            road.create_rectangle(0,0,w,h,fill="#125E87",outline="")
+            road.create_polygon(
+                w*.14,h,w*.46,h*.35,w*.58,h*.35,w*.94,h,
+                fill="#2C7395",outline=""
+            )
+            road.create_line(w*.53,h*.40,w*.53,h*.98,fill=PALETTE["gold"],width=3)
+            road.create_text(
+                18,h-42,anchor="w",text="Дороги\nоб’єднують!",
+                fill="#FFFFFF",font=("TkDefaultFont",11,"italic"),justify="left"
+            )
+            road.create_line(18,h-10,w-18,h-27,fill=PALETTE["gold"],width=3)
+        road.bind("<Configure>",draw_side_road,add="+")
+
+        title_row=ttk.Frame(workspace,padding=(14,10,14,4))
         title_row.pack(fill="x")
         title_left=ttk.Frame(title_row)
         title_left.pack(side="left",fill="x",expand=True)
@@ -7905,10 +7983,10 @@ class App(tk.Tk):
                 pass
         month_label.trace_add("write",sync_month_number)
 
-        toolbar=ttk.Frame(win,padding=(14,4,14,6))
+        toolbar=ttk.Frame(workspace,padding=(14,4,14,6))
         toolbar.pack(fill="x")
 
-        stats=ttk.Frame(win,padding=(14,0,14,8))
+        stats=ttk.Frame(workspace,padding=(14,0,14,8))
         stats.pack(fill="x")
         summary_stat_vars={
             "employees":tk.StringVar(value="0"),
@@ -7938,7 +8016,7 @@ class App(tk.Tk):
                 row=0,column=idx,sticky="ew",padx=(0 if idx==0 else 4,4 if idx<4 else 0)
             )
 
-        notebook=ttk.Notebook(win)
+        notebook=ttk.Notebook(workspace)
         notebook.pack(fill="both",expand=True,padx=14,pady=(0,10))
         summary_tab=ttk.Frame(notebook)
         daily_tab=ttk.Frame(notebook)
