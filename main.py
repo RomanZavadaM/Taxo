@@ -6170,19 +6170,216 @@ class App(tk.Tk):
             service_menu.add_command(label="Тахограф — шайби", command=lambda: self.show_tab(self.tab_tacho))
         menubar.add_cascade(label="Сервіс", menu=service_menu)
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(
-            label="Про програму",
-            command=lambda: messagebox.showinfo(
-                "Taxo 10.1-r2",
-                "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "10.1-r2: новий дизайн табеля, прямі звіти й продовження UI refresh; "
-                "почергова робота кількох копій Taxo.\n"
-                "База, резервні копії, документи, журнали та скани зберігаються разом.",
-                parent=self
-            )
-        )
+        help_menu.add_command(label="Довідка користувача", command=self.show_help_center)
+        help_menu.add_separator()
+        help_menu.add_command(label="Про програму", command=self.show_about_dialog)
         menubar.add_cascade(label="Довідка", menu=help_menu)
         self.config(menu=menubar)
+
+    def _current_company_name(self):
+        try:
+            con=db()
+            row=con.execute("SELECT name FROM company WHERE id=1").fetchone()
+            con.close()
+            return ((row["name"] if row else "") or "").strip()
+        except Exception:
+            return ""
+
+    def show_about_dialog(self):
+        win=tk.Toplevel(self)
+        win.title("Про програму — Taxo")
+        win.configure(bg=PALETTE["paper"])
+        fit_window_to_screen(win,860,640,700,540)
+        win.transient(self)
+
+        brand=tk.Canvas(win,height=104,bg=PALETTE["navy"],highlightthickness=0)
+        brand.pack(fill="x",padx=10,pady=(10,8))
+        company=self._current_company_name()
+        def redraw(_event=None):
+            draw_brand_header(
+                brand,company or "Назва підприємства",
+                "Taxo 10.1-r2 / Driver Worktime"
+            )
+        brand.bind("<Configure>",redraw,add="+")
+        win.after_idle(redraw)
+
+        body=ttk.Frame(win,padding=(18,10)); body.pack(fill="both",expand=True,padx=10)
+        ttk.Label(
+            body,text="Taxo / Driver Worktime",
+            font=("TkDefaultFont",20,"bold"),foreground=PALETTE["navy"]
+        ).grid(row=0,column=0,columnspan=2,sticky="w",pady=(0,2))
+        ttk.Label(
+            body,text=company or "Назва підприємства",
+            font=("TkDefaultFont",14,"bold"),foreground=PALETTE["blue"]
+        ).grid(row=1,column=0,columnspan=2,sticky="w",pady=(0,12))
+
+        details=(
+            ("Версія","10.1-r2"),
+            ("Тип","candidate / test checkpoint"),
+            ("Stable baseline","Taxo 10.0"),
+            ("Робоче сховище",str(DATA_ROOT)),
+            ("База даних",str(DB_PATH)),
+        )
+        for row_no,(label,value) in enumerate(details,start=2):
+            ttk.Label(body,text=label+":",font=("TkDefaultFont",10,"bold")).grid(
+                row=row_no,column=0,sticky="nw",padx=(0,12),pady=4
+            )
+            ttk.Label(body,text=value,wraplength=570).grid(
+                row=row_no,column=1,sticky="nw",pady=4
+            )
+
+        ttk.Separator(body).grid(row=7,column=0,columnspan=2,sticky="ew",pady=12)
+        ttk.Label(
+            body,
+            text=(
+                "Система для обліку персоналу й водіїв, плану/факту робочого часу, "
+                "маршрутів, шляхових листів, підтверджень діяльності, звітності та "
+                "контролю аналогових тахокарт."
+            ),
+            wraplength=720,justify="left"
+        ).grid(row=8,column=0,columnspan=2,sticky="w")
+        ttk.Label(
+            body,
+            text=(
+                "Основні модулі: Персонал • Табель • Графік водіїв • Маршрути • "
+                "Шляхівки • Документи • Тахограф • Звіти • Резервні копії"
+            ),
+            wraplength=720,justify="left",foreground=PALETTE["muted"]
+        ).grid(row=9,column=0,columnspan=2,sticky="w",pady=(8,0))
+        body.columnconfigure(1,weight=1)
+
+        buttons=ttk.Frame(win,padding=(10,4,10,10)); buttons.pack(fill="x")
+        ttk.Button(
+            buttons,text="GitHub репозиторій",
+            command=lambda:open_external("https://github.com/RomanZavadaM/Taxo")
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            buttons,text="Відкрити папку даних",
+            command=lambda:open_external(DATA_ROOT)
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            buttons,text="Довідка",
+            command=lambda:(win.destroy(),self.show_help_center())
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            buttons,text="Закрити",command=win.destroy,style="Accent.TButton"
+        ).pack(side="right",padx=4)
+
+    def show_help_center(self):
+        win=tk.Toplevel(self)
+        win.title("Taxo — Довідка користувача")
+        win.configure(bg=PALETTE["paper"])
+        fit_window_to_screen(win,1120,760,840,600)
+
+        brand=tk.Canvas(win,height=96,bg=PALETTE["navy"],highlightthickness=0)
+        brand.pack(fill="x",padx=10,pady=(10,8))
+        company=self._current_company_name()
+        brand.bind(
+            "<Configure>",
+            lambda _event:draw_brand_header(
+                brand,company or "Назва підприємства","Taxo — Довідка користувача"
+            ),
+            add="+",
+        )
+        win.after_idle(
+            lambda:draw_brand_header(
+                brand,company or "Назва підприємства","Taxo — Довідка користувача"
+            )
+        )
+
+        content=ttk.Frame(win,padding=(10,4,10,8)); content.pack(fill="both",expand=True)
+        content.columnconfigure(1,weight=1); content.rowconfigure(0,weight=1)
+        nav=tk.Listbox(
+            content,width=28,activestyle="none",font=("TkDefaultFont",11),
+            bg="#F4F8FC",fg=PALETTE["navy"],selectbackground=PALETTE["blue"],
+            selectforeground="#FFFFFF",highlightthickness=1,
+            highlightbackground=PALETTE["line"]
+        )
+        nav.grid(row=0,column=0,sticky="nsw",padx=(0,10))
+        article=tk.Text(
+            content,wrap="word",font=("TkDefaultFont",11),relief="flat",
+            bg="#FFFFFF",fg=PALETTE["text"],padx=18,pady=14
+        )
+        article.grid(row=0,column=1,sticky="nsew")
+        scroll=ttk.Scrollbar(content,orient="vertical",command=article.yview)
+        scroll.grid(row=0,column=2,sticky="ns"); article.configure(yscrollcommand=scroll.set)
+
+        sections={
+            "Початок роботи":(
+                "Початок роботи\n\n"
+                "1. На вкладці «Підприємство» заповніть назву та реквізити.\n"
+                "2. Додайте працівників і призначте потрібні ролі.\n"
+                "3. Перевірте режими робочого часу.\n"
+                "4. Заповнюйте план через графіки/зміни, а факт — за підтвердженими даними.\n"
+                "5. Перед масовими змінами робіть резервну копію."
+            ),
+            "Працівники і ролі":(
+                "Працівники і ролі\n\n"
+                "Статус «Працює / Звільнений» не є роллю. Роль «Водій» можна завершити "
+                "окремо із власною датою завершення. Працівник може продовжувати працювати "
+                "без ролі водія. Подвійний клік у реєстрах відкриває деталізацію там, де вона доступна."
+            ),
+            "Табель":(
+                "Табель обліку робочого часу\n\n"
+                "«Підсумок місяця» показує план, факт, відхилення і кількість днів без факту. "
+                "Кнопка «Відкрити деталізацію» переходить до щоденного табеля вибраного працівника.\n\n"
+                "PDF/XLSX працівника формують індивідуальний звіт. «Місячний звіт / баланс» "
+                "відкриває зведений табель усього персоналу."
+            ),
+            "План і факт":(
+                "План і факт\n\n"
+                "План може надходити з графіка водія, зміни персоналу або ручного запису. "
+                "Факт не повинен вигадуватися системою. Якщо факту немає, Taxo показує це явно. "
+                "Підстановка плану замість факту у відповідних офіційних формах виконується тільки після підтвердження."
+            ),
+            "Звіти і документи":(
+                "Звіти і документи\n\n"
+                "Доступні PDF/XLSX табелі, форма П-5, місячні баланси, деталізація графіків, "
+                "шляхові листи та архів підтверджень діяльності. «Аудит графіків» перевіряє "
+                "технічну цілісність введення, а «Контроль №340» є окремою перевіркою."
+            ),
+            "Резервні копії":(
+                "Резервні копії\n\n"
+                "Робоча база не входить до релізів програми. Використовуйте «Файл → Резервна копія» "
+                "перед оновленням або масовими змінами. Робоче сховище можна переносити окремо від програми."
+            ),
+            "Тахограф":(
+                "Тахограф\n\n"
+                "Скан аналогової тахокарти є джерелом для контролю, але автоматичне розпізнавання "
+                "потрібно перевіряти відповідальному працівнику. Taxo не повинен тихо домальовувати "
+                "відсутні факти."
+            ),
+        }
+        for title in sections: nav.insert("end",title)
+
+        def show_section(_event=None):
+            sel=nav.curselection()
+            if not sel: return
+            title=nav.get(sel[0])
+            article.configure(state="normal")
+            article.delete("1.0","end")
+            article.insert("1.0",sections[title])
+            article.tag_add("heading","1.0","1.end")
+            article.tag_configure(
+                "heading",font=("TkDefaultFont",18,"bold"),foreground=PALETTE["navy"]
+            )
+            article.configure(state="disabled")
+        nav.bind("<<ListboxSelect>>",show_section)
+        nav.selection_set(0); show_section()
+
+        bottom=ttk.Frame(win,padding=(10,0,10,10)); bottom.pack(fill="x")
+        readme=APP_DIR/"README.md"
+        ttk.Button(
+            bottom,text="Відкрити README",
+            command=lambda:open_external(readme),
+            state="normal" if readme.exists() else "disabled",
+        ).pack(side="left")
+        ttk.Button(
+            bottom,text="Про програму",command=lambda:(win.destroy(),self.show_about_dialog())
+        ).pack(side="left",padx=6)
+        ttk.Button(
+            bottom,text="Закрити",command=win.destroy,style="Accent.TButton"
+        ).pack(side="right")
 
     def show_tab(self, tab):
         for child in self.winfo_children():
