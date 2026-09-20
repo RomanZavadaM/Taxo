@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'work/v9.*'
+      - 'work/v10.*'
   workflow_dispatch:
 
 permissions:
@@ -69,6 +70,7 @@ jobs:
             v91_features.py
             personnel_v91.py
             work_regime.py
+            branding.py
           )
 
           for file in "${required_files[@]}"; do
