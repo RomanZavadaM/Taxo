@@ -10,7 +10,7 @@
 
 | Tag | Статус | Пакет | Призначення |
 |---|---|---|---|
-| v10.1-r3 | Current candidate / pending publish | START/source + SHA-256 | Approved application shell + exact logo artwork |\n| [v10.1-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r2) | Previous immutable candidate | START/source + SHA-256 | First UI refresh, reports, About/Help |
+| [v10.1-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r3) | Current candidate / manual test | START/source + SHA-256 | Approved application shell + exact logo artwork |\n| [v10.1-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r2) | Previous immutable candidate | START/source + SHA-256 | First UI refresh, reports, About/Help |
 | [v10.1-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r1) | Previous immutable candidate | START/source + SHA-256 | Driver-role separation fix + first UI refresh |
 
 > Candidate 10.1.x не замінює stable 10.0 до manual operational gate. Старі tags/releases не пересуваються.
