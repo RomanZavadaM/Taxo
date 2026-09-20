@@ -7179,54 +7179,223 @@ class App(tk.Tk):
         row=con.execute("SELECT * FROM employees WHERE id=?",(eid,)).fetchone(); con.close(); return row
 
     def employee_form(self, employee=None):
-        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Картка працівника")
-        fit_window_to_screen(win,700,650,610,520); win.transient(parent); win.grab_set()
-        con=db(); current_roles={r[0] for r in con.execute("SELECT role FROM employee_roles WHERE employee_id=?",(employee["id"],)).fetchall()} if employee else set(); con.close()
-        fields=(("personnel_no","Табельний номер"),("last_name","Прізвище"),("first_name","Ім'я"),("middle_name","По батькові"),("position","Основна посада"),("gender","Стать для П-5 (ч/ж)"),("tariff_rate","Оклад / тарифна ставка, грн"),("phone","Телефон"),("employment_date","Дата прийняття"),("dismissal_date","Дата звільнення"),("notes","Примітка"))
+        parent=getattr(self,"employee_win",self)
+        win=tk.Toplevel(parent)
+        win.title(f"Taxo {APP_VERSION} — Картка працівника")
+        fit_window_to_screen(win,1040,740,860,620)
+        configure_toplevel(win)
+        win.transient(parent)
+        win.grab_set()
+
+        banner=tk.Canvas(win,height=82,bg=PALETTE["header"],highlightthickness=0)
+        banner.pack(fill="x")
+        draw_brand_header(banner,self._company_name_value(),"Картка працівника")
+        banner.bind(
+            "<Configure>",
+            lambda _e:draw_brand_header(
+                banner,self._company_name_value(),"Картка працівника"
+            ),
+            add="+",
+        )
+
+        con=db()
+        current_roles={
+            r[0] for r in con.execute(
+                "SELECT role FROM employee_roles WHERE employee_id=?",
+                (employee["id"],),
+            ).fetchall()
+        } if employee else set()
+        current_driver_end=""
+        if employee and employee["driver_id"]:
+            driver_row=con.execute(
+                "SELECT driver_end_date FROM drivers WHERE id=?",(employee["driver_id"],)
+            ).fetchone()
+            if driver_row:
+                current_driver_end=(driver_row["driver_end_date"] or "").strip()
+        con.close()
+
+        title=ttk.Frame(win,padding=(14,10,14,4))
+        title.pack(fill="x")
+        ttk.Label(
+            title,
+            text="Картка працівника" if employee else "Новий працівник",
+            style="HeroTitle.TLabel",
+        ).pack(side="left")
+        state_text="Працює" if (not employee or bool(employee["active"])) else "Звільнений"
+        state_color=PALETTE["success"] if state_text=="Працює" else PALETTE["danger"]
+        tk.Label(
+            title,text=state_text,bg=PALETTE["paper"],fg=state_color,
+            font=("TkDefaultFont",11,"bold")
+        ).pack(side="right",padx=6)
+
+        fields=(
+            ("personnel_no","Табельний номер"),
+            ("last_name","Прізвище"),
+            ("first_name","Ім'я"),
+            ("middle_name","По батькові"),
+            ("position","Основна посада"),
+            ("gender","Стать для П-5"),
+            ("tariff_rate","Оклад / тарифна ставка, грн"),
+            ("phone","Телефон"),
+            ("employment_date","Дата прийняття"),
+            ("dismissal_date","Дата звільнення"),
+            ("notes","Примітка"),
+        )
         values={}
-        for i,(key,label) in enumerate(fields):
-            if employee and key in employee.keys():
-                raw=employee[key]
-            else:
-                raw=""
+        for key,_label in fields:
+            raw=employee[key] if employee and key in employee.keys() else ""
             if raw is None:
                 raw=""
             if key=="tariff_rate" and raw!="":
-                try: raw=f"{float(raw):.2f}".rstrip("0").rstrip(".")
-                except Exception: raw=str(raw)
-            if key in {"employment_date","dismissal_date"}: raw=fmt_date(raw)
+                try:
+                    raw=f"{float(raw):.2f}".rstrip("0").rstrip(".")
+                except Exception:
+                    raw=str(raw)
+            if key in {"employment_date","dismissal_date"}:
+                raw=fmt_date(raw)
             values[key]=tk.StringVar(value=raw)
-            ttk.Label(win,text=label).grid(row=i,column=0,sticky="w",padx=10,pady=5)
+
+        body=ttk.Frame(win,padding=(14,4,14,8))
+        body.pack(fill="both",expand=True)
+        body.columnconfigure(0,weight=3)
+        body.columnconfigure(1,weight=2)
+        body.rowconfigure(0,weight=1)
+
+        basic=ttk.LabelFrame(body,text="Основні дані",padding=10)
+        basic.grid(row=0,column=0,sticky="nsew",padx=(0,7))
+        basic.columnconfigure(1,weight=1)
+
+        def field(frame,row,key,label,calendar_field=False):
+            ttk.Label(frame,text=label).grid(
+                row=row,column=0,sticky="w",padx=(0,8),pady=5
+            )
             if key=="gender":
-                widget=ttk.Combobox(win,textvariable=values[key],values=("", "ч", "ж"),state="readonly",width=12)
+                widget=ttk.Combobox(
+                    frame,textvariable=values[key],
+                    values=("", "ч", "ж"),state="readonly",width=12
+                )
             else:
-                widget=ttk.Entry(win,textvariable=values[key],width=48)
-            widget.grid(row=i,column=1,sticky="ew",padx=10,pady=5)
-            if key in {"employment_date","dismissal_date"}: calendar_button(win,values[key]).grid(row=i,column=2,sticky="w",padx=(0,8))
-        win.columnconfigure(1,weight=1)
-        role_box=ttk.LabelFrame(win,text="Спеціальні ролі працівника (необов'язково)",padding=8); role_box.grid(row=len(fields),column=0,columnspan=3,sticky="ew",padx=10,pady=8)
+                widget=ttk.Entry(frame,textvariable=values[key])
+            widget.grid(row=row,column=1,sticky="ew",pady=5)
+            if calendar_field:
+                calendar_button(frame,values[key]).grid(
+                    row=row,column=2,sticky="w",padx=(5,0),pady=5
+                )
+            return widget
+
+        field(basic,0,"personnel_no","Табельний номер")
+        field(basic,1,"last_name","Прізвище")
+        field(basic,2,"first_name","Ім'я")
+        field(basic,3,"middle_name","По батькові")
+        field(basic,4,"position","Основна посада")
+        field(basic,5,"phone","Телефон")
+        field(basic,6,"gender","Стать для П-5")
+        field(basic,7,"employment_date","Дата прийняття",True)
+        field(basic,8,"dismissal_date","Дата звільнення",True)
+
+        extra=ttk.LabelFrame(basic,text="Додаткова інформація",padding=8)
+        extra.grid(row=9,column=0,columnspan=3,sticky="ew",pady=(10,0))
+        extra.columnconfigure(1,weight=1)
+        ttk.Label(extra,text="Оклад / тарифна ставка, грн").grid(
+            row=0,column=0,sticky="w",padx=(0,8),pady=4
+        )
+        ttk.Entry(extra,textvariable=values["tariff_rate"]).grid(
+            row=0,column=1,sticky="ew",pady=4
+        )
+        ttk.Label(extra,text="Примітка").grid(
+            row=1,column=0,sticky="w",padx=(0,8),pady=4
+        )
+        ttk.Entry(extra,textvariable=values["notes"]).grid(
+            row=1,column=1,sticky="ew",pady=4
+        )
+
+        side=ttk.Frame(body)
+        side.grid(row=0,column=1,sticky="nsew",padx=(7,0))
+
+        role_box=ttk.LabelFrame(side,text="Спеціальні ролі",padding=10)
+        role_box.pack(fill="x")
         role_vars={}
         for i,role in enumerate(("Водій","Лікар","Механік","Диспетчер","Кондуктор","Інше")):
             role_vars[role]=tk.BooleanVar(value=role in current_roles)
-            ttk.Checkbutton(role_box,text=role,variable=role_vars[role]).grid(row=i//3,column=i%3,sticky="w",padx=8,pady=3)
+            ttk.Checkbutton(
+                role_box,text=role,variable=role_vars[role]
+            ).grid(row=i//2,column=i%2,sticky="w",padx=6,pady=5)
+
         ttk.Label(
             role_box,
-            text="Щоб зняти роль водія: приберіть прапорець «Водій» і натисніть «Зберегти». Історія графіка не видаляється.",
-            foreground="gray",wraplength=610,justify="left"
-        ).grid(row=2,column=0,columnspan=3,sticky="w",padx=8,pady=(7,2))
+            text=(
+                "Роль і статус працевлаштування не змішуються. "
+                "Щоб завершити роль водія, зніміть «Водій» і збережіть картку."
+            ),
+            foreground=PALETTE["muted"],wraplength=330,justify="left"
+        ).grid(row=3,column=0,columnspan=2,sticky="w",padx=6,pady=(8,3))
+
+        driver_box=ttk.LabelFrame(side,text="Роль водія",padding=10)
+        driver_box.pack(fill="x",pady=(10,0))
+        if current_driver_end:
+            ttk.Label(
+                driver_box,
+                text=f"Історична дата завершення: {fmt_date(current_driver_end)}",
+                foreground=PALETTE["warning"],
+                font=("TkDefaultFont",10,"bold"),
+            ).pack(anchor="w")
+        else:
+            ttk.Label(
+                driver_box,
+                text="Дата завершення ролі зберігається окремо від звільнення.",
+                foreground=PALETTE["muted"],wraplength=330,justify="left",
+            ).pack(anchor="w")
+
+        status_box=ttk.LabelFrame(side,text="Стан працівника",padding=10)
+        status_box.pack(fill="x",pady=(10,0))
         active=tk.BooleanVar(value=bool(employee["active"]) if employee else True)
-        ttk.Checkbutton(win,text="Працює",variable=active).grid(row=len(fields)+1,column=1,sticky="w",padx=10,pady=3)
+        ttk.Checkbutton(
+            status_box,text="Працює",variable=active
+        ).pack(anchor="w")
+        ttk.Label(
+            status_box,
+            text=(
+                "Зняття прапорця «Працює» означає звільнення працівника. "
+                "Це не те саме, що зняти лише роль «Водій»."
+            ),
+            foreground=PALETTE["muted"],wraplength=330,justify="left",
+        ).pack(anchor="w",pady=(6,0))
+
+        quick=ttk.LabelFrame(side,text="Пов'язані дані",padding=10)
+        quick.pack(fill="x",pady=(10,0))
+        if employee:
+            ttk.Button(
+                quick,text="Відкрити табель персоналу",
+                command=lambda:(win.destroy(),self.show_employee_timesheet())
+            ).pack(fill="x",pady=3)
+            ttk.Button(
+                quick,text="Режим робочого часу…",
+                command=lambda:(win.destroy(),self.show_employee_work_regime())
+            ).pack(fill="x",pady=3)
+        else:
+            ttk.Label(
+                quick,text="Після першого збереження стануть доступні табель і режим.",
+                foreground=PALETTE["muted"],wraplength=320,justify="left"
+            ).pack(anchor="w")
+
         def save():
             vals={k:v.get().strip() for k,v in values.items()}
             if not vals["last_name"] or not vals["first_name"]:
-                messagebox.showerror("Працівник","Прізвище та ім'я обов'язкові.",parent=win); return
+                messagebox.showerror(
+                    "Працівник","Прізвище та ім'я обов'язкові.",parent=win
+                )
+                return
             roles=[r for r,v in role_vars.items() if v.get()]
-            closing_driver=bool(employee and employee["driver_id"] and "Водій" in current_roles and "Водій" not in roles)
+            closing_driver=bool(
+                employee and employee["driver_id"]
+                and "Водій" in current_roles and "Водій" not in roles
+            )
             driver_end_date=""
             if closing_driver:
                 if not messagebox.askyesno(
                     "Завершити роль водія",
-                    "Зняти роль «Водій»? Водійська картка стане неактивною, але весь старий графік, табель і шляхівки залишаться.",
+                    "Зняти роль «Водій»? Водійська картка стане неактивною, "
+                    "але весь старий графік, табель і шляхівки залишаться.",
                     parent=win,
                 ):
                     return
@@ -7238,17 +7407,35 @@ class App(tk.Tk):
                 if raw_end is None:
                     return
                 try:
-                    driver_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                    driver_end_date=datetime.strptime(
+                        raw_end.strip(),"%d.%m.%Y"
+                    ).strftime("%Y-%m-%d")
                 except ValueError:
-                    messagebox.showerror("Працівник","Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",parent=win); return
+                    messagebox.showerror(
+                        "Працівник",
+                        "Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",
+                        parent=win,
+                    )
+                    return
             for key in ("employment_date","dismissal_date"):
                 if vals[key]:
-                    try: vals[key]=datetime.strptime(vals[key],"%d.%m.%Y").strftime("%Y-%m-%d")
+                    try:
+                        vals[key]=datetime.strptime(
+                            vals[key],"%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
                     except ValueError:
-                        messagebox.showerror("Працівник","Дата має бути у форматі ДД.ММ.РРРР.",parent=win); return
+                        messagebox.showerror(
+                            "Працівник","Дата має бути у форматі ДД.ММ.РРРР.",parent=win
+                        )
+                        return
             vals["gender"]=vals["gender"].lower()
             if vals["gender"] not in ("","ч","ж"):
-                messagebox.showerror("Працівник","Стать для П-5: залиште порожньо або виберіть «ч» / «ж».",parent=win); return
+                messagebox.showerror(
+                    "Працівник",
+                    "Стать для П-5: залиште порожньо або виберіть «ч» / «ж».",
+                    parent=win,
+                )
+                return
             tariff_rate=None
             if vals["tariff_rate"]:
                 try:
@@ -7256,29 +7443,79 @@ class App(tk.Tk):
                     if tariff_rate < 0:
                         raise ValueError
                 except ValueError:
-                    messagebox.showerror("Працівник","Оклад / тарифна ставка мають бути невід'ємним числом.",parent=win); return
+                    messagebox.showerror(
+                        "Працівник",
+                        "Оклад / тарифна ставка мають бути невід'ємним числом.",
+                        parent=win,
+                    )
+                    return
             con=db()
-            if vals["personnel_no"] and con.execute("SELECT 1 FROM employees WHERE personnel_no=? AND id<>?",(vals["personnel_no"],employee["id"] if employee else -1)).fetchone():
-                con.close(); messagebox.showerror("Працівник","Такий табельний номер уже використовується.",parent=win); return
+            if vals["personnel_no"] and con.execute(
+                "SELECT 1 FROM employees WHERE personnel_no=? AND id<>?",
+                (vals["personnel_no"],employee["id"] if employee else -1)
+            ).fetchone():
+                con.close()
+                messagebox.showerror(
+                    "Працівник","Такий табельний номер уже використовується.",parent=win
+                )
+                return
             driver_id=employee["driver_id"] if employee else None
             if "Водій" in roles and not driver_id:
-                cur=con.execute("""INSERT INTO drivers(last_name,first_name,middle_name,personnel_no,employment_date,notes,active,created_at)
-                    VALUES(?,?,?,?,?,?,?,?)""",(vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],vals["notes"],int(active.get()),datetime.now().isoformat(timespec="seconds")))
+                cur=con.execute(
+                    """INSERT INTO drivers(
+                           last_name,first_name,middle_name,personnel_no,
+                           employment_date,notes,active,created_at
+                       ) VALUES(?,?,?,?,?,?,?,?)""",
+                    (
+                        vals["last_name"],vals["first_name"],vals["middle_name"],
+                        vals["personnel_no"],vals["employment_date"],vals["notes"],
+                        int(active.get()),datetime.now().isoformat(timespec="seconds"),
+                    ),
+                )
                 driver_id=cur.lastrowid
             if employee:
                 eid=employee["id"]
-                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position=?,gender=?,tariff_rate=?,phone=?,employment_date=?,dismissal_date=?,notes=?,active=?,driver_id=? WHERE id=?""",
-                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["gender"],tariff_rate,vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,eid))
+                con.execute(
+                    """UPDATE employees SET
+                           personnel_no=?,last_name=?,first_name=?,middle_name=?,
+                           position=?,gender=?,tariff_rate=?,phone=?,
+                           employment_date=?,dismissal_date=?,notes=?,active=?,driver_id=?
+                       WHERE id=?""",
+                    (
+                        vals["personnel_no"],vals["last_name"],vals["first_name"],
+                        vals["middle_name"],vals["position"],vals["gender"],tariff_rate,
+                        vals["phone"],vals["employment_date"],vals["dismissal_date"],
+                        vals["notes"],int(active.get()),driver_id,eid,
+                    ),
+                )
             else:
-                cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,gender,tariff_rate,phone,employment_date,dismissal_date,notes,active,driver_id,created_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["gender"],tariff_rate,vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,datetime.now().isoformat(timespec="seconds"))); eid=cur.lastrowid
+                cur=con.execute(
+                    """INSERT INTO employees(
+                           personnel_no,last_name,first_name,middle_name,position,
+                           gender,tariff_rate,phone,employment_date,dismissal_date,
+                           notes,active,driver_id,created_at
+                       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        vals["personnel_no"],vals["last_name"],vals["first_name"],
+                        vals["middle_name"],vals["position"],vals["gender"],tariff_rate,
+                        vals["phone"],vals["employment_date"],vals["dismissal_date"],
+                        vals["notes"],int(active.get()),driver_id,
+                        datetime.now().isoformat(timespec="seconds"),
+                    ),
+                )
+                eid=cur.lastrowid
             con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
-            con.executemany("INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",[(eid,r) for r in roles])
+            con.executemany(
+                "INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",
+                [(eid,r) for r in roles],
+            )
             if driver_id:
                 driver_row=con.execute(
                     "SELECT driver_end_date FROM drivers WHERE id=?",(driver_id,)
                 ).fetchone()
-                stored_driver_end=((driver_row["driver_end_date"] if driver_row else "") or "").strip()
+                stored_driver_end=(
+                    (driver_row["driver_end_date"] if driver_row else "") or ""
+                ).strip()
                 if "Водій" in roles:
                     next_driver_end=""
                 elif closing_driver:
@@ -7286,12 +7523,31 @@ class App(tk.Tk):
                 else:
                     next_driver_end=stored_driver_end
                 driver_active=int(active.get() and "Водій" in roles)
-                con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,driver_end_date=?,notes=?,active=? WHERE id=?""",
-                    (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],next_driver_end,vals["notes"],driver_active,driver_id))
+                con.execute(
+                    """UPDATE drivers SET
+                           last_name=?,first_name=?,middle_name=?,personnel_no=?,
+                           employment_date=?,driver_end_date=?,notes=?,active=?
+                       WHERE id=?""",
+                    (
+                        vals["last_name"],vals["first_name"],vals["middle_name"],
+                        vals["personnel_no"],vals["employment_date"],next_driver_end,
+                        vals["notes"],driver_active,driver_id,
+                    ),
+                )
                 if closing_driver:
                     finish_driver_role(con,eid,driver_id,driver_end_date)
-            con.commit(); con.close(); self.load_employee_registry(); self.load_drivers(); win.destroy()
-        ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+2,column=1,sticky="e",padx=10,pady=12)
+            con.commit()
+            con.close()
+            self.load_employee_registry()
+            self.load_drivers()
+            win.destroy()
+
+        actions=ttk.Frame(win,padding=(14,4,14,12))
+        actions.pack(fill="x")
+        ttk.Button(actions,text="Закрити",command=win.destroy).pack(side="right",padx=(6,0))
+        ttk.Button(
+            actions,text="Зберегти",style="Accent.TButton",command=save
+        ).pack(side="right")
 
     def edit_employee(self):
         row=self.selected_employee()
