@@ -3,51 +3,48 @@
 **Stable:** Taxo 10.0 · 19.09.2026  
 **Stable tag:** `v10.0`  
 **Stable target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`  
-**Previous candidate:** `v10.1-r1`  
-**Current test checkpoint:** Taxo 10.1-r2 · 20.09.2026  
+**Previous candidates:** `v10.1-r1`, `v10.1-r2`  
+**Current test checkpoint:** Taxo 10.1-r3 · 20.09.2026  
 **Work branch:** `work/v10.1-driver-role-ui-refresh`
 
 ## Статус
 
-10.1-r2 — **candidate / UI test checkpoint**, не stable. Stable 10.0 лишається експлуатаційною версією.
+10.1-r3 — **candidate / approved UI shell checkpoint**, не stable. Stable 10.0 лишається експлуатаційною версією.
 
-## Збережено з 10.1-r1
+## Збережено з 10.1-r1 / r2
 
-- `employees.active` не переписується з `drivers.active`;
-- завершена роль `Водій` не повертається після restart;
-- `driver_end_date` зберігається окремо;
-- re-employment не активує роль водія автоматично.
+- статус працівника відокремлений від ролі водія;
+- `driver_end_date` не губиться;
+- роль `Водій` не повертається сама після restart;
+- табель має прямі PDF/Excel/контроль/місячний баланс/П-5;
+- є брендовані «Про програму» та F1-довідка.
 
-## Нове в 10.1-r2
+## Нове в 10.1-r3
 
-- погоджена світла шапка з автобусом без вбудованої назви;
-- dynamic enterprise name з поля «Назва підприємства»;
-- live preview шапки у налаштуваннях підприємства;
-- перероблена картка працівника;
-- перероблений табель персоналу з картками План/Факт/Відхилення/Без факту;
-- видимі переходи до деталізації, PDF, Excel, контролю, місячного балансу та П-5;
-- прибрано legacy UI-кнопку масового «8 год у порожні будні»;
-- окреме вікно «Про програму»;
-- вбудована пошукова F1-довідка.
+- прибрано старий native menu row на Windows/Linux;
+- приховано стандартний ряд вкладок головного Notebook;
+- додано постійний синій sidebar з іконками;
+- додано велику світлу header-композицію як у затвердженому макеті;
+- додано bottom status bar;
+- «Працівники» відкриває саме реєстр персоналу, а legacy водійські картки лишаються окремим технічним контуром;
+- реєстр персоналу отримав title/toolbar/search/count у стилі затвердженого макета;
+- загальний табель використовує той самий shell;
+- використовується затверджений text-free logo artwork без напису підприємства;
+- назва підприємства береться з поля «Назва підприємства» і використовується у шапці та заголовках вікон.
 
 ## Regression gate
 
-- START/source — **135 tests / OK**;
-- Windows — **135 tests / OK**;
-- macOS ARM64 — **135 tests / OK**;
-- macOS Intel x86_64 — **135 tests / OK**;
-- source archive preflight — OK.
+Pending final r3 gate.
 
 ## Політика
 
 - `main` = stable 10.0 до manual gate;
 - `v10.0` = immutable stable;
-- `v10.1-r1` = immutable previous candidate;
-- `v10.1-r2` = current candidate після green gate;
+- `v10.1-r1`, `v10.1-r2` = immutable previous candidates;
+- `v10.1-r3` буде опубліковано лише як новий prerelease після green gate;
 - старі tags/releases не пересуваються.
 
 Деталі:
-- [Audit 10.1-r2](AUDIT_v10_1_r2.md)
-- [Release notes 10.1-r2](../releases/RELEASE_NOTES_v10_1_r2.md)
-- [Audit 10.1-r1](AUDIT_v10_1_r1.md)
+- [Audit 10.1-r3](AUDIT_v10_1_r3.md)
+- [Release notes 10.1-r3](../releases/RELEASE_NOTES_v10_1_r3.md)
 - [Stable audit 10.0](AUDIT_v10_0_STABLE.md)
