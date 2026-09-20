@@ -3,46 +3,43 @@
 **Stable:** Taxo 10.0 · 19.09.2026  
 **Stable tag:** `v10.0`  
 **Stable target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`  
-**Current test checkpoint:** Taxo 10.1-r1 · 20.09.2026  
+**Previous candidate:** `v10.1-r1`  
+**Current test checkpoint:** Taxo 10.1-r2 · 20.09.2026  
 **Work branch:** `work/v10.1-driver-role-ui-refresh`
 
 ## Статус
 
-10.1-r1 — **candidate / test checkpoint**, не stable. Stable 10.0 лишається експлуатаційною версією до завершення ручної перевірки.
+10.1-r2 — **candidate / UI test checkpoint**, не stable. Stable 10.0 лишається експлуатаційною версією.
 
-## Головне виправлення
+## Збережено з 10.1-r1
 
-- статус працівника `employees.active` відокремлено від стану ролі `drivers.active`;
-- startup sync більше не звільняє працівника через завершену роль водія;
-- startup sync більше не повертає завершену роль `Водій`;
+- `employees.active` не переписується з `drivers.active`;
+- завершена роль `Водій` не повертається після restart;
 - `driver_end_date` зберігається окремо;
-- re-employment не активує водійську роль автоматично;
-- деактивація водійської картки запитує дату завершення ролі.
+- re-employment не активує роль водія автоматично.
 
-## UI refresh
+## Нове в 10.1-r2
 
-- brand-мотив сонця й автобуса;
-- приглушена синьо-жовта офісна палітра;
-- text-free app icon;
-- назва підприємства в шапці динамічна з поля «Назва підприємства»;
-- фіксованого «АТП Завада» у графіці немає.
-
-## Regression gate
-
-- GitHub Actions run `35525130436`;
-- **126 tests / OK**;
-- START package preflight — OK;
-- БД/SQLite/cache у package не потрапляють;
-- `START.bat` ASCII-only + CRLF — OK.
+- погоджена світла шапка з автобусом без вбудованої назви;
+- dynamic enterprise name з поля «Назва підприємства»;
+- live preview шапки у налаштуваннях підприємства;
+- перероблена картка працівника;
+- перероблений табель персоналу з картками План/Факт/Відхилення/Без факту;
+- видимі переходи до деталізації, PDF, Excel, контролю, місячного балансу та П-5;
+- прибрано legacy UI-кнопку масового «8 год у порожні будні»;
+- окреме вікно «Про програму»;
+- вбудована пошукова F1-довідка.
 
 ## Політика
 
 - `main` = stable 10.0 до manual gate;
-- `v10.0` = immutable stable tag/release;
-- 10.1-r1 тестується окремо;
+- `v10.0` = immutable stable;
+- `v10.1-r1` = immutable previous candidate;
+- `v10.1-r2` = current candidate після green gate;
 - старі tags/releases не пересуваються.
 
 Деталі:
+- [Audit 10.1-r2](AUDIT_v10_1_r2.md)
+- [Release notes 10.1-r2](../releases/RELEASE_NOTES_v10_1_r2.md)
 - [Audit 10.1-r1](AUDIT_v10_1_r1.md)
-- [Release notes 10.1-r1](../releases/RELEASE_NOTES_v10_1_r1.md)
 - [Stable audit 10.0](AUDIT_v10_0_STABLE.md)
