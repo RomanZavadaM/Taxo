@@ -1,40 +1,48 @@
 # Taxo — поточна контрольна точка
 
 **Stable:** Taxo 10.0 · 19.09.2026  
-**Previous stable / rollback:** Taxo 9.0.1  
-**Verified candidate:** v9.1-r9.8  
-**Stable release:** v10.0  
-**Release target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`
+**Stable tag:** `v10.0`  
+**Stable target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`  
+**Current test checkpoint:** Taxo 10.1-r1 · 20.09.2026  
+**Work branch:** `work/v10.1-driver-role-ui-refresh`
 
 ## Статус
 
-Manual operational gate завершено. Лінія 9.1 більше не є поточним candidate-напрямком; вона стала основою stable 10.0.
+10.1-r1 — **candidate / test checkpoint**, не stable. Stable 10.0 лишається експлуатаційною версією до завершення ручної перевірки.
 
-## Що підтверджено
+## Головне виправлення
 
-- START запускається у Windows після повного розпакування;
-- START.bat сумісний із cmd.exe;
-- місячний графік має пряме відкриття деталізації;
-- шляхівки однієї зміни мають єдиного лікаря/механіка;
-- overnight не підтягує staff наступної дати;
-- П-5, Персонал, аудит, №340, архів бланків і місячний контроль входять у stable;
-- бази/скани/персональні файли не публікуються.
+- статус працівника `employees.active` відокремлено від стану ролі `drivers.active`;
+- startup sync більше не звільняє працівника через завершену роль водія;
+- startup sync більше не повертає завершену роль `Водій`;
+- `driver_end_date` зберігається окремо;
+- re-employment не активує водійську роль автоматично;
+- деактивація водійської картки запитує дату завершення ролі.
 
-## Build matrix 10.0 — success
+## UI refresh
 
-- Windows x64 Setup — published;
-- Windows x64 Portable — published;
-- macOS ARM64 — published;
-- macOS Intel x86_64 — published;
-- START/source — published;
-- SHA-256 per-platform + combined — published;
-- Windows/macOS/source regression suites — 117 tests / OK.
+- brand-мотив сонця й автобуса;
+- приглушена синьо-жовта офісна палітра;
+- text-free app icon;
+- назва підприємства в шапці динамічна з поля «Назва підприємства»;
+- фіксованого «АТП Завада» у графіці немає.
+
+## Regression gate
+
+- GitHub Actions run `35525130436`;
+- **126 tests / OK**;
+- START package preflight — OK;
+- БД/SQLite/cache у package не потрапляють;
+- `START.bat` ASCII-only + CRLF — OK.
 
 ## Політика
 
-- `main` = stable 10.0;
+- `main` = stable 10.0 до manual gate;
 - `v10.0` = immutable stable tag/release;
-- `v9.1-r5` … `v9.1-r9.8` = історія;
-- наступні зміни — нова work branch + PR.
+- 10.1-r1 тестується окремо;
+- старі tags/releases не пересуваються.
 
-Повний аудит: [AUDIT_v10_0_STABLE.md](AUDIT_v10_0_STABLE.md).
+Деталі:
+- [Audit 10.1-r1](AUDIT_v10_1_r1.md)
+- [Release notes 10.1-r1](../releases/RELEASE_NOTES_v10_1_r1.md)
+- [Stable audit 10.0](AUDIT_v10_0_STABLE.md)
