@@ -6609,6 +6609,10 @@ class App(tk.Tk):
 
     def _refresh_brand_header(self):
         company_name=self._company_name_value()
+        try:
+            self.title(f"Taxo / {company_name} — Облік персоналу")
+        except tk.TclError:
+            pass
         title_var=getattr(self,"main_title_var",None)
         if title_var is not None:
             title_var.set(f"Taxo / {company_name}")
@@ -7453,7 +7457,7 @@ class App(tk.Tk):
     def employee_form(self, employee=None):
         parent=getattr(self,"employee_win",self)
         win=tk.Toplevel(parent)
-        win.title(f"Taxo {APP_VERSION} — Картка працівника")
+        win.title(f"Taxo / {self._company_name_value()} — Картка працівника")
         fit_window_to_screen(win,1040,740,860,620)
         configure_toplevel(win)
         win.transient(parent)
@@ -7854,7 +7858,7 @@ class App(tk.Tk):
     def show_employee_timesheet(self):
         parent=getattr(self,"employee_win",self)
         win=tk.Toplevel(parent)
-        win.title(f"Taxo {APP_VERSION} — Табель робочого часу всіх працівників")
+        win.title(f"Taxo / {self._company_name_value()} — Табель робочого часу")
         fit_window_to_screen(win,1480,860,1040,640)
         configure_toplevel(win)
 
