@@ -30,6 +30,14 @@
 - окреме вікно «Про програму»;
 - вбудована пошукова F1-довідка.
 
+## Regression gate
+
+- START/source — **135 tests / OK**;
+- Windows — **135 tests / OK**;
+- macOS ARM64 — **135 tests / OK**;
+- macOS Intel x86_64 — **135 tests / OK**;
+- source archive preflight — OK.
+
 ## Політика
 
 - `main` = stable 10.0 до manual gate;
