@@ -41,12 +41,20 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         self.assertIn('command=lambda:self.show_tab(self.tab_personnel)',personnel_source)
         self.assertIn('nb.select(self.tab_personnel)',personnel_source)
 
+    def test_legacy_registry_action_routes_to_embedded_personnel_page(self):
+        source=inspect.getsource(main.App.show_employee_registry)
+        selected=inspect.getsource(main.App.selected_employee)
+        self.assertIn('personnel_tab=getattr(self,"tab_personnel",None)',source)
+        self.assertIn('self.show_tab(personnel_tab)',source)
+        self.assertIn('personnel_overview_tree',selected)
+
     def test_personnel_registry_matches_approved_main_page(self):
         personnel_source=inspect.getsource(personnel_v91)
         self.assertIn('style="Shell.TNotebook"',personnel_source)
         self.assertIn('text="Реєстр працівників"',personnel_source)
         self.assertIn('text="＋  Новий працівник"',personnel_source)
         self.assertIn('text="Відкрити картку"',personnel_source)
+        self.assertIn('text="Звільнити / поновити"',personnel_source)
         self.assertIn('text="Пошук"',personnel_source)
         self.assertIn("personnel_search_var",personnel_source)
         self.assertIn("personnel_count_var",personnel_source)
