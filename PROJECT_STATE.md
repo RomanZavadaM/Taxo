@@ -10,13 +10,13 @@
 **Release pipeline fixes:** PR #30 і #31 merged  
 **Фінальний аудит:** `docs/maintenance/AUDIT_v10_0_STABLE.md`
 
-**Поточна робоча контрольна точка:** Taxo 10.1-r2 candidate  
+**Поточна робоча контрольна точка:** Taxo 10.1-r3 candidate  
 **Робоча гілка:** `work/v10.1-driver-role-ui-refresh`  
-**Candidate audit:** `docs/maintenance/AUDIT_v10_1_r2.md`  
-**Previous candidate:** `v10.1-r1` — immutable prerelease
-**Candidate regression:** 135 tests / OK — START, Windows, macOS ARM64, macOS Intel
+**Candidate audit:** `docs/maintenance/AUDIT_v10_1_r3.md`  
+**Previous candidates:** `v10.1-r1`, `v10.1-r2` — immutable prereleases
+**Candidate regression:** pending final r3 gate
 
-## Після stable 10.0 — Taxo 10.1-r2 candidate
+## Після stable 10.0 — Taxo 10.1-r3 candidate
 
 - виправлено змішування `drivers.active`, `employees.active` та `employee_roles('Водій')`;
 - завершення ролі водія більше не звільняє працівника;
@@ -27,8 +27,12 @@
 - почато UI refresh: сонце + автобус, стримана синьо-жовта палітра, text-free icon;
 - назва підприємства у brand-шапці динамічна з поля «Назва підприємства»;
 - 10.1-r1 зафіксував driver-role fix і лишається immutable;
-- 10.1-r2 додає погоджений UI refresh: табель, картка працівника, preview підприємства, «Про програму» та F1-довідку;
-- stable `v10.0` не змінюється; 10.1-r2 призначено для наступної ручної Windows-перевірки.
+- 10.1-r2 зафіксував перший UI refresh, але ручне порівняння показало, що старий Tkinter-каркас ще залишався;
+- 10.1-r3 перебудовує саме application shell: велика світла шапка, ліва синя навігація, центральна робоча область і нижній status bar;
+- «Працівники» тепер відкриває реєстр персоналу, а не legacy список водійських карток;
+- у header/runtime/build icon використовується саме затверджений text-free логотип-автобус, а не програмно намальоване наближення;
+- назва підприємства динамічна також у заголовках вікон;
+- stable `v10.0` не змінюється; 10.1-r3 призначено для наступної ручної Windows-перевірки.
 
 
 ## Рішення про stable
