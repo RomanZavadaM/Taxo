@@ -37,7 +37,9 @@
 - START/source run `35531726205`: **144 tests / OK**;
 - Windows run `35531729551`: **144 tests / OK**;
 - Windows START complete/incomplete preflight checks: OK;
-- latest macOS PR run is queued; candidate publication does not promote macOS executables and does not replace stable 10.0;
+- macOS ARM64: **144 tests / OK**;
+- macOS Intel x86_64: **144 tests / OK** after re-running the cancelled Intel job;
+- candidate publication does not promote macOS executables and does not replace stable 10.0;
 - source package contains `branding_asset.py` and rejects DB/SQLite/cache content.
 
 ## Release policy
