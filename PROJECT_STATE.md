@@ -1,6 +1,6 @@
 # PROJECT_STATE — Taxo
 
-**Дата фіксації:** 19.09.2026  
+**Дата фіксації:** 20.09.2026  
 **Поточна stable:** Taxo 10.0  
 **Попередня stable / rollback:** Taxo 9.0.1  
 **Останній кандидат перед stable:** v9.1-r9.8  
@@ -9,6 +9,24 @@
 **PR #29:** merged  
 **Release pipeline fixes:** PR #30 і #31 merged  
 **Фінальний аудит:** `docs/maintenance/AUDIT_v10_0_STABLE.md`
+
+**Поточна робоча контрольна точка:** Taxo 10.1-r1 candidate  
+**Робоча гілка:** `work/v10.1-driver-role-ui-refresh`  
+**Candidate audit:** `docs/maintenance/AUDIT_v10_1_r1.md`  
+**Candidate regression:** 126 tests / OK
+
+## Після stable 10.0 — Taxo 10.1-r1 candidate
+
+- виправлено змішування `drivers.active`, `employees.active` та `employee_roles('Водій')`;
+- завершення ролі водія більше не звільняє працівника;
+- роль водія не повинна самовідновлюватися після restart;
+- `driver_end_date` зберігається окремо і не стирається звичайним редагуванням;
+- re-employment не повертає водійську роль автоматично;
+- додано repair старого конкретного bug-стану, створеного startup sync;
+- почато UI refresh: сонце + автобус, стримана синьо-жовта палітра, text-free icon;
+- назва підприємства у brand-шапці динамічна з поля «Назва підприємства»;
+- stable `v10.0` не змінюється; 10.1-r1 призначено для ручної Windows-перевірки.
+
 
 ## Рішення про stable
 
