@@ -8016,6 +8016,26 @@ class App(tk.Tk):
                 row=0,column=idx,sticky="ew",padx=(0 if idx==0 else 4,4 if idx<4 else 0)
             )
 
+        timesheet_status=tk.Frame(workspace,bg="#F7FCFF",height=31)
+        timesheet_status.pack(side="bottom",fill="x")
+        timesheet_status.pack_propagate(False)
+        tk.Label(
+            timesheet_status,text="●",bg="#F7FCFF",fg=PALETTE["success"],
+            font=("TkDefaultFont",11)
+        ).pack(side="left",padx=(14,4))
+        tk.Label(
+            timesheet_status,text="База даних: Підключено",
+            bg="#F7FCFF",fg=PALETTE["navy"],font=("TkDefaultFont",9)
+        ).pack(side="left")
+        tk.Label(
+            timesheet_status,text=f"  │  Taxo {APP_VERSION}",
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9,"bold")
+        ).pack(side="right",padx=14)
+        tk.Label(
+            timesheet_status,text=self._company_name_value(),
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9)
+        ).pack(side="right",padx=8)
+
         notebook=ttk.Notebook(workspace)
         notebook.pack(fill="both",expand=True,padx=14,pady=(0,10))
         summary_tab=ttk.Frame(notebook)
