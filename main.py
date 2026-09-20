@@ -7,6 +7,7 @@
 """
 import calendar
 import os
+import platform
 import re
 import sqlite3
 import subprocess
@@ -20,7 +21,14 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 
-from branding import PALETTE, apply_theme, draw_brand_header, install_runtime_icon
+from branding import (
+    PALETTE,
+    apply_theme,
+    brand_photo,
+    configure_toplevel,
+    draw_brand_header,
+    install_runtime_icon,
+)
 from workspace import (
     WorkspaceBusyError,
     WorkspaceLock,
@@ -61,6 +69,7 @@ try:
 except ImportError:
     build_waybill_pdf = None
 
+APP_VERSION = "10.1-r2"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -6075,7 +6084,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("Taxo 10.1-r1 — Працівники, графіки та шляхівки")
+        self.title("Taxo 10.1-r2 — Працівники, графіки та шляхівки")
         fit_window_to_screen(self,1200,760,900,600)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
         self.bind("<Control-q>", lambda e: self.exit_app())
@@ -6173,9 +6182,9 @@ class App(tk.Tk):
         help_menu.add_command(
             label="Про програму",
             command=lambda: messagebox.showinfo(
-                "Taxo 10.1-r1",
+                "Taxo 10.1-r2",
                 "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "10.1-r1: виправлення незалежності статусу працівника/ролі водія та UI refresh; "
+                "10.1-r2: UI refresh, новий табель, «Про програму» та вбудована довідка; "
                 "почергова робота кількох копій Taxo.\n"
                 "База, резервні копії, документи, журнали та скани зберігаються разом.",
                 parent=self
@@ -6216,7 +6225,7 @@ class App(tk.Tk):
                 company_name=vars_["name"].get().strip()
             except tk.TclError:
                 company_name=""
-        draw_brand_header(canvas, company_name, "Taxo 10.1-r1 / Driver Worktime")
+        draw_brand_header(canvas, company_name, "Taxo 10.1-r2 / Driver Worktime")
 
     def build_ui(self):
         apply_theme(self, ttk)
