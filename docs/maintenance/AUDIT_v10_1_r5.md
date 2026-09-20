@@ -21,9 +21,16 @@
 
 ## Gate
 
-До merge у main:
-1. повний automated regression suite;
-2. Windows: «Звіти → Працівники → Звіти» без нових головних вікон;
-3. повторне натискання «Табель персоналу» піднімає існуючий детальний табель;
-4. PDF/Excel/П-5 та «Папка звітів» працюють;
-5. старі immutable tags/releases не пересуваються.
+Автоматичний gate завершено успішно:
+- source / START — **157 tests / OK**;
+- Windows — **157 tests / OK** + START preflight OK;
+- macOS ARM64 — **157 tests / OK**;
+- macOS Intel x86_64 — **157 tests / OK**;
+- prerelease `v10.1-r5` — **published**;
+- immutable release target — `146d00916cb953efbcf7d3b167b7f5547d67f0b0`.
+
+До merge у main лишається ручний Windows gate:
+1. «Звіти → Працівники → Звіти» без нових головних вікон;
+2. повторне натискання «Табель персоналу» піднімає існуючий детальний табель;
+3. PDF/Excel/П-5 та «Папка звітів» працюють;
+4. старі immutable tags/releases не пересуваються.

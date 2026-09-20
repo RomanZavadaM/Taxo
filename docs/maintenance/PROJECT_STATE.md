@@ -62,3 +62,20 @@ r4 зберігає driver-role fix і новий application shell з r1–r3 �
 - macOS Intel x86_64 — 150 tests / OK.
 
 `main` лишається stable 10.0. До ручного Windows UI gate r4 не зливається у `main`.
+
+
+## Поточний candidate після stable 10.0 — Taxo 10.1-r5
+
+**Tag:** `v10.1-r5`  
+**Target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
+**Branch:** `work/v10.1-driver-role-ui-refresh`
+
+r5 виправляє navigation loop, виявлений ручною перевіркою r4: «Звіти» працюють у головному workspace, «Працівники» повертають реєстр, а детальний табель є single-instance і не дублює весь application sidebar.
+
+Автоматичний gate:
+- source/START — 157 tests / OK;
+- Windows — 157 tests / OK + START preflight;
+- macOS ARM64 — 157 tests / OK;
+- macOS Intel x86_64 — 157 tests / OK.
+
+`main` лишається stable 10.0. До ручного Windows navigation gate r5 не зливається у `main`.

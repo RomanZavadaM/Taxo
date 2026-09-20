@@ -14,7 +14,9 @@
 **Робоча гілка:** `work/v10.1-driver-role-ui-refresh`  
 **Candidate audit:** `docs/maintenance/AUDIT_v10_1_r5.md`  
 **Previous candidates:** `v10.1-r1`, `v10.1-r2`, `v10.1-r3`, `v10.1-r4` — immutable prereleases  
-**Candidate regression:** pending for r5; r4 baseline — 150 tests / OK on START/source, Windows, macOS ARM64, macOS Intel x86_64
+**Current candidate tag:** `v10.1-r5`  
+**Candidate release target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
+**Candidate regression:** **157 tests / OK** — START/source, Windows, macOS ARM64, macOS Intel x86_64
 
 ## Після stable 10.0 — Taxo 10.1-r5 candidate
 
@@ -36,7 +38,9 @@
 - `v10.1-r4` лишається immutable prerelease на target `6aaf5017dbe201f838308d61c9b9c950e3bb50ea`;
 - ручна перевірка r4 виявила navigation loop: «Звіти» створював ще одне повне branded-вікно табеля;
 - 10.1-r5 переводить «Звіти» у головний workspace, синхронізує «Працівники / Звіти» та робить детальний табель single-instance без дубльованого sidebar;
-- stable `v10.0` та immutable `v10.1-r1/r2/r3/r4` не змінюються; r5 очікує automated gate і ручну Windows-перевірку.
+- `v10.1-r5` опубліковано як immutable START/source prerelease з SHA-256; target `146d00916cb953efbcf7d3b167b7f5547d67f0b0`;
+- автоматичний gate r5: 157 tests / OK на source, Windows, macOS ARM64 та macOS Intel x86_64; Windows START preflight — OK;
+- stable `v10.0` та immutable `v10.1-r1/r2/r3/r4` не змінюються; r5 очікує ручної Windows-перевірки навігації перед merge у `main`.
 
 
 ## Рішення про stable

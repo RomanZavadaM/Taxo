@@ -6,7 +6,7 @@
 
 > **Stable:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) — актуальна експлуатаційна версія.  
 > **Previous stable / rollback:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1).  
-> **Test checkpoint:** [Taxo 10.1-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r4) — approved UI polish candidate поверх driver-role fix; 150 tests / OK на source, Windows і обох macOS architectures; не stable.  
+> **Test checkpoint:** [Taxo 10.1-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r5) — navigation-loop fix поверх approved UI; 157 tests / OK на source, Windows і обох macOS architectures; не stable.  
 > Лінія candidate 9.1 завершена після ручного operational gate на реальній Windows-базі.
 
 [Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_Setup_Windows_x64.exe) · [Windows Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_Windows_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/SHA256SUMS_v10_0.txt)
@@ -73,7 +73,7 @@ Taxo 10.0 формує окремий документ за 60 календар�
 
 ## Поточний етап
 
-**Taxo 10.1-r4 — поточний test checkpoint поверх stable 10.0.** r3 перебудував application shell, а r4 доводить центральні робочі сторінки до затвердженого напрямку: реєстр працівників отримав KPI-картки й розділені основні/другорядні дії, у табелі окремо згруповано «Робота з табелем» і «Звіти та друк», додано пряме відкриття папки звітів. Використовується саме затверджений text-free logo artwork без вбудованої назви підприємства. Автоматичний gate — 150 tests / OK на source, Windows, macOS ARM64 та Intel; перед merge у main потрібна ручна Windows-перевірка UI.
+**Taxo 10.1-r5 — поточний test checkpoint поверх stable 10.0.** Після ручної перевірки r4 виправлено навігаційне дублювання: «Звіти» тепер відкриваються в основній робочій області, «Працівники» повертають саме у реєстр, а детальний табель є single-instance і більше не копіює весь sidebar програми. Збережено r4 UI, driver-role fix і затверджений text-free logo artwork. Автоматичний gate — 157 tests / OK на source, Windows, macOS ARM64 та Intel; перед merge у main потрібна ручна Windows-перевірка переходів.
 
 **Taxo 10.0 — stable і повністю опублікований.** Лінія 9.1 завершена після автоматичних перевірок і ручного operational gate. Останній кандидат перед stable — `v9.1-r9.8`. Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`.
 

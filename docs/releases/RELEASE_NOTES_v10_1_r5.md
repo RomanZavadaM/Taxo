@@ -29,4 +29,12 @@
 
 ## Gate
 
-Перед merge у main потрібні автоматичні regression checks та **ручна Windows-перевірка** навігації: «Звіти → Працівники → Звіти», повторне відкриття детального табеля та відсутність дубльованого повного shell.
+Автоматичні regression checks завершено:
+- source / START — **157 tests / OK**;
+- Windows — **157 tests / OK** + START preflight OK;
+- macOS ARM64 — **157 tests / OK**;
+- macOS Intel x86_64 — **157 tests / OK**.
+
+`v10.1-r5` опубліковано як prerelease з START/source ZIP і SHA-256. Release target: `146d00916cb953efbcf7d3b167b7f5547d67f0b0`.
+
+Перед merge у main залишається **ручна Windows-перевірка** навігації: «Звіти → Працівники → Звіти», повторне відкриття детального табеля та відсутність дубльованого повного shell.

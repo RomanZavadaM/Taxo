@@ -10,7 +10,8 @@
 
 | Tag | Статус | Пакет | Призначення |
 |---|---|---|---|
-| [v10.1-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r4) | Current candidate / manual test | START/source + SHA-256 | Approved central-page UI polish + reports grouping |
+| [v10.1-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r5) | Current candidate / manual test | START/source + SHA-256 | Reports navigation loop fix + single-instance timesheet |
+| [v10.1-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r4) | Previous immutable candidate | START/source + SHA-256 | Approved central-page UI polish + reports grouping |
 | [v10.1-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r3) | Previous immutable candidate | START/source + SHA-256 | Approved application shell + exact logo artwork |
 | [v10.1-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r2) | Previous immutable candidate | START/source + SHA-256 | First UI refresh, reports, About/Help |
 | [v10.1-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r1) | Previous immutable candidate | START/source + SHA-256 | Driver-role separation fix + first UI refresh |
@@ -43,7 +44,7 @@
 | [v9.1-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r6) | Historical pre-release | work regimes |
 | [v9.1-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.1-r5) | Historical pre-release | early 9.1 operational candidate |
 
-`v10.1-r1` … `v10.1-r4` опубліковані як immutable prereleases/checkpoints; вони не замінюють stable 10.0 без ручного operational gate.
+`v10.1-r1` … `v10.1-r5` опубліковані як immutable prereleases/checkpoints; вони не замінюють stable 10.0 без ручного operational gate.
 
 ## Historical 8.x Releases
 
@@ -77,6 +78,7 @@ Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Stable publisher —
 6. Кожна нова release-контрольна точка отримує новий tag.
 
 Документи:
+- [Release notes 10.1-r5](RELEASE_NOTES_v10_1_r5.md)
 - [Release notes 10.1-r4](RELEASE_NOTES_v10_1_r4.md)
 - [Release notes 10.1-r3](RELEASE_NOTES_v10_1_r3.md)
 - [Release notes 10.1-r2](RELEASE_NOTES_v10_1_r2.md)
