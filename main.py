@@ -28,6 +28,7 @@ from branding import (
     configure_toplevel,
     draw_brand_header,
     install_runtime_icon,
+    nav_photo,
 )
 from workspace import (
     WorkspaceBusyError,
