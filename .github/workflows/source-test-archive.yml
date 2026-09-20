@@ -82,6 +82,7 @@ jobs:
             personnel_v91.py
             work_regime.py
             branding.py
+            branding_asset.py
           )
 
           for file in "${required_files[@]}"; do
