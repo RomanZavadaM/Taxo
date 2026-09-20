@@ -28,7 +28,8 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         source=inspect.getsource(main.App.build_menu)
         self.assertIn("self._app_menu=menubar",source)
         self.assertIn('self.config(menu="")',source)
-        self.assertIn("self.header_menu_button",inspect.getsource(main.App._show_app_menu))
+        popup_source=inspect.getsource(main.App._show_app_menu)
+        self.assertIn('getattr(self,"header_menu_button",None)',popup_source)
 
     def test_personnel_timesheet_uses_same_sidebar_shell(self):
         source=inspect.getsource(main.App.show_employee_timesheet)
