@@ -1876,6 +1876,9 @@ def install(core, base_app):
                 bar, text="Відкрити картку", command=self._open_personnel_overview_employee
             ).pack(side="left", padx=4)
             core.ttk.Button(
+                bar, text="Звільнити / поновити", command=self.toggle_employee_active
+            ).pack(side="left", padx=4)
+            core.ttk.Button(
                 bar, text="Режим робочого часу…", command=self.show_employee_work_regime
             ).pack(side="left", padx=(12,4))
             core.ttk.Button(
