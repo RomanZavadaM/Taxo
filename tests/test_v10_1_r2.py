@@ -7,8 +7,12 @@ import main
 
 
 class TestTaxo101R2UiRefresh(unittest.TestCase):
-    def test_version_marker_is_r2(self):
-        self.assertEqual(main.APP_VERSION, "10.1-r2")
+    def test_r2_release_notes_remain_historical(self):
+        from pathlib import Path
+        root=Path(__file__).resolve().parents[1]
+        notes=(root/"docs/releases/RELEASE_NOTES_v10_1_r2.md").read_text("utf-8")
+        self.assertIn("Taxo 10.1-r2",notes)
+        self.assertIn("135 tests / OK",notes)
 
     def test_timesheet_exposes_reports_and_detail_actions(self):
         source = inspect.getsource(main.App.show_employee_timesheet)
