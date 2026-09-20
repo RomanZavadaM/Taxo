@@ -36,7 +36,8 @@
 
 - START/source workflow: **144 tests / OK**;
 - Windows workflow: **144 tests / OK** + START preflight OK;
-- latest macOS PR jobs are queued on GitHub runners; a previous r3 shell commit passed the macOS suite;
+- macOS ARM64: **144 tests / OK**;
+- macOS Intel x86_64: **144 tests / OK** (cancelled runner job re-run individually and passed);
 - r3 remains a **source/START prerelease for manual Windows UI verification**, not stable.
 
 ## Політика
