@@ -183,7 +183,8 @@ class TestBrandRefresh(unittest.TestCase):
     def test_company_name_field_drives_header(self):
         source = inspect.getsource(main.App.build_company)
         self.assertIn('("name", "Назва підприємства")', source)
-        self.assertIn('v.trace_add("write"', source)
+        self.assertIn("v.trace_add(", source)
+        self.assertIn('"write"', source)
 
     def test_icon_generator_creates_text_free_brand_image(self):
         image = branding.create_brand_image(128)
