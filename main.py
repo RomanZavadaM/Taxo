@@ -7276,43 +7276,205 @@ class App(tk.Tk):
         con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
 
     def show_employee_timesheet(self):
-        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Табель робочого часу всіх працівників")
-        fit_window_to_screen(win,1360,760,960,560)
-        top=ttk.Frame(win,padding=8); top.pack(fill="x")
-        today=date.today(); month=tk.StringVar(value=str(today.month)); year=tk.StringVar(value=str(today.year))
-        ttk.Label(top,text="Місяць").pack(side="left"); ttk.Spinbox(top,textvariable=month,from_=1,to=12,width=5).pack(side="left",padx=4)
-        ttk.Label(top,text="Рік").pack(side="left"); ttk.Spinbox(top,textvariable=year,from_=2020,to=2100,width=7).pack(side="left",padx=4)
-        notebook=ttk.Notebook(win); notebook.pack(fill="both",expand=True,padx=8,pady=(0,8))
-        summary_tab=ttk.Frame(notebook); daily_tab=ttk.Frame(notebook)
-        notebook.add(summary_tab,text="Підсумок місяця"); notebook.add(daily_tab,text="Щоденний табель")
+        parent=getattr(self,"employee_win",self)
+        win=tk.Toplevel(parent)
+        win.title(f"Taxo {APP_VERSION} — Табель робочого часу всіх працівників")
+        fit_window_to_screen(win,1480,860,1040,640)
+        configure_toplevel(win)
 
-        summary_frame=ttk.Frame(summary_tab); summary_frame.pack(fill="both",expand=True,padx=4,pady=6)
-        summary_frame.rowconfigure(0,weight=1); summary_frame.columnconfigure(0,weight=1)
-        summary_cols=("id","personnel","name","roles","planned","actual","difference","missing")
+        banner=tk.Canvas(win,height=88,bg=PALETTE["header"],highlightthickness=0)
+        banner.pack(fill="x")
+        draw_brand_header(banner,self._company_name_value(),"Облік та аналіз робочого часу персоналу")
+        banner.bind(
+            "<Configure>",
+            lambda _e:draw_brand_header(
+                banner,self._company_name_value(),"Облік та аналіз робочого часу персоналу"
+            ),
+            add="+",
+        )
+
+        title_row=ttk.Frame(win,padding=(14,10,14,4))
+        title_row.pack(fill="x")
+        title_left=ttk.Frame(title_row)
+        title_left.pack(side="left",fill="x",expand=True)
+        ttk.Label(
+            title_left,text="▣  Табель робочого часу всіх працівників",
+            style="HeroTitle.TLabel"
+        ).pack(anchor="w")
+        ttk.Label(
+            title_left,text="План, факт, відхилення, контроль відсутнього факту та звіти",
+            style="Muted.TLabel"
+        ).pack(anchor="w",pady=(2,0))
+
+        filters=ttk.Frame(title_row)
+        filters.pack(side="right",anchor="e")
+        today=date.today()
+        month=tk.StringVar(value=str(today.month))
+        month_label=tk.StringVar(value=MONTH_NAMES_UA[today.month-1])
+        year=tk.StringVar(value=str(today.year))
+        ttk.Label(filters,text="Місяць:").pack(side="left")
+        month_combo=ttk.Combobox(
+            filters,textvariable=month_label,values=MONTH_NAMES_UA,
+            state="readonly",width=12
+        )
+        month_combo.pack(side="left",padx=(4,10))
+        ttk.Label(filters,text="Рік:").pack(side="left")
+        ttk.Spinbox(filters,textvariable=year,from_=2020,to=2100,width=7).pack(
+            side="left",padx=(4,0)
+        )
+        def sync_month_number(*_args):
+            try:
+                month.set(str(MONTH_NAMES_UA.index(month_label.get())+1))
+            except ValueError:
+                pass
+        month_label.trace_add("write",sync_month_number)
+
+        toolbar=ttk.Frame(win,padding=(14,4,14,6))
+        toolbar.pack(fill="x")
+
+        stats=ttk.Frame(win,padding=(14,0,14,8))
+        stats.pack(fill="x")
+        summary_stat_vars={
+            "employees":tk.StringVar(value="0"),
+            "planned":tk.StringVar(value="0:00"),
+            "actual":tk.StringVar(value="0:00"),
+            "difference":tk.StringVar(value="0:00"),
+            "missing":tk.StringVar(value="0"),
+        }
+        def stat_card(parent,title,var,bg,fg):
+            card=tk.Frame(parent,bg=bg,highlightthickness=1,highlightbackground=PALETTE["line"])
+            tk.Label(card,text=title,bg=bg,fg=PALETTE["navy"],font=("TkDefaultFont",9,"bold")).pack(
+                anchor="w",padx=12,pady=(7,0)
+            )
+            tk.Label(card,textvariable=var,bg=bg,fg=fg,font=("TkDefaultFont",15,"bold")).pack(
+                anchor="w",padx=12,pady=(1,7)
+            )
+            return card
+        for idx,(key,title,bg,fg) in enumerate((
+            ("employees","Працівники",PALETTE["info_soft"],PALETTE["navy"]),
+            ("planned","План",PALETTE["success_soft"],PALETTE["success"]),
+            ("actual","Факт",PALETTE["info_soft"],PALETTE["blue"]),
+            ("difference","Відхилення",PALETTE["danger_soft"],PALETTE["danger"]),
+            ("missing","Днів без факту",PALETTE["warning_soft"],PALETTE["warning"]),
+        )):
+            stats.columnconfigure(idx,weight=1)
+            stat_card(stats,title,summary_stat_vars[key],bg,fg).grid(
+                row=0,column=idx,sticky="ew",padx=(0 if idx==0 else 4,4 if idx<4 else 0)
+            )
+
+        notebook=ttk.Notebook(win)
+        notebook.pack(fill="both",expand=True,padx=14,pady=(0,10))
+        summary_tab=ttk.Frame(notebook)
+        daily_tab=ttk.Frame(notebook)
+        notebook.add(summary_tab,text="Підсумок місяця")
+        notebook.add(daily_tab,text="Щоденний табель")
+
+        summary_frame=ttk.Frame(summary_tab)
+        summary_frame.pack(fill="both",expand=True,padx=4,pady=6)
+        summary_frame.rowconfigure(0,weight=1)
+        summary_frame.columnconfigure(0,weight=1)
+        summary_cols=("id","personnel","name","roles","planned","actual","difference","missing","status")
         summary_tree=ttk.Treeview(summary_frame,columns=summary_cols,show="headings")
-        for key,label,width in (("id","ID",45),("personnel","Таб. №",80),("name","ПІБ",270),("roles","Ролі",210),("planned","План",85),("actual","Факт",85),("difference","Відхилення",90),("missing","Без факту",90)):
-            summary_tree.heading(key,text=label); summary_tree.column(key,width=width,anchor="w")
-        sy=ttk.Scrollbar(summary_frame,orient="vertical",command=summary_tree.yview); sx=ttk.Scrollbar(summary_frame,orient="horizontal",command=summary_tree.xview)
+        for key,label,width in (
+            ("id","ID",45),("personnel","Таб. №",90),("name","ПІБ",280),
+            ("roles","Ролі",230),("planned","План",85),("actual","Факт",85),
+            ("difference","Відхилення",100),("missing","Без факту",90),("status","Статус",125)
+        ):
+            summary_tree.heading(key,text=label)
+            summary_tree.column(
+                key,width=width,
+                anchor="w" if key in ("name","roles","status") else "center"
+            )
+        summary_tree.tag_configure("missing",background=PALETTE["danger_soft"])
+        summary_tree.tag_configure("warning",background=PALETTE["warning_soft"])
+        summary_tree.tag_configure("good",background="#F4FBF7")
+        summary_tree.tag_configure("no_data",foreground=PALETTE["muted"])
+        sy=ttk.Scrollbar(summary_frame,orient="vertical",command=summary_tree.yview)
+        sx=ttk.Scrollbar(summary_frame,orient="horizontal",command=summary_tree.xview)
         summary_tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
-        summary_tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
+        summary_tree.grid(row=0,column=0,sticky="nsew")
+        sy.grid(row=0,column=1,sticky="ns")
+        sx.grid(row=1,column=0,sticky="ew")
 
-        daily_top=ttk.Frame(daily_tab,padding=(4,6)); daily_top.pack(fill="x")
-        employee_choice=tk.StringVar(); ttk.Label(daily_top,text="Працівник").pack(side="left")
-        employee_combo=ttk.Combobox(daily_top,textvariable=employee_choice,state="readonly",width=48); employee_combo.pack(side="left",padx=6)
-        ttk.Label(daily_top,text="План — із графіка або зміни; факт і уточнення — з ручного табеля.",foreground="gray").pack(side="left",padx=8)
+        summary_hint=ttk.Frame(summary_tab,padding=(8,4,8,8))
+        summary_hint.pack(fill="x")
+        ttk.Label(
+            summary_hint,
+            text="ⓘ Подвійний клік по працівнику відкриває щоденну деталізацію. "
+                 "Червоним позначені рядки, де є план, але відсутній підтверджений факт.",
+            foreground=PALETTE["blue_dark"]
+        ).pack(side="left")
 
-        edit_bar=ttk.Frame(daily_tab,padding=(4,0,4,3)); edit_bar.pack(fill="x")
-        report_bar=ttk.Frame(daily_tab,padding=(4,0,4,5)); report_bar.pack(fill="x")
-        daily_frame=ttk.Frame(daily_tab); daily_frame.pack(fill="both",expand=True,padx=4,pady=(0,6)); daily_frame.rowconfigure(0,weight=1); daily_frame.columnconfigure(0,weight=1)
+        daily_top=ttk.Frame(daily_tab,padding=(6,8,6,4))
+        daily_top.pack(fill="x")
+        employee_choice=tk.StringVar()
+        ttk.Label(daily_top,text="Працівник:",font=("TkDefaultFont",10,"bold")).pack(side="left")
+        employee_combo=ttk.Combobox(
+            daily_top,textvariable=employee_choice,state="readonly",width=52
+        )
+        employee_combo.pack(side="left",padx=6)
+        ttk.Label(
+            daily_top,
+            text="План — із графіка/зміни; факт — із підтверджених або ручних даних.",
+            foreground=PALETTE["muted"]
+        ).pack(side="left",padx=8)
+
+        daily_stats=ttk.Frame(daily_tab,padding=(6,0,6,5))
+        daily_stats.pack(fill="x")
+        daily_stat_vars={
+            "planned":tk.StringVar(value="0:00"),
+            "actual":tk.StringVar(value="0:00"),
+            "difference":tk.StringVar(value="0:00"),
+            "missing":tk.StringVar(value="0"),
+        }
+        for idx,(key,title,bg,fg) in enumerate((
+            ("planned","План",PALETTE["success_soft"],PALETTE["success"]),
+            ("actual","Факт",PALETTE["info_soft"],PALETTE["blue"]),
+            ("difference","Відхилення",PALETTE["danger_soft"],PALETTE["danger"]),
+            ("missing","Днів без факту",PALETTE["warning_soft"],PALETTE["warning"]),
+        )):
+            daily_stats.columnconfigure(idx,weight=1)
+            stat_card(daily_stats,title,daily_stat_vars[key],bg,fg).grid(
+                row=0,column=idx,sticky="ew",padx=(0 if idx==0 else 4,4 if idx<3 else 0)
+            )
+
+        edit_bar=ttk.Frame(daily_tab,padding=(6,2,6,3))
+        edit_bar.pack(fill="x")
+        report_bar=ttk.Frame(daily_tab,padding=(6,0,6,5))
+        report_bar.pack(fill="x")
+        daily_frame=ttk.Frame(daily_tab)
+        daily_frame.pack(fill="both",expand=True,padx=6,pady=(0,6))
+        daily_frame.rowconfigure(0,weight=1)
+        daily_frame.columnconfigure(0,weight=1)
         daily_cols=("date","weekday","day_type","planned","actual","difference","source","notes")
-        daily_tree=ttk.Treeview(daily_frame,columns=daily_cols,show="headings",selectmode="extended")
-        for key,label,width in (("date","Дата",90),("weekday","День",75),("day_type","Вид дня",115),("planned","План",70),("actual","Факт",70),("difference","Відхилення",85),("source","Джерело",190),("notes","Примітка",260)):
-            daily_tree.heading(key,text=label); daily_tree.column(key,width=width,anchor="w")
-        dy=ttk.Scrollbar(daily_frame,orient="vertical",command=daily_tree.yview); dx=ttk.Scrollbar(daily_frame,orient="horizontal",command=daily_tree.xview)
+        daily_tree=ttk.Treeview(
+            daily_frame,columns=daily_cols,show="headings",selectmode="extended"
+        )
+        for key,label,width in (
+            ("date","Дата",95),("weekday","День",65),("day_type","Вид дня",120),
+            ("planned","План",75),("actual","Факт",75),("difference","Відхилення",90),
+            ("source","Джерело",190),("notes","Примітка",300)
+        ):
+            daily_tree.heading(key,text=label)
+            daily_tree.column(
+                key,width=width,
+                anchor="w" if key in ("day_type","source","notes") else "center"
+            )
+        daily_tree.tag_configure("missing",background=PALETTE["danger_soft"])
+        daily_tree.tag_configure("absence",background=PALETTE["success_soft"])
+        daily_tree.tag_configure("vacation",background=PALETTE["warning_soft"])
+        daily_tree.tag_configure("manual",background="#EEF0FF")
+        daily_tree.tag_configure("weekend",background="#F2F4F6")
+        dy=ttk.Scrollbar(daily_frame,orient="vertical",command=daily_tree.yview)
+        dx=ttk.Scrollbar(daily_frame,orient="horizontal",command=daily_tree.xview)
         daily_tree.configure(yscrollcommand=dy.set,xscrollcommand=dx.set)
-        daily_tree.grid(row=0,column=0,sticky="nsew"); dy.grid(row=0,column=1,sticky="ns"); dx.grid(row=1,column=0,sticky="ew")
+        daily_tree.grid(row=0,column=0,sticky="nsew")
+        dy.grid(row=0,column=1,sticky="ns")
+        dx.grid(row=1,column=0,sticky="ew")
 
-        employee_map={}; clipboard={"value":None}; last_files={"pdf":None,"xlsx":None}
+        employee_map={}
+        clipboard={"value":None}
+        last_files={"pdf":None,"xlsx":None}
         def selected_month():
             try:
                 m=int(month.get()); yy=int(year.get())
