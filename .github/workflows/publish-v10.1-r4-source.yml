@@ -1,4 +1,4 @@
-# r4 gate retry after compatibility test fixes
+# r4 gate retry 2 after version-marker fix
 name: Publish Taxo 10.1-r4 source prerelease
 
 on:
