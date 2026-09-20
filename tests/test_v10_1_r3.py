@@ -60,6 +60,14 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         self.assertIn("База даних: Підключено",source)
         self.assertIn("nav_photo",source)
 
+    def test_dynamic_enterprise_name_is_used_in_window_titles(self):
+        header=inspect.getsource(main.App._refresh_brand_header)
+        timesheet=inspect.getsource(main.App.show_employee_timesheet)
+        employee_card=inspect.getsource(main.App.employee_form)
+        self.assertIn('self.title(f"Taxo / {company_name} — Облік персоналу")',header)
+        self.assertIn('Taxo / {self._company_name_value()} — Табель робочого часу',timesheet)
+        self.assertIn('Taxo / {self._company_name_value()} — Картка працівника',employee_card)
+
     def test_dynamic_enterprise_name_remains_separate_from_logo(self):
         header=inspect.getsource(main.App._refresh_brand_header)
         branding_source=inspect.getsource(branding)
