@@ -6556,6 +6556,19 @@ class App(tk.Tk):
                 company_name=""
         draw_brand_header(canvas, company_name, "Taxo 10.1-r2 / Driver Worktime")
 
+    def _refresh_company_preview(self):
+        canvas=getattr(self,"company_preview_canvas",None)
+        if canvas is None:
+            return
+        name=""
+        vars_=getattr(self,"company_vars",{})
+        if "name" in vars_:
+            try:
+                name=vars_["name"].get().strip()
+            except tk.TclError:
+                name=""
+        draw_brand_header(canvas,name,"Так виглядатиме шапка Taxo")
+
     def build_ui(self):
         apply_theme(self, ttk)
         try:
@@ -6726,9 +6739,36 @@ class App(tk.Tk):
 
     def build_company(self):
         host = self._make_scrollable_tab_body(self.tab_company, "company")
-        f = ttk.LabelFrame(host, text="Реквізити підприємства — українською")
-        f.pack(fill="x", padx=12, pady=(12,6))
         self.company_vars = {}
+
+        intro=ttk.Frame(host,padding=(12,12,12,4))
+        intro.pack(fill="x")
+        intro_left=ttk.Frame(intro)
+        intro_left.pack(side="left",fill="x",expand=True)
+        ttk.Label(
+            intro_left,text="Налаштування підприємства",style="HeroTitle.TLabel"
+        ).pack(anchor="w")
+        ttk.Label(
+            intro_left,
+            text="Основні відомості використовуються у шапці Taxo та в документах.",
+            style="Muted.TLabel"
+        ).pack(anchor="w",pady=(2,0))
+        ttk.Button(intro,text="Довідка",command=self.show_help).pack(side="right",padx=4)
+        ttk.Button(intro,text="Про програму",command=self.show_about).pack(side="right",padx=4)
+
+        preview_box=ttk.LabelFrame(host,text="Попередній перегляд шапки",padding=4)
+        preview_box.pack(fill="x",padx=12,pady=(4,8))
+        self.company_preview_canvas=tk.Canvas(
+            preview_box,height=90,bg=PALETTE["header"],highlightthickness=0
+        )
+        self.company_preview_canvas.pack(fill="x")
+        self.company_preview_canvas.bind(
+            "<Configure>",lambda _e:self._refresh_company_preview(),add="+"
+        )
+        self.after_idle(self._refresh_company_preview)
+
+        f = ttk.LabelFrame(host, text="Реквізити підприємства — українською")
+        f.pack(fill="x", padx=12, pady=(0,6))
         labels = [
             ("name", "Назва підприємства"),
             ("address", "Адреса"),
@@ -6743,7 +6783,10 @@ class App(tk.Tk):
             v = tk.StringVar()
             self.company_vars[key] = v
             if key=="name":
-                v.trace_add("write",lambda *_args:self._refresh_brand_header())
+                v.trace_add(
+                    "write",
+                    lambda *_args:(self._refresh_brand_header(),self._refresh_company_preview())
+                )
             ttk.Entry(f, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
         f.columnconfigure(1, weight=1)
 
