@@ -1,4 +1,4 @@
-# Taxo — технічний стан 10.0
+# Taxo — технічний стан 10.0 / candidate 10.1-r4
 
 **Stable:** Taxo 10.0  
 **Previous stable / rollback:** 9.0.1  
@@ -44,3 +44,21 @@ Taxo 10.0 є стабілізованим результатом лінії 9.1.
 - GitHub Release v10.0 — published.
 
 Фінальний звіт: [AUDIT_v10_0_STABLE.md](AUDIT_v10_0_STABLE.md).
+
+
+## Поточний candidate після stable 10.0
+
+**Candidate:** Taxo 10.1-r4  
+**Tag:** `v10.1-r4`  
+**Target:** `6aaf5017dbe201f838308d61c9b9c950e3bb50ea`  
+**Branch:** `work/v10.1-driver-role-ui-refresh`
+
+r4 зберігає driver-role fix і новий application shell з r1–r3 та доводить центральні сторінки до затвердженої ієрархії: KPI реєстру персоналу, розділені primary/secondary actions, окремий блок «Звіти та друк», пряме відкриття папки звітів.
+
+Автоматичний gate:
+- source/START — 150 tests / OK;
+- Windows — 150 tests / OK + START preflight;
+- macOS ARM64 — 150 tests / OK;
+- macOS Intel x86_64 — 150 tests / OK.
+
+`main` лишається stable 10.0. До ручного Windows UI gate r4 не зливається у `main`.

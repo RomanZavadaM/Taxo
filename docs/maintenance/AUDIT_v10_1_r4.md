@@ -19,4 +19,14 @@
 Схема БД і міграції у r4 не змінюються. Робоча база не входить у Git/release artifacts.
 
 ## Gate
-Автоматичний regression suite запускається GitHub Actions. Після green CI потрібна ручна Windows-перевірка композиції, масштабу, переповнення кнопок і відкриття звітів. До цього merge у main заборонений.
+
+Автоматичний gate завершено успішно:
+- START/source publisher — **150 tests / OK**;
+- START source package — **success**;
+- Windows — **150 tests / OK** + START preflight OK;
+- macOS ARM64 — **150 tests / OK**;
+- macOS Intel x86_64 — **150 tests / OK**;
+- prerelease `v10.1-r4` — **published**;
+- immutable release target — `6aaf5017dbe201f838308d61c9b9c950e3bb50ea`.
+
+Залишається ручна Windows-перевірка композиції, масштабу, переповнення кнопок, відкриття деталізації та звітів. До її підтвердження merge у `main` заборонений.

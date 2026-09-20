@@ -33,4 +33,13 @@ r3 уже замінив зовнішній application shell, але части
 - робочі БД, скани й персональні файли у prerelease не включаються.
 
 ## Gate
-Перед merge у main обов’язкові автоматичні regression checks і **ручна Windows-перевірка** вигляду та основних дій. До її підтвердження r4 не є stable.
+
+Автоматичні regression checks завершено:
+- source / START — **150 tests / OK**;
+- Windows — **150 tests / OK** + START preflight OK;
+- macOS ARM64 — **150 tests / OK**;
+- macOS Intel x86_64 — **150 tests / OK**.
+
+`v10.1-r4` опубліковано як prerelease з START/source ZIP і SHA-256. Release target: `6aaf5017dbe201f838308d61c9b9c950e3bb50ea`.
+
+Перед merge у main залишається **ручна Windows-перевірка** вигляду та основних дій. До її підтвердження r4 не є stable.
