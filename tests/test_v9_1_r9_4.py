@@ -180,7 +180,10 @@ class TestScheduleAuditR94(unittest.TestCase):
         self.assertIn("SHA256SUMS_v9_1_candidate_r*.txt",gitignore)
 
         current = version_from_file(root / "VERSION.txt")
-        self.assertRegex(current, r"^(?:9\.1 candidate r\d+(?:\.\d+)*|10\.0)$")
+        self.assertRegex(
+            current,
+            r"^(?:9\.1 candidate r\d+(?:\.\d+)*|10\.0|10\.\d+-r\d+(?:\.\d+)*)$",
+        )
         version=(root/"VERSION.txt").read_text("utf-8")
         self.assertIn(f"Version: {current}",version)
         self.assertIn(current,(root/"v91_features.py").read_text("utf-8"))
