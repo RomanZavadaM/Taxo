@@ -64,6 +64,20 @@ class TestTaxo101R2UiRefresh(unittest.TestCase):
         self.assertIn('accelerator="F1"', menu_source)
         self.assertIn('self.bind_all("<F1>"', menu_source)
 
+    def test_employee_card_visually_separates_employment_and_roles(self):
+        source = inspect.getsource(main.App.employee_form)
+        self.assertIn("Спеціальні ролі", source)
+        self.assertIn("Стан працівника", source)
+        self.assertIn("Роль і статус працевлаштування не змішуються", source)
+        self.assertIn("current_driver_end", source)
+        self.assertIn("stored_driver_end", source)
+
+    def test_company_settings_has_live_header_preview(self):
+        source = inspect.getsource(main.App.build_company)
+        self.assertIn("Попередній перегляд шапки", source)
+        self.assertIn("_refresh_company_preview", source)
+        self.assertIn("Назва підприємства", source)
+
     def test_brand_art_is_text_free_and_uses_approved_palette(self):
         source = inspect.getsource(branding)
         self.assertNotIn("АТП Завада", source)
