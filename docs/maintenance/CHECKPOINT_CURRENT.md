@@ -34,7 +34,10 @@
 
 ## Regression gate
 
-Pending final r3 gate.
+- START/source workflow: **144 tests / OK**;
+- Windows workflow: **144 tests / OK** + START preflight OK;
+- latest macOS PR jobs are queued on GitHub runners; a previous r3 shell commit passed the macOS suite;
+- r3 remains a **source/START prerelease for manual Windows UI verification**, not stable.
 
 ## Політика
 
