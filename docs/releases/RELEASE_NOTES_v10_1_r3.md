@@ -32,6 +32,13 @@ Sidebar містить прямі переходи: Працівники, Таб
 - прямі кнопки табеля: деталізація, PDF, Excel, контроль, місячний баланс, П-5;
 - text-free logo / app icon із динамічною назвою підприємства.
 
+## Regression gate
+
+- START/source: **144 tests / OK**;
+- Windows: **144 tests / OK**;
+- START package preflight: OK;
+- latest macOS PR jobs are queued; 10.1-r3 is published only as START/source prerelease for manual Windows UI verification.
+
 ## Stable baseline
 
 - stable: `v10.0`;
