@@ -7413,6 +7413,16 @@ class App(tk.Tk):
         return " ".join(x for x in (row["last_name"],row["first_name"],row["middle_name"]) if x).strip()
 
     def show_employee_registry(self):
+        # In the approved application shell the personnel registry is a main
+        # page, not a separate legacy Toplevel. Keep the old window only as a
+        # compatibility fallback when the personnel module is unavailable.
+        personnel_tab=getattr(self,"tab_personnel",None)
+        if personnel_tab is not None:
+            self.show_tab(personnel_tab)
+            refresh=getattr(self,"_refresh_personnel_overview",None)
+            if callable(refresh):
+                refresh()
+            return
         if hasattr(self,"employee_win") and self.employee_win.winfo_exists():
             self.employee_win.lift(); self.load_employee_registry(); return
         win=tk.Toplevel(self); self.employee_win=win; win.title("Реєстр усіх працівників")
@@ -7449,10 +7459,28 @@ class App(tk.Tk):
             self.employee_tree.insert("","end",values=(row["id"],row["personnel_no"],self.employee_full_name(row),gender,row["roles"] or "",row["position"],tariff,fmt_date(row["employment_date"]),fmt_date(row["dismissal_date"]),row["phone"],"Працює" if row["active"] else "Звільнений"))
 
     def selected_employee(self):
-        sel=getattr(self,"employee_tree",None).selection() if hasattr(self,"employee_tree") else ()
-        if not sel: return None
-        eid=int(self.employee_tree.item(sel[0],"values")[0]); con=db()
-        row=con.execute("SELECT * FROM employees WHERE id=?",(eid,)).fetchone(); con.close(); return row
+        tree=getattr(self,"employee_tree",None)
+        sel=tree.selection() if tree is not None and tree.winfo_exists() else ()
+        eid=None
+        if sel:
+            try:
+                eid=int(tree.item(sel[0],"values")[0])
+            except (TypeError,ValueError,IndexError):
+                eid=None
+        if eid is None:
+            tree=getattr(self,"personnel_overview_tree",None)
+            sel=tree.selection() if tree is not None and tree.winfo_exists() else ()
+            if sel:
+                try:
+                    eid=int(sel[0])
+                except (TypeError,ValueError):
+                    eid=None
+        if eid is None:
+            return None
+        con=db()
+        row=con.execute("SELECT * FROM employees WHERE id=?",(eid,)).fetchone()
+        con.close()
+        return row
 
     def employee_form(self, employee=None):
         parent=getattr(self,"employee_win",self)
