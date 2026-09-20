@@ -32,6 +32,14 @@
 - той самий sidebar shell у загальному табелі;
 - відсутність фіксованого «АТП Завада» у brand artwork.
 
+## Regression result
+
+- START/source run `35531726205`: **144 tests / OK**;
+- Windows run `35531729551`: **144 tests / OK**;
+- Windows START complete/incomplete preflight checks: OK;
+- latest macOS PR run is queued; candidate publication does not promote macOS executables and does not replace stable 10.0;
+- source package contains `branding_asset.py` and rejects DB/SQLite/cache content.
+
 ## Release policy
 
 `v10.1-r3` може бути тільки prerelease/source checkpoint після green regression gate. `main` не зливається до ручної Windows-перевірки затвердженого дизайну.
