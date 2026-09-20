@@ -14,10 +14,11 @@
 1. Головне вікно переведено на явний shell `header + sidebar + content + status bar`.
 2. Native Tk menu на Windows/Linux прихований та перенесений у overflow `☰`; macOS зберігає штатний глобальний menu.
 3. Видимий Notebook tab strip прибраний через `Shell.TNotebook`; сторінки переключаються sidebar-ом.
-4. Sidebar має власні monochrome vector icons, active state і дорожній footer motif.
-5. Верхня шапка має dynamic enterprise name, слоган, локальний час, user block і Settings.
-6. Загальний табель отримав такий самий shell із sidebar і operational footer.
-7. Жодна з цих змін не змінює схему БД або розрахункову модель робочого часу.
+4. Затверджений logo artwork вбудовано як text-free PNG і використовується для header/runtime/build icon; програмне наближене перемальовування більше не є джерелом логотипа.
+5. Sidebar має власні monochrome vector icons, active state і дорожній footer motif.
+6. Верхня шапка має dynamic enterprise name, слоган, локальний час, user block і Settings.
+7. Загальний табель отримав такий самий shell із sidebar і operational footer.
+8. Жодна з цих змін не змінює схему БД або розрахункову модель робочого часу.
 
 ## Regression focus
 
