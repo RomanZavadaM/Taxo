@@ -6523,11 +6523,68 @@ class App(tk.Tk):
         ttk.Button(footer,text="Закрити",style="Accent.TButton",command=win.destroy).pack(side="right")
         entry.focus_set()
 
+    def _refresh_nav_selection(self):
+        nb=getattr(self,"notebook",None)
+        buttons=getattr(self,"_nav_buttons",{})
+        if nb is None or not buttons:
+            return
+        try:
+            current=str(nb.select())
+        except tk.TclError:
+            return
+        for tab_key,button in buttons.items():
+            active=(tab_key==current)
+            button.configure(
+                bg="#0D8FD2" if active else PALETTE["sidebar"],
+                activebackground="#0D8FD2" if active else PALETTE["blue_dark"],
+                fg="#FFFFFF",
+                activeforeground="#FFFFFF",
+                relief="flat",
+            )
+
     def show_tab(self, tab):
-        for child in self.winfo_children():
-            if isinstance(child, ttk.Notebook):
-                child.select(tab)
-                return
+        nb=getattr(self,"notebook",None)
+        if nb is None:
+            return
+        try:
+            nb.select(tab)
+            self._refresh_nav_selection()
+        except tk.TclError:
+            pass
+
+    def _show_app_menu(self):
+        menu=getattr(self,"_app_menu",None)
+        button=getattr(self,"header_menu_button",None)
+        if menu is None or button is None:
+            return
+        try:
+            menu.tk_popup(
+                button.winfo_rootx(),
+                button.winfo_rooty()+button.winfo_height(),
+            )
+        finally:
+            menu.grab_release()
+
+    def _refresh_header_clock(self):
+        var=getattr(self,"header_clock_var",None)
+        if var is None:
+            return
+        now=datetime.now()
+        months=(
+            "","січня","лютого","березня","квітня","травня","червня",
+            "липня","серпня","вересня","жовтня","листопада","грудня",
+        )
+        weekdays=(
+            "Понеділок","Вівторок","Середа","Четвер","П’ятниця","Субота","Неділя"
+        )
+        var.set(
+            f"Сьогодні: {now.day} {months[now.month]} {now.year} р.\n"
+            f"{weekdays[now.weekday()]}  {now:%H:%M}"
+        )
+        try:
+            self.after(30000,self._refresh_header_clock)
+        except tk.TclError:
+            pass
 
     def exit_app(self):
         if messagebox.askyesno("Вихід", "Вийти з програми?", parent=self):
