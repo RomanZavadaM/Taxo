@@ -63,6 +63,14 @@
 - розділи: початок роботи, працівники/ролі, табелі, маршрути/транспорт, документи/П-5, тахограф, резервні копії, гарячі клавіші, FAQ;
 - оформлена в тому ж стилі, що й програма.
 
+## Regression gate
+
+- START/source: **135 tests / OK**;
+- Windows: **135 tests / OK**;
+- macOS ARM64: **135 tests / OK**;
+- macOS Intel x86_64: **135 tests / OK**;
+- START package preflight: OK.
+
 ## Stable baseline
 
 - stable: `v10.0`;
