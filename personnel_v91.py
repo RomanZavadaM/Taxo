@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 10.1-r4 — модуль «Персонал», режими й табелі.
+"""Taxo 10.1-r5 — модуль «Персонал», режими й табелі.
 
 Модуль:
 - додає окремий верхній розділ «Персонал»;
@@ -58,7 +58,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "10.1-r4"
+APP_VERSION = "10.1-r5"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
@@ -1771,7 +1771,7 @@ def install(core, base_app):
             personnel_button=nav_buttons.pop(driver_key,None)
             if personnel_button is not None:
                 personnel_button.configure(
-                    command=lambda:self.show_tab(self.tab_personnel)
+                    command=self.show_personnel_overview
                 )
                 nav_buttons[str(self.tab_personnel)]=personnel_button
 
@@ -1838,6 +1838,30 @@ def install(core, base_app):
             super().__init__(*args, **kwargs)
             self.title(WINDOW_TITLE)
 
+        def _select_personnel_page(self, page, nav_label="Працівники"):
+            self.show_tab(self.tab_personnel)
+            book=getattr(self,"personnel_book",None)
+            if book is not None and page is not None:
+                try:
+                    book.select(page)
+                except core.tk.TclError:
+                    pass
+            self._nav_active_override=nav_label
+            self._refresh_nav_selection()
+
+        def show_personnel_overview(self):
+            self._select_personnel_page(
+                getattr(self,"personnel_overview_page",None),"Працівники"
+            )
+            refresh=getattr(self,"_refresh_personnel_overview",None)
+            if callable(refresh):
+                refresh()
+
+        def show_reports_home(self):
+            self._select_personnel_page(
+                getattr(self,"personnel_reports_page",None),"Звіти"
+            )
+
         def _build_personnel_section(self):
             root = self.tab_personnel
             # The approved shell shows the personnel registry as the page
@@ -1850,10 +1874,26 @@ def install(core, base_app):
             planning = core.ttk.Frame(book)
             timesheet = core.ttk.Frame(book)
             reports = core.ttk.Frame(book)
+            self.personnel_overview_page = overview
+            self.personnel_planning_page = planning
+            self.personnel_timesheet_page = timesheet
+            self.personnel_reports_page = reports
             book.add(overview, text="Реєстр")
             book.add(planning, text="Планування")
             book.add(timesheet, text="Табель")
             book.add(reports, text="Звіти")
+
+            def sync_personnel_nav(_event=None):
+                try:
+                    selected=book.select()
+                    self._nav_active_override=(
+                        "Звіти" if selected==str(self.personnel_reports_page)
+                        else "Працівники"
+                    )
+                    self._refresh_nav_selection()
+                except (core.tk.TclError,AttributeError):
+                    pass
+            book.bind("<<NotebookTabChanged>>",sync_personnel_nav,add="+")
 
             # Реєстр — основна сторінка «Працівники» у затвердженому shell.
             hero = core.ttk.Frame(overview, padding=(16,14,16,8))
@@ -2001,8 +2041,16 @@ def install(core, base_app):
             core.ttk.Button(tpanel, text="Тижневий баланс усього персоналу…", command=self.show_personnel_week_balance).pack(anchor="w", pady=4)
             core.ttk.Button(tpanel, text="Масово внести відсутність…", command=self.show_personnel_absence_planner).pack(anchor="w", pady=4)
 
-            # Звіти
+            # Звіти — це сторінка основного workspace, а не нова копія програми.
             rpanel = core.ttk.Frame(reports, padding=16); rpanel.pack(fill="x")
+            core.ttk.Label(
+                rpanel,text="Звіти та друк",style="HeroTitle.TLabel"
+            ).pack(anchor="w")
+            core.ttk.Label(
+                rpanel,
+                text="Формування табелів, П-5, балансів і контрольних звітів без відкриття нового головного вікна.",
+                style="Muted.TLabel",
+            ).pack(anchor="w",pady=(3,12))
             now = date.today()
             self.personnel_report_month = core.tk.StringVar(value=str(now.month))
             self.personnel_report_year = core.tk.StringVar(value=str(now.year))

@@ -70,7 +70,7 @@ try:
 except ImportError:
     build_waybill_pdf = None
 
-APP_VERSION = "10.1-r4"
+APP_VERSION = "10.1-r5"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -6532,14 +6532,17 @@ class App(tk.Tk):
     def _refresh_nav_selection(self):
         nb=getattr(self,"notebook",None)
         buttons=getattr(self,"_nav_buttons",{})
-        if nb is None or not buttons:
+        named=getattr(self,"_nav_named_buttons",{})
+        if nb is None or not named:
             return
         try:
             current=str(nb.select())
         except tk.TclError:
             return
-        for tab_key,button in buttons.items():
-            active=(tab_key==current)
+        active_button=buttons.get(current)
+        override=getattr(self,"_nav_active_override",None)
+        for label,button in named.items():
+            active=(label==override) if override else (button is active_button)
             button.configure(
                 bg="#0D8FD2" if active else PALETTE["sidebar"],
                 activebackground="#0D8FD2" if active else PALETTE["blue_dark"],
@@ -6553,10 +6556,28 @@ class App(tk.Tk):
         if nb is None:
             return
         try:
+            self._nav_active_override=None
             nb.select(tab)
             self._refresh_nav_selection()
         except tk.TclError:
             pass
+
+    def show_reports_home(self):
+        """Open reports inside the main workspace when the personnel module is active."""
+        personnel_tab=getattr(self,"tab_personnel",None)
+        book=getattr(self,"personnel_book",None)
+        reports_page=getattr(self,"personnel_reports_page",None)
+        if personnel_tab is not None and book is not None:
+            self.show_tab(personnel_tab)
+            try:
+                book.select(reports_page if reports_page is not None else 3)
+            except (tk.TclError,TypeError):
+                pass
+            self._nav_active_override="Звіти"
+            self._refresh_nav_selection()
+            return
+        # Compatibility fallback for a core-only launch without personnel_v91.
+        self.show_employee_timesheet()
 
     def _show_app_menu(self):
         menu=getattr(self,"_app_menu",None)
@@ -6786,6 +6807,8 @@ class App(tk.Tk):
         nav_holder=tk.Frame(sidebar,bg=PALETTE["sidebar"])
         nav_holder.pack(side="top",fill="x",pady=(8,0))
         self._nav_buttons={}
+        self._nav_named_buttons={}
+        self._nav_active_override=None
         self._nav_icons={}
 
         content_outer=tk.Frame(shell,bg="#D9EEF8",padx=10,pady=10)
@@ -6841,6 +6864,7 @@ class App(tk.Tk):
                 cursor="hand2"
             )
             btn.pack(fill="x")
+            self._nav_named_buttons[label]=btn
             if tab is not None:
                 self._nav_buttons[str(tab)]=btn
             return btn
@@ -6852,7 +6876,7 @@ class App(tk.Tk):
         add_nav("Маршрути","route",self.tab_route_catalog)
         add_nav("Документи","document",self.tab_att)
         add_nav("Тахограф","disc",self.tab_tacho)
-        add_nav("Звіти","chart",command=self.show_employee_timesheet)
+        add_nav("Звіти","chart",command=self.show_reports_home)
         add_nav("Налаштування","gear",self.tab_company)
 
         road=tk.Canvas(
@@ -7418,10 +7442,14 @@ class App(tk.Tk):
         # compatibility fallback when the personnel module is unavailable.
         personnel_tab=getattr(self,"tab_personnel",None)
         if personnel_tab is not None:
-            self.show_tab(personnel_tab)
-            refresh=getattr(self,"_refresh_personnel_overview",None)
-            if callable(refresh):
-                refresh()
+            overview_action=getattr(self,"show_personnel_overview",None)
+            if callable(overview_action):
+                overview_action()
+            else:
+                self.show_tab(personnel_tab)
+                refresh=getattr(self,"_refresh_personnel_overview",None)
+                if callable(refresh):
+                    refresh()
             return
         if hasattr(self,"employee_win") and self.employee_win.winfo_exists():
             self.employee_win.lift(); self.load_employee_registry(); return
@@ -7884,11 +7912,32 @@ class App(tk.Tk):
         con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
 
     def show_employee_timesheet(self):
-        parent=getattr(self,"employee_win",self)
-        win=tk.Toplevel(parent)
+        existing=getattr(self,"_employee_timesheet_win",None)
+        if existing is not None:
+            try:
+                if existing.winfo_exists():
+                    existing.deiconify()
+                    existing.lift()
+                    existing.focus_force()
+                    return existing
+            except tk.TclError:
+                pass
+
+        win=tk.Toplevel(self)
+        self._employee_timesheet_win=win
         win.title(f"Taxo / {self._company_name_value()} — Табель робочого часу")
         fit_window_to_screen(win,1480,860,1040,640)
         configure_toplevel(win)
+        win.transient(self)
+
+        def close_timesheet():
+            if getattr(self,"_employee_timesheet_win",None) is win:
+                self._employee_timesheet_win=None
+            try:
+                win.destroy()
+            except tk.TclError:
+                pass
+        win.protocol("WM_DELETE_WINDOW",close_timesheet)
 
         banner=tk.Canvas(win,height=88,bg=PALETTE["header"],highlightthickness=0)
         banner.pack(fill="x")
@@ -7901,83 +7950,14 @@ class App(tk.Tk):
             add="+",
         )
 
+        # Secondary editor window: no cloned application sidebar. Main navigation
+        # remains in the main Taxo window, so opening this editor cannot recurse
+        # into another full copy of the program shell.
         shell=tk.Frame(win,bg=PALETTE["paper"])
         shell.pack(fill="both",expand=True)
-        sidebar=tk.Frame(shell,bg=PALETTE["sidebar"],width=176)
-        sidebar.pack(side="left",fill="y")
-        sidebar.pack_propagate(False)
         workspace=ttk.Frame(shell)
-        workspace.pack(side="left",fill="both",expand=True)
+        workspace.pack(fill="both",expand=True)
 
-        side_title=tk.Label(
-            sidebar,text="РОЗДІЛИ",bg=PALETTE["sidebar"],fg="#BFE8F8",
-            font=("TkDefaultFont",8,"bold"),anchor="w"
-        )
-        side_title.pack(fill="x",padx=16,pady=(12,5))
-        side_icons=[]
-        def side_action(label,kind,command,active=False):
-            icon=nav_photo(sidebar,kind,24)
-            side_icons.append(icon)
-            btn=tk.Button(
-                sidebar,image=icon,text=label,compound="left",command=command,
-                anchor="w",bg="#0D8FD2" if active else PALETTE["sidebar"],
-                fg="#FFFFFF",activebackground="#0D8FD2",
-                activeforeground="#FFFFFF",relief="flat",bd=0,
-                highlightthickness=0,padx=15,pady=9,
-                font=("TkDefaultFont",10,"bold"),cursor="hand2"
-            )
-            btn.pack(fill="x")
-            return btn
-
-        side_action(
-            "Працівники","people",
-            lambda:(win.destroy(),self.show_employee_registry())
-        )
-        side_action("Табель обліку","calendar",lambda:None,active=True)
-        side_action(
-            "Графіки","chart",
-            lambda:(win.destroy(),self.show_tab(self.tab_schedule))
-        )
-        side_action(
-            "Транспорт","bus",
-            lambda:(win.destroy(),self.show_tab(self.tab_vehicles))
-        )
-        side_action(
-            "Маршрути","route",
-            lambda:(win.destroy(),self.show_tab(self.tab_route_catalog))
-        )
-        side_action(
-            "Документи","document",
-            lambda:(win.destroy(),self.show_tab(self.tab_att))
-        )
-        side_action(
-            "Тахограф","disc",
-            lambda:(win.destroy(),self.show_tab(self.tab_tacho))
-        )
-        side_action("Довідка","book",lambda:self.show_help("Табелі"))
-        side_action(
-            "Налаштування","gear",
-            lambda:(win.destroy(),self.show_tab(self.tab_company))
-        )
-        win._taxo_side_icons=side_icons
-
-        road=tk.Canvas(sidebar,bg="#125E87",highlightthickness=0,bd=0,height=145)
-        road.pack(side="bottom",fill="both",expand=True)
-        def draw_side_road(event):
-            road.delete("all")
-            w=max(176,event.width); h=max(110,event.height)
-            road.create_rectangle(0,0,w,h,fill="#125E87",outline="")
-            road.create_polygon(
-                w*.14,h,w*.46,h*.35,w*.58,h*.35,w*.94,h,
-                fill="#2C7395",outline=""
-            )
-            road.create_line(w*.53,h*.40,w*.53,h*.98,fill=PALETTE["gold"],width=3)
-            road.create_text(
-                18,h-42,anchor="w",text="Дороги\nоб’єднують!",
-                fill="#FFFFFF",font=("TkDefaultFont",11,"italic"),justify="left"
-            )
-            road.create_line(18,h-10,w-18,h-27,fill=PALETTE["gold"],width=3)
-        road.bind("<Configure>",draw_side_road,add="+")
 
         title_row=ttk.Frame(workspace,padding=(14,10,14,4))
         title_row.pack(fill="x")
@@ -8008,6 +7988,9 @@ class App(tk.Tk):
         ttk.Spinbox(filters,textvariable=year,from_=2020,to=2100,width=7).pack(
             side="left",padx=(4,0)
         )
+        ttk.Button(
+            filters,text="Закрити",command=close_timesheet
+        ).pack(side="left",padx=(12,0))
         def sync_month_number(*_args):
             try:
                 month.set(str(MONTH_NAMES_UA.index(month_label.get())+1))
@@ -8722,6 +8705,7 @@ class App(tk.Tk):
             daily_tree.bind("<Command-v>",lambda _e:paste_day())
         summary_tree.bind("<Double-1>",open_summary_employee)
         refresh_summary()
+        return win
 
     def driver_form(self, driver=None):
         win = tk.Toplevel(self)

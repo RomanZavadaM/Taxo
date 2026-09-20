@@ -9,9 +9,9 @@ import personnel_v91
 ROOT=Path(__file__).resolve().parents[1]
 
 class TestTaxo101R4ApprovedUiPolish(unittest.TestCase):
-    def test_version_marker_is_r4(self):
-        self.assertEqual(main.APP_VERSION,"10.1-r4")
-        self.assertIn("Version: 10.1-r4",(ROOT/"VERSION.txt").read_text("utf-8"))
+    def test_r4_feature_line_survives_newer_candidates(self):
+        self.assertRegex(main.APP_VERSION,r"^10\.1-r\d+(?:\.\d+)*$")
+        self.assertIn("Taxo 10.1-r4",(ROOT/"docs/releases/RELEASE_NOTES_v10_1_r4.md").read_text("utf-8"))
 
     def test_personnel_registry_has_visual_hierarchy_and_kpis(self):
         source=inspect.getsource(personnel_v91)

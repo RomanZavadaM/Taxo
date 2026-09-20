@@ -10,15 +10,13 @@
 **Release pipeline fixes:** PR #30 і #31 merged  
 **Фінальний аудит:** `docs/maintenance/AUDIT_v10_0_STABLE.md`
 
-**Поточна робоча контрольна точка:** Taxo 10.1-r4 candidate  
+**Поточна робоча контрольна точка:** Taxo 10.1-r5 candidate  
 **Робоча гілка:** `work/v10.1-driver-role-ui-refresh`  
-**Candidate audit:** `docs/maintenance/AUDIT_v10_1_r4.md`  
-**Previous candidates:** `v10.1-r1`, `v10.1-r2`, `v10.1-r3` — immutable prereleases  
-**Current candidate tag:** `v10.1-r4`  
-**Candidate release target:** `6aaf5017dbe201f838308d61c9b9c950e3bb50ea`  
-**Candidate regression:** **150 tests / OK** — START/source, Windows, macOS ARM64, macOS Intel x86_64
+**Candidate audit:** `docs/maintenance/AUDIT_v10_1_r5.md`  
+**Previous candidates:** `v10.1-r1`, `v10.1-r2`, `v10.1-r3`, `v10.1-r4` — immutable prereleases  
+**Candidate regression:** pending for r5; r4 baseline — 150 tests / OK on START/source, Windows, macOS ARM64, macOS Intel x86_64
 
-## Після stable 10.0 — Taxo 10.1-r4 candidate
+## Після stable 10.0 — Taxo 10.1-r5 candidate
 
 - виправлено змішування `drivers.active`, `employees.active` та `employee_roles('Водій')`;
 - завершення ролі водія більше не звільняє працівника;
@@ -35,9 +33,10 @@
 - у header/runtime/build icon використовується саме затверджений text-free логотип-автобус, а не програмно намальоване наближення;
 - назва підприємства динамічна також у заголовках вікон;
 - 10.1-r4 доводить центральні сторінки до затвердженого макета: реєстр має KPI-картки та розділені дії, табель — окремий блок «Звіти та друк» і кнопку папки звітів;
-- `v10.1-r4` опубліковано як immutable START/source prerelease з SHA-256; target `6aaf5017dbe201f838308d61c9b9c950e3bb50ea`;
-- автоматичний gate: 150 tests / OK на source, Windows, macOS ARM64 та macOS Intel x86_64;
-- stable `v10.0` та immutable `v10.1-r1/r2/r3` не змінюються; 10.1-r4 очікує ручної Windows-перевірки дизайну перед будь-яким merge у `main`.
+- `v10.1-r4` лишається immutable prerelease на target `6aaf5017dbe201f838308d61c9b9c950e3bb50ea`;
+- ручна перевірка r4 виявила navigation loop: «Звіти» створював ще одне повне branded-вікно табеля;
+- 10.1-r5 переводить «Звіти» у головний workspace, синхронізує «Працівники / Звіти» та робить детальний табель single-instance без дубльованого sidebar;
+- stable `v10.0` та immutable `v10.1-r1/r2/r3/r4` не змінюються; r5 очікує automated gate і ручну Windows-перевірку.
 
 
 ## Рішення про stable
