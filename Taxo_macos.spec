@@ -1,14 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# Taxo 10.0 — stable native macOS application bundle.
+# Taxo native macOS application bundle.
 # Build separately on Apple Silicon and Intel; user databases are forbidden.
+from branding import generate_build_icons
+
+BRAND_ICONS = generate_build_icons()
 
 a = Analysis(
     ['taxo_app.py'],
     pathex=[],
     binaries=[],
     datas=[('Бланк підтвердження.docx', '.'), ('attestation_visual_template.pdf', '.')],
-    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'fitz', 'pymupdf'],
+    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'branding', 'fitz', 'pymupdf'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -48,7 +51,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name='Taxo.app',
-    icon=None,
+    icon=str(BRAND_ICONS['icns']),
     bundle_identifier='com.romanzavadam.taxo',
     version='10.0',
     info_plist={
