@@ -167,6 +167,12 @@ class TestDriverRoleSeparation(unittest.TestCase):
             normalized,
         )
 
+    def test_driver_card_requires_end_date_when_current_role_is_deactivated(self):
+        source = inspect.getsource(main.App.driver_form)
+        self.assertIn('role_end_date=""', source)
+        self.assertIn('"Дата завершення роботи водієм (ДД.ММ.РРРР):"', source)
+        self.assertIn("driver_end_date=?", source)
+
 
 class TestBrandRefresh(unittest.TestCase):
     def test_brand_asset_has_no_fixed_company_name(self):
