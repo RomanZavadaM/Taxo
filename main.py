@@ -7289,6 +7289,11 @@ class App(tk.Tk):
         field(basic,3,"middle_name","По батькові")
         field(basic,4,"position","Основна посада")
         field(basic,5,"phone","Телефон")
+        ttk.Label(
+            basic,
+            text="Телефон необов'язково; залиште порожнім, якщо контакт не потрібен.",
+            foreground=PALETTE["muted"],
+        ).grid(row=5,column=2,sticky="w",padx=(5,0),pady=5)
         field(basic,6,"gender","Стать для П-5")
         field(basic,7,"employment_date","Дата прийняття",True)
         field(basic,8,"dismissal_date","Дата звільнення",True)
