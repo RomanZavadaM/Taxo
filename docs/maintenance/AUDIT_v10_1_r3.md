@@ -17,8 +17,10 @@
 4. Затверджений logo artwork вбудовано як text-free PNG і використовується для header/runtime/build icon; програмне наближене перемальовування більше не є джерелом логотипа.
 5. Sidebar має власні monochrome vector icons, active state і дорожній footer motif.
 6. Верхня шапка має dynamic enterprise name, слоган, локальний час, user block і Settings.
-7. Загальний табель отримав такий самий shell із sidebar і operational footer.
-8. Жодна з цих змін не змінює схему БД або розрахункову модель робочого часу.
+7. Sidebar «Працівники» перенаправлено на `tab_personnel`; legacy driver-card page більше не є основною сторінкою персоналу.
+8. Реєстр персоналу працює всередині main shell і має пошук, лічильник та основні кадрові дії.
+9. Загальний табель отримав такий самий shell із sidebar і operational footer.
+10. Жодна з цих змін не змінює схему БД або розрахункову модель робочого часу.
 
 ## Regression focus
 
