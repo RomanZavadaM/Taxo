@@ -1764,6 +1764,17 @@ def install(core, base_app):
             nb.insert(1, self.tab_personnel, text="Персонал")
             self._build_personnel_section()
 
+            # In the approved shell «Працівники» must open the personnel
+            # registry, not the legacy driver-card list.
+            nav_buttons=getattr(self,"_nav_buttons",{})
+            driver_key=str(self.tab_drivers)
+            personnel_button=nav_buttons.pop(driver_key,None)
+            if personnel_button is not None:
+                personnel_button.configure(
+                    command=lambda:self.show_tab(self.tab_personnel)
+                )
+                nav_buttons[str(self.tab_personnel)]=personnel_button
+
             # Numeric tab indexes became unstable after adding «Персонал».
             # Keep a label-based preference from r3 onward.
             def remember_section(_event=None):
@@ -1782,6 +1793,15 @@ def install(core, base_app):
                             break
                 except core.tk.TclError:
                     pass
+            else:
+                try:
+                    nb.select(self.tab_personnel)
+                except core.tk.TclError:
+                    pass
+            try:
+                self._refresh_nav_selection()
+            except Exception:
+                pass
 
         def build_menu(self):
             result = super().build_menu()
