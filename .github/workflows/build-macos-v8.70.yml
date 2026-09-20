@@ -13,6 +13,8 @@ on:
       - 'activity_register_60.py'
       - 'v91_features.py'
       - 'personnel_v91.py'
+      - 'branding.py'
+      - 'branding_asset.py'
       - 'work_regime.py'
       - 'workspace.py'
       - 'waybill.py'
