@@ -42,6 +42,17 @@
 - live company header preview;
 - text-free branding.
 
+## Regression result
+
+- START/source gate: **135 tests / OK**;
+- Windows gate: **135 tests / OK**;
+- macOS ARM64 gate: **135 tests / OK**;
+- macOS Intel x86_64 gate: **135 tests / OK**;
+- START archive package preflight: OK;
+- databases / SQLite caches / personal working data are not bundled.
+
+Source workflow run: `35529418802`. Windows: `35529422213`. macOS: `35529422228`.
+
 ## Release policy
 
 `v10.1-r2` може бути опублікований лише як prerelease/source checkpoint після green regression gate. `main` не зливається до ручної Windows-перевірки.
