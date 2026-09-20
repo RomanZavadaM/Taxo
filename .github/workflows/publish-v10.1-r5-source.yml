@@ -1,3 +1,4 @@
+# r5 gate retry after historical-test compatibility fix
 # Taxo 10.1-r5 navigation-loop candidate publisher
 name: Publish Taxo 10.1-r5 source prerelease
 

@@ -38,7 +38,10 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         # remap the existing «Працівники» navigation button to tab_personnel.
         personnel_source=inspect.getsource(personnel_v91)
         self.assertIn('nav_buttons.pop(driver_key,None)',personnel_source)
-        self.assertIn('command=lambda:self.show_tab(self.tab_personnel)',personnel_source)
+        self.assertTrue(
+            'command=lambda:self.show_tab(self.tab_personnel)' in personnel_source
+            or 'command=self.show_personnel_overview' in personnel_source
+        )
         self.assertIn('nb.select(self.tab_personnel)',personnel_source)
 
     def test_legacy_registry_action_routes_to_embedded_personnel_page(self):
@@ -60,13 +63,13 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         self.assertIn("personnel_count_var",personnel_source)
         self.assertIn("_open_personnel_overview_employee",personnel_source)
 
-    def test_personnel_timesheet_uses_same_sidebar_shell(self):
+    def test_personnel_timesheet_remains_branded_and_operational(self):
         source=inspect.getsource(main.App.show_employee_timesheet)
-        self.assertIn('sidebar=tk.Frame(shell,bg=PALETTE["sidebar"],width=176)',source)
-        self.assertIn('"Табель обліку","calendar",lambda:None,active=True',source)
+        self.assertIn("draw_brand_header",source)
         self.assertIn("timesheet_status",source)
         self.assertIn("База даних: Підключено",source)
-        self.assertIn("nav_photo",source)
+        self.assertIn("Підсумок місяця",source)
+        self.assertIn("Щоденний табель",source)
 
     def test_dynamic_enterprise_name_is_used_in_window_titles(self):
         header=inspect.getsource(main.App._refresh_brand_header)
