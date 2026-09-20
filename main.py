@@ -6938,13 +6938,35 @@ class App(tk.Tk):
         con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
 
     def show_employee_timesheet(self):
-        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Табель робочого часу всіх працівників")
-        fit_window_to_screen(win,1360,760,960,560)
-        top=ttk.Frame(win,padding=8); top.pack(fill="x")
+        parent=getattr(self,"employee_win",self)
+        win=tk.Toplevel(parent)
+        win.title("Taxo — Табель обліку робочого часу")
+        win.configure(bg=PALETTE["paper"])
+        fit_window_to_screen(win,1440,820,1000,620)
+
+        # 10.1-r2: this window follows the approved office UI instead of the
+        # old utility-dialog layout.
+        title_panel=tk.Frame(win,bg="#EAF4FB",highlightbackground=PALETTE["line"],highlightthickness=1)
+        title_panel.pack(fill="x",padx=10,pady=(10,6))
+        tk.Label(
+            title_panel,text="▣  Табель обліку робочого часу",
+            bg="#EAF4FB",fg=PALETTE["navy"],font=("TkDefaultFont",18,"bold"),
+        ).pack(anchor="w",padx=16,pady=(10,0))
+        tk.Label(
+            title_panel,
+            text="Підсумок місяця, щоденна деталізація та звіти по працівниках.",
+            bg="#EAF4FB",fg=PALETTE["muted"],font=("TkDefaultFont",10),
+        ).pack(anchor="w",padx=17,pady=(2,10))
+
+        top=ttk.Frame(win,padding=(10,6)); top.pack(fill="x")
         today=date.today(); month=tk.StringVar(value=str(today.month)); year=tk.StringVar(value=str(today.year))
-        ttk.Label(top,text="Місяць").pack(side="left"); ttk.Spinbox(top,textvariable=month,from_=1,to=12,width=5).pack(side="left",padx=4)
-        ttk.Label(top,text="Рік").pack(side="left"); ttk.Spinbox(top,textvariable=year,from_=2020,to=2100,width=7).pack(side="left",padx=4)
-        notebook=ttk.Notebook(win); notebook.pack(fill="both",expand=True,padx=8,pady=(0,8))
+        ttk.Label(top,text="Місяць",font=("TkDefaultFont",10,"bold")).pack(side="left")
+        ttk.Spinbox(top,textvariable=month,from_=1,to=12,width=5).pack(side="left",padx=(5,12))
+        ttk.Label(top,text="Рік",font=("TkDefaultFont",10,"bold")).pack(side="left")
+        ttk.Spinbox(top,textvariable=year,from_=2020,to=2100,width=7).pack(side="left",padx=(5,12))
+        action_bar=ttk.Frame(win,padding=(10,0,10,6)); action_bar.pack(fill="x")
+        summary_status=tk.StringVar(value="")
+        notebook=ttk.Notebook(win); notebook.pack(fill="both",expand=True,padx=10,pady=(0,6))
         summary_tab=ttk.Frame(notebook); daily_tab=ttk.Frame(notebook)
         notebook.add(summary_tab,text="Підсумок місяця"); notebook.add(daily_tab,text="Щоденний табель")
 
@@ -7034,7 +7056,16 @@ class App(tk.Tk):
                     elif row["planned_minutes"]>0: missing+=1
                 summary_tree.insert("","end",values=(employee["id"],employee["personnel_no"],self.employee_full_name(employee),employee["roles"] or employee["position"] or "",
                     minutes_hhmm(planned),minutes_hhmm(actual),signed_hours_hhmm((actual-planned)/60),str(missing)))
-            con.close(); refresh_daily()
+            con.close()
+            total=len(summary_tree.get_children())
+            missing_total=sum(
+                int(summary_tree.item(item,"values")[7] or 0)
+                for item in summary_tree.get_children()
+            )
+            summary_status.set(
+                f"{month_name_ua(start.month)} {start.year}: працівників {total} • днів із планом без факту {missing_total}"
+            )
+            refresh_daily()
 
         def selected_days():
             return [datetime.strptime(item,"%Y-%m-%d").date() for item in daily_tree.selection()]
@@ -7285,15 +7316,55 @@ class App(tk.Tk):
             ttk.Button(bar,text="Оновити",command=refresh_balance).pack(side="left",padx=5); ttk.Button(bar,text="Excel — редагувати",command=lambda:save_balance("xlsx")).pack(side="left",padx=(12,3)); ttk.Button(bar,text="PDF — друк",command=lambda:save_balance("pdf")).pack(side="left",padx=3)
             active_only.trace_add("write",lambda *_args:refresh_balance()); refresh_balance()
 
-        def open_summary_employee(_event=None):
+        def select_summary_employee():
             sel=summary_tree.selection()
-            if not sel: return
+            if not sel:
+                messagebox.showinfo("Табель","Виберіть працівника у підсумку місяця.",parent=win)
+                return None
             eid=int(summary_tree.item(sel[0],"values")[0])
             for label,row in employee_map.items():
-                if row["id"]==eid: employee_choice.set(label); break
-            notebook.select(daily_tab); refresh_daily()
+                if row["id"]==eid:
+                    employee_choice.set(label)
+                    return row
+            return None
 
-        ttk.Button(top,text="Оновити",command=refresh_summary).pack(side="left",padx=8)
+        def open_summary_employee(_event=None):
+            employee=select_summary_employee()
+            if not employee: return
+            notebook.select(daily_tab)
+            refresh_daily()
+
+        def export_summary_employee(kind):
+            employee=select_summary_employee()
+            if not employee: return
+            export_selected(kind)
+
+        ttk.Button(action_bar,text="⟳  Оновити",command=refresh_summary).pack(side="left",padx=(0,5))
+        ttk.Button(
+            action_bar,text="🔎  Відкрити деталізацію",
+            command=open_summary_employee,style="Accent.TButton"
+        ).pack(side="left",padx=5)
+        ttk.Button(
+            action_bar,text="PDF працівника",
+            command=lambda:export_summary_employee("pdf")
+        ).pack(side="left",padx=5)
+        ttk.Button(
+            action_bar,text="XLSX працівника",
+            command=lambda:export_summary_employee("xlsx")
+        ).pack(side="left",padx=5)
+        ttk.Button(
+            action_bar,text="Місячний звіт / баланс",
+            command=show_personnel_balance
+        ).pack(side="left",padx=(14,5))
+        ttk.Label(
+            action_bar,text="Подвійний клік по працівнику → щоденна деталізація",
+            foreground=PALETTE["muted"]
+        ).pack(side="right",padx=6)
+        ttk.Label(
+            win,textvariable=summary_status,font=("TkDefaultFont",9,"bold"),
+            foreground=PALETTE["blue_dark"]
+        ).pack(fill="x",padx=14,pady=(0,7))
+
         ttk.Button(edit_bar,text="Новий / редагувати день",command=edit_day).pack(side="left",padx=3)
         ttk.Button(edit_bar,text="Копіювати день",command=copy_day).pack(side="left",padx=3)
         ttk.Button(edit_bar,text="Вставити день",command=paste_day).pack(side="left",padx=3)
