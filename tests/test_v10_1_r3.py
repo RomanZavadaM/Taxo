@@ -41,6 +41,17 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         self.assertIn('command=lambda:self.show_tab(self.tab_personnel)',personnel_source)
         self.assertIn('nb.select(self.tab_personnel)',personnel_source)
 
+    def test_personnel_registry_matches_approved_main_page(self):
+        personnel_source=inspect.getsource(personnel_v91)
+        self.assertIn('style="Shell.TNotebook"',personnel_source)
+        self.assertIn('text="Реєстр працівників"',personnel_source)
+        self.assertIn('text="＋  Новий працівник"',personnel_source)
+        self.assertIn('text="Відкрити картку"',personnel_source)
+        self.assertIn('text="Пошук"',personnel_source)
+        self.assertIn("personnel_search_var",personnel_source)
+        self.assertIn("personnel_count_var",personnel_source)
+        self.assertIn("_open_personnel_overview_employee",personnel_source)
+
     def test_personnel_timesheet_uses_same_sidebar_shell(self):
         source=inspect.getsource(main.App.show_employee_timesheet)
         self.assertIn('sidebar=tk.Frame(shell,bg=PALETTE["sidebar"],width=176)',source)
