@@ -1,10 +1,18 @@
 # Taxo — індекс релізів
 
-**Стан:** 19.09.2026  
+**Стан:** 20.09.2026  
 **Поточна stable:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)  
 **Previous stable / rollback:** [Taxo 9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1)
 
 > Stable 10.0 опублікований з commit `91c0d6365a40eb09fe40f97a2965da40b314bc15` після завершеного manual operational gate. Старі tags/releases не пересуваються.
+
+## Current candidate line 10.x
+
+| Tag | Статус | Пакет | Призначення |
+|---|---|---|---|
+| [v10.1-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r1) | Candidate / manual test | START/source + SHA-256 | Driver-role separation fix + first UI refresh |
+
+> 10.1-r1 не замінює stable 10.0 до manual operational gate. Старі tags/releases не пересуваються.
 
 ## Stable line
 
@@ -66,5 +74,6 @@ Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Stable publisher —
 6. Кожна нова release-контрольна точка отримує новий tag.
 
 Документи:
+- [Release notes 10.1-r1](RELEASE_NOTES_v10_1_r1.md)
 - [Release notes 10.0](RELEASE_NOTES_v10_0.md)
 - [Фінальний аудит 10.0](../maintenance/AUDIT_v10_0_STABLE.md)
