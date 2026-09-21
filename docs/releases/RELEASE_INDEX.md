@@ -4,7 +4,7 @@
 **Поточна stable:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1)  
 **Previous stable / rollback:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)
 
-> Stable 10.1 промотовано після verified candidate v10.1-r5, multi-platform regression gate і ручного Windows UI/navigation gate. Stable 10.0 лишається rollback; старі tags/releases не пересуваються.
+> Stable 10.1 промотовано після verified candidate v10.1-r5, ручного Windows UI/navigation gate та повторного stable regression: **162 tests / OK** на source, Windows і обох macOS architectures. Stable target: `fa5bbe0a5de733af1e227847ef9584daca57676e`. Stable 10.0 лишається rollback; старі tags/releases не пересуваються.
 
 ## Current candidate line 10.x
 
@@ -66,7 +66,7 @@
 - `Taxo_v10_1_START.zip`;
 - per-platform і combined SHA-256 manifests.
 
-Stable publisher працює з commit у `main`.
+Stable publisher успішно відпрацював з commit `fa5bbe0a5de733af1e227847ef9584daca57676e` у `main`; `v10.1` опубліковано як latest stable.
 
 ## Taxo 10.0 package set
 
@@ -87,7 +87,7 @@ Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Stable publisher —
 2. Stable executable artifacts будуються з commit у `main`.
 3. Старі tags/releases не пересуваються й не перезаписуються.
 4. БД, SQLite, скани, кеші та персональні документи не публікуються.
-5. Нові зміни після 10.0 ведуться в окремій work branch через PR.
+5. Нові зміни після 10.1 ведуться в окремій work branch через PR.
 6. Кожна нова release-контрольна точка отримує новий tag.
 
 Документи:

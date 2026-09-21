@@ -1,11 +1,12 @@
 # Taxo — поточна контрольна точка
 
-**Stable promotion:** Taxo 10.1 · 21.09.2026  
+**Stable:** Taxo 10.1 · 21.09.2026  
 **Previous stable / rollback:** Taxo 10.0  
 **Verified candidate:** `v10.1-r5`  
-**Candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
-**Work branch:** `work/v10.1-driver-role-ui-refresh`  
-**PR:** #34
+**Stable tag:** `v10.1`  
+**Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
+**Verified candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
+**PR #34:** merged
 
 ## Gate
 
@@ -17,12 +18,20 @@ Candidate automation:
 - macOS ARM64 — **157 tests / OK**;
 - macOS Intel x86_64 — **157 tests / OK**.
 
-## Stable promotion
+## Stable result
 
-Версію переведено з `10.1-r5` у `10.1`. Перед merge PR проходить повторний CI зі stable metadata. Після green PR #34 зливається у `main`, де `Publish Taxo 10.1 stable` збирає та публікує всі офіційні пакети.
+Версію переведено з `10.1-r5` у **10.1 stable**. PR #34 злитий у `main`; stable publisher завершився успішно.
+
+- source verify — **162 tests / OK**;
+- Windows — **162 tests / OK** + START preflight; Setup + Portable published;
+- macOS ARM64 — **162 tests / OK**; package published;
+- macOS Intel x86_64 — **162 tests / OK**; package published;
+- START/source — published;
+- per-platform + combined SHA-256 — published;
+- GitHub Release `v10.1` — latest stable.
 
 ## Політика
 
 - `v10.0` та `v10.1-r1` … `v10.1-r5` — immutable;
-- `v10.1` створюється тільки stable publisher з merge commit у `main`;
+- `v10.1` створено stable publisher з commit у `main` і тепер є immutable stable;
 - БД/скани/персональні файли у release не входять.
