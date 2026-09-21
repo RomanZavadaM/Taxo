@@ -191,24 +191,11 @@ class V870R5Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         windows = (root / ".github/workflows/build-windows-v8.70.yml").read_text("utf-8")
         macos = (root / ".github/workflows/build-macos-v8.70.yml").read_text("utf-8")
-        current = version_from_file(root / "VERSION.txt")
-        stable10 = re.fullmatch(r"10\.(\d+)(?:\.(\d+))?", current)
-        candidate10 = re.fullmatch(r"10\.(\d+)-r\d+(?:\.\d+)*", current)
-        if stable10:
-            parts = ["10", stable10.group(1)]
-            if stable10.group(2) is not None:
-                parts.append(stable10.group(2))
-            prefix = "Taxo_v" + "_".join(parts)
-        elif candidate10:
-            # 10.x candidates use the previous stable executable matrix until
-            # explicit stable promotion updates the build workflows.
-            previous_minor = max(0, int(candidate10.group(1)) - 1)
-            prefix = f"Taxo_v10_{previous_minor}"
-        else:
-            match = re.fullmatch(r"9\.1 candidate r(\d+(?:\.\d+)*)", current)
-            self.assertIsNotNone(match)
-            revision = match.group(1).replace(".", "_")
-            prefix = f"Taxo_v9_1_candidate_r{revision}"
+        version_text=(root/"VERSION.txt").read_text("utf-8")
+        stable_match=re.search(r"^Stable baseline:\s*Taxo\s+([0-9.]+)\s*$",version_text,re.MULTILINE)
+        self.assertIsNotNone(stable_match)
+        stable_version=stable_match.group(1)
+        prefix="Taxo_v"+stable_version.replace(".","_")
         self.assertIn(f"{prefix}_Setup_Windows_x64.exe", windows)
         self.assertIn(f"{prefix}_Windows_x64_Portable.zip", windows)
         self.assertIn("$build = 'false'", windows)
