@@ -70,7 +70,7 @@ try:
 except ImportError:
     build_waybill_pdf = None
 
-APP_VERSION = "10.1-r5"
+APP_VERSION = "10.1"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна

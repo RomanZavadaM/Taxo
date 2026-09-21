@@ -1,25 +1,36 @@
 Taxo / Driver Worktime
-Version: 10.1-r5
-Release date: 2026-09-20
-Release type: candidate / navigation-loop fix
-Stable baseline: Taxo 10.0
-Stable tag: v10.0
-Stable target: 91c0d6365a40eb09fe40f97a2965da40b314bc15
-Previous candidates: v10.1-r1, v10.1-r2, v10.1-r3, v10.1-r4
+Version: 10.1
+Release date: 2026-09-21
+Release type: stable
+Previous stable: Taxo 10.0
+Previous stable tag: v10.0
+Previous stable target: 91c0d6365a40eb09fe40f97a2965da40b314bc15
+Verified candidate: v10.1-r5
+Verified candidate target: 146d00916cb953efbcf7d3b167b7f5547d67f0b0
 
-Taxo 10.1-r5 — виправлення навігації без дублювання повного вікна програми.
+Taxo 10.1 — stable UI/driver-role release.
 
 Основне:
-- «Звіти» у головному sidebar тепер відкриває сторінку звітів у головній робочій області;
-- «Працівники» завжди повертає саме у реєстр працівників, навіть після сторінки звітів;
-- приховані внутрішні сторінки персоналу синхронізують активний пункт sidebar;
-- детальний «Табель робочого часу всіх працівників» лишається окремим робочим вікном, але більше не дублює весь sidebar/application shell;
-- повторне відкриття табеля піднімає вже існуюче вікно замість створення другого, третього тощо;
-- у табелі є явна кнопка «Закрити»;
-- збережено KPI, PDF/Excel, П-5, контроль, місячний баланс, driver-role fix і затверджений text-free логотип;
-- схема БД не змінюється.
+- статус працівника відокремлено від ролі «Водій»; завершення ролі водія не звільняє працівника і не відновлюється після restart;
+- збережено окрему історичну дату завершення ролі водія;
+- затверджений application shell: світла шапка, синя ліва навігація, центральна робоча область, status bar;
+- використовується точний text-free логотип; назва підприємства підставляється динамічно;
+- реєстр працівників має KPI-картки, основні/другорядні дії та пошук;
+- «Звіти» працюють у головному workspace і не відкривають циклічно нову копію програми;
+- «Працівники» гарантовано повертає у реєстр;
+- детальний табель персоналу single-instance і не дублює весь application sidebar;
+- звіти PDF/Excel, П-5, місячний баланс, контроль і папка звітів збережені;
+- «Про програму» та «Довідка» оформлені у новому стилі;
+- схема БД у лінії 10.1 не змінюється; робочі БД, скани й персональні файли не входять у GitHub release.
+
+Перевірка candidate v10.1-r5:
+- source / START: 157 tests / OK;
+- Windows: 157 tests / OK + START preflight OK;
+- macOS ARM64: 157 tests / OK;
+- macOS Intel x86_64: 157 tests / OK;
+- ручний Windows UI/navigation gate підтверджено користувачем 21.09.2026.
 
 Статус:
-- candidate, не stable;
-- stable v10.0 та immutable v10.1-r1/r2/r3/r4 не змінюються;
-- перед merge у main потрібні automated regression gate і ручна Windows-перевірка.
+- stable;
+- v10.0 і v10.1-r1…r5 залишаються immutable historical releases;
+- stable packages формуються з commit у main для Windows x64, macOS ARM64, macOS Intel x86_64 і START/source.

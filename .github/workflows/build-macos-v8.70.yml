@@ -1,4 +1,4 @@
-name: Test Taxo 9.x source / build macOS on demand
+name: Test Taxo source / build macOS on demand
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ on:
       - 'Taxo_macos.spec'
       - 'tests/**'
       - '.github/workflows/build-macos-v8.70.yml'
-      - '.github/workflows/publish-v10.0.yml'
+      - '.github/workflows/publish-v10.1.yml'
       - 'VERSION.txt'
 
 permissions:
@@ -107,7 +107,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
-          bundle_dir="Taxo_v10_0_macOS_${{ matrix.arch }}"
+          bundle_dir="Taxo_v10_1_macOS_${{ matrix.arch }}"
           zip_name="${bundle_dir}_Portable.zip"
           mkdir "${bundle_dir}"
           mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
@@ -118,9 +118,9 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.0-macOS-${{ matrix.arch }}
+          name: Taxo-v10.1-macOS-${{ matrix.arch }}
           path: |
-            Taxo_v10_0_macOS_${{ matrix.arch }}_Portable.zip
+            Taxo_v10_1_macOS_${{ matrix.arch }}_Portable.zip
             SHA256SUMS_v10_0_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30

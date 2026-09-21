@@ -182,7 +182,7 @@ class TestScheduleAuditR94(unittest.TestCase):
         current = version_from_file(root / "VERSION.txt")
         self.assertRegex(
             current,
-            r"^(?:9\.1 candidate r\d+(?:\.\d+)*|10\.0|10\.\d+-r\d+(?:\.\d+)*)$",
+            r"^(?:9\.1 candidate r\d+(?:\.\d+)*|10\.\d+(?:\.\d+)?(?:-r\d+(?:\.\d+)*)?)$",
         )
         version=(root/"VERSION.txt").read_text("utf-8")
         self.assertIn(f"Version: {current}",version)

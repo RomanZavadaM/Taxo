@@ -9,9 +9,9 @@ import personnel_v91
 ROOT=Path(__file__).resolve().parents[1]
 
 class TestTaxo101R5NavigationLoopFix(unittest.TestCase):
-    def test_version_is_r5(self):
-        self.assertEqual(main.APP_VERSION,"10.1-r5")
-        self.assertIn("Version: 10.1-r5",(ROOT/"VERSION.txt").read_text("utf-8"))
+    def test_r5_feature_line_survives_stable_promotion(self):
+        self.assertRegex(main.APP_VERSION,r"^10\.1(?:-r\d+(?:\.\d+)*)?$")
+        self.assertIn("Taxo 10.1-r5",(ROOT/"docs/releases/RELEASE_NOTES_v10_1_r5.md").read_text("utf-8"))
 
     def test_main_reports_nav_does_not_open_timesheet_window(self):
         source=inspect.getsource(main.App.build_ui)
