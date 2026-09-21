@@ -2221,8 +2221,12 @@ def _interval_overlap_minutes(start_dt, end_dt, target_date):
     return max(0,int((min(end_dt,day_end)-max(start_dt,day_start)).total_seconds()//60))
 
 
-def _driver_plan_minutes_for_day(con, driver_id, target_date):
+def _driver_plan_minutes_for_day(con, driver_id, target_date, respect_role=True):
     if not driver_id:
+        return 0
+    if isinstance(target_date,str):
+        target_date=date.fromisoformat(target_date)
+    if respect_role and not driver_role_active_on(con,driver_id,target_date):
         return 0
     rows=con.execute(
         "SELECT * FROM worklog WHERE driver_id=? AND work_date BETWEEN ? AND ? ORDER BY work_date,id",
@@ -2274,7 +2278,15 @@ def _driver_plan_minutes_for_day(con, driver_id, target_date):
 
 
 def _employee_shift_minutes_for_day(con, employee_id, target_date):
-    planned=0; actual=0.0; actual_known=True; found=False
+    """Planned/actual personnel-shift time clipped to one calendar day.
+
+    planned_hours is authoritative.  The old implementation ignored it and
+    counted the whole clock span, so 08:00-17:00 always became 9:00 even when
+    the stored paid plan was 8:00 because of an unpaid break.
+    """
+    if isinstance(target_date,str):
+        target_date=date.fromisoformat(target_date)
+    planned=0.0; actual=0.0; actual_known=True; found=False
     rows=con.execute(
         "SELECT * FROM employee_shifts WHERE employee_id=? AND work_date BETWEEN ? AND ?",
         (employee_id,(target_date-timedelta(days=7)).isoformat(),target_date.isoformat()),
@@ -2283,16 +2295,18 @@ def _employee_shift_minutes_for_day(con, employee_id, target_date):
         base=datetime.strptime(row["work_date"],"%Y-%m-%d")
         start_dt=base+timedelta(minutes=parse_hhmm(row["start_time"]))
         end_dt=base+timedelta(days=int(row["end_day_offset"] or 0),minutes=parse_hhmm(row["end_time"]))
+        duration=max((end_dt-start_dt).total_seconds()/60.0,1.0)
         overlap=_interval_overlap_minutes(start_dt,end_dt,target_date)
         if overlap<=0:
             continue
-        found=True; planned+=overlap
+        found=True
+        row_plan=hours_value_to_minutes(row["planned_hours"] if row["planned_hours"] is not None else duration/60.0)
+        planned += float(row_plan) * float(overlap) / float(duration)
         if row["actual_hours"] is None:
             actual_known=False
         else:
-            duration=max((end_dt-start_dt).total_seconds()/60.0,1.0)
             actual+=hours_value_to_minutes(row["actual_hours"])*overlap/duration
-    return planned,(int(round(actual)) if found and actual_known else None),found
+    return int(round(planned)),(int(round(actual)) if found and actual_known else None),found
 
 
 def employee_day_time(con, employee_id, target_date):
@@ -3065,9 +3079,26 @@ def driver_employment_start(driver):
 
 
 def driver_employed_on(driver, work_day):
-    """Чи вже був водій прийнятий на роботу у вказаний календарний день."""
+    """Legacy-record fallback: whether the driver role covers the date."""
+    if not driver:
+        return False
+    if isinstance(work_day,str):
+        work_day=date.fromisoformat(work_day)
+    if _driver_role_mode(driver)=="invalid":
+        return False
     start=driver_employment_start(driver)
-    return start is None or work_day>=start
+    if start is not None and work_day<start:
+        return False
+    try:
+        end=(driver["driver_end_date"] or "").strip()
+    except Exception:
+        end=""
+    if end:
+        try:
+            return work_day<=date.fromisoformat(end)
+        except ValueError:
+            return False
+    return bool(driver["active"])
 
 
 def set_paragraph_text(p, new_text):
