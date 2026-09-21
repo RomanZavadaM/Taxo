@@ -291,6 +291,10 @@ def linked_route_plan_minutes(core, con, driver_id, target_date):
     """
     if not driver_id:
         return 0
+    if hasattr(core,"driver_role_active_on") and not core.driver_role_active_on(
+        con, driver_id, target_date
+    ):
+        return 0
     row = con.execute(
         """SELECT route_id,work_hours,work_start_time,work_end_time
              FROM worklog
@@ -388,6 +392,10 @@ def driver_work_intervals(core, con, driver_id, around_date):
 
     for row in rows:
         base=date.fromisoformat(row["work_date"])
+        if hasattr(core,"driver_role_active_on") and not core.driver_role_active_on(
+            con, driver_id, base
+        ):
+            continue
         row_keys=set(row.keys()) if hasattr(row,"keys") else set()
         planned_total=core.hours_value_to_minutes(
             row["work_hours"] if "work_hours" in row_keys else 0
