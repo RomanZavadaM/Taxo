@@ -702,58 +702,65 @@ def activate_driver_role(con, employee_id, driver_id, start_date):
 
 
 def finish_driver_role(con, employee_id, driver_id, end_date):
-    """Finish a real driver role while retaining dated history."""
-    end_date=str(end_date or "").strip()
-    if not end_date:
-        raise ValueError("Потрібна дата завершення ролі водія.")
-    date.fromisoformat(end_date)
-    driver=con.execute("SELECT * FROM drivers WHERE id=?",(int(driver_id),)).fetchone()
-    if driver is None:
-        return
-    now=datetime.now().isoformat(timespec="seconds")
-    if _role_period_table_exists(con):
-        row=con.execute(
-            """SELECT id,start_date FROM driver_role_periods
-                 WHERE driver_id=? AND COALESCE(voided,0)=0
-                   AND COALESCE(end_date,'')=''
-                 ORDER BY id DESC LIMIT 1""",
-            (int(driver_id),),
-        ).fetchone()
-        if row:
-            start=(row["start_date"] or "").strip()
-            if start and end_date < start:
-                raise ValueError("Дата завершення ролі раніше дати її початку.")
-            con.execute(
-                "UPDATE driver_role_periods SET end_date=? WHERE id=?",
-                (end_date,row["id"]),
-            )
-        else:
-            start=_driver_role_start_from_legacy(driver,end_date)
-            if start and end_date < start:
-                start=end_date
-            con.execute(
-                """INSERT INTO driver_role_periods(
-                       employee_id,driver_id,start_date,end_date,source,voided,notes,created_at
-                   ) VALUES(?,?,?,?,'legacy-close',0,'',?)""",
-                (int(employee_id),int(driver_id),start,end_date,now),
-            )
-    cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
-    if "driver_role_mode" in cols:
-        con.execute(
-            "UPDATE drivers SET active=0,driver_end_date=?,driver_role_mode='explicit' WHERE id=?",
-            (end_date,int(driver_id)),
-        )
-    else:
-        con.execute(
-            "UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",
-            (end_date,int(driver_id)),
-        )
+    """Завершити лише роль водія, не видаляючи працівника чи історію."""
+    con.execute(
+        "UPDATE drivers SET active=0,driver_end_date=?,legacy_driver_excluded=0 WHERE id=?",
+        (end_date,driver_id),
+    )
     con.execute(
         "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
-        (int(employee_id),),
+        (employee_id,),
     )
 
 
+def exclude_legacy_driver_role(con, employee_id, driver_id):
+    """Позначити успадковану роль «водій» як таку, що фактично не існувала."""
+    con.execute(
+        """UPDATE drivers
+              SET active=0,driver_end_date='',legacy_driver_excluded=1
+            WHERE id=?""",
+        (driver_id,),
+    )
+    con.execute(
+        "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
+        (employee_id,),
+    )
+
+
+def employee_driver_role_on(con, employee, target_date):
+    """Чи є водійське джерело чинним для працівника на конкретну дату."""
+    if isinstance(target_date,str):
+        target_date=date.fromisoformat(target_date)
+    driver_id=employee["driver_id"] if employee is not None else None
+    if not driver_id:
+        return False
+    driver=con.execute(
+        """SELECT employment_date,driver_end_date,active,
+                  COALESCE(legacy_driver_excluded,0) legacy_driver_excluded
+             FROM drivers WHERE id=?""",
+        (driver_id,),
+    ).fetchone()
+    if driver is None or bool(driver["legacy_driver_excluded"]):
+        return False
+    start=(driver["employment_date"] or "").strip()
+    end=(driver["driver_end_date"] or "").strip()
+    try:
+        if start and target_date<date.fromisoformat(start):
+            return False
+    except ValueError:
+        pass
+    if end:
+        try:
+            return target_date<=date.fromisoformat(end)
+        except ValueError:
+            return False
+    return (
+        bool(driver["active"])
+        and con.execute(
+            "SELECT 1 FROM employee_roles WHERE employee_id=? AND role='Водій'",
+            (employee["id"],),
+        ).fetchone() is not None
+    )
 def void_legacy_driver_role(con, employee_id, driver_id):
     """Mark the old forced 'driver' identity as historically invalid.
 
@@ -784,14 +791,18 @@ def void_legacy_driver_role(con, employee_id, driver_id):
 
 
 def sync_legacy_driver_employee(con, dr):
-    """Synchronize legacy driver identity without mixing employment and role state."""
+    """Синхронізувати legacy-ідентичність без самовідновлення ролі водія.
+
+    Якщо unified employee вже існує, employee_roles є джерелом поточного
+    стану ролі. drivers.active лише дзеркало для старих екранів.
+    """
     driver_end=(dr["driver_end_date"] or "").strip() if "driver_end_date" in dr.keys() else ""
-    mode=_driver_role_mode(dr)
-    driver_active=bool(dr["active"]) and not bool(driver_end) and mode!="invalid"
+    legacy_excluded=bool(dr["legacy_driver_excluded"]) if "legacy_driver_excluded" in dr.keys() else False
     employee=con.execute(
         "SELECT id,active,dismissal_date FROM employees WHERE driver_id=?",
         (dr["id"],),
     ).fetchone()
+
     if employee:
         eid=employee["id"]
         con.execute(
@@ -804,32 +815,44 @@ def sync_legacy_driver_employee(con, dr):
         )
         if driver_end and not (employee["dismissal_date"] or "").strip() and not bool(employee["active"]):
             con.execute("UPDATE employees SET active=1 WHERE id=?",(eid,))
-    else:
-        # Ending/correcting a role is not dismissal from the enterprise.
-        employee_active=1 if driver_end or mode=="invalid" else int(bool(dr["active"]))
-        cur=con.execute(
-            """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
-                   employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
-            (
-                dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
-                "Водій",dr["employment_date"] or "",dr["notes"] or "",employee_active,dr["id"],
-                dr["created_at"] or datetime.now().isoformat(timespec="seconds"),
-            ),
-        )
-        eid=cur.lastrowid
 
-    if driver_active:
+        has_role=con.execute(
+            "SELECT 1 FROM employee_roles WHERE employee_id=? AND role='Водій'",
+            (eid,),
+        ).fetchone() is not None
+        if driver_end or legacy_excluded:
+            if has_role:
+                con.execute(
+                    "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
+                    (eid,),
+                )
+            has_role=False
+        con.execute(
+            "UPDATE drivers SET active=? WHERE id=?",
+            (int(bool(employee["active"]) and has_role and not driver_end and not legacy_excluded),dr["id"]),
+        )
+        return eid
+
+    # Тільки первинний bootstrap старої БД може створити роль із drivers.active.
+    employee_active=1 if driver_end else int(bool(dr["active"]))
+    cur=con.execute(
+        """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
+               employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (
+            dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
+            "Водій",dr["employment_date"] or "",dr["notes"] or "",employee_active,dr["id"],
+            dr["created_at"] or datetime.now().isoformat(timespec="seconds"),
+        ),
+    )
+    eid=cur.lastrowid
+    if bool(dr["active"]) and not driver_end and not legacy_excluded:
         con.execute(
             "INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",
             (eid,"Водій"),
         )
     else:
-        con.execute(
-            "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
-            (eid,),
-        )
+        con.execute("UPDATE drivers SET active=0 WHERE id=?",(dr["id"],))
     return eid
-
 def get_setting(key, default=""):
     try:
         con=db(); r=con.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone(); con.close()
@@ -1271,6 +1294,7 @@ def init_db():
         ("first_name_en", "TEXT DEFAULT ''"),
         ("middle_name_en", "TEXT DEFAULT ''"),
         ("driver_end_date", "TEXT DEFAULT ''"),
+        ("legacy_driver_excluded", "INTEGER DEFAULT 0"),
         ("driver_role_mode", "TEXT NOT NULL DEFAULT 'legacy'"),
     ]:
         if name not in dcols:
@@ -2278,14 +2302,7 @@ def _driver_plan_minutes_for_day(con, driver_id, target_date, respect_role=True)
 
 
 def _employee_shift_minutes_for_day(con, employee_id, target_date):
-    """Planned/actual personnel-shift time clipped to one calendar day.
-
-    planned_hours is authoritative.  The old implementation ignored it and
-    counted the whole clock span, so 08:00-17:00 always became 9:00 even when
-    the stored paid plan was 8:00 because of an unpaid break.
-    """
-    if isinstance(target_date,str):
-        target_date=date.fromisoformat(target_date)
+    """План/факт зміни за оплачуваними годинами, а не за голим clock-span."""
     planned=0.0; actual=0.0; actual_known=True; found=False
     rows=con.execute(
         "SELECT * FROM employee_shifts WHERE employee_id=? AND work_date BETWEEN ? AND ?",
@@ -2295,40 +2312,21 @@ def _employee_shift_minutes_for_day(con, employee_id, target_date):
         base=datetime.strptime(row["work_date"],"%Y-%m-%d")
         start_dt=base+timedelta(minutes=parse_hhmm(row["start_time"]))
         end_dt=base+timedelta(days=int(row["end_day_offset"] or 0),minutes=parse_hhmm(row["end_time"]))
-        duration=max((end_dt-start_dt).total_seconds()/60.0,1.0)
         overlap=_interval_overlap_minutes(start_dt,end_dt,target_date)
         if overlap<=0:
             continue
         found=True
-        row_plan=hours_value_to_minutes(
-            row["planned_hours"] if row["planned_hours"] is not None else duration/60.0
+        duration=max((end_dt-start_dt).total_seconds()/60.0,1.0)
+        paid_plan=(
+            hours_value_to_minutes(row["planned_hours"])
+            if row["planned_hours"] is not None else int(round(duration))
         )
-        # Compatibility repair for rows made by the old bulk personnel planner:
-        # it stored the raw 08:00-17:00 span as 9:00 and had no unpaid-break
-        # field.  Only its own default-note rows are normalized, and only when
-        # the fixed daily norm explains a plausible <=2h unpaid break.
-        row_keys=set(row.keys()) if hasattr(row,"keys") else set()
-        unpaid=int(row["unpaid_break_minutes"] or 0) if "unpaid_break_minutes" in row_keys else 0
-        note=str(row["notes"] or "").strip() if "notes" in row_keys else ""
-        if unpaid>0:
-            row_plan=max(0,int(round(duration))-unpaid)
-        elif note=="Місячний план персоналу" and abs(int(row_plan)-int(round(duration)))<=1:
-            try:
-                from work_regime import day_norm_minutes, REGIME_SUMMARIZED
-                norm,regime=day_norm_minutes(con,employee_id,date.fromisoformat(row["work_date"]))
-                gap=int(round(duration))-int(norm or 0)
-                if regime.regime_type!=REGIME_SUMMARIZED and int(norm or 0)>0 and 0<gap<=120:
-                    row_plan=int(norm)
-            except Exception:
-                pass
-        planned += float(row_plan) * float(overlap) / float(duration)
+        planned += paid_plan*overlap/duration
         if row["actual_hours"] is None:
             actual_known=False
         else:
             actual+=hours_value_to_minutes(row["actual_hours"])*overlap/duration
     return int(round(planned)),(int(round(actual)) if found and actual_known else None),found
-
-
 def employee_day_time(con, employee_id, target_date):
     """Єдиний рядок табеля: автоматичний план + необов'язковий ручний факт."""
     if isinstance(target_date,str):
@@ -2336,7 +2334,10 @@ def employee_day_time(con, employee_id, target_date):
     employee=con.execute("SELECT * FROM employees WHERE id=?",(employee_id,)).fetchone()
     if employee is None:
         raise ValueError("Працівника не знайдено.")
-    driver_minutes=_driver_plan_minutes_for_day(con,employee["driver_id"],target_date)
+    driver_minutes=(
+        _driver_plan_minutes_for_day(con,employee["driver_id"],target_date)
+        if employee_driver_role_on(con,employee,target_date) else 0
+    )
     shift_minutes,shift_actual,shift_found=_employee_shift_minutes_for_day(con,employee_id,target_date)
     automatic_plan=driver_minutes+shift_minutes
     entry=con.execute(
