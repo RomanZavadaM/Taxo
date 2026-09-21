@@ -57,7 +57,7 @@ class TestTaxo101StableRelease(unittest.TestCase):
         audit=(ROOT/"docs/maintenance/AUDIT_v10_1_STABLE.md").read_text("utf-8")
         self.assertIn("Taxo 10.1",notes)
         self.assertIn("v10.1-r5",notes)
-        self.assertIn("ручний Windows",audit)
+        self.assertIn("Ручний Windows",audit)
 
 if __name__=="__main__":
     unittest.main()
