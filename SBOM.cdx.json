@@ -1,0 +1,135 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:taxo-10-2-r9-direct-dependencies",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-21T00:00:00Z",
+    "component": {
+      "type": "application",
+      "name": "Taxo / Driver Worktime",
+      "version": "10.2-r9",
+      "copyright": "Copyright © 2026 Roman Zavada (Роман Завада)"
+    },
+    "properties": [
+      {
+        "name": "taxo:sbom-scope",
+        "value": "direct runtime dependencies"
+      },
+      {
+        "name": "taxo:owner",
+        "value": "Roman Zavada (Роман Завада)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "python-docx",
+      "version": "1.2.0",
+      "purl": "pkg:pypi/python-docx@1.2.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "openpyxl",
+      "version": "3.1.5",
+      "purl": "pkg:pypi/openpyxl@3.1.5",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "reportlab",
+      "version": "4.4.9",
+      "purl": "pkg:pypi/reportlab@4.4.9",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "Pillow",
+      "version": "11.3.0",
+      "purl": "pkg:pypi/Pillow@11.3.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT-CMU"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pypdf",
+      "version": "6.19.0",
+      "purl": "pkg:pypi/pypdf@6.19.0",
+      "licenses": [
+        {
+          "license": {
+            "id": "BSD-3-Clause"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pypdfium2",
+      "version": "5.13.0",
+      "purl": "pkg:pypi/pypdfium2@5.13.0",
+      "licenses": [
+        {
+          "expression": "Apache-2.0 OR BSD-3-Clause"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "opencv-python-headless",
+      "version": "4.13.0.92",
+      "purl": "pkg:pypi/opencv-python-headless@4.13.0.92",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "name": "pywin32",
+      "version": "311",
+      "purl": "pkg:pypi/pywin32@311",
+      "licenses": [
+        {
+          "license": {
+            "id": "NOASSERTION"
+          }
+        }
+      ],
+      "properties": [
+        {
+          "name": "python:environment-marker",
+          "value": "sys_platform == \"win32\""
+        }
+      ]
+    }
+  ]
+}
