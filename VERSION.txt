@@ -1,22 +1,25 @@
 Taxo / Driver Worktime
-Version: 10.2-r7
+Version: 10.2-r8
 Release date: 2026-09-21
 Release type: candidate
 Stable baseline: Taxo 10.1
 Stable tag: v10.1
 Stable target: fa5bbe0a5de733af1e227847ef9584daca57676e
 
-Taxo 10.2-r7 — secondary-window UI consistency + corrected candidate packaging.
+Taxo 10.2-r8 — release-safety checkpoint.
 
 Основне:
-- збережено UI-переробку 10.2-r6: 12 великих службових/звітних вікон використовують затверджену брендовану шапку;
-- виправлено naming defect publisher-а r6;
-- правильний тестовий пакет: Taxo_v10_2_candidate_r7_START.zip;
-- r6 не переписується і лишається історичним checkpoint з відомим дефектом назви ZIP;
+- функціональний код програми збережено з прийнятого 10.2-r7;
+- додано канонічний PROJECT_RULES.md як постійне джерело правил;
+- PROJECT_STATE.md лишається окремим джерелом поточного стану;
+- зміни PROJECT_RULES.md / PROJECT_STATE.md запускають обов'язковий Windows CI;
+- r8 має окремий immutable prerelease і новий START-пакет;
+- тестовий пакет: Taxo_v10_2_candidate_r8_START.zip;
+- старі r6/r7 assets не переписуються і не перевикористовуються;
 - stable 10.1 не змінюється.
 
 Нумерація:
-- кожен завершений крок = наступна ревізія;
+- після виданого r8 наступна кодова зміна — 10.2-r9;
 - r1 ... r10;
 - після r10: 10.2-r10 -> 10.3-r1;
-- вже опубліковані revision tags/releases не пересуваються і не перевикористовуються.
+- перший розряд змінюється тільки за прямим рішенням власника.
