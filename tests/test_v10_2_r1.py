@@ -3,6 +3,7 @@ import inspect
 import sqlite3
 import tempfile
 import unittest
+import zipfile
 from datetime import date
 from pathlib import Path
 
@@ -20,7 +21,14 @@ from vehicle_documents import (
     vehicle_document_warning_lines,
     vehicle_document_report_rows,
 )
-from workspace import ensure_workspace, paths_for, resolved_path, workspace_has_data
+from workspace import (
+    clone_workspace,
+    create_workspace_backup_archive,
+    ensure_workspace,
+    paths_for,
+    resolved_path,
+    workspace_has_data,
+)
 
 
 class TestTaxo102R1VehicleDocuments(unittest.TestCase):
@@ -298,6 +306,78 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertEqual(temp["archived"], 0)
         self.assertEqual(permanent["archived"], 1)
         con.close()
+
+    def test_selective_backup_keeps_heavy_files_optional(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            source=root/"source"
+            p=ensure_workspace(source)
+            con=sqlite3.connect(p["main_db"])
+            con.execute("CREATE TABLE sample(value TEXT)")
+            con.execute("INSERT INTO sample VALUES('main')")
+            con.commit(); con.close()
+            con=sqlite3.connect(p["tacho_db"])
+            con.execute("CREATE TABLE sample(value TEXT)")
+            con.execute("INSERT INTO sample VALUES('tacho')")
+            con.commit(); con.close()
+            (p["vehicle_documents"]/"doc.pdf").write_bytes(b"document")
+            (p["tacho_scans"]/"scan.jpg").write_bytes(b"scan")
+            (p["waybills"]/"waybill.pdf").write_bytes(b"waybill")
+
+            db_only=root/"db-only.zip"
+            create_workspace_backup_archive(source,db_only,app_version="10.2-r1")
+            with zipfile.ZipFile(db_only) as zf:
+                names=set(zf.namelist())
+            self.assertIn("Data/driver_worktime.sqlite3",names)
+            self.assertIn("Data/tachograph_test.sqlite3",names)
+            self.assertNotIn("Data/VehicleDocuments/doc.pdf",names)
+            self.assertNotIn("Data/TachographScans/scan.jpg",names)
+            self.assertNotIn("Output/Waybills/waybill.pdf",names)
+
+            selected=root/"selected.zip"
+            create_workspace_backup_archive(
+                source,selected,app_version="10.2-r1",
+                include_vehicle_documents=True,
+                include_tacho_scans=True,
+                include_output=True,
+            )
+            with zipfile.ZipFile(selected) as zf:
+                names=set(zf.namelist())
+            self.assertIn("Data/VehicleDocuments/doc.pdf",names)
+            self.assertIn("Data/TachographScans/scan.jpg",names)
+            self.assertIn("Output/Waybills/waybill.pdf",names)
+
+    def test_full_migration_copy_includes_working_files_not_backup_history(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            source=root/"source"
+            target=root/"target"
+            p=ensure_workspace(source)
+            con=sqlite3.connect(p["main_db"])
+            con.execute("CREATE TABLE sample(value TEXT)")
+            con.execute("INSERT INTO sample VALUES('main')")
+            con.commit(); con.close()
+            con=sqlite3.connect(p["tacho_db"])
+            con.execute("CREATE TABLE sample(value TEXT)")
+            con.execute("INSERT INTO sample VALUES('tacho')")
+            con.commit(); con.close()
+            (p["vehicle_documents"]/"doc.pdf").write_bytes(b"document")
+            (p["tacho_scans"]/"scan.jpg").write_bytes(b"scan")
+            (p["waybills"]/"waybill.pdf").write_bytes(b"waybill")
+            (p["backups"]/"old.sqlite3").write_bytes(b"old backup")
+            (p["logs"]/"old.log").write_text("old log",encoding="utf-8")
+
+            result=clone_workspace(source,target)
+            self.assertTrue((result["vehicle_documents"]/"doc.pdf").is_file())
+            self.assertTrue((result["tacho_scans"]/"scan.jpg").is_file())
+            self.assertTrue((result["waybills"]/"waybill.pdf").is_file())
+            self.assertFalse((result["backups"]/"old.sqlite3").exists())
+            self.assertFalse((result["logs"]/"old.log").exists())
+
+            source_text=inspect.getsource(main.App.manual_backup)
+            manager_text=inspect.getsource(main.App.show_workspace_manager)
+            self.assertIn("Копії документів транспортних засобів",source_text)
+            self.assertIn("Повна копія / перенесення",manager_text)
 
     def test_vehicle_document_copies_make_workspace_nonempty(self):
         with tempfile.TemporaryDirectory() as tmp:
