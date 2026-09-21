@@ -419,7 +419,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         waybill_open_source=inspect.getsource(main.App.open_selected_waybill)
         waybill_preview_source=inspect.getsource(main.App.preview_selected_waybill)
         build_att_source=inspect.getsource(main.App.build_attestation)
-        build_waybill_source=inspect.getsource(main.App.show_waybill_issue_window)
+        build_waybill_source=inspect.getsource(main.App.show_waybills_for_schedule)
 
         self.assertIn("open_external(resolved)",open_source)
         self.assertNotIn("open_document",open_source)
