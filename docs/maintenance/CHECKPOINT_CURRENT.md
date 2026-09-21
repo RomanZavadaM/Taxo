@@ -74,3 +74,12 @@ Candidate automation:
 - regression gate: 201 tests / OK на source, Windows, macOS ARM64 та Intel;
 - Windows START preflight: OK;
 - після виданого r6 наступний крок — тільки 10.2-r7.
+
+
+## 10.2-r7 у роботі
+
+- виправляється тільки naming/publisher defect r6;
+- approved secondary-window UI зберігається;
+- r6 не переписується;
+- правильний пакет r7: `Taxo_v10_2_candidate_r7_START.zip`;
+- після r7 наступний revision — r8.
