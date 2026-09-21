@@ -76,64 +76,14 @@ class TestTaxo103R1DutyBoundaries(unittest.TestCase):
             source,
         )
 
-    def test_attestation_edit_updates_adjacent_work_not_driving(self):
-        con=sqlite3.connect(":memory:")
-        con.row_factory=sqlite3.Row
-        con.executescript("""
-            CREATE TABLE worklog(
-                id INTEGER PRIMARY KEY,
-                driver_id INTEGER NOT NULL,
-                work_date TEXT NOT NULL,
-                start_time TEXT DEFAULT '',
-                end_time TEXT DEFAULT '',
-                work_start_time TEXT DEFAULT '',
-                work_end_time TEXT DEFAULT '',
-                work_hours REAL DEFAULT 0
-            );
-            CREATE TABLE work_segments(
-                id INTEGER PRIMARY KEY,
-                worklog_id INTEGER NOT NULL,
-                segment_no INTEGER NOT NULL,
-                start_time TEXT DEFAULT '',
-                end_time TEXT DEFAULT '',
-                work_start_time TEXT DEFAULT '',
-                work_end_time TEXT DEFAULT '',
-                work_hours REAL DEFAULT 0
-            );
-        """)
-        con.execute(
-            "INSERT INTO worklog VALUES(1,7,'2026-09-18','08:15','20:40','07:55','19:40',11.75)"
-        )
-        con.execute(
-            "INSERT INTO work_segments VALUES(11,1,1,'08:15','20:40','07:55','19:40',11.75)"
-        )
-        con.execute(
-            "INSERT INTO worklog VALUES(2,7,'2026-09-21','07:25','19:25','07:55','19:40',11.75)"
-        )
-        con.execute(
-            "INSERT INTO work_segments VALUES(21,2,1,'07:25','19:25','07:55','19:40',11.75)"
-        )
-        app=object.__new__(main.App)
-        changes=main.App._sync_attestation_boundaries_to_worklog(
-            app,con,7,
-            "19:40 18.09.2026","07:55 21.09.2026",
-            "20:55 18.09.2026","07:05 21.09.2026",
-        )
-        self.assertEqual(len(changes),2)
-
-        prev=con.execute("SELECT * FROM worklog WHERE id=1").fetchone()
-        nxt=con.execute("SELECT * FROM worklog WHERE id=2").fetchone()
-        self.assertEqual(prev["work_end_time"],"20:55")
-        self.assertEqual(nxt["work_start_time"],"07:05")
-        # Маршрут/керування не переписується бланком.
-        self.assertEqual((prev["start_time"],prev["end_time"]),("08:15","20:40"))
-        self.assertEqual((nxt["start_time"],nxt["end_time"]),("07:25","19:25"))
-
-        prev_seg=con.execute("SELECT * FROM work_segments WHERE id=11").fetchone()
-        nxt_seg=con.execute("SELECT * FROM work_segments WHERE id=21").fetchone()
-        self.assertEqual(prev_seg["work_end_time"],"20:55")
-        self.assertEqual(nxt_seg["work_start_time"],"07:05")
-        con.close()
+    def test_r1_work_sync_is_retired_after_r2_policy_change(self):
+        source=(ROOT/"main.py").read_text("utf-8")
+        self.assertIn("_legacy_sync_attestation_boundaries_to_worklog",source)
+        update_block=source[
+            source.index("def _update_attestation_record"):
+            source.index("def edit_selected_attestation")
+        ]
+        self.assertNotIn("_sync_attestation_boundaries_to_worklog(",update_block)
 
     def test_attestation_cannot_cut_into_driving_time(self):
         con=sqlite3.connect(":memory:")
