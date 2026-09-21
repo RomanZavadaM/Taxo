@@ -12,7 +12,7 @@ _temporary_home = tempfile.TemporaryDirectory()
 _original_path_home = Path.home
 Path.home = classmethod(lambda cls: Path(_temporary_home.name))
 try:
-    import fitz
+    from pypdf import PdfReader
     import main
     import tachograph
     import waybill
@@ -172,7 +172,7 @@ class V870R5Tests(unittest.TestCase):
             waybill.build_waybill_pdf(None, target, data)
             doc = PdfReader(target)
             self.assertEqual(len(doc.pages), 2)
-            text = "\n".join(page.get_text() for page in doc)
+            text = "\n".join((page.extract_text() or "") for page in doc.pages)
             self.assertIn("Прямий напрямок", text)
             self.assertIn("Зворотний напрямок", text)
             self.assertIn("14.09.2026 - 15.09.2026", text)
@@ -181,7 +181,7 @@ class V870R5Tests(unittest.TestCase):
             self.assertIn("Нічліг", text)
             self.assertIn("14.09.2026 - 15.09.2026", text)
             self.assertFalse(any(page.get_images(full=True) for page in doc))
-            doc.close()
+            
 
     def test_tachograph_database_remains_separate(self):
         tachograph.init_tacho_db()
