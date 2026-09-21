@@ -59,35 +59,13 @@ def _driver_choices(core, app):
 
 
 def stamp_work_analysis_pdf(core, path, report_date):
-    """Add the editable formation date to every page of the №340 PDF."""
-    import fitz
+    """Compatibility no-op kept for the v9 call chain.
 
-    path = Path(path)
-    tmp = path.with_name(path.stem + ".v9-stamped" + path.suffix)
-    doc = fitz.open(str(path))
-    text = f"Дата формування: {report_date.strftime('%d.%m.%Y')}"
-    font_path = next((p for p in core.report_font_candidates() if os.path.exists(p)), None)
-    try:
-        for page in doc:
-            y = max(10, page.rect.height - 12)
-            kwargs = {"fontsize": 6.5, "overlay": True}
-            if font_path:
-                kwargs.update({"fontname": "TaxoV9FormationDate", "fontfile": font_path})
-            try:
-                page.insert_text((28, y), text, **kwargs)
-            except Exception:
-                # Base14 fallback stays ASCII-safe if the system font cannot be embedded.
-                page.insert_text(
-                    (28, y),
-                    f"Formation date: {report_date.strftime('%d.%m.%Y')}",
-                    fontsize=6.5,
-                    overlay=True,
-                )
-        doc.save(str(tmp), garbage=4, deflate=True)
-    finally:
-        doc.close()
-    os.replace(tmp, path)
-    return path
+    Since 10.2-r9 the formation date is rendered directly by
+    main.export_work_analysis_pdf() using ReportLab. This avoids reopening and
+    rewriting the PDF with PyMuPDF/fitz.
+    """
+    return Path(path)
 
 
 def install(core, base_app):
