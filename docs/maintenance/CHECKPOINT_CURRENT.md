@@ -7,8 +7,8 @@
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Verified candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
 **PR #34:** merged  
-**Latest completed candidate:** `10.2-r4` · PR #40 merged · prerelease published  
-**Active candidate:** `10.2-r5` · historical publisher cleanup
+**Latest completed candidate:** `10.2-r5` · merged into `main` · prerelease published  
+**Next revision:** `10.2-r6`
 
 ## Gate
 
@@ -58,9 +58,11 @@ Candidate automation:
 - наступний кодовий крок: `10.2-r5`.
 
 
-## 10.2-r5 у роботі
+## 10.2-r5 завершено
 
-- прибирається автозапуск historical `Publish Taxo 10.1 stable` від push у `main`;
-- stable `v10.1` не змінюється;
-- regression gate перевіряє manual-only trigger;
-- після r5 наступна ревізія — r6.
+- prerelease: `v10.2-r5`;
+- candidate target: `fd33f19adf9dc1c2840213d918c9ace52c967f7f`;
+- merge у `main`: `2978daecc15e96f109fe2d78de4bde8b9bd0477a`;
+- historical `Publish Taxo 10.1 stable` переведено у manual-only режим;
+- stable `v10.1` не змінено;
+- наступний завершений кодовий крок: `10.2-r6`.
