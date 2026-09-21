@@ -39,6 +39,14 @@
 - [Release notes 10.0](releases/RELEASE_NOTES_v10_0.md)
 - [Фінальний аудит 10.0](maintenance/AUDIT_v10_0_STABLE.md)
 
+## Для розробки
+
+- [Правила розробки](maintenance/DEVELOPMENT_RULES.md) — **кожен завершений крок = нова ревізія**; `r1 ... r10`, після `r10` — наступна minor-версія з `r1`.
+- [Чекліст випуску](maintenance/RELEASE_CHECKLIST.md)
+- [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
+
+Кожен завершений крок має окремий тестовий START-архів і пряме посилання для ручного тестування. Уже видану ревізію повторно не використовувати.
+
 ## Історія розробки
 
 Історичні матеріали 8.x збережені в окремій гілці [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
