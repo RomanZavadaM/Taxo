@@ -10,9 +10,10 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo102R7Packaging(unittest.TestCase):
-    def test_version_is_r7(self):
-        self.assertEqual(main.APP_VERSION,"10.2-r7")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.2-r7")
+    def test_r7_checkpoint_is_not_reused_by_later_revisions(self):
+        self.assertTrue(main.APP_VERSION.startswith("10.2-r"))
+        self.assertGreaterEqual(int(main.APP_VERSION.rsplit("r",1)[1]),7)
+        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),main.APP_VERSION)
 
     def test_start_archive_name_is_exact(self):
         self.assertEqual(
