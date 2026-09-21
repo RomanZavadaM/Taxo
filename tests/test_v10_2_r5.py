@@ -175,18 +175,20 @@ def add_driver_employee(con, *, mode="legacy", active=1, end_date="", employment
 
 
 class TestTaxo102R5TimesheetAndDriverRole(unittest.TestCase):
-    def test_version_is_r5(self):
-        self.assertEqual(main.APP_VERSION,"10.2-r5")
+    def test_r5_checkpoint_is_not_reused_by_later_10_2_revisions(self):
+        import re
+        match=re.fullmatch(r"10\.2-r(\d+)",main.APP_VERSION)
+        self.assertIsNotNone(match)
+        self.assertGreaterEqual(int(match.group(1)),5)
 
     def test_version_file_matches_app_version(self):
         root=Path(__file__).resolve().parents[1]
-        version_text=(root/"VERSION.txt").read_text(encoding="utf-8")
-        self.assertIn("Version: 10.2-r5",version_text)
         from release_naming import start_archive_stem, version_from_file
-        self.assertEqual(version_from_file(root/"VERSION.txt"),main.APP_VERSION)
+        current=version_from_file(root/"VERSION.txt")
+        self.assertEqual(current,main.APP_VERSION)
         self.assertEqual(
-            start_archive_stem(main.APP_VERSION),
-            "Taxo_v10_2_candidate_r5_START",
+            start_archive_stem(current),
+            "Taxo_v10_2_candidate_"+current.split("-",1)[1].replace(".","_")+"_START",
         )
 
     def test_revision_sequence_and_rollover_rule(self):
