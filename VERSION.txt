@@ -1,12 +1,12 @@
 Taxo / Driver Worktime
-Version: 10.2-r4
+Version: 10.2-r5
 Release date: 2026-09-21
 Release type: candidate
 Stable baseline: Taxo 10.1
 Stable tag: v10.1
 Stable target: fa5bbe0a5de733af1e227847ef9584daca57676e
 
-Taxo 10.2-r4 — replanning and test-package correction candidate.
+Taxo 10.2-r5 — historical publisher cleanup candidate.
 
 Основне:
 - модуль «Автомобілі» доповнено реєстром документів транспортного засобу;
@@ -43,3 +43,10 @@ Taxo 10.2-r4:
 - факт робочого часу при переплануванні не змінюється;
 - кожна тестова переробка отримує нову ревізію;
 - тестовий архів має один рівень ZIP і одну кореневу папку з тією самою назвою.
+
+
+Taxo 10.2-r5:
+- старий workflow «Publish Taxo 10.1 stable» переведено в manual-only режим;
+- злиття нових candidate у main більше не запускає історичну публікацію stable 10.1;
+- це прибирає хибні червоні GitHub Actions/поштові сповіщення про невдалий «Publish Taxo 10.1 stable»;
+- чинний stable v10.1 і його immutable release не змінюються.
