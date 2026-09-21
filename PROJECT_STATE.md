@@ -4,13 +4,13 @@
 **Stable baseline:** Taxo 10.1  
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Останній завершений крок:** Taxo 10.2-r4  
-**Активний крок:** Taxo 10.2-r5  
+**Останній завершений крок:** Taxo 10.2-r5  
+**Активний крок:** Taxo 10.2-r7  
 **Стан коду r4:** злитий у `main`  
-**Робоча гілка r5:** `work/v10.2-r5-publisher-cleanup`  
+**Робоча гілка r7:** `work/v10.2-r7-secondary-window-style`  
 **PR:** #40 — merged  
 **GitHub prerelease:** `v10.2-r4` — published  
-**Наступний кодовий крок після r5:** `10.2-r6`
+**Наступний кодовий крок після r7:** `10.2-r8`
 
 ## Джерело істини
 
@@ -179,3 +179,20 @@
 - додано regression-тест на відсутність автозапуску historical publisher.
 
 Поточний candidate: `10.2-r5`. Після його тестового архіву наступний крок — тільки `10.2-r6`.
+
+
+## 10.2-r6 — secondary-window UI consistency
+
+- великі службові Toplevel-вікна переводяться на єдину брендовану шапку;
+- dynamic enterprise name і актуальна версія показуються однаково;
+- функціональна логіка і БД не змінюються;
+- дрібні modal edit forms залишено на окремий наступний revision.
+
+
+## 10.2-r7 — packaging correction
+
+- UI-код r6 збережено;
+- r6 опубліковано з помилковим asset-name `Taxo_v10_1_candidate_r6_START.zip`;
+- r6 не переписується;
+- r7 формує правильний `Taxo_v10_2_candidate_r7_START.zip`;
+- після виданого r7 наступний крок — тільки 10.2-r8.
