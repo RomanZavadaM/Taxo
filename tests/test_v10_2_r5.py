@@ -174,28 +174,37 @@ def add_driver_employee(con, *, mode="legacy", active=1, end_date="", employment
     con.commit()
 
 
-class TestTaxo102R4TimesheetAndDriverRole(unittest.TestCase):
-    def test_version_is_r4(self):
-        self.assertEqual(main.APP_VERSION,"10.2-r4")
+class TestTaxo102R5TimesheetAndDriverRole(unittest.TestCase):
+    def test_version_is_r5(self):
+        self.assertEqual(main.APP_VERSION,"10.2-r5")
 
     def test_version_file_matches_app_version(self):
         root=Path(__file__).resolve().parents[1]
         version_text=(root/"VERSION.txt").read_text(encoding="utf-8")
-        self.assertIn("Version: 10.2-r4",version_text)
+        self.assertIn("Version: 10.2-r5",version_text)
         from release_naming import start_archive_stem, version_from_file
         self.assertEqual(version_from_file(root/"VERSION.txt"),main.APP_VERSION)
         self.assertEqual(
             start_archive_stem(main.APP_VERSION),
-            "Taxo_v10_2_candidate_r4_START",
+            "Taxo_v10_2_candidate_r5_START",
         )
 
     def test_revision_sequence_and_rollover_rule(self):
         from release_naming import next_candidate_version
-        self.assertEqual(next_candidate_version("10.2-r4"), "10.2-r5")
+        self.assertEqual(next_candidate_version("10.2-r5"), "10.2-r6")
         self.assertEqual(next_candidate_version("10.2-r9"), "10.2-r10")
         self.assertEqual(next_candidate_version("10.2-r10"), "10.3-r1")
         with self.assertRaises(ValueError):
             next_candidate_version("10.2-r11")
+
+    def test_historical_10_1_publisher_is_manual_only(self):
+        root=Path(__file__).resolve().parents[1]
+        workflow=(root/".github"/"workflows"/"publish-v10.1.yml").read_text(encoding="utf-8")
+        header=workflow.split("permissions:",1)[0]
+        self.assertIn("Historical publisher Taxo 10.1 stable (manual only)",header)
+        self.assertIn("workflow_dispatch:",header)
+        self.assertNotIn("push:",header)
+        self.assertNotIn("- main",header)
 
     def test_shift_uses_paid_plan_not_raw_clock_span(self):
         con=make_time_db()

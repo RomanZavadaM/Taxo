@@ -1,14 +1,6 @@
-name: Publish Taxo 10.1 stable
+name: Historical publisher Taxo 10.1 stable (manual only)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'VERSION.txt'
-      - '.github/workflows/publish-v10.1.yml'
-      - 'installer/Taxo.iss'
-      - 'Taxo_macos.spec'
   workflow_dispatch:
 
 permissions:

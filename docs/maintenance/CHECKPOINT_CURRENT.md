@@ -7,7 +7,8 @@
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Verified candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
 **PR #34:** merged  
-**Latest completed candidate:** `10.2-r4` · PR #40 merged · prerelease published
+**Latest completed candidate:** `10.2-r4` · PR #40 merged · prerelease published  
+**Active candidate:** `10.2-r5` · historical publisher cleanup
 
 ## Gate
 
@@ -55,3 +56,11 @@ Candidate automation:
 - Windows gate: success;
 - macOS gate: success;
 - наступний кодовий крок: `10.2-r5`.
+
+
+## 10.2-r5 у роботі
+
+- прибирається автозапуск historical `Publish Taxo 10.1 stable` від push у `main`;
+- stable `v10.1` не змінюється;
+- regression gate перевіряє manual-only trigger;
+- після r5 наступна ревізія — r6.

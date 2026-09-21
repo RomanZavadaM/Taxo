@@ -74,3 +74,10 @@ Stable 10.1 не змінюється. Candidate 10.2-r4 прийнятий, PR 
 Джерело правила: [maintenance/DEVELOPMENT_RULES.md](maintenance/DEVELOPMENT_RULES.md).
 
 Наступний кодовий крок — `10.2-r5`.
+
+
+## Активний candidate 10.2-r5
+
+Інфраструктурне виправлення: historical publisher stable 10.1 більше не запускається автоматично при нових merge у `main`. Це прибирає хибні failure-повідомлення GitHub Actions; функціонал Taxo та immutable stable `v10.1` не змінюються.
+
+Після завершення r5 наступний кодовий крок — `10.2-r6`.

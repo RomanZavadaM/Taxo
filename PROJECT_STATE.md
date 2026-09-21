@@ -5,10 +5,12 @@
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Останній завершений крок:** Taxo 10.2-r4  
-**Стан коду:** злитий у `main`  
+**Активний крок:** Taxo 10.2-r5  
+**Стан коду r4:** злитий у `main`  
+**Робоча гілка r5:** `work/v10.2-r5-publisher-cleanup`  
 **PR:** #40 — merged  
 **GitHub prerelease:** `v10.2-r4` — published  
-**Наступний кодовий крок:** `10.2-r5`
+**Наступний кодовий крок після r5:** `10.2-r6`
 
 ## Джерело істини
 
@@ -163,3 +165,17 @@
 - GitHub prerelease `v10.2-r4` опублікований і є immutable checkpoint.
 - Source/START, Windows і macOS перевірки на merge-commit пройшли успішно.
 - Наступна кодова зміна починається тільки як `10.2-r5`.
+
+
+## 10.2-r5 — cleanup historical publisher
+
+Причина: після merge 10.2-r4 у `main` автоматично запускався старий workflow `Publish Taxo 10.1 stable`, який очікує `Version: 10.1` і тому давав хибний failure/email.
+
+Зміна:
+- `.github/workflows/publish-v10.1.yml` тепер historical/manual-only;
+- trigger `push -> main` прибрано;
+- `workflow_dispatch` залишено для історичного ручного запуску;
+- stable `v10.1` не змінюється;
+- додано regression-тест на відсутність автозапуску historical publisher.
+
+Поточний candidate: `10.2-r5`. Після його тестового архіву наступний крок — тільки `10.2-r6`.
