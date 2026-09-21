@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r8"
+APP_VERSION = "10.2-r9"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -14968,6 +14968,18 @@ class App(tk.Tk):
         con.close()
 
         self.load_att_history()
+        # r9: after creating a new blank, select exactly that new record.
+        # Previously load_att_history() restored the old selection, so the
+        # DOCX/PDF/JPG "Open" buttons could open an older blank and make it
+        # look as if the newly generated document contained wrong dates.
+        if hasattr(self,"att_tree"):
+            for iid in self.att_tree.get_children():
+                values=self.att_tree.item(iid,"values")
+                if values and str(values[0]) == str(att_id):
+                    self.att_tree.selection_set(iid)
+                    self.att_tree.focus(iid)
+                    self.att_tree.see(iid)
+                    break
         if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
             self.refresh_attestation_gap_control()
 
