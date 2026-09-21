@@ -66,7 +66,7 @@ class V870R7Tests(unittest.TestCase):
                 "odometer_start":120000,"odometer_end":120280,"distance_km":280,
                 "planned_distance_km":275,
             })
-            doc=fitz.open(target)
+            doc=PdfReader(target)
             text="\n".join(page.get_text() for page in doc)
             doc.close()
             self.assertIn("пробіг 280 км",text)
