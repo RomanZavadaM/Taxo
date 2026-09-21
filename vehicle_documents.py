@@ -165,7 +165,7 @@ def vehicle_document_summary(con, vehicle_id, today=None):
 
     if registration_candidates:
         _rank, _id, dtype, row, status = max(registration_candidates)
-        details.append(("registration", "Реєстраційний документ", row, status))
+        details.append(("registration", DOCUMENT_TYPES[dtype], row, status))
     else:
         details.append(("registration", "Реєстраційний документ", None, "Відсутній"))
 
