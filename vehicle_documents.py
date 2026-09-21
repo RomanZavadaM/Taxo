@@ -13,6 +13,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from document_viewer import open_document
 from workspace import paths_for, resolved_path, stored_path
 
 
@@ -593,7 +594,7 @@ class VehicleDocumentsWindow:
             messagebox.showerror("Копія документа", "Файл копії не знайдено у робочому сховищі.", parent=self.win)
             return
         try:
-            open_external(path)
+            open_document(self.win, path, external_opener=open_external)
         except OSError as exc:
             messagebox.showerror("Копія документа", f"Не вдалося відкрити файл:\n{exc}", parent=self.win)
 

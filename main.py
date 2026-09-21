@@ -70,6 +70,7 @@ try:
 except ImportError:
     build_waybill_pdf = None
 
+from document_viewer import open_document
 from vehicle_documents import (
     ensure_vehicle_documents_schema,
     open_vehicle_document_control,
@@ -9669,7 +9670,7 @@ class App(tk.Tk):
             path=actual
             self.monthly_balance_last_pdf=actual
         try:
-            open_external(path)
+            open_document(self.monthly_balance_win, path, external_opener=open_external)
         except Exception as e:
             messagebox.showerror(
                 "Помилка",str(e),parent=self.monthly_balance_win
@@ -10391,7 +10392,7 @@ class App(tk.Tk):
             if actual is None:
                 return
             self.monthly_shift_last_detail_pdf=Path(actual)
-            open_external(actual)
+            open_document(self.monthly_shift_win, actual, external_opener=open_external)
         except Exception as exc:
             messagebox.showerror(
                 "Деталізація графіка",
@@ -10468,7 +10469,7 @@ class App(tk.Tk):
                 self.monthly_shift_last_pdf=path
                 self.monthly_shift_last_pdf_key=key
                 self.monthly_shift_pdf_dirty=False
-            open_external(path)
+            open_document(self.monthly_shift_win, path, external_opener=open_external)
         except Exception as e:
             messagebox.showerror(
                 "Графік змінності",
@@ -11384,7 +11385,7 @@ class App(tk.Tk):
         con.execute("""INSERT INTO waybill_events(waybill_id,event_type,document_series,document_number,internal_no,revision,pdf_path,created_at)
             VALUES(?,?,?,?,?,?,?,?)""",(waybill_id,"reprint" if reprint else "issued",document_series,document_number,internal_no,revision,actual_db_path,now))
         con.commit(); con.close(); self.refresh_waybill_issue_list()
-        try: open_external(actual)
+        try: open_document(self.waybill_win, actual, external_opener=open_external)
         except Exception: pass
 
     def void_selected_waybill(self):
@@ -12708,7 +12709,7 @@ class App(tk.Tk):
             error_title="Помилка деталізації"
         )
         if actual is not None:
-            open_external(actual)
+            open_document(parent or self, actual, external_opener=open_external)
 
     def show_work_analysis(self):
         data=self.calculate_work_analysis()
@@ -14658,7 +14659,7 @@ class App(tk.Tk):
         if path is None or not path.exists():
             messagebox.showerror("Помилка","Файл не знайдено.",parent=self)
             return
-        open_external(path)
+        open_document(self, path, external_opener=open_external)
 
     def open_att_file(self, kind=None):
         row=self._selected_attestation_row()
