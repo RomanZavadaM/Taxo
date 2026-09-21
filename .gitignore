@@ -25,3 +25,6 @@ Taxo_v9_1_candidate_r*_macOS_*_Portable.zip
 Taxo_v9_1_candidate_r*_macOS_*/
 Taxo_v9_1_candidate_r*_START.zip
 SHA256SUMS_v9_1_candidate_r*.txt
+
+# Generated third-party license bundle for executable packaging
+third_party_licenses/
