@@ -4,7 +4,7 @@ name: Publish Taxo 10.3-r2 source prerelease
 on:
   push:
     branches:
-      - 'work/v10.3-r2-attestation-duty-boundaries'
+      - 'work/v10.3-r2-attestation-fact-only'
   workflow_dispatch:
 
 permissions:
