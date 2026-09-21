@@ -17,7 +17,7 @@ from vehicle_documents import (
     ensure_vehicle_documents_schema,
     vehicle_document_summary,
 )
-from workspace import resolved_path
+from workspace import ensure_workspace, paths_for, resolved_path, workspace_has_data
 
 
 class TestTaxo102R1VehicleDocuments(unittest.TestCase):
@@ -166,6 +166,14 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertEqual(old_insurance["archived"], 1)
         self.assertEqual(old_registration["archived"], 1)
         con.close()
+
+    def test_vehicle_document_copies_make_workspace_nonempty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            ensure_workspace(root)
+            doc_dir = paths_for(root)["vehicle_documents"]
+            (doc_dir / "copy.pdf").write_bytes(b"copy")
+            self.assertTrue(workspace_has_data(root))
 
     def test_document_copy_is_kept_inside_workspace(self):
         with tempfile.TemporaryDirectory() as tmp:
