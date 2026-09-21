@@ -96,3 +96,26 @@ Taxo має спільний внутрішній переглядач для с
 
 ## Нумерація
 Починаючи з цієї ревізії застосовується схема `r1 ... r10`. Після `r10` піднімається другий розряд версії (наприклад `10.2 -> 10.3`). Перший розряд змінюється лише за окремим рішенням власника проєкту.
+
+
+## Пакети релізу
+
+GitHub prerelease `v10.2-r2` публікує:
+- `Taxo_v10_2_candidate_r2_Setup_Windows_x64.exe`;
+- `Taxo_v10_2_candidate_r2_Windows_x64_Portable.zip`;
+- `Taxo_v10_2_candidate_r2_macOS_arm64_Portable.zip`;
+- `Taxo_v10_2_candidate_r2_macOS_x86_64_Portable.zip`;
+- `Taxo_v10_2_candidate_r2_START.zip`;
+- SHA-256 manifests.
+
+У назвах пакетів і внутрішніх папок немає commit-хешів.
+
+## Перевірка перед публікацією
+
+- 180 regression tests — Windows / OK;
+- START preflight — OK;
+- macOS ARM64 — OK;
+- macOS Intel x86_64 — OK;
+- робочі SQLite-бази та персональні дані не входять у пакети.
+
+Taxo 10.1 залишається stable. `v10.2-r2` публікується як prerelease для перевірки нової функціональності.
