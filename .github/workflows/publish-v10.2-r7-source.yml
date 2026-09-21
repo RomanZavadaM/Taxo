@@ -1,4 +1,4 @@
-# Taxo 10.2-r7 secondary-window UI candidate publisher
+# Taxo 10.2-r7 corrected packaging publisher — release notes ready
 name: Publish Taxo 10.2-r7 source prerelease
 
 on:
