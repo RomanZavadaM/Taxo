@@ -68,3 +68,15 @@ v10.1-r5:
 - stable code/release tag `v10.1` targets `fa5bbe0a5de733af1e227847ef9584daca57676e`; `main` may contain later docs-only follow-up commits without moving the immutable release tag.
 
 Taxo 10.0 is the previous stable / rollback point.
+
+
+## Active development 10.2-r4
+
+Stable 10.1 залишається експлуатаційною базою. Активний candidate: `10.2-r4`, гілка `work/v10.2-r4-replanning`, PR #40.
+
+Обов’язкове правило розробки:
+- кожен завершений крок = нова ревізія;
+- `r1 ... r10`; після `r10` — наступна minor-версія з `r1`;
+- після виданого тестового архіву та сама ревізія більше не використовується;
+- кожен крок завершується START-архівом і прямим посиланням для ручного тестування;
+- канонічні правила: [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md).
