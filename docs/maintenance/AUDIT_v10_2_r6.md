@@ -31,6 +31,16 @@ Helper застосовано до 12 великих робочих/звітни
 - використання helper у всіх 12 цільових вікнах;
 - відсутність SQL/schema mutations у самому UI helper.
 
+## Regression result
+
+- START/source: **201 tests / OK**;
+- Windows: **201 tests / OK**;
+- Windows START complete/incomplete preflight: OK;
+- macOS ARM64: **201 tests / OK**;
+- macOS Intel x86_64: **201 tests / OK**.
+
+Runs: source `35611243312`, Windows `35611377330`, macOS `35611378697`.
+
 ## Release policy
 
 Після green source/Windows/macOS gate публікується окремий immutable START prerelease `v10.2-r6`. Stable `v10.1` не змінюється.
