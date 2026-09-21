@@ -13,6 +13,8 @@ import shutil
 import socket
 import sqlite3
 import sys
+import tempfile
+import zipfile
 import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -24,6 +26,8 @@ WORKSPACE_CONFIG_ENV = "TAXO_CONFIG_DIR"
 MARKER_NAME = ".taxo_workspace.json"
 LOCK_NAME = ".taxo_workspace.lock"
 STALE_LOCK_MINUTES = 5
+FULL_BACKUP_FORMAT = 1
+FULL_BACKUP_MANIFEST = "taxo_full_backup.json"
 
 
 def _now():
@@ -444,6 +448,149 @@ def _copy_tree_without_databases(source,target):
         elif child.name!=MARKER_NAME:
             shutil.copy2(child,dest)
 
+
+
+def _copy_backup_payload(source, target):
+    """Copy mutable workspace files except databases and nested backup archives."""
+    source=normalize_root(source); target=normalize_root(target)
+    excluded_files={"driver_worktime.sqlite3","tachograph_test.sqlite3",LOCK_NAME}
+    for folder_name in ("Data","Output","Logs"):
+        src=source/folder_name
+        if not src.exists():
+            continue
+        dst=target/folder_name
+        shutil.copytree(
+            src,dst,dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns(
+                "driver_worktime.sqlite3","tachograph_test.sqlite3",
+                "*-wal","*-shm","*-journal",LOCK_NAME
+            )
+        )
+    marker=source/MARKER_NAME
+    if marker.is_file():
+        shutil.copy2(marker,target/MARKER_NAME)
+
+
+def create_workspace_backup_archive(source_root, archive_path, app_version=""):
+    """Create an atomic, verified ZIP backup of current workspace data.
+
+    Prior files from Backups/ are deliberately excluded to avoid recursive
+    backup growth. Current SQLite databases are copied through SQLite backup().
+    """
+    source=normalize_root(source_root)
+    archive=Path(archive_path).expanduser()
+    if archive.suffix.lower()!=".zip":
+        archive=archive.with_suffix(".zip")
+    archive=Path(os.path.abspath(str(archive)))
+    archive.parent.mkdir(parents=True,exist_ok=True)
+
+    with tempfile.TemporaryDirectory(prefix="taxo_full_backup_") as temp_name:
+        stage=Path(temp_name)/"TaxoWorkspace"
+        stage.mkdir(parents=True,exist_ok=False)
+        _copy_backup_payload(source,stage)
+        srcp=paths_for(source); dstp=paths_for(stage)
+        if srcp["main_db"].exists():
+            _sqlite_backup(srcp["main_db"],dstp["main_db"])
+            validate_sqlite(dstp["main_db"])
+        if srcp["tacho_db"].exists():
+            _sqlite_backup(srcp["tacho_db"],dstp["tacho_db"])
+            validate_sqlite(dstp["tacho_db"])
+        manifest={
+            "format":FULL_BACKUP_FORMAT,
+            "application":"Taxo",
+            "app_version":str(app_version or ""),
+            "created_at":_iso_now(),
+            "includes":["Data","Output","Logs"],
+            "excludes":["Backups",LOCK_NAME],
+        }
+        (stage/FULL_BACKUP_MANIFEST).write_text(
+            json.dumps(manifest,ensure_ascii=False,indent=2),"utf-8"
+        )
+        tmp_archive=archive.with_name(
+            archive.name+f".{uuid.uuid4().hex}.tmp"
+        )
+        try:
+            with zipfile.ZipFile(
+                tmp_archive,"w",compression=zipfile.ZIP_DEFLATED,allowZip64=True
+            ) as zf:
+                for item in sorted(stage.rglob("*")):
+                    if item.is_file():
+                        zf.write(item,item.relative_to(stage))
+            validate_workspace_backup_archive(tmp_archive)
+            os.replace(tmp_archive,archive)
+        finally:
+            try:
+                if tmp_archive.exists():
+                    tmp_archive.unlink()
+            except OSError:
+                pass
+    return archive
+
+
+def validate_workspace_backup_archive(archive_path):
+    """Validate Taxo full backup structure and embedded SQLite files."""
+    archive=Path(archive_path)
+    if not archive.is_file():
+        raise FileNotFoundError(str(archive))
+    with tempfile.TemporaryDirectory(prefix="taxo_backup_check_") as temp_name:
+        target=Path(temp_name)
+        with zipfile.ZipFile(archive,"r") as zf:
+            names=zf.namelist()
+            if FULL_BACKUP_MANIFEST not in names:
+                raise ValueError("Це не повна резервна копія Taxo: немає службового опису.")
+            for info in zf.infolist():
+                candidate=(target/info.filename).resolve()
+                try:
+                    candidate.relative_to(target.resolve())
+                except ValueError:
+                    raise ValueError("Архів містить небезпечний шлях.")
+            zf.extractall(target)
+        try:
+            manifest=json.loads((target/FULL_BACKUP_MANIFEST).read_text("utf-8"))
+        except (OSError,ValueError,TypeError) as exc:
+            raise ValueError("Пошкоджений службовий опис резервної копії.") from exc
+        if manifest.get("application")!="Taxo" or int(manifest.get("format") or 0)!=FULL_BACKUP_FORMAT:
+            raise ValueError("Несумісний формат повної резервної копії Taxo.")
+        p=paths_for(target)
+        validate_sqlite(p["main_db"])
+        validate_sqlite(p["tacho_db"])
+        if not p["main_db"].exists() and not p["tacho_db"].exists():
+            raise ValueError("У резервній копії немає жодної бази Taxo.")
+        return manifest
+
+
+def restore_workspace_backup_archive(archive_path, target_root):
+    """Restore a full backup only into an empty/new workspace directory."""
+    archive=Path(archive_path)
+    target=normalize_root(target_root)
+    validate_workspace_backup_archive(archive)
+    probe_workspace(target)
+    if workspace_has_data(target):
+        raise ValueError("Цільова папка вже містить дані Taxo.")
+    if any(target.iterdir()):
+        allowed={MARKER_NAME}
+        unexpected=[item.name for item in target.iterdir() if item.name not in allowed]
+        if unexpected:
+            raise ValueError("Цільова папка не порожня.")
+    with tempfile.TemporaryDirectory(prefix="taxo_restore_") as temp_name:
+        stage=Path(temp_name)/"TaxoWorkspace"
+        stage.mkdir(parents=True,exist_ok=False)
+        with zipfile.ZipFile(archive,"r") as zf:
+            zf.extractall(stage)
+        p=paths_for(stage)
+        validate_sqlite(p["main_db"]); validate_sqlite(p["tacho_db"])
+        for child in stage.iterdir():
+            if child.name==FULL_BACKUP_MANIFEST:
+                continue
+            dest=target/child.name
+            if child.is_dir():
+                shutil.copytree(child,dest,dirs_exist_ok=True)
+            else:
+                shutil.copy2(child,dest)
+    ensure_workspace(target)
+    result=paths_for(target)
+    validate_sqlite(result["main_db"]); validate_sqlite(result["tacho_db"])
+    return result
 
 def clone_workspace(source_root,target_root):
     """Створити перевірену копію сховища; оригінал лишається страховою копією."""
