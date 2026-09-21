@@ -9524,25 +9524,59 @@ class App(tk.Tk):
                 messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win)
                 return
             role_end_date=""
+            role_start_date=""
+            role_action=""
             if driver and bool(driver["active"]) and not active.get():
-                raw_end=simpledialog.askstring(
-                    "Дата завершення ролі",
-                    "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                choice=messagebox.askyesnocancel(
+                    "Зняти роль «Водій»",
+                    "ТАК — це реальне завершення роботи водієм і треба зберегти дату.\n"
+                    "НІ — це помилкова спадкова роль зі старих версій; не вважати працівника водієм історично.\n"
+                    "СКАСУВАТИ — повернутися без змін.",
+                    parent=win,
+                )
+                if choice is None:
+                    return
+                if choice:
+                    role_action="finish"
+                    raw_end=simpledialog.askstring(
+                        "Дата завершення ролі",
+                        "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                        initialvalue=date.today().strftime("%d.%m.%Y"),
+                        parent=win,
+                    )
+                    if raw_end is None:
+                        return
+                    try:
+                        role_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                    except ValueError:
+                        messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
+                        return
+                else:
+                    role_action="void"
+            elif driver and not bool(driver["active"]) and active.get():
+                raw_start=simpledialog.askstring(
+                    "Початок ролі водія",
+                    "Дата початку / відновлення ролі водія (ДД.ММ.РРРР):",
                     initialvalue=date.today().strftime("%d.%m.%Y"),
                     parent=win,
                 )
-                if raw_end is None:
+                if raw_start is None:
                     return
                 try:
-                    role_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                    role_start_date=datetime.strptime(raw_start.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
                 except ValueError:
                     messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
                     return
+                role_action="activate"
+            elif not driver and active.get():
+                role_action="activate"
+                role_start_date=vals.get("employment_date") or date.today().isoformat()
             con=db()
             if driver:
                 saved_driver_id=driver["id"]
-                next_driver_end="" if active.get() else (
-                    role_end_date or (driver["driver_end_date"] or "").strip()
+                next_driver_end=(
+                    "" if active.get() or role_action=="void"
+                    else (role_end_date or (driver["driver_end_date"] or "").strip())
                 )
                 con.execute("""UPDATE drivers SET
                     last_name=?,first_name=?,middle_name=?,
@@ -9563,7 +9597,7 @@ class App(tk.Tk):
                      vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
                      vals["personnel_no"],vals["birth_date"],vals["license_series"],vals["license_number"],
                      vals["license_issue_date"],vals["employment_date"],vals["notes"],
-                     int(active.get()),datetime.now().isoformat(timespec="seconds")))
+                     0,datetime.now().isoformat(timespec="seconds")))
                 saved_driver_id=cur.lastrowid
             emp=con.execute("SELECT id FROM employees WHERE driver_id=?",(saved_driver_id,)).fetchone()
             if emp:
@@ -9572,11 +9606,17 @@ class App(tk.Tk):
                     (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],employee_id))
             else:
                 cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,employment_date,notes,active,driver_id,created_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],int(active.get()),saved_driver_id,datetime.now().isoformat(timespec="seconds")))
+                    VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],1,saved_driver_id,datetime.now().isoformat(timespec="seconds")))
                 employee_id=cur.lastrowid
-            if active.get():
+            if role_action=="finish":
+                finish_driver_role(con,employee_id,saved_driver_id,role_end_date)
+            elif role_action=="void":
+                void_legacy_driver_role(con,employee_id,saved_driver_id)
+            elif role_action=="activate":
+                activate_driver_role(con,employee_id,saved_driver_id,role_start_date)
+            elif active.get():
                 con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
-                con.execute("UPDATE drivers SET driver_end_date='' WHERE id=?",(saved_driver_id,))
+                con.execute("UPDATE drivers SET active=1,driver_end_date='' WHERE id=?",(saved_driver_id,))
             else:
                 con.execute("DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",(employee_id,))
             con.commit(); con.close()
@@ -9591,16 +9631,36 @@ class App(tk.Tk):
     def delete_driver(self):
         d=self.selected_driver()
         if not d: return
-        if not messagebox.askyesno("Завершити роль водія","Зняти роль «Водій»? Працівник залишиться в реєстрі, а історія графіка, табеля та шляхівок не видалиться."): return
-        raw_end=simpledialog.askstring("Дата завершення ролі","Дата завершення роботи водієм (ДД.ММ.РРРР):",initialvalue=date.today().strftime("%d.%m.%Y"),parent=self)
-        if raw_end is None: return
-        try: end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
-        except ValueError:
-            messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=self); return
+        choice=messagebox.askyesnocancel(
+            "Зняти роль «Водій»",
+            "ТАК — реальне завершення ролі з датою.\n"
+            "НІ — виправити помилкову спадкову роль старих версій.\n"
+            "СКАСУВАТИ — нічого не змінювати.",
+            parent=self,
+        )
+        if choice is None: return
+        end_date=""
+        if choice:
+            raw_end=simpledialog.askstring("Дата завершення ролі","Дата завершення роботи водієм (ДД.ММ.РРРР):",initialvalue=date.today().strftime("%d.%m.%Y"),parent=self)
+            if raw_end is None: return
+            try: end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+            except ValueError:
+                messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=self); return
         con=db()
         employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(d["id"],)).fetchone()
-        if employee: finish_driver_role(con,employee["id"],d["id"],end_date)
-        else: con.execute("UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",(end_date,d["id"]))
+        if employee:
+            if choice:
+                finish_driver_role(con,employee["id"],d["id"],end_date)
+            else:
+                void_legacy_driver_role(con,employee["id"],d["id"])
+        elif choice:
+            con.execute("UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",(end_date,d["id"]))
+        else:
+            cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+            if "driver_role_mode" in cols:
+                con.execute("UPDATE drivers SET active=0,driver_end_date='',driver_role_mode='invalid' WHERE id=?",(d["id"],))
+            else:
+                con.execute("UPDATE drivers SET active=0,driver_end_date='' WHERE id=?",(d["id"],))
         con.commit(); con.close(); self.load_drivers(); self.load_employee_registry()
     def selected_driver(self):
         sel=self.driver_tree.selection()
