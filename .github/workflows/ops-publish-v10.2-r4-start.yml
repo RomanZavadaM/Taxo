@@ -1,0 +1,65 @@
+name: Publish Taxo 10.2-r4 START prerelease
+
+on:
+  push:
+    branches:
+      - 'ops/publish-v10.2-r4'
+    paths:
+      - '.github/workflows/ops-publish-v10.2-r4-start.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_SHA: 51f84f90c76afde2701a3d26f37e54de279ed2d2
+      TAG: v10.2-r4
+      STEM: Taxo_v10_2_candidate_r4_START
+    steps:
+      - name: Checkout publication helper branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify accepted candidate identity
+        shell: bash
+        run: |
+          git show "$TARGET_SHA:VERSION.txt" | grep -Fxq 'Version: 10.2-r4'
+          git show "$TARGET_SHA:VERSION.txt" | grep -Fxq 'Release type: candidate'
+          git show "$TARGET_SHA:main.py" | grep -Fxq 'APP_VERSION = "10.2-r4"'
+
+      - name: Refuse overwrite
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "$TAG already exists; refusing overwrite" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "$TAG release already exists; refusing overwrite" >&2
+            exit 1
+          fi
+
+      - name: Build accepted START archive
+        shell: bash
+        run: |
+          git archive --format=zip --prefix="$STEM/" --output="$STEM.zip" "$TARGET_SHA"
+          if unzip -l "$STEM.zip" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly bundled' >&2
+            exit 1
+          fi
+          unzip -l "$STEM.zip" | grep -q "/START.bat$"
+          unzip -l "$STEM.zip" | grep -q "/VERSION.txt$"
+          sha256sum "$STEM.zip" > SHA256SUMS_v10_2_r4_START.txt
+
+      - name: Publish immutable GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          git show "$TARGET_SHA:docs/releases/RELEASE_NOTES_v10_2_r4.md" > /tmp/release-notes.md
+          gh release create "$TAG"             "$STEM.zip"             SHA256SUMS_v10_2_r4_START.txt             --repo "${GITHUB_REPOSITORY}"             --target "$TARGET_SHA"             --title 'Taxo 10.2-r4'             --notes-file /tmp/release-notes.md             --prerelease
