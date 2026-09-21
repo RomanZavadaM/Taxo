@@ -35,11 +35,19 @@ class TestTaxo103R2AttestationPlanFact(unittest.TestCase):
         self.assertIn("_update_attestation_record(",source)
         self.assertIn("Попередні файли будуть збережені в архіві",source)
 
-    def test_attestation_edit_syncs_work_but_not_driving(self):
+    def test_attestation_does_not_change_payable_work_time(self):
         source=(ROOT/"main.py").read_text("utf-8")
-        self.assertIn("_sync_attestation_boundaries_to_worklog(",source)
-        self.assertIn("_sync_new_attestation_boundaries_to_worklog(",source)
-        self.assertIn("Змінює тільки межу РОБОТИ; час керування/маршруту не переписує.",source)
+        update_block=source[source.index("def _update_attestation_record"):source.index("def edit_selected_attestation")]
+        create_block=source[source.index("def _create_attestation_record"):source.index("def create_selected_gap_attestation")]
+        self.assertNotIn("_sync_attestation_boundaries_to_worklog(",update_block)
+        self.assertNotIn("_sync_new_attestation_boundaries_to_worklog(",create_block)
+        self.assertIn("Робочий час і час керування не змінюються",source)
+        self.assertIn("для зарплати враховується весь реально",source)
+
+    def test_work_and_attestation_are_distinct_facts(self):
+        source=(ROOT/"main.py").read_text("utf-8")
+        self.assertIn("Межі Бланка підтвердження не змінюють табель",source)
+        self.assertIn("Бланк та робочий час ведуться окремо",source)
 
     def test_multiple_reasons_can_remain_separate(self):
         source=(ROOT/"main.py").read_text("utf-8")
