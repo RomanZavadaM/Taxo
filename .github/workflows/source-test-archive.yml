@@ -77,6 +77,7 @@ jobs:
             main.py
             workspace.py
             vehicle_documents.py
+            document_viewer.py
             00_README_START.txt
             release_naming.py
             v9_release.py
