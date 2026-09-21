@@ -8,7 +8,7 @@ _temporary_home = tempfile.TemporaryDirectory()
 _original_path_home = Path.home
 Path.home = classmethod(lambda cls: Path(_temporary_home.name))
 try:
-    import fitz
+    from pypdf import PdfReader
     import main
     import waybill
 finally:
@@ -97,11 +97,11 @@ class V870R6Tests(unittest.TestCase):
                 "odometer_start":120000,"odometer_end":120275,"distance_km":275,
             })
             doc=PdfReader(target)
-            text="\n".join(page.get_text() for page in doc)
+            text="\n".join((page.extract_text() or "") for page in doc.pages)
             self.assertIn("поч. 120000 км",text)
             self.assertIn("кін. 120275 км",text)
             self.assertIn("пробіг 275 км",text)
-            doc.close()
+            
 
 
 if __name__ == "__main__":
