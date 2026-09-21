@@ -70,7 +70,14 @@ try:
 except ImportError:
     build_waybill_pdf = None
 
-APP_VERSION = "10.1"
+from vehicle_documents import (
+    ensure_vehicle_documents_schema,
+    open_vehicle_document_control,
+    open_vehicle_documents,
+    vehicle_document_summary_text,
+)
+
+APP_VERSION = "10.2-r1"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -1073,6 +1080,7 @@ def init_db():
     vcols = {r[1] for r in con.execute("PRAGMA table_info(vehicles)").fetchall()}
     if "garage_no" not in vcols:
         con.execute("ALTER TABLE vehicles ADD COLUMN garage_no TEXT DEFAULT ''")
+    ensure_vehicle_documents_schema(con)
 
     for name, ddl in [
         ("waybill_series", "TEXT DEFAULT 'АААТ'"),
@@ -9206,13 +9214,19 @@ class App(tk.Tk):
         top.pack(fill="x", padx=10, pady=8)
         ttk.Button(top, text="Нове авто", command=self.vehicle_form).pack(side="left", padx=4)
         ttk.Button(top, text="Редагувати", command=self.edit_vehicle).pack(side="left", padx=4)
-        ttk.Button(top, text="Видалити", command=self.delete_vehicle).pack(side="left", padx=4)
+        ttk.Button(top, text="Документи", command=self.vehicle_documents).pack(side="left", padx=4)
+        ttk.Button(top, text="Контроль документів", command=self.vehicle_document_control).pack(side="left", padx=4)
+        ttk.Button(top, text="Вивести з експлуатації", command=self.delete_vehicle).pack(side="left", padx=4)
         ttk.Button(top, text="Оновити", command=self.load_vehicles).pack(side="left", padx=4)
-        ttk.Label(self.tab_vehicles, text="Каталог автомобілів. Одного водія можна щодня призначати на різні автомобілі та маршрути.", foreground="gray").pack(anchor="w", padx=12)
-        cols=("id","name","plate","garage","make","year","active","notes")
+        ttk.Label(
+            self.tab_vehicles,
+            text="Каталог транспортних засобів. Документи зберігаються з копіями та контролем строків дії.",
+            foreground="gray",
+        ).pack(anchor="w", padx=12)
+        cols=("id","name","plate","garage","make","year","active","documents","notes")
         self.vehicle_tree=ttk.Treeview(self.tab_vehicles,columns=cols,show="headings",height=25)
-        heads={"id":"ID","name":"Назва","plate":"Держ. №","garage":"Гар. №","make":"Марка / модель","year":"Рік","active":"Статус","notes":"Примітка"}
-        widths={"id":45,"name":165,"plate":110,"garage":85,"make":170,"year":65,"active":75,"notes":280}
+        heads={"id":"ID","name":"Назва","plate":"Держ. №","garage":"Гар. №","make":"Марка / модель","year":"Рік","active":"Статус","documents":"Документи","notes":"Примітка"}
+        widths={"id":45,"name":155,"plate":105,"garage":80,"make":160,"year":60,"active":75,"documents":260,"notes":220}
         for c in cols:
             self.vehicle_tree.heading(c,text=heads[c]); self.vehicle_tree.column(c,width=widths[c],anchor="w")
         vehicle_y=ttk.Scrollbar(self.tab_vehicles,orient="vertical",command=self.vehicle_tree.yview)
@@ -9228,9 +9242,18 @@ class App(tk.Tk):
     def load_vehicles(self):
         if not hasattr(self,"vehicle_tree"): return
         for x in self.vehicle_tree.get_children(): self.vehicle_tree.delete(x)
-        con=db(); rows=con.execute("SELECT * FROM vehicles ORDER BY active DESC, name, plate").fetchall(); con.close()
-        for r in rows:
-            self.vehicle_tree.insert("","end",values=(r["id"],r["name"],r["plate"],r["garage_no"],r["make_model"],r["year"] or "","Так" if r["active"] else "Ні",r["notes"]))
+        con=db()
+        try:
+            ensure_vehicle_documents_schema(con)
+            rows=con.execute("SELECT * FROM vehicles ORDER BY active DESC, name, plate").fetchall()
+            data=[(r,vehicle_document_summary_text(con,r["id"])) for r in rows]
+        finally:
+            con.close()
+        for r,doc_state in data:
+            self.vehicle_tree.insert(
+                "","end",
+                values=(r["id"],r["name"],r["plate"],r["garage_no"],r["make_model"],r["year"] or "","Так" if r["active"] else "Ні",doc_state,r["notes"])
+            )
 
     def selected_vehicle(self):
         sel=self.vehicle_tree.selection()
@@ -9276,10 +9299,35 @@ class App(tk.Tk):
         v=self.selected_vehicle()
         if v: self.vehicle_form(v)
 
+    def vehicle_documents(self):
+        v=self.selected_vehicle()
+        if not v:
+            messagebox.showinfo("Документи авто","Виберіть транспортний засіб.",parent=self)
+            return
+        open_vehicle_documents(self,db,DATA_ROOT,v,on_change=self.load_vehicles)
+
+    def open_vehicle_documents_by_id(self, vehicle_id):
+        con=db()
+        try:
+            v=con.execute("SELECT * FROM vehicles WHERE id=?",(int(vehicle_id),)).fetchone()
+        finally:
+            con.close()
+        if v:
+            open_vehicle_documents(self,db,DATA_ROOT,v,on_change=self.load_vehicles)
+
+    def vehicle_document_control(self):
+        open_vehicle_document_control(
+            self,db,DATA_ROOT,on_open_vehicle=self.open_vehicle_documents_by_id
+        )
+
     def delete_vehicle(self):
         v=self.selected_vehicle()
         if not v: return
-        if not messagebox.askyesno("Підтвердження","Видалити автомобіль з каталогу? Історичні записи табеля залишаться."): return
+        if not messagebox.askyesno(
+            "Підтвердження",
+            "Вивести транспортний засіб з експлуатації? Історичні записи та документи залишаться.",
+            parent=self,
+        ): return
         con=db(); con.execute("UPDATE vehicles SET active=0 WHERE id=?",(v["id"],)); con.commit(); con.close(); self.load_vehicles()
 
     def build_work(self):
