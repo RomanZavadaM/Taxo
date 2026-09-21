@@ -58,9 +58,6 @@ from v91_features import (
 )
 
 
-APP_VERSION = "10.1"
-WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
-
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
 ABSENCE_RANGE_WEEKDAYS = "Пн–Пт"
 ABSENCE_RANGE_ALL = "Усі календарні дні"
