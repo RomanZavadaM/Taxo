@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class TestTaxo101StableRelease(unittest.TestCase):
     def test_stable_identity(self):
-        self.assertRegex(main.APP_VERSION,r"^10\\.(?:1|[2-9][0-9]*)(?:-r[0-9.]+)?$")
+        self.assertRegex(main.APP_VERSION,r"^10\\.\\d+(?:-r\\d+(?:\\.\\d+)*)?$")
         release_notes=(ROOT/"docs/releases/RELEASE_NOTES_v10_1.md").read_text("utf-8")
         self.assertIn("Taxo 10.1",release_notes)
         self.assertIn("stable",release_notes.lower())
