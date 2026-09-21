@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r8"
+APP_VERSION = "10.2-r9"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -3268,6 +3268,69 @@ def _att_set_checkbox(paragraph, number, checked, text, size=12):
     )
 
 
+def _att_find_paragraph(paragraphs, prefix):
+    """Find an attestation paragraph by its visible semantic label.
+
+    The official DOCX has historically been edited manually, so relying only on
+    paragraph indexes is fragile.  Date/period fields are resolved by their
+    printed labels as a final pass before saving.
+    """
+    prefix=(prefix or "").strip().casefold()
+    for paragraph in paragraphs:
+        text=(paragraph.text or "").strip().casefold()
+        if text.startswith(prefix):
+            return paragraph
+    return None
+
+
+def _validate_attestation_docx(out_path, period_from, period_to, form_date):
+    """Re-open a generated DOCX and verify the critical period/date fields."""
+    try:
+        from docx import Document
+    except ImportError:
+        raise RuntimeError("Не встановлено python-docx. Запустіть START.bat ще раз.")
+
+    doc=Document(str(out_path))
+    if len(doc.tables) < 2:
+        raise RuntimeError("Створений DOCX пошкоджений: немає двох сторін форми.")
+
+    ua=doc.tables[0].cell(0,0).paragraphs
+    en=doc.tables[1].cell(0,0).paragraphs
+
+    checks=(
+        ("український п.12", _att_find_paragraph(ua,"12."), str(period_from or "")),
+        ("український п.13", _att_find_paragraph(ua,"13."), str(period_to or "")),
+        ("український п.20", _att_find_paragraph(ua,"20."), str(form_date or "")),
+        ("англійський п.12", _att_find_paragraph(en,"12."), str(period_from or "")),
+        ("англійський п.13", _att_find_paragraph(en,"13."), str(period_to or "")),
+        ("англійський п.20", _att_find_paragraph(en,"20."), str(form_date or "")),
+    )
+    errors=[]
+    for label,paragraph,expected in checks:
+        text=(paragraph.text if paragraph is not None else "")
+        if paragraph is None or expected not in text:
+            errors.append(f"{label}: очікується «{expected}»")
+
+    # Driver place/date lines live outside the two main table cells.  If the
+    # template contains them, verify them too; this catches stale dates left in
+    # a manually edited template.
+    for prefix,label in (("Місце ","дата водія UA"),("Place ","дата водія EN")):
+        paragraph=_att_find_paragraph(doc.paragraphs,prefix)
+        if paragraph is not None and str(form_date or "") not in (paragraph.text or ""):
+            errors.append(f"{label}: очікується «{form_date}»")
+
+    if errors:
+        try:
+            Path(out_path).unlink()
+        except OSError:
+            pass
+        raise RuntimeError(
+            "DOCX не пройшов контроль дат і не був збережений як готовий бланк:\n- "
+            + "\n- ".join(errors)
+        )
+    return True
+
+
 def fill_attestation(driver, period_from, period_to, activity_no, place, form_date, out_path):
     """Заповнює чинний Додаток 3 до Положення №340.
 
@@ -3519,7 +3582,37 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
                 (form_date_fmt, True),
             ])
 
+    # r9: final semantic pass for the date-sensitive fields.  This intentionally
+    # does not rely on paragraph numbers: a manually adjusted DOCX template may
+    # gain/remove empty paragraphs while keeping the visible official labels.
+    p=_att_find_paragraph(up,"12.")
+    if p is not None:
+        _att_set_runs(p,[("12. з (година/день/місяць/рік): ",False),(period_from,True)])
+    p=_att_find_paragraph(up,"13.")
+    if p is not None:
+        _att_set_runs(p,[("13. по (година/день/місяць/рік): ",False),(period_to,True)])
+    p=_att_find_paragraph(up,"20.")
+    if p is not None:
+        _att_set_runs(p,[
+            ("20. Місце ",False),(director_place,True),
+            ("    Дата ",False),(form_date_fmt,True),
+        ])
+
+    p=_att_find_paragraph(ep,"12.")
+    if p is not None:
+        _att_set_runs(p,[("12. from (hour/day/month/year): ",False),(period_from,True)])
+    p=_att_find_paragraph(ep,"13.")
+    if p is not None:
+        _att_set_runs(p,[("13. to (hour/day/month/year): ",False),(period_to,True)])
+    p=_att_find_paragraph(ep,"20.")
+    if p is not None:
+        _att_set_runs(p,[
+            ("20. Place ",False),(director_place_en,True),
+            ("    Date ",False),(form_date_fmt,True),
+        ])
+
     doc.save(str(out_path))
+    _validate_attestation_docx(out_path,period_from,period_to,form_date_fmt)
 
 
 def _attestation_render_context(driver, period_from, period_to, activity_no, place, form_date):
