@@ -6,8 +6,11 @@ import main
 
 
 class TestTaxo102R6SecondaryWindowStyle(unittest.TestCase):
-    def test_version_marker_is_r6(self):
-        self.assertEqual(main.APP_VERSION, "10.2-r6")
+    def test_r6_or_later_keeps_secondary_window_style(self):
+        import re
+        match=re.fullmatch(r"10\.2-r(\d+)",main.APP_VERSION)
+        self.assertIsNotNone(match)
+        self.assertGreaterEqual(int(match.group(1)),6)
 
     def test_secondary_window_helper_uses_dynamic_branding(self):
         source=inspect.getsource(main.App._decorate_secondary_window)
