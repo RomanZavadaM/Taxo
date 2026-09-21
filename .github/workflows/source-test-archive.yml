@@ -74,6 +74,10 @@ jobs:
             START.bat
             requirements.txt
             taxo_app.py
+            main.py
+            workspace.py
+            vehicle_documents.py
+            document_viewer.py
             00_README_START.txt
             release_naming.py
             v9_release.py
@@ -105,10 +109,23 @@ jobs:
               raise SystemExit('START.bat must contain Windows CRLF line endings')
           PY
 
+      - name: Stage START artifact without nested ZIP
+        shell: bash
+        run: |
+          archive="${{ steps.pack.outputs.archive }}"
+          stem="${{ steps.pack.outputs.stem }}"
+          rm -rf artifact-upload
+          mkdir artifact-upload
+          unzip -q "$archive" -d artifact-upload
+          test -d "artifact-upload/$stem"
+          root_count="$(find artifact-upload -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+          test "$root_count" = "1"
+          test "$(basename "$(find artifact-upload -mindepth 1 -maxdepth 1 -type d -print -quit)")" = "$stem"
+
       - name: Upload source archive
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.pack.outputs.stem }}
-          path: ${{ steps.pack.outputs.archive }}
+          path: artifact-upload/
           if-no-files-found: error
           retention-days: 30

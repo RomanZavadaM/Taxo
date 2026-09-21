@@ -1,12 +1,13 @@
-# Супровід Taxo 10.0
+# Супровід Taxo 10.1
 
-Цей розділ містить технічні документи для супроводу stable Taxo 10.0.
+Цей розділ містить технічні документи для супроводу stable Taxo 10.1.
 
 - [Поточний технічний стан](PROJECT_STATE.md)
 - [Поточна контрольна точка](CHECKPOINT_CURRENT.md)
 - [Фінальний аудит Taxo 10.0](AUDIT_v10_0_STABLE.md)
 - [Політика гілки main](MAIN_BRANCH_POLICY.md)
 - [Чекліст випуску](RELEASE_CHECKLIST.md)
+- [Правила розробки](DEVELOPMENT_RULES.md) — кожен крок = нова ревізія, r1…r10, далі наступна minor-версія
 
 ## Історичні аудити 9.1
 
@@ -22,3 +23,8 @@
 Manual operational gate завершено. PR #29 merged; release-pipeline fixes PR #30/#31 merged. Stable `v10.0` опублікований з target `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Windows/macOS/START artifacts і SHA-256 manifests доступні в GitHub Release.
 
 Історія 8.x: [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
+
+
+## Активна розробка
+
+Поточна робоча лінія — Taxo 10.2-r4. Наступний завершений крок після r4 обов’язково буде r5. Після r10 — наступна minor-версія з r1. Кожен крок завершується окремим тестовим START-архівом.

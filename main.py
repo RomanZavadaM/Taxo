@@ -34,6 +34,9 @@ from workspace import (
     WorkspaceBusyError,
     WorkspaceLock,
     clone_workspace,
+    create_workspace_backup_archive,
+    validate_workspace_backup_archive,
+    restore_workspace_backup_archive,
     describe_lock,
     ensure_workspace,
     load_workspace_root,
@@ -70,7 +73,20 @@ try:
 except ImportError:
     build_waybill_pdf = None
 
-APP_VERSION = "10.1"
+from document_viewer import open_document
+from vehicle_documents import (
+    ensure_vehicle_documents_schema,
+    open_vehicle_document_control,
+    open_vehicle_documents,
+    vehicle_document_summary_text,
+    vehicle_document_warning_lines,
+    vehicle_document_report_rows,
+    export_vehicle_document_report_pdf,
+    export_vehicle_document_report_xlsx,
+    display_date,
+)
+
+APP_VERSION = "10.2-r4"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -570,27 +586,209 @@ def db():
     return con
 
 
-def finish_driver_role(con, employee_id, driver_id, end_date):
-    """Завершити лише роль водія, не видаляючи працівника чи історію."""
+def _driver_role_mode(driver):
+    try:
+        keys=set(driver.keys())
+    except Exception:
+        keys=set()
+    value=(driver["driver_role_mode"] if "driver_role_mode" in keys else "legacy") or "legacy"
+    value=str(value).strip().lower()
+    return value if value in {"legacy","explicit","invalid"} else "legacy"
+
+
+def _role_period_table_exists(con):
+    try:
+        return con.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='driver_role_periods'"
+        ).fetchone() is not None
+    except Exception:
+        return False
+
+
+def _driver_role_start_from_legacy(driver, fallback=""):
+    try:
+        value=(driver["employment_date"] or "").strip()
+    except Exception:
+        value=""
+    return value or str(fallback or "")
+
+
+def driver_role_active_on(con, driver_id, target_date):
+    """Whether the driver role is valid on one calendar date.
+
+    Old databases remain readable through the legacy employment/end-date model.
+    Once a role is explicitly edited, dated role periods become authoritative.
+    The special 'invalid' mode means the old driver identity was only a legacy
+    artefact and must never feed personnel-time calculations.
+    """
+    if not driver_id:
+        return False
+    if isinstance(target_date,str):
+        target_date=date.fromisoformat(target_date)
+    driver=con.execute("SELECT * FROM drivers WHERE id=?",(int(driver_id),)).fetchone()
+    if driver is None:
+        return False
+    mode=_driver_role_mode(driver)
+    if mode=="invalid":
+        return False
+
+    if mode=="explicit" and _role_period_table_exists(con):
+        row=con.execute(
+            """SELECT 1 FROM driver_role_periods
+                 WHERE driver_id=? AND COALESCE(voided,0)=0
+                   AND (COALESCE(start_date,'')='' OR start_date<=?)
+                   AND (COALESCE(end_date,'')='' OR end_date>=?)
+                 LIMIT 1""",
+            (int(driver_id),target_date.isoformat(),target_date.isoformat()),
+        ).fetchone()
+        return row is not None
+
+    start=_driver_role_start_from_legacy(driver)
+    if start:
+        try:
+            if target_date < date.fromisoformat(start):
+                return False
+        except ValueError:
+            pass
+    try:
+        end=(driver["driver_end_date"] or "").strip()
+    except Exception:
+        end=""
+    if end:
+        try:
+            return target_date <= date.fromisoformat(end)
+        except ValueError:
+            return False
+    return bool(driver["active"])
+
+
+def activate_driver_role(con, employee_id, driver_id, start_date):
+    """Start/restart a real driver role without reviving old false history."""
+    start_date=str(start_date or "").strip()
+    if not start_date:
+        raise ValueError("Потрібна дата початку ролі водія.")
+    date.fromisoformat(start_date)
+    now=datetime.now().isoformat(timespec="seconds")
+    if _role_period_table_exists(con):
+        open_row=con.execute(
+            """SELECT id FROM driver_role_periods
+                 WHERE driver_id=? AND COALESCE(voided,0)=0
+                   AND COALESCE(end_date,'')=''
+                 ORDER BY id DESC LIMIT 1""",
+            (int(driver_id),),
+        ).fetchone()
+        if not open_row:
+            con.execute(
+                """INSERT INTO driver_role_periods(
+                       employee_id,driver_id,start_date,end_date,source,voided,notes,created_at
+                   ) VALUES(?,?,?,'','manual',0,'',?)""",
+                (int(employee_id),int(driver_id),start_date,now),
+            )
+    cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+    if "driver_role_mode" in cols:
+        con.execute(
+            "UPDATE drivers SET active=1,driver_end_date='',driver_role_mode='explicit' WHERE id=?",
+            (int(driver_id),),
+        )
+    else:
+        con.execute(
+            "UPDATE drivers SET active=1,driver_end_date='' WHERE id=?",
+            (int(driver_id),),
+        )
     con.execute(
-        "UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",
-        (end_date,driver_id),
+        "INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,'Водій')",
+        (int(employee_id),),
     )
+
+
+def finish_driver_role(con, employee_id, driver_id, end_date):
+    """Finish a real driver role while retaining dated history."""
+    end_date=str(end_date or "").strip()
+    if not end_date:
+        raise ValueError("Потрібна дата завершення ролі водія.")
+    date.fromisoformat(end_date)
+    driver=con.execute("SELECT * FROM drivers WHERE id=?",(int(driver_id),)).fetchone()
+    if driver is None:
+        return
+    now=datetime.now().isoformat(timespec="seconds")
+    if _role_period_table_exists(con):
+        row=con.execute(
+            """SELECT id,start_date FROM driver_role_periods
+                 WHERE driver_id=? AND COALESCE(voided,0)=0
+                   AND COALESCE(end_date,'')=''
+                 ORDER BY id DESC LIMIT 1""",
+            (int(driver_id),),
+        ).fetchone()
+        if row:
+            start=(row["start_date"] or "").strip()
+            if start and end_date < start:
+                raise ValueError("Дата завершення ролі раніше дати її початку.")
+            con.execute(
+                "UPDATE driver_role_periods SET end_date=? WHERE id=?",
+                (end_date,row["id"]),
+            )
+        else:
+            start=_driver_role_start_from_legacy(driver,end_date)
+            if start and end_date < start:
+                start=end_date
+            con.execute(
+                """INSERT INTO driver_role_periods(
+                       employee_id,driver_id,start_date,end_date,source,voided,notes,created_at
+                   ) VALUES(?,?,?,?,'legacy-close',0,'',?)""",
+                (int(employee_id),int(driver_id),start,end_date,now),
+            )
+    cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+    if "driver_role_mode" in cols:
+        con.execute(
+            "UPDATE drivers SET active=0,driver_end_date=?,driver_role_mode='explicit' WHERE id=?",
+            (end_date,int(driver_id)),
+        )
+    else:
+        con.execute(
+            "UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",
+            (end_date,int(driver_id)),
+        )
     con.execute(
         "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
-        (employee_id,),
+        (int(employee_id),),
+    )
+
+
+
+def void_legacy_driver_role(con, employee_id, driver_id):
+    """Mark the old forced 'driver' identity as historically invalid.
+
+    The driver/worklog rows are not deleted; they remain available for forensic
+    inspection, but they stop participating in driver-role and personnel-time
+    calculations.
+    """
+    if _role_period_table_exists(con):
+        con.execute(
+            "UPDATE driver_role_periods SET voided=1 WHERE driver_id=?",
+            (int(driver_id),),
+        )
+    cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+    if "driver_role_mode" in cols:
+        con.execute(
+            "UPDATE drivers SET active=0,driver_end_date='',driver_role_mode='invalid' WHERE id=?",
+            (int(driver_id),),
+        )
+    else:
+        con.execute(
+            "UPDATE drivers SET active=0,driver_end_date='' WHERE id=?",
+            (int(driver_id),),
+        )
+    con.execute(
+        "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
+        (int(employee_id),),
     )
 
 
 def sync_legacy_driver_employee(con, dr):
-    """Synchronize legacy driver identity without mixing employment and role state.
-
-    drivers.active means only that the current driver role is active.
-    employees.active means that the person is employed.  Existing personnel
-    status is authoritative and must never be overwritten from drivers.active.
-    """
+    """Synchronize legacy driver identity without mixing employment and role state."""
     driver_end=(dr["driver_end_date"] or "").strip() if "driver_end_date" in dr.keys() else ""
-    driver_active=bool(dr["active"]) and not bool(driver_end)
+    mode=_driver_role_mode(dr)
+    driver_active=bool(dr["active"]) and not bool(driver_end) and mode!="invalid"
     employee=con.execute(
         "SELECT id,active,dismissal_date FROM employees WHERE driver_id=?",
         (dr["id"],),
@@ -605,14 +803,11 @@ def sync_legacy_driver_employee(con, dr):
                 dr["employment_date"] or "",dr["notes"] or "",eid,
             ),
         )
-        # Repair the exact legacy corruption produced by old startup sync:
-        # role was ended (driver_end_date exists), dismissal was never recorded,
-        # but employees.active was copied from drivers.active and became 0.
         if driver_end and not (employee["dismissal_date"] or "").strip() and not bool(employee["active"]):
             con.execute("UPDATE employees SET active=1 WHERE id=?",(eid,))
     else:
-        # A stored driver role end date is not an employee dismissal date.
-        employee_active=1 if driver_end else int(bool(dr["active"]))
+        # Ending/correcting a role is not dismissal from the enterprise.
+        employee_active=1 if driver_end or mode=="invalid" else int(bool(dr["active"]))
         cur=con.execute(
             """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
                    employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
@@ -702,6 +897,7 @@ def init_db():
         license_issued_by TEXT DEFAULT '', -- legacy для старих баз
         employment_date TEXT DEFAULT '',
         driver_end_date TEXT DEFAULT '',
+        driver_role_mode TEXT NOT NULL DEFAULT 'legacy',
         notes TEXT DEFAULT '',
         active INTEGER DEFAULT 1,
         created_at TEXT NOT NULL
@@ -817,6 +1013,20 @@ def init_db():
         PRIMARY KEY(employee_id, role)
     );
 
+    CREATE TABLE IF NOT EXISTS driver_role_periods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+        start_date TEXT DEFAULT '',
+        end_date TEXT DEFAULT '',
+        source TEXT NOT NULL DEFAULT 'manual',
+        voided INTEGER NOT NULL DEFAULT 0,
+        notes TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_driver_role_periods_driver
+        ON driver_role_periods(driver_id,start_date,end_date,voided);
+
     CREATE TABLE IF NOT EXISTS employee_shifts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE RESTRICT,
@@ -827,6 +1037,7 @@ def init_db():
         end_day_offset INTEGER NOT NULL DEFAULT 0 CHECK(end_day_offset BETWEEN 0 AND 7),
         end_time TEXT NOT NULL,
         location TEXT DEFAULT '',
+        unpaid_break_minutes INTEGER NOT NULL DEFAULT 0,
         planned_hours REAL NOT NULL DEFAULT 0,
         actual_hours REAL,
         status TEXT NOT NULL DEFAULT 'planned',
@@ -1062,6 +1273,7 @@ def init_db():
         ("first_name_en", "TEXT DEFAULT ''"),
         ("middle_name_en", "TEXT DEFAULT ''"),
         ("driver_end_date", "TEXT DEFAULT ''"),
+        ("driver_role_mode", "TEXT NOT NULL DEFAULT 'legacy'"),
     ]:
         if name not in dcols:
             con.execute(f"ALTER TABLE drivers ADD COLUMN {name} {ddl}")
@@ -1071,8 +1283,14 @@ def init_db():
         con.execute("ALTER TABLE drivers ADD COLUMN personnel_no TEXT DEFAULT ''")
 
     vcols = {r[1] for r in con.execute("PRAGMA table_info(vehicles)").fetchall()}
-    if "garage_no" not in vcols:
-        con.execute("ALTER TABLE vehicles ADD COLUMN garage_no TEXT DEFAULT ''")
+    for name, ddl in [
+        ("garage_no", "TEXT DEFAULT ''"),
+        ("ownership_type", "TEXT DEFAULT ''"),
+        ("temporary_registration_required", "INTEGER DEFAULT 0"),
+    ]:
+        if name not in vcols:
+            con.execute(f"ALTER TABLE vehicles ADD COLUMN {name} {ddl}")
+    ensure_vehicle_documents_schema(con)
 
     for name, ddl in [
         ("waybill_series", "TEXT DEFAULT 'АААТ'"),
@@ -1118,6 +1336,12 @@ def init_db():
     ]:
         if name not in ecols:
             con.execute(f"ALTER TABLE employees ADD COLUMN {name} {ddl}")
+
+    shcols = {r[1] for r in con.execute("PRAGMA table_info(employee_shifts)").fetchall()}
+    if "unpaid_break_minutes" not in shcols:
+        con.execute(
+            "ALTER TABLE employee_shifts ADD COLUMN unpaid_break_minutes INTEGER NOT NULL DEFAULT 0"
+        )
 
     tcols = {r[1] for r in con.execute("PRAGMA table_info(employee_time_entries)").fetchall()}
     for name, ddl in [
@@ -1999,8 +2223,12 @@ def _interval_overlap_minutes(start_dt, end_dt, target_date):
     return max(0,int((min(end_dt,day_end)-max(start_dt,day_start)).total_seconds()//60))
 
 
-def _driver_plan_minutes_for_day(con, driver_id, target_date):
+def _driver_plan_minutes_for_day(con, driver_id, target_date, respect_role=True):
     if not driver_id:
+        return 0
+    if isinstance(target_date,str):
+        target_date=date.fromisoformat(target_date)
+    if respect_role and not driver_role_active_on(con,driver_id,target_date):
         return 0
     rows=con.execute(
         "SELECT * FROM worklog WHERE driver_id=? AND work_date BETWEEN ? AND ? ORDER BY work_date,id",
@@ -2052,7 +2280,15 @@ def _driver_plan_minutes_for_day(con, driver_id, target_date):
 
 
 def _employee_shift_minutes_for_day(con, employee_id, target_date):
-    planned=0; actual=0.0; actual_known=True; found=False
+    """Planned/actual personnel-shift time clipped to one calendar day.
+
+    planned_hours is authoritative.  The old implementation ignored it and
+    counted the whole clock span, so 08:00-17:00 always became 9:00 even when
+    the stored paid plan was 8:00 because of an unpaid break.
+    """
+    if isinstance(target_date,str):
+        target_date=date.fromisoformat(target_date)
+    planned=0.0; actual=0.0; actual_known=True; found=False
     rows=con.execute(
         "SELECT * FROM employee_shifts WHERE employee_id=? AND work_date BETWEEN ? AND ?",
         (employee_id,(target_date-timedelta(days=7)).isoformat(),target_date.isoformat()),
@@ -2061,16 +2297,39 @@ def _employee_shift_minutes_for_day(con, employee_id, target_date):
         base=datetime.strptime(row["work_date"],"%Y-%m-%d")
         start_dt=base+timedelta(minutes=parse_hhmm(row["start_time"]))
         end_dt=base+timedelta(days=int(row["end_day_offset"] or 0),minutes=parse_hhmm(row["end_time"]))
+        duration=max((end_dt-start_dt).total_seconds()/60.0,1.0)
         overlap=_interval_overlap_minutes(start_dt,end_dt,target_date)
         if overlap<=0:
             continue
-        found=True; planned+=overlap
+        found=True
+        row_plan=hours_value_to_minutes(
+            row["planned_hours"] if row["planned_hours"] is not None else duration/60.0
+        )
+        # Compatibility repair for rows made by the old bulk personnel planner:
+        # it stored the raw 08:00-17:00 span as 9:00 and had no unpaid-break
+        # field.  Only its own default-note rows are normalized, and only when
+        # the fixed daily norm explains a plausible <=2h unpaid break.
+        row_keys=set(row.keys()) if hasattr(row,"keys") else set()
+        unpaid=int(row["unpaid_break_minutes"] or 0) if "unpaid_break_minutes" in row_keys else 0
+        note=str(row["notes"] or "").strip() if "notes" in row_keys else ""
+        if unpaid>0:
+            row_plan=max(0,int(round(duration))-unpaid)
+        elif note=="Місячний план персоналу" and abs(int(row_plan)-int(round(duration)))<=1:
+            try:
+                from work_regime import day_norm_minutes, REGIME_SUMMARIZED
+                norm,regime=day_norm_minutes(con,employee_id,date.fromisoformat(row["work_date"]))
+                gap=int(round(duration))-int(norm or 0)
+                if regime.regime_type!=REGIME_SUMMARIZED and int(norm or 0)>0 and 0<gap<=120:
+                    row_plan=int(norm)
+            except Exception:
+                pass
+        planned += float(row_plan) * float(overlap) / float(duration)
         if row["actual_hours"] is None:
             actual_known=False
         else:
-            duration=max((end_dt-start_dt).total_seconds()/60.0,1.0)
             actual+=hours_value_to_minutes(row["actual_hours"])*overlap/duration
-    return planned,(int(round(actual)) if found and actual_known else None),found
+    return int(round(planned)),(int(round(actual)) if found and actual_known else None),found
+
 
 
 def employee_day_time(con, employee_id, target_date):
@@ -2099,6 +2358,7 @@ def employee_day_time(con, employee_id, target_date):
         "source":" + ".join(sources) or "—",
         "notes":entry["notes"] if entry else "","manual":bool(entry),
     }
+
 
 
 def employee_employed_on(employee, target_date):
@@ -2843,9 +3103,26 @@ def driver_employment_start(driver):
 
 
 def driver_employed_on(driver, work_day):
-    """Чи вже був водій прийнятий на роботу у вказаний календарний день."""
+    """Legacy-record fallback: whether the driver role covers the date."""
+    if not driver:
+        return False
+    if isinstance(work_day,str):
+        work_day=date.fromisoformat(work_day)
+    if _driver_role_mode(driver)=="invalid":
+        return False
     start=driver_employment_start(driver)
-    return start is None or work_day>=start
+    if start is not None and work_day<start:
+        return False
+    try:
+        end=(driver["driver_end_date"] or "").strip()
+    except Exception:
+        end=""
+    if end:
+        try:
+            return work_day<=date.fromisoformat(end)
+        except ValueError:
+            return False
+    return bool(driver["active"])
 
 
 def set_paragraph_text(p, new_text):
@@ -4425,15 +4702,19 @@ def collect_monthly_work_balance(year, month, active_only=True):
     days=month_dates(y,m)
     con=db()
 
+    drivers=con.execute(
+        "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
+    ).fetchall()
+    drivers=[dr for dr in drivers if _driver_role_mode(dr)!="invalid"]
+    role_active_by_day={
+        (int(dr["id"]),d.isoformat()):driver_role_active_on(con,dr["id"],d)
+        for dr in drivers for d in days
+    }
     if active_only:
-        drivers=con.execute(
-            "SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name,middle_name"
-        ).fetchall()
-    else:
-        drivers=con.execute(
-            "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
-        ).fetchall()
-    drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
+        drivers=[
+            dr for dr in drivers
+            if any(role_active_by_day[(int(dr["id"]),d.isoformat())] for d in days)
+        ]
 
     rows=con.execute(
         """SELECT * FROM worklog
@@ -4486,7 +4767,7 @@ def collect_monthly_work_balance(year, month, active_only=True):
         work_days=0
         overlap_min=0
         for d in days:
-            if not driver_employed_on(dr,d):
+            if not role_active_by_day.get((int(dr["id"]),d.isoformat()),False):
                 cells.append("")
                 continue
             r=row_by.get((dr["id"],d.isoformat()))
@@ -4867,15 +5148,19 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
     days=month_dates(y,m)
     con=db()
 
+    drivers=con.execute(
+        "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
+    ).fetchall()
+    drivers=[dr for dr in drivers if _driver_role_mode(dr)!="invalid"]
+    role_active_by_day={
+        (int(dr["id"]),d.isoformat()):driver_role_active_on(con,dr["id"],d)
+        for dr in drivers for d in days
+    }
     if active_only:
-        drivers=con.execute(
-            "SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name,middle_name"
-        ).fetchall()
-    else:
-        drivers=con.execute(
-            "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
-        ).fetchall()
-    drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
+        drivers=[
+            dr for dr in drivers
+            if any(role_active_by_day[(int(dr["id"]),d.isoformat())] for d in days)
+        ]
 
     rows=con.execute(
         """SELECT * FROM worklog
@@ -4930,7 +5215,7 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         drive_min=0
         overlap_min=0
         for d in days:
-            if not driver_employed_on(dr,d):
+            if not role_active_by_day.get((int(dr["id"]),d.isoformat()),False):
                 cells.append("")
                 continue
             r=row_by.get((dr["id"],d.isoformat()))
@@ -6085,7 +6370,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("Taxo 10.1-r3 — Працівники, графіки та шляхівки")
+        self.title(f"Taxo {APP_VERSION} — Driver Worktime")
         fit_window_to_screen(self,1200,760,900,600)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
         self.bind("<Control-q>", lambda e: self.exit_app())
@@ -6561,6 +6846,192 @@ class App(tk.Tk):
             self._refresh_nav_selection()
         except tk.TclError:
             pass
+
+    def show_vehicle_documents_report(self):
+        existing=getattr(self,"vehicle_documents_report_win",None)
+        if existing is not None:
+            try:
+                if existing.winfo_exists():
+                    existing.lift()
+                    return
+            except tk.TclError:
+                pass
+
+        win=tk.Toplevel(self)
+        self.vehicle_documents_report_win=win
+        win.title("Стан документів транспортних засобів")
+        fit_window_to_screen(win,1320,760,900,540)
+        configure_toplevel(win)
+
+        top=ttk.Frame(win,padding=(10,8))
+        top.pack(fill="x")
+        report_date=tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
+        active_only=tk.BooleanVar(value=True)
+        only_issues=tk.BooleanVar(value=False)
+        summary=tk.StringVar(value="")
+        cache={"rows":[],"date":date.today()}
+
+        ttk.Label(top,text="Стан документів на дату:").pack(side="left")
+        ttk.Entry(top,textvariable=report_date,width=12).pack(side="left",padx=(5,3))
+        calendar_button(top,report_date).pack(side="left",padx=(0,10))
+        ttk.Checkbutton(
+            top,text="Тільки авто в експлуатації",variable=active_only
+        ).pack(side="left",padx=8)
+        ttk.Checkbutton(
+            top,text="Тільки проблемні / попередження",variable=only_issues
+        ).pack(side="left",padx=8)
+
+        table_frame=ttk.Frame(win,padding=(10,0,10,6))
+        table_frame.pack(fill="both",expand=True)
+        table_frame.rowconfigure(0,weight=1)
+        table_frame.columnconfigure(0,weight=1)
+        cols=("vehicle","overall","document","number","from","until","status","copy")
+        tree=ttk.Treeview(table_frame,columns=cols,show="headings")
+        heads={
+            "vehicle":"Автомобіль","overall":"Загальний стан","document":"Документ",
+            "number":"№ / серія","from":"Від","until":"Діє до",
+            "status":"Стан","copy":"Копія",
+        }
+        widths={
+            "vehicle":250,"overall":115,"document":285,"number":130,
+            "from":90,"until":90,"status":160,"copy":70,
+        }
+        for key in cols:
+            tree.heading(key,text=heads[key])
+            tree.column(key,width=widths[key],anchor="w")
+        ybar=ttk.Scrollbar(table_frame,orient="vertical",command=tree.yview)
+        xbar=ttk.Scrollbar(table_frame,orient="horizontal",command=tree.xview)
+        tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
+        tree.grid(row=0,column=0,sticky="nsew")
+        ybar.grid(row=0,column=1,sticky="ns")
+        xbar.grid(row=1,column=0,sticky="ew")
+        tree.tag_configure("problem",background="#FCE8E6")
+        tree.tag_configure("warning",background="#FFF4D6")
+
+        footer=ttk.Frame(win,padding=(10,4,10,10))
+        footer.pack(fill="x")
+        ttk.Label(footer,textvariable=summary).pack(side="left")
+
+        def selected_date():
+            try:
+                return datetime.strptime(report_date.get().strip(),"%d.%m.%Y").date()
+            except ValueError:
+                raise ValueError("Дата має бути у форматі ДД.ММ.РРРР.")
+
+        def load_rows(show_error=True):
+            try:
+                target=selected_date()
+            except ValueError as exc:
+                if show_error:
+                    messagebox.showerror("Звіт документів авто",str(exc),parent=win)
+                return None
+            con=db()
+            try:
+                ensure_vehicle_documents_schema(con)
+                rows=vehicle_document_report_rows(
+                    con,target,active_only=bool(active_only.get())
+                )
+            finally:
+                con.close()
+            cache["rows"]=rows
+            cache["date"]=target
+            return rows
+
+        def refresh():
+            rows=load_rows()
+            if rows is None:
+                return
+            for item in tree.get_children():
+                tree.delete(item)
+            visible=[
+                row for row in rows
+                if not only_issues.get() or row["rank"]<3
+            ]
+            for index,row in enumerate(visible):
+                tag="problem" if row["rank"]<=1 else ("warning" if row["rank"]==2 else "")
+                tree.insert(
+                    "","end",iid=f"v{index}",
+                    values=(
+                        row["vehicle"],row["overall"],row["type_label"],
+                        row["document_no"],display_date(row["valid_from"]),
+                        display_date(row["valid_until"]),row["status"],
+                        "Є" if row["copy"] else "Немає",
+                    ),
+                    tags=((tag,) if tag else ()),
+                )
+            vehicles={}
+            for row in rows:
+                vehicles[row["vehicle_id"]]=row["overall"]
+            problems=sum(1 for value in vehicles.values() if value=="Проблема")
+            warnings=sum(1 for value in vehicles.values() if value=="Увага")
+            actual=sum(1 for value in vehicles.values() if value=="Актуально")
+            summary.set(
+                f"Авто: {len(vehicles)}   Проблема: {problems}   "
+                f"Увага: {warnings}   Актуально: {actual}   "
+                f"Позицій у таблиці: {len(visible)}"
+            )
+
+        def export_report(kind):
+            rows=load_rows()
+            if rows is None:
+                return
+            if only_issues.get():
+                rows=[row for row in rows if row["rank"]<3]
+            target=cache["date"]
+            suffix=".pdf" if kind=="pdf" else ".xlsx"
+            initial=f"Стан_документів_авто_{target.isoformat()}{suffix}"
+            path=filedialog.asksaveasfilename(
+                parent=win,
+                title="Зберегти звіт стану документів авто",
+                initialdir=str(OUTPUT_DIR),
+                initialfile=initial,
+                defaultextension=suffix,
+                filetypes=[("PDF","*.pdf")] if kind=="pdf" else [("Excel","*.xlsx")],
+            )
+            if not path:
+                return
+            company=self._company_name_value()
+            writer=(
+                (lambda out: export_vehicle_document_report_pdf(
+                    rows,target,out,company_name=company
+                ))
+                if kind=="pdf"
+                else
+                (lambda out: export_vehicle_document_report_xlsx(
+                    rows,target,out,company_name=company
+                ))
+            )
+            actual=write_output_file(
+                writer,path,parent=win,
+                kind="PDF звіту документів авто" if kind=="pdf" else "Excel звіту документів авто",
+                error_title="Звіт документів авто",
+            )
+            if actual is None:
+                return
+            try:
+                if kind=="pdf":
+                    open_document(win,actual,external_opener=open_external)
+                else:
+                    open_external(actual)
+            except Exception as exc:
+                messagebox.showwarning(
+                    "Звіт документів авто",
+                    f"Файл створено, але не вдалося відкрити його автоматично:\n{actual}\n\n{exc}",
+                    parent=win,
+                )
+
+        ttk.Button(footer,text="Оновити",command=refresh).pack(side="right",padx=3)
+        ttk.Button(
+            footer,text="Excel",command=lambda:export_report("xlsx")
+        ).pack(side="right",padx=3)
+        ttk.Button(
+            footer,text="PDF",style="Accent.TButton",command=lambda:export_report("pdf")
+        ).pack(side="right",padx=3)
+        ttk.Button(footer,text="Закрити",command=win.destroy).pack(side="right",padx=(10,3))
+
+        active_only.trace_add("write",lambda *_args:refresh())
+        only_issues.trace_add("write",lambda *_args:refresh())
+        refresh()
 
     def show_reports_home(self):
         """Open reports inside the main workspace when the personnel module is active."""
@@ -7197,12 +7668,129 @@ class App(tk.Tk):
         ttk.Label(host, text="Усі змінні дані зберігаються тут окремо від програми. Одночасно сховище відкриває лише одна копія Taxo.", foreground="gray").pack(anchor="w", padx=12)
 
     def manual_backup(self):
+        choice={"value":None}
+        win=tk.Toplevel(self)
+        win.title("Резервна копія Taxo")
+        fit_window_to_screen(win,720,470,620,420)
+        configure_toplevel(win)
+        win.transient(self); win.grab_set()
+
+        body=ttk.Frame(win,padding=16)
+        body.pack(fill="both",expand=True)
+        ttk.Label(
+            body,text="Що включити в резервну копію?",
+            font=("TkDefaultFont",11,"bold")
+        ).pack(anchor="w")
+        ttk.Label(
+            body,
+            text=(
+                "Основна БД і тахографічна БД копіюються завжди. "
+                "Великі файлові каталоги додавайте лише коли це потрібно."
+            ),
+            foreground="gray",wraplength=660,justify="left",
+        ).pack(anchor="w",pady=(5,12))
+
+        mandatory=ttk.LabelFrame(body,text="Завжди")
+        mandatory.pack(fill="x")
+        ttk.Label(
+            mandatory,
+            text="✓ Основна база Taxo\n✓ Тахографічна база",
+            justify="left",
+        ).pack(anchor="w",padx=10,pady=8)
+
+        optional=ttk.LabelFrame(body,text="Додатково — великі файлові копії")
+        optional.pack(fill="x",pady=(12,0))
+        vehicle_docs=tk.BooleanVar(value=False)
+        tacho_scans=tk.BooleanVar(value=False)
+        output_files=tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            optional,
+            text="Копії документів транспортних засобів",
+            variable=vehicle_docs,
+        ).pack(anchor="w",padx=10,pady=(8,3))
+        ttk.Checkbutton(
+            optional,
+            text="Скани тахографів",
+            variable=tacho_scans,
+        ).pack(anchor="w",padx=10,pady=3)
+        ttk.Checkbutton(
+            optional,
+            text="Шляхівки, бланки, звіти й архіви з папки Output",
+            variable=output_files,
+        ).pack(anchor="w",padx=10,pady=(3,8))
+
+        ttk.Label(
+            body,
+            text=(
+                "Оригінальні копії документів і скани завжди лишаються у робочій папці. "
+                "Ці галочки визначають лише, чи дублювати їх у цей конкретний ZIP."
+            ),
+            foreground="#7A4E00",wraplength=660,justify="left",
+        ).pack(anchor="w",pady=(12,4))
+
+        buttons=ttk.Frame(body)
+        buttons.pack(fill="x",side="bottom",pady=(14,0))
+        def cancel():
+            win.destroy()
+        def accept():
+            choice["value"]=(
+                bool(vehicle_docs.get()),
+                bool(tacho_scans.get()),
+                bool(output_files.get()),
+            )
+            win.destroy()
+        ttk.Button(buttons,text="Скасувати",command=cancel).pack(side="right")
+        ttk.Button(
+            buttons,text="Створити копію",style="Accent.TButton",command=accept
+        ).pack(side="right",padx=(0,8))
+        win.protocol("WM_DELETE_WINDOW",cancel)
+        win.wait_window()
+
+        if choice["value"] is None:
+            return
+        include_vehicle_documents,include_tacho_scans,include_output=choice["value"]
+
+        stamp=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        extras=[]
+        if include_vehicle_documents:
+            extras.append("копії документів авто")
+        if include_tacho_scans:
+            extras.append("скани тахографів")
+        if include_output:
+            extras.append("Output")
+        label="full" if extras else "db"
+        path=filedialog.asksaveasfilename(
+            parent=self,
+            title="Зберегти резервну копію Taxo",
+            initialdir=str(BACKUP_DIR),
+            initialfile=f"Taxo_backup_{label}_{stamp}.zip",
+            defaultextension=".zip",
+            filetypes=[("Резервна копія Taxo","*.zip")],
+        )
+        if not path:
+            return
         try:
-            path = backup_database("manual")
-            if path:
-                messagebox.showinfo("Резервна копія", f"Резервну копію створено:\n{path}")
+            actual=create_workspace_backup_archive(
+                DATA_ROOT,path,app_version=APP_VERSION,
+                include_vehicle_documents=include_vehicle_documents,
+                include_tacho_scans=include_tacho_scans,
+                include_output=include_output,
+            )
+            size_mb=actual.stat().st_size/(1024*1024)
+            extra_text=", ".join(extras) if extras else "без великих файлових вкладень"
+            messagebox.showinfo(
+                "Резервна копія",
+                "Резервну копію створено й перевірено.\n\n"
+                f"{actual}\n\nРозмір: {size_mb:.2f} МБ\n"
+                f"Склад: обидві БД; {extra_text}.",
+                parent=self,
+            )
         except Exception as e:
-            messagebox.showerror("Помилка", f"Не вдалося створити резервну копію:\n{e}")
+            messagebox.showerror(
+                "Помилка",
+                f"Не вдалося створити резервну копію:\n{e}",
+                parent=self,
+            )
 
     def open_data_folder(self):
         try:
@@ -7309,9 +7897,12 @@ class App(tk.Tk):
                     parent=win
                 ); return
             if not messagebox.askyesno(
-                "Перенести всі робочі дані",
-                f"Створити перевірену копію всього поточного сховища?\n\nЗвідки:\n{DATA_ROOT}\n\nКуди:\n{target}\n\n"
-                "Основна та тахографічна SQLite-БД будуть скопійовані узгоджено. Старе сховище не видаляється.",
+                "Повна копія робочого сховища",
+                f"Створити повну перевірену копію для нового екземпляра Taxo або перенесення?\n\n"
+                f"Звідки:\n{DATA_ROOT}\n\nКуди:\n{target}\n\n"
+                "Буде скопійовано обидві БД, копії документів авто, тахографічні скани, "
+                "шляхівки, бланки, звіти та архіви. Історія старих резервних копій і технічні "
+                "логи не дублюються.",
                 parent=win
             ):
                 return
@@ -7324,10 +7915,31 @@ class App(tk.Tk):
                 return
             finally:
                 destination_lock.release()
-            self._close_after_workspace_switch(target,"Усі робочі дані перевірено й скопійовано.")
+            switch_now=messagebox.askyesno(
+                "Повну копію створено",
+                "Повну робочу копію перевірено й створено.\n\n"
+                f"{target}\n\n"
+                "Переключити ЦЕЙ екземпляр Taxo на нову папку?\n\n"
+                "«Ні» — залишити поточне сховище без змін; копію можна підключити "
+                "на іншому комп’ютері через «Підключити існуюче…».",
+                parent=win,
+            )
+            if switch_now:
+                self._close_after_workspace_switch(
+                    target,"Повну робочу копію створено й підключено."
+                )
+            else:
+                messagebox.showinfo(
+                    "Копія готова",
+                    "Поточний Taxo продовжує працювати зі старим сховищем.\n\n"
+                    f"Повна копія для іншого екземпляра:\n{target}",
+                    parent=win,
+                )
 
         buttons=ttk.Frame(body); buttons.pack(fill="x",pady=(8,0))
-        ttk.Button(buttons,text="Перенести поточні дані…",command=copy_current).pack(side="left")
+        ttk.Button(
+            buttons,text="Повна копія / перенесення…",command=copy_current
+        ).pack(side="left")
         ttk.Button(buttons,text="Підключити існуюче…",command=attach_existing).pack(side="left",padx=8)
         ttk.Button(buttons,text="Відкрити поточну папку",command=self.open_data_folder).pack(side="left")
         ttk.Button(buttons,text="Закрити",command=win.destroy).pack(side="right")
@@ -7338,12 +7950,63 @@ class App(tk.Tk):
             title="Виберіть резервну копію Taxo",
             initialdir=str(BACKUP_DIR),
             filetypes=[
-                ("Резервна копія Taxo","*.sqlite3"),
+                ("Повна копія Taxo","*.zip"),
+                ("Резервна копія основної БД","*.sqlite3"),
                 ("SQLite база","*.db *.sqlite *.sqlite3"),
                 ("Усі файли","*.*"),
             ]
         )
         if not path:
+            return
+
+        if Path(path).suffix.lower()==".zip":
+            try:
+                manifest=validate_workspace_backup_archive(path)
+            except Exception as exc:
+                messagebox.showerror(
+                    "Відновлення повної копії",
+                    f"Цей ZIP не можна використати для відновлення:\n\n{exc}",
+                    parent=self,
+                )
+                return
+            target=_select_workspace_folder(
+                self,
+                "Виберіть НОВУ порожню папку для відновлення Taxo",
+            )
+            if target is None:
+                return
+            if normalize_root(target)==normalize_root(DATA_ROOT):
+                messagebox.showerror(
+                    "Відновлення повної копії",
+                    "Не можна відновлювати ZIP поверх поточного робочого сховища. "
+                    "Виберіть нову порожню папку.",
+                    parent=self,
+                )
+                return
+            created=str(manifest.get("created_at") or "—")
+            version=str(manifest.get("app_version") or "—")
+            if not messagebox.askyesno(
+                "Відновлення повної копії",
+                "Відновити повне робоче сховище у вибрану папку?\n\n"
+                f"Копія: {Path(path).name}\nВерсія Taxo: {version}\nСтворена: {created}\n\n"
+                f"Нова папка:\n{target}\n\n"
+                "Поточне сховище не буде змінено. Після перевірки Taxo переключиться "
+                "на відновлену копію і закриється.",
+                parent=self,
+            ):
+                return
+            try:
+                restore_workspace_backup_archive(path,target)
+            except Exception as exc:
+                messagebox.showerror(
+                    "Відновлення повної копії",
+                    f"Відновлення не завершено. Поточне сховище не змінено.\n\n{exc}",
+                    parent=self,
+                )
+                return
+            self._close_after_workspace_switch(
+                target,"Повну резервну копію перевірено й відновлено."
+            )
             return
 
         ok,details=validate_database_file(path)
@@ -7727,33 +8390,69 @@ class App(tk.Tk):
                 employee and employee["driver_id"]
                 and "Водій" in current_roles and "Водій" not in roles
             )
+            opening_driver=bool(
+                "Водій" in roles
+                and (not employee or "Водій" not in current_roles)
+            )
             driver_end_date=""
+            driver_start_date=""
+            closing_driver_mode=""
             if closing_driver:
-                if not messagebox.askyesno(
-                    "Завершити роль водія",
-                    "Зняти роль «Водій»? Водійська картка стане неактивною, "
-                    "але весь старий графік, табель і шляхівки залишаться.",
+                choice=messagebox.askyesnocancel(
+                    "Завершити роль водія / виправити спадкову роль",
+                    "Це реальне завершення роботи водієм чи виправлення старої помилкової ролі?\n\n"
+                    "ТАК — працівник реально був водієм: зберегти історію та дату завершення.\n"
+                    "НІ — це спадщина старих версій, де всі були записані як водії: "
+                    "позначити роль як помилкову і не враховувати старий driver-графік у табелі.\n"
+                    "СКАСУВАТИ — нічого не змінювати.",
                     parent=win,
-                ):
-                    return
-                raw_end=simpledialog.askstring(
-                    "Дата завершення ролі",
-                    "Дата завершення роботи водієм (ДД.ММ.РРРР):",
-                    initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
                 )
-                if raw_end is None:
+                if choice is None:
                     return
-                try:
-                    driver_end_date=datetime.strptime(
-                        raw_end.strip(),"%d.%m.%Y"
-                    ).strftime("%Y-%m-%d")
-                except ValueError:
-                    messagebox.showerror(
-                        "Працівник",
-                        "Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",
-                        parent=win,
+                if choice:
+                    closing_driver_mode="finish"
+                    raw_end=simpledialog.askstring(
+                        "Дата завершення ролі",
+                        "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                        initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
                     )
-                    return
+                    if raw_end is None:
+                        return
+                    try:
+                        driver_end_date=datetime.strptime(
+                            raw_end.strip(),"%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
+                    except ValueError:
+                        messagebox.showerror(
+                            "Працівник",
+                            "Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",
+                            parent=win,
+                        )
+                        return
+                else:
+                    closing_driver_mode="void"
+            if opening_driver:
+                if employee and employee["driver_id"]:
+                    raw_start=simpledialog.askstring(
+                        "Початок ролі водія",
+                        "Дата початку / відновлення реальної ролі водія (ДД.ММ.РРРР):",
+                        initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
+                    )
+                    if raw_start is None:
+                        return
+                    try:
+                        driver_start_date=datetime.strptime(
+                            raw_start.strip(),"%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
+                    except ValueError:
+                        messagebox.showerror(
+                            "Працівник",
+                            "Дата початку ролі має бути у форматі ДД.ММ.РРРР.",
+                            parent=win,
+                        )
+                        return
+                else:
+                    driver_start_date=vals.get("employment_date") or date.today().isoformat()
             for key in ("employment_date","dismissal_date"):
                 if vals[key]:
                     try:
@@ -7806,7 +8505,7 @@ class App(tk.Tk):
                     (
                         vals["last_name"],vals["first_name"],vals["middle_name"],
                         vals["personnel_no"],vals["employment_date"],vals["notes"],
-                        int(active.get()),datetime.now().isoformat(timespec="seconds"),
+                        0,datetime.now().isoformat(timespec="seconds"),
                     ),
                 )
                 driver_id=cur.lastrowid
@@ -7855,8 +8554,10 @@ class App(tk.Tk):
                 ).strip()
                 if "Водій" in roles:
                     next_driver_end=""
-                elif closing_driver:
+                elif closing_driver_mode=="finish":
                     next_driver_end=driver_end_date
+                elif closing_driver_mode=="void":
+                    next_driver_end=""
                 else:
                     next_driver_end=stored_driver_end
                 driver_active=int(active.get() and "Водій" in roles)
@@ -7871,8 +8572,12 @@ class App(tk.Tk):
                         vals["notes"],driver_active,driver_id,
                     ),
                 )
-                if closing_driver:
+                if closing_driver_mode=="finish":
                     finish_driver_role(con,eid,driver_id,driver_end_date)
+                elif closing_driver_mode=="void":
+                    void_legacy_driver_role(con,eid,driver_id)
+                elif opening_driver:
+                    activate_driver_role(con,eid,driver_id,driver_start_date)
             con.commit()
             con.close()
             self.load_employee_registry()
@@ -8536,6 +9241,74 @@ class App(tk.Tk):
             lines.extend(["","Дні за видами:"]+[f"  {key}: {value}" for key,value in sorted(types.items())])
             text.insert("1.0","\n".join(lines)); text.configure(state="disabled")
 
+        def show_timesheet_audit():
+            start,_days=selected_month()
+            if not start:
+                return
+            try:
+                from personnel_v91 import collect_personnel_timesheet_audit
+                audit=collect_personnel_timesheet_audit(
+                    __import__("main"),start.year,start.month,active_only=False
+                )
+            except Exception as exc:
+                messagebox.showerror("Аудит табеля",str(exc),parent=win)
+                return
+            dialog=tk.Toplevel(win)
+            dialog.title("Аудит табеля робочого часу")
+            fit_window_to_screen(dialog,1180,680,820,500)
+            configure_toplevel(dialog)
+            top=ttk.Frame(dialog,padding=10); top.pack(fill="x")
+            ttk.Label(
+                top,
+                text=(
+                    f"Помилки: {audit['errors']}   "
+                    f"Попередження: {audit['warnings']}   "
+                    f"Інформаційні: {audit['info']}"
+                ),
+                font=("TkDefaultFont",10,"bold"),
+            ).pack(side="left")
+            ttk.Label(
+                top,
+                text="Аудит нічого не змінює — лише звіряє джерела часу.",
+                foreground=PALETTE["muted"],
+            ).pack(side="right")
+            frame=ttk.Frame(dialog,padding=(10,0,10,10))
+            frame.pack(fill="both",expand=True)
+            frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+            cols=("severity","date","personnel","name","code","message")
+            tree=ttk.Treeview(frame,columns=cols,show="headings")
+            for key,label,width in (
+                ("severity","Рівень",100),("date","Дата",95),("personnel","Таб. №",90),
+                ("name","Працівник",230),("code","Перевірка",155),("message","Що виявлено",490)
+            ):
+                tree.heading(key,text=label)
+                tree.column(key,width=width,anchor="w")
+            tree.tag_configure("error",background=PALETTE["danger_soft"])
+            tree.tag_configure("warning",background=PALETTE["warning_soft"])
+            tree.tag_configure("info",background=PALETTE["info_soft"])
+            for item in audit["issues"]:
+                level={"error":"ПОМИЛКА","warning":"УВАГА","info":"ІНФО"}.get(
+                    item["severity"],item["severity"]
+                )
+                tree.insert(
+                    "","end",
+                    values=(
+                        level,item["date"].strftime("%d.%m.%Y"),
+                        item["personnel_no"],item["name"],item["code"],item["message"]
+                    ),
+                    tags=(item["severity"],),
+                )
+            sy=ttk.Scrollbar(frame,orient="vertical",command=tree.yview)
+            sx=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview)
+            tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
+            tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns")
+            sx.grid(row=1,column=0,sticky="ew")
+            if not audit["issues"]:
+                ttk.Label(
+                    dialog,text="За автоматичними перевірками суперечностей не знайдено.",
+                    foreground=PALETTE["success"],padding=(10,0,10,10)
+                ).pack(anchor="w")
+
         def show_personnel_balance():
             start,_days=selected_month()
             if not start: return
@@ -8642,6 +9415,9 @@ class App(tk.Tk):
         ).pack(side="left",padx=4)
         ttk.Button(
             toolbar_actions,text="Підсумки / контроль",command=show_selected_control
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar_actions,text="Аудит табеля…",command=show_timesheet_audit
         ).pack(side="left",padx=4)
 
         ttk.Label(
@@ -8843,25 +9619,59 @@ class App(tk.Tk):
                 messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win)
                 return
             role_end_date=""
+            role_start_date=""
+            role_action=""
             if driver and bool(driver["active"]) and not active.get():
-                raw_end=simpledialog.askstring(
-                    "Дата завершення ролі",
-                    "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                choice=messagebox.askyesnocancel(
+                    "Зняти роль «Водій»",
+                    "ТАК — це реальне завершення роботи водієм і треба зберегти дату.\n"
+                    "НІ — це помилкова спадкова роль зі старих версій; не вважати працівника водієм історично.\n"
+                    "СКАСУВАТИ — повернутися без змін.",
+                    parent=win,
+                )
+                if choice is None:
+                    return
+                if choice:
+                    role_action="finish"
+                    raw_end=simpledialog.askstring(
+                        "Дата завершення ролі",
+                        "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                        initialvalue=date.today().strftime("%d.%m.%Y"),
+                        parent=win,
+                    )
+                    if raw_end is None:
+                        return
+                    try:
+                        role_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                    except ValueError:
+                        messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
+                        return
+                else:
+                    role_action="void"
+            elif driver and not bool(driver["active"]) and active.get():
+                raw_start=simpledialog.askstring(
+                    "Початок ролі водія",
+                    "Дата початку / відновлення ролі водія (ДД.ММ.РРРР):",
                     initialvalue=date.today().strftime("%d.%m.%Y"),
                     parent=win,
                 )
-                if raw_end is None:
+                if raw_start is None:
                     return
                 try:
-                    role_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                    role_start_date=datetime.strptime(raw_start.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
                 except ValueError:
                     messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
                     return
+                role_action="activate"
+            elif not driver and active.get():
+                role_action="activate"
+                role_start_date=vals.get("employment_date") or date.today().isoformat()
             con=db()
             if driver:
                 saved_driver_id=driver["id"]
-                next_driver_end="" if active.get() else (
-                    role_end_date or (driver["driver_end_date"] or "").strip()
+                next_driver_end=(
+                    "" if active.get() or role_action=="void"
+                    else (role_end_date or (driver["driver_end_date"] or "").strip())
                 )
                 con.execute("""UPDATE drivers SET
                     last_name=?,first_name=?,middle_name=?,
@@ -8882,7 +9692,7 @@ class App(tk.Tk):
                      vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
                      vals["personnel_no"],vals["birth_date"],vals["license_series"],vals["license_number"],
                      vals["license_issue_date"],vals["employment_date"],vals["notes"],
-                     int(active.get()),datetime.now().isoformat(timespec="seconds")))
+                     0,datetime.now().isoformat(timespec="seconds")))
                 saved_driver_id=cur.lastrowid
             emp=con.execute("SELECT id FROM employees WHERE driver_id=?",(saved_driver_id,)).fetchone()
             if emp:
@@ -8891,11 +9701,17 @@ class App(tk.Tk):
                     (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],employee_id))
             else:
                 cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,employment_date,notes,active,driver_id,created_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],int(active.get()),saved_driver_id,datetime.now().isoformat(timespec="seconds")))
+                    VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],1,saved_driver_id,datetime.now().isoformat(timespec="seconds")))
                 employee_id=cur.lastrowid
-            if active.get():
+            if role_action=="finish":
+                finish_driver_role(con,employee_id,saved_driver_id,role_end_date)
+            elif role_action=="void":
+                void_legacy_driver_role(con,employee_id,saved_driver_id)
+            elif role_action=="activate":
+                activate_driver_role(con,employee_id,saved_driver_id,role_start_date)
+            elif active.get():
                 con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
-                con.execute("UPDATE drivers SET driver_end_date='' WHERE id=?",(saved_driver_id,))
+                con.execute("UPDATE drivers SET active=1,driver_end_date='' WHERE id=?",(saved_driver_id,))
             else:
                 con.execute("DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",(employee_id,))
             con.commit(); con.close()
@@ -8910,16 +9726,36 @@ class App(tk.Tk):
     def delete_driver(self):
         d=self.selected_driver()
         if not d: return
-        if not messagebox.askyesno("Завершити роль водія","Зняти роль «Водій»? Працівник залишиться в реєстрі, а історія графіка, табеля та шляхівок не видалиться."): return
-        raw_end=simpledialog.askstring("Дата завершення ролі","Дата завершення роботи водієм (ДД.ММ.РРРР):",initialvalue=date.today().strftime("%d.%m.%Y"),parent=self)
-        if raw_end is None: return
-        try: end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
-        except ValueError:
-            messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=self); return
+        choice=messagebox.askyesnocancel(
+            "Зняти роль «Водій»",
+            "ТАК — реальне завершення ролі з датою.\n"
+            "НІ — виправити помилкову спадкову роль старих версій.\n"
+            "СКАСУВАТИ — нічого не змінювати.",
+            parent=self,
+        )
+        if choice is None: return
+        end_date=""
+        if choice:
+            raw_end=simpledialog.askstring("Дата завершення ролі","Дата завершення роботи водієм (ДД.ММ.РРРР):",initialvalue=date.today().strftime("%d.%m.%Y"),parent=self)
+            if raw_end is None: return
+            try: end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+            except ValueError:
+                messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=self); return
         con=db()
         employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(d["id"],)).fetchone()
-        if employee: finish_driver_role(con,employee["id"],d["id"],end_date)
-        else: con.execute("UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",(end_date,d["id"]))
+        if employee:
+            if choice:
+                finish_driver_role(con,employee["id"],d["id"],end_date)
+            else:
+                void_legacy_driver_role(con,employee["id"],d["id"])
+        elif choice:
+            con.execute("UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",(end_date,d["id"]))
+        else:
+            cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+            if "driver_role_mode" in cols:
+                con.execute("UPDATE drivers SET active=0,driver_end_date='',driver_role_mode='invalid' WHERE id=?",(d["id"],))
+            else:
+                con.execute("UPDATE drivers SET active=0,driver_end_date='' WHERE id=?",(d["id"],))
         con.commit(); con.close(); self.load_drivers(); self.load_employee_registry()
     def selected_driver(self):
         sel=self.driver_tree.selection()
@@ -8963,13 +9799,16 @@ class App(tk.Tk):
         rows=con.execute(
             "SELECT * FROM drivers ORDER BY active DESC, last_name, first_name, middle_name"
         ).fetchall()
-        con.close()
-
         try:
-            period_end=month_dates(int(self.year_var.get()),int(self.month_var.get()))[-1]
+            period_days=month_dates(int(self.year_var.get()),int(self.month_var.get()))
         except Exception:
-            period_end=date.today()
-        rows=[d for d in rows if driver_employed_on(d,period_end)]
+            period_days=[date.today()]
+        rows=[
+            d for d in rows
+            if _driver_role_mode(d)!="invalid"
+            and any(driver_role_active_on(con,d["id"],day) for day in period_days)
+        ]
+        con.close()
 
         available_ids={d["id"] for d in rows}
         if self.driver_id not in available_ids:
@@ -9030,7 +9869,15 @@ class App(tk.Tk):
     def refresh_att_driver_choices(self):
         if not hasattr(self, "att_driver_cb"):
             return
-        con=db(); rows=con.execute("SELECT * FROM drivers ORDER BY last_name, first_name").fetchall(); con.close()
+        con=db()
+        rows=con.execute("SELECT * FROM drivers ORDER BY last_name, first_name").fetchall()
+        today=date.today()
+        rows=[
+            d for d in rows
+            if _driver_role_mode(d)!="invalid"
+            and driver_role_active_on(con,d["id"],today)
+        ]
+        con.close()
         self.att_driver_map={}
         vals=[]
         for d in rows:
@@ -9206,13 +10053,19 @@ class App(tk.Tk):
         top.pack(fill="x", padx=10, pady=8)
         ttk.Button(top, text="Нове авто", command=self.vehicle_form).pack(side="left", padx=4)
         ttk.Button(top, text="Редагувати", command=self.edit_vehicle).pack(side="left", padx=4)
-        ttk.Button(top, text="Видалити", command=self.delete_vehicle).pack(side="left", padx=4)
+        ttk.Button(top, text="Документи", command=self.vehicle_documents).pack(side="left", padx=4)
+        ttk.Button(top, text="Контроль документів", command=self.vehicle_document_control).pack(side="left", padx=4)
+        ttk.Button(top, text="Вивести з експлуатації", command=self.delete_vehicle).pack(side="left", padx=4)
         ttk.Button(top, text="Оновити", command=self.load_vehicles).pack(side="left", padx=4)
-        ttk.Label(self.tab_vehicles, text="Каталог автомобілів. Одного водія можна щодня призначати на різні автомобілі та маршрути.", foreground="gray").pack(anchor="w", padx=12)
-        cols=("id","name","plate","garage","make","year","active","notes")
+        ttk.Label(
+            self.tab_vehicles,
+            text="Каталог транспортних засобів. Документи зберігаються з копіями та контролем строків дії.",
+            foreground="gray",
+        ).pack(anchor="w", padx=12)
+        cols=("id","name","plate","garage","make","year","ownership","active","documents","notes")
         self.vehicle_tree=ttk.Treeview(self.tab_vehicles,columns=cols,show="headings",height=25)
-        heads={"id":"ID","name":"Назва","plate":"Держ. №","garage":"Гар. №","make":"Марка / модель","year":"Рік","active":"Статус","notes":"Примітка"}
-        widths={"id":45,"name":165,"plate":110,"garage":85,"make":170,"year":65,"active":75,"notes":280}
+        heads={"id":"ID","name":"Назва","plate":"Держ. №","garage":"Гар. №","make":"Марка / модель","year":"Рік","ownership":"Власність / користування","active":"Статус","documents":"Документи","notes":"Примітка"}
+        widths={"id":45,"name":145,"plate":105,"garage":80,"make":150,"year":60,"ownership":155,"active":75,"documents":260,"notes":200}
         for c in cols:
             self.vehicle_tree.heading(c,text=heads[c]); self.vehicle_tree.column(c,width=widths[c],anchor="w")
         vehicle_y=ttk.Scrollbar(self.tab_vehicles,orient="vertical",command=self.vehicle_tree.yview)
@@ -9228,9 +10081,18 @@ class App(tk.Tk):
     def load_vehicles(self):
         if not hasattr(self,"vehicle_tree"): return
         for x in self.vehicle_tree.get_children(): self.vehicle_tree.delete(x)
-        con=db(); rows=con.execute("SELECT * FROM vehicles ORDER BY active DESC, name, plate").fetchall(); con.close()
-        for r in rows:
-            self.vehicle_tree.insert("","end",values=(r["id"],r["name"],r["plate"],r["garage_no"],r["make_model"],r["year"] or "","Так" if r["active"] else "Ні",r["notes"]))
+        con=db()
+        try:
+            ensure_vehicle_documents_schema(con)
+            rows=con.execute("SELECT * FROM vehicles ORDER BY active DESC, name, plate").fetchall()
+            data=[(r,vehicle_document_summary_text(con,r["id"])) for r in rows]
+        finally:
+            con.close()
+        for r,doc_state in data:
+            self.vehicle_tree.insert(
+                "","end",
+                values=(r["id"],r["name"],r["plate"],r["garage_no"],r["make_model"],r["year"] or "",r["ownership_type"] or "","Так" if r["active"] else "Ні",doc_state,r["notes"])
+            )
 
     def selected_vehicle(self):
         sel=self.vehicle_tree.selection()
@@ -9245,15 +10107,39 @@ class App(tk.Tk):
         return " — ".join(x for x in parts if x)
 
     def vehicle_form(self, vehicle=None):
-        win=tk.Toplevel(self); win.title("Автомобіль"); fit_window_to_screen(win,620,430,520,360); win.transient(self); win.grab_set()
-        fields=[("name","Назва / інвентарний номер"),("plate","Державний номер"),("garage_no","Гаражний номер"),("make_model","Марка / модель"),("year","Рік"),("notes","Примітка")]
+        win=tk.Toplevel(self); win.title("Автомобіль"); fit_window_to_screen(win,680,560,560,460); win.transient(self); win.grab_set()
+        fields=[("name","Назва / інвентарний номер"),("plate","Державний номер"),("garage_no","Гаражний номер"),("make_model","Марка / модель"),("year","Рік")]
         vv={}
         for i,(k,lbl) in enumerate(fields):
             ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=8)
             v=tk.StringVar(value=str(vehicle[k] or "") if vehicle else ""); vv[k]=v
             ttk.Entry(win,textvariable=v,width=55).grid(row=i,column=1,sticky="ew",padx=10,pady=8)
+
+        ownership_row=len(fields)
+        ttk.Label(win,text="Форма власності / користування").grid(row=ownership_row,column=0,sticky="w",padx=10,pady=8)
+        ownership=tk.StringVar(value=str(vehicle["ownership_type"] or "") if vehicle else "Власний")
+        ttk.Combobox(
+            win,textvariable=ownership,
+            values=("Власний","Оренда","Лізинг","Позичка / інше користування","Інше"),
+            width=52
+        ).grid(row=ownership_row,column=1,sticky="ew",padx=10,pady=8)
+
+        temporary_required=tk.BooleanVar(
+            value=bool(vehicle["temporary_registration_required"]) if vehicle else False
+        )
+        ttk.Checkbutton(
+            win,
+            text="Потрібен тимчасовий реєстраційний документ",
+            variable=temporary_required,
+        ).grid(row=ownership_row+1,column=1,sticky="w",padx=10,pady=(2,8))
+
+        notes_row=ownership_row+2
+        ttk.Label(win,text="Примітка").grid(row=notes_row,column=0,sticky="w",padx=10,pady=8)
+        notes=tk.StringVar(value=str(vehicle["notes"] or "") if vehicle else "")
+        ttk.Entry(win,textvariable=notes,width=55).grid(row=notes_row,column=1,sticky="ew",padx=10,pady=8)
+
         active=tk.BooleanVar(value=bool(vehicle["active"]) if vehicle else True)
-        ttk.Checkbutton(win,text="Активний автомобіль",variable=active).grid(row=len(fields),column=1,sticky="w",padx=10,pady=8)
+        ttk.Checkbutton(win,text="Активний автомобіль",variable=active).grid(row=notes_row+1,column=1,sticky="w",padx=10,pady=8)
         def save():
             name=vv["name"].get().strip()
             if not name:
@@ -9264,22 +10150,57 @@ class App(tk.Tk):
                 except ValueError: messagebox.showerror("Помилка","Рік має бути числом.",parent=win); return
             else: year=None
             con=db()
-            vals=(name,vv["plate"].get().strip(),vv["garage_no"].get().strip(),vv["make_model"].get().strip(),year,vv["notes"].get().strip(),int(active.get()))
+            vals=(
+                name,vv["plate"].get().strip(),vv["garage_no"].get().strip(),
+                vv["make_model"].get().strip(),year,ownership.get().strip(),
+                int(temporary_required.get()),notes.get().strip(),int(active.get())
+            )
             if vehicle:
-                con.execute("UPDATE vehicles SET name=?,plate=?,garage_no=?,make_model=?,year=?,notes=?,active=? WHERE id=?",(*vals,vehicle["id"]))
+                con.execute(
+                    "UPDATE vehicles SET name=?,plate=?,garage_no=?,make_model=?,year=?,ownership_type=?,temporary_registration_required=?,notes=?,active=? WHERE id=?",
+                    (*vals,vehicle["id"])
+                )
             else:
-                con.execute("INSERT INTO vehicles(name,plate,garage_no,make_model,year,notes,active,created_at) VALUES(?,?,?,?,?,?,?,?)",(*vals,datetime.now().isoformat(timespec="seconds")))
+                con.execute(
+                    "INSERT INTO vehicles(name,plate,garage_no,make_model,year,ownership_type,temporary_registration_required,notes,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    (*vals,datetime.now().isoformat(timespec="seconds"))
+                )
             con.commit(); con.close(); self.load_vehicles(); win.destroy()
-        ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+1,column=1,sticky="e",padx=10,pady=14)
+        ttk.Button(win,text="Зберегти",command=save).grid(row=notes_row+2,column=1,sticky="e",padx=10,pady=14)
 
     def edit_vehicle(self):
         v=self.selected_vehicle()
         if v: self.vehicle_form(v)
 
+    def vehicle_documents(self):
+        v=self.selected_vehicle()
+        if not v:
+            messagebox.showinfo("Документи авто","Виберіть транспортний засіб.",parent=self)
+            return
+        open_vehicle_documents(self,db,DATA_ROOT,v,on_change=self.load_vehicles)
+
+    def open_vehicle_documents_by_id(self, vehicle_id):
+        con=db()
+        try:
+            v=con.execute("SELECT * FROM vehicles WHERE id=?",(int(vehicle_id),)).fetchone()
+        finally:
+            con.close()
+        if v:
+            open_vehicle_documents(self,db,DATA_ROOT,v,on_change=self.load_vehicles)
+
+    def vehicle_document_control(self):
+        open_vehicle_document_control(
+            self,db,DATA_ROOT,on_open_vehicle=self.open_vehicle_documents_by_id
+        )
+
     def delete_vehicle(self):
         v=self.selected_vehicle()
         if not v: return
-        if not messagebox.askyesno("Підтвердження","Видалити автомобіль з каталогу? Історичні записи табеля залишаться."): return
+        if not messagebox.askyesno(
+            "Підтвердження",
+            "Вивести транспортний засіб з експлуатації? Історичні записи та документи залишаться.",
+            parent=self,
+        ): return
         con=db(); con.execute("UPDATE vehicles SET active=0 WHERE id=?",(v["id"],)); con.commit(); con.close(); self.load_vehicles()
 
     def build_work(self):
@@ -9581,7 +10502,7 @@ class App(tk.Tk):
             path=actual
             self.monthly_balance_last_pdf=actual
         try:
-            open_external(path)
+            open_document(self.monthly_balance_win, path, external_opener=open_external)
         except Exception as e:
             messagebox.showerror(
                 "Помилка",str(e),parent=self.monthly_balance_win
@@ -10303,7 +11224,7 @@ class App(tk.Tk):
             if actual is None:
                 return
             self.monthly_shift_last_detail_pdf=Path(actual)
-            open_external(actual)
+            open_document(self.monthly_shift_win, actual, external_opener=open_external)
         except Exception as exc:
             messagebox.showerror(
                 "Деталізація графіка",
@@ -10380,7 +11301,7 @@ class App(tk.Tk):
                 self.monthly_shift_last_pdf=path
                 self.monthly_shift_last_pdf_key=key
                 self.monthly_shift_pdf_dirty=False
-            open_external(path)
+            open_document(self.monthly_shift_win, path, external_opener=open_external)
         except Exception as e:
             messagebox.showerror(
                 "Графік змінності",
@@ -11013,6 +11934,10 @@ class App(tk.Tk):
         ttk.Button(actions,text="Оновити",command=self.refresh_waybill_issue_list).pack(side="left",padx=3)
         ttk.Button(actions,text="Сформувати / видати PDF",command=self.issue_selected_waybill).pack(side="left",padx=3)
         ttk.Button(actions,text="Відкрити PDF",command=self.open_selected_waybill).pack(side="left",padx=3)
+        ttk.Button(
+            actions,text="Перегляд у Taxo",style="Accent.TButton",
+            command=self.preview_selected_waybill
+        ).pack(side="left",padx=3)
         ttk.Button(actions,text="Анулювати номер",command=self.void_selected_waybill).pack(side="left",padx=3)
         ttk.Button(actions,text="Папка шляхівок",command=lambda:open_external(WAYBILL_DIR)).pack(side="left",padx=3)
         ttk.Button(actions,text="Спідометр / пробіг",command=self.edit_waybill_odometer).pack(side="left",padx=3)
@@ -11192,6 +12117,24 @@ class App(tk.Tk):
         # натискання «Зберегти» перед видачею документа.
         self.save_company(show_message=False)
         con=db()
+        document_warnings=vehicle_document_warning_lines(
+            con,row["vehicle_id"],today=row["date"]
+        )
+        if document_warnings:
+            warning_text=(
+                f"Увага: для автомобіля «{row['vehicle']}» є проблеми з документами "
+                f"на дату шляхового листа {row['date'].strftime('%d.%m.%Y')}:\n\n"
+                + "\n".join(f"• {item}" for item in document_warnings)
+                + "\n\nПродовжити формування шляхового листа?"
+            )
+            if not messagebox.askyesno(
+                "Шляхівка — застереження щодо документів",
+                warning_text,
+                parent=self.waybill_win,
+                icon="warning",
+            ):
+                con.close()
+                return
         existing=con.execute("SELECT * FROM waybills WHERE worklog_id=?",(row["worklog_id"],)).fetchone()
         company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
         reprint=bool(existing and (existing["status"] or "active")=="active")
@@ -11278,7 +12221,7 @@ class App(tk.Tk):
         con.execute("""INSERT INTO waybill_events(waybill_id,event_type,document_series,document_number,internal_no,revision,pdf_path,created_at)
             VALUES(?,?,?,?,?,?,?,?)""",(waybill_id,"reprint" if reprint else "issued",document_series,document_number,internal_no,revision,actual_db_path,now))
         con.commit(); con.close(); self.refresh_waybill_issue_list()
-        try: open_external(actual)
+        try: open_document(self.waybill_win, actual, external_opener=open_external)
         except Exception: pass
 
     def void_selected_waybill(self):
@@ -11299,16 +12242,37 @@ class App(tk.Tk):
             VALUES(?,?,?,?,?,?,?,?,?)""",(row["waybill_id"],"void",wb["document_series"],wb["document_number"],wb["internal_no"],wb["revision"],wb["pdf_path"],reason,now))
         con.commit(); con.close(); self.refresh_waybill_issue_list()
 
-    def open_selected_waybill(self):
+    def _selected_waybill_pdf_path(self):
         row=self._selected_waybill_data()
         if not row or not row.get("waybill_pdf"):
-            messagebox.showinfo("Шляхівка","Для вибраного запису PDF ще не сформовано.",parent=getattr(self,"waybill_win",self)); return
+            messagebox.showinfo(
+                "Шляхівка","Для вибраного запису PDF ще не сформовано.",
+                parent=getattr(self,"waybill_win",self)
+            )
+            return None
         path=real_data_path(row["waybill_pdf"])
-        if path is None:
-            messagebox.showerror("Шляхівка","Файл шляхівки не знайдено.",parent=self.waybill_win); return
-        if not path.exists():
-            messagebox.showerror("Шляхівка","Файл шляхівки не знайдено. Сформуйте його повторно.",parent=self.waybill_win); return
-        open_external(path)
+        if path is None or not path.exists():
+            messagebox.showerror(
+                "Шляхівка",
+                "Файл шляхівки не знайдено. Сформуйте його повторно.",
+                parent=getattr(self,"waybill_win",self)
+            )
+            return None
+        return path
+
+    def open_selected_waybill(self):
+        path=self._selected_waybill_pdf_path()
+        if path is not None:
+            open_external(path)
+
+    def preview_selected_waybill(self):
+        path=self._selected_waybill_pdf_path()
+        if path is not None:
+            open_document(
+                getattr(self,"waybill_win",self),
+                path,
+                external_opener=open_external
+            )
 
     def get_work_segments(self, worklog_id):
         if not worklog_id: return []
@@ -12602,7 +13566,7 @@ class App(tk.Tk):
             error_title="Помилка деталізації"
         )
         if actual is not None:
-            open_external(actual)
+            open_document(parent or self, actual, external_opener=open_external)
 
     def show_work_analysis(self):
         data=self.calculate_work_analysis()
@@ -13556,6 +14520,10 @@ class App(tk.Tk):
         ttk.Button(open_bar,text="DOCX",command=lambda:self.open_att_file("docx")).pack(side="left",padx=3)
         ttk.Button(open_bar,text="PDF",command=lambda:self.open_att_file("pdf")).pack(side="left",padx=3)
         ttk.Button(open_bar,text="JPG",command=lambda:self.open_att_file("jpg")).pack(side="left",padx=3)
+        ttk.Button(
+            open_bar,text="Перегляд у Taxo",style="Accent.TButton",
+            command=self.preview_selected_attestation
+        ).pack(side="left",padx=(10,3))
         ttk.Button(open_bar,text="Папка файла",command=self.open_att_folder).pack(side="left",padx=3)
         ttk.Button(open_bar,text="Архів файлів",command=self.open_att_archive_folder).pack(side="left",padx=3)
 
@@ -14546,15 +15514,21 @@ class App(tk.Tk):
         con=db(); row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone(); con.close()
         return row
 
-    def _open_path(self, path):
-        raw=(path or "").strip()
-        path=real_data_path(raw)
+    def _resolve_existing_path(self, raw, title="Документ"):
+        value=(raw or "").strip()
+        path=real_data_path(value)
         if path is None or not path.exists():
-            messagebox.showerror("Помилка","Файл не знайдено.",parent=self)
-            return
-        open_external(path)
+            messagebox.showerror(title,"Файл не знайдено.",parent=self)
+            return None
+        return path
+
+    def _open_path(self, path):
+        resolved=self._resolve_existing_path(path)
+        if resolved is not None:
+            open_document(self,resolved,external_opener=open_external)
 
     def open_att_file(self, kind=None):
+        """Open the exact saved format in the OS-associated application."""
         row=self._selected_attestation_row()
         if row is None:
             messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
@@ -14568,7 +15542,33 @@ class App(tk.Tk):
         else:
             path=row["pdf_path"] or row["file_path"] or row["jpg_page1_path"] or row["jpg_page2_path"]
         if not (path or "").strip():
-            messagebox.showinfo("Бланки",f"Для цього запису формат {str(kind or '').upper()} не створювався.",parent=self)
+            messagebox.showinfo(
+                "Бланки",
+                f"Для цього запису формат {str(kind or '').upper()} не створювався.",
+                parent=self
+            )
+            return
+        resolved=self._resolve_existing_path(path,"Бланки")
+        if resolved is not None:
+            open_external(resolved)
+
+    def preview_selected_attestation(self):
+        """Open the best visual representation in Taxo's internal viewer."""
+        row=self._selected_attestation_row()
+        if row is None:
+            messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
+            return
+        path=(
+            row["pdf_path"]
+            or row["jpg_page1_path"]
+            or row["jpg_page2_path"]
+            or row["file_path"]
+        )
+        if not (path or "").strip():
+            messagebox.showinfo(
+                "Бланки","Для цього запису немає збереженого файла.",
+                parent=self
+            )
             return
         self._open_path(path)
 

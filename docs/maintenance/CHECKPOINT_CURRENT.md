@@ -6,7 +6,8 @@
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Verified candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
-**PR #34:** merged
+**PR #34:** merged  
+**Active development:** `10.2-r4` · `work/v10.2-r4-replanning` · PR #40
 
 ## Gate
 
@@ -35,3 +36,11 @@ Candidate automation:
 - `v10.0` та `v10.1-r1` … `v10.1-r5` — immutable;
 - `v10.1` створено stable publisher з commit у `main` і тепер є immutable stable;
 - БД/скани/персональні файли у release не входять.
+
+
+## Поточний candidate workflow
+
+- Кожен завершений крок = нова ревізія.
+- `r1 ... r10`; після `r10` — наступна minor-версія з `r1`.
+- r4 є окремим тестовим станом; наступна зміна після виданого r4-архіву буде вже r5.
+- Кожен крок завершується прямим посиланням на START-архів без вкладеного ZIP.

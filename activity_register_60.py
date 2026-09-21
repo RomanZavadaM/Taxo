@@ -703,7 +703,7 @@ def install(core, base_app):
                 )
                 if actual is not None:
                     if open_after:
-                        core.open_external(actual)
+                        core.open_document(win, actual, external_opener=core.open_external)
                     else:
                         core.messagebox.showinfo("Реєстр 60 днів", f"PDF створено:\n{actual}", parent=win)
 

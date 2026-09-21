@@ -58,9 +58,6 @@ from v91_features import (
 )
 
 
-APP_VERSION = "10.1"
-WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
-
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
 ABSENCE_RANGE_WEEKDAYS = "Пн–Пт"
 ABSENCE_RANGE_ALL = "Усі календарні дні"
@@ -294,6 +291,10 @@ def linked_route_plan_minutes(core, con, driver_id, target_date):
     """
     if not driver_id:
         return 0
+    if hasattr(core,"driver_role_active_on") and not core.driver_role_active_on(
+        con, driver_id, target_date
+    ):
+        return 0
     row = con.execute(
         """SELECT route_id,work_hours,work_start_time,work_end_time
              FROM worklog
@@ -391,6 +392,10 @@ def driver_work_intervals(core, con, driver_id, around_date):
 
     for row in rows:
         base=date.fromisoformat(row["work_date"])
+        if hasattr(core,"driver_role_active_on") and not core.driver_role_active_on(
+            con, driver_id, base
+        ):
+            continue
         row_keys=set(row.keys()) if hasattr(row,"keys") else set()
         planned_total=core.hours_value_to_minutes(
             row["work_hours"] if "work_hours" in row_keys else 0
@@ -729,6 +734,143 @@ def _p5_absence_minutes(core, con, employee, work_date, fallback_planned=0):
     except Exception:
         pass
     return int(fallback_planned or 0)
+
+
+def collect_personnel_timesheet_audit(core, year, month, active_only=True):
+    """Cross-check all time sources before payroll/P-5 reporting.
+
+    The audit never changes data.  It highlights source conflicts, legacy-driver
+    leakage and plans that differ from a fixed work-regime norm.
+    """
+    y,m=int(year),int(month)
+    days=core.month_dates(y,m)
+    employees=_all_employee_rows(core,active_only=active_only)
+    con=core.db()
+    issues=[]
+
+    def add(severity, employee, work_date, code, message):
+        issues.append({
+            "severity":severity,
+            "employee_id":int(employee["id"]),
+            "personnel_no":employee["personnel_no"] or "",
+            "name":core.employee_name(employee),
+            "date":work_date,
+            "code":code,
+            "message":message,
+        })
+
+    for employee in employees:
+        if not any(core.employee_employed_on(employee,d) for d in days):
+            continue
+        driver_id=employee["driver_id"]
+        for d in days:
+            if not core.employee_employed_on(employee,d):
+                continue
+
+            row=core.employee_day_time(con,employee["id"],d)
+            planned=int(row.get("planned_minutes") or 0)
+            actual=row.get("actual_minutes")
+            norm,regime=day_norm_minutes(con,employee["id"],d)
+
+            # Fixed regimes provide a useful cross-check, but not an automatic
+            # cap: approved overtime/long shifts may legitimately differ.
+            if (
+                regime.regime_type!=REGIME_SUMMARIZED
+                and int(norm or 0)>0 and planned>0 and planned!=int(norm)
+            ):
+                add(
+                    "warning",employee,d,"plan_vs_norm",
+                    f"План {regime_hhmm(planned)} відрізняється від норми дня "
+                    f"{regime_hhmm(norm)} ({regime.label})."
+                )
+
+            if planned>=24*60:
+                add(
+                    "error",employee,d,"plan_24h",
+                    f"План {regime_hhmm(planned)} дорівнює/перевищує 24 години."
+                )
+            elif planned>12*60:
+                add(
+                    "warning",employee,d,"long_plan",
+                    f"План {regime_hhmm(planned)} перевищує 12 годин — перевірте джерела."
+                )
+
+            if actual is not None and int(actual or 0)>=24*60:
+                add(
+                    "error",employee,d,"fact_24h",
+                    f"Факт {regime_hhmm(int(actual or 0))} дорівнює/перевищує 24 години."
+                )
+
+            # Old driver/worklog rows must not affect a date outside the real
+            # role.  Keep a visible audit note so legacy cleanup is traceable.
+            if driver_id and hasattr(core,"driver_role_active_on"):
+                raw=con.execute(
+                    "SELECT id,work_hours,work_start_time,work_end_time,start_time,end_time "
+                    "FROM worklog WHERE driver_id=? AND work_date=?",
+                    (driver_id,d.isoformat()),
+                ).fetchone()
+                if raw and not core.driver_role_active_on(con,driver_id,d):
+                    raw_minutes=core.hours_value_to_minutes(raw["work_hours"] or 0)
+                    if raw_minutes or raw["work_start_time"] or raw["start_time"]:
+                        add(
+                            "info",employee,d,"ignored_legacy_driver",
+                            "Є старий графік у таблиці водіїв, але роль «Водій» "
+                            "на цю дату не чинна; цей графік у табель не враховується."
+                        )
+
+            entry=con.execute(
+                "SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                (employee["id"],d.isoformat()),
+            ).fetchone()
+            if (
+                entry and str(entry["notes"] or "").strip()=="План за режимом робочого часу"
+                and entry["planned_hours"] is not None
+                and regime.regime_type!=REGIME_SUMMARIZED
+            ):
+                stored=core.hours_value_to_minutes(entry["planned_hours"])
+                if int(stored or 0)!=int(norm or 0):
+                    add(
+                        "info",employee,d,"stale_regime_cache",
+                        f"Старий збережений план {regime_hhmm(stored)} перераховано "
+                        f"за чинним режимом до {regime_hhmm(norm)}."
+                    )
+
+        # Detect old/current personnel shifts that overlap exact driver work.
+        shifts=con.execute(
+            """SELECT * FROM employee_shifts
+                 WHERE employee_id=? AND work_date BETWEEN ? AND ?
+                 ORDER BY work_date,id""",
+            (employee["id"],days[0].isoformat(),days[-1].isoformat()),
+        ).fetchall()
+        for sh in shifts:
+            d=date.fromisoformat(sh["work_date"])
+            if not driver_id or not hasattr(core,"driver_role_active_on"):
+                continue
+            if not core.driver_role_active_on(con,driver_id,d):
+                continue
+            base=datetime.combine(d,datetime.min.time())
+            start_dt=base+timedelta(minutes=parse_clock(sh["start_time"]))
+            end_dt=base+timedelta(
+                days=int(sh["end_day_offset"] or 0),
+                minutes=parse_clock(sh["end_time"]),
+            )
+            conflict=driver_plan_conflict(core,con,employee,start_dt,end_dt)
+            if conflict and conflict.get("kind")=="overlap":
+                add(
+                    "warning",employee,d,"driver_shift_overlap",
+                    f"Зміна «{sh['role']}» {sh['start_time']}–{sh['end_time']} "
+                    "перетинається з графіком водія; можливе подвійне нарахування плану."
+                )
+
+    con.close()
+    rank={"error":0,"warning":1,"info":2}
+    issues.sort(key=lambda x:(rank.get(x["severity"],9),x["name"],x["date"],x["code"]))
+    return {
+        "year":y,"month":m,"issues":issues,
+        "errors":sum(1 for x in issues if x["severity"]=="error"),
+        "warnings":sum(1 for x in issues if x["severity"]=="warning"),
+        "info":sum(1 for x in issues if x["severity"]=="info"),
+    }
 
 
 def collect_p5_data(core, year, month, active_only=True, use_plan_when_fact_missing=False):
@@ -1728,6 +1870,35 @@ def install(core, base_app):
                 "manual": True,
             }
         result = original_employee_day_time(con, employee_id, target_date)
+
+        # "План за режимом робочого часу" is a derived cache, not a historical
+        # manual decision.  If the employee's regime changes later, recalculate
+        # that row on read instead of keeping a stale 8:00/9:00 value forever.
+        if entry and str(entry["notes"] or "").strip()=="План за режимом робочого часу":
+            try:
+                norm,regime=day_norm_minutes(con,employee_id,target_date)
+                if regime.regime_type!=REGIME_SUMMARIZED:
+                    employee=con.execute(
+                        "SELECT driver_id FROM employees WHERE id=?",(employee_id,)
+                    ).fetchone()
+                    driver_id=employee["driver_id"] if employee else None
+                    driver_plan=core._driver_plan_minutes_for_day(
+                        con,driver_id,target_date
+                    )
+                    shift_plan,_shift_actual,_shift_found=core._employee_shift_minutes_for_day(
+                        con,employee_id,target_date
+                    )
+                    automatic=int(driver_plan or 0)+int(shift_plan or 0)
+                    result=dict(result)
+                    result["planned_minutes"]=automatic if automatic>0 else int(norm or 0)
+                    result["day_type"]="Робота" if result["planned_minutes"]>0 else "Вихідний"
+                    result["source"]=(
+                        "графік/зміна (після плану за режимом)"
+                        if automatic>0 else "режим робочого часу (перераховано)"
+                    )
+            except Exception:
+                pass
+
         if int(result.get("planned_minutes") or 0) <= 0:
             employee = con.execute(
                 "SELECT driver_id FROM employees WHERE id=?", (employee_id,)
@@ -1836,7 +2007,6 @@ def install(core, base_app):
             # point for the additive r6 schema migration.
             ensure_work_regime_schema(core)
             super().__init__(*args, **kwargs)
-            self.title(WINDOW_TITLE)
 
         def _select_personnel_page(self, page, nav_label="Працівники"):
             self.show_tab(self.tab_personnel)
@@ -2090,6 +2260,25 @@ def install(core, base_app):
             core.ttk.Button(b,text="Табель П-5 — Excel",command=lambda:self._save_p5("xlsx")).pack(side="left",padx=(16,5))
             core.ttk.Button(b,text="Відкрити останній Excel",command=lambda:self._open_last_p5("xlsx")).pack(side="left",padx=5)
             core.ttk.Button(b,text="Звичайний місячний табель",command=self.show_employee_timesheet).pack(side="left",padx=(16,5))
+
+            vehicle_reports = core.ttk.LabelFrame(
+                rpanel, text="Транспортні засоби", padding=10
+            )
+            vehicle_reports.pack(fill="x", pady=(16,0))
+            core.ttk.Label(
+                vehicle_reports,
+                text=(
+                    "Контроль на вибрану дату: страховка, техконтроль, постійний/тимчасовий "
+                    "реєстраційний документ і протокол перевірки тахографа."
+                ),
+                foreground="gray", wraplength=900, justify="left"
+            ).pack(side="left", fill="x", expand=True)
+            core.ttk.Button(
+                vehicle_reports,
+                text="Стан документів транспортних засобів…",
+                style="Accent.TButton",
+                command=self.show_vehicle_documents_report,
+            ).pack(side="right", padx=(12,0))
 
         def _open_personnel_overview_employee(self):
             tree=getattr(self,"personnel_overview_tree",None)
@@ -2744,7 +2933,7 @@ def install(core, base_app):
             win.title("Масове планування робочих змін персоналу")
             core.fit_window_to_screen(win, 980, 720, 780, 560)
             body = core.ttk.Frame(win, padding=10); body.pack(fill="both", expand=True)
-            body.columnconfigure(1, weight=1); body.rowconfigure(11, weight=1)
+            body.columnconfigure(1, weight=1); body.rowconfigure(12, weight=1)
 
             employees = self._active_employee_map()
             employee_var = core.tk.StringVar(value=next(iter(employees), ""))
@@ -2757,6 +2946,7 @@ def install(core, base_app):
             start_time = core.tk.StringVar(value="08:00")
             end_time = core.tk.StringVar(value="17:00")
             end_day = core.tk.StringVar(value="0")
+            unpaid_break = core.tk.StringVar(value="")
             location = core.tk.StringVar()
             note = core.tk.StringVar(value="Місячний план персоналу")
             replace = core.tk.BooleanVar(value=False)
@@ -2780,7 +2970,10 @@ def install(core, base_app):
             core.ttk.Combobox(body,textvariable=pattern_var,values=PATTERNS,state="readonly").grid(row=4,column=1,sticky="w",pady=4)
 
             times=core.ttk.Frame(body); times.grid(row=5,column=0,columnspan=3,sticky="ew",pady=4)
-            for label,var,width in (("Зміна",shift_var,5),("Початок",start_time,8),("D+",end_day,4),("Кінець",end_time,8),("Місце",location,20)):
+            for label,var,width in (
+                ("Зміна",shift_var,5),("Початок",start_time,8),("D+",end_day,4),
+                ("Кінець",end_time,8),("Перерва, хв",unpaid_break,8),("Місце",location,20)
+            ):
                 core.ttk.Label(times,text=label).pack(side="left",padx=(0,3))
                 if label=="Зміна":
                     core.ttk.Combobox(times,textvariable=var,values=("I","II"),state="readonly",width=width).pack(side="left",padx=(0,10))
@@ -2802,13 +2995,18 @@ def install(core, base_app):
             core.ttk.Label(cycle,text="дн.").pack(side="left")
 
             field(8,"Примітка",note)
-            core.ttk.Checkbutton(body,text="Замінювати існуючий ПЛАН цього працівника (факт не змінювати)",variable=replace).grid(row=9,column=0,columnspan=3,sticky="w",pady=4)
+            core.ttk.Checkbutton(
+                body,
+                text="Перепланувати: замінити існуючий ПЛАН цього працівника (факт не змінювати)",
+                variable=replace,
+                command=lambda: preview(),
+            ).grid(row=9,column=0,columnspan=3,sticky="w",pady=(6,2))
 
             tree=core.ttk.Treeview(body,columns=("date","action","current"),show="headings")
             for k,l,w in (("date","Дата",95),("action","Дія",220),("current","Поточне / конфлікт",520)):
                 tree.heading(k,text=l); tree.column(k,width=w,anchor="w")
             sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview); tree.configure(yscrollcommand=sy.set)
-            tree.grid(row=11,column=0,columnspan=2,sticky="nsew",pady=(8,0)); sy.grid(row=11,column=2,sticky="ns",pady=(8,0))
+            tree.grid(row=12,column=0,columnspan=2,sticky="nsew",pady=(8,0)); sy.grid(row=12,column=2,sticky="ns",pady=(8,0))
 
             def refresh_roles(_event=None):
                 emp=employees.get(employee_var.get())
@@ -2827,12 +3025,38 @@ def install(core, base_app):
                     work_days=int(cycle_work.get()),rest_days=int(cycle_rest.get())
                 )
                 if pattern_var.get()==PATTERN_SELECTED and not wd: raise ValueError("Виберіть дні тижня.")
-                dplus=int(end_day.get()); minutes=shift_span_minutes(start_time.get(),end_time.get(),dplus)
-                return emp,dates,dplus,minutes
+                dplus=int(end_day.get())
+                span_minutes=shift_span_minutes(start_time.get(),end_time.get(),dplus)
+                manual_break=unpaid_break.get().strip()
+                if manual_break:
+                    try:
+                        value=int(manual_break)
+                    except ValueError:
+                        raise ValueError("Неоплачувана перерва має бути цілим числом хвилин.")
+                    if value<0 or value>=span_minutes:
+                        raise ValueError("Неоплачувана перерва має бути від 0 до тривалості зміни.")
+                return emp,dates,dplus,span_minutes
+
+            def paid_plan_for_date(con,emp,d,span_minutes):
+                """Paid minutes and unpaid break for one planned clock span."""
+                raw=unpaid_break.get().strip()
+                if raw:
+                    break_minutes=int(raw)
+                    return span_minutes-break_minutes,break_minutes,"вручну"
+
+                norm,regime=day_norm_minutes(con,emp["id"],d)
+                gap=int(span_minutes)-int(norm or 0)
+                if (
+                    regime.regime_type!=REGIME_SUMMARIZED
+                    and int(norm or 0)>0
+                    and 0<gap<=120
+                ):
+                    return int(norm),gap,"авто за режимом"
+                return int(span_minutes),0,"без віднімання"
 
             def evaluate(show_error=True):
                 try:
-                    emp,dates,dplus,minutes=parse()
+                    emp,dates,dplus,span_minutes=parse()
                 except Exception as exc:
                     if show_error: core.messagebox.showerror("Планування",str(exc),parent=win)
                     return None,[]
@@ -2845,10 +3069,13 @@ def install(core, base_app):
                             "Щоб не дублювати маршрут/робочий час у employee_shifts",
                         ))
                     con.close()
-                    return (emp,dates,dplus,minutes),rows
+                    return (emp,dates,dplus,span_minutes),rows
                 for d in dates:
                     if not core.employee_employed_on(emp,d):
                         rows.append((d,"Поза періодом роботи","")); continue
+                    paid_minutes,break_minutes,break_source=paid_plan_for_date(
+                        con,emp,d,span_minutes
+                    )
                     absence=con.execute(
                         "SELECT day_type,notes FROM employee_time_entries WHERE employee_id=? AND work_date=?",
                         (emp["id"],d.isoformat())
@@ -2896,8 +3123,11 @@ def install(core, base_app):
                             ))
                             continue
                         continue
-                    rows.append((d,"Замінити план" if own else "Додати",""))
-                con.close(); return (emp,dates,dplus,minutes),rows
+                    details=f"Оплачувано {regime_hhmm(paid_minutes)}"
+                    if break_minutes:
+                        details += f"; неоплачувана перерва {break_minutes} хв ({break_source})"
+                    rows.append((d,"Замінити план" if own else "Додати",details))
+                con.close(); return (emp,dates,dplus,span_minutes),rows
 
             def preview():
                 for x in tree.get_children(): tree.delete(x)
@@ -2911,10 +3141,13 @@ def install(core, base_app):
                 if not writable:
                     core.messagebox.showinfo("Планування","Немає дат для запису.",parent=win); return
                 if not core.messagebox.askyesno("Планування",f"Записати {len(writable)} змін(и)?",parent=win): return
-                emp,dates,dplus,minutes=plan; con=core.db(); added=0; skipped=0
+                emp,dates,dplus,span_minutes=plan; con=core.db(); added=0; skipped=0
                 now_note=note.get().strip()
                 for d,action,_curr in rows:
                     if action not in ("Додати","Замінити план","Додати ⚠","Замінити план ⚠"): skipped+=1; continue
+                    paid_minutes,break_minutes,_break_source=paid_plan_for_date(
+                        con,emp,d,span_minutes
+                    )
                     absence=con.execute(
                         "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
                         (emp["id"],d.isoformat())
@@ -2934,9 +3167,13 @@ def install(core, base_app):
                     elif own:
                         skipped+=1; continue
                     try:
-                        con.execute("""INSERT INTO employee_shifts(employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,location,planned_hours,actual_hours,status,notes)
-                                      VALUES(?,?,?,?,?,?,?,?,?,NULL,'planned',?)""",
-                                    (emp["id"],role_var.get(),d.isoformat(),1 if shift_var.get()=="I" else 2,start_time.get(),dplus,end_time.get(),location.get().strip(),minutes/60.0,now_note))
+                        con.execute("""INSERT INTO employee_shifts(
+                                      employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,
+                                      location,unpaid_break_minutes,planned_hours,actual_hours,status,notes)
+                                      VALUES(?,?,?,?,?,?,?,?,?,?,NULL,'planned',?)""",
+                                    (emp["id"],role_var.get(),d.isoformat(),
+                                     1 if shift_var.get()=="I" else 2,start_time.get(),dplus,end_time.get(),
+                                     location.get().strip(),break_minutes,paid_minutes/60.0,now_note))
                         added+=1
                     except Exception:
                         skipped+=1
@@ -2947,12 +3184,14 @@ def install(core, base_app):
                 body,
                 text=(
                     "Сумісництво: кілька ролей в один день дозволені, якщо точні часові "
-                    "інтервали не перетинаються. План лише «8 год» не означає 08:00–16:00 "
-                    "і дає попередження, а не автоматичний конфлікт."
+                    "інтервали не перетинаються. Поле «Перерва, хв» — неоплачуваний час. "
+                    "Якщо воно порожнє, Taxo автоматично віднімає лише правдоподібну перерву "
+                    "до 2 годин, коли часовий інтервал довший за денну норму фіксованого режиму. "
+                    "Більші розбіжності не маскуються і мають перевірятися."
                 ),
                 foreground="gray", wraplength=900, justify="left",
-            ).grid(row=9,column=0,columnspan=3,sticky="w",pady=(2,6))
-            buttons=core.ttk.Frame(body); buttons.grid(row=10,column=0,columnspan=3,sticky="ew")
+            ).grid(row=10,column=0,columnspan=3,sticky="w",pady=(2,6))
+            buttons=core.ttk.Frame(body); buttons.grid(row=11,column=0,columnspan=3,sticky="ew")
             core.ttk.Button(buttons,text="Переглянути",command=preview).pack(side="left",padx=3)
             core.ttk.Button(buttons,text="Застосувати",command=apply).pack(side="left",padx=3)
             emp_combo.bind("<<ComboboxSelected>>",refresh_roles)
@@ -3207,7 +3446,10 @@ def install(core, base_app):
                 )
                 return
             try:
-                core.open_external(path)
+                if kind == "pdf":
+                    core.open_document(self, path, external_opener=core.open_external)
+                else:
+                    core.open_external(path)
             except Exception as exc:
                 core.messagebox.showerror(
                     "Табель П-5",
@@ -3226,6 +3468,38 @@ def install(core, base_app):
             edrpou=self.personnel_report_edrpou.get().strip()
             core.set_setting("personnel_report_department",department)
             core.set_setting("company_edrpou",edrpou)
+
+            audit=collect_personnel_timesheet_audit(
+                core,year,month,self.personnel_report_active.get()
+            )
+            blocking=[
+                item for item in audit["issues"]
+                if item["severity"] in ("error","warning")
+            ]
+            if blocking:
+                shown=blocking[:12]
+                details="\n".join(
+                    f"• {item['date'].strftime('%d.%m.%Y')} — "
+                    f"{item['name']}: {item['message']}"
+                    for item in shown
+                )
+                if len(blocking)>len(shown):
+                    details += f"\n… ще {len(blocking)-len(shown)} зауважень."
+                proceed=core.messagebox.askyesno(
+                    "Табель П-5 — аудит плану",
+                    (
+                        f"Перед формуванням знайдено: помилок {audit['errors']}, "
+                        f"попереджень {audit['warnings']}.\n\n"
+                        f"{details}\n\n"
+                        "Це не означає автоматично, що дані неправильні: довгі/надурочні "
+                        "плани можуть бути обґрунтовані. Але їх потрібно звірити.\n\n"
+                        "Продовжити формування П-5?"
+                    ),
+                    parent=self,
+                )
+                if not proceed:
+                    return
+
             preview=collect_p5_data(
                 core,year,month,self.personnel_report_active.get(),
                 use_plan_when_fact_missing=False
@@ -3279,7 +3553,10 @@ def install(core, base_app):
                     parent=self,
                 ):
                     try:
-                        core.open_external(actual)
+                        if kind == "pdf":
+                            core.open_document(self, actual, external_opener=core.open_external)
+                        else:
+                            core.open_external(actual)
                     except Exception as exc:
                         core.messagebox.showerror(
                             "Табель П-5",

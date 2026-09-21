@@ -186,9 +186,6 @@ class TestScheduleAuditR94(unittest.TestCase):
         )
         version=(root/"VERSION.txt").read_text("utf-8")
         self.assertIn(f"Version: {current}",version)
-        self.assertIn(current,(root/"v91_features.py").read_text("utf-8"))
-        self.assertIn(current,(root/"personnel_v91.py").read_text("utf-8"))
-        self.assertIn(current,(root/"taxo_app.py").read_text("utf-8"))
 
 if __name__=="__main__":
     unittest.main()
