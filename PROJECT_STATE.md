@@ -4,18 +4,20 @@
 **Stable baseline:** Taxo 10.1  
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Останній завершений крок:** Taxo 10.2-r5  
-**Активний крок:** Taxo 10.2-r7  
-**Стан коду r4:** злитий у `main`  
-**Робоча гілка r7:** `work/v10.2-r7-secondary-window-style`  
-**PR:** #40 — merged  
-**GitHub prerelease:** `v10.2-r4` — published  
-**Наступний кодовий крок після r7:** `10.2-r8`
+**Останній завершений крок:** Taxo 10.2-r7  
+**Активний крок:** немає — checkpoint завершено  
+**Стан коду r7:** злитий у `main`  
+**Accepted candidate target:** `b5aa0f3c213988fe51c2a98414b4acd3db70e710`  
+**Merge у main:** `e272c8794b8df17dd3ec2e64a811c707158c94a0`  
+**PR:** #45 — merged  
+**GitHub prerelease:** `v10.2-r7` — published  
+**Наступний кодовий крок:** `10.2-r8`
 
 ## Джерело істини
 
-- `main` + `v10.1` — завершена стабільна база.
-- Нова робота ведеться тільки від актуального `main`.
+- `v10.1` — незмінний stable release / rollback checkpoint.
+- `main` містить прийнятий candidate checkpoint `10.2-r7` і є базою для наступної розробки.
+- Нова кодова робота ведеться тільки від актуального `main` і починається з `10.2-r8`.
 - Старі candidate/work/docs/tmp-гілки не є робочими напрямами.
 - Старі релізи й теги залишаються лише історією GitHub; повертатися до них у розробці не планується.
 - Застарілі відкриті PR #33 і #35 закриті.
@@ -189,10 +191,14 @@
 - дрібні modal edit forms залишено на окремий наступний revision.
 
 
-## 10.2-r7 — packaging correction
+## 10.2-r7 — завершено
 
-- UI-код r6 збережено;
-- r6 опубліковано з помилковим asset-name `Taxo_v10_1_candidate_r6_START.zip`;
-- r6 не переписується;
-- r7 формує правильний `Taxo_v10_2_candidate_r7_START.zip`;
-- після виданого r7 наступний крок — тільки 10.2-r8.
+- UI-код r6 збережено: 12 великих secondary windows використовують затверджену брендовану шапку;
+- r6 лишився immutable historical checkpoint з помилковим asset-name `Taxo_v10_1_candidate_r6_START.zip`;
+- r7 опубліковано з правильним `Taxo_v10_2_candidate_r7_START.zip`;
+- Windows і macOS PR-gates для прийнятого head пройшли успішно;
+- PR #45 злитий у `main`;
+- accepted candidate target: `b5aa0f3c213988fe51c2a98414b4acd3db70e710`;
+- merge commit: `e272c8794b8df17dd3ec2e64a811c707158c94a0`;
+- stable `v10.1` не пересувався;
+- наступна кодова зміна — тільки `10.2-r8`.
