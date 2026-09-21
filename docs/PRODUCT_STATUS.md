@@ -61,9 +61,9 @@ GitHub Release `v10.1` міститиме:
 - [Індекс релізів](releases/RELEASE_INDEX.md)
 
 
-## Активна розробка 10.2-r4
+## Завершений candidate 10.2-r4
 
-Stable 10.1 не змінюється. Робочий candidate — 10.2-r4 / PR #40.
+Stable 10.1 не змінюється. Candidate 10.2-r4 прийнятий, PR #40 злитий у `main`, prerelease `v10.2-r4` опублікований.
 
 Політика розробки:
 - кожен завершений крок піднімає ревізію;
@@ -72,3 +72,5 @@ Stable 10.1 не змінюється. Робочий candidate — 10.2-r4 / PR
 - уже видані ревізії не перевикористовуються.
 
 Джерело правила: [maintenance/DEVELOPMENT_RULES.md](maintenance/DEVELOPMENT_RULES.md).
+
+Наступний кодовий крок — `10.2-r5`.
