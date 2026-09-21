@@ -1078,8 +1078,13 @@ def init_db():
         con.execute("ALTER TABLE drivers ADD COLUMN personnel_no TEXT DEFAULT ''")
 
     vcols = {r[1] for r in con.execute("PRAGMA table_info(vehicles)").fetchall()}
-    if "garage_no" not in vcols:
-        con.execute("ALTER TABLE vehicles ADD COLUMN garage_no TEXT DEFAULT ''")
+    for name, ddl in [
+        ("garage_no", "TEXT DEFAULT ''"),
+        ("ownership_type", "TEXT DEFAULT ''"),
+        ("temporary_registration_required", "INTEGER DEFAULT 0"),
+    ]:
+        if name not in vcols:
+            con.execute(f"ALTER TABLE vehicles ADD COLUMN {name} {ddl}")
     ensure_vehicle_documents_schema(con)
 
     for name, ddl in [
@@ -9223,10 +9228,10 @@ class App(tk.Tk):
             text="Каталог транспортних засобів. Документи зберігаються з копіями та контролем строків дії.",
             foreground="gray",
         ).pack(anchor="w", padx=12)
-        cols=("id","name","plate","garage","make","year","active","documents","notes")
+        cols=("id","name","plate","garage","make","year","ownership","active","documents","notes")
         self.vehicle_tree=ttk.Treeview(self.tab_vehicles,columns=cols,show="headings",height=25)
-        heads={"id":"ID","name":"Назва","plate":"Держ. №","garage":"Гар. №","make":"Марка / модель","year":"Рік","active":"Статус","documents":"Документи","notes":"Примітка"}
-        widths={"id":45,"name":155,"plate":105,"garage":80,"make":160,"year":60,"active":75,"documents":260,"notes":220}
+        heads={"id":"ID","name":"Назва","plate":"Держ. №","garage":"Гар. №","make":"Марка / модель","year":"Рік","ownership":"Власність / користування","active":"Статус","documents":"Документи","notes":"Примітка"}
+        widths={"id":45,"name":145,"plate":105,"garage":80,"make":150,"year":60,"ownership":155,"active":75,"documents":260,"notes":200}
         for c in cols:
             self.vehicle_tree.heading(c,text=heads[c]); self.vehicle_tree.column(c,width=widths[c],anchor="w")
         vehicle_y=ttk.Scrollbar(self.tab_vehicles,orient="vertical",command=self.vehicle_tree.yview)
@@ -9252,7 +9257,7 @@ class App(tk.Tk):
         for r,doc_state in data:
             self.vehicle_tree.insert(
                 "","end",
-                values=(r["id"],r["name"],r["plate"],r["garage_no"],r["make_model"],r["year"] or "","Так" if r["active"] else "Ні",doc_state,r["notes"])
+                values=(r["id"],r["name"],r["plate"],r["garage_no"],r["make_model"],r["year"] or "",r["ownership_type"] or "","Так" if r["active"] else "Ні",doc_state,r["notes"])
             )
 
     def selected_vehicle(self):
@@ -9268,15 +9273,39 @@ class App(tk.Tk):
         return " — ".join(x for x in parts if x)
 
     def vehicle_form(self, vehicle=None):
-        win=tk.Toplevel(self); win.title("Автомобіль"); fit_window_to_screen(win,620,430,520,360); win.transient(self); win.grab_set()
-        fields=[("name","Назва / інвентарний номер"),("plate","Державний номер"),("garage_no","Гаражний номер"),("make_model","Марка / модель"),("year","Рік"),("notes","Примітка")]
+        win=tk.Toplevel(self); win.title("Автомобіль"); fit_window_to_screen(win,680,560,560,460); win.transient(self); win.grab_set()
+        fields=[("name","Назва / інвентарний номер"),("plate","Державний номер"),("garage_no","Гаражний номер"),("make_model","Марка / модель"),("year","Рік")]
         vv={}
         for i,(k,lbl) in enumerate(fields):
             ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=8)
             v=tk.StringVar(value=str(vehicle[k] or "") if vehicle else ""); vv[k]=v
             ttk.Entry(win,textvariable=v,width=55).grid(row=i,column=1,sticky="ew",padx=10,pady=8)
+
+        ownership_row=len(fields)
+        ttk.Label(win,text="Форма власності / користування").grid(row=ownership_row,column=0,sticky="w",padx=10,pady=8)
+        ownership=tk.StringVar(value=str(vehicle["ownership_type"] or "") if vehicle else "Власний")
+        ttk.Combobox(
+            win,textvariable=ownership,
+            values=("Власний","Оренда","Лізинг","Позичка / інше користування","Інше"),
+            width=52
+        ).grid(row=ownership_row,column=1,sticky="ew",padx=10,pady=8)
+
+        temporary_required=tk.BooleanVar(
+            value=bool(vehicle["temporary_registration_required"]) if vehicle else False
+        )
+        ttk.Checkbutton(
+            win,
+            text="Потрібен тимчасовий реєстраційний документ",
+            variable=temporary_required,
+        ).grid(row=ownership_row+1,column=1,sticky="w",padx=10,pady=(2,8))
+
+        notes_row=ownership_row+2
+        ttk.Label(win,text="Примітка").grid(row=notes_row,column=0,sticky="w",padx=10,pady=8)
+        notes=tk.StringVar(value=str(vehicle["notes"] or "") if vehicle else "")
+        ttk.Entry(win,textvariable=notes,width=55).grid(row=notes_row,column=1,sticky="ew",padx=10,pady=8)
+
         active=tk.BooleanVar(value=bool(vehicle["active"]) if vehicle else True)
-        ttk.Checkbutton(win,text="Активний автомобіль",variable=active).grid(row=len(fields),column=1,sticky="w",padx=10,pady=8)
+        ttk.Checkbutton(win,text="Активний автомобіль",variable=active).grid(row=notes_row+1,column=1,sticky="w",padx=10,pady=8)
         def save():
             name=vv["name"].get().strip()
             if not name:
@@ -9287,13 +9316,23 @@ class App(tk.Tk):
                 except ValueError: messagebox.showerror("Помилка","Рік має бути числом.",parent=win); return
             else: year=None
             con=db()
-            vals=(name,vv["plate"].get().strip(),vv["garage_no"].get().strip(),vv["make_model"].get().strip(),year,vv["notes"].get().strip(),int(active.get()))
+            vals=(
+                name,vv["plate"].get().strip(),vv["garage_no"].get().strip(),
+                vv["make_model"].get().strip(),year,ownership.get().strip(),
+                int(temporary_required.get()),notes.get().strip(),int(active.get())
+            )
             if vehicle:
-                con.execute("UPDATE vehicles SET name=?,plate=?,garage_no=?,make_model=?,year=?,notes=?,active=? WHERE id=?",(*vals,vehicle["id"]))
+                con.execute(
+                    "UPDATE vehicles SET name=?,plate=?,garage_no=?,make_model=?,year=?,ownership_type=?,temporary_registration_required=?,notes=?,active=? WHERE id=?",
+                    (*vals,vehicle["id"])
+                )
             else:
-                con.execute("INSERT INTO vehicles(name,plate,garage_no,make_model,year,notes,active,created_at) VALUES(?,?,?,?,?,?,?,?)",(*vals,datetime.now().isoformat(timespec="seconds")))
+                con.execute(
+                    "INSERT INTO vehicles(name,plate,garage_no,make_model,year,ownership_type,temporary_registration_required,notes,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                    (*vals,datetime.now().isoformat(timespec="seconds"))
+                )
             con.commit(); con.close(); self.load_vehicles(); win.destroy()
-        ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+1,column=1,sticky="e",padx=10,pady=14)
+        ttk.Button(win,text="Зберегти",command=save).grid(row=notes_row+2,column=1,sticky="e",padx=10,pady=14)
 
     def edit_vehicle(self):
         v=self.selected_vehicle()
