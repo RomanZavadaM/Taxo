@@ -1,10 +1,10 @@
-# Taxo 10.2-r9 unified personnel planning publisher
+# Taxo 10.2-r9 attestation DOCX publisher
 name: Publish Taxo 10.2-r9 source prerelease
 
 on:
   push:
     branches:
-      - 'work/v10.2-r9-personnel-planning'
+      - 'work/v10.2-r9-attestation-docx'
     paths:
       - '.github/workflows/publish-v10.2-r9-source.yml'
   workflow_dispatch:
