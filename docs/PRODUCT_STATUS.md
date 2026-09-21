@@ -86,3 +86,8 @@ Stable 10.1 не змінюється. Candidate 10.2-r4 прийнятий, PR 
 ## Active candidate 10.2-r6
 
 UI consistency checkpoint: великі secondary windows оформлюються у стилі stable 10.1 з text-free logo та динамічною назвою підприємства. Бізнес-логіка, БД та моделі розрахунку не змінюються.
+
+
+## Active candidate 10.2-r7
+
+Packaging correction після r6: UI-зміни secondary windows збережені, але тестовий START archive тепер має канонічну назву 10.2-r7. Historical r6 не переписується.
