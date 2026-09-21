@@ -233,6 +233,249 @@ def control_rows(con, active_only=True, today=None):
     return rows
 
 
+
+def _document_effective_start(row):
+    text = str(row["valid_from"] or "").strip()
+    if text:
+        try:
+            return parse_date(text)
+        except ValueError:
+            pass
+    created = str(row["created_at"] or "").strip()[:10]
+    if created:
+        try:
+            return date.fromisoformat(created)
+        except ValueError:
+            pass
+    return date.min
+
+
+def document_for_date(con, vehicle_id, doc_type, target_date):
+    """Return the document record that was effective/latest known on target_date.
+
+    Archived rows are intentionally included so historical reports do not
+    silently substitute today's replacement document.
+    """
+    target = target_date if isinstance(target_date, date) else parse_date(target_date)
+    rows = con.execute(
+        """
+        SELECT *
+          FROM vehicle_documents
+         WHERE vehicle_id=? AND doc_type=?
+         ORDER BY id DESC
+        """,
+        (int(vehicle_id), str(doc_type)),
+    ).fetchall()
+    candidates = [
+        row for row in rows
+        if _document_effective_start(row) <= target
+    ]
+    if not candidates:
+        return None
+    return max(
+        candidates,
+        key=lambda row: (_document_effective_start(row), int(row["id"])),
+    )
+
+
+def vehicle_document_summary_at_date(con, vehicle_id, target_date):
+    target = target_date if isinstance(target_date, date) else parse_date(target_date)
+    vehicle = con.execute(
+        "SELECT temporary_registration_required FROM vehicles WHERE id=?",
+        (int(vehicle_id),),
+    ).fetchone()
+    temporary_required = bool(
+        vehicle and int(vehicle["temporary_registration_required"] or 0)
+    )
+    required_types = [
+        "insurance",
+        "inspection",
+        "registration_certificate",
+        "tachograph_inspection_protocol",
+    ]
+    if temporary_required:
+        required_types.append("temporary_registration")
+
+    details = []
+    for dtype in required_types:
+        row = document_for_date(con, vehicle_id, dtype, target)
+        status = (
+            "Відсутній"
+            if row is None
+            else document_status(dtype, row["valid_until"], today=target)
+        )
+        details.append((dtype, DOCUMENT_TYPES[dtype], row, status))
+
+    worst = min((status_rank(item[3]) for item in details), default=3)
+    overall = "Проблема" if worst <= 1 else ("Увага" if worst == 2 else "Актуально")
+    return overall, details
+
+
+def vehicle_document_report_rows(con, target_date, active_only=True):
+    """Flat report rows for all vehicles on a selected historical date."""
+    target = target_date if isinstance(target_date, date) else parse_date(target_date)
+    sql = "SELECT * FROM vehicles"
+    if active_only:
+        sql += " WHERE active=1"
+    sql += " ORDER BY active DESC,name,plate,id"
+    vehicles = con.execute(sql).fetchall()
+    result = []
+    for vehicle in vehicles:
+        overall, details = vehicle_document_summary_at_date(
+            con, vehicle["id"], target
+        )
+        label = _vehicle_label(vehicle)
+        for dtype, type_label, doc, status in details:
+            result.append({
+                "vehicle_id": vehicle["id"],
+                "vehicle": label,
+                "vehicle_active": bool(vehicle["active"]),
+                "overall": overall,
+                "doc_type": dtype,
+                "type_label": type_label,
+                "document_no": "" if doc is None else (doc["document_no"] or ""),
+                "issuer": "" if doc is None else (doc["issuer"] or ""),
+                "valid_from": "" if doc is None else (doc["valid_from"] or ""),
+                "valid_until": "" if doc is None else (doc["valid_until"] or ""),
+                "status": status,
+                "copy": bool(doc and (doc["copy_path"] or "").strip()),
+                "notes": "" if doc is None else (doc["notes"] or ""),
+                "rank": status_rank(status),
+            })
+    return result
+
+
+def _reportlab_font():
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+
+    candidates = [
+        r"C:\\Windows\\Fonts\\arial.ttf",
+        r"C:\\Windows\\Fonts\\calibri.ttf",
+        str(Path.home() / "Library/Fonts/Arial.ttf"),
+        "/Library/Fonts/Arial.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+    for candidate in candidates:
+        if Path(candidate).is_file():
+            name = "TaxoVehicleDocs"
+            if name not in pdfmetrics.getRegisteredFontNames():
+                pdfmetrics.registerFont(TTFont(name, candidate))
+            return name
+    return "Helvetica"
+
+
+def export_vehicle_document_report_pdf(rows, target_date, out_path, company_name=""):
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+
+    target = target_date if isinstance(target_date, date) else parse_date(target_date)
+    font = _reportlab_font()
+    doc = SimpleDocTemplate(
+        str(out_path), pagesize=landscape(A4),
+        leftMargin=16, rightMargin=16, topMargin=16, bottomMargin=16,
+    )
+    title_style = ParagraphStyle(
+        "title", fontName=font, fontSize=13, leading=16, alignment=TA_CENTER,
+    )
+    small = ParagraphStyle("small", fontName=font, fontSize=7, leading=8.5)
+    story = []
+    if str(company_name or "").strip():
+        story.append(Paragraph(str(company_name).strip(), title_style))
+    story.append(Paragraph(
+        f"Стан документів транспортних засобів на {target.strftime('%d.%m.%Y')}",
+        title_style,
+    ))
+    story.append(Spacer(1, 8))
+    table_data = [[
+        "Автомобіль", "Загальний стан", "Документ", "№ / серія",
+        "Від", "Діє до", "Стан", "Копія"
+    ]]
+    for row in rows:
+        table_data.append([
+            Paragraph(str(row["vehicle"]), small),
+            Paragraph(str(row["overall"]), small),
+            Paragraph(str(row["type_label"]), small),
+            Paragraph(str(row["document_no"]), small),
+            display_date(row["valid_from"]),
+            display_date(row["valid_until"]),
+            Paragraph(str(row["status"]), small),
+            "Є" if row["copy"] else "Немає",
+        ])
+    table = Table(
+        table_data,
+        repeatRows=1,
+        colWidths=[120, 62, 155, 75, 55, 55, 92, 42],
+    )
+    table.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (-1, -1), font),
+        ("FONTSIZE", (0, 0), (-1, -1), 7),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#E9EEF4")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#17324D")),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#8A949E")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (4, 1), (7, -1), "CENTER"),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 5),
+        ("TOPPADDING", (0, 0), (-1, 0), 5),
+    ]))
+    story.append(table)
+    doc.build(story)
+
+
+def export_vehicle_document_report_xlsx(rows, target_date, out_path, company_name=""):
+    from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
+
+    target = target_date if isinstance(target_date, date) else parse_date(target_date)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Документи авто"
+    ws.append([str(company_name or "").strip()])
+    ws.append([f"Стан документів транспортних засобів на {target.strftime('%d.%m.%Y')}"])
+    headers = [
+        "Автомобіль", "В експлуатації", "Загальний стан", "Документ",
+        "№ / серія", "Ким видано / страхова", "Дата від", "Діє до",
+        "Стан", "Копія", "Примітка",
+    ]
+    ws.append(headers)
+    for row in rows:
+        ws.append([
+            row["vehicle"],
+            "Так" if row["vehicle_active"] else "Ні",
+            row["overall"],
+            row["type_label"],
+            row["document_no"],
+            row["issuer"],
+            display_date(row["valid_from"]),
+            display_date(row["valid_until"]),
+            row["status"],
+            "Є" if row["copy"] else "Немає",
+            row["notes"],
+        ])
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=len(headers))
+    for cell in ws[1] + ws[2]:
+        cell.font = Font(bold=True, size=12)
+        cell.alignment = Alignment(horizontal="center")
+    for cell in ws[3]:
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill("solid", fgColor="E9EEF4")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    for row in ws.iter_rows(min_row=4):
+        for cell in row:
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+    widths = [30, 14, 16, 36, 18, 28, 13, 13, 22, 10, 36]
+    for index, width in enumerate(widths, start=1):
+        ws.column_dimensions[get_column_letter(index)].width = width
+    ws.freeze_panes = "A4"
+    ws.auto_filter.ref = f"A3:K{max(3, ws.max_row)}"
+    wb.save(str(out_path))
+
 def _safe_name(value):
     text = re.sub(r"[^0-9A-Za-zА-Яа-яІіЇїЄє._ -]+", "_", str(value or "").strip())
     text = re.sub(r"\s+", " ", text).strip(" .")
