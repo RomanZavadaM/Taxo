@@ -219,12 +219,14 @@ def install(core, base_app):
     class Taxo91App(base_app):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            self.title(WINDOW_TITLE)
+            self.title(
+                f"Taxo {getattr(core, 'APP_VERSION', APP_VERSION)} — Працівники, графіки та шляхівки"
+            )
 
         def build_menu(self):
-            result = super().build_menu()
-            _replace_about_command(core, self)
-            return result
+            # Core owns the application menu and the branded About window.
+            # This legacy feature layer must not replace either one.
+            return super().build_menu()
 
         def _v91_drop_dead_window(self, attr_name):
             widget = getattr(self, attr_name, None)
