@@ -3203,7 +3203,10 @@ def install(core, base_app):
                 )
                 return
             try:
-                core.open_external(path)
+                if kind == "pdf":
+                    core.open_document(self, path, external_opener=core.open_external)
+                else:
+                    core.open_external(path)
             except Exception as exc:
                 core.messagebox.showerror(
                     "Табель П-5",
@@ -3275,7 +3278,10 @@ def install(core, base_app):
                     parent=self,
                 ):
                     try:
-                        core.open_external(actual)
+                        if kind == "pdf":
+                            core.open_document(self, actual, external_opener=core.open_external)
+                        else:
+                            core.open_external(actual)
                     except Exception as exc:
                         core.messagebox.showerror(
                             "Табель П-5",
