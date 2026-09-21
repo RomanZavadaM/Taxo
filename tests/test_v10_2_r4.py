@@ -175,7 +175,7 @@ def add_driver_employee(con, *, mode="legacy", active=1, end_date="", employment
 
 
 class TestTaxo102R4TimesheetAndDriverRole(unittest.TestCase):
-    def test_version_is_r3(self):
+    def test_version_is_r4(self):
         self.assertEqual(main.APP_VERSION,"10.2-r4")
 
     def test_version_file_matches_app_version(self):
@@ -188,6 +188,14 @@ class TestTaxo102R4TimesheetAndDriverRole(unittest.TestCase):
             start_archive_stem(main.APP_VERSION),
             "Taxo_v10_2_candidate_r4_START",
         )
+
+    def test_revision_sequence_and_rollover_rule(self):
+        from release_naming import next_candidate_version
+        self.assertEqual(next_candidate_version("10.2-r4"), "10.2-r5")
+        self.assertEqual(next_candidate_version("10.2-r9"), "10.2-r10")
+        self.assertEqual(next_candidate_version("10.2-r10"), "10.3-r1")
+        with self.assertRaises(ValueError):
+            next_candidate_version("10.2-r11")
 
     def test_shift_uses_paid_plan_not_raw_clock_span(self):
         con=make_time_db()
