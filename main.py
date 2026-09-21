@@ -3780,7 +3780,8 @@ def _export_row_values(con, d, r, driver_id=None):
     state=driver_day_view(
         d,r,segs,
         day_type_override=override,
-        suppress_plan=bool(override),\n        use_fact=True,
+        suppress_plan=bool(override),
+        use_fact=True,
     )
     return {
         "date": d.strftime("%d.%m.%Y"),
@@ -5126,7 +5127,8 @@ def collect_monthly_work_balance(year, month, active_only=True):
             state=driver_day_view(
                 d,r,segs,
                 day_type_override=override,
-                suppress_plan=bool(override),\n        use_fact=True,
+                suppress_plan=bool(override),
+                use_fact=True,
             )
             cells.append(_work_balance_cell(state,d))
             total_work_min += state["work_minutes"]
