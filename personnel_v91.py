@@ -2061,6 +2061,10 @@ def install(core, base_app):
                 getattr(self,"personnel_planning_page",None),"Працівники"
             )
 
+        def show_dispatch_month_planner(self):
+            """Compatibility route: old dispatch planner now opens one planner."""
+            return self.show_general_personnel_shift_planner()
+
         def show_reports_home(self):
             self._select_personnel_page(
                 getattr(self,"personnel_reports_page",None),"Звіти"
