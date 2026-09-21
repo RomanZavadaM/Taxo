@@ -26,9 +26,11 @@ jobs:
       - name: Verify accepted candidate identity
         shell: bash
         run: |
-          git show "$TARGET_SHA:VERSION.txt" | grep -Fxq 'Version: 10.2-r4'
-          git show "$TARGET_SHA:VERSION.txt" | grep -Fxq 'Release type: candidate'
-          git show "$TARGET_SHA:main.py" | grep -Fxq 'APP_VERSION = "10.2-r4"'
+          git show "$TARGET_SHA:VERSION.txt" > /tmp/VERSION.txt
+          git show "$TARGET_SHA:main.py" > /tmp/main.py
+          grep -Fxq 'Version: 10.2-r4' /tmp/VERSION.txt
+          grep -Fxq 'Release type: candidate' /tmp/VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.2-r4"' /tmp/main.py
 
       - name: Refuse overwrite
         env:
