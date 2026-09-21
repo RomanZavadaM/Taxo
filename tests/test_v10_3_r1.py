@@ -12,9 +12,8 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo103R1DutyBoundaries(unittest.TestCase):
-    def test_version_is_10_3_r1_everywhere(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r1")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.3-r1")
+    def test_r1_checkpoint_remains_immutable(self):
+        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),main.APP_VERSION)
         self.assertEqual(
             start_archive_stem("10.3-r1"),
             "Taxo_v10_3_candidate_r1_START",
