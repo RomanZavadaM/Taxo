@@ -8366,33 +8366,69 @@ class App(tk.Tk):
                 employee and employee["driver_id"]
                 and "Водій" in current_roles and "Водій" not in roles
             )
+            opening_driver=bool(
+                "Водій" in roles
+                and (not employee or "Водій" not in current_roles)
+            )
             driver_end_date=""
+            driver_start_date=""
+            closing_driver_mode=""
             if closing_driver:
-                if not messagebox.askyesno(
-                    "Завершити роль водія",
-                    "Зняти роль «Водій»? Водійська картка стане неактивною, "
-                    "але весь старий графік, табель і шляхівки залишаться.",
+                choice=messagebox.askyesnocancel(
+                    "Зняти роль «Водій»",
+                    "Це реальне завершення роботи водієм чи виправлення старої помилкової ролі?\n\n"
+                    "ТАК — працівник реально був водієм: зберегти історію та дату завершення.\n"
+                    "НІ — це спадщина старих версій, де всі були записані як водії: "
+                    "позначити роль як помилкову і не враховувати старий driver-графік у табелі.\n"
+                    "СКАСУВАТИ — нічого не змінювати.",
                     parent=win,
-                ):
-                    return
-                raw_end=simpledialog.askstring(
-                    "Дата завершення ролі",
-                    "Дата завершення роботи водієм (ДД.ММ.РРРР):",
-                    initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
                 )
-                if raw_end is None:
+                if choice is None:
                     return
-                try:
-                    driver_end_date=datetime.strptime(
-                        raw_end.strip(),"%d.%m.%Y"
-                    ).strftime("%Y-%m-%d")
-                except ValueError:
-                    messagebox.showerror(
-                        "Працівник",
-                        "Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",
-                        parent=win,
+                if choice:
+                    closing_driver_mode="finish"
+                    raw_end=simpledialog.askstring(
+                        "Дата завершення ролі",
+                        "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                        initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
                     )
-                    return
+                    if raw_end is None:
+                        return
+                    try:
+                        driver_end_date=datetime.strptime(
+                            raw_end.strip(),"%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
+                    except ValueError:
+                        messagebox.showerror(
+                            "Працівник",
+                            "Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",
+                            parent=win,
+                        )
+                        return
+                else:
+                    closing_driver_mode="void"
+            if opening_driver:
+                if employee and employee["driver_id"]:
+                    raw_start=simpledialog.askstring(
+                        "Початок ролі водія",
+                        "Дата початку / відновлення реальної ролі водія (ДД.ММ.РРРР):",
+                        initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
+                    )
+                    if raw_start is None:
+                        return
+                    try:
+                        driver_start_date=datetime.strptime(
+                            raw_start.strip(),"%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
+                    except ValueError:
+                        messagebox.showerror(
+                            "Працівник",
+                            "Дата початку ролі має бути у форматі ДД.ММ.РРРР.",
+                            parent=win,
+                        )
+                        return
+                else:
+                    driver_start_date=vals.get("employment_date") or date.today().isoformat()
             for key in ("employment_date","dismissal_date"):
                 if vals[key]:
                     try:
@@ -8445,7 +8481,7 @@ class App(tk.Tk):
                     (
                         vals["last_name"],vals["first_name"],vals["middle_name"],
                         vals["personnel_no"],vals["employment_date"],vals["notes"],
-                        int(active.get()),datetime.now().isoformat(timespec="seconds"),
+                        0,datetime.now().isoformat(timespec="seconds"),
                     ),
                 )
                 driver_id=cur.lastrowid
@@ -8494,8 +8530,10 @@ class App(tk.Tk):
                 ).strip()
                 if "Водій" in roles:
                     next_driver_end=""
-                elif closing_driver:
+                elif closing_driver_mode=="finish":
                     next_driver_end=driver_end_date
+                elif closing_driver_mode=="void":
+                    next_driver_end=""
                 else:
                     next_driver_end=stored_driver_end
                 driver_active=int(active.get() and "Водій" in roles)
@@ -8510,8 +8548,12 @@ class App(tk.Tk):
                         vals["notes"],driver_active,driver_id,
                     ),
                 )
-                if closing_driver:
+                if closing_driver_mode=="finish":
                     finish_driver_role(con,eid,driver_id,driver_end_date)
+                elif closing_driver_mode=="void":
+                    void_legacy_driver_role(con,eid,driver_id)
+                elif opening_driver:
+                    activate_driver_role(con,eid,driver_id,driver_start_date)
             con.commit()
             con.close()
             self.load_employee_registry()
