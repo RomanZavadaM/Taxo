@@ -320,6 +320,14 @@ jobs:
       - name: Verify release assets and create combined SHA-256 manifest
         shell: bash
         run: |
+          # Upload-artifact preserves release_out/ for the Windows installer.
+          # Normalize it to the release root before the immutable asset check.
+          setup_path="$(find release-upload -type f -name 'Taxo_v10_2_candidate_r2_Setup_Windows_x64.exe' -print -quit)"
+          test -n "$setup_path" || { echo 'Windows installer missing from downloaded artifacts' >&2; exit 1; }
+          if [ "$setup_path" != "release-upload/Taxo_v10_2_candidate_r2_Setup_Windows_x64.exe" ]; then
+            cp "$setup_path" release-upload/Taxo_v10_2_candidate_r2_Setup_Windows_x64.exe
+          fi
+
           cd release-upload
           required=(
             Taxo_v10_2_candidate_r2_Setup_Windows_x64.exe
