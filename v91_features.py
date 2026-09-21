@@ -12,17 +12,6 @@ import sqlite3
 from datetime import date, datetime, timedelta
 
 
-APP_VERSION = "10.1"
-WINDOW_TITLE = f"Taxo {APP_VERSION} — Працівники, графіки та шляхівки"
-ABOUT_TITLE = f"Taxo {APP_VERSION}"
-ABOUT_TEXT = (
-    "Облік роботи водіїв і персоналу, графіків, шляхових листів, табелів, "
-    "бланків підтвердження діяльності та аналогових тахокарт.\n\n"
-    "Taxo 10.1: тестова контрольна точка після stable 10.0. "
-    "Шляхівки використовують єдиний склад лікаря/механіка для дати та номера зміни; "
-    "нічний рейс не підхоплює наступну дату."
-)
-
 PATTERN_DAILY = "Щодня"
 PATTERN_WEEKDAYS = "Пн–Пт"
 PATTERN_SELECTED = "Вибрані дні тижня"
@@ -157,40 +146,6 @@ def monthly_plan_action(own_rows, slot_rows, *, replace=False):
     if own_rows and replace:
         return "Замінити план"
     return "Додати"
-
-
-def _replace_about_command(core, app):
-    try:
-        menu_name = app.cget("menu")
-        if not menu_name:
-            return False
-        menubar = app.nametowidget(menu_name)
-        end = menubar.index("end")
-        if end is None:
-            return False
-        for index in range(end + 1):
-            if menubar.type(index) != "cascade":
-                continue
-            if menubar.entrycget(index, "label") != "Довідка":
-                continue
-            submenu = app.nametowidget(menubar.entrycget(index, "menu"))
-            sub_end = submenu.index("end")
-            if sub_end is None:
-                return False
-            for sub_index in range(sub_end + 1):
-                if submenu.type(sub_index) == "command" and submenu.entrycget(sub_index, "label") == "Про програму":
-                    submenu.entryconfigure(
-                        sub_index,
-                        command=lambda: core.messagebox.showinfo(
-                            ABOUT_TITLE,
-                            ABOUT_TEXT,
-                            parent=app,
-                        ),
-                    )
-                    return True
-    except core.tk.TclError:
-        return False
-    return False
 
 
 def _full_name(row) -> str:
