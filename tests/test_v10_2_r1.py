@@ -52,7 +52,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertEqual(document_status("registration_certificate", "", today=today), "Актуальний")
         self.assertEqual(document_status("inspection", "", today=today), "Немає дати дії")
 
-    def test_summary_requires_all_four_document_types(self):
+    def test_summary_always_requires_permanent_tech_passport(self):
         con = sqlite3.connect(":memory:")
         con.row_factory = sqlite3.Row
         con.execute(
@@ -62,6 +62,8 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
                 name TEXT,
                 plate TEXT,
                 make_model TEXT,
+                ownership_type TEXT DEFAULT '',
+                temporary_registration_required INTEGER DEFAULT 0,
                 active INTEGER DEFAULT 1
             )
             """
@@ -94,43 +96,59 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertEqual(len(details), 3)
         con.close()
 
-    def test_registration_requirement_accepts_temporary_or_permanent_document(self):
-        for dtype, until in (
-            ("temporary_registration", "2026-12-21"),
-            ("registration_certificate", ""),
-        ):
-            con = sqlite3.connect(":memory:")
-            con.row_factory = sqlite3.Row
-            con.execute(
-                "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,active INTEGER DEFAULT 1)"
-            )
-            con.execute("INSERT INTO vehicles(id,name) VALUES(1,'Bus')")
-            ensure_vehicle_documents_schema(con)
-            now = "2026-09-21T10:00:00"
-            for required_type, required_until in (
-                ("insurance", "2027-01-01"),
-                ("inspection", "2027-01-01"),
-                (dtype, until),
-            ):
-                con.execute(
-                    """
-                    INSERT INTO vehicle_documents(
-                        vehicle_id,doc_type,valid_until,created_at,updated_at
-                    ) VALUES(1,?,?,?,?)
-                    """,
-                    (required_type, required_until, now, now),
-                )
-            con.commit()
-            overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
-            self.assertEqual(overall, "Актуально")
-            self.assertEqual(len(details), 3)
-            con.close()
-
-    def test_new_document_archives_previous_current_slot(self):
+    def test_temporary_registration_is_additional_when_vehicle_requires_it(self):
         con = sqlite3.connect(":memory:")
         con.row_factory = sqlite3.Row
         con.execute(
-            "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,active INTEGER DEFAULT 1)"
+            "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,ownership_type TEXT DEFAULT '',temporary_registration_required INTEGER DEFAULT 0,active INTEGER DEFAULT 1)"
+        )
+        con.execute(
+            "INSERT INTO vehicles(id,name,ownership_type,temporary_registration_required) VALUES(1,'Bus','Оренда',1)"
+        )
+        ensure_vehicle_documents_schema(con)
+        now = "2026-09-21T10:00:00"
+        for dtype, until in (
+            ("insurance", "2027-01-01"),
+            ("inspection", "2027-01-01"),
+            ("registration_certificate", ""),
+        ):
+            con.execute(
+                """
+                INSERT INTO vehicle_documents(
+                    vehicle_id,doc_type,valid_until,created_at,updated_at
+                ) VALUES(1,?,?,?,?)
+                """,
+                (dtype, until, now, now),
+            )
+        con.commit()
+
+        overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
+        self.assertEqual(overall, "Проблема")
+        self.assertEqual(len(details), 4)
+        self.assertEqual(
+            next(status for dtype, _label, _row, status in details if dtype == "temporary_registration"),
+            "Відсутній",
+        )
+
+        con.execute(
+            """
+            INSERT INTO vehicle_documents(
+                vehicle_id,doc_type,valid_until,created_at,updated_at
+            ) VALUES(1,'temporary_registration','2026-12-21',?,?)
+            """,
+            (now, now),
+        )
+        con.commit()
+        overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
+        self.assertEqual(overall, "Актуально")
+        self.assertEqual(len(details), 4)
+        con.close()
+
+    def test_temporary_and_permanent_registration_have_separate_history(self):
+        con = sqlite3.connect(":memory:")
+        con.row_factory = sqlite3.Row
+        con.execute(
+            "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,ownership_type TEXT DEFAULT '',temporary_registration_required INTEGER DEFAULT 0,active INTEGER DEFAULT 1)"
         )
         con.execute("INSERT INTO vehicles(id,name) VALUES(1,'Bus')")
         ensure_vehicle_documents_schema(con)
@@ -139,7 +157,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
             """
             INSERT INTO vehicle_documents(
                 vehicle_id,doc_type,document_no,created_at,updated_at
-            ) VALUES(1,'insurance','OLD',?,?)
+            ) VALUES(1,'temporary_registration','TEMP',?,?)
             """,
             (now, now),
         )
@@ -147,24 +165,23 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
             """
             INSERT INTO vehicle_documents(
                 vehicle_id,doc_type,document_no,created_at,updated_at
-            ) VALUES(1,'temporary_registration','TEMP',?,?)
+            ) VALUES(1,'registration_certificate','PERM',?,?)
             """,
             (now, now),
         )
         con.commit()
 
-        archive_current_document_slot(con, 1, "insurance", now=now)
         archive_current_document_slot(con, 1, "registration_certificate", now=now)
         con.commit()
 
-        old_insurance = con.execute(
-            "SELECT archived FROM vehicle_documents WHERE document_no='OLD'"
-        ).fetchone()
-        old_registration = con.execute(
+        temp = con.execute(
             "SELECT archived FROM vehicle_documents WHERE document_no='TEMP'"
         ).fetchone()
-        self.assertEqual(old_insurance["archived"], 1)
-        self.assertEqual(old_registration["archived"], 1)
+        permanent = con.execute(
+            "SELECT archived FROM vehicle_documents WHERE document_no='PERM'"
+        ).fetchone()
+        self.assertEqual(temp["archived"], 0)
+        self.assertEqual(permanent["archived"], 1)
         con.close()
 
     def test_vehicle_document_copies_make_workspace_nonempty(self):
