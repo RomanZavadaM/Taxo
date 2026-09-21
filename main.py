@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r9"
+APP_VERSION = "10.2-r10"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -4663,7 +4663,48 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         if is_current:
             current_missing_minutes += miss
 
-        if not missing:
+        # r10: якщо потрібний проміжок уже ЧАСТКОВО перекритий одним активним
+        # бланком, це не новий окремий бланк. Це зміна меж уже існуючого
+        # документа після уточнення графіка/ТАХО-факту.
+        overlapping=[]
+        for ast,aen,att_id,att_activity in att_intervals:
+            ov_start=max(ga,ast)
+            ov_end=min(gb,aen)
+            if ov_end>ov_start:
+                ov_minutes=max(0,int((ov_end-ov_start).total_seconds()//60))
+                overlapping.append((ov_minutes,ast,aen,att_id,att_activity))
+        overlapping.sort(key=lambda x:(-x[0],x[3]))
+
+        if missing and len(overlapping)==1:
+            _ov,ast,aen,att_id,att_activity=overlapping[0]
+            existing_activity=int(att_activity or suggested_no)
+            rows_out.append({
+                "kind":"adjust",
+                "status":(
+                    f"ПОТОЧНИЙ — УТОЧНИТИ БЛАНК №{att_id}"
+                    if is_current else
+                    f"УТОЧНИТИ БЛАНК №{att_id}"
+                ),
+                "from":ga,
+                "to":gb,
+                "minutes":dur,
+                "missing_minutes":miss,
+                "activity_no":existing_activity,
+                "suggested_activity_no":suggested_no,
+                "attestation_id":int(att_id),
+                "old_from":ast,
+                "old_to":aen,
+                "is_current":is_current,
+                "reason":(
+                    f"Період частково перекритий Бланком №{att_id}: "
+                    f"{format_attestation_period(ast)} → {format_attestation_period(aen)}. "
+                    f"Після зміни графіка/ТАХО межі потрібного періоду стали "
+                    f"{format_attestation_period(ga)} → {format_attestation_period(gb)}. "
+                    f"Не створювати окремий бланк на залишок {minutes_hhmm(miss)}; "
+                    f"потрібна нова ревізія існуючого Бланка №{att_id}."
+                ),
+            })
+        elif not missing:
             rows_out.append({
                 "kind":"covered",
                 "status":"ПОТОЧНИЙ — БЛАНК ГОТОВИЙ" if is_current else "ЗАКРИТО БЛАНКОМ",
@@ -4701,7 +4742,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                     ),
                 })
 
-    rank={"missing":0,"covered":1}
+    rank={"adjust":0,"missing":1,"covered":2}
     rows_out.sort(key=lambda r:(r["from"],0 if r.get("is_current") else 1,rank.get(r["kind"],9),r.get("activity_no",0)))
 
     tacho_days_in_window={
@@ -4728,6 +4769,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         "current_missing_minutes":current_missing_minutes,
         "ignored_consecutive_minutes":ignored_consecutive_minutes,
         "invalid_attestations":invalid_attestations,
+        "adjustment_count":sum(1 for r in rows_out if r.get("kind")=="adjust"),
         "rows":rows_out,
     }
 
@@ -14777,7 +14819,7 @@ class App(tk.Tk):
             command=self.use_selected_attestation_gap
         ).pack(side="left",padx=(0,8))
         ttk.Button(
-            action_bar,text="Сформувати Бланк підтвердження",
+            action_bar,text="Сформувати / уточнити бланк",
             command=self.create_selected_gap_attestation
         ).pack(side="left",padx=8)
 
@@ -14789,7 +14831,9 @@ class App(tk.Tk):
                 "до найближчого наступного виїзду — такий бланк треба підготувати до виїзду. Між двома "
                 "ТАХО-робочими днями підряд окремий бланк не потрібен. Автокоди: 14 лікарняний, "
                 "15 відпустка, 16 вихідний/відпочинок, 18 «Без тахо — 8 год»/інша робота, 19 доступний. "
-                "Сусідні частини з однаковим кодом об'єднуються; код можна змінити вручну. Дата кожного "
+                "Сусідні частини з однаковим кодом об'єднуються; код можна змінити вручну. Якщо після уточнення "
+                "ТАХО/графіка існуючий бланк перекриває лише частину потрібного періоду, Taxo НЕ створює окремий "
+                "бланк на залишок, а пропонує уточнити межі існуючого бланка новою ревізією. Дата кожного "
                 "бланка автоматично дорівнює даті закінчення його періоду, навіть якщо бланк друкується заздалегідь."
             ),
             foreground="gray",wraplength=1200,justify="left"
@@ -14822,8 +14866,10 @@ class App(tk.Tk):
         frame.rowconfigure(0,weight=1)
         frame.columnconfigure(0,weight=1)
 
+        self.att_gap_tree.tag_configure("adjust",background="#FFF2CC")
         self.att_gap_tree.tag_configure("missing",background="#FDE8E8")
         self.att_gap_tree.tag_configure("covered",background="#E6F4EA")
+        self.att_gap_tree.tag_configure("current_adjust",background="#FFE699")
         self.att_gap_tree.tag_configure("current_missing",background="#FFF2CC")
         self.att_gap_tree.tag_configure("current_covered",background="#DDEBF7")
         self.att_gap_tree.tag_configure("no_tacho",background="#EAF2FF")
@@ -14891,7 +14937,8 @@ class App(tk.Tk):
             f"ТАХО-днів: {data['tacho_days']}    Без тахо 8 год: {data['no_tacho_days']}    "
             f"Усього потрібно: {minutes_hhmm(data['required_minutes'])}    "
             f"Закрито: {minutes_hhmm(data['covered_minutes'])}    "
-            f"НЕ ЗАКРИТО: {minutes_hhmm(data['missing_minutes'])}{current_text}{bad}"
+            f"НЕ ЗАКРИТО: {minutes_hhmm(data['missing_minutes'])}    "
+            f"УТОЧНИТИ БЛАНКІВ: {data.get('adjustment_count',0)}{current_text}{bad}"
         )
 
     def on_attestation_gap_select(self, _=None):
@@ -14901,7 +14948,7 @@ class App(tk.Tk):
         if not sel:
             return
         r=self.att_gap_items.get(sel[0])
-        if not r or r.get("kind")!="missing":
+        if not r or r.get("kind") not in ("missing","adjust"):
             return
         suggested=int(r.get("activity_no") or 16)
         self.att_gap_activity.set(f"{suggested} — {ACTIVITIES[suggested]}")
@@ -14917,10 +14964,19 @@ class App(tk.Tk):
             )
             return
         r=self.att_gap_items.get(sel[0])
-        if not r or r.get("kind")!="missing":
+        if not r or r.get("kind") not in ("missing","adjust"):
             messagebox.showwarning(
                 "Контроль бланків",
-                "Для підстановки виберіть незакритий рядок: минулий або «ПОТОЧНИЙ — ПІДГОТУВАТИ».",
+                "Виберіть незакритий проміжок або рядок «УТОЧНИТИ БЛАНК».",
+                parent=self.att_gap_win
+            )
+            return
+        if r.get("kind")=="adjust":
+            messagebox.showinfo(
+                "Уточнення існуючого бланка",
+                f"Цей рядок не є новим проміжком. Він частково перекритий Бланком №{r.get('attestation_id')}.\n\n"
+                "Щоб не створити дубль, використайте кнопку «Сформувати / уточнити бланк». "
+                "Taxo створить нову ревізію існуючого документа і збереже старі файли в архіві.",
                 parent=self.att_gap_win
             )
             return
@@ -15041,12 +15097,57 @@ class App(tk.Tk):
             return
 
         r=self.att_gap_items.get(sel[0])
-        if not r or r.get("kind")!="missing":
+        if not r or r.get("kind") not in ("missing","adjust"):
             messagebox.showwarning(
                 "Контроль бланків",
-                "Бланк можна сформувати тільки для незакритого проміжку.",
+                "Виберіть незакритий проміжок або рядок «УТОЧНИТИ БЛАНК».",
                 parent=self.att_gap_win
             )
+            return
+
+        if r.get("kind")=="adjust":
+            att_id=int(r.get("attestation_id") or 0)
+            con=db()
+            current=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+            con.close()
+            if not current or not _attestation_is_active(current):
+                messagebox.showerror(
+                    "Контроль бланків",
+                    f"Активний Бланк №{att_id} не знайдено. Оновіть контроль.",
+                    parent=self.att_gap_win
+                )
+                return
+            period_from=format_attestation_period(r["from"])
+            period_to=format_attestation_period(r["to"])
+            old_from=current["period_from"]
+            old_to=current["period_to"]
+            activity_no=int(current["activity_no"] or r.get("activity_no") or 16)
+            place=(current["place"] or self.att_place.get().strip())
+            if not messagebox.askyesno(
+                "Уточнити існуючий бланк",
+                f"Бланк №{att_id} уже частково перекриває цей період.\n\n"
+                f"Було:\n{old_from} → {old_to}\n\n"
+                f"Після уточнення ТАХО/графіка має бути:\n{period_from} → {period_to}\n\n"
+                "Створити нову ревізію цього ж бланка? Попередні файли будуть збережені в архіві.",
+                parent=self.att_gap_win
+            ):
+                return
+            try:
+                self.att_from.set(period_from)
+                self.att_to.set(period_to)
+                self.att_activity.set(f"{activity_no} — {ACTIVITIES[activity_no]}")
+                out=self._update_attestation_record(
+                    att_id,period_from,period_to,activity_no,place
+                )
+                self.refresh_attestation_gap_control()
+                messagebox.showinfo(
+                    "Бланк уточнено",
+                    f"Створено нову ревізію Бланка №{att_id}.\n\n"
+                    f"{period_from}\n→ {period_to}\n\nФайл:\n{out}",
+                    parent=self.att_gap_win
+                )
+            except Exception as e:
+                messagebox.showerror("Помилка уточнення",str(e),parent=self.att_gap_win)
             return
 
         suggested_no=int(r.get("activity_no") or 16)
