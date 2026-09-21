@@ -156,6 +156,65 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertEqual(len(details), 5)
         con.close()
 
+    def test_required_temporary_registration_must_have_valid_term(self):
+        con = sqlite3.connect(":memory:")
+        con.row_factory = sqlite3.Row
+        con.execute(
+            "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,ownership_type TEXT DEFAULT '',temporary_registration_required INTEGER DEFAULT 0,active INTEGER DEFAULT 1)"
+        )
+        con.execute(
+            "INSERT INTO vehicles(id,name,temporary_registration_required) VALUES(1,'Bus',1)"
+        )
+        ensure_vehicle_documents_schema(con)
+        now = "2026-09-21T10:00:00"
+        for dtype, until in (
+            ("insurance", "2027-01-01"),
+            ("inspection", "2027-01-01"),
+            ("registration_certificate", ""),
+            ("tachograph_inspection_protocol", "2027-01-01"),
+            ("temporary_registration", ""),
+        ):
+            con.execute(
+                """
+                INSERT INTO vehicle_documents(
+                    vehicle_id,doc_type,valid_until,created_at,updated_at
+                ) VALUES(1,?,?,?,?)
+                """,
+                (dtype, until, now, now),
+            )
+        con.commit()
+
+        overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
+        self.assertEqual(overall, "Проблема")
+        self.assertEqual(
+            next(status for dtype, _label, _row, status in details if dtype == "temporary_registration"),
+            "Немає дати дії",
+        )
+
+        con.execute(
+            "UPDATE vehicle_documents SET valid_until='2026-09-20' WHERE vehicle_id=1 AND doc_type='temporary_registration'"
+        )
+        con.commit()
+        overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
+        self.assertEqual(overall, "Проблема")
+        self.assertEqual(
+            next(status for dtype, _label, _row, status in details if dtype == "temporary_registration"),
+            "Прострочений",
+        )
+
+        con.execute(
+            "UPDATE vehicle_documents SET valid_until='2026-10-01' WHERE vehicle_id=1 AND doc_type='temporary_registration'"
+        )
+        con.commit()
+        overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
+        self.assertEqual(overall, "Увага")
+        self.assertTrue(
+            next(status for dtype, _label, _row, status in details if dtype == "temporary_registration").startswith(
+                "Закінчується:"
+            )
+        )
+        con.close()
+
     def test_temporary_and_permanent_registration_have_separate_history(self):
         con = sqlite3.connect(":memory:")
         con.row_factory = sqlite3.Row
