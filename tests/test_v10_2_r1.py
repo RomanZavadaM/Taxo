@@ -24,14 +24,14 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
     def test_candidate_identity(self):
         self.assertEqual(main.APP_VERSION, "10.2-r1")
 
-    def test_legacy_feature_layers_do_not_pin_current_ui_to_10_1(self):
+    def test_core_owns_current_shell_identity(self):
+        core_source = inspect.getsource(main.App.__init__)
         v91_source = inspect.getsource(v91_features.install)
         personnel_source = inspect.getsource(personnel_v91.install)
-        self.assertIn("getattr(core, 'APP_VERSION', APP_VERSION)", v91_source)
-        self.assertIn("getattr(core, 'APP_VERSION', APP_VERSION)", personnel_source)
+        self.assertIn('self.title(f"Taxo {APP_VERSION} — Driver Worktime")', core_source)
         self.assertNotIn("_replace_about_command(core, self)", v91_source)
-        self.assertNotIn("self.title(WINDOW_TITLE)", v91_source)
-        self.assertNotIn("self.title(WINDOW_TITLE)", personnel_source)
+        self.assertNotIn("self.title(", v91_source)
+        self.assertNotIn("self.title(", personnel_source)
 
     def test_supported_document_types(self):
         self.assertEqual(
