@@ -6093,7 +6093,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("Taxo 10.1-r3 — Працівники, графіки та шляхівки")
+        self.title(f"Taxo {APP_VERSION} — Driver Worktime")
         fit_window_to_screen(self,1200,760,900,600)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
         self.bind("<Control-q>", lambda e: self.exit_app())
