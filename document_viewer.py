@@ -10,7 +10,6 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-import fitz
 from PIL import Image, ImageTk
 from docx import Document
 
@@ -70,17 +69,12 @@ def _windows_print_raster(path):
     dc.StartDoc(target.name)
     try:
         if document_kind(target) == "pdf":
-            pdf = fitz.open(str(target))
-            try:
-                for page in pdf:
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False)
-                    image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-                    draw_image(image)
-            finally:
-                pdf.close()
-        else:
-            with Image.open(target) as image:
-                draw_image(image.copy())
+            raise RuntimeError(
+                "PDF у Taxo r9 відкривається зовнішньою програмою/браузером; "
+                "друкуйте його з цього переглядача."
+            )
+        with Image.open(target) as image:
+            draw_image(image.copy())
     finally:
         dc.EndDoc()
         dc.DeleteDC()
@@ -162,9 +156,9 @@ class RasterDocumentWindow:
         self.zoom = 1.15
         self.fit_width = True
         self.photo = None
-        self.pdf = fitz.open(str(self.path)) if self.kind == "pdf" else None
-        self.page_count = len(self.pdf) if self.pdf is not None else 1
-        self.image = None if self.kind == "pdf" else Image.open(self.path)
+        self.pdf = None
+        self.page_count = 1
+        self.image = Image.open(self.path)
 
         self.win = tk.Toplevel(parent)
         self.win.title(f"Taxo — перегляд: {self.path.name}")
@@ -233,9 +227,6 @@ class RasterDocumentWindow:
             self.win.after_idle(self.render)
 
     def _source_size(self):
-        if self.kind == "pdf":
-            rect = self.pdf[self.page_index].rect
-            return float(rect.width), float(rect.height)
         return float(self.image.width), float(self.image.height)
 
     def _effective_zoom(self):
@@ -247,26 +238,18 @@ class RasterDocumentWindow:
 
     def render(self):
         scale = self._effective_zoom()
-        if self.kind == "pdf":
-            page = self.pdf[self.page_index]
-            pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
-            image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-        else:
-            size = (
-                max(1, int(self.image.width * scale)),
-                max(1, int(self.image.height * scale)),
-            )
-            image = self.image.resize(size, Image.Resampling.LANCZOS)
+        size = (
+            max(1, int(self.image.width * scale)),
+            max(1, int(self.image.height * scale)),
+        )
+        image = self.image.resize(size, Image.Resampling.LANCZOS)
         self.photo = ImageTk.PhotoImage(image)
         self.canvas.delete("all")
         self.canvas.create_image(18, 18, image=self.photo, anchor="nw")
         self.canvas.configure(
             scrollregion=(0, 0, self.photo.width() + 36, self.photo.height() + 36)
         )
-        self.page_var.set(
-            f"Сторінка {self.page_index + 1} / {self.page_count}"
-            if self.kind == "pdf" else "Зображення"
-        )
+        self.page_var.set("Зображення")
         self.zoom_var.set(f"{int(scale * 100)}%")
         self.prev_button.configure(state=("normal" if self.page_index > 0 else "disabled"))
         self.next_button.configure(
@@ -355,7 +338,11 @@ def open_document(parent, path, external_opener=None):
     if not target.exists():
         raise FileNotFoundError(str(target))
     kind = document_kind(target)
-    if kind in {"pdf", "image"}:
+    if kind == "pdf":
+        # r9: PDF is deliberately delegated to the associated system viewer
+        # (browser/Adobe/Preview) so Taxo does not need a PDF rendering engine.
+        return opener(target)
+    if kind == "image":
         return RasterDocumentWindow(
             parent, target, external_opener=external_opener
         ).win
