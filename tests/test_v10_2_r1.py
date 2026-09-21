@@ -38,7 +38,7 @@ from workspace import (
 
 class TestTaxo102R1VehicleDocuments(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.2-r1")
+        self.assertEqual(main.APP_VERSION, "10.2-r2")
 
     def test_core_owns_current_shell_identity(self):
         core_source = inspect.getsource(main.App.__init__)
@@ -330,7 +330,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
             (p["waybills"]/"waybill.pdf").write_bytes(b"waybill")
 
             db_only=root/"db-only.zip"
-            create_workspace_backup_archive(source,db_only,app_version="10.2-r1")
+            create_workspace_backup_archive(source,db_only,app_version="10.2-r2")
             with zipfile.ZipFile(db_only) as zf:
                 names=set(zf.namelist())
             self.assertIn("Data/driver_worktime.sqlite3",names)
@@ -341,7 +341,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
 
             selected=root/"selected.zip"
             create_workspace_backup_archive(
-                source,selected,app_version="10.2-r1",
+                source,selected,app_version="10.2-r2",
                 include_vehicle_documents=True,
                 include_tacho_scans=True,
                 include_output=True,
