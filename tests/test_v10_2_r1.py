@@ -8,7 +8,13 @@ from datetime import date
 from pathlib import Path
 
 import main
-from document_viewer import DOCX_EXTENSIONS, IMAGE_EXTENSIONS, PDF_EXTENSIONS, document_kind
+from document_viewer import (
+    DOCX_EXTENSIONS,
+    IMAGE_EXTENSIONS,
+    PDF_EXTENSIONS,
+    document_kind,
+    visual_companion_for_docx,
+)
 import personnel_v91
 import v91_features
 from vehicle_documents import (
@@ -407,6 +413,29 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertIn(".png", IMAGE_EXTENSIONS)
         self.assertIn(".docx", DOCX_EXTENSIONS)
         self.assertIn("open_document", inspect.getsource(main.App._open_path))
+
+    def test_docx_visual_preview_prefers_companion_pdf(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder)
+            docx=root/"form.docx"
+            pdf=root/"form.pdf"
+            jpg=root/"render.jpg"
+            docx.write_bytes(b"docx")
+            pdf.write_bytes(b"pdf")
+            jpg.write_bytes(b"jpg")
+
+            self.assertEqual(
+                visual_companion_for_docx(docx),
+                pdf,
+            )
+            self.assertEqual(
+                visual_companion_for_docx(docx, jpg),
+                jpg,
+            )
+
+        open_source=inspect.getsource(main.App.open_att_file)
+        self.assertIn('row["pdf_path"]',open_source)
+        self.assertIn("companion_path=companion",open_source)
 
     def test_vehicle_document_report_uses_history_for_selected_date(self):
         con = sqlite3.connect(":memory:")
