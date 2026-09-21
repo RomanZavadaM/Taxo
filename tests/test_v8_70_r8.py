@@ -8,7 +8,7 @@ _temporary_home = tempfile.TemporaryDirectory()
 _original_path_home = Path.home
 Path.home = classmethod(lambda cls: Path(_temporary_home.name))
 try:
-    import fitz
+    from pypdf import PdfReader
     from openpyxl import load_workbook
     import main
 finally:
@@ -82,7 +82,7 @@ class V870R8Tests(unittest.TestCase):
             wb=load_workbook(xlsx,data_only=False)
             self.assertEqual(wb.sheetnames,["Щоденний табель"])
             self.assertEqual(wb["Щоденний табель"]["A4"].value,"Дата")
-            doc=fitz.open(pdf); text="\n".join(page.get_text() for page in doc); doc.close()
+            doc=PdfReader(pdf); text="\n".join((page.extract_text() or "") for page in doc.pages); 
             self.assertIn("ТАБЕЛЬ РОБОЧОГО ЧАСУ",text)
             self.assertIn("Працівник-export",text)
 
@@ -104,7 +104,7 @@ class V870R8Tests(unittest.TestCase):
             wb=load_workbook(xlsx,data_only=False)
             self.assertGreaterEqual(len(wb.sheetnames),2)
             self.assertEqual(wb[wb.sheetnames[0]]["A4"].value,"Таб. №")
-            doc=fitz.open(pdf); text="\n".join(page.get_text() for page in doc); doc.close()
+            doc=PdfReader(pdf); text="\n".join((page.extract_text() or "") for page in doc.pages); 
             self.assertIn("ТАБЕЛЬ УСЬОГО ПЕРСОНАЛУ",text)
 
     def test_current_release_workflow_builds_every_platform_and_checks_databases(self):
