@@ -32,6 +32,35 @@ def document_kind(path):
     return "other"
 
 
+def visual_companion_for_docx(path, companion_path=None):
+    """Return a PDF/image companion suitable for visual DOCX preview."""
+    target = Path(path)
+    candidates = []
+    if companion_path:
+        candidates.append(Path(companion_path))
+    candidates.append(target.with_suffix(".pdf"))
+    for candidate in candidates:
+        try:
+            if candidate.exists() and document_kind(candidate) in {"pdf", "image"}:
+                return candidate
+        except OSError:
+            continue
+
+    # Case-insensitive sibling fallback for files copied from other platforms.
+    try:
+        stem = target.stem.casefold()
+        for candidate in target.parent.iterdir():
+            if (
+                candidate.is_file()
+                and candidate.stem.casefold() == stem
+                and document_kind(candidate) == "pdf"
+            ):
+                return candidate
+    except OSError:
+        pass
+    return None
+
+
 def system_open(path):
     target = str(Path(path))
     if os.name == "nt":
@@ -154,9 +183,14 @@ def _print(parent, path):
 
 
 class RasterDocumentWindow:
-    def __init__(self, parent, path, external_opener=None):
+    def __init__(
+        self, parent, path, external_opener=None, original_path=None,
+        title_name=None, preview_label=None,
+    ):
         self.path = Path(path)
+        self.original_path = Path(original_path) if original_path else self.path
         self.external_opener = external_opener
+        self.preview_label = preview_label or ""
         self.kind = document_kind(self.path)
         self.page_index = 0
         self.zoom = 1.15
@@ -167,7 +201,8 @@ class RasterDocumentWindow:
         self.image = None if self.kind == "pdf" else Image.open(self.path)
 
         self.win = tk.Toplevel(parent)
-        self.win.title(f"Taxo — перегляд: {self.path.name}")
+        shown_name = title_name or self.original_path.name
+        self.win.title(f"Taxo — перегляд: {shown_name}")
         self.win.geometry("1050x780")
         self.win.minsize(720, 520)
         if parent is not None:
@@ -176,6 +211,11 @@ class RasterDocumentWindow:
             except tk.TclError:
                 pass
         self.win.protocol("WM_DELETE_WINDOW", self.close)
+
+        if self.preview_label:
+            info = ttk.Frame(self.win, padding=(10, 7, 10, 0))
+            info.pack(fill="x")
+            ttk.Label(info, text=self.preview_label, foreground="#245A8D").pack(anchor="w")
 
         toolbar = ttk.Frame(self.win, padding=(8, 7))
         toolbar.pack(fill="x")
@@ -190,14 +230,27 @@ class RasterDocumentWindow:
         ttk.Button(toolbar, text="По ширині", command=self.set_fit_width).pack(side="left", padx=(4, 12))
         self.zoom_var = tk.StringVar()
         ttk.Label(toolbar, textvariable=self.zoom_var, width=9).pack(side="left")
-        ttk.Button(toolbar, text="Друк", command=lambda: _print(self.win, self.path)).pack(side="right", padx=(4, 0))
         ttk.Button(
-            toolbar, text="Відкрити зовнішньо",
-            command=lambda: _external(self.win, self.path, self.external_opener),
+            toolbar, text="Друк",
+            command=lambda: _print(self.win, self.path)
+        ).pack(side="right", padx=(4, 0))
+        external_text = (
+            "Відкрити оригінал" if self.original_path != self.path
+            else "Відкрити зовнішньо"
+        )
+        save_text = (
+            "Зберегти оригінал" if self.original_path != self.path
+            else "Зберегти копію"
+        )
+        ttk.Button(
+            toolbar, text=external_text,
+            command=lambda: _external(
+                self.win, self.original_path, self.external_opener
+            ),
         ).pack(side="right", padx=4)
         ttk.Button(
-            toolbar, text="Зберегти копію",
-            command=lambda: _save_copy(self.win, self.path),
+            toolbar, text=save_text,
+            command=lambda: _save_copy(self.win, self.original_path),
         ).pack(side="right", padx=4)
 
         body = ttk.Frame(self.win)
@@ -308,7 +361,10 @@ class DocxDocumentWindow:
         toolbar.pack(fill="x")
         ttk.Label(
             toolbar,
-            text="Змістовний перегляд DOCX — макет може відрізнятися від Word/PDF.",
+            text=(
+                "Спрощений перегляд DOCX — PDF-копії для точного макета не знайдено."
+            ),
+            foreground="#7A4E00",
         ).pack(side="left")
         ttk.Button(
             toolbar, text="Відкрити оригінал",
@@ -321,7 +377,11 @@ class DocxDocumentWindow:
 
         frame = ttk.Frame(self.win)
         frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))
-        text = tk.Text(frame, wrap="word", padx=18, pady=14, undo=False)
+        text = tk.Text(
+            frame, wrap="word", padx=42, pady=28, undo=False,
+            background="white", foreground="#202124",
+            font=("Segoe UI", 11), spacing1=2, spacing3=4,
+        )
         ybar = ttk.Scrollbar(frame, orient="vertical", command=text.yview)
         text.configure(yscrollcommand=ybar.set)
         text.pack(side="left", fill="both", expand=True)
@@ -334,7 +394,7 @@ class DocxDocumentWindow:
         text.configure(state="disabled")
 
 
-def open_document(parent, path, external_opener=None):
+def open_document(parent, path, external_opener=None, companion_path=None):
     target = Path(path)
     opener = external_opener or system_open
     # Non-GUI callers/tests and early-startup contexts must never crash while
@@ -346,7 +406,25 @@ def open_document(parent, path, external_opener=None):
         raise FileNotFoundError(str(target))
     kind = document_kind(target)
     if kind in {"pdf", "image"}:
-        return RasterDocumentWindow(parent, target, external_opener=external_opener).win
+        return RasterDocumentWindow(
+            parent, target, external_opener=external_opener
+        ).win
     if kind == "docx":
-        return DocxDocumentWindow(parent, target, external_opener=external_opener).win
+        companion = visual_companion_for_docx(target, companion_path)
+        if companion is not None:
+            source = "PDF-копію" if document_kind(companion) == "pdf" else "зображення"
+            return RasterDocumentWindow(
+                parent,
+                companion,
+                external_opener=external_opener,
+                original_path=target,
+                title_name=target.name,
+                preview_label=(
+                    f"Візуальний перегляд DOCX — використано збережену {source}. "
+                    "Друк виконується з цього макета."
+                ),
+            ).win
+        return DocxDocumentWindow(
+            parent, target, external_opener=external_opener
+        ).win
     return opener(target)
