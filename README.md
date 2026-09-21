@@ -73,7 +73,7 @@ Taxo 10.1 формує окремий документ за 60 календар�
 
 ## Поточний етап
 
-**Taxo 10.1 — stable.** Лінію r1–r5 завершено після автоматичних перевірок і ручного Windows UI/navigation gate. У stable увійшли новий application shell, виправлення ролі водія, KPI-реєстр персоналу, звіти в головному workspace і single-instance детальний табель.
+**Taxo 10.1 — stable.** Лінію r1–r5 завершено після автоматичних перевірок і ручного Windows UI/navigation gate. Immutable stable release target: `fa5bbe0a5de733af1e227847ef9584daca57676e`. У stable увійшли новий application shell, виправлення ролі водія, KPI-реєстр персоналу, звіти в головному workspace і single-instance детальний табель.
 
 **Taxo 10.0 — previous stable / rollback.** Він лишається immutable і доступний для повернення за потреби.
 
