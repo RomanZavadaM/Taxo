@@ -736,6 +736,143 @@ def _p5_absence_minutes(core, con, employee, work_date, fallback_planned=0):
     return int(fallback_planned or 0)
 
 
+def collect_personnel_timesheet_audit(core, year, month, active_only=True):
+    """Cross-check all time sources before payroll/P-5 reporting.
+
+    The audit never changes data.  It highlights source conflicts, legacy-driver
+    leakage and plans that differ from a fixed work-regime norm.
+    """
+    y,m=int(year),int(month)
+    days=core.month_dates(y,m)
+    employees=_all_employee_rows(core,active_only=active_only)
+    con=core.db()
+    issues=[]
+
+    def add(severity, employee, work_date, code, message):
+        issues.append({
+            "severity":severity,
+            "employee_id":int(employee["id"]),
+            "personnel_no":employee["personnel_no"] or "",
+            "name":core.employee_name(employee),
+            "date":work_date,
+            "code":code,
+            "message":message,
+        })
+
+    for employee in employees:
+        if not any(core.employee_employed_on(employee,d) for d in days):
+            continue
+        driver_id=employee["driver_id"]
+        for d in days:
+            if not core.employee_employed_on(employee,d):
+                continue
+
+            row=core.employee_day_time(con,employee["id"],d)
+            planned=int(row.get("planned_minutes") or 0)
+            actual=row.get("actual_minutes")
+            norm,regime=day_norm_minutes(con,employee["id"],d)
+
+            # Fixed regimes provide a useful cross-check, but not an automatic
+            # cap: approved overtime/long shifts may legitimately differ.
+            if (
+                regime.regime_type!=REGIME_SUMMARIZED
+                and int(norm or 0)>0 and planned>0 and planned!=int(norm)
+            ):
+                add(
+                    "warning",employee,d,"plan_vs_norm",
+                    f"План {regime_hhmm(planned)} відрізняється від норми дня "
+                    f"{regime_hhmm(norm)} ({regime.label})."
+                )
+
+            if planned>=24*60:
+                add(
+                    "error",employee,d,"plan_24h",
+                    f"План {regime_hhmm(planned)} дорівнює/перевищує 24 години."
+                )
+            elif planned>12*60:
+                add(
+                    "warning",employee,d,"long_plan",
+                    f"План {regime_hhmm(planned)} перевищує 12 годин — перевірте джерела."
+                )
+
+            if actual is not None and int(actual or 0)>=24*60:
+                add(
+                    "error",employee,d,"fact_24h",
+                    f"Факт {regime_hhmm(int(actual or 0))} дорівнює/перевищує 24 години."
+                )
+
+            # Old driver/worklog rows must not affect a date outside the real
+            # role.  Keep a visible audit note so legacy cleanup is traceable.
+            if driver_id and hasattr(core,"driver_role_active_on"):
+                raw=con.execute(
+                    "SELECT id,work_hours,work_start_time,work_end_time,start_time,end_time "
+                    "FROM worklog WHERE driver_id=? AND work_date=?",
+                    (driver_id,d.isoformat()),
+                ).fetchone()
+                if raw and not core.driver_role_active_on(con,driver_id,d):
+                    raw_minutes=core.hours_value_to_minutes(raw["work_hours"] or 0)
+                    if raw_minutes or raw["work_start_time"] or raw["start_time"]:
+                        add(
+                            "info",employee,d,"ignored_legacy_driver",
+                            "Є старий графік у таблиці водіїв, але роль «Водій» "
+                            "на цю дату не чинна; цей графік у табель не враховується."
+                        )
+
+            entry=con.execute(
+                "SELECT * FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+                (employee["id"],d.isoformat()),
+            ).fetchone()
+            if (
+                entry and str(entry["notes"] or "").strip()=="План за режимом робочого часу"
+                and entry["planned_hours"] is not None
+                and regime.regime_type!=REGIME_SUMMARIZED
+            ):
+                stored=core.hours_value_to_minutes(entry["planned_hours"])
+                if int(stored or 0)!=int(norm or 0):
+                    add(
+                        "info",employee,d,"stale_regime_cache",
+                        f"Старий збережений план {regime_hhmm(stored)} перераховано "
+                        f"за чинним режимом до {regime_hhmm(norm)}."
+                    )
+
+        # Detect old/current personnel shifts that overlap exact driver work.
+        shifts=con.execute(
+            """SELECT * FROM employee_shifts
+                 WHERE employee_id=? AND work_date BETWEEN ? AND ?
+                 ORDER BY work_date,id""",
+            (employee["id"],days[0].isoformat(),days[-1].isoformat()),
+        ).fetchall()
+        for sh in shifts:
+            d=date.fromisoformat(sh["work_date"])
+            if not driver_id or not hasattr(core,"driver_role_active_on"):
+                continue
+            if not core.driver_role_active_on(con,driver_id,d):
+                continue
+            base=datetime.combine(d,datetime.min.time())
+            start_dt=base+timedelta(minutes=parse_clock(sh["start_time"]))
+            end_dt=base+timedelta(
+                days=int(sh["end_day_offset"] or 0),
+                minutes=parse_clock(sh["end_time"]),
+            )
+            conflict=driver_plan_conflict(core,con,employee,start_dt,end_dt)
+            if conflict and conflict.get("kind")=="overlap":
+                add(
+                    "warning",employee,d,"driver_shift_overlap",
+                    f"Зміна «{sh['role']}» {sh['start_time']}–{sh['end_time']} "
+                    "перетинається з графіком водія; можливе подвійне нарахування плану."
+                )
+
+    con.close()
+    rank={"error":0,"warning":1,"info":2}
+    issues.sort(key=lambda x:(rank.get(x["severity"],9),x["name"],x["date"],x["code"]))
+    return {
+        "year":y,"month":m,"issues":issues,
+        "errors":sum(1 for x in issues if x["severity"]=="error"),
+        "warnings":sum(1 for x in issues if x["severity"]=="warning"),
+        "info":sum(1 for x in issues if x["severity"]=="info"),
+    }
+
+
 def collect_p5_data(core, year, month, active_only=True, use_plan_when_fact_missing=False):
     """Collect factual data for the recommended standard form № P-5.
 
