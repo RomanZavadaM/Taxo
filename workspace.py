@@ -430,7 +430,10 @@ def validate_sqlite(path):
 
 
 def _copy_tree_without_databases(source,target):
-    excluded={"driver_worktime.sqlite3","tachograph_test.sqlite3",LOCK_NAME}
+    excluded={
+        "driver_worktime.sqlite3","tachograph_test.sqlite3",LOCK_NAME,
+        "Backups","Logs",
+    }
     for child in source.iterdir():
         if child.name in excluded or child.name.startswith(".taxo_probe_"):
             continue
@@ -634,7 +637,11 @@ def restore_workspace_backup_archive(archive_path, target_root):
     return result
 
 def clone_workspace(source_root,target_root):
-    """Створити перевірену копію сховища; оригінал лишається страховою копією."""
+    """Створити повну робочу копію для нового екземпляра/перенесення.
+
+    Копіюються обидві БД, документи, скани та Output/архіви. Backups і Logs
+    не дублюються, бо вони не потрібні новому робочому екземпляру.
+    """
     source=normalize_root(source_root); target=normalize_root(target_root)
     if source==target:
         raise ValueError("Нове сховище збігається з поточним.")
