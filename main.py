@@ -4678,15 +4678,19 @@ def collect_monthly_work_balance(year, month, active_only=True):
     days=month_dates(y,m)
     con=db()
 
+    drivers=con.execute(
+        "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
+    ).fetchall()
+    drivers=[dr for dr in drivers if _driver_role_mode(dr)!="invalid"]
+    role_active_by_day={
+        (int(dr["id"]),d.isoformat()):driver_role_active_on(con,dr["id"],d)
+        for dr in drivers for d in days
+    }
     if active_only:
-        drivers=con.execute(
-            "SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name,middle_name"
-        ).fetchall()
-    else:
-        drivers=con.execute(
-            "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
-        ).fetchall()
-    drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
+        drivers=[
+            dr for dr in drivers
+            if any(role_active_by_day[(int(dr["id"]),d.isoformat())] for d in days)
+        ]
 
     rows=con.execute(
         """SELECT * FROM worklog
@@ -4739,7 +4743,7 @@ def collect_monthly_work_balance(year, month, active_only=True):
         work_days=0
         overlap_min=0
         for d in days:
-            if not driver_employed_on(dr,d):
+            if not role_active_by_day.get((int(dr["id"]),d.isoformat()),False):
                 cells.append("")
                 continue
             r=row_by.get((dr["id"],d.isoformat()))
@@ -5120,15 +5124,19 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
     days=month_dates(y,m)
     con=db()
 
+    drivers=con.execute(
+        "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
+    ).fetchall()
+    drivers=[dr for dr in drivers if _driver_role_mode(dr)!="invalid"]
+    role_active_by_day={
+        (int(dr["id"]),d.isoformat()):driver_role_active_on(con,dr["id"],d)
+        for dr in drivers for d in days
+    }
     if active_only:
-        drivers=con.execute(
-            "SELECT * FROM drivers WHERE active=1 ORDER BY last_name,first_name,middle_name"
-        ).fetchall()
-    else:
-        drivers=con.execute(
-            "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
-        ).fetchall()
-    drivers=[dr for dr in drivers if driver_employed_on(dr,days[-1])]
+        drivers=[
+            dr for dr in drivers
+            if any(role_active_by_day[(int(dr["id"]),d.isoformat())] for d in days)
+        ]
 
     rows=con.execute(
         """SELECT * FROM worklog
@@ -5183,7 +5191,7 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         drive_min=0
         overlap_min=0
         for d in days:
-            if not driver_employed_on(dr,d):
+            if not role_active_by_day.get((int(dr["id"]),d.isoformat()),False):
                 cells.append("")
                 continue
             r=row_by.get((dr["id"],d.isoformat()))
@@ -9594,13 +9602,16 @@ class App(tk.Tk):
         rows=con.execute(
             "SELECT * FROM drivers ORDER BY active DESC, last_name, first_name, middle_name"
         ).fetchall()
-        con.close()
-
         try:
-            period_end=month_dates(int(self.year_var.get()),int(self.month_var.get()))[-1]
+            period_days=month_dates(int(self.year_var.get()),int(self.month_var.get()))
         except Exception:
-            period_end=date.today()
-        rows=[d for d in rows if driver_employed_on(d,period_end)]
+            period_days=[date.today()]
+        rows=[
+            d for d in rows
+            if _driver_role_mode(d)!="invalid"
+            and any(driver_role_active_on(con,d["id"],day) for day in period_days)
+        ]
+        con.close()
 
         available_ids={d["id"] for d in rows}
         if self.driver_id not in available_ids:
@@ -9661,7 +9672,15 @@ class App(tk.Tk):
     def refresh_att_driver_choices(self):
         if not hasattr(self, "att_driver_cb"):
             return
-        con=db(); rows=con.execute("SELECT * FROM drivers ORDER BY last_name, first_name").fetchall(); con.close()
+        con=db()
+        rows=con.execute("SELECT * FROM drivers ORDER BY last_name, first_name").fetchall()
+        today=date.today()
+        rows=[
+            d for d in rows
+            if _driver_role_mode(d)!="invalid"
+            and driver_role_active_on(con,d["id"],today)
+        ]
+        con.close()
         self.att_driver_map={}
         vals=[]
         for d in rows:
