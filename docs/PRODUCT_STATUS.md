@@ -81,3 +81,8 @@ Stable 10.1 не змінюється. Candidate 10.2-r4 прийнятий, PR 
 Інфраструктурне виправлення: historical publisher stable 10.1 більше не запускається автоматично при нових merge у `main`. Це прибирає хибні failure-повідомлення GitHub Actions; функціонал Taxo та immutable stable `v10.1` не змінюються.
 
 Після завершення r5 наступний кодовий крок — `10.2-r6`.
+
+
+## Active candidate 10.2-r6
+
+UI consistency checkpoint: великі secondary windows оформлюються у стилі stable 10.1 з text-free logo та динамічною назвою підприємства. Бізнес-логіка, БД та моделі розрахунку не змінюються.
