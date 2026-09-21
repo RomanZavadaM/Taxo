@@ -7,7 +7,7 @@
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Verified candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
 **PR #34:** merged  
-**Active development:** `10.2-r4` · `work/v10.2-r4-replanning` · PR #40
+**Latest completed candidate:** `10.2-r4` · PR #40 merged · prerelease published
 
 ## Gate
 
@@ -42,5 +42,16 @@ Candidate automation:
 
 - Кожен завершений крок = нова ревізія.
 - `r1 ... r10`; після `r10` — наступна minor-версія з `r1`.
-- r4 є окремим тестовим станом; наступна зміна після виданого r4-архіву буде вже r5.
+- r4 завершено, опубліковано й злитo в `main`; наступна кодова зміна буде тільки r5.
 - Кожен крок завершується прямим посиланням на START-архів без вкладеного ZIP.
+
+
+## 10.2-r4 завершено
+
+- accepted candidate: `51f84f90c76afde2701a3d26f37e54de279ed2d2`;
+- main merge: `71e63f300401eadb7b1f02f376ebd022c9373e7d`;
+- GitHub prerelease: `v10.2-r4`;
+- START/source gate: success;
+- Windows gate: success;
+- macOS gate: success;
+- наступний кодовий крок: `10.2-r5`.
