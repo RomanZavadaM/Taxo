@@ -15315,24 +15315,39 @@ class App(tk.Tk):
 
         con=db()
         now=datetime.now().isoformat(timespec="seconds")
-        cur=con.execute(
-            """INSERT INTO attestations(
-                driver_id,period_from,period_to,activity_no,place,form_date,
-                file_path,pdf_path,jpg_page1_path,jpg_page2_path,
-                status,revision,updated_at,deleted_at,delete_reason,created_at
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (
-                d["id"],period_from,period_to,int(activity_no),place_value,dt.isoformat(),
-                stored_created["file_path"],stored_created["pdf_path"],stored_created["jpg_page1_path"],stored_created["jpg_page2_path"],
-                "active",1,now,"","",now
+        try:
+            factual_completed=(en <= datetime.now())
+            work_changes=[]
+            if factual_completed and self._attestation_nonwork_activity(activity_no):
+                work_changes=self._sync_new_nonwork_attestation_to_worklog(
+                    con,d["id"],period_from,period_to,int(activity_no)
+                )
+            cur=con.execute(
+                """INSERT INTO attestations(
+                    driver_id,period_from,period_to,activity_no,place,form_date,
+                    file_path,pdf_path,jpg_page1_path,jpg_page2_path,
+                    status,revision,updated_at,deleted_at,delete_reason,created_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    d["id"],period_from,period_to,int(activity_no),place_value,dt.isoformat(),
+                    stored_created["file_path"],stored_created["pdf_path"],stored_created["jpg_page1_path"],stored_created["jpg_page2_path"],
+                    "active",1,now,"","",now
+                )
             )
-        )
-        att_id=cur.lastrowid
-        row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
-        fmt_note=", ".join(x.upper() for x in formats)
-        _audit_attestation_snapshot(con,row,"CREATE",f"Створено бланк: {fmt_note}")
-        con.commit()
-        con.close()
+            att_id=cur.lastrowid
+            row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+            fmt_note=", ".join(x.upper() for x in formats)
+            basis="фактичний" if factual_completed else "підготовлено за планом до виїзду"
+            note=f"Створено бланк ({basis}): {fmt_note}"
+            if work_changes:
+                note += ". Факт робочого часу: " + "; ".join(work_changes)
+            _audit_attestation_snapshot(con,row,"CREATE",note)
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
 
         self.load_att_history()
         if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
@@ -15518,7 +15533,7 @@ class App(tk.Tk):
 
         candidates=[]
         for row in rows:
-            work_parts=_worklog_work_intervals(row,seg_by.get(row["id"],[]))
+            work_parts=_worklog_effective_work_intervals(row,seg_by.get(row["id"],[]))
             route_parts=_worklog_route_intervals(row,seg_by.get(row["id"],[]))
             parts=work_parts or route_parts
             if not parts:
@@ -15599,6 +15614,93 @@ class App(tk.Tk):
             )
         )
 
+    @staticmethod
+    def _attestation_nonwork_activity(activity_no):
+        """Activities whose interval is outside working time in Taxo."""
+        return int(activity_no) in (14,15,16)
+
+    def _sync_new_nonwork_attestation_to_worklog(
+            self, con, driver_id, period_from, period_to, activity_no):
+        """A newly created factual 14/15/16 form can establish duty boundaries.
+
+        This is used only once the whole attestation period is in the past.
+        A prepared future form does NOT write fact_* overrides.
+        """
+        if not self._attestation_nonwork_activity(activity_no):
+            return []
+        st=parse_attestation_period(period_from)
+        en=parse_attestation_period(period_to)
+        if not st or not en or en<=st:
+            raise ValueError("Некоректний фактичний період бланка.")
+
+        start_day=(st.date()-timedelta(days=1)).isoformat()
+        end_day=en.date().isoformat()
+        rows=con.execute(
+            """SELECT * FROM worklog
+               WHERE driver_id=? AND work_date BETWEEN ? AND ?
+               ORDER BY work_date,id""",
+            (int(driver_id),start_day,end_day)
+        ).fetchall()
+        if not rows:
+            return []
+
+        ids=[r["id"] for r in rows]
+        q=",".join("?" for _ in ids)
+        seg_by={}
+        for seg in con.execute(
+            f"""SELECT * FROM work_segments
+                 WHERE worklog_id IN ({q})
+                 ORDER BY worklog_id,segment_no""",
+            ids
+        ).fetchall():
+            seg_by.setdefault(seg["worklog_id"],[]).append(seg)
+
+        items=[]
+        for row in rows:
+            segs=seg_by.get(row["id"],[])
+            parts=_worklog_effective_work_intervals(row,segs) or _worklog_route_intervals(row,segs)
+            if not parts:
+                continue
+            items.append({
+                "row":row,
+                "segments":segs,
+                "start":min(a for a,_ in parts),
+                "end":max(b for _,b in parts),
+            })
+
+        changes=[]
+        # If absence starts inside/after an actual work day, it closes that duty.
+        previous=[
+            item for item in items
+            if item["start"] < st
+            and date.fromisoformat(item["row"]["work_date"]) in (st.date(),st.date()-timedelta(days=1))
+        ]
+        if previous:
+            prev=max(previous,key=lambda x:x["start"])
+            # Only change if boundary is meaningful versus current effective end.
+            if st != prev["end"]:
+                self._set_worklog_boundary(con,prev,"end",st)
+                changes.append(
+                    f"кінець роботи {prev['row']['work_date']} → {st.strftime('%d.%m.%Y %H:%M')}"
+                )
+
+        # If absence ends on a day that already has a planned/effective duty,
+        # it establishes the factual start of that duty. An internal boundary
+        # between two absence reasons creates no work.
+        following=[
+            item for item in items
+            if date.fromisoformat(item["row"]["work_date"])==en.date()
+            and item["end"] > en
+        ]
+        if following:
+            nxt=min(following,key=lambda x:x["start"])
+            if en != nxt["start"]:
+                self._set_worklog_boundary(con,nxt,"start",en)
+                changes.append(
+                    f"початок роботи {nxt['row']['work_date']} → {en.strftime('%d.%m.%Y %H:%M')}"
+                )
+        return changes
+
     def _sync_attestation_boundaries_to_worklog(
             self, con, driver_id, old_period_from, old_period_to,
             new_period_from, new_period_to):
@@ -15674,11 +15776,13 @@ class App(tk.Tk):
         try:
             current=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             _ensure_attestation_audit_baseline(con,current)
-            work_changes=self._sync_attestation_boundaries_to_worklog(
-                con,current["driver_id"],
-                current["period_from"],current["period_to"],
-                period_from,period_to
-            )
+            work_changes=[]
+            if self._attestation_nonwork_activity(activity_no):
+                work_changes=self._sync_attestation_boundaries_to_worklog(
+                    con,current["driver_id"],
+                    current["period_from"],current["period_to"],
+                    period_from,period_to
+                )
             new_revision=int(current["revision"] or 1)+1
             con.execute(
                 """UPDATE attestations
@@ -15692,9 +15796,9 @@ class App(tk.Tk):
             )
             updated=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             moved=[v for k,v in archived_old.items() if v and v != ((current[k] or "") if k in current.keys() else "")]
-            note="Відредаговано після зміни графіка/періоду; перегенеровано: " + ", ".join(x.upper() for x in formats)
+            note="Відредаговано після уточнення факту/періоду; перегенеровано: " + ", ".join(x.upper() for x in formats)
             if work_changes:
-                note += ". Автоматично скориговано робочий час: " + "; ".join(work_changes)
+                note += ". План збережено; записано фактичну поправку робочого часу: " + "; ".join(work_changes)
             if moved:
                 note += ". Попередні файли перенесено в архів."
             _audit_attestation_snapshot(con,updated,"EDIT",note)
@@ -15765,10 +15869,10 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text=(
-                "Зміна меж бланка автоматично коригує суміжний робочий час водія: "
-                "«Період з» = кінець попередньої роботи, «Період по» = початок наступної. "
-                "Час керування/маршруту не переписується. Старі файли бланка переносяться в архів, "
-                "а контроль 56 днів одразу перераховується."
+                "Плановий бланк можна підготувати наперед. Якщо факт відрізняється, зміна меж позицій "
+                "14/15/16 записує окрему фактичну поправку робочого часу: план не стирається. "
+                "«Період з» уточнює кінець попередньої роботи, «Період по» — початок наступної. "
+                "Час керування/маршруту не переписується. Для 17/18/19 межі роботи автоматично не обрізаються."
             ),
             foreground="gray",wraplength=700,justify="left"
         ).grid(row=5,column=0,columnspan=3,sticky="w",padx=12,pady=(8,12))
