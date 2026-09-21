@@ -65,6 +65,6 @@ v10.1-r5:
 - START/source — published;
 - SHA-256 manifests — published;
 - GitHub Release `v10.1` — latest stable;
-- `main` and `v10.1` target `fa5bbe0a5de733af1e227847ef9584daca57676e`.
+- stable code/release tag `v10.1` targets `fa5bbe0a5de733af1e227847ef9584daca57676e`; `main` may contain later docs-only follow-up commits without moving the immutable release tag.
 
 Taxo 10.0 is the previous stable / rollback point.
