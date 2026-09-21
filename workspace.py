@@ -450,32 +450,63 @@ def _copy_tree_without_databases(source,target):
 
 
 
-def _copy_backup_payload(source, target):
-    """Copy mutable workspace files except databases and nested backup archives."""
+def _copy_backup_payload(
+    source,
+    target,
+    include_vehicle_documents=False,
+    include_tacho_scans=False,
+    include_output=False,
+):
+    """Copy selected workspace files, keeping heavy attachments optional."""
     source=normalize_root(source); target=normalize_root(target)
-    excluded_files={"driver_worktime.sqlite3","tachograph_test.sqlite3",LOCK_NAME}
-    for folder_name in ("Data","Output","Logs"):
-        src=source/folder_name
-        if not src.exists():
-            continue
-        dst=target/folder_name
+    srcp=paths_for(source); dstp=paths_for(target)
+
+    # Small/unknown Data files remain protected automatically, while the two
+    # known large attachment trees are explicit choices.
+    data_source=srcp["data"]
+    if data_source.exists():
+        dstp["data"].mkdir(parents=True,exist_ok=True)
+        for child in data_source.iterdir():
+            if child.name in {"driver_worktime.sqlite3","tachograph_test.sqlite3"}:
+                continue
+            if child.name.endswith(("-wal","-shm","-journal")):
+                continue
+            if child==srcp["vehicle_documents"] or child==srcp["tacho_scans"]:
+                continue
+            dest=dstp["data"]/child.name
+            if child.is_dir():
+                shutil.copytree(child,dest,dirs_exist_ok=True)
+            else:
+                shutil.copy2(child,dest)
+
+    if include_vehicle_documents and srcp["vehicle_documents"].exists():
         shutil.copytree(
-            src,dst,dirs_exist_ok=True,
-            ignore=shutil.ignore_patterns(
-                "driver_worktime.sqlite3","tachograph_test.sqlite3",
-                "*-wal","*-shm","*-journal",LOCK_NAME
-            )
+            srcp["vehicle_documents"],dstp["vehicle_documents"],dirs_exist_ok=True
         )
+    if include_tacho_scans and srcp["tacho_scans"].exists():
+        shutil.copytree(srcp["tacho_scans"],dstp["tacho_scans"],dirs_exist_ok=True)
+    if include_output and srcp["output"].exists():
+        shutil.copytree(srcp["output"],dstp["output"],dirs_exist_ok=True)
+
     marker=source/MARKER_NAME
     if marker.is_file():
         shutil.copy2(marker,target/MARKER_NAME)
 
 
-def create_workspace_backup_archive(source_root, archive_path, app_version=""):
-    """Create an atomic, verified ZIP backup of current workspace data.
+def create_workspace_backup_archive(
+    source_root,
+    archive_path,
+    app_version="",
+    include_vehicle_documents=False,
+    include_tacho_scans=False,
+    include_output=False,
+):
+    """Create an atomic, verified, selective ZIP backup.
 
-    Prior files from Backups/ are deliberately excluded to avoid recursive
-    backup growth. Current SQLite databases are copied through SQLite backup().
+    Both SQLite databases are always included through SQLite backup().
+    Large document/scans/output trees are optional and are never pulled in
+    merely because they live in the working workspace. Backups/ and Logs/ are
+    excluded to avoid recursive growth and low-value bulk.
     """
     source=normalize_root(source_root)
     archive=Path(archive_path).expanduser()
@@ -487,7 +518,12 @@ def create_workspace_backup_archive(source_root, archive_path, app_version=""):
     with tempfile.TemporaryDirectory(prefix="taxo_full_backup_") as temp_name:
         stage=Path(temp_name)/"TaxoWorkspace"
         stage.mkdir(parents=True,exist_ok=False)
-        _copy_backup_payload(source,stage)
+        _copy_backup_payload(
+            source,stage,
+            include_vehicle_documents=bool(include_vehicle_documents),
+            include_tacho_scans=bool(include_tacho_scans),
+            include_output=bool(include_output),
+        )
         srcp=paths_for(source); dstp=paths_for(stage)
         if srcp["main_db"].exists():
             _sqlite_backup(srcp["main_db"],dstp["main_db"])
@@ -500,8 +536,13 @@ def create_workspace_backup_archive(source_root, archive_path, app_version=""):
             "application":"Taxo",
             "app_version":str(app_version or ""),
             "created_at":_iso_now(),
-            "includes":["Data","Output","Logs"],
-            "excludes":["Backups",LOCK_NAME],
+            "includes":{
+                "databases":True,
+                "vehicle_documents":bool(include_vehicle_documents),
+                "tachograph_scans":bool(include_tacho_scans),
+                "output":bool(include_output),
+            },
+            "excludes":["Backups","Logs",LOCK_NAME],
         }
         (stage/FULL_BACKUP_MANIFEST).write_text(
             json.dumps(manifest,ensure_ascii=False,indent=2),"utf-8"
