@@ -1836,7 +1836,9 @@ def install(core, base_app):
             # point for the additive r6 schema migration.
             ensure_work_regime_schema(core)
             super().__init__(*args, **kwargs)
-            self.title(WINDOW_TITLE)
+            self.title(
+                f"Taxo {getattr(core, 'APP_VERSION', APP_VERSION)} — персонал, водії, графіки та шляхівки"
+            )
 
         def _select_personnel_page(self, page, nav_label="Працівники"):
             self.show_tab(self.tab_personnel)
