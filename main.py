@@ -4582,7 +4582,8 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
     """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
 
     Ключові правила:
-    - Бланк є ФАКТИЧНИМ документом і не формується наперед за плановим графіком;
+    - Бланк МОЖНА підготувати наперед за плановим виїздом, щоб він був готовий до ранкового випуску;
+    - після фактичного виїзду/повернення межі за потреби уточнюються ревізією;
     - ТАХО/маршрут не визначає межі відпочинку сам по собі;
     - усі частини одного маршрутного дня формують робочу зміну, яка може
       починатися ДО першого керування і закінчуватися ПІСЛЯ останнього;
@@ -4593,15 +4594,15 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
     - якщо між двома ТАХО-днями є один або більше інших календарних днів,
       проміжок від кінця попереднього ТАХО до початку наступного закриваємо
       бланком(ами);
-    - контроль показує лише завершені фактичні проміжки: наступна робоча
-      зміна вже повинна початися; майбутній план використовується лише як
-      довідка і не породжує бланк;
+    - крім історичних пропусків, контроль показує ПОТОЧНИЙ період до найближчої
+      наступної запланованої робочої зміни; такий бланк можна підготувати наперед;
+    - якщо факт відрізняється від плану, підготовлений бланк уточнюється, а не дублюється;
     - автоматичні позиції: лікарняний=14, відпустка=15,
       вихідний/відпочинок=16, «Без тахо — 8 год»/інша робота=18,
       доступний=19;
     - сусідні частини з однаковою позицією об'єднуються;
-    - 56 днів — вікно контролю фактичних/минулих записів. Майбутні
-      заплановані зміни не закривають період Бланка.
+    - 56 днів — вікно історичного контролю; додатково дивимось уперед у графік
+      для підготовки найближчого поточного бланка.
     """
     if isinstance(control_date,str):
         try:
@@ -4627,8 +4628,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
     con=db()
 
     # Назад потрібен запас для зв'язку першого робочого дня у 56-денному вікні.
-    # Уперед читаємо тільки технічний запас даних; майбутня планова зміна
-    # ніколи не робить Бланк готовим до формування.
+    # Уперед дивимось для найближчої запланованої зміни, щоб підготувати бланк завчасно.
     query_start=start_day-timedelta(days=62)
     query_end=end_day+timedelta(days=62)
     rows=con.execute(
@@ -4744,13 +4744,9 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         if gb<=ga:
             continue
 
-        # r2: Бланк формується по факту. Поки наступна робота фактично ще
-        # не настала за контрольним моментом, проміжок не завершений і не
-        # може бути запропонований як документ.
-        if gb > reference_moment:
-            continue
+        is_current=(ga <= reference_moment < gb)
         is_historical=(range_start <= gb < range_end)
-        if not is_historical:
+        if not is_current and not is_historical:
             continue
 
         segs=_build_attestation_required_segments(prev,nxt,row_by_day)
@@ -4758,8 +4754,12 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
             ignored_consecutive_minutes += max(0,int((gb-ga).total_seconds()//60))
             continue
 
+        if is_current:
+            current_pair_found=True
+            current_departure=gb
+
         for a,b,n in segs:
-            required_segments.append((a,b,n,False))
+            required_segments.append((a,b,n,is_current))
 
     att_intervals=[]
     invalid_attestations=[]
@@ -4846,14 +4846,14 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 "activity_no":suggested_no,
                 "is_current":is_current,
                 "reason":(
-                    f"Фактичний проміжок уже перекритий бланком. Автокод: {suggested_no}."
+                    f"Поточний період до початку наступної роботи вже перекритий бланком. Автокод: {suggested_no}."
                     if is_current else
                     f"Проміжок перекритий наявним бланком. Автокод для цього виду дня: {suggested_no}."
                 ),
             })
         else:
             if is_current:
-                status="ФАКТ — НЕ ЗАКРИТО"
+                status="ПОТОЧНИЙ — ПІДГОТУВАТИ"
             else:
                 status="НЕМАЄ БЛАНКА" if miss==dur else "ЧАСТКОВО НЕ ЗАКРИТО"
             for ma,mb in missing:
@@ -15232,13 +15232,6 @@ class App(tk.Tk):
         en=parse_attestation_period(period_to)
         if not st or not en or en<=st:
             raise ValueError("Невірний період бланка.")
-        now_dt=datetime.now()
-        if en > now_dt + timedelta(minutes=1):
-            raise ValueError(
-                "Бланк підтвердження є фактичним документом. "
-                "Період не може закінчуватися у майбутньому за плановим графіком."
-            )
-
         # v8.55 — дата завжди дорівнює даті завершення періоду.
         dt=en.date()
         form_date_text=dt.strftime("%d.%m.%Y")
@@ -15347,7 +15340,7 @@ class App(tk.Tk):
                 "Уточнити існуючий бланк",
                 f"Бланк №{att_id} уже частково перекриває цей період.\n\n"
                 f"Було:\n{old_from} → {old_to}\n\n"
-                f"Після уточнення ТАХО/графіка має бути:\n{period_from} → {period_to}\n\n"
+                f"Після уточнення фактичних меж має бути:\n{period_from} → {period_to}\n\n"
                 "Створити нову ревізію цього ж бланка? Суміжний робочий час буде скориговано автоматично, "
                 "а час керування залишиться без змін. Попередні файли будуть збережені в архіві.",
                 parent=self.att_gap_win
