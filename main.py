@@ -4055,12 +4055,22 @@ def export_work_analysis_pdf(data, driver_name, out_path):
         leftMargin=28,rightMargin=28,topMargin=26,bottomMargin=26,
         title=f"Підсумки та контроль №340 - {driver_name} - {data['month']:02d}.{data['year']}"
     )
+    report_date_value=data.get("report_date")
+    if hasattr(report_date_value,"strftime"):
+        report_date_text=report_date_value.strftime("%d.%m.%Y")
+    else:
+        report_date_text=str(report_date_value or "").strip()
+
     story=[
         Paragraph("Підсумки та контроль №340",title_style),
         Paragraph(escape(driver_name),summary_style),
         Paragraph(
             f"Профіль перевезень: {escape(data.get('transport_profile', DEFAULT_TRANSPORT_PROFILE))}",
             summary_style
+        ),
+        *(
+            [Paragraph(f"Дата формування: {escape(report_date_text)}",summary_style)]
+            if report_date_text else []
         ),
         Paragraph(
             f"Період: {data['month']:02d}.{data['year']} &nbsp;&nbsp; "
