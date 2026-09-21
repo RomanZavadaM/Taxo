@@ -15142,7 +15142,7 @@ class App(tk.Tk):
             parent=self
         )
 
-    def _sync_new_attestation_boundaries_to_worklog(
+    def _legacy_sync_new_attestation_boundaries_to_worklog(
             self, con, driver_id, period_from_dt, period_to_dt):
         """Синхронізує лише ЗОВНІШНІ межі фактичної відсутності з роботою.
 
@@ -15255,9 +15255,6 @@ class App(tk.Tk):
         con=db()
         now=datetime.now().isoformat(timespec="seconds")
         try:
-            work_changes=self._sync_new_attestation_boundaries_to_worklog(
-                con,int(d["id"]),st,en
-            )
             cur=con.execute(
             """INSERT INTO attestations(
                 driver_id,period_from,period_to,activity_no,place,form_date,
@@ -15273,9 +15270,7 @@ class App(tk.Tk):
             att_id=cur.lastrowid
             row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
             fmt_note=", ".join(x.upper() for x in formats)
-            note=f"Створено фактичний бланк: {fmt_note}"
-            if work_changes:
-                note += ". Скориговано робочі межі: " + "; ".join(work_changes)
+            note=f"Створено бланк: {fmt_note}"
             _audit_attestation_snapshot(con,row,"CREATE",note)
             con.commit()
         except Exception:
@@ -15341,8 +15336,8 @@ class App(tk.Tk):
                 f"Бланк №{att_id} уже частково перекриває цей період.\n\n"
                 f"Було:\n{old_from} → {old_to}\n\n"
                 f"Після уточнення фактичних меж має бути:\n{period_from} → {period_to}\n\n"
-                "Створити нову ревізію цього ж бланка? Суміжний робочий час буде скориговано автоматично, "
-                "а час керування залишиться без змін. Попередні файли будуть збережені в архіві.",
+                "Створити нову ревізію цього ж бланка? Робочий час і час керування не змінюються. "
+                "Попередні файли будуть збережені в архіві.",
                 parent=self.att_gap_win
             ):
                 return
@@ -15589,7 +15584,7 @@ class App(tk.Tk):
                 (ws,we,minutes_to_db_hours(total),int(row["id"]))
             )
 
-    def _sync_attestation_boundaries_to_worklog(
+    def _legacy_sync_attestation_boundaries_to_worklog(
             self, con, driver_id, old_period_from, old_period_to,
             new_period_from, new_period_to):
         """Редагування бланка автоматично коригує суміжні межі робочого часу."""
@@ -15664,11 +15659,6 @@ class App(tk.Tk):
         try:
             current=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             _ensure_attestation_audit_baseline(con,current)
-            work_changes=self._sync_attestation_boundaries_to_worklog(
-                con,current["driver_id"],
-                current["period_from"],current["period_to"],
-                period_from,period_to
-            )
             new_revision=int(current["revision"] or 1)+1
             con.execute(
                 """UPDATE attestations
@@ -15683,8 +15673,6 @@ class App(tk.Tk):
             updated=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             moved=[v for k,v in archived_old.items() if v and v != ((current[k] or "") if k in current.keys() else "")]
             note="Відредаговано після зміни графіка/періоду; перегенеровано: " + ", ".join(x.upper() for x in formats)
-            if work_changes:
-                note += ". Автоматично скориговано робочий час: " + "; ".join(work_changes)
             if moved:
                 note += ". Попередні файли перенесено в архів."
             _audit_attestation_snapshot(con,updated,"EDIT",note)
@@ -15755,9 +15743,9 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text=(
-                "Зміна меж бланка автоматично коригує суміжний робочий час водія: "
-                "«Період з» = кінець попередньої роботи, «Період по» = початок наступної. "
-                "Час керування/маршруту не переписується. Старі файли бланка переносяться в архів, "
+                "Межі Бланка підтвердження не змінюють табель і фактичний робочий час. "
+                "Бланк та робочий час ведуться окремо: для зарплати враховується весь реально "
+                "відпрацьований час, незалежно від меж Бланка. Старі файли Бланка переносяться в архів, "
                 "а контроль 56 днів одразу перераховується."
             ),
             foreground="gray",wraplength=700,justify="left"
