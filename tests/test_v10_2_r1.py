@@ -15,6 +15,7 @@ from document_viewer import (
     document_kind,
 )
 import personnel_v91
+from release_naming import version_from_file
 import v91_features
 from vehicle_documents import (
     DOCUMENT_TYPES,
@@ -38,7 +39,9 @@ from workspace import (
 
 class TestTaxo102R1VehicleDocuments(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.2-r3")
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(main.APP_VERSION, version_from_file(root / "VERSION.txt"))
+        self.assertRegex(main.APP_VERSION, r"^10\.2-r(?:[1-9]|10)$")
 
     def test_core_owns_current_shell_identity(self):
         core_source = inspect.getsource(main.App.__init__)
