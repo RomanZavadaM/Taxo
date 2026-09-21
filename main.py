@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r5"
+APP_VERSION = "10.2-r6"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -6498,6 +6498,30 @@ class App(tk.Tk):
             pass
         return "Назва підприємства"
 
+    def _decorate_secondary_window(self, win, section_title, subtitle=""):
+        """Apply the approved Taxo visual shell to a secondary work window."""
+        configure_toplevel(win)
+        win.title(f"Taxo / {self._company_name_value()} — {section_title}")
+        banner=tk.Canvas(
+            win,height=78,bg=PALETTE["header"],
+            highlightthickness=0,borderwidth=0
+        )
+        banner.pack(side="top",fill="x")
+        caption=subtitle.strip() or section_title
+        draw_brand_header(
+            banner,self._company_name_value(),
+            f"{caption}  •  Taxo {APP_VERSION}"
+        )
+        banner.bind(
+            "<Configure>",
+            lambda _e,b=banner,cap=caption:draw_brand_header(
+                b,self._company_name_value(),f"{cap}  •  Taxo {APP_VERSION}"
+            ),
+            add="+",
+        )
+        win._taxo_secondary_banner=banner
+        return banner
+
     def show_about(self):
         existing=getattr(self,"_about_win",None)
         if existing is not None:
@@ -6859,9 +6883,11 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         self.vehicle_documents_report_win=win
-        win.title("Стан документів транспортних засобів")
         fit_window_to_screen(win,1320,760,900,540)
-        configure_toplevel(win)
+        self._decorate_secondary_window(
+            win,"Стан документів транспортних засобів",
+            "Контроль строків і комплектності документів"
+        )
 
         top=ttk.Frame(win,padding=(10,8))
         top.pack(fill="x")
@@ -7670,9 +7696,10 @@ class App(tk.Tk):
     def manual_backup(self):
         choice={"value":None}
         win=tk.Toplevel(self)
-        win.title("Резервна копія Taxo")
         fit_window_to_screen(win,720,470,620,420)
-        configure_toplevel(win)
+        self._decorate_secondary_window(
+            win,"Резервна копія","Безпечне резервування робочого сховища"
+        )
         win.transient(self); win.grab_set()
 
         body=ttk.Frame(win,padding=16)
@@ -7814,8 +7841,10 @@ class App(tk.Tk):
 
     def show_workspace_manager(self):
         win=tk.Toplevel(self)
-        win.title("Робоче сховище Taxo")
         fit_window_to_screen(win,820,540,680,480)
+        self._decorate_secondary_window(
+            win,"Робоче сховище","Розташування, перенесення та підключення даних"
+        )
         win.transient(self); win.grab_set()
         body=ttk.Frame(win,padding=14); body.pack(fill="both",expand=True)
         kind=storage_kind(DATA_ROOT)
@@ -8116,8 +8145,11 @@ class App(tk.Tk):
             return
         if hasattr(self,"employee_win") and self.employee_win.winfo_exists():
             self.employee_win.lift(); self.load_employee_registry(); return
-        win=tk.Toplevel(self); self.employee_win=win; win.title("Реєстр усіх працівників")
+        win=tk.Toplevel(self); self.employee_win=win
         fit_window_to_screen(win,1080,650,820,500)
+        self._decorate_secondary_window(
+            win,"Реєстр усіх працівників","Персонал, ролі та статус працевлаштування"
+        )
         top=ttk.Frame(win,padding=8); top.pack(fill="x")
         ttk.Button(top,text="Новий працівник",command=self.employee_form).pack(side="left",padx=3)
         ttk.Button(top,text="Редагувати",command=self.edit_employee).pack(side="left",padx=3)
@@ -10287,8 +10319,11 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         self.monthly_balance_win=win
-        win.title("Місячний табель / баланс робочого часу")
         fit_window_to_screen(win,1450,760,900,500)
+        self._decorate_secondary_window(
+            win,"Місячний табель / баланс робочого часу",
+            "План, факт, відхилення та відсутній факт"
+        )
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
@@ -10632,8 +10667,10 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         self.schedule_audit_win=win
-        win.title("Аудит графіків — перевірка помилок введення")
         fit_window_to_screen(win,1320,720,900,520)
+        self._decorate_secondary_window(
+            win,"Аудит графіків","Перевірка помилок і конфліктів введення"
+        )
         win.transient(self)
         win.lift()
         win.after_idle(win.focus_force)
@@ -10960,8 +10997,11 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         self.monthly_shift_win=win
-        win.title("Місячний графік змінності водіїв")
         fit_window_to_screen(win,1450,760,900,500)
+        self._decorate_secondary_window(
+            win,"Місячний графік змінності водіїв",
+            "Планування та контроль змін"
+        )
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
@@ -11531,8 +11571,12 @@ class App(tk.Tk):
         """План/факт змін зареєстрованих працівників випуску."""
         if hasattr(self,"dispatch_win") and self.dispatch_win.winfo_exists():
             self.dispatch_win.lift(); self.refresh_dispatch_shifts(); return
-        win=tk.Toplevel(self); self.dispatch_win=win; win.title("Випуск на лінію — зміни персоналу")
+        win=tk.Toplevel(self); self.dispatch_win=win
         fit_window_to_screen(win,980,620,780,500)
+        self._decorate_secondary_window(
+            win,"Випуск на лінію — зміни персоналу",
+            "Лікар, механік, диспетчер та інші ролі зміни"
+        )
         top=ttk.Frame(win,padding=8); top.pack(fill="x")
         ttk.Label(top,text="Дата:").pack(side="left")
         try: initial=self._schedule_parse_date().strftime("%d.%m.%Y")
@@ -11924,8 +11968,11 @@ class App(tk.Tk):
             self.waybill_win.title(f"Шляхівки на {d.strftime('%d.%m.%Y')}")
             self.waybill_win.lift(); self.refresh_waybill_issue_list(); return
         win=tk.Toplevel(self); self.waybill_win=win; self.waybill_date=d
-        win.title(f"Шляхівки на {d.strftime('%d.%m.%Y')}")
         fit_window_to_screen(win,1120,600,850,480)
+        self._decorate_secondary_window(
+            win,f"Шляхівки на {d.strftime('%d.%m.%Y')}",
+            "Рейси, транспорт, персонал випуску та пробіг"
+        )
         top=ttk.Frame(win,padding=8); top.pack(fill="x")
         self.waybill_date_label=tk.StringVar(value=d.strftime("%d.%m.%Y"))
         ttk.Label(top,text="Дата графіка:",font=("TkDefaultFont",9,"bold")).pack(side="left")
@@ -13580,8 +13627,11 @@ class App(tk.Tk):
         driver_name=self.driver_full_name(driver) if driver else self.work_driver_var.get()
 
         win=tk.Toplevel(self)
-        win.title("Підсумки та контроль №340")
         fit_window_to_screen(win,1220,790,900,580)
+        self._decorate_secondary_window(
+            win,"Підсумки та контроль №340",
+            "Робочий час, керування, перерви та відпочинок"
+        )
         win.transient(self)
 
         head=ttk.Frame(win,padding=10)
@@ -14623,8 +14673,11 @@ class App(tk.Tk):
 
         win=tk.Toplevel(self)
         self.att_gap_win=win
-        win.title("Контроль бланків — 56 днів + поточний період до виїзду")
         fit_window_to_screen(win,1250,650,900,500)
+        self._decorate_secondary_window(
+            win,"Контроль бланків",
+            "56 днів + поточний період до виїзду"
+        )
 
         top=ttk.Frame(win,padding=8)
         top.pack(fill="x")
@@ -15356,8 +15409,11 @@ class App(tk.Tk):
         con.close()
 
         win=tk.Toplevel(self)
-        win.title(f"Історія змін Бланка №{att_id}")
         fit_window_to_screen(win,1350,520,850,440)
+        self._decorate_secondary_window(
+            win,f"Історія змін Бланка №{att_id}",
+            "Ревізії, періоди, статуси та файли"
+        )
         win.transient(self)
 
         cols=("when","action","revision","from","to","activity","status","note","files")
