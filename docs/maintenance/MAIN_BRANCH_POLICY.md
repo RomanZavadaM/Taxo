@@ -1,6 +1,6 @@
 # Політика гілки `main`
 
-Починаючи з Taxo 9.0, `main` є експлуатаційною гілкою продукту. Після завершення operational gate лінії 9.1 актуальна stable у `main` — **Taxo 10.0**.
+Починаючи з Taxo 9.0, `main` є експлуатаційною гілкою продукту. Після завершення operational gate лінії 9.1 актуальна stable у `main` — **Taxo 10.1**.
 
 У `main` зберігаються:
 
@@ -31,3 +31,12 @@ GitHub Releases залишаються канонічним місцем для 
 - кожен stable release має новий immutable tag;
 - GitHub Actions збирає Windows/macOS/START artifacts уже з stable commit у `main`;
 - user database, scans and personal files never enter Git/release artifacts.
+
+
+## Candidate development rule
+
+- Кожен завершений робочий крок має окрему ревізію `r1 ... r10`.
+- Після `r10` minor-версія збільшується на 1 і цикл починається з `r1`.
+- Candidate-ревізія, для якої вже видано тестовий архів, повторно не використовується.
+- Кожен крок завершується перевіреним START-архівом із прямим посиланням для ручного тестування.
+- Канонічний опис: [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md).
