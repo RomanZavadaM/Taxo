@@ -2300,7 +2300,27 @@ def _employee_shift_minutes_for_day(con, employee_id, target_date):
         if overlap<=0:
             continue
         found=True
-        row_plan=hours_value_to_minutes(row["planned_hours"] if row["planned_hours"] is not None else duration/60.0)
+        row_plan=hours_value_to_minutes(
+            row["planned_hours"] if row["planned_hours"] is not None else duration/60.0
+        )
+        # Compatibility repair for rows made by the old bulk personnel planner:
+        # it stored the raw 08:00-17:00 span as 9:00 and had no unpaid-break
+        # field.  Only its own default-note rows are normalized, and only when
+        # the fixed daily norm explains a plausible <=2h unpaid break.
+        row_keys=set(row.keys()) if hasattr(row,"keys") else set()
+        unpaid=int(row["unpaid_break_minutes"] or 0) if "unpaid_break_minutes" in row_keys else 0
+        note=str(row["notes"] or "").strip() if "notes" in row_keys else ""
+        if unpaid>0:
+            row_plan=max(0,int(round(duration))-unpaid)
+        elif note=="Місячний план персоналу" and abs(int(row_plan)-int(round(duration)))<=1:
+            try:
+                from work_regime import day_norm_minutes, REGIME_SUMMARIZED
+                norm,regime=day_norm_minutes(con,employee_id,date.fromisoformat(row["work_date"]))
+                gap=int(round(duration))-int(norm or 0)
+                if regime.regime_type!=REGIME_SUMMARIZED and int(norm or 0)>0 and 0<gap<=120:
+                    row_plan=int(norm)
+            except Exception:
+                pass
         planned += float(row_plan) * float(overlap) / float(duration)
         if row["actual_hours"] is None:
             actual_known=False
