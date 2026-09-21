@@ -11487,6 +11487,10 @@ class App(tk.Tk):
         ttk.Button(actions,text="Оновити",command=self.refresh_waybill_issue_list).pack(side="left",padx=3)
         ttk.Button(actions,text="Сформувати / видати PDF",command=self.issue_selected_waybill).pack(side="left",padx=3)
         ttk.Button(actions,text="Відкрити PDF",command=self.open_selected_waybill).pack(side="left",padx=3)
+        ttk.Button(
+            actions,text="Перегляд у Taxo",style="Accent.TButton",
+            command=self.preview_selected_waybill
+        ).pack(side="left",padx=3)
         ttk.Button(actions,text="Анулювати номер",command=self.void_selected_waybill).pack(side="left",padx=3)
         ttk.Button(actions,text="Папка шляхівок",command=lambda:open_external(WAYBILL_DIR)).pack(side="left",padx=3)
         ttk.Button(actions,text="Спідометр / пробіг",command=self.edit_waybill_odometer).pack(side="left",padx=3)
@@ -11791,16 +11795,37 @@ class App(tk.Tk):
             VALUES(?,?,?,?,?,?,?,?,?)""",(row["waybill_id"],"void",wb["document_series"],wb["document_number"],wb["internal_no"],wb["revision"],wb["pdf_path"],reason,now))
         con.commit(); con.close(); self.refresh_waybill_issue_list()
 
-    def open_selected_waybill(self):
+    def _selected_waybill_pdf_path(self):
         row=self._selected_waybill_data()
         if not row or not row.get("waybill_pdf"):
-            messagebox.showinfo("Шляхівка","Для вибраного запису PDF ще не сформовано.",parent=getattr(self,"waybill_win",self)); return
+            messagebox.showinfo(
+                "Шляхівка","Для вибраного запису PDF ще не сформовано.",
+                parent=getattr(self,"waybill_win",self)
+            )
+            return None
         path=real_data_path(row["waybill_pdf"])
-        if path is None:
-            messagebox.showerror("Шляхівка","Файл шляхівки не знайдено.",parent=self.waybill_win); return
-        if not path.exists():
-            messagebox.showerror("Шляхівка","Файл шляхівки не знайдено. Сформуйте його повторно.",parent=self.waybill_win); return
-        open_external(path)
+        if path is None or not path.exists():
+            messagebox.showerror(
+                "Шляхівка",
+                "Файл шляхівки не знайдено. Сформуйте його повторно.",
+                parent=getattr(self,"waybill_win",self)
+            )
+            return None
+        return path
+
+    def open_selected_waybill(self):
+        path=self._selected_waybill_pdf_path()
+        if path is not None:
+            open_external(path)
+
+    def preview_selected_waybill(self):
+        path=self._selected_waybill_pdf_path()
+        if path is not None:
+            open_document(
+                getattr(self,"waybill_win",self),
+                path,
+                external_opener=open_external
+            )
 
     def get_work_segments(self, worklog_id):
         if not worklog_id: return []
@@ -14048,6 +14073,10 @@ class App(tk.Tk):
         ttk.Button(open_bar,text="DOCX",command=lambda:self.open_att_file("docx")).pack(side="left",padx=3)
         ttk.Button(open_bar,text="PDF",command=lambda:self.open_att_file("pdf")).pack(side="left",padx=3)
         ttk.Button(open_bar,text="JPG",command=lambda:self.open_att_file("jpg")).pack(side="left",padx=3)
+        ttk.Button(
+            open_bar,text="Перегляд у Taxo",style="Accent.TButton",
+            command=self.preview_selected_attestation
+        ).pack(side="left",padx=(10,3))
         ttk.Button(open_bar,text="Папка файла",command=self.open_att_folder).pack(side="left",padx=3)
         ttk.Button(open_bar,text="Архів файлів",command=self.open_att_archive_folder).pack(side="left",padx=3)
 
@@ -15038,39 +15067,27 @@ class App(tk.Tk):
         con=db(); row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone(); con.close()
         return row
 
-    def _open_path(self, path, companion_path=None):
-        raw=(path or "").strip()
-        path=real_data_path(raw)
+    def _resolve_existing_path(self, raw, title="Документ"):
+        value=(raw or "").strip()
+        path=real_data_path(value)
         if path is None or not path.exists():
-            messagebox.showerror("Помилка","Файл не знайдено.",parent=self)
-            return
+            messagebox.showerror(title,"Файл не знайдено.",parent=self)
+            return None
+        return path
 
-        companion=None
-        if companion_path:
-            candidate=real_data_path((companion_path or "").strip())
-            if candidate is not None and candidate.exists():
-                companion=candidate
-
-        open_document(
-            self,
-            path,
-            external_opener=open_external,
-            companion_path=companion,
-        )
+    def _open_path(self, path):
+        resolved=self._resolve_existing_path(path)
+        if resolved is not None:
+            open_document(self,resolved,external_opener=open_external)
 
     def open_att_file(self, kind=None):
+        """Open the exact saved format in the OS-associated application."""
         row=self._selected_attestation_row()
         if row is None:
             messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
             return
-        companion=None
         if kind=="docx":
             path=row["file_path"]
-            companion=(
-                row["pdf_path"]
-                or row["jpg_page1_path"]
-                or row["jpg_page2_path"]
-            )
         elif kind=="pdf":
             path=row["pdf_path"]
         elif kind=="jpg":
@@ -15078,9 +15095,35 @@ class App(tk.Tk):
         else:
             path=row["pdf_path"] or row["file_path"] or row["jpg_page1_path"] or row["jpg_page2_path"]
         if not (path or "").strip():
-            messagebox.showinfo("Бланки",f"Для цього запису формат {str(kind or '').upper()} не створювався.",parent=self)
+            messagebox.showinfo(
+                "Бланки",
+                f"Для цього запису формат {str(kind or '').upper()} не створювався.",
+                parent=self
+            )
             return
-        self._open_path(path,companion_path=companion)
+        resolved=self._resolve_existing_path(path,"Бланки")
+        if resolved is not None:
+            open_external(resolved)
+
+    def preview_selected_attestation(self):
+        """Open the best visual representation in Taxo's internal viewer."""
+        row=self._selected_attestation_row()
+        if row is None:
+            messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
+            return
+        path=(
+            row["pdf_path"]
+            or row["jpg_page1_path"]
+            or row["jpg_page2_path"]
+            or row["file_path"]
+        )
+        if not (path or "").strip():
+            messagebox.showinfo(
+                "Бланки","Для цього запису немає збереженого файла.",
+                parent=self
+            )
+            return
+        self._open_path(path)
 
     def open_att_folder(self):
         row=self._selected_attestation_row()
