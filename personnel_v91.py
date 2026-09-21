@@ -1733,6 +1733,35 @@ def install(core, base_app):
                 "manual": True,
             }
         result = original_employee_day_time(con, employee_id, target_date)
+
+        # "План за режимом робочого часу" is a derived cache, not a historical
+        # manual decision.  If the employee's regime changes later, recalculate
+        # that row on read instead of keeping a stale 8:00/9:00 value forever.
+        if entry and str(entry["notes"] or "").strip()=="План за режимом робочого часу":
+            try:
+                norm,regime=day_norm_minutes(con,employee_id,target_date)
+                if regime.regime_type!=REGIME_SUMMARIZED:
+                    employee=con.execute(
+                        "SELECT driver_id FROM employees WHERE id=?",(employee_id,)
+                    ).fetchone()
+                    driver_id=employee["driver_id"] if employee else None
+                    driver_plan=core._driver_plan_minutes_for_day(
+                        con,driver_id,target_date
+                    )
+                    shift_plan,_shift_actual,_shift_found=core._employee_shift_minutes_for_day(
+                        con,employee_id,target_date
+                    )
+                    automatic=int(driver_plan or 0)+int(shift_plan or 0)
+                    result=dict(result)
+                    result["planned_minutes"]=automatic if automatic>0 else int(norm or 0)
+                    result["day_type"]="Робота" if result["planned_minutes"]>0 else "Вихідний"
+                    result["source"]=(
+                        "графік/зміна (після плану за режимом)"
+                        if automatic>0 else "режим робочого часу (перераховано)"
+                    )
+            except Exception:
+                pass
+
         if int(result.get("planned_minutes") or 0) <= 0:
             employee = con.execute(
                 "SELECT driver_id FROM employees WHERE id=?", (employee_id,)
