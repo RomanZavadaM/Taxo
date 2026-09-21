@@ -2983,7 +2983,7 @@ def _record_value(record, key, default=""):
 
 
 def driver_day_view(work_day, worklog=None, segments=None, day_type_override=None,
-                    suppress_plan=False):
+                    suppress_plan=False, use_fact=False):
     """Canonical state for one driver's day used by all driver-time views.
 
     Exact intervals are the source of truth when available. Their UNION, not
@@ -3075,6 +3075,38 @@ def driver_day_view(work_day, worklog=None, segments=None, day_type_override=Non
             _record_value(worklog, "overtime_hours", 0)
         )
 
+    # r2: official/factual views use a sparse override. Planning screens keep
+    # the original plan because use_fact defaults to False.
+    fact_applied=False
+    if (use_fact and not suppress_plan and worklog is not None
+            and _worklog_has_fact_override(worklog)):
+        fact_parts=_worklog_effective_work_intervals(worklog,segments)
+        if fact_parts:
+            fact_applied=True
+            work_minutes=sum(
+                max(0,int((b-a).total_seconds()//60))
+                for a,b in fact_parts
+            )
+            plan_schedule=schedule
+            bands=[band for band in bands if band[0]!="Робота"]
+            fact_labels=[]
+            for a,b in fact_parts:
+                start_txt=a.strftime("%H:%M")
+                end_txt=b.strftime("%H:%M")
+                bands.insert(0,("Робота",start_txt,end_txt))
+                fact_labels.append(f"{start_txt}-{end_txt}")
+            schedule="ФАКТ роб. " + " / ".join(fact_labels)
+            if plan_schedule:
+                schedule += f"; план: {plan_schedule}"
+            if len(fact_parts)>1:
+                gaps=[]
+                ordered=sorted(fact_parts,key=lambda x:x[0])
+                for left,right in zip(ordered,ordered[1:]):
+                    gap=max(0,int((right[0]-left[1]).total_seconds()//60))
+                    if gap:
+                        gaps.append(minutes_hhmm(gap))
+                breaks="; ".join(gaps) if gaps else breaks
+
     return {
         "day_type": day_type,
         "schedule": schedule,
@@ -3088,6 +3120,8 @@ def driver_day_view(work_day, worklog=None, segments=None, day_type_override=Non
         "driving_overlap_minutes":int(driving_overlap_minutes or 0),
         "suppressed_plan": bool(suppress_plan),
         "explicit_worklog": explicit,
+        "fact_applied": bool(fact_applied),
+        "fact_source": str(_record_value(worklog,"fact_source","") or "") if fact_applied else "",
     }
 
 
@@ -3746,7 +3780,7 @@ def _export_row_values(con, d, r, driver_id=None):
     state=driver_day_view(
         d,r,segs,
         day_type_override=override,
-        suppress_plan=bool(override),
+        suppress_plan=bool(override),\n        use_fact=True,
     )
     return {
         "date": d.strftime("%d.%m.%Y"),
@@ -5092,7 +5126,7 @@ def collect_monthly_work_balance(year, month, active_only=True):
             state=driver_day_view(
                 d,r,segs,
                 day_type_override=override,
-                suppress_plan=bool(override),
+                suppress_plan=bool(override),\n        use_fact=True,
             )
             cells.append(_work_balance_cell(state,d))
             total_work_min += state["work_minutes"]
@@ -5541,6 +5575,7 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
                 d,r,segs,
                 day_type_override=override,
                 suppress_plan=bool(override),
+                use_fact=True,
             )
             if override:
                 cell=SHIFT_DAY_CODES.get(str(override),str(override)[:4])
