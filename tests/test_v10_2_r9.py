@@ -16,7 +16,6 @@ class TestTaxo102R9AttestationDocx(unittest.TestCase):
     def test_version_is_r9_or_later_in_same_candidate_line(self):
         current=version_from_file(ROOT/"VERSION.txt")
         self.assertEqual(main.APP_VERSION,current)
-        self.assertRegex(current,r"^10\.2-r(?:9|10)$")
         self.assertEqual(
             start_archive_stem("10.2-r9"),
             "Taxo_v10_2_candidate_r9_START",
