@@ -6,8 +6,8 @@
 
 > **Stable:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) — актуальна експлуатаційна версія.  
 > **Previous stable / rollback:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0).  
-> **Verified candidate before stable:** [Taxo 10.1-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r5) — 157 tests / OK + ручний Windows gate.  
-> Лінія candidate 9.1 завершена після ручного operational gate на реальній Windows-базі.
+> **Current prerelease:** [Taxo 10.2-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r2) — документи транспортних засобів, звіт стану документів, внутрішній перегляд і нове резервування.  
+> **Stable:** 10.1 залишається основною експлуатаційною версією до окремого рішення про підвищення stable.
 
 [Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Setup_Windows_x64.exe) · [Windows Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Windows_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/SHA256SUMS_v10_1.txt)
 
@@ -29,7 +29,7 @@ Taxo — настільна система для одного автотран�
 
 - реєстр працівників і водіїв з ролями та історією;
 - реквізити підприємства, серії та номери документів;
-- транспортні засоби й історія пробігу;
+- транспортні засоби, історія пробігу та реєстр страховок/техконтролю/техпаспортів/протоколів тахографа;
 - маршрути з точними часовими сценаріями;
 - графік водіїв;
 - табель робочого часу з поділеними змінами, планом і фактом;
@@ -40,7 +40,8 @@ Taxo — настільна система для одного автотран�
 - шляхові листи з маршрутом, серією/номером, спідометром і пробігом;
 - бланки підтвердження діяльності DOCX/PDF/JPG з ревізіями й архівом;
 - модуль аналогових тахокарт: скани, інтервали, ручне підтвердження, протоколи;
-- резервні копії, журнали та переносиме робоче сховище.
+- вибіркові резервні копії та повна копія/перенесення робочого сховища;
+- внутрішній перегляд PDF/зображень і окрема дія «Перегляд у Taxo».
 
 Повний опис: [Огляд системи та функціоналу](docs/SYSTEM_OVERVIEW.md).
 
@@ -60,6 +61,8 @@ Taxo — настільна система для одного автотран�
 Taxo 10.1 формує окремий документ за 60 календарних днів. Кожна доба розкладається до 24:00 на керування, іншу роботу, готовність, перерви, відпочинок, підтверджену відсутність і невизначений час. Якщо джерел недостатньо, система явно показує **«Невизначено»**, а не домальовує відпочинок.
 
 ## Завантаження
+
+Для перевірки нових функцій доступний [Taxo 10.2-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r2) як prerelease з Windows x64 Setup/Portable, macOS ARM64/Intel та START/source. Назви пакетів і внутрішніх папок містять лише зрозумілу версію/ревізію, без commit-хешів.
 
 У [стабільному релізі Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) опубліковані Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v10_1_START.zip` і SHA-256 manifests. Робочі бази та персональні дані до релізів **не входять**.
 
