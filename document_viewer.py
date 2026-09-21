@@ -42,10 +42,54 @@ def system_open(path):
         subprocess.Popen(["xdg-open", target])
 
 
+def _windows_print_raster(path):
+    import win32con
+    import win32print
+    import win32ui
+    from PIL import ImageWin
+
+    target = Path(path)
+    printer_name = win32print.GetDefaultPrinter()
+    dc = win32ui.CreateDC()
+    dc.CreatePrinterDC(printer_name)
+    printable_w = dc.GetDeviceCaps(win32con.HORZRES)
+    printable_h = dc.GetDeviceCaps(win32con.VERTRES)
+
+    def draw_image(image):
+        image = image.convert("RGB")
+        scale = min(printable_w / image.width, printable_h / image.height)
+        width = max(1, int(image.width * scale))
+        height = max(1, int(image.height * scale))
+        left = max(0, (printable_w - width) // 2)
+        top = max(0, (printable_h - height) // 2)
+        dib = ImageWin.Dib(image)
+        dc.StartPage()
+        dib.draw(dc.GetHandleOutput(), (left, top, left + width, top + height))
+        dc.EndPage()
+
+    dc.StartDoc(target.name)
+    try:
+        if document_kind(target) == "pdf":
+            pdf = fitz.open(str(target))
+            try:
+                for page in pdf:
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False)
+                    image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+                    draw_image(image)
+            finally:
+                pdf.close()
+        else:
+            with Image.open(target) as image:
+                draw_image(image.copy())
+    finally:
+        dc.EndDoc()
+        dc.DeleteDC()
+
+
 def system_print(path):
     target = str(Path(path))
     if os.name == "nt":
-        os.startfile(target, "print")
+        _windows_print_raster(target)
     else:
         subprocess.Popen(["lp", target])
 
