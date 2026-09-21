@@ -1,56 +1,28 @@
 # Taxo — поточна контрольна точка
 
-**Stable:** Taxo 10.0 · 19.09.2026  
-**Stable tag:** `v10.0`  
-**Stable target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`  
-**Previous candidates:** `v10.1-r1`, `v10.1-r2`, `v10.1-r3`, `v10.1-r4`  
-**Current test checkpoint:** Taxo 10.1-r5 · 20.09.2026  
-**Candidate tag:** `v10.1-r5`  
+**Stable promotion:** Taxo 10.1 · 21.09.2026  
+**Previous stable / rollback:** Taxo 10.0  
+**Verified candidate:** `v10.1-r5`  
 **Candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
-**Work branch:** `work/v10.1-driver-role-ui-refresh`
+**Work branch:** `work/v10.1-driver-role-ui-refresh`  
+**PR:** #34
 
-## Статус
+## Gate
 
-10.1-r5 — **candidate / navigation-loop fix checkpoint**, не stable. Stable 10.0 лишається експлуатаційною версією.
+Manual Windows gate — **accepted**.
 
-## Виправлено після r4
+Candidate automation:
+- source/START — **157 tests / OK**;
+- Windows — **157 tests / OK** + START preflight;
+- macOS ARM64 — **157 tests / OK**;
+- macOS Intel x86_64 — **157 tests / OK**.
 
-- головний пункт «Звіти» більше не відкриває нову повну копію branded application shell;
-- «Звіти» відкриває внутрішню сторінку звітів у головному workspace;
-- «Працівники» після звітів гарантовано повертає у реєстр працівників;
-- активний sidebar синхронізується з прихованими сторінками персоналу;
-- детальний табель персоналу має single-instance guard;
-- повторне відкриття детального табеля піднімає існуюче вікно;
-- з детального табеля прибрано дубльований sidebar;
-- схема БД не змінювалася.
+## Stable promotion
 
-## Regression gate
-
-- START/source publisher: **157 tests / OK**;
-- START source package: **success**;
-- Windows workflow: **157 tests / OK** + START preflight OK;
-- macOS ARM64: **157 tests / OK**;
-- macOS Intel x86_64: **157 tests / OK**;
-- GitHub prerelease `v10.1-r5`: **published**;
-- release target: `146d00916cb953efbcf7d3b167b7f5547d67f0b0`.
-
-## Ручний gate
-
-Перевірити на Windows:
-1. «Звіти → Працівники → Звіти» — усе лишається в одному головному вікні.
-2. «Табель персоналу» при повторному натисканні не створює другого вікна.
-3. PDF / Excel / П-5 / «Папка звітів» залишаються доступними.
-4. Немає дубльованого повного sidebar у детальному табелі.
+Версію переведено з `10.1-r5` у `10.1`. Перед merge PR проходить повторний CI зі stable metadata. Після green PR #34 зливається у `main`, де `Publish Taxo 10.1 stable` збирає та публікує всі офіційні пакети.
 
 ## Політика
 
-- `main` = stable 10.0 до ручного gate;
-- `v10.0` = immutable stable;
-- `v10.1-r1` … `v10.1-r5` = immutable candidates;
-- merge у `main` — тільки після явного підтвердження користувача;
-- старі tags/releases не пересуваються.
-
-Деталі:
-- [Audit 10.1-r5](AUDIT_v10_1_r5.md)
-- [Release notes 10.1-r5](../releases/RELEASE_NOTES_v10_1_r5.md)
-- [Stable audit 10.0](AUDIT_v10_0_STABLE.md)
+- `v10.0` та `v10.1-r1` … `v10.1-r5` — immutable;
+- `v10.1` створюється тільки stable publisher з merge commit у `main`;
+- БД/скани/персональні файли у release не входять.
