@@ -586,27 +586,208 @@ def db():
     return con
 
 
-def finish_driver_role(con, employee_id, driver_id, end_date):
-    """Завершити лише роль водія, не видаляючи працівника чи історію."""
+def _driver_role_mode(driver):
+    try:
+        keys=set(driver.keys())
+    except Exception:
+        keys=set()
+    value=(driver["driver_role_mode"] if "driver_role_mode" in keys else "legacy") or "legacy"
+    value=str(value).strip().lower()
+    return value if value in {"legacy","explicit","invalid"} else "legacy"
+
+
+def _role_period_table_exists(con):
+    try:
+        return con.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='driver_role_periods'"
+        ).fetchone() is not None
+    except Exception:
+        return False
+
+
+def _driver_role_start_from_legacy(driver, fallback=""):
+    try:
+        value=(driver["employment_date"] or "").strip()
+    except Exception:
+        value=""
+    return value or str(fallback or "")
+
+
+def driver_role_active_on(con, driver_id, target_date):
+    """Whether the driver role is valid on one calendar date.
+
+    Old databases remain readable through the legacy employment/end-date model.
+    Once a role is explicitly edited, dated role periods become authoritative.
+    The special 'invalid' mode means the old driver identity was only a legacy
+    artefact and must never feed personnel-time calculations.
+    """
+    if not driver_id:
+        return False
+    if isinstance(target_date,str):
+        target_date=date.fromisoformat(target_date)
+    driver=con.execute("SELECT * FROM drivers WHERE id=?",(int(driver_id),)).fetchone()
+    if driver is None:
+        return False
+    mode=_driver_role_mode(driver)
+    if mode=="invalid":
+        return False
+
+    if mode=="explicit" and _role_period_table_exists(con):
+        row=con.execute(
+            """SELECT 1 FROM driver_role_periods
+                 WHERE driver_id=? AND COALESCE(voided,0)=0
+                   AND (COALESCE(start_date,'')='' OR start_date<=?)
+                   AND (COALESCE(end_date,'')='' OR end_date>=?)
+                 LIMIT 1""",
+            (int(driver_id),target_date.isoformat(),target_date.isoformat()),
+        ).fetchone()
+        return row is not None
+
+    start=_driver_role_start_from_legacy(driver)
+    if start:
+        try:
+            if target_date < date.fromisoformat(start):
+                return False
+        except ValueError:
+            pass
+    try:
+        end=(driver["driver_end_date"] or "").strip()
+    except Exception:
+        end=""
+    if end:
+        try:
+            return target_date <= date.fromisoformat(end)
+        except ValueError:
+            return False
+    return bool(driver["active"])
+
+
+def activate_driver_role(con, employee_id, driver_id, start_date):
+    """Start/restart a real driver role without reviving old false history."""
+    start_date=str(start_date or "").strip()
+    if not start_date:
+        raise ValueError("Потрібна дата початку ролі водія.")
+    date.fromisoformat(start_date)
+    now=datetime.now().isoformat(timespec="seconds")
+    if _role_period_table_exists(con):
+        open_row=con.execute(
+            """SELECT id FROM driver_role_periods
+                 WHERE driver_id=? AND COALESCE(voided,0)=0
+                   AND COALESCE(end_date,'')=''
+                 ORDER BY id DESC LIMIT 1""",
+            (int(driver_id),),
+        ).fetchone()
+        if not open_row:
+            con.execute(
+                """INSERT INTO driver_role_periods(
+                       employee_id,driver_id,start_date,end_date,source,voided,notes,created_at
+                   ) VALUES(?,?,?,'','manual',0,'',?)""",
+                (int(employee_id),int(driver_id),start_date,now),
+            )
+    cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+    if "driver_role_mode" in cols:
+        con.execute(
+            "UPDATE drivers SET active=1,driver_end_date='',driver_role_mode='explicit' WHERE id=?",
+            (int(driver_id),),
+        )
+    else:
+        con.execute(
+            "UPDATE drivers SET active=1,driver_end_date='' WHERE id=?",
+            (int(driver_id),),
+        )
     con.execute(
-        "UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",
-        (end_date,driver_id),
+        "INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,'Водій')",
+        (int(employee_id),),
     )
+
+
+def finish_driver_role(con, employee_id, driver_id, end_date):
+    """Finish a real driver role while retaining dated history."""
+    end_date=str(end_date or "").strip()
+    if not end_date:
+        raise ValueError("Потрібна дата завершення ролі водія.")
+    date.fromisoformat(end_date)
+    driver=con.execute("SELECT * FROM drivers WHERE id=?",(int(driver_id),)).fetchone()
+    if driver is None:
+        return
+    now=datetime.now().isoformat(timespec="seconds")
+    if _role_period_table_exists(con):
+        row=con.execute(
+            """SELECT id,start_date FROM driver_role_periods
+                 WHERE driver_id=? AND COALESCE(voided,0)=0
+                   AND COALESCE(end_date,'')=''
+                 ORDER BY id DESC LIMIT 1""",
+            (int(driver_id),),
+        ).fetchone()
+        if row:
+            start=(row["start_date"] or "").strip()
+            if start and end_date < start:
+                raise ValueError("Дата завершення ролі раніше дати її початку.")
+            con.execute(
+                "UPDATE driver_role_periods SET end_date=? WHERE id=?",
+                (end_date,row["id"]),
+            )
+        else:
+            start=_driver_role_start_from_legacy(driver,end_date)
+            if start and end_date < start:
+                start=end_date
+            con.execute(
+                """INSERT INTO driver_role_periods(
+                       employee_id,driver_id,start_date,end_date,source,voided,notes,created_at
+                   ) VALUES(?,?,?,?,'legacy-close',0,'',?)""",
+                (int(employee_id),int(driver_id),start,end_date,now),
+            )
+    cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+    if "driver_role_mode" in cols:
+        con.execute(
+            "UPDATE drivers SET active=0,driver_end_date=?,driver_role_mode='explicit' WHERE id=?",
+            (end_date,int(driver_id)),
+        )
+    else:
+        con.execute(
+            "UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",
+            (end_date,int(driver_id)),
+        )
     con.execute(
         "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
-        (employee_id,),
+        (int(employee_id),),
+    )
+
+
+def void_legacy_driver_role(con, employee_id, driver_id):
+    """Mark the old forced 'driver' identity as historically invalid.
+
+    The driver/worklog rows are not deleted; they remain available for forensic
+    inspection, but they stop participating in driver-role and personnel-time
+    calculations.
+    """
+    if _role_period_table_exists(con):
+        con.execute(
+            "UPDATE driver_role_periods SET voided=1 WHERE driver_id=?",
+            (int(driver_id),),
+        )
+    cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
+    if "driver_role_mode" in cols:
+        con.execute(
+            "UPDATE drivers SET active=0,driver_end_date='',driver_role_mode='invalid' WHERE id=?",
+            (int(driver_id),),
+        )
+    else:
+        con.execute(
+            "UPDATE drivers SET active=0,driver_end_date='' WHERE id=?",
+            (int(driver_id),),
+        )
+    con.execute(
+        "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
+        (int(employee_id),),
     )
 
 
 def sync_legacy_driver_employee(con, dr):
-    """Synchronize legacy driver identity without mixing employment and role state.
-
-    drivers.active means only that the current driver role is active.
-    employees.active means that the person is employed.  Existing personnel
-    status is authoritative and must never be overwritten from drivers.active.
-    """
+    """Synchronize legacy driver identity without mixing employment and role state."""
     driver_end=(dr["driver_end_date"] or "").strip() if "driver_end_date" in dr.keys() else ""
-    driver_active=bool(dr["active"]) and not bool(driver_end)
+    mode=_driver_role_mode(dr)
+    driver_active=bool(dr["active"]) and not bool(driver_end) and mode!="invalid"
     employee=con.execute(
         "SELECT id,active,dismissal_date FROM employees WHERE driver_id=?",
         (dr["id"],),
@@ -621,14 +802,11 @@ def sync_legacy_driver_employee(con, dr):
                 dr["employment_date"] or "",dr["notes"] or "",eid,
             ),
         )
-        # Repair the exact legacy corruption produced by old startup sync:
-        # role was ended (driver_end_date exists), dismissal was never recorded,
-        # but employees.active was copied from drivers.active and became 0.
         if driver_end and not (employee["dismissal_date"] or "").strip() and not bool(employee["active"]):
             con.execute("UPDATE employees SET active=1 WHERE id=?",(eid,))
     else:
-        # A stored driver role end date is not an employee dismissal date.
-        employee_active=1 if driver_end else int(bool(dr["active"]))
+        # Ending/correcting a role is not dismissal from the enterprise.
+        employee_active=1 if driver_end or mode=="invalid" else int(bool(dr["active"]))
         cur=con.execute(
             """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
                    employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
@@ -651,7 +829,6 @@ def sync_legacy_driver_employee(con, dr):
             (eid,),
         )
     return eid
-
 
 def get_setting(key, default=""):
     try:
