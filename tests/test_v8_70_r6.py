@@ -96,7 +96,7 @@ class V870R6Tests(unittest.TestCase):
                 "waybill_no":"000128","date":"15.09.2026","work_date":"2026-09-15",
                 "odometer_start":120000,"odometer_end":120275,"distance_km":275,
             })
-            doc=fitz.open(target)
+            doc=PdfReader(target)
             text="\n".join(page.get_text() for page in doc)
             self.assertIn("поч. 120000 км",text)
             self.assertIn("кін. 120275 км",text)
