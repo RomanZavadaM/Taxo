@@ -9237,6 +9237,74 @@ class App(tk.Tk):
             lines.extend(["","Дні за видами:"]+[f"  {key}: {value}" for key,value in sorted(types.items())])
             text.insert("1.0","\n".join(lines)); text.configure(state="disabled")
 
+        def show_timesheet_audit():
+            start,_days=selected_month()
+            if not start:
+                return
+            try:
+                from personnel_v91 import collect_personnel_timesheet_audit
+                audit=collect_personnel_timesheet_audit(
+                    __import__("main"),start.year,start.month,active_only=False
+                )
+            except Exception as exc:
+                messagebox.showerror("Аудит табеля",str(exc),parent=win)
+                return
+            dialog=tk.Toplevel(win)
+            dialog.title("Аудит табеля робочого часу")
+            fit_window_to_screen(dialog,1180,680,820,500)
+            configure_toplevel(dialog)
+            top=ttk.Frame(dialog,padding=10); top.pack(fill="x")
+            ttk.Label(
+                top,
+                text=(
+                    f"Помилки: {audit['errors']}   "
+                    f"Попередження: {audit['warnings']}   "
+                    f"Інформаційні: {audit['info']}"
+                ),
+                font=("TkDefaultFont",10,"bold"),
+            ).pack(side="left")
+            ttk.Label(
+                top,
+                text="Аудит нічого не змінює — лише звіряє джерела часу.",
+                foreground=PALETTE["muted"],
+            ).pack(side="right")
+            frame=ttk.Frame(dialog,padding=(10,0,10,10))
+            frame.pack(fill="both",expand=True)
+            frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
+            cols=("severity","date","personnel","name","code","message")
+            tree=ttk.Treeview(frame,columns=cols,show="headings")
+            for key,label,width in (
+                ("severity","Рівень",100),("date","Дата",95),("personnel","Таб. №",90),
+                ("name","Працівник",230),("code","Перевірка",155),("message","Що виявлено",490)
+            ):
+                tree.heading(key,text=label)
+                tree.column(key,width=width,anchor="w")
+            tree.tag_configure("error",background=PALETTE["danger_soft"])
+            tree.tag_configure("warning",background=PALETTE["warning_soft"])
+            tree.tag_configure("info",background=PALETTE["info_soft"])
+            for item in audit["issues"]:
+                level={"error":"ПОМИЛКА","warning":"УВАГА","info":"ІНФО"}.get(
+                    item["severity"],item["severity"]
+                )
+                tree.insert(
+                    "","end",
+                    values=(
+                        level,item["date"].strftime("%d.%m.%Y"),
+                        item["personnel_no"],item["name"],item["code"],item["message"]
+                    ),
+                    tags=(item["severity"],),
+                )
+            sy=ttk.Scrollbar(frame,orient="vertical",command=tree.yview)
+            sx=ttk.Scrollbar(frame,orient="horizontal",command=tree.xview)
+            tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
+            tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns")
+            sx.grid(row=1,column=0,sticky="ew")
+            if not audit["issues"]:
+                ttk.Label(
+                    dialog,text="За автоматичними перевірками суперечностей не знайдено.",
+                    foreground=PALETTE["success"],padding=(10,0,10,10)
+                ).pack(anchor="w")
+
         def show_personnel_balance():
             start,_days=selected_month()
             if not start: return
@@ -9343,6 +9411,9 @@ class App(tk.Tk):
         ).pack(side="left",padx=4)
         ttk.Button(
             toolbar_actions,text="Підсумки / контроль",command=show_selected_control
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar_actions,text="Аудит табеля…",command=show_timesheet_audit
         ).pack(side="left",padx=4)
 
         ttk.Label(
