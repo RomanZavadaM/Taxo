@@ -103,6 +103,23 @@ def ensure_vehicle_documents_schema(con):
     )
 
 
+def archive_current_document_slot(con, vehicle_id, doc_type, keep_id=None, now=None):
+    """Archive the previous current document(s) for the same logical slot."""
+    competing_types = REGISTRATION_TYPES if doc_type in REGISTRATION_TYPES else (doc_type,)
+    placeholders = ",".join("?" for _ in competing_types)
+    stamp = now or datetime.now().isoformat(timespec="seconds")
+    params = [stamp, int(vehicle_id), *competing_types]
+    sql = (
+        "UPDATE vehicle_documents SET archived=1,updated_at=? "
+        "WHERE vehicle_id=? AND COALESCE(archived,0)=0 "
+        f"AND doc_type IN ({placeholders})"
+    )
+    if keep_id is not None:
+        sql += " AND id<>?"
+        params.append(int(keep_id))
+    con.execute(sql, params)
+
+
 def latest_documents(con, vehicle_id):
     rows = con.execute(
         """
@@ -481,18 +498,13 @@ class VehicleDocumentsWindow:
                 )
                 # One current record per logical document slot. A renewal does
                 # not overwrite history: the previous record is archived with its copy.
-                competing_types = REGISTRATION_TYPES if dtype in REGISTRATION_TYPES else (dtype,)
-                placeholders = ",".join("?" for _ in competing_types)
-                params = [now, self.vehicle["id"], *competing_types]
-                sql = (
-                    "UPDATE vehicle_documents SET archived=1,updated_at=? "
-                    "WHERE vehicle_id=? AND COALESCE(archived,0)=0 "
-                    f"AND doc_type IN ({placeholders})"
+                archive_current_document_slot(
+                    con,
+                    self.vehicle["id"],
+                    dtype,
+                    keep_id=(row["id"] if row is not None else None),
+                    now=now,
                 )
-                if row is not None:
-                    sql += " AND id<>?"
-                    params.append(row["id"])
-                con.execute(sql, params)
 
                 if row is None:
                     con.execute(
