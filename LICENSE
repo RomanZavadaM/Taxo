@@ -1,0 +1,49 @@
+TAXO PROPRIETARY SOURCE LICENSE
+Version 1.0 — 21 September 2026
+
+Copyright (c) 2026 Roman Zavada (Роман Завада).
+All rights reserved.
+
+1. Ownership
+Taxo / Driver Worktime, including its original source code, application logic,
+documentation, project-specific branding and project-specific materials, is a
+personal proprietary software product of Roman Zavada, except for third-party
+components and materials identified separately.
+
+2. No open-source grant
+This repository is publicly viewable, but Taxo is not distributed under an
+open-source license. Public access to the source code does not grant a general
+license to copy, modify, distribute, sublicense, sell, rebrand, or create and
+distribute derivative products.
+
+3. GitHub platform rights
+Nothing in this license restricts rights that must be granted to GitHub or
+GitHub users by the applicable GitHub Terms of Service for operation of public
+repositories and platform features such as viewing and forking.
+
+4. Authorized use
+Use, deployment, copying, modification, distribution, resale, sublicensing, or
+commercial exploitation of Taxo outside rights necessarily provided by the
+hosting platform requires prior written permission from Roman Zavada or a
+separate written license agreement issued by him.
+
+5. Customer and operational data
+This license does not claim ownership of operational, personnel, vehicle,
+tachograph, document, or other data entered into or created from a customer's
+own information. Rights in such data remain with the relevant lawful rights
+holder as applicable.
+
+6. Third-party software and materials
+Third-party libraries, runtimes, tools, formats, templates, and other components
+remain subject to their own licenses and are not relicensed under this Taxo
+license. See THIRD_PARTY_NOTICES.md and the release SBOM.
+
+7. Branding
+No right to use the Taxo name, product identity, logos, or other branding for a
+different product or service is granted by this license.
+
+8. Disclaimer
+To the maximum extent permitted by applicable law, the software is provided
+without warranties not expressly stated in a separate written agreement.
+Nothing in this license excludes rights or liabilities that cannot lawfully be
+excluded.
