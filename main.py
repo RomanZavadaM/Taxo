@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r8"
+APP_VERSION = "10.2-r9"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -3268,6 +3268,55 @@ def _att_set_checkbox(paragraph, number, checked, text, size=12):
     )
 
 
+def _att_find_paragraph(paragraphs, *prefixes):
+    """Знаходить рядок офіційного DOCX-бланка за текстовим маркером.
+
+    Не покладаємося на номер абзацу: Word/LibreOffice можуть змінити кількість
+    службових/порожніх paragraph nodes навіть без видимої зміни макета.
+    """
+    wanted=tuple(" ".join(str(p or "").split()) for p in prefixes if p)
+    for paragraph in paragraphs:
+        text=" ".join((paragraph.text or "").split())
+        if any(text.startswith(prefix) for prefix in wanted):
+            return paragraph
+    raise RuntimeError(
+        "Шаблон бланка змінено: не знайдено рядок " + " / ".join(wanted)
+    )
+
+
+def _attestation_docx_text(doc):
+    """Повний видимий текст DOCX, включно з таблицями."""
+    chunks=[]
+    for paragraph in doc.paragraphs:
+        if paragraph.text:
+            chunks.append(paragraph.text)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    if paragraph.text:
+                        chunks.append(paragraph.text)
+    return "\n".join(chunks)
+
+
+def _validate_attestation_docx(path, period_from, period_to, form_date):
+    """Після збереження перевіряє, що DOCX містить саме передані дати."""
+    from docx import Document
+    doc=Document(str(path))
+    text=_attestation_docx_text(doc)
+    required=[
+        str(period_from or "").strip(),
+        str(period_to or "").strip(),
+        fmt_date(form_date),
+    ]
+    missing=[value for value in required if value and value not in text]
+    if missing:
+        raise RuntimeError(
+            "DOCX створено некоректно: у файлі відсутні актуальні значення: "
+            + ", ".join(missing)
+        )
+
+
 def fill_attestation(driver, period_from, period_to, activity_no, place, form_date, out_path):
     """Заповнює чинний Додаток 3 до Положення №340.
 
@@ -3391,16 +3440,15 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
             (license_issue_date, True),
         ])
 
-    # 12-13.
-    if len(up) > 20:
-        _att_set_runs(up[19], [
-            ("12. з (година/день/місяць/рік): ", False),
-            (period_from, True),
-        ])
-        _att_set_runs(up[20], [
-            ("13. по (година/день/місяць/рік): ", False),
-            (period_to, True),
-        ])
+    # 12-13. r9: шукаємо за змістом, а не крихким номером абзацу.
+    _att_set_runs(_att_find_paragraph(up, "12. з ", "12. з("), [
+        ("12. з (година/день/місяць/рік): ", False),
+        (period_from, True),
+    ])
+    _att_set_runs(_att_find_paragraph(up, "13. по ", "13. по("), [
+        ("13. по (година/день/місяць/рік): ", False),
+        (period_to, True),
+    ])
 
     # 14-19 — одна позиція.
     if len(up) > 27:
@@ -3415,14 +3463,14 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
         _att_set_checkbox(up[26],18,activity_no==18,"виконував іншу роботу;")
         _att_set_checkbox(up[27],19,activity_no==19,"був готовий і доступний для виконання професійних обов’язків;")
 
-    # 20.
+    # 20. r9: так само прив'язуємося до тексту рядка, не до індексу.
+    _att_set_runs(_att_find_paragraph(up, "20. Місце ", "20.Місце "), [
+        ("20. Місце ", False),
+        (director_place, True),
+        ("    Дата ", False),
+        (form_date_fmt, True),
+    ])
     if len(up) > 29:
-        _att_set_runs(up[28], [
-            ("20. Місце ", False),
-            (director_place, True),
-            ("    Дата ", False),
-            (form_date_fmt, True),
-        ])
         _att_set_text(up[29], "Підпис ______________________________")
 
     # ----------------------- ЗВОРОТНИЙ БІК -----------------------
@@ -3470,15 +3518,14 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
             (employment, True),
         ])
 
-    if len(ep) > 21:
-        _att_set_runs(ep[20], [
-            ("12. from (hour/day/month/year): ", False),
-            (period_from, True),
-        ])
-        _att_set_runs(ep[21], [
-            ("13. to (hour/day/month/year): ", False),
-            (period_to, True),
-        ])
+    _att_set_runs(_att_find_paragraph(ep, "12. from ", "12.from "), [
+        ("12. from (hour/day/month/year): ", False),
+        (period_from, True),
+    ])
+    _att_set_runs(_att_find_paragraph(ep, "13. to ", "13.to "), [
+        ("13. to (hour/day/month/year): ", False),
+        (period_to, True),
+    ])
 
     if len(ep) > 30:
         _att_set_checkbox(ep[22],14,activity_no==14,"was on sick leave;")
@@ -3491,7 +3538,7 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
         # ep[26] — офіційне продовження п.17.
         _att_set_checkbox(ep[27],18,activity_no==18,"performed other work than driving;")
         _att_set_checkbox(ep[28],19,activity_no==19,"was available;")
-        _att_set_runs(ep[29], [
+        _att_set_runs(_att_find_paragraph(ep, "20. Place ", "20.Place "), [
             ("20. Place ", False),
             (director_place_en, True),
             ("    Date ", False),
@@ -3520,6 +3567,7 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
             ])
 
     doc.save(str(out_path))
+    _validate_attestation_docx(out_path,period_from,period_to,form_date)
 
 
 def _attestation_render_context(driver, period_from, period_to, activity_no, place, form_date):
