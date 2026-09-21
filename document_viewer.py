@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Вбудований переглядач документів Taxo."""
+"""Document viewing helpers for Taxo.
+
+r9: PDF files are intentionally delegated to the operating system/default
+browser or PDF application. Taxo keeps internal preview only for raster images
+and a simplified text/table preview for DOCX. This removes the PyMuPDF/AGPL
+runtime dependency from the application.
+"""
 from __future__ import annotations
 
 import os
@@ -10,7 +16,6 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-import fitz
 from PIL import Image, ImageTk
 from docx import Document
 
@@ -69,18 +74,8 @@ def _windows_print_raster(path):
 
     dc.StartDoc(target.name)
     try:
-        if document_kind(target) == "pdf":
-            pdf = fitz.open(str(target))
-            try:
-                for page in pdf:
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False)
-                    image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-                    draw_image(image)
-            finally:
-                pdf.close()
-        else:
-            with Image.open(target) as image:
-                draw_image(image.copy())
+        with Image.open(target) as image:
+            draw_image(image.copy())
     finally:
         dc.EndDoc()
         dc.DeleteDC()
@@ -88,14 +83,19 @@ def _windows_print_raster(path):
 
 def system_print(path):
     target = str(Path(path))
+    kind = document_kind(target)
     if os.name == "nt":
-        _windows_print_raster(target)
+        if kind == "image":
+            _windows_print_raster(target)
+        else:
+            # Let the associated application/browser handle PDF/DOCX printing.
+            os.startfile(target, "print")
     else:
         subprocess.Popen(["lp", target])
 
 
 def docx_preview_text(path):
-    """Змістовний preview DOCX; не точне відтворення сторінки Word."""
+    """Content preview for DOCX; not an exact Word page rendering."""
     doc = Document(str(path))
     chunks = []
     for paragraph in doc.paragraphs:
@@ -154,17 +154,15 @@ def _print(parent, path):
 
 
 class RasterDocumentWindow:
+    """Internal image preview. PDF is deliberately not rendered here."""
+
     def __init__(self, parent, path, external_opener=None):
         self.path = Path(path)
         self.external_opener = external_opener
-        self.kind = document_kind(self.path)
-        self.page_index = 0
         self.zoom = 1.15
         self.fit_width = True
         self.photo = None
-        self.pdf = fitz.open(str(self.path)) if self.kind == "pdf" else None
-        self.page_count = len(self.pdf) if self.pdf is not None else 1
-        self.image = None if self.kind == "pdf" else Image.open(self.path)
+        self.image = Image.open(self.path)
 
         self.win = tk.Toplevel(parent)
         self.win.title(f"Taxo — перегляд: {self.path.name}")
@@ -179,12 +177,6 @@ class RasterDocumentWindow:
 
         toolbar = ttk.Frame(self.win, padding=(8, 7))
         toolbar.pack(fill="x")
-        self.prev_button = ttk.Button(toolbar, text="◀", width=4, command=self.prev_page)
-        self.prev_button.pack(side="left")
-        self.next_button = ttk.Button(toolbar, text="▶", width=4, command=self.next_page)
-        self.next_button.pack(side="left", padx=(4, 8))
-        self.page_var = tk.StringVar()
-        ttk.Label(toolbar, textvariable=self.page_var, width=18).pack(side="left")
         ttk.Button(toolbar, text="−", width=4, command=lambda: self.change_zoom(-0.15)).pack(side="left")
         ttk.Button(toolbar, text="+", width=4, command=lambda: self.change_zoom(0.15)).pack(side="left", padx=(4, 4))
         ttk.Button(toolbar, text="По ширині", command=self.set_fit_width).pack(side="left", padx=(4, 12))
@@ -215,16 +207,11 @@ class RasterDocumentWindow:
         body.rowconfigure(0, weight=1)
         body.columnconfigure(0, weight=1)
         self.canvas.bind("<Configure>", self._on_resize)
-        self.win.bind("<Left>", lambda _e: self.prev_page())
-        self.win.bind("<Right>", lambda _e: self.next_page())
         self.render()
 
     def close(self):
         try:
-            if self.pdf is not None:
-                self.pdf.close()
-            if self.image is not None:
-                self.image.close()
+            self.image.close()
         finally:
             self.win.destroy()
 
@@ -232,56 +219,26 @@ class RasterDocumentWindow:
         if self.fit_width:
             self.win.after_idle(self.render)
 
-    def _source_size(self):
-        if self.kind == "pdf":
-            rect = self.pdf[self.page_index].rect
-            return float(rect.width), float(rect.height)
-        return float(self.image.width), float(self.image.height)
-
     def _effective_zoom(self):
         if not self.fit_width:
             return self.zoom
-        source_width, _ = self._source_size()
         canvas_width = max(220, self.canvas.winfo_width() - 36)
-        return max(0.2, min(4.0, canvas_width / source_width))
+        return max(0.2, min(4.0, canvas_width / float(self.image.width)))
 
     def render(self):
         scale = self._effective_zoom()
-        if self.kind == "pdf":
-            page = self.pdf[self.page_index]
-            pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
-            image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-        else:
-            size = (
-                max(1, int(self.image.width * scale)),
-                max(1, int(self.image.height * scale)),
-            )
-            image = self.image.resize(size, Image.Resampling.LANCZOS)
+        size = (
+            max(1, int(self.image.width * scale)),
+            max(1, int(self.image.height * scale)),
+        )
+        image = self.image.resize(size, Image.Resampling.LANCZOS)
         self.photo = ImageTk.PhotoImage(image)
         self.canvas.delete("all")
         self.canvas.create_image(18, 18, image=self.photo, anchor="nw")
         self.canvas.configure(
             scrollregion=(0, 0, self.photo.width() + 36, self.photo.height() + 36)
         )
-        self.page_var.set(
-            f"Сторінка {self.page_index + 1} / {self.page_count}"
-            if self.kind == "pdf" else "Зображення"
-        )
         self.zoom_var.set(f"{int(scale * 100)}%")
-        self.prev_button.configure(state=("normal" if self.page_index > 0 else "disabled"))
-        self.next_button.configure(
-            state=("normal" if self.page_index + 1 < self.page_count else "disabled")
-        )
-
-    def prev_page(self):
-        if self.page_index > 0:
-            self.page_index -= 1
-            self.render()
-
-    def next_page(self):
-        if self.page_index + 1 < self.page_count:
-            self.page_index += 1
-            self.render()
 
     def change_zoom(self, delta):
         self.fit_width = False
@@ -312,7 +269,8 @@ class DocxDocumentWindow:
         ttk.Label(
             toolbar,
             text=(
-                "Спрощений перегляд DOCX. Для точного макета використовуйте PDF/JPG, якщо вони збережені."
+                "Спрощений перегляд DOCX. Для точного макета відкрийте оригінал "
+                "у Word/LibreOffice або використовуйте створений PDF."
             ),
             foreground="#7A4E00",
         ).pack(side="left")
@@ -348,14 +306,16 @@ def open_document(parent, path, external_opener=None):
     target = Path(path)
     opener = external_opener or system_open
     # Non-GUI callers/tests and early-startup contexts must never crash while
-    # trying to construct a Toplevel without a valid Tk parent. Delegate to the
-    # supplied opener before GUI-specific file validation.
+    # trying to construct a Toplevel without a valid Tk parent.
     if parent is not None and not hasattr(parent, "tk"):
         return opener(target)
     if not target.exists():
         raise FileNotFoundError(str(target))
     kind = document_kind(target)
-    if kind in {"pdf", "image"}:
+    if kind == "pdf":
+        # r9: PDF is opened by the OS/default browser/PDF viewer.
+        return opener(target)
+    if kind == "image":
         return RasterDocumentWindow(
             parent, target, external_opener=external_opener
         ).win
