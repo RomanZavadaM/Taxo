@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.3-r1"
+APP_VERSION = "10.3-r2"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -913,6 +913,11 @@ def init_db():
         work_start_time TEXT DEFAULT '',
         work_end_time TEXT DEFAULT '',
         work_hours REAL DEFAULT 0,
+        fact_work_start_time TEXT DEFAULT '',
+        fact_work_end_time TEXT DEFAULT '',
+        fact_work_hours REAL,
+        fact_source TEXT DEFAULT '',
+        fact_updated_at TEXT DEFAULT '',
         driving_hours REAL DEFAULT 0,
         overtime_hours REAL DEFAULT 0,
         vehicle TEXT DEFAULT '',
@@ -1233,6 +1238,11 @@ def init_db():
         ("accounting_mode", "TEXT DEFAULT 'manual'"),
         ("work_start_time", "TEXT DEFAULT ''"),
         ("work_end_time", "TEXT DEFAULT ''"),
+        ("fact_work_start_time", "TEXT DEFAULT ''"),
+        ("fact_work_end_time", "TEXT DEFAULT ''"),
+        ("fact_work_hours", "REAL"),
+        ("fact_source", "TEXT DEFAULT ''"),
+        ("fact_updated_at", "TEXT DEFAULT ''"),
     ]:
         if name not in cols:
             con.execute(f"ALTER TABLE worklog ADD COLUMN {name} {ddl}")
@@ -4450,6 +4460,91 @@ def _worklog_work_intervals(row, segments):
     return [(start,end)] if end>start else []
 
 
+def _worklog_has_fact_override(row):
+    """True only when a real-life correction was recorded over the plan."""
+    if row is None:
+        return False
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    return bool(
+        ((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip()
+        or ((row["fact_work_end_time"] if "fact_work_end_time" in keys else "") or "").strip()
+        or (row["fact_work_hours"] if "fact_work_hours" in keys else None) is not None
+    )
+
+
+def _fact_clock_dt(work_day, value, anchor=None):
+    """Map HH:MM factual clock to the most plausible datetime around a duty."""
+    raw=(value or "").strip()
+    if not raw:
+        return None
+    minutes=time_to_minutes(raw)
+    candidates=[
+        datetime.combine(work_day+timedelta(days=offset),datetime.min.time())
+        + timedelta(minutes=minutes)
+        for offset in (-1,0,1,2)
+    ]
+    if anchor is None:
+        return candidates[1]
+    return min(candidates,key=lambda dt:abs((dt-anchor).total_seconds()))
+
+
+def _worklog_effective_work_intervals(row, segments):
+    """Effective FACT work intervals.
+
+    Plan is the default fact. Only nullable worklog fact_* fields override the
+    outer boundaries, so ~90% ordinary days store no duplicate factual data.
+    Internal planned breaks/parts remain intact and are clipped/extended only
+    at the first/last outer boundary.
+    """
+    planned=_worklog_work_intervals(row,segments)
+    if not planned or not _worklog_has_fact_override(row):
+        return planned
+
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    start_raw=((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip()
+    end_raw=((row["fact_work_end_time"] if "fact_work_end_time" in keys else "") or "").strip()
+    planned=sorted(planned,key=lambda x:x[0])
+    plan_start=planned[0][0]
+    plan_end=max(b for _,b in planned)
+    work_day=date.fromisoformat(row["work_date"])
+
+    fact_start=_fact_clock_dt(work_day,start_raw,plan_start) if start_raw else plan_start
+    fact_end=_fact_clock_dt(work_day,end_raw,plan_end) if end_raw else plan_end
+    while fact_end<=fact_start:
+        fact_end += timedelta(days=1)
+
+    # Clip all planned pieces to the factual outer envelope.
+    clipped=[]
+    for a,b in planned:
+        left=max(a,fact_start)
+        right=min(b,fact_end)
+        if right>left:
+            clipped.append((left,right))
+
+    # If fact extends beyond the plan, extend only the outermost work part.
+    if not clipped:
+        return [(fact_start,fact_end)]
+    clipped.sort(key=lambda x:x[0])
+    if fact_start < clipped[0][0]:
+        clipped[0]=(fact_start,clipped[0][1])
+    if fact_end > clipped[-1][1]:
+        clipped[-1]=(clipped[-1][0],fact_end)
+    return clipped
+
+
+def _effective_work_minutes(row, segments):
+    intervals=sorted(_worklog_effective_work_intervals(row,segments),key=lambda x:x[0])
+    if not intervals:
+        return 0
+    merged=[]
+    for a,b in intervals:
+        if not merged or a>merged[-1][1]:
+            merged.append([a,b])
+        else:
+            merged[-1][1]=max(merged[-1][1],b)
+    return sum(max(0,int((b-a).total_seconds()//60)) for a,b in merged)
+
+
 def _planned_route_work_margins(route_segments):
     """Перед-/післямаршрутний робочий запас із сценарію маршруту.
 
@@ -4470,37 +4565,38 @@ def _planned_route_work_margins(route_segments):
 
 
 def _effective_attestation_duty_interval(row, segments, route_plan_segments=None):
-    """Межі роботи, поза якими тільки й може починатися/закінчуватися відпочинок.
+    """Duty boundary used by the attestation control.
 
-    Пріоритет:
-    1) явно задані work_start_time/work_end_time;
-    2) фактичні/уточнені межі маршруту завжди входять у робочу зміну;
-    3) якщо є сценарій маршруту, переносимо його перед- і післямаршрутний
-       робочий запас на уточнені межі маршруту.
-
-    Це не дозволяє зарахувати до відпочинку підготовку до рейсу, оформлення
-    після повернення, медогляд та іншу роботу поза тахокартою.
+    Normal case: plan is treated as fact. If life changes the day, sparse
+    fact_work_* overrides become authoritative without destroying the plan.
+    Route-specific pre/post margins remain a planning fallback only on sides
+    where no factual work boundary was recorded.
     """
     route_parts=_worklog_route_intervals(row,segments)
-    work_parts=_worklog_work_intervals(row,segments)
+    planned_parts=_worklog_work_intervals(row,segments)
+    effective_parts=_worklog_effective_work_intervals(row,segments)
 
-    starts=[a for a,_ in work_parts]
-    ends=[b for _,b in work_parts]
+    starts=[a for a,_ in effective_parts]
+    ends=[b for _,b in effective_parts]
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    has_fact_start=bool(((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip())
+    has_fact_end=bool(((row["fact_work_end_time"] if "fact_work_end_time" in keys else "") or "").strip())
+
+    pre_margin=post_margin=0
     if route_parts:
         route_start=min(a for a,_ in route_parts)
         route_end=max(b for _,b in route_parts)
         starts.append(route_start)
         ends.append(route_end)
         pre_margin,post_margin=_planned_route_work_margins(route_plan_segments)
-        if pre_margin:
+        if pre_margin and not has_fact_start:
             starts.append(route_start-timedelta(minutes=pre_margin))
-        if post_margin:
+        if post_margin and not has_fact_end:
             ends.append(route_end+timedelta(minutes=post_margin))
-    else:
-        pre_margin=post_margin=0
 
+    # No exact work parts: fall back to route envelope if available.
     if not starts or not ends:
-        return None,None,0,0
+        return None,None,int(pre_margin),int(post_margin)
     return min(starts),max(ends),int(pre_margin),int(post_margin)
 
 
@@ -15413,12 +15509,15 @@ class App(tk.Tk):
 
     @staticmethod
     def _set_worklog_boundary(con, item, boundary, value_dt):
-        """Змінює тільки межу РОБОТИ; час керування/маршруту не переписує."""
+        """Записує ФАКТИЧНУ межу роботи поверх плану.
+
+        Планові work_start_time/work_end_time і work_segments не змінюються.
+        Якщо factual override відсутній, план автоматично є фактом.
+        """
         if item is None:
             return
         row=item["row"]
         segments=list(item.get("segments") or [])
-        work_day=date.fromisoformat(row["work_date"])
         value=value_dt.strftime("%H:%M")
 
         route_parts=_worklog_route_intervals(row,segments)
@@ -15427,84 +15526,41 @@ class App(tk.Tk):
             route_end=max(b for _,b in route_parts)
             if boundary=="end" and value_dt < route_end:
                 raise ValueError(
-                    "Початок відпочинку не може бути раніше завершення керування "
+                    "Початок відсутності/відпочинку не може бути раніше завершення керування "
                     f"({route_end.strftime('%d.%m.%Y %H:%M')})."
                 )
             if boundary=="start" and value_dt > route_start:
                 raise ValueError(
-                    "Кінець відпочинку не може бути пізніше початку керування "
+                    "Кінець відсутності/відпочинку не може бути пізніше початку керування "
                     f"({route_start.strftime('%d.%m.%Y %H:%M')})."
                 )
 
-        if segments:
-            intervals=normalized_segment_intervals(segments,"work")
-            if not intervals:
-                raise ValueError("Для суміжної зміни не визначено робочі часові межі.")
-            chosen=(max(intervals,key=lambda x:x["end"])
-                    if boundary=="end"
-                    else min(intervals,key=lambda x:x["start"]))
-            seg=segments[int(chosen["index"])]
-            seg_id=int(seg["id"])
-            ws,we=_segment_work_pair(seg)
-            ws=(ws or "").strip(); we=(we or "").strip()
-            if boundary=="end":
-                we=value
-            else:
-                ws=value
-            if not ws or not we:
-                raise ValueError("Неможливо скоригувати неповну робочу частину.")
-            new_minutes=duration_minutes(ws,we)
-            if new_minutes<=0:
-                raise ValueError("Після корекції робоча частина має нульову тривалість.")
-            con.execute(
-                """UPDATE work_segments
-                      SET work_start_time=?,work_end_time=?,work_hours=?
-                    WHERE id=?""",
-                (ws,we,minutes_to_db_hours(new_minutes),seg_id)
-            )
-
-            updated=con.execute(
-                "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",
-                (int(row["id"]),)
-            ).fetchall()
-            work_intervals=normalized_segment_intervals(updated,"work")
-            if not work_intervals:
-                raise ValueError("Після корекції не визначено робочий інтервал.")
-            first=min(work_intervals,key=lambda x:x["start"])
-            last=max(work_intervals,key=lambda x:x["end"])
-            total=segments_union_minutes(updated,"work")
-            con.execute(
-                """UPDATE worklog
-                      SET work_start_time=?,work_end_time=?,work_hours=?
-                    WHERE id=?""",
-                (
-                    first["start_text"],last["end_text"],
-                    minutes_to_db_hours(total),int(row["id"])
-                )
-            )
+        keys=set(row.keys()) if hasattr(row,"keys") else set()
+        fact_start=((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip()
+        fact_end=((row["fact_work_end_time"] if "fact_work_end_time" in keys else "") or "").strip()
+        if boundary=="end":
+            fact_end=value
         else:
-            keys=set(row.keys())
-            ws=((row["work_start_time"] if "work_start_time" in keys else "") or "").strip()
-            we=((row["work_end_time"] if "work_end_time" in keys else "") or "").strip()
-            if not ws:
-                ws=((row["start_time"] if "start_time" in keys else "") or "").strip()
-            if not we:
-                we=((row["end_time"] if "end_time" in keys else "") or "").strip()
-            if boundary=="end":
-                we=value
-            else:
-                ws=value
-            if not ws or not we:
-                raise ValueError("Для суміжної зміни не визначено повні межі роботи.")
-            total=duration_minutes(ws,we)
-            if total<=0:
-                raise ValueError("Після корекції робоча зміна має нульову тривалість.")
-            con.execute(
-                """UPDATE worklog
-                      SET work_start_time=?,work_end_time=?,work_hours=?
-                    WHERE id=?""",
-                (ws,we,minutes_to_db_hours(total),int(row["id"]))
+            fact_start=value
+
+        # Apply the prospective override in-memory to calculate factual hours.
+        shadow=dict(row)
+        shadow["fact_work_start_time"]=fact_start
+        shadow["fact_work_end_time"]=fact_end
+        fact_minutes=_effective_work_minutes(shadow,segments)
+        if fact_minutes<=0:
+            raise ValueError("Після фактичної корекції робоча зміна має нульову тривалість.")
+
+        con.execute(
+            """UPDATE worklog
+                  SET fact_work_start_time=?,fact_work_end_time=?,fact_work_hours=?,
+                      fact_source='attestation',fact_updated_at=?
+                WHERE id=?""",
+            (
+                fact_start,fact_end,minutes_to_db_hours(fact_minutes),
+                datetime.now().isoformat(timespec="seconds"),int(row["id"])
             )
+        )
 
     def _sync_attestation_boundaries_to_worklog(
             self, con, driver_id, old_period_from, old_period_to,
