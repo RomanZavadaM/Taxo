@@ -41,6 +41,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
                 "inspection",
                 "temporary_registration",
                 "registration_certificate",
+                "tachograph_inspection_protocol",
             },
         )
 
@@ -51,6 +52,15 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertEqual(document_status("insurance", "2027-01-01", today=today), "Актуальний")
         self.assertEqual(document_status("registration_certificate", "", today=today), "Актуальний")
         self.assertEqual(document_status("inspection", "", today=today), "Немає дати дії")
+        self.assertEqual(
+            document_status("tachograph_inspection_protocol", "", today=today),
+            "Немає дати дії",
+        )
+        self.assertTrue(
+            document_status(
+                "tachograph_inspection_protocol", "2026-10-01", today=today
+            ).startswith("Закінчується:")
+        )
 
     def test_summary_always_requires_permanent_tech_passport(self):
         con = sqlite3.connect(":memory:")
@@ -72,7 +82,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         ensure_vehicle_documents_schema(con)
         overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
         self.assertEqual(overall, "Проблема")
-        self.assertEqual(sum(1 for item in details if item[3] == "Відсутній"), 3)
+        self.assertEqual(sum(1 for item in details if item[3] == "Відсутній"), 4)
 
         now = "2026-09-21T10:00:00"
         docs = [
@@ -80,6 +90,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
             ("inspection", "2027-03-21"),
             ("temporary_registration", "2026-12-21"),
             ("registration_certificate", ""),
+            ("tachograph_inspection_protocol", "2027-09-21"),
         ]
         for dtype, until in docs:
             con.execute(
@@ -93,7 +104,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         con.commit()
         overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
         self.assertEqual(overall, "Актуально")
-        self.assertEqual(len(details), 3)
+        self.assertEqual(len(details), 5)
         con.close()
 
     def test_temporary_registration_is_additional_when_vehicle_requires_it(self):
@@ -111,6 +122,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
             ("insurance", "2027-01-01"),
             ("inspection", "2027-01-01"),
             ("registration_certificate", ""),
+            ("tachograph_inspection_protocol", "2027-01-01"),
         ):
             con.execute(
                 """
@@ -124,7 +136,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
 
         overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
         self.assertEqual(overall, "Проблема")
-        self.assertEqual(len(details), 4)
+        self.assertEqual(len(details), 5)
         self.assertEqual(
             next(status for dtype, _label, _row, status in details if dtype == "temporary_registration"),
             "Відсутній",

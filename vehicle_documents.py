@@ -21,9 +21,10 @@ DOCUMENT_TYPES = {
     "inspection": "Діагностика / техконтроль",
     "temporary_registration": "Тимчасовий реєстраційний документ",
     "registration_certificate": "Постійний техпаспорт / свідоцтво про реєстрацію",
+    "tachograph_inspection_protocol": "Протокол перевірки тахографа",
 }
 
-EXPIRY_REQUIRED = {"insurance", "inspection", "temporary_registration"}
+EXPIRY_REQUIRED = {"insurance", "inspection", "temporary_registration", "tachograph_inspection_protocol"}
 WARNING_DAYS = 30
 
 ALLOWED_COPY_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff"}
@@ -152,7 +153,12 @@ def vehicle_document_summary(con, vehicle_id, today=None):
         vehicle and int(vehicle["temporary_registration_required"] or 0)
     )
 
-    required_types = ["insurance", "inspection", "registration_certificate"]
+    required_types = [
+        "insurance",
+        "inspection",
+        "registration_certificate",
+        "tachograph_inspection_protocol",
+    ]
     if temporary_required:
         required_types.append("temporary_registration")
 
