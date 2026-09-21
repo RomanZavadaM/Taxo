@@ -4558,11 +4558,13 @@ def _worklog_effective_work_intervals(row, segments):
 
     # If fact extends beyond the plan, extend only the outermost work part.
     if not clipped:
-        return [(fact_start,fact_end)]
+        # A factual envelope wholly inside a planned non-work gap contains
+        # no payable work interval by itself.
+        return []
     clipped.sort(key=lambda x:x[0])
-    if fact_start < clipped[0][0]:
+    if fact_start < plan_start:
         clipped[0]=(fact_start,clipped[0][1])
-    if fact_end > clipped[-1][1]:
+    if fact_end > plan_end:
         clipped[-1]=(clipped[-1][0],fact_end)
     return clipped
 
@@ -4621,13 +4623,15 @@ def _effective_attestation_duty_interval(row, segments, route_plan_segments=None
     if route_parts:
         route_start=min(a for a,_ in route_parts)
         route_end=max(b for _,b in route_parts)
-        starts.append(route_start)
-        ends.append(route_end)
         pre_margin,post_margin=_planned_route_work_margins(route_plan_segments)
-        if pre_margin and not has_fact_start:
-            starts.append(route_start-timedelta(minutes=pre_margin))
-        if post_margin and not has_fact_end:
-            ends.append(route_end+timedelta(minutes=post_margin))
+        if not has_fact_start:
+            starts.append(route_start)
+            if pre_margin:
+                starts.append(route_start-timedelta(minutes=pre_margin))
+        if not has_fact_end:
+            ends.append(route_end)
+            if post_margin:
+                ends.append(route_end+timedelta(minutes=post_margin))
 
     # No exact work parts: fall back to route envelope if available.
     if not starts or not ends:
@@ -15405,9 +15409,9 @@ class App(tk.Tk):
                 "Уточнити існуючий бланк",
                 f"Бланк №{att_id} уже частково перекриває цей період.\n\n"
                 f"Було:\n{old_from} → {old_to}\n\n"
-                f"Після уточнення ТАХО/графіка має бути:\n{period_from} → {period_to}\n\n"
-                "Створити нову ревізію цього ж бланка? Суміжний робочий час буде скориговано автоматично, "
-                "а час керування залишиться без змін. Попередні файли будуть збережені в архіві.",
+                f"Після уточнення факту має бути:\n{period_from} → {period_to}\n\n"
+                "Створити нову ревізію цього ж бланка? План залишиться незмінним; "
+                "фактична межа робочого часу буде записана окремо. Попередні файли будуть збережені в архіві.",
                 parent=self.att_gap_win
             ):
                 return
@@ -15572,20 +15576,10 @@ class App(tk.Tk):
         segments=list(item.get("segments") or [])
         value=value_dt.strftime("%H:%M")
 
-        route_parts=_worklog_route_intervals(row,segments)
-        if route_parts:
-            route_start=min(a for a,_ in route_parts)
-            route_end=max(b for _,b in route_parts)
-            if boundary=="end" and value_dt < route_end:
-                raise ValueError(
-                    "Початок відсутності/відпочинку не може бути раніше завершення керування "
-                    f"({route_end.strftime('%d.%m.%Y %H:%M')})."
-                )
-            if boundary=="start" and value_dt > route_start:
-                raise ValueError(
-                    "Кінець відсутності/відпочинку не може бути пізніше початку керування "
-                    f"({route_start.strftime('%d.%m.%Y %H:%M')})."
-                )
+        # Не блокуємо факт плановими межами керування. Реальний рейс може
+        # завершитися раніше (несправність, хвороба) або початися інакше.
+        # План start_time/end_time зберігається незмінним для порівняння;
+        # ТАХО лишається окремим фактичним джерелом контролю.
 
         keys=set(row.keys()) if hasattr(row,"keys") else set()
         fact_start=((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip()
