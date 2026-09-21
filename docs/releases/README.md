@@ -1,12 +1,15 @@
 # Релізи Taxo
 
 **Актуальна stable:** Taxo 10.1  
-**Previous stable / rollback:** Taxo 10.0
+**Previous stable / rollback:** Taxo 10.0  
+**Current prerelease:** Taxo 10.2-r4
 
 - **[Taxo 10.0 — release notes](RELEASE_NOTES_v10_0.md)**
 - [GitHub Release v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)
 - [Combined SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/SHA256SUMS_v10_0.txt)
 - **[Повний індекс GitHub Releases](RELEASE_INDEX.md)**
+- **[Taxo 10.2-r4 — release notes](RELEASE_NOTES_v10_2_r4.md)**
+- [GitHub prerelease v10.2-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r4)
 - [Taxo 9.1 candidate r9.8 — примітки](RELEASE_NOTES_v9_1_candidate_r9_8.md)
 - [Taxo 9.1 candidate r9.7 — примітки](RELEASE_NOTES_v9_1_candidate_r9_7.md)
 - [Taxo 9.1 candidate r9.6 — примітки](RELEASE_NOTES_v9_1_candidate_r9_6.md)

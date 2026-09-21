@@ -6,7 +6,7 @@
 
 > **Stable:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) — актуальна експлуатаційна версія.  
 > **Previous stable / rollback:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0).  
-> **Current prerelease:** [Taxo 10.2-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r2) — документи транспортних засобів, звіт стану документів, внутрішній перегляд і нове резервування.  
+> **Current prerelease:** [Taxo 10.2-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r4) — табель/роль водія, безпечне перепланування та виправлений START-пакет.  
 > **Stable:** 10.1 залишається основною експлуатаційною версією до окремого рішення про підвищення stable.
 
 [Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Setup_Windows_x64.exe) · [Windows Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Windows_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/SHA256SUMS_v10_1.txt)
@@ -68,7 +68,7 @@ Taxo 10.1 формує окремий документ за 60 календар�
 
 ## Завантаження
 
-Для перевірки нових функцій доступний [Taxo 10.2-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r2) як prerelease з Windows x64 Setup/Portable, macOS ARM64/Intel та START/source. Назви пакетів і внутрішніх папок містять лише зрозумілу версію/ревізію, без commit-хешів.
+Для перевірки нових функцій доступний [Taxo 10.2-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r4) як prerelease зі START/source. Виконавчі пакети публікуються лише на запланованих контрольних точках; назви тестових пакетів і внутрішніх папок містять зрозумілу версію/ревізію без commit-хешів.
 
 У [стабільному релізі Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) опубліковані Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v10_1_START.zip` і SHA-256 manifests. Робочі бази та персональні дані до релізів **не входять**.
 

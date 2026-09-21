@@ -10,6 +10,7 @@
 
 | Tag | Статус | Пакет | Призначення |
 |---|---|---|---|
+| [v10.2-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r4) | Published prerelease | START/source + SHA-256 | Replanning fix, timesheet/driver-role corrections, clean START package |
 | [v10.1-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r5) | Final verified candidate before stable 10.1 | START/source + SHA-256 | Reports navigation loop fix + single-instance timesheet |
 | [v10.1-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r4) | Previous immutable candidate | START/source + SHA-256 | Approved central-page UI polish + reports grouping |
 | [v10.1-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r3) | Previous immutable candidate | START/source + SHA-256 | Approved application shell + exact logo artwork |

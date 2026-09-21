@@ -4,9 +4,11 @@
 **Stable baseline:** Taxo 10.1  
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Активна розробка:** Taxo 10.2-r4  
-**Робоча гілка:** `work/v10.2-r4-replanning`  
-**PR:** #40
+**Останній завершений крок:** Taxo 10.2-r4  
+**Стан коду:** злитий у `main`  
+**PR:** #40 — merged  
+**GitHub prerelease:** `v10.2-r4` — published  
+**Наступний кодовий крок:** `10.2-r5`
 
 ## Джерело істини
 
@@ -149,7 +151,15 @@
 
 
 ## 10.2-r4 — перепланування і пакет
-- r4 замінює r3 як активний candidate; PR #39 закрито без merge, активний PR — #40.
+- r4 замінив r3 як candidate; PR #39 закрито без merge, PR #40 злитий у `main`.
 - Видимий прапорець безпечного перепланування дозволяє замінювати тільки план; факт не змінюється.
 - Виправлено packaging: тестовий START artifact більше не повинен містити вкладений ZIP.
 - У коді додано `next_candidate_version()` та regression-тест переходів `r4->r5`, `r9->r10`, `r10->10.3-r1`.
+
+
+### Завершення r4
+- Прийнятий candidate commit: `51f84f90c76afde2701a3d26f37e54de279ed2d2`.
+- Merge commit у `main`: `71e63f300401eadb7b1f02f376ebd022c9373e7d`.
+- GitHub prerelease `v10.2-r4` опублікований і є immutable checkpoint.
+- Source/START, Windows і macOS перевірки на merge-commit пройшли успішно.
+- Наступна кодова зміна починається тільки як `10.2-r5`.
