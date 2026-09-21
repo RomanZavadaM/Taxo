@@ -34,6 +34,9 @@ from workspace import (
     WorkspaceBusyError,
     WorkspaceLock,
     clone_workspace,
+    create_workspace_backup_archive,
+    validate_workspace_backup_archive,
+    restore_workspace_backup_archive,
     describe_lock,
     ensure_workspace,
     load_workspace_root,
@@ -7402,12 +7405,37 @@ class App(tk.Tk):
         ttk.Label(host, text="Усі змінні дані зберігаються тут окремо від програми. Одночасно сховище відкриває лише одна копія Taxo.", foreground="gray").pack(anchor="w", padx=12)
 
     def manual_backup(self):
+        stamp=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        path=filedialog.asksaveasfilename(
+            parent=self,
+            title="Створити повну резервну копію Taxo",
+            initialdir=str(BACKUP_DIR),
+            initialfile=f"Taxo_full_backup_{stamp}.zip",
+            defaultextension=".zip",
+            filetypes=[("Повна резервна копія Taxo","*.zip")],
+        )
+        if not path:
+            return
         try:
-            path = backup_database("manual")
-            if path:
-                messagebox.showinfo("Резервна копія", f"Резервну копію створено:\n{path}")
+            actual=create_workspace_backup_archive(
+                DATA_ROOT,path,app_version=APP_VERSION
+            )
+            size_mb=actual.stat().st_size/(1024*1024)
+            messagebox.showinfo(
+                "Повна резервна копія",
+                "Резервну копію створено й перевірено.\n\n"
+                f"{actual}\n\nРозмір: {size_mb:.2f} МБ\n\n"
+                "До ZIP входять основна і тахографічна БД, скани, копії документів авто, "
+                "шляхівки, бланки, звіти та журнали. Старі резервні копії всередину ZIP "
+                "не вкладаються, щоб архів не зростав рекурсивно.",
+                parent=self,
+            )
         except Exception as e:
-            messagebox.showerror("Помилка", f"Не вдалося створити резервну копію:\n{e}")
+            messagebox.showerror(
+                "Помилка",
+                f"Не вдалося створити повну резервну копію:\n{e}",
+                parent=self,
+            )
 
     def open_data_folder(self):
         try:
@@ -7543,12 +7571,63 @@ class App(tk.Tk):
             title="Виберіть резервну копію Taxo",
             initialdir=str(BACKUP_DIR),
             filetypes=[
-                ("Резервна копія Taxo","*.sqlite3"),
+                ("Повна копія Taxo","*.zip"),
+                ("Резервна копія основної БД","*.sqlite3"),
                 ("SQLite база","*.db *.sqlite *.sqlite3"),
                 ("Усі файли","*.*"),
             ]
         )
         if not path:
+            return
+
+        if Path(path).suffix.lower()==".zip":
+            try:
+                manifest=validate_workspace_backup_archive(path)
+            except Exception as exc:
+                messagebox.showerror(
+                    "Відновлення повної копії",
+                    f"Цей ZIP не можна використати для відновлення:\n\n{exc}",
+                    parent=self,
+                )
+                return
+            target=_select_workspace_folder(
+                self,
+                "Виберіть НОВУ порожню папку для відновлення Taxo",
+            )
+            if target is None:
+                return
+            if normalize_root(target)==normalize_root(DATA_ROOT):
+                messagebox.showerror(
+                    "Відновлення повної копії",
+                    "Не можна відновлювати ZIP поверх поточного робочого сховища. "
+                    "Виберіть нову порожню папку.",
+                    parent=self,
+                )
+                return
+            created=str(manifest.get("created_at") or "—")
+            version=str(manifest.get("app_version") or "—")
+            if not messagebox.askyesno(
+                "Відновлення повної копії",
+                "Відновити повне робоче сховище у вибрану папку?\n\n"
+                f"Копія: {Path(path).name}\nВерсія Taxo: {version}\nСтворена: {created}\n\n"
+                f"Нова папка:\n{target}\n\n"
+                "Поточне сховище не буде змінено. Після перевірки Taxo переключиться "
+                "на відновлену копію і закриється.",
+                parent=self,
+            ):
+                return
+            try:
+                restore_workspace_backup_archive(path,target)
+            except Exception as exc:
+                messagebox.showerror(
+                    "Відновлення повної копії",
+                    f"Відновлення не завершено. Поточне сховище не змінено.\n\n{exc}",
+                    parent=self,
+                )
+                return
+            self._close_after_workspace_switch(
+                target,"Повну резервну копію перевірено й відновлено."
+            )
             return
 
         ok,details=validate_database_file(path)
