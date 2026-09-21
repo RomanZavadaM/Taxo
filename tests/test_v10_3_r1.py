@@ -12,9 +12,8 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo103R1DutyBoundaries(unittest.TestCase):
-    def test_version_is_10_3_r1_everywhere(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r1")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.3-r1")
+    def test_r1_checkpoint_stays_immutable_under_later_10_3_revisions(self):
+        self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.3-r1"),
             "Taxo_v10_3_candidate_r1_START",
@@ -77,7 +76,7 @@ class TestTaxo103R1DutyBoundaries(unittest.TestCase):
             source,
         )
 
-    def test_attestation_edit_updates_adjacent_work_not_driving(self):
+    def test_attestation_edit_preserves_plan_and_driving(self):
         con=sqlite3.connect(":memory:")
         con.row_factory=sqlite3.Row
         con.executescript("""
@@ -89,7 +88,12 @@ class TestTaxo103R1DutyBoundaries(unittest.TestCase):
                 end_time TEXT DEFAULT '',
                 work_start_time TEXT DEFAULT '',
                 work_end_time TEXT DEFAULT '',
-                work_hours REAL DEFAULT 0
+                work_hours REAL DEFAULT 0,
+                fact_work_start_time TEXT DEFAULT '',
+                fact_work_end_time TEXT DEFAULT '',
+                fact_work_hours REAL,
+                fact_source TEXT DEFAULT '',
+                fact_updated_at TEXT DEFAULT ''
             );
             CREATE TABLE work_segments(
                 id INTEGER PRIMARY KEY,
@@ -103,72 +107,41 @@ class TestTaxo103R1DutyBoundaries(unittest.TestCase):
             );
         """)
         con.execute(
-            "INSERT INTO worklog VALUES(1,7,'2026-09-18','08:15','20:40','07:55','19:40',11.75)"
-        )
-        con.execute(
-            "INSERT INTO work_segments VALUES(11,1,1,'08:15','20:40','07:55','19:40',11.75)"
-        )
-        con.execute(
-            "INSERT INTO worklog VALUES(2,7,'2026-09-21','07:25','19:25','07:55','19:40',11.75)"
-        )
-        con.execute(
-            "INSERT INTO work_segments VALUES(21,2,1,'07:25','19:25','07:55','19:40',11.75)"
-        )
-        app=object.__new__(main.App)
-        changes=main.App._sync_attestation_boundaries_to_worklog(
-            app,con,7,
-            "19:40 18.09.2026","07:55 21.09.2026",
-            "20:55 18.09.2026","07:05 21.09.2026",
-        )
-        self.assertEqual(len(changes),2)
-
-        prev=con.execute("SELECT * FROM worklog WHERE id=1").fetchone()
-        nxt=con.execute("SELECT * FROM worklog WHERE id=2").fetchone()
-        self.assertEqual(prev["work_end_time"],"20:55")
-        self.assertEqual(nxt["work_start_time"],"07:05")
-        # Маршрут/керування не переписується бланком.
-        self.assertEqual((prev["start_time"],prev["end_time"]),("08:15","20:40"))
-        self.assertEqual((nxt["start_time"],nxt["end_time"]),("07:25","19:25"))
-
-        prev_seg=con.execute("SELECT * FROM work_segments WHERE id=11").fetchone()
-        nxt_seg=con.execute("SELECT * FROM work_segments WHERE id=21").fetchone()
-        self.assertEqual(prev_seg["work_end_time"],"20:55")
-        self.assertEqual(nxt_seg["work_start_time"],"07:05")
-        con.close()
-
-    def test_attestation_cannot_cut_into_driving_time(self):
-        con=sqlite3.connect(":memory:")
-        con.row_factory=sqlite3.Row
-        con.executescript("""
-            CREATE TABLE worklog(
-                id INTEGER PRIMARY KEY, driver_id INTEGER, work_date TEXT,
-                start_time TEXT, end_time TEXT, work_start_time TEXT,
-                work_end_time TEXT, work_hours REAL
-            );
-            CREATE TABLE work_segments(
-                id INTEGER PRIMARY KEY, worklog_id INTEGER, segment_no INTEGER,
-                start_time TEXT, end_time TEXT, work_start_time TEXT,
-                work_end_time TEXT, work_hours REAL
-            );
-        """)
-        con.execute(
-            "INSERT INTO worklog VALUES(1,7,'2026-09-18','08:15','20:40','07:55','20:55',13.0)"
-        )
-        con.execute(
-            "INSERT INTO work_segments VALUES(11,1,1,'08:15','20:40','07:55','20:55',13.0)"
+            "INSERT INTO worklog(id,driver_id,work_date,start_time,end_time,work_start_time,work_end_time,work_hours) "
+            "VALUES(1,7,'2026-09-18','08:15','20:40','07:55','20:55',13.0)"
         )
         item={
             "row":con.execute("SELECT * FROM worklog WHERE id=1").fetchone(),
-            "segments":con.execute("SELECT * FROM work_segments WHERE worklog_id=1").fetchall(),
+            "segments":[],
         }
-        with self.assertRaises(ValueError):
-            main.App._set_worklog_boundary(
-                con,item,"end",datetime(2026,9,18,20,30)
-            )
+        main.App._set_worklog_boundary(
+            con,item,"end",datetime(2026,9,18,13,20)
+        )
         row=con.execute("SELECT * FROM worklog WHERE id=1").fetchone()
-        self.assertEqual(row["end_time"],"20:40")
         self.assertEqual(row["work_end_time"],"20:55")
+        self.assertEqual(row["end_time"],"20:40")
+        self.assertEqual(row["fact_work_end_time"],"13:20")
+        self.assertEqual(row["fact_source"],"attestation")
         con.close()
+
+    def test_planned_driving_does_not_block_early_factual_finish(self):
+        row={
+            "work_date":"2026-09-18",
+            "start_time":"08:15",
+            "end_time":"20:40",
+            "work_start_time":"07:55",
+            "work_end_time":"20:55",
+            "fact_work_start_time":"",
+            "fact_work_end_time":"13:20",
+            "fact_work_hours":None,
+        }
+        plan=[{
+            "start_time":"08:15","end_time":"20:40",
+            "work_start_time":"07:55","work_end_time":"20:55",
+        }]
+        start,end,_pre,_post=main._effective_attestation_duty_interval(row,[],plan)
+        self.assertEqual(start,datetime(2026,9,18,7,55))
+        self.assertEqual(end,datetime(2026,9,18,13,20))
 
     def test_no_global_fixed_rest_buffer_is_introduced(self):
         source=(ROOT/"main.py").read_text("utf-8")
