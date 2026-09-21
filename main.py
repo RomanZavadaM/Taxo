@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.3-r1"
+APP_VERSION = "10.3-r2"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -4582,6 +4582,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
     """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
 
     Ключові правила:
+    - Бланк є ФАКТИЧНИМ документом і не формується наперед за плановим графіком;
     - ТАХО/маршрут не визначає межі відпочинку сам по собі;
     - усі частини одного маршрутного дня формують робочу зміну, яка може
       починатися ДО першого керування і закінчуватися ПІСЛЯ останнього;
@@ -4592,15 +4593,15 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
     - якщо між двома ТАХО-днями є один або більше інших календарних днів,
       проміжок від кінця попереднього ТАХО до початку наступного закриваємо
       бланком(ами);
-    - крім історичних «аварійних» пропусків, контроль показує ПОТОЧНИЙ
-      період відпочинку до найближчого наступного виїзду, якщо цей виїзд уже
-      є у графіку. Такий бланк можна підготувати ДО виїзду;
+    - контроль показує лише завершені фактичні проміжки: наступна робоча
+      зміна вже повинна початися; майбутній план використовується лише як
+      довідка і не породжує бланк;
     - автоматичні позиції: лікарняний=14, відпустка=15,
       вихідний/відпочинок=16, «Без тахо — 8 год»/інша робота=18,
       доступний=19;
     - сусідні частини з однаковою позицією об'єднуються;
-    - 56 днів — лише вікно контролю минулих записів. Для поточного періоду
-      додатково дивимось уперед у графік, щоб знайти найближчий виїзд.
+    - 56 днів — вікно контролю фактичних/минулих записів. Майбутні
+      заплановані зміни не закривають період Бланка.
     """
     if isinstance(control_date,str):
         try:
@@ -4625,8 +4626,9 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
 
     con=db()
 
-    # Назад потрібен запас для зв'язку першого ТАХО-дня у 56-денному вікні.
-    # Уперед дивимось лише для пошуку найближчого запланованого виїзду.
+    # Назад потрібен запас для зв'язку першого робочого дня у 56-денному вікні.
+    # Уперед читаємо тільки технічний запас даних; майбутня планова зміна
+    # ніколи не робить Бланк готовим до формування.
     query_start=start_day-timedelta(days=62)
     query_end=end_day+timedelta(days=62)
     rows=con.execute(
@@ -4742,9 +4744,13 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         if gb<=ga:
             continue
 
-        is_current=(ga <= reference_moment < gb)
+        # r2: Бланк формується по факту. Поки наступна робота фактично ще
+        # не настала за контрольним моментом, проміжок не завершений і не
+        # може бути запропонований як документ.
+        if gb > reference_moment:
+            continue
         is_historical=(range_start <= gb < range_end)
-        if not is_current and not is_historical:
+        if not is_historical:
             continue
 
         segs=_build_attestation_required_segments(prev,nxt,row_by_day)
@@ -4752,12 +4758,8 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
             ignored_consecutive_minutes += max(0,int((gb-ga).total_seconds()//60))
             continue
 
-        if is_current:
-            current_pair_found=True
-            current_departure=gb
-
         for a,b,n in segs:
-            required_segments.append((a,b,n,is_current))
+            required_segments.append((a,b,n,False))
 
     att_intervals=[]
     invalid_attestations=[]
@@ -4828,7 +4830,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 "reason":(
                     f"Період частково перекритий Бланком №{att_id}: "
                     f"{format_attestation_period(ast)} → {format_attestation_period(aen)}. "
-                    f"Після зміни графіка/ТАХО межі потрібного періоду стали "
+                    f"Після уточнення фактичних меж роботи потрібний період став "
                     f"{format_attestation_period(ga)} → {format_attestation_period(gb)}. "
                     f"Не створювати окремий бланк на залишок {minutes_hhmm(miss)}; "
                     f"потрібна нова ревізія існуючого Бланка №{att_id}."
@@ -4837,21 +4839,21 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         elif not missing:
             rows_out.append({
                 "kind":"covered",
-                "status":"ПОТОЧНИЙ — БЛАНК ГОТОВИЙ" if is_current else "ЗАКРИТО БЛАНКОМ",
+                "status":"ЗАКРИТО БЛАНКОМ" if is_current else "ЗАКРИТО БЛАНКОМ",
                 "from":ga,
                 "to":gb,
                 "minutes":dur,
                 "activity_no":suggested_no,
                 "is_current":is_current,
                 "reason":(
-                    f"Поточний період до початку наступної роботи вже перекритий бланком. Автокод: {suggested_no}."
+                    f"Фактичний проміжок уже перекритий бланком. Автокод: {suggested_no}."
                     if is_current else
                     f"Проміжок перекритий наявним бланком. Автокод для цього виду дня: {suggested_no}."
                 ),
             })
         else:
             if is_current:
-                status="ПОТОЧНИЙ — ПІДГОТУВАТИ"
+                status="ФАКТ — НЕ ЗАКРИТО"
             else:
                 status="НЕМАЄ БЛАНКА" if miss==dur else "ЧАСТКОВО НЕ ЗАКРИТО"
             for ma,mb in missing:
@@ -15140,6 +15142,77 @@ class App(tk.Tk):
             parent=self
         )
 
+    def _sync_new_attestation_boundaries_to_worklog(
+            self, con, driver_id, period_from_dt, period_to_dt):
+        """Синхронізує лише ЗОВНІШНІ межі фактичної відсутності з роботою.
+
+        Якщо на даті межі є робочий день, початок Бланка може завершити
+        попередню роботу, а кінець Бланка — почати наступну. Якщо межа лежить
+        між двома Бланками різних причин і на цю дату немає робочої зміни,
+        worklog не змінюється.
+        """
+        start_day=(period_from_dt.date()-timedelta(days=1)).isoformat()
+        end_day=(period_to_dt.date()+timedelta(days=1)).isoformat()
+        rows=con.execute(
+            """SELECT * FROM worklog
+               WHERE driver_id=? AND work_date BETWEEN ? AND ?
+               ORDER BY work_date,id""",
+            (int(driver_id),start_day,end_day)
+        ).fetchall()
+        if not rows:
+            return []
+
+        ids=[int(r["id"]) for r in rows]
+        q=",".join("?" for _ in ids)
+        seg_by={}
+        for seg in con.execute(
+            f"""SELECT * FROM work_segments
+                 WHERE worklog_id IN ({q})
+                 ORDER BY worklog_id,segment_no""",
+            ids
+        ).fetchall():
+            seg_by.setdefault(int(seg["worklog_id"]),[]).append(seg)
+
+        by_day={}
+        for row in rows:
+            d=date.fromisoformat(row["work_date"])
+            parts=_worklog_work_intervals(row,seg_by.get(int(row["id"]),[]))
+            route=_worklog_route_intervals(row,seg_by.get(int(row["id"]),[]))
+            if parts or route:
+                by_day.setdefault(d,[]).append({
+                    "row":row,
+                    "segments":seg_by.get(int(row["id"]),[]),
+                })
+
+        start_candidates=by_day.get(period_from_dt.date(),[])
+        end_candidates=by_day.get(period_to_dt.date(),[])
+        changes=[]
+
+        # Якщо обидві межі потрапили в один і той самий worklog (коротка
+        # внутрішньоденна відсутність), не стискаємо всю зміну автоматично:
+        # такий випадок потребує окремих work_segments.
+        same_row_ids={
+            int(x["row"]["id"]) for x in start_candidates
+        } & {
+            int(x["row"]["id"]) for x in end_candidates
+        }
+        if same_row_ids and period_from_dt.date()==period_to_dt.date():
+            return changes
+
+        if start_candidates:
+            prev=max(start_candidates,key=lambda x:int(x["row"]["id"]))
+            self._set_worklog_boundary(con,prev,"end",period_from_dt)
+            changes.append(
+                f"кінець роботи {period_from_dt.strftime('%d.%m.%Y %H:%M')}"
+            )
+        if end_candidates:
+            nxt=min(end_candidates,key=lambda x:int(x["row"]["id"]))
+            self._set_worklog_boundary(con,nxt,"start",period_to_dt)
+            changes.append(
+                f"початок роботи {period_to_dt.strftime('%d.%m.%Y %H:%M')}"
+            )
+        return changes
+
     def _create_attestation_record(
         self, period_from, period_to, activity_no, form_date_text=None,
         parent=None, show_message=True, formats=("docx",)
@@ -15159,6 +15232,12 @@ class App(tk.Tk):
         en=parse_attestation_period(period_to)
         if not st or not en or en<=st:
             raise ValueError("Невірний період бланка.")
+        now_dt=datetime.now()
+        if en > now_dt + timedelta(minutes=1):
+            raise ValueError(
+                "Бланк підтвердження є фактичним документом. "
+                "Період не може закінчуватися у майбутньому за плановим графіком."
+            )
 
         # v8.55 — дата завжди дорівнює даті завершення періоду.
         dt=en.date()
@@ -15182,7 +15261,11 @@ class App(tk.Tk):
 
         con=db()
         now=datetime.now().isoformat(timespec="seconds")
-        cur=con.execute(
+        try:
+            work_changes=self._sync_new_attestation_boundaries_to_worklog(
+                con,int(d["id"]),st,en
+            )
+            cur=con.execute(
             """INSERT INTO attestations(
                 driver_id,period_from,period_to,activity_no,place,form_date,
                 file_path,pdf_path,jpg_page1_path,jpg_page2_path,
@@ -15194,12 +15277,19 @@ class App(tk.Tk):
                 "active",1,now,"","",now
             )
         )
-        att_id=cur.lastrowid
-        row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
-        fmt_note=", ".join(x.upper() for x in formats)
-        _audit_attestation_snapshot(con,row,"CREATE",f"Створено бланк: {fmt_note}")
-        con.commit()
-        con.close()
+            att_id=cur.lastrowid
+            row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+            fmt_note=", ".join(x.upper() for x in formats)
+            note=f"Створено фактичний бланк: {fmt_note}"
+            if work_changes:
+                note += ". Скориговано робочі межі: " + "; ".join(work_changes)
+            _audit_attestation_snapshot(con,row,"CREATE",note)
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
 
         self.load_att_history()
         if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
