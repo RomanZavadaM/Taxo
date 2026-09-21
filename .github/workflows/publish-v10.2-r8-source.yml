@@ -4,7 +4,7 @@ name: Publish Taxo 10.2-r8 source prerelease
 on:
   push:
     branches:
-      - 'work/v10.2-r8-secondary-window-style'
+      - 'work/v10.2-r8-personnel-planning'
     paths:
       - '.github/workflows/publish-v10.2-r8-source.yml'
   workflow_dispatch:
