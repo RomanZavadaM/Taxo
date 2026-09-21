@@ -64,3 +64,11 @@ Candidate automation:
 - stable `v10.1` не змінюється;
 - regression gate перевіряє manual-only trigger;
 - після r5 наступна ревізія — r6.
+
+
+## 10.2-r6 у роботі
+
+- secondary-window UI consistency;
+- 12 великих службових/звітних вікон переходять на approved branding;
+- schema/data/business logic unchanged;
+- після виданого r6 наступний крок — тільки 10.2-r7.
