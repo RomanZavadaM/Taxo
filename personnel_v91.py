@@ -2933,7 +2933,7 @@ def install(core, base_app):
             win.title("Масове планування робочих змін персоналу")
             core.fit_window_to_screen(win, 980, 720, 780, 560)
             body = core.ttk.Frame(win, padding=10); body.pack(fill="both", expand=True)
-            body.columnconfigure(1, weight=1); body.rowconfigure(11, weight=1)
+            body.columnconfigure(1, weight=1); body.rowconfigure(12, weight=1)
 
             employees = self._active_employee_map()
             employee_var = core.tk.StringVar(value=next(iter(employees), ""))
@@ -2995,13 +2995,18 @@ def install(core, base_app):
             core.ttk.Label(cycle,text="дн.").pack(side="left")
 
             field(8,"Примітка",note)
-            core.ttk.Checkbutton(body,text="Замінювати існуючий ПЛАН цього працівника (факт не змінювати)",variable=replace).grid(row=9,column=0,columnspan=3,sticky="w",pady=4)
+            core.ttk.Checkbutton(
+                body,
+                text="Перепланувати: замінити існуючий ПЛАН цього працівника (факт не змінювати)",
+                variable=replace,
+                command=lambda: preview(),
+            ).grid(row=9,column=0,columnspan=3,sticky="w",pady=(6,2))
 
             tree=core.ttk.Treeview(body,columns=("date","action","current"),show="headings")
             for k,l,w in (("date","Дата",95),("action","Дія",220),("current","Поточне / конфлікт",520)):
                 tree.heading(k,text=l); tree.column(k,width=w,anchor="w")
             sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview); tree.configure(yscrollcommand=sy.set)
-            tree.grid(row=11,column=0,columnspan=2,sticky="nsew",pady=(8,0)); sy.grid(row=11,column=2,sticky="ns",pady=(8,0))
+            tree.grid(row=12,column=0,columnspan=2,sticky="nsew",pady=(8,0)); sy.grid(row=12,column=2,sticky="ns",pady=(8,0))
 
             def refresh_roles(_event=None):
                 emp=employees.get(employee_var.get())
@@ -3185,8 +3190,8 @@ def install(core, base_app):
                     "Більші розбіжності не маскуються і мають перевірятися."
                 ),
                 foreground="gray", wraplength=900, justify="left",
-            ).grid(row=9,column=0,columnspan=3,sticky="w",pady=(2,6))
-            buttons=core.ttk.Frame(body); buttons.grid(row=10,column=0,columnspan=3,sticky="ew")
+            ).grid(row=10,column=0,columnspan=3,sticky="w",pady=(2,6))
+            buttons=core.ttk.Frame(body); buttons.grid(row=11,column=0,columnspan=3,sticky="ew")
             core.ttk.Button(buttons,text="Переглянути",command=preview).pack(side="left",padx=3)
             core.ttk.Button(buttons,text="Застосувати",command=apply).pack(side="left",padx=3)
             emp_combo.bind("<<ComboboxSelected>>",refresh_roles)
