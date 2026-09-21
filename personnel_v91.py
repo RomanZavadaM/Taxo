@@ -3463,6 +3463,38 @@ def install(core, base_app):
             edrpou=self.personnel_report_edrpou.get().strip()
             core.set_setting("personnel_report_department",department)
             core.set_setting("company_edrpou",edrpou)
+
+            audit=collect_personnel_timesheet_audit(
+                core,year,month,self.personnel_report_active.get()
+            )
+            blocking=[
+                item for item in audit["issues"]
+                if item["severity"] in ("error","warning")
+            ]
+            if blocking:
+                shown=blocking[:12]
+                details="\n".join(
+                    f"• {item['date'].strftime('%d.%m.%Y')} — "
+                    f"{item['name']}: {item['message']}"
+                    for item in shown
+                )
+                if len(blocking)>len(shown):
+                    details += f"\n… ще {len(blocking)-len(shown)} зауважень."
+                proceed=core.messagebox.askyesno(
+                    "Табель П-5 — аудит плану",
+                    (
+                        f"Перед формуванням знайдено: помилок {audit['errors']}, "
+                        f"попереджень {audit['warnings']}.\n\n"
+                        f"{details}\n\n"
+                        "Це не означає автоматично, що дані неправильні: довгі/надурочні "
+                        "плани можуть бути обґрунтовані. Але їх потрібно звірити.\n\n"
+                        "Продовжити формування П-5?"
+                    ),
+                    parent=self,
+                )
+                if not proceed:
+                    return
+
             preview=collect_p5_data(
                 core,year,month,self.personnel_report_active.get(),
                 use_plan_when_fact_missing=False
