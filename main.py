@@ -7405,35 +7405,127 @@ class App(tk.Tk):
         ttk.Label(host, text="Усі змінні дані зберігаються тут окремо від програми. Одночасно сховище відкриває лише одна копія Taxo.", foreground="gray").pack(anchor="w", padx=12)
 
     def manual_backup(self):
+        choice={"value":None}
+        win=tk.Toplevel(self)
+        win.title("Резервна копія Taxo")
+        fit_window_to_screen(win,720,470,620,420)
+        configure_toplevel(win)
+        win.transient(self); win.grab_set()
+
+        body=ttk.Frame(win,padding=16)
+        body.pack(fill="both",expand=True)
+        ttk.Label(
+            body,text="Що включити в резервну копію?",
+            font=("TkDefaultFont",11,"bold")
+        ).pack(anchor="w")
+        ttk.Label(
+            body,
+            text=(
+                "Основна БД і тахографічна БД копіюються завжди. "
+                "Великі файлові каталоги додавайте лише коли це потрібно."
+            ),
+            foreground="gray",wraplength=660,justify="left",
+        ).pack(anchor="w",pady=(5,12))
+
+        mandatory=ttk.LabelFrame(body,text="Завжди")
+        mandatory.pack(fill="x")
+        ttk.Label(
+            mandatory,
+            text="✓ Основна база Taxo\n✓ Тахографічна база",
+            justify="left",
+        ).pack(anchor="w",padx=10,pady=8)
+
+        optional=ttk.LabelFrame(body,text="Додатково — великі файлові копії")
+        optional.pack(fill="x",pady=(12,0))
+        vehicle_docs=tk.BooleanVar(value=False)
+        tacho_scans=tk.BooleanVar(value=False)
+        output_files=tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            optional,
+            text="Копії документів транспортних засобів",
+            variable=vehicle_docs,
+        ).pack(anchor="w",padx=10,pady=(8,3))
+        ttk.Checkbutton(
+            optional,
+            text="Скани тахографів",
+            variable=tacho_scans,
+        ).pack(anchor="w",padx=10,pady=3)
+        ttk.Checkbutton(
+            optional,
+            text="Шляхівки, бланки, звіти й архіви з папки Output",
+            variable=output_files,
+        ).pack(anchor="w",padx=10,pady=(3,8))
+
+        ttk.Label(
+            body,
+            text=(
+                "Оригінальні копії документів і скани завжди лишаються у робочій папці. "
+                "Ці галочки визначають лише, чи дублювати їх у цей конкретний ZIP."
+            ),
+            foreground="#7A4E00",wraplength=660,justify="left",
+        ).pack(anchor="w",pady=(12,4))
+
+        buttons=ttk.Frame(body)
+        buttons.pack(fill="x",side="bottom",pady=(14,0))
+        def cancel():
+            win.destroy()
+        def accept():
+            choice["value"]=(
+                bool(vehicle_docs.get()),
+                bool(tacho_scans.get()),
+                bool(output_files.get()),
+            )
+            win.destroy()
+        ttk.Button(buttons,text="Скасувати",command=cancel).pack(side="right")
+        ttk.Button(
+            buttons,text="Створити копію",style="Accent.TButton",command=accept
+        ).pack(side="right",padx=(0,8))
+        win.protocol("WM_DELETE_WINDOW",cancel)
+        win.wait_window()
+
+        if choice["value"] is None:
+            return
+        include_vehicle_documents,include_tacho_scans,include_output=choice["value"]
+
         stamp=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        extras=[]
+        if include_vehicle_documents:
+            extras.append("копії документів авто")
+        if include_tacho_scans:
+            extras.append("скани тахографів")
+        if include_output:
+            extras.append("Output")
+        label="full" if extras else "db"
         path=filedialog.asksaveasfilename(
             parent=self,
-            title="Створити повну резервну копію Taxo",
+            title="Зберегти резервну копію Taxo",
             initialdir=str(BACKUP_DIR),
-            initialfile=f"Taxo_full_backup_{stamp}.zip",
+            initialfile=f"Taxo_backup_{label}_{stamp}.zip",
             defaultextension=".zip",
-            filetypes=[("Повна резервна копія Taxo","*.zip")],
+            filetypes=[("Резервна копія Taxo","*.zip")],
         )
         if not path:
             return
         try:
             actual=create_workspace_backup_archive(
-                DATA_ROOT,path,app_version=APP_VERSION
+                DATA_ROOT,path,app_version=APP_VERSION,
+                include_vehicle_documents=include_vehicle_documents,
+                include_tacho_scans=include_tacho_scans,
+                include_output=include_output,
             )
             size_mb=actual.stat().st_size/(1024*1024)
+            extra_text=", ".join(extras) if extras else "без великих файлових вкладень"
             messagebox.showinfo(
-                "Повна резервна копія",
+                "Резервна копія",
                 "Резервну копію створено й перевірено.\n\n"
-                f"{actual}\n\nРозмір: {size_mb:.2f} МБ\n\n"
-                "До ZIP входять основна і тахографічна БД, скани, копії документів авто, "
-                "шляхівки, бланки, звіти та журнали. Старі резервні копії всередину ZIP "
-                "не вкладаються, щоб архів не зростав рекурсивно.",
+                f"{actual}\n\nРозмір: {size_mb:.2f} МБ\n"
+                f"Склад: обидві БД; {extra_text}.",
                 parent=self,
             )
         except Exception as e:
             messagebox.showerror(
                 "Помилка",
-                f"Не вдалося створити повну резервну копію:\n{e}",
+                f"Не вдалося створити резервну копію:\n{e}",
                 parent=self,
             )
 
@@ -7542,9 +7634,12 @@ class App(tk.Tk):
                     parent=win
                 ); return
             if not messagebox.askyesno(
-                "Перенести всі робочі дані",
-                f"Створити перевірену копію всього поточного сховища?\n\nЗвідки:\n{DATA_ROOT}\n\nКуди:\n{target}\n\n"
-                "Основна та тахографічна SQLite-БД будуть скопійовані узгоджено. Старе сховище не видаляється.",
+                "Повна копія робочого сховища",
+                f"Створити повну перевірену копію для нового екземпляра Taxo або перенесення?\n\n"
+                f"Звідки:\n{DATA_ROOT}\n\nКуди:\n{target}\n\n"
+                "Буде скопійовано обидві БД, копії документів авто, тахографічні скани, "
+                "шляхівки, бланки, звіти та архіви. Історія старих резервних копій і технічні "
+                "логи не дублюються.",
                 parent=win
             ):
                 return
@@ -7557,10 +7652,31 @@ class App(tk.Tk):
                 return
             finally:
                 destination_lock.release()
-            self._close_after_workspace_switch(target,"Усі робочі дані перевірено й скопійовано.")
+            switch_now=messagebox.askyesno(
+                "Повну копію створено",
+                "Повну робочу копію перевірено й створено.\n\n"
+                f"{target}\n\n"
+                "Переключити ЦЕЙ екземпляр Taxo на нову папку?\n\n"
+                "«Ні» — залишити поточне сховище без змін; копію можна підключити "
+                "на іншому комп’ютері через «Підключити існуюче…».",
+                parent=win,
+            )
+            if switch_now:
+                self._close_after_workspace_switch(
+                    target,"Повну робочу копію створено й підключено."
+                )
+            else:
+                messagebox.showinfo(
+                    "Копія готова",
+                    "Поточний Taxo продовжує працювати зі старим сховищем.\n\n"
+                    f"Повна копія для іншого екземпляра:\n{target}",
+                    parent=win,
+                )
 
         buttons=ttk.Frame(body); buttons.pack(fill="x",pady=(8,0))
-        ttk.Button(buttons,text="Перенести поточні дані…",command=copy_current).pack(side="left")
+        ttk.Button(
+            buttons,text="Повна копія / перенесення…",command=copy_current
+        ).pack(side="left")
         ttk.Button(buttons,text="Підключити існуюче…",command=attach_existing).pack(side="left",padx=8)
         ttk.Button(buttons,text="Відкрити поточну папку",command=self.open_data_folder).pack(side="left")
         ttk.Button(buttons,text="Закрити",command=win.destroy).pack(side="right")
