@@ -10,9 +10,10 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo102R10AttestationReconcile(unittest.TestCase):
-    def test_version_is_r10_everywhere(self):
-        self.assertEqual(main.APP_VERSION,"10.2-r10")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.2-r10")
+    def test_version_is_r10_or_later(self):
+        current=version_from_file(ROOT/"VERSION.txt")
+        self.assertEqual(main.APP_VERSION,current)
+        self.assertRegex(current,r"^(?:10\.2-r10|10\.3-r(?:[1-9]|10))$")
         self.assertEqual(
             start_archive_stem("10.2-r10"),
             "Taxo_v10_2_candidate_r10_START",
