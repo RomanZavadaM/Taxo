@@ -24,6 +24,7 @@ DOCUMENT_TYPES = {
 }
 
 EXPIRY_REQUIRED = {"insurance", "inspection", "temporary_registration"}
+REGISTRATION_TYPES = ("temporary_registration", "registration_certificate")
 WARNING_DAYS = 30
 
 
@@ -121,12 +122,36 @@ def latest_documents(con, vehicle_id):
 
 
 def vehicle_document_summary(con, vehicle_id, today=None):
+    """Return the three effective control requirements for one vehicle.
+
+    Insurance and inspection are independent. Registration is one logical
+    requirement satisfied by either a temporary registration document or a
+    permanent registration certificate/technical passport.
+    """
     latest = latest_documents(con, vehicle_id)
     details = []
-    for dtype, label in DOCUMENT_TYPES.items():
+
+    for dtype in ("insurance", "inspection"):
         row = latest.get(dtype)
-        status = "Відсутній" if row is None else document_status(dtype, row["valid_until"], today=today)
-        details.append((dtype, label, row, status))
+        status = "Відсутній" if row is None else document_status(
+            dtype, row["valid_until"], today=today
+        )
+        details.append((dtype, DOCUMENT_TYPES[dtype], row, status))
+
+    registration_candidates = []
+    for dtype in REGISTRATION_TYPES:
+        row = latest.get(dtype)
+        if row is None:
+            continue
+        status = document_status(dtype, row["valid_until"], today=today)
+        registration_candidates.append((status_rank(status), int(row["id"]), dtype, row, status))
+
+    if registration_candidates:
+        _rank, _id, dtype, row, status = max(registration_candidates)
+        details.append(("registration", "Реєстраційний документ", row, status))
+    else:
+        details.append(("registration", "Реєстраційний документ", None, "Відсутній"))
+
     worst = min((status_rank(x[3]) for x in details), default=3)
     if worst <= 1:
         overall = "Проблема"
@@ -454,6 +479,21 @@ class VehicleDocumentsWindow:
                     notes_var.get().strip(),
                     now,
                 )
+                # One current record per logical document slot. A renewal does
+                # not overwrite history: the previous record is archived with its copy.
+                competing_types = REGISTRATION_TYPES if dtype in REGISTRATION_TYPES else (dtype,)
+                placeholders = ",".join("?" for _ in competing_types)
+                params = [now, self.vehicle["id"], *competing_types]
+                sql = (
+                    "UPDATE vehicle_documents SET archived=1,updated_at=? "
+                    "WHERE vehicle_id=? AND COALESCE(archived,0)=0 "
+                    f"AND doc_type IN ({placeholders})"
+                )
+                if row is not None:
+                    sql += " AND id<>?"
+                    params.append(row["id"])
+                con.execute(sql, params)
+
                 if row is None:
                     con.execute(
                         """
@@ -469,7 +509,7 @@ class VehicleDocumentsWindow:
                         """
                         UPDATE vehicle_documents
                            SET doc_type=?,document_no=?,issuer=?,valid_from=?,valid_until=?,
-                               copy_path=?,notes=?,updated_at=?
+                               copy_path=?,notes=?,archived=0,updated_at=?
                          WHERE id=?
                         """,
                         values + (row["id"],),
