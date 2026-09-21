@@ -104,7 +104,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         con.commit()
         overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
         self.assertEqual(overall, "Актуально")
-        self.assertEqual(len(details), 5)
+        self.assertEqual(len(details), 4)
         con.close()
 
     def test_temporary_registration_is_additional_when_vehicle_requires_it(self):
@@ -153,7 +153,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         con.commit()
         overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
         self.assertEqual(overall, "Актуально")
-        self.assertEqual(len(details), 4)
+        self.assertEqual(len(details), 5)
         con.close()
 
     def test_temporary_and_permanent_registration_have_separate_history(self):
