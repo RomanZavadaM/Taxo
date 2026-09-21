@@ -170,8 +170,8 @@ class V870R5Tests(unittest.TestCase):
                 }],
             }
             waybill.build_waybill_pdf(None, target, data)
-            doc = fitz.open(target)
-            self.assertEqual(doc.page_count, 2)
+            doc = PdfReader(target)
+            self.assertEqual(len(doc.pages), 2)
             text = "\n".join(page.get_text() for page in doc)
             self.assertIn("Прямий напрямок", text)
             self.assertIn("Зворотний напрямок", text)
