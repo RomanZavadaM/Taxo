@@ -178,6 +178,17 @@ class TestTaxo102R3TimesheetAndDriverRole(unittest.TestCase):
     def test_version_is_r3(self):
         self.assertEqual(main.APP_VERSION,"10.2-r3")
 
+    def test_version_file_matches_app_version(self):
+        root=Path(__file__).resolve().parents[1]
+        version_text=(root/"VERSION.txt").read_text(encoding="utf-8")
+        self.assertIn("Version: 10.2-r3",version_text)
+        from release_naming import start_archive_stem, version_from_file
+        self.assertEqual(version_from_file(root/"VERSION.txt"),main.APP_VERSION)
+        self.assertEqual(
+            start_archive_stem(main.APP_VERSION),
+            "Taxo_v10_2_candidate_r3_START",
+        )
+
     def test_shift_uses_paid_plan_not_raw_clock_span(self):
         con=make_time_db()
         con.execute(
