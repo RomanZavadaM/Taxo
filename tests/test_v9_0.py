@@ -5,7 +5,7 @@ import unittest
 from datetime import date, datetime
 from pathlib import Path
 
-import fitz
+from pypdf import PdfReader
 from reportlab.pdfgen import canvas
 
 import v9_release
@@ -37,13 +37,13 @@ class TaxoV90Tests(unittest.TestCase):
             v9_release.stamp_work_analysis_pdf(
                 _NoFontCore, target, date(2026, 9, 17)
             )
-            doc = fitz.open(target)
+            doc = PdfReader(target)
             try:
-                text = "\n".join(page.get_text() for page in doc)
+                text = "\n".join((page.extract_text() or "") for page in doc.pages)
                 self.assertIn("17.09.2026", text)
-                self.assertEqual(doc.page_count, 1)
+                self.assertEqual(len(doc.pages), 1)
             finally:
-                doc.close()
+                
 
     def test_ui_exposes_driver_and_report_date_controls(self):
         source = inspect.getsource(v9_release.install)
