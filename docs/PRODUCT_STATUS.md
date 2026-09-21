@@ -59,3 +59,16 @@ GitHub Release `v10.1` міститиме:
 - [Release notes 10.1](releases/RELEASE_NOTES_v10_1.md)
 - [Фінальний аудит 10.1](maintenance/AUDIT_v10_1_STABLE.md)
 - [Індекс релізів](releases/RELEASE_INDEX.md)
+
+
+## Активна розробка 10.2-r4
+
+Stable 10.1 не змінюється. Робочий candidate — 10.2-r4 / PR #40.
+
+Політика розробки:
+- кожен завершений крок піднімає ревізію;
+- `r1 ... r10`, після `r10` — наступна minor-версія з `r1`;
+- кожен крок завершується готовим START-архівом із прямим посиланням для ручного тестування;
+- уже видані ревізії не перевикористовуються.
+
+Джерело правила: [maintenance/DEVELOPMENT_RULES.md](maintenance/DEVELOPMENT_RULES.md).
