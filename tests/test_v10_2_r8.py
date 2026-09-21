@@ -10,9 +10,9 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo102R8PersonnelPlanning(unittest.TestCase):
-    def test_version_is_r8_everywhere(self):
-        self.assertEqual(main.APP_VERSION,"10.2-r8")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.2-r8")
+    def test_r8_checkpoint_rules_remain_valid_on_later_r9(self):
+        self.assertTrue(main.APP_VERSION.startswith("10.2-r"))
+        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),main.APP_VERSION)
         self.assertEqual(
             start_archive_stem("10.2-r8"),
             "Taxo_v10_2_candidate_r8_START",
