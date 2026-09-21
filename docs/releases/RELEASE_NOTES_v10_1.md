@@ -42,7 +42,7 @@ Taxo 10.1 переводить перевірену лінію 10.1-r1…r5 у �
 - macOS Intel x86_64 — **157 tests / OK**;
 - ручний Windows UI/navigation gate — підтверджено користувачем 21.09.2026.
 
-Після merge stable publisher повторно виконує regression suite вже з версією 10.1 та формує всі офіційні пакети.
+Після merge stable publisher повторно виконав regression suite вже з версією 10.1: **162 tests / OK** на source, Windows, macOS ARM64 та macOS Intel; Windows START preflight також OK. Усі офіційні пакети успішно сформовано й опубліковано.
 
 ## Офіційні пакети
 - Windows x64 Setup — `Taxo_v10_1_Setup_Windows_x64.exe`;
@@ -53,3 +53,11 @@ Taxo 10.1 переводить перевірену лінію 10.1-r1…r5 у �
 - per-platform та combined SHA-256 manifests.
 
 Кандидати `v10.1-r1` … `v10.1-r5` і stable `v10.0` лишаються immutable historical/rollback points.
+
+
+## Фінальний stable результат
+
+**Stable tag:** `v10.1`  
+**Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`
+
+Опубліковано Windows Setup/Portable, macOS ARM64/Intel, START/source, per-platform SHA-256 та combined `SHA256SUMS_v10_1.txt`. GitHub Release `v10.1` позначений як latest stable. Stable 10.0 залишається immutable rollback point.

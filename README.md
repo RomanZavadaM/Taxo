@@ -77,7 +77,7 @@ Taxo 10.1 формує окремий документ за 60 календар�
 
 **Taxo 10.0 — previous stable / rollback.** Він лишається immutable і доступний для повернення за потреби.
 
-Виконавчі пакети 10.1 формуються для Windows x64, macOS ARM64, macOS Intel x86_64 та START/source. Повний підсумок: [Release notes 10.1](docs/releases/RELEASE_NOTES_v10_1.md).
+Виконавчі пакети 10.1 **опубліковані** для Windows x64, macOS ARM64, macOS Intel x86_64 та START/source. Повний підсумок: [Release notes 10.1](docs/releases/RELEASE_NOTES_v10_1.md).
 
 ## Важливо
 
