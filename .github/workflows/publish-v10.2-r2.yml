@@ -27,21 +27,12 @@ jobs:
         run: |
           grep -Fxq 'Version: 10.2-r2' VERSION.txt
           grep -Fxq 'Release type: candidate' VERSION.txt
-          python - <<'PY'
-          import main
-          if main.APP_VERSION != '10.2-r2':
-              raise SystemExit(f'Expected APP_VERSION 10.2-r2, got {main.APP_VERSION!r}')
-          PY
+          grep -Fxq 'APP_VERSION = "10.2-r2"' main.py
 
       - name: Install Tk runtime
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-tk
-
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
 
       - name: Install dependencies
         run: |
