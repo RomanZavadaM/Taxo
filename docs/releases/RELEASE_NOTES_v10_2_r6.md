@@ -38,4 +38,11 @@
 - фактичні дані;
 - історичні stable/candidate tags.
 
+## Regression gate
+
+- START/source: **201 tests / OK**;
+- Windows: **201 tests / OK** + START preflight;
+- macOS ARM64: **201 tests / OK**;
+- macOS Intel x86_64: **201 tests / OK**.
+
 Stable baseline: **Taxo 10.1**.
