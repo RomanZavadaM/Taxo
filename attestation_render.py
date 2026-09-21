@@ -9,13 +9,11 @@ Taxo stamps only user-specific values and the selected activity.
 from pathlib import Path
 
 def pdf_to_jpg_pages(pdf_path, page1_path, page2_path, dpi=180, quality=92):
-    """Render exactly the first two PDF pages to JPEG without Word/LibreOffice."""
+    """Render exactly the first two PDF pages to JPEG using PDFium."""
     try:
-        import fitz  # PyMuPDF
+        import pypdfium2 as pdfium
     except ImportError as exc:
-        raise RuntimeError(
-            "Для JPG потрібен PyMuPDF. Оновіть залежності через START.bat."
-        ) from exc
+        raise RuntimeError("Для JPG потрібен pypdfium2. Оновіть залежності через START.bat.") from exc
 
     pdf_path = Path(pdf_path)
     page1_path = Path(page1_path)
@@ -23,14 +21,25 @@ def pdf_to_jpg_pages(pdf_path, page1_path, page2_path, dpi=180, quality=92):
     page1_path.parent.mkdir(parents=True, exist_ok=True)
     page2_path.parent.mkdir(parents=True, exist_ok=True)
 
-    doc = fitz.open(str(pdf_path))
+    doc = pdfium.PdfDocument(str(pdf_path))
     try:
         if len(doc) != 2:
             raise RuntimeError(f"Очікується 2 сторінки PDF, отримано: {len(doc)}")
-        matrix = fitz.Matrix(dpi / 72.0, dpi / 72.0)
+        scale = float(dpi) / 72.0
         for idx, target in ((0, page1_path), (1, page2_path)):
-            pix = doc[idx].get_pixmap(matrix=matrix, alpha=False)
-            pix.save(str(target), output="jpeg", jpg_quality=int(quality))
+            page = doc[idx]
+            try:
+                bitmap = page.render(scale=scale)
+                try:
+                    image = bitmap.to_pil().convert("RGB")
+                    try:
+                        image.save(target, format="JPEG", quality=int(quality))
+                    finally:
+                        image.close()
+                finally:
+                    bitmap.close()
+            finally:
+                page.close()
     finally:
         doc.close()
     return page1_path, page2_path
@@ -112,13 +121,14 @@ def _find_visual_font_files():
     return regular, bold
 
 
-def _fit_font_size(font, text, max_width, base_size=_VISUAL_BASE_FONT_SIZE, min_size=8.7):
+def _fit_font_size(font_name, text, max_width, base_size=_VISUAL_BASE_FONT_SIZE, min_size=8.7):
     """Shrink only when a user value would leave its allotted line."""
+    from reportlab.pdfbase import pdfmetrics
     text = str(text or "")
     if not text or max_width <= 0:
         return base_size
     try:
-        width = font.text_length(text, fontsize=base_size)
+        width = pdfmetrics.stringWidth(text, font_name, base_size)
     except Exception:
         return base_size
     if width <= max_width:
@@ -134,9 +144,13 @@ def _stamp_attestation_visual(context, out_path, template_path):
     formatting, borders, headings and notes. Only data fields are stamped.
     """
     try:
-        import fitz
+        from io import BytesIO
+        from pypdf import PdfReader, PdfWriter
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.pdfgen import canvas as pdf_canvas
     except ImportError as exc:
-        raise RuntimeError("Для PDF/JPG потрібен PyMuPDF. Оновіть залежності Taxo.") from exc
+        raise RuntimeError("Для PDF потрібні pypdf і ReportLab. Оновіть залежності Taxo.") from exc
 
     template_path = Path(template_path)
     out_path = Path(out_path)
@@ -145,40 +159,47 @@ def _stamp_attestation_visual(context, out_path, template_path):
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     regular_file, bold_file = _find_visual_font_files()
-    doc = fitz.open(str(template_path))
-    if len(doc) != 2:
-        doc.close()
-        raise RuntimeError(f"Візуальний шаблон Бланка має містити 2 сторінки, отримано: {len(doc)}")
+    for font_name, font_file in (("TaxoAttReg", regular_file), ("TaxoAttBold", bold_file)):
+        if font_name not in pdfmetrics.getRegisteredFontNames():
+            pdfmetrics.registerFont(TTFont(font_name, str(font_file)))
+
+    reader = PdfReader(str(template_path))
+    if len(reader.pages) != 2:
+        raise RuntimeError(f"Візуальний шаблон Бланка має містити 2 сторінки, отримано: {len(reader.pages)}")
+
+    overlay_buffers = []
+    canvases = []
+    page_heights = []
+    for page in reader.pages:
+        width = float(page.mediabox.width)
+        height = float(page.mediabox.height)
+        buf = BytesIO()
+        cv = pdf_canvas.Canvas(buf, pagesize=(width, height))
+        overlay_buffers.append(buf)
+        canvases.append(cv)
+        page_heights.append(height)
 
     try:
-        for page in doc:
-            page.insert_font(fontname="TaxoAttReg", fontfile=str(regular_file))
-            page.insert_font(fontname="TaxoAttBold", fontfile=str(bold_file))
-        font_regular = fitz.Font(fontfile=str(regular_file))
-        font_bold = fitz.Font(fontfile=str(bold_file))
 
         def value(key):
             return str(context.get(key) or "")
 
         def put(page_no, x, baseline, text, *, bold=True, max_width=None, size=None):
-            page = doc[page_no]
             text = str(text or "")
             if not text:
                 return
-            font = font_bold if bold else font_regular
+            font_name = "TaxoAttBold" if bold else "TaxoAttReg"
             fs = size or _VISUAL_BASE_FONT_SIZE
             if max_width is not None:
-                fs = _fit_font_size(font, text, max_width, fs)
-            page.insert_text(
-                (float(x), float(baseline)), text,
-                fontsize=float(fs),
-                fontname="TaxoAttBold" if bold else "TaxoAttReg",
-                color=(0, 0, 0), overlay=True,
-            )
+                fs = _fit_font_size(font_name, text, max_width, fs)
+            cv = canvases[page_no]
+            cv.setFillColorRGB(0, 0, 0)
+            cv.setFont(font_name, float(fs))
+            cv.drawString(float(x), page_heights[page_no] - float(baseline), text)
 
         def segment_width(text, bold, fs):
-            font = font_bold if bold else font_regular
-            return font.text_length(str(text or ""), fontsize=fs)
+            font_name = "TaxoAttBold" if bold else "TaxoAttReg"
+            return pdfmetrics.stringWidth(str(text or ""), font_name, fs)
 
         def line(page_no, x, baseline, parts, *, max_width=None):
             fs = _VISUAL_BASE_FONT_SIZE
@@ -196,10 +217,11 @@ def _stamp_attestation_visual(context, out_path, template_path):
             return xx
 
         def erase(page_no, rect):
-            # Keep the official frame itself untouched: rectangles stay inside
-            # the table border and cover only the line being rebuilt.
-            page = doc[page_no]
-            page.draw_rect(fitz.Rect(*rect), color=(1, 1, 1), fill=(1, 1, 1), overlay=True)
+            x0, y0, x1, y1 = map(float, rect)
+            cv = canvases[page_no]
+            cv.setFillColorRGB(1, 1, 1)
+            cv.setStrokeColorRGB(1, 1, 1)
+            cv.rect(x0, page_heights[page_no] - y1, x1 - x0, y1 - y0, stroke=0, fill=1)
 
         # Stable one-value positions measured from the same DOCX visual template.
         simple = {
@@ -297,25 +319,38 @@ def _stamp_attestation_visual(context, out_path, template_path):
         activity = int(context.get("activity_no") or 16)
         if activity in range(14, 20):
             for page_no in (0, 1):
-                r = fitz.Rect(*boxes[page_no][activity])
+                x0, y0, x1, y1 = boxes[page_no][activity]
                 inset = 2.0
-                doc[page_no].draw_line(
-                    (r.x0 + inset, r.y0 + inset), (r.x1 - inset, r.y1 - inset),
-                    color=(0, 0, 0), width=1.0, overlay=True,
-                )
-                doc[page_no].draw_line(
-                    (r.x0 + inset, r.y1 - inset), (r.x1 - inset, r.y0 + inset),
-                    color=(0, 0, 0), width=1.0, overlay=True,
-                )
+                cv = canvases[page_no]
+                cv.setStrokeColorRGB(0, 0, 0)
+                cv.setLineWidth(1.0)
+                h = page_heights[page_no]
+                cv.line(x0 + inset, h - (y0 + inset), x1 - inset, h - (y1 - inset))
+                cv.line(x0 + inset, h - (y1 - inset), x1 - inset, h - (y0 + inset))
+
+        writer = PdfWriter()
+        for idx, source_page in enumerate(reader.pages):
+            cv = canvases[idx]
+            cv.showPage()
+            cv.save()
+            overlay_buffers[idx].seek(0)
+            overlay_page = PdfReader(overlay_buffers[idx]).pages[0]
+            source_page.merge_page(overlay_page)
+            writer.add_page(source_page)
 
         if out_path.exists():
             try:
                 out_path.unlink()
             except OSError:
                 pass
-        doc.save(str(out_path), garbage=4, deflate=True)
+        with out_path.open("wb") as fh:
+            writer.write(fh)
     finally:
-        doc.close()
+        for buf in overlay_buffers:
+            try:
+                buf.close()
+            except Exception:
+                pass
     return out_path
 
 
