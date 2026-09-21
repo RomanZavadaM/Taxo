@@ -38,7 +38,7 @@ from workspace import (
 
 class TestTaxo102R1VehicleDocuments(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.2-r2")
+        self.assertEqual(main.APP_VERSION, "10.2-r3")
 
     def test_core_owns_current_shell_identity(self):
         core_source = inspect.getsource(main.App.__init__)
