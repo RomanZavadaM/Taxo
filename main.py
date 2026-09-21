@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r10"
+APP_VERSION = "10.3-r1"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -4398,7 +4398,7 @@ def _subtract_dt_intervals(base_start, base_end, covered):
 
 
 def _worklog_route_intervals(row, segments):
-    """Інтервали, які в режимі ТАХО закриваються маршрутом/тахокартою."""
+    """Інтервали керування/маршруту (не повна робоча зміна)."""
     work_day=datetime.strptime(row["work_date"],"%Y-%m-%d").date()
     out=[]
     source=segments
@@ -4417,6 +4417,91 @@ def _worklog_route_intervals(row, segments):
         if end>start:
             out.append((start,end))
     return out
+
+
+def _worklog_work_intervals(row, segments):
+    """Інтервали повної робочої зміни, включно з роботою поза керуванням."""
+    work_day=datetime.strptime(row["work_date"],"%Y-%m-%d").date()
+    base=datetime.combine(work_day,datetime.min.time())
+    source=segments
+    if source:
+        out=[]
+        for item in normalized_segment_intervals(source,"work"):
+            out.append((
+                base+timedelta(minutes=int(item["start"])),
+                base+timedelta(minutes=int(item["end"])),
+            ))
+        return [(a,b) for a,b in out if b>a]
+
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    ws=((row["work_start_time"] if "work_start_time" in keys else "") or "").strip()
+    we=((row["work_end_time"] if "work_end_time" in keys else "") or "").strip()
+    if not ws or not we:
+        return []
+    try:
+        sm=time_to_minutes(ws)
+        em=time_to_minutes(we)
+    except Exception:
+        return []
+    start=base+timedelta(minutes=sm)
+    end=base+timedelta(minutes=em)
+    if em<=sm:
+        end += timedelta(days=1)
+    return [(start,end)] if end>start else []
+
+
+def _planned_route_work_margins(route_segments):
+    """Перед-/післямаршрутний робочий запас із сценарію маршруту.
+
+    Наприклад, керування 08:15–19:25 при роботі 07:55–19:40 дає
+    20 хв до маршруту і 15 хв після нього. Це не фіксований норматив,
+    а індивідуальний запас конкретного маршруту.
+    """
+    route_segments=list(route_segments or [])
+    drive=normalized_segment_intervals(route_segments,"drive")
+    work=normalized_segment_intervals(route_segments,"work")
+    if not drive or not work:
+        return 0,0
+    drive_start=min(x["start"] for x in drive)
+    drive_end=max(x["end"] for x in drive)
+    work_start=min(x["start"] for x in work)
+    work_end=max(x["end"] for x in work)
+    return max(0,drive_start-work_start),max(0,work_end-drive_end)
+
+
+def _effective_attestation_duty_interval(row, segments, route_plan_segments=None):
+    """Межі роботи, поза якими тільки й може починатися/закінчуватися відпочинок.
+
+    Пріоритет:
+    1) явно задані work_start_time/work_end_time;
+    2) фактичні/уточнені межі маршруту завжди входять у робочу зміну;
+    3) якщо є сценарій маршруту, переносимо його перед- і післямаршрутний
+       робочий запас на уточнені межі маршруту.
+
+    Це не дозволяє зарахувати до відпочинку підготовку до рейсу, оформлення
+    після повернення, медогляд та іншу роботу поза тахокартою.
+    """
+    route_parts=_worklog_route_intervals(row,segments)
+    work_parts=_worklog_work_intervals(row,segments)
+
+    starts=[a for a,_ in work_parts]
+    ends=[b for _,b in work_parts]
+    if route_parts:
+        route_start=min(a for a,_ in route_parts)
+        route_end=max(b for _,b in route_parts)
+        starts.append(route_start)
+        ends.append(route_end)
+        pre_margin,post_margin=_planned_route_work_margins(route_plan_segments)
+        if pre_margin:
+            starts.append(route_start-timedelta(minutes=pre_margin))
+        if post_margin:
+            ends.append(route_end+timedelta(minutes=post_margin))
+    else:
+        pre_margin=post_margin=0
+
+    if not starts or not ends:
+        return None,None,0,0
+    return min(starts),max(ends),int(pre_margin),int(post_margin)
 
 
 def _attestation_activity_for_calendar_day(row):
@@ -4454,9 +4539,9 @@ def _build_attestation_required_segments(prev_block, next_block, row_by_day):
     Правило v8.54:
     - між двома послідовними календарними ТАХО-днями бланк не потрібен;
       міжзмінний відпочинок видно з двох добових тахокарт;
-    - якщо між ТАХО-днями є хоча б один інший календарний день, бланк
-      починається від завершення попереднього ТАХО-блоку і закінчується
-      початком наступного;
+    - якщо між маршрутними днями є хоча б один інший календарний день, бланк
+      починається лише ПІСЛЯ завершення повної попередньої робочої зміни і
+      закінчується ДО початку повної наступної робочої зміни;
     - усередині такого проміжку код визначається за видом календарного дня;
       однакові сусідні коди об'єднуються в один бланк.
     """
@@ -4477,8 +4562,8 @@ def _build_attestation_required_segments(prev_block, next_block, row_by_day):
         midnight=datetime.combine(day+timedelta(days=1),datetime.min.time())
         piece_end=min(midnight,gb)
 
-        # Після завершення ТАХО в його календарний день і перед початком
-        # наступного ТАХО в його календарний день це відпочинок (позиція 16).
+        # Після завершення РОБОТИ в його календарний день і перед початком
+        # наступної РОБОТИ в її календарний день це відпочинок (позиція 16).
         if day==prev_day or day==next_day:
             activity_no=16
         else:
@@ -4497,8 +4582,11 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
     """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
 
     Ключові правила:
-    - усі частини одного маршрутного ТАХО-дня = один ТАХО-блок від першого
-      виїзду до останнього повернення;
+    - ТАХО/маршрут не визначає межі відпочинку сам по собі;
+    - усі частини одного маршрутного дня формують робочу зміну, яка може
+      починатися ДО першого керування і закінчуватися ПІСЛЯ останнього;
+    - перед-/післямаршрутний запас беремо з налаштованого сценарію маршруту,
+      а не з фіксованої кількості хвилин;
     - якщо наступний ТАХО-день є наступним календарним днем, міжзмінний
       відпочинок окремим бланком НЕ закриваємо;
     - якщо між двома ТАХО-днями є один або більше інших календарних днів,
@@ -4561,6 +4649,39 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         for s in segs:
             seg_by.setdefault(s["worklog_id"],[]).append(s)
 
+    # Плановий сценарій маршруту потрібен не для меж відпочинку напряму,
+    # а лише щоб зберегти його штатний запас роботи ДО/ПІСЛЯ керування,
+    # коли фактичний/уточнений час маршруту зсувається.
+    route_plan_by_id={}
+    route_ids=sorted({
+        int(r["route_id"]) for r in rows
+        if "route_id" in r.keys() and r["route_id"] is not None
+    })
+    if route_ids:
+        q=",".join("?" for _ in route_ids)
+        for rs in con.execute(
+            f"""SELECT * FROM route_segments
+                 WHERE route_id IN ({q})
+                 ORDER BY route_id,segment_no""",
+            route_ids
+        ).fetchall():
+            route_plan_by_id.setdefault(int(rs["route_id"]),[]).append(rs)
+
+    legacy_plan_by_id={}
+    template_ids=sorted({
+        int(r["template_id"]) for r in rows
+        if "template_id" in r.keys() and r["template_id"] is not None
+    })
+    if template_ids:
+        q=",".join("?" for _ in template_ids)
+        for rs in con.execute(
+            f"""SELECT * FROM route_template_segments
+                 WHERE template_id IN ({q})
+                 ORDER BY template_id,segment_no""",
+            template_ids
+        ).fetchall():
+            legacy_plan_by_id.setdefault(int(rs["template_id"]),[]).append(rs)
+
     att_rows=con.execute(
         """SELECT * FROM attestations
            WHERE driver_id=? AND COALESCE(status,'active')='active'
@@ -4586,17 +4707,26 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         if mode!=WORK_MODE_TACHO:
             continue
 
-        route_parts=_worklog_route_intervals(r,seg_by.get(r["id"],[]))
-        if not route_parts:
+        route_id=(int(r["route_id"]) if "route_id" in r.keys() and r["route_id"] is not None else None)
+        template_id=(int(r["template_id"]) if "template_id" in r.keys() and r["template_id"] is not None else None)
+        route_plan=(
+            route_plan_by_id.get(route_id,[]) if route_id is not None else
+            legacy_plan_by_id.get(template_id,[]) if template_id is not None else
+            []
+        )
+        block_start,block_end,pre_margin,post_margin=_effective_attestation_duty_interval(
+            r,seg_by.get(r["id"],[]),route_plan
+        )
+        if not block_start or not block_end:
             continue
 
-        block_start=min(a for a,b in route_parts)
-        block_end=max(b for a,b in route_parts)
         duty_blocks.append({
             "work_date":d,
             "start":block_start,
             "end":block_end,
             "worklog_id":r["id"],
+            "pre_margin_minutes":pre_margin,
+            "post_margin_minutes":post_margin,
         })
 
     duty_blocks.sort(key=lambda x:x["start"])
@@ -4714,7 +4844,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 "activity_no":suggested_no,
                 "is_current":is_current,
                 "reason":(
-                    f"Поточний період до виїзду за графіком уже перекритий бланком. Автокод: {suggested_no}."
+                    f"Поточний період до початку наступної роботи вже перекритий бланком. Автокод: {suggested_no}."
                     if is_current else
                     f"Проміжок перекритий наявним бланком. Автокод для цього виду дня: {suggested_no}."
                 ),
@@ -4735,8 +4865,8 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                     "activity_no":suggested_no,
                     "is_current":is_current,
                     "reason":(
-                        f"Поточний період відпочинку/діяльності до наступного виїзду за графіком. "
-                        f"Підготувати бланк ДО виїзду. Автопозиція {suggested_no}: {ACTIVITIES[suggested_no]}."
+                        f"Поточний період відпочинку/діяльності до початку наступної робочої зміни. "
+                        f"Підготувати бланк ДО початку роботи. Автопозиція {suggested_no}: {ACTIVITIES[suggested_no]}."
                         if is_current else
                         f"Автоматично запропонована позиція {suggested_no}: {ACTIVITIES[suggested_no]}."
                     ),
@@ -14927,10 +15057,10 @@ class App(tk.Tk):
             bad=f"    ⚠ Нечитабельні періоди бланків ID: {', '.join(map(str,data['invalid_attestations']))}"
 
         current_text=(
-            f"    ПОТОЧНИЙ до виїзду {data['current_departure'].strftime('%d.%m.%Y %H:%M')}: "
+            f"    ПОТОЧНИЙ до початку роботи {data['current_departure'].strftime('%d.%m.%Y %H:%M')}: "
             f"{minutes_hhmm(data['current_required_minutes'])}, не закрито {minutes_hhmm(data['current_missing_minutes'])}"
             if data.get("current_pair_found") and data.get("current_departure") else
-            "    ПОТОЧНИЙ: бланк до найближчого виїзду за графіком не потрібен/не визначений"
+            "    ПОТОЧНИЙ: бланк до найближчого початку роботи не потрібен/не визначений"
         )
         self.att_gap_summary.set(
             f"Період історичного контролю: {data['start_day'].strftime('%d.%m.%Y')}–{data['end_day'].strftime('%d.%m.%Y')}    "
