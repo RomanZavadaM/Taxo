@@ -185,6 +185,23 @@ def vehicle_document_summary_text(con, vehicle_id, today=None):
     return overall if not issues else f"{overall}: {', '.join(issues)}"
 
 
+def vehicle_document_warning_lines(con, vehicle_id, today=None):
+    """Human-readable current document issues for operational warnings."""
+    _overall, details = vehicle_document_summary(con, vehicle_id, today=today)
+    warnings = []
+    for _dtype, label, row, status in details:
+        if status_rank(status) >= 3:
+            continue
+        meta = []
+        if row is not None and str(row["document_no"] or "").strip():
+            meta.append(f"№ {row['document_no']}")
+        if row is not None and str(row["valid_until"] or "").strip():
+            meta.append(f"діє до {display_date(row['valid_until'])}")
+        suffix = f" ({', '.join(meta)})" if meta else ""
+        warnings.append(f"{label}: {status}{suffix}")
+    return warnings
+
+
 def control_rows(con, active_only=True, today=None):
     sql = "SELECT * FROM vehicles"
     if active_only:

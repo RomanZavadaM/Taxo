@@ -16,6 +16,7 @@ from vehicle_documents import (
     document_status,
     ensure_vehicle_documents_schema,
     vehicle_document_summary,
+    vehicle_document_warning_lines,
 )
 from workspace import ensure_workspace, paths_for, resolved_path, workspace_has_data
 
@@ -213,6 +214,47 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
                 "Закінчується:"
             )
         )
+        con.close()
+
+    def test_waybill_warning_lists_document_term_problems_for_work_date(self):
+        con = sqlite3.connect(":memory:")
+        con.row_factory = sqlite3.Row
+        con.execute(
+            "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,ownership_type TEXT DEFAULT '',temporary_registration_required INTEGER DEFAULT 0,active INTEGER DEFAULT 1)"
+        )
+        con.execute(
+            "INSERT INTO vehicles(id,name,temporary_registration_required) VALUES(1,'Bus',1)"
+        )
+        ensure_vehicle_documents_schema(con)
+        now = "2026-09-21T10:00:00"
+        for dtype, number, until in (
+            ("insurance", "INS-1", "2026-09-20"),
+            ("inspection", "TECH-1", "2027-01-01"),
+            ("registration_certificate", "REG-1", ""),
+            ("tachograph_inspection_protocol", "TACHO-1", "2026-10-01"),
+            ("temporary_registration", "TEMP-1", ""),
+        ):
+            con.execute(
+                """
+                INSERT INTO vehicle_documents(
+                    vehicle_id,doc_type,document_no,valid_until,created_at,updated_at
+                ) VALUES(1,?,?,?,?,?)
+                """,
+                (dtype, number, until, now, now),
+            )
+        con.commit()
+
+        warnings = vehicle_document_warning_lines(con, 1, today=date(2026, 9, 21))
+        self.assertTrue(any("Страховка: Прострочений" in item for item in warnings))
+        self.assertTrue(any("Протокол перевірки тахографа: Закінчується:" in item for item in warnings))
+        self.assertTrue(any("Тимчасовий реєстраційний документ: Немає дати дії" in item for item in warnings))
+        self.assertFalse(any("Діагностика / техконтроль" in item for item in warnings))
+        self.assertFalse(any("Постійний техпаспорт" in item for item in warnings))
+
+        source = inspect.getsource(main.App.issue_selected_waybill)
+        self.assertIn("vehicle_document_warning_lines", source)
+        self.assertIn('today=row["date"]', source)
+        self.assertIn("messagebox.askyesno", source)
         con.close()
 
     def test_temporary_and_permanent_registration_have_separate_history(self):

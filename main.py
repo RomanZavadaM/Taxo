@@ -75,6 +75,7 @@ from vehicle_documents import (
     open_vehicle_document_control,
     open_vehicle_documents,
     vehicle_document_summary_text,
+    vehicle_document_warning_lines,
 )
 
 APP_VERSION = "10.2-r1"
@@ -11279,6 +11280,24 @@ class App(tk.Tk):
         # натискання «Зберегти» перед видачею документа.
         self.save_company(show_message=False)
         con=db()
+        document_warnings=vehicle_document_warning_lines(
+            con,row["vehicle_id"],today=row["date"]
+        )
+        if document_warnings:
+            warning_text=(
+                f"Увага: для автомобіля «{row['vehicle']}» є проблеми з документами "
+                f"на дату шляхового листа {row['date'].strftime('%d.%m.%Y')}:\n\n"
+                + "\n".join(f"• {item}" for item in document_warnings)
+                + "\n\nПродовжити формування шляхового листа?"
+            )
+            if not messagebox.askyesno(
+                "Шляхівка — застереження щодо документів",
+                warning_text,
+                parent=self.waybill_win,
+                icon="warning",
+            ):
+                con.close()
+                return
         existing=con.execute("SELECT * FROM waybills WHERE worklog_id=?",(row["worklog_id"],)).fetchone()
         company=con.execute("SELECT * FROM company WHERE id=1").fetchone()
         reprint=bool(existing and (existing["status"] or "active")=="active")
