@@ -13,7 +13,6 @@ from document_viewer import (
     IMAGE_EXTENSIONS,
     PDF_EXTENSIONS,
     document_kind,
-    visual_companion_for_docx,
 )
 import personnel_v91
 import v91_features
@@ -414,28 +413,27 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertIn(".docx", DOCX_EXTENSIONS)
         self.assertIn("open_document", inspect.getsource(main.App._open_path))
 
-    def test_docx_visual_preview_prefers_companion_pdf(self):
-        with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder)
-            docx=root/"form.docx"
-            pdf=root/"form.pdf"
-            jpg=root/"render.jpg"
-            docx.write_bytes(b"docx")
-            pdf.write_bytes(b"pdf")
-            jpg.write_bytes(b"jpg")
-
-            self.assertEqual(
-                visual_companion_for_docx(docx),
-                pdf,
-            )
-            self.assertEqual(
-                visual_companion_for_docx(docx, jpg),
-                jpg,
-            )
-
+    def test_format_buttons_are_external_and_preview_is_explicit(self):
         open_source=inspect.getsource(main.App.open_att_file)
-        self.assertIn('row["pdf_path"]',open_source)
-        self.assertIn("companion_path=companion",open_source)
+        preview_source=inspect.getsource(main.App.preview_selected_attestation)
+        waybill_open_source=inspect.getsource(main.App.open_selected_waybill)
+        waybill_preview_source=inspect.getsource(main.App.preview_selected_waybill)
+        build_att_source=inspect.getsource(main.App.build_attestation)
+        build_waybill_source=inspect.getsource(main.App.show_waybill_issue_window)
+
+        self.assertIn("open_external(resolved)",open_source)
+        self.assertNotIn("open_document",open_source)
+
+        self.assertIn('row["pdf_path"]',preview_source)
+        self.assertIn('row["jpg_page1_path"]',preview_source)
+        self.assertIn('row["file_path"]',preview_source)
+        self.assertIn("self._open_path(path)",preview_source)
+
+        self.assertIn("open_external(path)",waybill_open_source)
+        self.assertIn("open_document",waybill_preview_source)
+
+        self.assertIn("Перегляд у Taxo",build_att_source)
+        self.assertIn("Перегляд у Taxo",build_waybill_source)
 
     def test_vehicle_document_report_uses_history_for_selected_date(self):
         con = sqlite3.connect(":memory:")
