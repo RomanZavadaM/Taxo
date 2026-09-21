@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r7"
+APP_VERSION = "10.2-r8"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -11574,8 +11574,8 @@ class App(tk.Tk):
         win=tk.Toplevel(self); self.dispatch_win=win
         fit_window_to_screen(win,980,620,780,500)
         self._decorate_secondary_window(
-            win,"Випуск на лінію — зміни персоналу",
-            "Лікар, механік, диспетчер та інші ролі зміни"
+            win,"Оперативні зміни випуску",
+            "Лікар, механік, диспетчер — план дня, контроль і факт"
         )
         top=ttk.Frame(win,padding=8); top.pack(fill="x")
         ttk.Label(top,text="Дата:").pack(side="left")
@@ -11585,12 +11585,22 @@ class App(tk.Tk):
         ttk.Entry(top,textvariable=self.dispatch_date_var,width=12).pack(side="left",padx=(4,2))
         calendar_button(top,self.dispatch_date_var).pack(side="left",padx=(0,8))
         ttk.Button(top,text="Показати",command=self.refresh_dispatch_shifts).pack(side="left",padx=3)
-        ttk.Button(top,text="Додати зміну",command=self.dispatch_shift_form).pack(side="left",padx=3)
-        ttk.Button(top,text="Редагувати",command=self.edit_dispatch_shift).pack(side="left",padx=3)
+        ttk.Button(
+            top,text="Планувати / перепланувати…",
+            command=lambda:getattr(
+                self,"show_general_personnel_shift_planner",self.dispatch_shift_form
+            )()
+        ).pack(side="left",padx=3)
+        ttk.Button(top,text="Редагувати / факт",command=self.edit_dispatch_shift).pack(side="left",padx=3)
         ttk.Button(top,text="Видалити",command=self.delete_dispatch_shift).pack(side="left",padx=3)
         ttk.Label(
-            win,text=("Це окремий облік роботи персоналу випуску. ПІБ чергового автоматично переходить у шляхівки цієї дати; "
-                      "фактична відмітка і власноручний підпис залишаються у паперовому документі."),
+            win,text=(
+                "Це не окремий облік: тут показано ті самі зміни, що створюються у "
+                "«Персонал → Планування → Робочі зміни персоналу». "
+                "Вікно призначене для контролю конкретного дня та внесення факту. "
+                "ПІБ лікаря/механіка автоматично переходить у шляхівки цієї дати; "
+                "власноручний підпис залишається у паперовому документі."
+            ),
             foreground="gray",wraplength=930,justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
@@ -11636,8 +11646,8 @@ class App(tk.Tk):
                               e.personnel_no FROM employee_shifts sh JOIN employees e ON e.id=sh.employee_id WHERE sh.id=?""",(sid,)).fetchone(); con.close(); return row
 
     def dispatch_shift_form(self, existing=None):
-        parent=getattr(self,"dispatch_win",self); win=tk.Toplevel(parent); win.title("Зміна працівника випуску")
-        fit_window_to_screen(win,680,650,590,520); win.transient(parent); win.grab_set()
+        parent=getattr(self,"dispatch_win",self); win=tk.Toplevel(parent); win.title("Зміна персоналу — коригування / факт")
+        fit_window_to_screen(win,700,690,600,540); win.transient(parent); win.grab_set()
         default_date=(existing["work_date"] if existing else (self._dispatch_selected_date() or date.today()).isoformat())
         try: default_date=datetime.strptime(default_date,"%Y-%m-%d").strftime("%d.%m.%Y")
         except Exception: pass
@@ -11648,10 +11658,11 @@ class App(tk.Tk):
             "start":tk.StringVar(value=existing["start_time"] if existing else ""),"end":tk.StringVar(value=existing["end_time"] if existing else ""),
             "end_day":tk.StringVar(value=str(existing["end_day_offset"] if existing else 0)),
             "location":tk.StringVar(value=existing["location"] if existing else ""),
+            "break":tk.StringVar(value=str(int(existing["unpaid_break_minutes"] or 0)) if existing else ""),
             "actual":tk.StringVar(value=(hours_value_hhmm(existing["actual_hours"]) if existing and existing["actual_hours"] is not None else "")),
             "notes":tk.StringVar(value=existing["notes"] if existing else "")
         }
-        fields=(("date","Дата початку"),("role","Роль"),("name","Працівник з реєстру"),("personnel","Табельний №"),("shift","Зміна"),("start","Початок роботи"),("end_day","Кінець, день D+"),("end","Кінець роботи"),("location","Місце випуску"),("actual","Фактично відпрацьовано ГГ:ХХ"),("notes","Примітка"))
+        fields=(("date","Дата початку"),("role","Роль"),("name","Працівник з реєстру"),("personnel","Табельний №"),("shift","Зміна"),("start","Початок роботи"),("end_day","Кінець, день D+"),("end","Кінець роботи"),("location","Місце випуску"),("break","Неоплачувана перерва, хв"),("actual","Фактично відпрацьовано ГГ:ХХ"),("notes","Примітка"))
         widgets={}
         for row,(key,label) in enumerate(fields):
             ttk.Label(win,text=label).grid(row=row,column=0,sticky="w",padx=10,pady=6)
@@ -11700,9 +11711,19 @@ class App(tk.Tk):
             try:
                 start_min=parse_hhmm(values["start"].get().strip()); end_min=parse_hhmm(values["end"].get().strip())+end_day*1440
                 if end_min<=start_min: raise ValueError
-                planned=(end_min-start_min)/60.0
+                span_minutes=end_min-start_min
             except Exception:
                 messagebox.showerror("Зміна персоналу","Кінець зміни має бути пізніше початку з урахуванням D+.",parent=win); return
+            try:
+                break_minutes=int(values["break"].get().strip() or 0)
+                if break_minutes<0 or break_minutes>=span_minutes: raise ValueError
+            except ValueError:
+                messagebox.showerror(
+                    "Зміна персоналу",
+                    "Неоплачувана перерва має бути цілим числом хвилин від 0 до тривалості зміни.",
+                    parent=win
+                ); return
+            planned=(span_minutes-break_minutes)/60.0
             actual=None
             if values["actual"].get().strip():
                 try:
@@ -11732,9 +11753,9 @@ class App(tk.Tk):
                 other_end=datetime.combine(other_date+timedelta(days=int(other["end_day_offset"] or 0)),datetime.min.time())+timedelta(minutes=parse_hhmm(other["end_time"]))
                 if new_start<other_end and other_start<new_end:
                     con.close(); messagebox.showerror("Зміна персоналу",f"Час перетинається з іншою зміною ролі «{role}» у цьому місці.",parent=win); return
-            vals=(employee["id"],role,work_date.isoformat(),shift_no,values["start"].get().strip(),end_day,values["end"].get().strip(),values["location"].get().strip(),planned,actual,"actual" if actual is not None else "planned",values["notes"].get().strip())
-            if existing: con.execute("UPDATE employee_shifts SET employee_id=?,role=?,work_date=?,shift_no=?,start_time=?,end_day_offset=?,end_time=?,location=?,planned_hours=?,actual_hours=?,status=?,notes=? WHERE id=?",vals+(existing["id"],))
-            else: con.execute("INSERT INTO employee_shifts(employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,location,planned_hours,actual_hours,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",vals)
+            vals=(employee["id"],role,work_date.isoformat(),shift_no,values["start"].get().strip(),end_day,values["end"].get().strip(),values["location"].get().strip(),break_minutes,planned,actual,"actual" if actual is not None else "planned",values["notes"].get().strip())
+            if existing: con.execute("UPDATE employee_shifts SET employee_id=?,role=?,work_date=?,shift_no=?,start_time=?,end_day_offset=?,end_time=?,location=?,unpaid_break_minutes=?,planned_hours=?,actual_hours=?,status=?,notes=? WHERE id=?",vals+(existing["id"],))
+            else: con.execute("INSERT INTO employee_shifts(employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,location,unpaid_break_minutes,planned_hours,actual_hours,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",vals)
             con.commit(); con.close(); self.dispatch_date_var.set(work_date.strftime("%d.%m.%Y")); self.refresh_dispatch_shifts(); win.destroy()
         ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields),column=1,sticky="e",padx=10,pady=12)
 
