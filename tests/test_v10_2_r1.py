@@ -7,6 +7,7 @@ from datetime import date
 from pathlib import Path
 
 import main
+from document_viewer import DOCX_EXTENSIONS, IMAGE_EXTENSIONS, PDF_EXTENSIONS, document_kind
 import personnel_v91
 import v91_features
 from vehicle_documents import (
@@ -17,6 +18,7 @@ from vehicle_documents import (
     ensure_vehicle_documents_schema,
     vehicle_document_summary,
     vehicle_document_warning_lines,
+    vehicle_document_report_rows,
 )
 from workspace import ensure_workspace, paths_for, resolved_path, workspace_has_data
 
@@ -315,6 +317,77 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
             target = resolved_path(stored, root)
             self.assertTrue(target.is_file())
             self.assertEqual(target.read_bytes(), b"sample")
+
+    def test_internal_document_viewer_supports_archive_formats(self):
+        self.assertEqual(document_kind("sample.pdf"), "pdf")
+        self.assertEqual(document_kind("scan.JPG"), "image")
+        self.assertEqual(document_kind("form.docx"), "docx")
+        self.assertEqual(document_kind("sheet.xlsx"), "other")
+        self.assertIn(".pdf", PDF_EXTENSIONS)
+        self.assertIn(".png", IMAGE_EXTENSIONS)
+        self.assertIn(".docx", DOCX_EXTENSIONS)
+        self.assertIn("open_document", inspect.getsource(main.App._open_path))
+
+    def test_vehicle_document_report_uses_history_for_selected_date(self):
+        con = sqlite3.connect(":memory:")
+        con.row_factory = sqlite3.Row
+        con.execute(
+            "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,ownership_type TEXT DEFAULT '',temporary_registration_required INTEGER DEFAULT 0,active INTEGER DEFAULT 1)"
+        )
+        con.execute(
+            "INSERT INTO vehicles(id,name,plate) VALUES(1,'Bus','AA0001AA')"
+        )
+        ensure_vehicle_documents_schema(con)
+        old = "2026-01-01T10:00:00"
+        new = "2026-09-01T10:00:00"
+        base_docs = (
+            ("inspection", "TECH", "2026-01-01", "2027-01-01"),
+            ("registration_certificate", "REG", "2026-01-01", ""),
+            ("tachograph_inspection_protocol", "TACHO", "2026-01-01", "2027-01-01"),
+        )
+        for dtype, number, valid_from, valid_until in base_docs:
+            con.execute(
+                """
+                INSERT INTO vehicle_documents(
+                    vehicle_id,doc_type,document_no,valid_from,valid_until,created_at,updated_at
+                ) VALUES(1,?,?,?,?,?,?)
+                """,
+                (dtype, number, valid_from, valid_until, old, old),
+            )
+        con.execute(
+            """
+            INSERT INTO vehicle_documents(
+                vehicle_id,doc_type,document_no,valid_from,valid_until,archived,created_at,updated_at
+            ) VALUES(1,'insurance','OLD-INS','2026-01-01','2026-08-31',1,?,?)
+            """,
+            (old, old),
+        )
+        con.execute(
+            """
+            INSERT INTO vehicle_documents(
+                vehicle_id,doc_type,document_no,valid_from,valid_until,archived,created_at,updated_at
+            ) VALUES(1,'insurance','NEW-INS','2026-09-01','2027-08-31',0,?,?)
+            """,
+            (new, new),
+        )
+        con.commit()
+
+        august = vehicle_document_report_rows(
+            con, date(2026, 8, 15), active_only=True
+        )
+        september = vehicle_document_report_rows(
+            con, date(2026, 9, 15), active_only=True
+        )
+        august_insurance = next(
+            row for row in august if row["doc_type"] == "insurance"
+        )
+        september_insurance = next(
+            row for row in september if row["doc_type"] == "insurance"
+        )
+        self.assertEqual(august_insurance["document_no"], "OLD-INS")
+        self.assertEqual(september_insurance["document_no"], "NEW-INS")
+        self.assertNotEqual(august_insurance["status"], "Відсутній")
+        con.close()
 
     def test_document_copy_rejects_unsupported_file_type(self):
         with tempfile.TemporaryDirectory() as tmp:
