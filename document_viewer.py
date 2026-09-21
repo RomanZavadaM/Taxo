@@ -336,13 +336,14 @@ class DocxDocumentWindow:
 
 def open_document(parent, path, external_opener=None):
     target = Path(path)
-    if not target.exists():
-        raise FileNotFoundError(str(target))
     opener = external_opener or system_open
     # Non-GUI callers/tests and early-startup contexts must never crash while
-    # trying to construct a Toplevel without a valid Tk parent.
+    # trying to construct a Toplevel without a valid Tk parent. Delegate to the
+    # supplied opener before GUI-specific file validation.
     if parent is not None and not hasattr(parent, "tk"):
         return opener(target)
+    if not target.exists():
+        raise FileNotFoundError(str(target))
     kind = document_kind(target)
     if kind in {"pdf", "image"}:
         return RasterDocumentWindow(parent, target, external_opener=external_opener).win
