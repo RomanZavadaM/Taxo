@@ -66,7 +66,7 @@
 - `Taxo_v10_1_START.zip`;
 - per-platform і combined SHA-256 manifests.
 
-Stable publisher працює з commit у `main`.
+Stable publisher завершився успішно з commit `fa5bbe0a5de733af1e227847ef9584daca57676e`. Source/Windows/macOS — 162 tests / OK; опубліковано 10 assets.
 
 ## Taxo 10.0 package set
 
@@ -79,7 +79,7 @@ Stable publisher працює з commit у `main`.
 - per-platform SHA-256 manifests;
 - [SHA256SUMS_v10_0.txt](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/SHA256SUMS_v10_0.txt).
 
-Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Stable publisher — success; Windows/macOS/source regression suites — 117 tests / OK.
+Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Stable 10.0 publisher — success; Windows/macOS/source regression suites — 117 tests / OK.
 
 ## Release policy
 

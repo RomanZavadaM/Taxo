@@ -1,16 +1,15 @@
 # Taxo — технічний стан 10.1
 
-**Stable promotion approved:** 21.09.2026  
-**New stable:** Taxo 10.1  
+**Stable:** Taxo 10.1  
+**Tag:** `v10.1`  
+**Target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Previous stable / rollback:** Taxo 10.0  
 **Verified candidate:** v10.1-r5  
-**Candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`
+**Date:** 21.09.2026
 
 ## Технічний baseline
 
-10.1 зберігає всі інваріанти 10.0 і додає перевірений UI/driver-role контур.
-
-Ключові інваріанти:
+10.1 зберігає інваріанти 10.0 і додає перевірений UI/driver-role контур:
 - Plan != Fact;
 - exact intervals > duration-only;
 - duration-only не створює вигаданих часових меж;
@@ -22,33 +21,23 @@
 - employment state != driver role;
 - user DB не входить у реліз.
 
-## 10.1
+## Перевірка stable
 
-- новий shell: branded header + sidebar + content + status bar;
-- text-free logo + dynamic enterprise name;
-- personnel registry KPI/search/action hierarchy;
-- driver-role persistence fix;
-- Reports inside main workspace;
-- single-instance detailed personnel timesheet;
-- no duplicated full sidebar in secondary timesheet;
-- About/Help branded windows.
+- source — 162 tests / OK;
+- Windows — 162 tests / OK + START preflight;
+- Windows Setup/Portable — success;
+- macOS ARM64 — 162 tests / OK + Taxo.app;
+- macOS Intel x86_64 — 162 tests / OK + Taxo.app;
+- START/source — success;
+- SHA-256 manifests — success;
+- GitHub Release v10.1 — published, 10 assets.
 
-## Candidate gate
-
-v10.1-r5:
-- source/START — 157 tests / OK;
-- Windows — 157 tests / OK + START preflight;
-- macOS ARM64 — 157 tests / OK;
-- macOS Intel x86_64 — 157 tests / OK;
-- manual Windows UI/navigation gate — accepted.
-
-## Release infrastructure
+## Релізна інфраструктура
 
 - Windows: PyInstaller onedir + Inno Setup;
-- macOS: native Taxo.app on ARM64 and Intel;
+- macOS: native Taxo.app ARM64 + Intel;
 - START/source;
-- per-platform + combined SHA-256;
-- stable publisher builds from `main`;
-- old tags/releases are immutable.
+- stable publisher from `main`;
+- old tags/releases immutable.
 
-Фінальний звіт: [AUDIT_v10_1_STABLE.md](AUDIT_v10_1_STABLE.md).
+Фінальний аудит: [AUDIT_v10_1_STABLE.md](AUDIT_v10_1_STABLE.md).
