@@ -31,6 +31,17 @@ jobs:
       - name: Run regression suite
         run: python -m unittest discover -s tests -v
 
+      - name: Verify legal/commercial dependency gate
+        shell: bash
+        run: |
+          python tools/generate_sbom.py --check --output SBOM.cdx.json
+          if grep -Eiq 'PyMuPDF|import[[:space:]]+fitz|pymupdf' requirements.txt document_viewer.py attestation_render.py Taxo.spec Taxo_macos.spec; then
+            echo 'PyMuPDF/fitz must not be present in Taxo 10.2-r9+' >&2
+            exit 1
+          fi
+          python tools/collect_third_party_licenses.py --output /tmp/taxo-third-party-licenses
+          test -n "$(find /tmp/taxo-third-party-licenses -type f -print -quit)"
+
       - name: Create START.bat source archive
         id: pack
         shell: bash
@@ -87,6 +98,10 @@ jobs:
             work_regime.py
             branding.py
             branding_asset.py
+            LICENSE
+            COPYRIGHT
+            THIRD_PARTY_NOTICES.md
+            SBOM.cdx.json
           )
 
           for file in "${required_files[@]}"; do
