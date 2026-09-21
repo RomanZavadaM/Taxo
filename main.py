@@ -15258,7 +15258,8 @@ class App(tk.Tk):
                 f"Бланк №{att_id} уже частково перекриває цей період.\n\n"
                 f"Було:\n{old_from} → {old_to}\n\n"
                 f"Після уточнення ТАХО/графіка має бути:\n{period_from} → {period_to}\n\n"
-                "Створити нову ревізію цього ж бланка? Попередні файли будуть збережені в архіві.",
+                "Створити нову ревізію цього ж бланка? Суміжний робочий час буде скориговано автоматично, "
+                "а час керування залишиться без змін. Попередні файли будуть збережені в архіві.",
                 parent=self.att_gap_win
             ):
                 return
@@ -15351,6 +15352,197 @@ class App(tk.Tk):
         except Exception:
             return None
 
+    @staticmethod
+    def _attestation_adjacent_worklogs(con, driver_id, old_from_dt, old_to_dt):
+        """Знаходить робочі дні, між якими лежить уже існуючий бланк.
+
+        Прив'язка виконується до старих меж бланка, тому зміна часу самого
+        бланка не може випадково перескочити на інший робочий день.
+        Рядки без фактичних/планових часових меж роботи або керування
+        (вихідні, відпустки тощо) не вважаються суміжною зміною.
+        """
+        start_day=(old_from_dt.date()-timedelta(days=2)).isoformat()
+        end_day=(old_to_dt.date()+timedelta(days=2)).isoformat()
+        rows=con.execute(
+            """SELECT * FROM worklog
+               WHERE driver_id=? AND work_date BETWEEN ? AND ?
+               ORDER BY work_date,id""",
+            (int(driver_id),start_day,end_day)
+        ).fetchall()
+        if not rows:
+            return None,None
+
+        ids=[r["id"] for r in rows]
+        q=",".join("?" for _ in ids)
+        seg_by={}
+        for seg in con.execute(
+            f"""SELECT * FROM work_segments
+                 WHERE worklog_id IN ({q})
+                 ORDER BY worklog_id,segment_no""",
+            ids
+        ).fetchall():
+            seg_by.setdefault(seg["worklog_id"],[]).append(seg)
+
+        candidates=[]
+        for row in rows:
+            work_parts=_worklog_work_intervals(row,seg_by.get(row["id"],[]))
+            route_parts=_worklog_route_intervals(row,seg_by.get(row["id"],[]))
+            parts=work_parts or route_parts
+            if not parts:
+                continue
+            candidates.append({
+                "row":row,
+                "segments":seg_by.get(row["id"],[]),
+                "start":min(a for a,_ in parts),
+                "end":max(b for _,b in parts),
+            })
+
+        previous=[
+            item for item in candidates
+            if date.fromisoformat(item["row"]["work_date"]) <= old_from_dt.date()
+        ]
+        following=[
+            item for item in candidates
+            if date.fromisoformat(item["row"]["work_date"]) >= old_to_dt.date()
+        ]
+        prev=max(previous,key=lambda x:(x["row"]["work_date"],x["row"]["id"])) if previous else None
+        nxt=min(following,key=lambda x:(x["row"]["work_date"],x["row"]["id"])) if following else None
+        if prev and nxt and int(prev["row"]["id"])==int(nxt["row"]["id"]):
+            return None,None
+        return prev,nxt
+
+    @staticmethod
+    def _set_worklog_boundary(con, item, boundary, value_dt):
+        """Змінює тільки межу РОБОТИ; час керування/маршруту не переписує."""
+        if item is None:
+            return
+        row=item["row"]
+        segments=list(item.get("segments") or [])
+        work_day=date.fromisoformat(row["work_date"])
+        value=value_dt.strftime("%H:%M")
+
+        route_parts=_worklog_route_intervals(row,segments)
+        if route_parts:
+            route_start=min(a for a,_ in route_parts)
+            route_end=max(b for _,b in route_parts)
+            if boundary=="end" and value_dt < route_end:
+                raise ValueError(
+                    "Початок відпочинку не може бути раніше завершення керування "
+                    f"({route_end.strftime('%d.%m.%Y %H:%M')})."
+                )
+            if boundary=="start" and value_dt > route_start:
+                raise ValueError(
+                    "Кінець відпочинку не може бути пізніше початку керування "
+                    f"({route_start.strftime('%d.%m.%Y %H:%M')})."
+                )
+
+        if segments:
+            intervals=normalized_segment_intervals(segments,"work")
+            if not intervals:
+                raise ValueError("Для суміжної зміни не визначено робочі часові межі.")
+            chosen=(max(intervals,key=lambda x:x["end"])
+                    if boundary=="end"
+                    else min(intervals,key=lambda x:x["start"]))
+            seg=segments[int(chosen["index"])]
+            seg_id=int(seg["id"])
+            ws,we=_segment_work_pair(seg)
+            ws=(ws or "").strip(); we=(we or "").strip()
+            if boundary=="end":
+                we=value
+            else:
+                ws=value
+            if not ws or not we:
+                raise ValueError("Неможливо скоригувати неповну робочу частину.")
+            new_minutes=duration_minutes(ws,we)
+            if new_minutes<=0:
+                raise ValueError("Після корекції робоча частина має нульову тривалість.")
+            con.execute(
+                """UPDATE work_segments
+                      SET work_start_time=?,work_end_time=?,work_hours=?
+                    WHERE id=?""",
+                (ws,we,minutes_to_db_hours(new_minutes),seg_id)
+            )
+
+            updated=con.execute(
+                "SELECT * FROM work_segments WHERE worklog_id=? ORDER BY segment_no",
+                (int(row["id"]),)
+            ).fetchall()
+            work_intervals=normalized_segment_intervals(updated,"work")
+            if not work_intervals:
+                raise ValueError("Після корекції не визначено робочий інтервал.")
+            first=min(work_intervals,key=lambda x:x["start"])
+            last=max(work_intervals,key=lambda x:x["end"])
+            total=segments_union_minutes(updated,"work")
+            con.execute(
+                """UPDATE worklog
+                      SET work_start_time=?,work_end_time=?,work_hours=?
+                    WHERE id=?""",
+                (
+                    first["start_text"],last["end_text"],
+                    minutes_to_db_hours(total),int(row["id"])
+                )
+            )
+        else:
+            keys=set(row.keys())
+            ws=((row["work_start_time"] if "work_start_time" in keys else "") or "").strip()
+            we=((row["work_end_time"] if "work_end_time" in keys else "") or "").strip()
+            if not ws:
+                ws=((row["start_time"] if "start_time" in keys else "") or "").strip()
+            if not we:
+                we=((row["end_time"] if "end_time" in keys else "") or "").strip()
+            if boundary=="end":
+                we=value
+            else:
+                ws=value
+            if not ws or not we:
+                raise ValueError("Для суміжної зміни не визначено повні межі роботи.")
+            total=duration_minutes(ws,we)
+            if total<=0:
+                raise ValueError("Після корекції робоча зміна має нульову тривалість.")
+            con.execute(
+                """UPDATE worklog
+                      SET work_start_time=?,work_end_time=?,work_hours=?
+                    WHERE id=?""",
+                (ws,we,minutes_to_db_hours(total),int(row["id"]))
+            )
+
+    def _sync_attestation_boundaries_to_worklog(
+            self, con, driver_id, old_period_from, old_period_to,
+            new_period_from, new_period_to):
+        """Редагування бланка автоматично коригує суміжні межі робочого часу."""
+        old_from=parse_attestation_period(old_period_from)
+        old_to=parse_attestation_period(old_period_to)
+        new_from=parse_attestation_period(new_period_from)
+        new_to=parse_attestation_period(new_period_to)
+        if not all((old_from,old_to,new_from,new_to)):
+            raise ValueError("Неможливо синхронізувати бланк: некоректні часові межі.")
+
+        prev,nxt=self._attestation_adjacent_worklogs(
+            con,int(driver_id),old_from,old_to
+        )
+        changes=[]
+        if new_from != old_from:
+            if prev is None:
+                raise ValueError(
+                    "Не знайдено попередню робочу зміну для автоматичної корекції "
+                    "початку відпочинку."
+                )
+            self._set_worklog_boundary(con,prev,"end",new_from)
+            changes.append(
+                f"кінець роботи {prev['row']['work_date']} → {new_from.strftime('%d.%m.%Y %H:%M')}"
+            )
+        if new_to != old_to:
+            if nxt is None:
+                raise ValueError(
+                    "Не знайдено наступну робочу зміну для автоматичної корекції "
+                    "кінця відпочинку."
+                )
+            self._set_worklog_boundary(con,nxt,"start",new_to)
+            changes.append(
+                f"початок роботи {nxt['row']['work_date']} → {new_to.strftime('%d.%m.%Y %H:%M')}"
+            )
+        return changes
+
     def _update_attestation_record(self, attestation_id, period_from, period_to, activity_no, place):
         st=parse_attestation_period(period_from)
         en=parse_attestation_period(period_to)
@@ -15389,6 +15581,11 @@ class App(tk.Tk):
         try:
             current=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             _ensure_attestation_audit_baseline(con,current)
+            work_changes=self._sync_attestation_boundaries_to_worklog(
+                con,current["driver_id"],
+                current["period_from"],current["period_to"],
+                period_from,period_to
+            )
             new_revision=int(current["revision"] or 1)+1
             con.execute(
                 """UPDATE attestations
@@ -15403,6 +15600,8 @@ class App(tk.Tk):
             updated=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             moved=[v for k,v in archived_old.items() if v and v != ((current[k] or "") if k in current.keys() else "")]
             note="Відредаговано після зміни графіка/періоду; перегенеровано: " + ", ".join(x.upper() for x in formats)
+            if work_changes:
+                note += ". Автоматично скориговано робочий час: " + "; ".join(work_changes)
             if moved:
                 note += ". Попередні файли перенесено в архів."
             _audit_attestation_snapshot(con,updated,"EDIT",note)
@@ -15473,8 +15672,10 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text=(
-                "Після збереження старий DOCX не знищується: він переноситься у контрольний архів, "
-                "а в журналі змін залишається попередня ревізія. Контроль 56 днів одразу перерахується."
+                "Зміна меж бланка автоматично коригує суміжний робочий час водія: "
+                "«Період з» = кінець попередньої роботи, «Період по» = початок наступної. "
+                "Час керування/маршруту не переписується. Старі файли бланка переносяться в архів, "
+                "а контроль 56 днів одразу перераховується."
             ),
             foreground="gray",wraplength=700,justify="left"
         ).grid(row=5,column=0,columnspan=3,sticky="w",padx=12,pady=(8,12))
