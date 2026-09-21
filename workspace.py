@@ -165,7 +165,7 @@ def workspace_has_data(root):
     p=paths_for(root)
     if p["main_db"].exists() or p["tacho_db"].exists():
         return True
-    for key in ("tacho_scans","output","backups"):
+    for key in ("tacho_scans","vehicle_documents","output","backups"):
         folder=p[key]
         try:
             if folder.exists() and any(folder.iterdir()):
