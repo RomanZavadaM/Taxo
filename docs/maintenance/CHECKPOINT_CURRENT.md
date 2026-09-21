@@ -66,9 +66,11 @@ Candidate automation:
 - після r5 наступна ревізія — r6.
 
 
-## 10.2-r6 у роботі
+## 10.2-r6 — candidate ready for manual UI test
 
 - secondary-window UI consistency;
 - 12 великих службових/звітних вікон переходять на approved branding;
 - schema/data/business logic unchanged;
+- regression gate: 201 tests / OK на source, Windows, macOS ARM64 та Intel;
+- Windows START preflight: OK;
 - після виданого r6 наступний крок — тільки 10.2-r7.
