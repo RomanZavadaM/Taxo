@@ -2087,6 +2087,25 @@ def install(core, base_app):
             core.ttk.Button(b,text="Відкрити останній Excel",command=lambda:self._open_last_p5("xlsx")).pack(side="left",padx=5)
             core.ttk.Button(b,text="Звичайний місячний табель",command=self.show_employee_timesheet).pack(side="left",padx=(16,5))
 
+            vehicle_reports = core.ttk.LabelFrame(
+                rpanel, text="Транспортні засоби", padding=10
+            )
+            vehicle_reports.pack(fill="x", pady=(16,0))
+            core.ttk.Label(
+                vehicle_reports,
+                text=(
+                    "Контроль на вибрану дату: страховка, техконтроль, постійний/тимчасовий "
+                    "реєстраційний документ і протокол перевірки тахографа."
+                ),
+                foreground="gray", wraplength=900, justify="left"
+            ).pack(side="left", fill="x", expand=True)
+            core.ttk.Button(
+                vehicle_reports,
+                text="Стан документів транспортних засобів…",
+                style="Accent.TButton",
+                command=self.show_vehicle_documents_report,
+            ).pack(side="right", padx=(12,0))
+
         def _open_personnel_overview_employee(self):
             tree=getattr(self,"personnel_overview_tree",None)
             if not widget_alive(tree) or not tree.selection():
