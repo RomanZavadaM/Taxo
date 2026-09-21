@@ -6,7 +6,7 @@
 
 > **Stable:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) — актуальна експлуатаційна версія.  
 > **Previous stable / rollback:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0).  
-> **Current prerelease:** Taxo 10.2-r8 — єдиний маршрут планування персоналу; водійський графік лишається спеціалізованим, а оперативний випуск більше не є другим планувальником.  
+> **Current prerelease:** Taxo 10.2-r9 — єдиний маршрут планування персоналу; водійський графік лишається спеціалізованим, а оперативний випуск більше не є другим планувальником.  
 > **Stable:** 10.1 залишається основною експлуатаційною версією до окремого рішення про підвищення stable.
 
 [Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Setup_Windows_x64.exe) · [Windows Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Windows_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/SHA256SUMS_v10_1.txt)
@@ -15,7 +15,7 @@
 
 ## Для експлуатації
 
-Незмінним stable release залишається **Taxo 10.1 (`v10.1`)**. Робоча гілка **10.2-r8** побудована від прийнятого checkpoint 10.2-r7 і проходить candidate-перевірку. Робочі БД, скани, кеші та персональні документи не входять до GitHub-релізів; оновлення програми не потребує повторного введення робочої бази.
+Незмінним stable release залишається **Taxo 10.1 (`v10.1`)**. Робоча гілка **10.2-r9** побудована від прийнятого checkpoint 10.2-r7 і проходить candidate-перевірку. Робочі БД, скани, кеші та персональні документи не входять до GitHub-релізів; оновлення програми не потребує повторного введення робочої бази.
 
 Історичні checkpoint/test/publish-файли, старі патчі та ранні архіви версій 8.x прибрані з `main` і збережені окремо в гілці [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
 
@@ -58,7 +58,7 @@ Taxo — настільна система для одного автотран�
 | [Швидкий старт](docs/guides/QUICK_START.md) | Перший запуск і базове налаштування |
 | [Інструкція для персоналу](docs/guides/USER_MANUAL.md) | Щоденна робота з Taxo |
 
-> **Планування персоналу в 10.2-r8:** водії плануються у **«Графіку водіїв»**; лікар, механік, диспетчер та інші ролі — через **Персонал → Планування → «Робочі зміни персоналу — масово…»**. **«Оперативний день випуску»** показує ті самі зміни для конкретної дати та дає внести факт.
+> **Планування персоналу в 10.2-r9:** водії плануються у **«Графіку водіїв»**; лікар, механік, диспетчер та інші ролі — через **Персонал → Планування → «Робочі зміни персоналу — масово…»**. **«Оперативний день випуску»** показує ті самі зміни для конкретної дати та дає внести факт.
 | [Робота з тахографом](docs/guides/TACHOGRAPH_GUIDE.md) | Скани, інтервали, підтвердження, протоколи |
 | [Звіти](docs/guides/REPORTS_GUIDE.md) | Табелі, №340, 60-денний реєстр, PDF/Excel |
 | [Адміністрування](docs/guides/ADMIN_GUIDE.md) | Сховище, резервування, перенесення |
@@ -70,7 +70,7 @@ Taxo 10.1 формує окремий документ за 60 календар�
 
 ## Завантаження
 
-Для перевірки нових функцій готується **Taxo 10.2-r8** як prerelease зі START/source. Виконавчі пакети публікуються лише на запланованих контрольних точках; назви тестових пакетів і внутрішніх папок містять зрозумілу версію/ревізію без commit-хешів.
+Для перевірки нових функцій готується **Taxo 10.2-r9** як prerelease зі START/source. Виконавчі пакети публікуються лише на запланованих контрольних точках; назви тестових пакетів і внутрішніх папок містять зрозумілу версію/ревізію без commit-хешів.
 
 У [стабільному релізі Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) опубліковані Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v10_1_START.zip` і SHA-256 manifests. Робочі бази та персональні дані до релізів **не входять**.
 
