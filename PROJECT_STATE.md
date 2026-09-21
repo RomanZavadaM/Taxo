@@ -1,69 +1,48 @@
 # PROJECT_STATE — Taxo
 
-**Дата фіксації:** 21.09.2026  
-**Поточна stable:** Taxo 10.1  
-**Попередня stable / rollback:** Taxo 10.0  
-**Verified candidate:** v10.1-r5  
+**Дата:** 21.09.2026  
+**Stable baseline:** Taxo 10.1  
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Verified candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
-**PR #34:** merged  
-**Stable audit:** `docs/maintenance/AUDIT_v10_1_STABLE.md`  
-**Release notes:** `docs/releases/RELEASE_NOTES_v10_1.md`
+**Активна розробка:** Taxo 10.2-r1  
+**Робоча гілка:** `work/v10.2-vehicle-documents`  
+**PR:** #38
 
-## Рішення про stable 10.1
+## Джерело істини
 
-21.09.2026 користувач завершив ручний Windows gate і явно дозволив merge у `main`, multi-platform release та публікацію.
+- `main` + `v10.1` — завершена стабільна база.
+- Нова робота ведеться тільки від актуального `main`.
+- Старі candidate/work/docs/tmp-гілки не є робочими напрямами.
+- Старі релізи й теги залишаються лише історією GitHub; повертатися до них у розробці не планується.
+- Застарілі відкриті PR #33 і #35 закриті.
 
-10.1 промотує перевірену лінію `v10.1-r1` … `v10.1-r5`. Старі tags/releases лишаються immutable.
+## 10.2-r1 — транспортні засоби
 
-## Ключові зміни 10.1
+Мета: перетворити каталог автомобілів на робочий реєстр транспортних засобів з контролем документів.
 
-- виправлено змішування `drivers.active`, `employees.active` і ролі `Водій`;
-- завершення ролі водія не звільняє працівника і не самовідновлюється після restart;
-- `driver_end_date` зберігається окремо;
-- новий application shell із затвердженим text-free логотипом;
-- динамічна назва підприємства у шапці й вікнах;
-- реєстр працівників із KPI, пошуком і впорядкованими діями;
-- «Звіти» працюють у головному workspace;
-- детальний табель single-instance, без дубльованого повного sidebar;
-- PDF/Excel, П-5, баланс, контроль і папка звітів збережені;
-- «Про програму» та «Довідка» оформлені у новому стилі.
+Контролюються:
+- страховка;
+- діагностика / техконтроль;
+- тимчасовий реєстраційний документ;
+- техпаспорт / свідоцтво про реєстрацію.
 
-## Перевірка перед stable
+Для кожного документа:
+- номер/серія;
+- ким видано / страхова організація;
+- дата початку;
+- дата закінчення, якщо застосовується;
+- копія PDF/JPG/PNG/TIFF у робочому сховищі;
+- примітка;
+- архівування без видалення копії.
 
-v10.1-r5:
-- source/START — 157 tests / OK;
-- Windows — 157 tests / OK + START preflight;
-- macOS ARM64 — 157 tests / OK;
-- macOS Intel x86_64 — 157 tests / OK;
-- ручний Windows navigation/UI gate — підтверджено.
+Контроль:
+- відсутній;
+- прострочений;
+- закінчується протягом 30 днів;
+- актуальний.
+
+Транспортний засіб можна вивести з експлуатації без стирання історії, документів, шляхівок або показників пробігу.
 
 ## Дані
 
-- схема БД у 10.1 не змінюється;
-- наявне робоче сховище зберігається;
-- повторне введення даних не потрібне;
-- retention робочих даних — 48 місяців;
-- робочі бази, скани, кеші та персональні документи не публікуються.
-
-## Stable release result
-
-1. PR #34 — merged у `main`.
-2. Stable target — `fa5bbe0a5de733af1e227847ef9584daca57676e`.
-3. Source verify — **162 tests / OK**.
-4. Windows stable build — **162 tests / OK**, START preflight OK, Setup + Portable success.
-5. macOS ARM64 — **162 tests / OK**, native Taxo.app package success.
-6. macOS Intel x86_64 — **162 tests / OK**, native Taxo.app package success.
-7. START/source package — success.
-8. Per-platform і combined SHA-256 manifests — published.
-9. GitHub Release `v10.1` — published as latest stable, 10 assets.
-10. `main` + immutable `v10.1` є новим stable source of truth; `v10.0` — rollback.
-
-Офіційні пакети:
-- `Taxo_v10_1_Setup_Windows_x64.exe`;
-- `Taxo_v10_1_Windows_x64_Portable.zip`;
-- `Taxo_v10_1_macOS_arm64_Portable.zip`;
-- `Taxo_v10_1_macOS_x86_64_Portable.zip`;
-- `Taxo_v10_1_START.zip`;
-- per-platform та combined SHA-256.
+Робоча БД, копії документів, тахокарти й персональні файли не входять у GitHub-релізи. Оновлення програми не повинно вимагати повторного введення даних.
