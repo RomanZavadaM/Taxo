@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class TestTaxo101StableRelease(unittest.TestCase):
     def test_stable_identity(self):
         self.assertRegex(main.APP_VERSION,r"^10\\.(?:1|[2-9][0-9]*)(?:-r[0-9.]+)?$")
-        version=(ROOT/"VERSION.txt").read_text("utf-8")
-        self.assertIn("Version: 10.1",version)
-        self.assertIn("Release type: stable",version)
+        release_notes=(ROOT/"docs/releases/RELEASE_NOTES_v10_1.md").read_text("utf-8")
+        self.assertIn("Taxo 10.1",release_notes)
+        self.assertIn("stable",release_notes.lower())
         self.assertEqual(start_archive_stem("10.1"),"Taxo_v10_1_START")
 
     def test_verified_r5_navigation_fix_is_in_stable(self):
