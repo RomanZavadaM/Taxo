@@ -4,7 +4,7 @@ name: Publish Taxo 10.3-r1 source prerelease
 on:
   push:
     branches:
-      - 'work/v10.3-r1-attestation-reconcile'
+      - 'work/v10.3-r1-attestation-duty-boundaries'
     paths:
       - '.github/workflows/publish-v10.3-r1-source.yml'
   workflow_dispatch:
