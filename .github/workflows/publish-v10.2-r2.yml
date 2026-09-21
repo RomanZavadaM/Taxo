@@ -118,7 +118,7 @@ jobs:
             $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           }
           if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
-          & $iscc 'installer/Taxo.iss'
+          & $iscc 'installer/Taxo_v10_2_r2.iss'
           if (!(Test-Path 'release_out/Taxo_v10_2_candidate_r2_Setup_Windows_x64.exe')) { throw 'Installer not found' }
 
       - name: Create Windows checksum manifest
@@ -186,7 +186,7 @@ jobs:
 
       - name: Build native Taxo.app
         shell: bash
-        run: python -m PyInstaller --noconfirm --clean Taxo_macos.spec
+        run: python -m PyInstaller --noconfirm --clean Taxo_macos_v10_2_r2.spec
 
       - name: Verify application bundle
         shell: bash
