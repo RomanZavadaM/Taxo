@@ -2780,6 +2780,7 @@ def install(core, base_app):
             start_time = core.tk.StringVar(value="08:00")
             end_time = core.tk.StringVar(value="17:00")
             end_day = core.tk.StringVar(value="0")
+            unpaid_break = core.tk.StringVar(value="")
             location = core.tk.StringVar()
             note = core.tk.StringVar(value="Місячний план персоналу")
             replace = core.tk.BooleanVar(value=False)
@@ -2803,7 +2804,10 @@ def install(core, base_app):
             core.ttk.Combobox(body,textvariable=pattern_var,values=PATTERNS,state="readonly").grid(row=4,column=1,sticky="w",pady=4)
 
             times=core.ttk.Frame(body); times.grid(row=5,column=0,columnspan=3,sticky="ew",pady=4)
-            for label,var,width in (("Зміна",shift_var,5),("Початок",start_time,8),("D+",end_day,4),("Кінець",end_time,8),("Місце",location,20)):
+            for label,var,width in (
+                ("Зміна",shift_var,5),("Початок",start_time,8),("D+",end_day,4),
+                ("Кінець",end_time,8),("Перерва, хв",unpaid_break,8),("Місце",location,20)
+            ):
                 core.ttk.Label(times,text=label).pack(side="left",padx=(0,3))
                 if label=="Зміна":
                     core.ttk.Combobox(times,textvariable=var,values=("I","II"),state="readonly",width=width).pack(side="left",padx=(0,10))
@@ -2850,12 +2854,38 @@ def install(core, base_app):
                     work_days=int(cycle_work.get()),rest_days=int(cycle_rest.get())
                 )
                 if pattern_var.get()==PATTERN_SELECTED and not wd: raise ValueError("Виберіть дні тижня.")
-                dplus=int(end_day.get()); minutes=shift_span_minutes(start_time.get(),end_time.get(),dplus)
-                return emp,dates,dplus,minutes
+                dplus=int(end_day.get())
+                span_minutes=shift_span_minutes(start_time.get(),end_time.get(),dplus)
+                manual_break=unpaid_break.get().strip()
+                if manual_break:
+                    try:
+                        value=int(manual_break)
+                    except ValueError:
+                        raise ValueError("Неоплачувана перерва має бути цілим числом хвилин.")
+                    if value<0 or value>=span_minutes:
+                        raise ValueError("Неоплачувана перерва має бути від 0 до тривалості зміни.")
+                return emp,dates,dplus,span_minutes
+
+            def paid_plan_for_date(con,emp,d,span_minutes):
+                """Paid minutes and unpaid break for one planned clock span."""
+                raw=unpaid_break.get().strip()
+                if raw:
+                    break_minutes=int(raw)
+                    return span_minutes-break_minutes,break_minutes,"вручну"
+
+                norm,regime=day_norm_minutes(con,emp["id"],d)
+                gap=int(span_minutes)-int(norm or 0)
+                if (
+                    regime.regime_type!=REGIME_SUMMARIZED
+                    and int(norm or 0)>0
+                    and 0<gap<=120
+                ):
+                    return int(norm),gap,"авто за режимом"
+                return int(span_minutes),0,"без віднімання"
 
             def evaluate(show_error=True):
                 try:
-                    emp,dates,dplus,minutes=parse()
+                    emp,dates,dplus,span_minutes=parse()
                 except Exception as exc:
                     if show_error: core.messagebox.showerror("Планування",str(exc),parent=win)
                     return None,[]
@@ -2868,10 +2898,13 @@ def install(core, base_app):
                             "Щоб не дублювати маршрут/робочий час у employee_shifts",
                         ))
                     con.close()
-                    return (emp,dates,dplus,minutes),rows
+                    return (emp,dates,dplus,span_minutes),rows
                 for d in dates:
                     if not core.employee_employed_on(emp,d):
                         rows.append((d,"Поза періодом роботи","")); continue
+                    paid_minutes,break_minutes,break_source=paid_plan_for_date(
+                        con,emp,d,span_minutes
+                    )
                     absence=con.execute(
                         "SELECT day_type,notes FROM employee_time_entries WHERE employee_id=? AND work_date=?",
                         (emp["id"],d.isoformat())
@@ -2919,8 +2952,11 @@ def install(core, base_app):
                             ))
                             continue
                         continue
-                    rows.append((d,"Замінити план" if own else "Додати",""))
-                con.close(); return (emp,dates,dplus,minutes),rows
+                    details=f"Оплачувано {regime_hhmm(paid_minutes)}"
+                    if break_minutes:
+                        details += f"; неоплачувана перерва {break_minutes} хв ({break_source})"
+                    rows.append((d,"Замінити план" if own else "Додати",details))
+                con.close(); return (emp,dates,dplus,span_minutes),rows
 
             def preview():
                 for x in tree.get_children(): tree.delete(x)
@@ -2934,10 +2970,13 @@ def install(core, base_app):
                 if not writable:
                     core.messagebox.showinfo("Планування","Немає дат для запису.",parent=win); return
                 if not core.messagebox.askyesno("Планування",f"Записати {len(writable)} змін(и)?",parent=win): return
-                emp,dates,dplus,minutes=plan; con=core.db(); added=0; skipped=0
+                emp,dates,dplus,span_minutes=plan; con=core.db(); added=0; skipped=0
                 now_note=note.get().strip()
                 for d,action,_curr in rows:
                     if action not in ("Додати","Замінити план","Додати ⚠","Замінити план ⚠"): skipped+=1; continue
+                    paid_minutes,break_minutes,_break_source=paid_plan_for_date(
+                        con,emp,d,span_minutes
+                    )
                     absence=con.execute(
                         "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
                         (emp["id"],d.isoformat())
@@ -2957,9 +2996,13 @@ def install(core, base_app):
                     elif own:
                         skipped+=1; continue
                     try:
-                        con.execute("""INSERT INTO employee_shifts(employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,location,planned_hours,actual_hours,status,notes)
-                                      VALUES(?,?,?,?,?,?,?,?,?,NULL,'planned',?)""",
-                                    (emp["id"],role_var.get(),d.isoformat(),1 if shift_var.get()=="I" else 2,start_time.get(),dplus,end_time.get(),location.get().strip(),minutes/60.0,now_note))
+                        con.execute("""INSERT INTO employee_shifts(
+                                      employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,
+                                      location,unpaid_break_minutes,planned_hours,actual_hours,status,notes)
+                                      VALUES(?,?,?,?,?,?,?,?,?,?,NULL,'planned',?)""",
+                                    (emp["id"],role_var.get(),d.isoformat(),
+                                     1 if shift_var.get()=="I" else 2,start_time.get(),dplus,end_time.get(),
+                                     location.get().strip(),break_minutes,paid_minutes/60.0,now_note))
                         added+=1
                     except Exception:
                         skipped+=1
@@ -2970,8 +3013,10 @@ def install(core, base_app):
                 body,
                 text=(
                     "Сумісництво: кілька ролей в один день дозволені, якщо точні часові "
-                    "інтервали не перетинаються. План лише «8 год» не означає 08:00–16:00 "
-                    "і дає попередження, а не автоматичний конфлікт."
+                    "інтервали не перетинаються. Поле «Перерва, хв» — неоплачуваний час. "
+                    "Якщо воно порожнє, Taxo автоматично віднімає лише правдоподібну перерву "
+                    "до 2 годин, коли часовий інтервал довший за денну норму фіксованого режиму. "
+                    "Більші розбіжності не маскуються і мають перевірятися."
                 ),
                 foreground="gray", wraplength=900, justify="left",
             ).grid(row=9,column=0,columnspan=3,sticky="w",pady=(2,6))
