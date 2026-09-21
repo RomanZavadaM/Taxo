@@ -1,12 +1,12 @@
 Taxo / Driver Worktime
-Version: 10.2-r1
+Version: 10.2-r2
 Release date: 2026-09-21
 Release type: candidate
 Stable baseline: Taxo 10.1
 Stable tag: v10.1
 Stable target: fa5bbe0a5de733af1e227847ef9584daca57676e
 
-Taxo 10.2-r1 — transport documents candidate.
+Taxo 10.2-r2 — transport documents candidate.
 
 Основне:
 - модуль «Автомобілі» доповнено реєстром документів транспортного засобу;
@@ -18,3 +18,10 @@ Taxo 10.2-r1 — transport documents candidate.
 - транспортний засіб виводиться з експлуатації без стирання історичних записів і документів.
 
 Stable 10.1 не змінюється.
+
+
+Нумерація розробки:
+- ревізії в межах версії: r1 ... r10;
+- після r10 наступна версія 10.x і знову r1;
+- при суттєвих змінах 10.x може бути піднята раніше;
+- перехід на наступний перший розряд (наприклад 10 -> 11) виконується тільки за рішенням власника проєкту.
