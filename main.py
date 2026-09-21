@@ -80,6 +80,7 @@ from vehicle_documents import (
     vehicle_document_report_rows,
     export_vehicle_document_report_pdf,
     export_vehicle_document_report_xlsx,
+    display_date,
 )
 
 APP_VERSION = "10.2-r1"
