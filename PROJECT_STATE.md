@@ -15,7 +15,9 @@
 
 ## Джерело істини
 
-- **Постійні правила:** [PROJECT_RULES.md](PROJECT_RULES.md) — читати перед будь-якою роботою з Taxo.\n- **Поточний стан:** цей файл `PROJECT_STATE.md`.\n- `v10.1` — незмінний stable release / rollback checkpoint.
+- **Постійні правила:** [PROJECT_RULES.md](PROJECT_RULES.md) — читати перед будь-якою роботою з Taxo.
+- **Поточний стан:** цей файл `PROJECT_STATE.md`.
+- `v10.1` — незмінний stable release / rollback checkpoint.
 - `main` містить прийнятий candidate checkpoint `10.2-r7` і є базою для наступної розробки.
 - Нова кодова робота ведеться тільки від актуального `main` і починається з `10.2-r8`.
 - Старі candidate/work/docs/tmp-гілки не є робочими напрямами.
