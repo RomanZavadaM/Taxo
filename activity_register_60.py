@@ -217,20 +217,39 @@ def apply_main_database(core, grid, driver_id, start_day, end_day):
 
             for item in source_items:
                 activity_type = item["activity_type"] if "activity_type" in item.keys() else row["day_type"]
-                work_start = item["work_start_time"] if "work_start_time" in item.keys() else row["work_start_time"]
-                work_end = item["work_end_time"] if "work_end_time" in item.keys() else row["work_end_time"]
                 drive_start = item["start_time"] if "start_time" in item.keys() else row["start_time"]
                 drive_end = item["end_time"] if "end_time" in item.keys() else row["end_time"]
                 note = item["note"] if "note" in item.keys() else row["notes"]
 
-                work_span = span_datetimes(base_day, work_start, work_end)
-                if work_span:
-                    any_timed = True
-                    assign_span(
-                        grid, work_span[0], work_span[1],
-                        _activity_from_segment(activity_type),
-                        "Табель / часові межі роботи", 60, note, vlabel,
-                    )
+                # 10.3-r2: plan is the default fact, but sparse fact_* overrides
+                # take precedence in factual registers. For split shifts the
+                # outer factual boundary clips/extends only the edge parts.
+                if row_segments:
+                    work_spans = core._worklog_effective_work_intervals(row, row_segments)
+                    # Apply them once per worklog, not once per segment.
+                    if item is source_items[0]:
+                        for begin, finish in work_spans:
+                            any_timed = True
+                            assign_span(
+                                grid, begin, finish,
+                                _activity_from_segment(activity_type),
+                                "Факт роботи" if core._worklog_has_fact_override(row)
+                                else "Табель / план = факт",
+                                65 if core._worklog_has_fact_override(row) else 60,
+                                note, vlabel,
+                            )
+                else:
+                    work_spans = core._worklog_effective_work_intervals(row, [])
+                    for begin, finish in work_spans:
+                        any_timed = True
+                        assign_span(
+                            grid, begin, finish,
+                            _activity_from_segment(activity_type),
+                            "Факт роботи" if core._worklog_has_fact_override(row)
+                            else "Табель / план = факт",
+                            65 if core._worklog_has_fact_override(row) else 60,
+                            note, vlabel,
+                        )
                 drive_span = span_datetimes(base_day, drive_start, drive_end)
                 if drive_span:
                     any_timed = True
