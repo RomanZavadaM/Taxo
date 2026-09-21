@@ -38,12 +38,9 @@ class TaxoV90Tests(unittest.TestCase):
                 _NoFontCore, target, date(2026, 9, 17)
             )
             doc = PdfReader(target)
-            try:
-                text = "\n".join((page.extract_text() or "") for page in doc.pages)
-                self.assertIn("17.09.2026", text)
-                self.assertEqual(len(doc.pages), 1)
-            finally:
-                
+            text = "\n".join((page.extract_text() or "") for page in doc.pages)
+            self.assertIn("17.09.2026", text)
+            self.assertEqual(len(doc.pages), 1)
 
     def test_ui_exposes_driver_and_report_date_controls(self):
         source = inspect.getsource(v9_release.install)
