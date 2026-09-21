@@ -219,9 +219,6 @@ def install(core, base_app):
     class Taxo91App(base_app):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, **kwargs)
-            self.title(
-                f"Taxo {getattr(core, 'APP_VERSION', APP_VERSION)} — Працівники, графіки та шляхівки"
-            )
 
         def build_menu(self):
             # Core owns the application menu and the branded About window.
