@@ -4,7 +4,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-import fitz
+from pypdf import PdfReader
 
 from v91_features import (
     PATTERN_2_2,
@@ -127,8 +127,8 @@ class TestV91WaybillRendering(unittest.TestCase):
 
     def test_filled_company_replaces_stamp_hint(self):
         output = self._make_pdf("ТОВ АВТОТРАНСПОРТНЕ ПІДПРИЄМСТВО")
-        with fitz.open(output) as doc:
-            text = "\n".join(page.get_text() for page in doc)
+        with PdfReader(output) as doc:
+            text = "\n".join((page.extract_text() or "") for page in doc.pages)
         normalized = " ".join(text.split())
         self.assertIn("ТОВ АВТОТРАНСПОРТНЕ", normalized)
         self.assertNotIn("Місце для штампа", normalized)
@@ -137,8 +137,8 @@ class TestV91WaybillRendering(unittest.TestCase):
 
     def test_empty_company_keeps_stamp_hint(self):
         output = self._make_pdf("")
-        with fitz.open(output) as doc:
-            text = doc[0].get_text()
+        with PdfReader(output) as doc:
+            text = doc.pages[0].extract_text() or ""
         self.assertIn("Місце для штампа", text)
 
 
