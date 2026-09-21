@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r2"
+APP_VERSION = "10.2-r3"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -718,6 +718,7 @@ def init_db():
         license_issued_by TEXT DEFAULT '', -- legacy для старих баз
         employment_date TEXT DEFAULT '',
         driver_end_date TEXT DEFAULT '',
+        driver_role_mode TEXT NOT NULL DEFAULT 'legacy',
         notes TEXT DEFAULT '',
         active INTEGER DEFAULT 1,
         created_at TEXT NOT NULL
@@ -833,6 +834,20 @@ def init_db():
         PRIMARY KEY(employee_id, role)
     );
 
+    CREATE TABLE IF NOT EXISTS driver_role_periods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+        driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+        start_date TEXT DEFAULT '',
+        end_date TEXT DEFAULT '',
+        source TEXT NOT NULL DEFAULT 'manual',
+        voided INTEGER NOT NULL DEFAULT 0,
+        notes TEXT DEFAULT '',
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_driver_role_periods_driver
+        ON driver_role_periods(driver_id,start_date,end_date,voided);
+
     CREATE TABLE IF NOT EXISTS employee_shifts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE RESTRICT,
@@ -843,6 +858,7 @@ def init_db():
         end_day_offset INTEGER NOT NULL DEFAULT 0 CHECK(end_day_offset BETWEEN 0 AND 7),
         end_time TEXT NOT NULL,
         location TEXT DEFAULT '',
+        unpaid_break_minutes INTEGER NOT NULL DEFAULT 0,
         planned_hours REAL NOT NULL DEFAULT 0,
         actual_hours REAL,
         status TEXT NOT NULL DEFAULT 'planned',
@@ -1078,6 +1094,7 @@ def init_db():
         ("first_name_en", "TEXT DEFAULT ''"),
         ("middle_name_en", "TEXT DEFAULT ''"),
         ("driver_end_date", "TEXT DEFAULT ''"),
+        ("driver_role_mode", "TEXT NOT NULL DEFAULT 'legacy'"),
     ]:
         if name not in dcols:
             con.execute(f"ALTER TABLE drivers ADD COLUMN {name} {ddl}")
@@ -1140,6 +1157,12 @@ def init_db():
     ]:
         if name not in ecols:
             con.execute(f"ALTER TABLE employees ADD COLUMN {name} {ddl}")
+
+    shcols = {r[1] for r in con.execute("PRAGMA table_info(employee_shifts)").fetchall()}
+    if "unpaid_break_minutes" not in shcols:
+        con.execute(
+            "ALTER TABLE employee_shifts ADD COLUMN unpaid_break_minutes INTEGER NOT NULL DEFAULT 0"
+        )
 
     tcols = {r[1] for r in con.execute("PRAGMA table_info(employee_time_entries)").fetchall()}
     for name, ddl in [
