@@ -418,7 +418,7 @@ class TestPersonnelR3(unittest.TestCase):
     def test_p5_pdf_and_xlsx_smoke(self):
         with tempfile.TemporaryDirectory() as tmp:
             from openpyxl import load_workbook
-            import fitz
+            from pypdf import PdfReader
 
             db_path = Path(tmp) / "db.sqlite3"
             make_db(db_path)
@@ -436,9 +436,9 @@ class TestPersonnelR3(unittest.TestCase):
             self.assertTrue(pdf.exists() and pdf.stat().st_size > 1000)
             self.assertTrue(xlsx.exists() and xlsx.stat().st_size > 1000)
 
-            with fitz.open(pdf) as doc:
-                self.assertGreaterEqual(doc.page_count, 2)
-                text = "\n".join(page.get_text() for page in doc)
+            with PdfReader(pdf) as doc:
+                self.assertGreaterEqual(len(doc.pages), 2)
+                text = "\n".join((page.extract_text() or "") for page in doc.pages)
             # Numeric metadata remains extractable even on CI hosts where the
             # test FakeCore intentionally has no Cyrillic TTF candidate.
             self.assertIn("31.08.2026", text)
