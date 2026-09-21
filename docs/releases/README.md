@@ -1,7 +1,7 @@
 # Релізи Taxo
 
-**Актуальна stable:** Taxo 10.0  
-**Previous stable / rollback:** Taxo 9.0.1
+**Актуальна stable:** Taxo 10.1  
+**Previous stable / rollback:** Taxo 10.0
 
 - **[Taxo 10.0 — release notes](RELEASE_NOTES_v10_0.md)**
 - [GitHub Release v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)
@@ -28,3 +28,12 @@
 ## Stable 10.0 — published
 
 Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Windows x64 Setup/Portable, macOS ARM64/Intel, START/source та SHA-256 manifests опубліковані. Stable publisher завершився успішно; regression suite — 117 tests / OK на Windows і обох macOS архітектурах.
+
+
+## Правило candidate-розробки
+
+- Кожен завершений крок candidate отримує нову ревізію.
+- Послідовність: `r1 ... r10`; після `r10` — наступна minor-версія з `r1`.
+- Ревізію, для якої вже видано тестовий архів, повторно не використовувати.
+- Кожен крок завершується окремим START-архівом для тестування.
+- Повні правила: [../maintenance/DEVELOPMENT_RULES.md](../maintenance/DEVELOPMENT_RULES.md).
