@@ -20,11 +20,10 @@ DOCUMENT_TYPES = {
     "insurance": "Страховка",
     "inspection": "Діагностика / техконтроль",
     "temporary_registration": "Тимчасовий реєстраційний документ",
-    "registration_certificate": "Техпаспорт / свідоцтво про реєстрацію",
+    "registration_certificate": "Постійний техпаспорт / свідоцтво про реєстрацію",
 }
 
 EXPIRY_REQUIRED = {"insurance", "inspection", "temporary_registration"}
-REGISTRATION_TYPES = ("temporary_registration", "registration_certificate")
 WARNING_DAYS = 30
 
 
@@ -104,15 +103,12 @@ def ensure_vehicle_documents_schema(con):
 
 
 def archive_current_document_slot(con, vehicle_id, doc_type, keep_id=None, now=None):
-    """Archive the previous current document(s) for the same logical slot."""
-    competing_types = REGISTRATION_TYPES if doc_type in REGISTRATION_TYPES else (doc_type,)
-    placeholders = ",".join("?" for _ in competing_types)
+    """Archive the previous current document of the same type only."""
     stamp = now or datetime.now().isoformat(timespec="seconds")
-    params = [stamp, int(vehicle_id), *competing_types]
+    params = [stamp, int(vehicle_id), str(doc_type)]
     sql = (
         "UPDATE vehicle_documents SET archived=1,updated_at=? "
-        "WHERE vehicle_id=? AND COALESCE(archived,0)=0 "
-        f"AND doc_type IN ({placeholders})"
+        "WHERE vehicle_id=? AND COALESCE(archived,0)=0 AND doc_type=?"
     )
     if keep_id is not None:
         sql += " AND id<>?"
@@ -139,35 +135,32 @@ def latest_documents(con, vehicle_id):
 
 
 def vehicle_document_summary(con, vehicle_id, today=None):
-    """Return the three effective control requirements for one vehicle.
+    """Return effective document requirements for one vehicle.
 
-    Insurance and inspection are independent. Registration is one logical
-    requirement satisfied by either a temporary registration document or a
-    permanent registration certificate/technical passport.
+    Permanent registration certificate/technical passport is always required.
+    A temporary registration document is an additional requirement only when
+    the vehicle card marks it as required for that ownership/use arrangement.
     """
     latest = latest_documents(con, vehicle_id)
-    details = []
+    vehicle = con.execute(
+        "SELECT temporary_registration_required FROM vehicles WHERE id=?",
+        (int(vehicle_id),),
+    ).fetchone()
+    temporary_required = bool(
+        vehicle and int(vehicle["temporary_registration_required"] or 0)
+    )
 
-    for dtype in ("insurance", "inspection"):
+    required_types = ["insurance", "inspection", "registration_certificate"]
+    if temporary_required:
+        required_types.append("temporary_registration")
+
+    details = []
+    for dtype in required_types:
         row = latest.get(dtype)
         status = "Відсутній" if row is None else document_status(
             dtype, row["valid_until"], today=today
         )
         details.append((dtype, DOCUMENT_TYPES[dtype], row, status))
-
-    registration_candidates = []
-    for dtype in REGISTRATION_TYPES:
-        row = latest.get(dtype)
-        if row is None:
-            continue
-        status = document_status(dtype, row["valid_until"], today=today)
-        registration_candidates.append((status_rank(status), int(row["id"]), dtype, row, status))
-
-    if registration_candidates:
-        _rank, _id, dtype, row, status = max(registration_candidates)
-        details.append(("registration", DOCUMENT_TYPES[dtype], row, status))
-    else:
-        details.append(("registration", "Реєстраційний документ", None, "Відсутній"))
 
     worst = min((status_rank(x[3]) for x in details), default=3)
     if worst <= 1:
@@ -177,7 +170,6 @@ def vehicle_document_summary(con, vehicle_id, today=None):
     else:
         overall = "Актуально"
     return overall, details
-
 
 def vehicle_document_summary_text(con, vehicle_id, today=None):
     overall, details = vehicle_document_summary(con, vehicle_id, today=today)
