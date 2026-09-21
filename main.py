@@ -15038,21 +15038,39 @@ class App(tk.Tk):
         con=db(); row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone(); con.close()
         return row
 
-    def _open_path(self, path):
+    def _open_path(self, path, companion_path=None):
         raw=(path or "").strip()
         path=real_data_path(raw)
         if path is None or not path.exists():
             messagebox.showerror("Помилка","Файл не знайдено.",parent=self)
             return
-        open_document(self, path, external_opener=open_external)
+
+        companion=None
+        if companion_path:
+            candidate=real_data_path((companion_path or "").strip())
+            if candidate is not None and candidate.exists():
+                companion=candidate
+
+        open_document(
+            self,
+            path,
+            external_opener=open_external,
+            companion_path=companion,
+        )
 
     def open_att_file(self, kind=None):
         row=self._selected_attestation_row()
         if row is None:
             messagebox.showwarning("Бланки","Виберіть бланк у таблиці.",parent=self)
             return
+        companion=None
         if kind=="docx":
             path=row["file_path"]
+            companion=(
+                row["pdf_path"]
+                or row["jpg_page1_path"]
+                or row["jpg_page2_path"]
+            )
         elif kind=="pdf":
             path=row["pdf_path"]
         elif kind=="jpg":
@@ -15062,7 +15080,7 @@ class App(tk.Tk):
         if not (path or "").strip():
             messagebox.showinfo("Бланки",f"Для цього запису формат {str(kind or '').upper()} не створювався.",parent=self)
             return
-        self._open_path(path)
+        self._open_path(path,companion_path=companion)
 
     def open_att_folder(self):
         row=self._selected_attestation_row()
