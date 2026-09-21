@@ -11,6 +11,7 @@ import personnel_v91
 import v91_features
 from vehicle_documents import (
     DOCUMENT_TYPES,
+    archive_current_document_slot,
     copy_document_file,
     document_status,
     ensure_vehicle_documents_schema,
@@ -69,7 +70,7 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         ensure_vehicle_documents_schema(con)
         overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
         self.assertEqual(overall, "Проблема")
-        self.assertEqual(sum(1 for item in details if item[3] == "Відсутній"), 4)
+        self.assertEqual(sum(1 for item in details if item[3] == "Відсутній"), 3)
 
         now = "2026-09-21T10:00:00"
         docs = [
@@ -90,7 +91,80 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         con.commit()
         overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
         self.assertEqual(overall, "Актуально")
-        self.assertEqual(len(details), 4)
+        self.assertEqual(len(details), 3)
+        con.close()
+
+    def test_registration_requirement_accepts_temporary_or_permanent_document(self):
+        for dtype, until in (
+            ("temporary_registration", "2026-12-21"),
+            ("registration_certificate", ""),
+        ):
+            con = sqlite3.connect(":memory:")
+            con.row_factory = sqlite3.Row
+            con.execute(
+                "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,active INTEGER DEFAULT 1)"
+            )
+            con.execute("INSERT INTO vehicles(id,name) VALUES(1,'Bus')")
+            ensure_vehicle_documents_schema(con)
+            now = "2026-09-21T10:00:00"
+            for required_type, required_until in (
+                ("insurance", "2027-01-01"),
+                ("inspection", "2027-01-01"),
+                (dtype, until),
+            ):
+                con.execute(
+                    """
+                    INSERT INTO vehicle_documents(
+                        vehicle_id,doc_type,valid_until,created_at,updated_at
+                    ) VALUES(1,?,?,?,?)
+                    """,
+                    (required_type, required_until, now, now),
+                )
+            con.commit()
+            overall, details = vehicle_document_summary(con, 1, today=date(2026, 9, 21))
+            self.assertEqual(overall, "Актуально")
+            self.assertEqual(len(details), 3)
+            con.close()
+
+    def test_new_document_archives_previous_current_slot(self):
+        con = sqlite3.connect(":memory:")
+        con.row_factory = sqlite3.Row
+        con.execute(
+            "CREATE TABLE vehicles(id INTEGER PRIMARY KEY,name TEXT,plate TEXT,make_model TEXT,active INTEGER DEFAULT 1)"
+        )
+        con.execute("INSERT INTO vehicles(id,name) VALUES(1,'Bus')")
+        ensure_vehicle_documents_schema(con)
+        now = "2026-09-21T10:00:00"
+        con.execute(
+            """
+            INSERT INTO vehicle_documents(
+                vehicle_id,doc_type,document_no,created_at,updated_at
+            ) VALUES(1,'insurance','OLD',?,?)
+            """,
+            (now, now),
+        )
+        con.execute(
+            """
+            INSERT INTO vehicle_documents(
+                vehicle_id,doc_type,document_no,created_at,updated_at
+            ) VALUES(1,'temporary_registration','TEMP',?,?)
+            """,
+            (now, now),
+        )
+        con.commit()
+
+        archive_current_document_slot(con, 1, "insurance", now=now)
+        archive_current_document_slot(con, 1, "registration_certificate", now=now)
+        con.commit()
+
+        old_insurance = con.execute(
+            "SELECT archived FROM vehicle_documents WHERE document_no='OLD'"
+        ).fetchone()
+        old_registration = con.execute(
+            "SELECT archived FROM vehicle_documents WHERE document_no='TEMP'"
+        ).fetchone()
+        self.assertEqual(old_insurance["archived"], 1)
+        self.assertEqual(old_registration["archived"], 1)
         con.close()
 
     def test_document_copy_is_kept_inside_workspace(self):
