@@ -1,8 +1,8 @@
-# Taxo 10.0
+# Taxo 10.1
 
 [Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-**Stabile Version: v10.0 — 19. September 2026.**
+**Stabile Version: v10.1 — 21. September 2026. Vorherige stabile/Rollback-Version: v10.0.**
 
 Taxo ist eine Desktop-Anwendung für ein einzelnes Verkehrsunternehmen. Sie verbindet Fahrerplanung, Arbeitszeiterfassung, Routen- und Fahrzeugdaten, Fahrtenblätter, Tätigkeitsbestätigungen, Berichte und die selektive Auswertung analoger Tachographenscheiben.
 
@@ -23,7 +23,7 @@ Taxo ist eine Desktop-Anwendung für ein einzelnes Verkehrsunternehmen. Sie verb
 
 ## Download
 
-Die offiziellen Pakete befinden sich im [GitHub Release v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0): Windows x64 Setup/Portable, macOS ARM64/Intel, START-Quellarchiv und SHA-256-Prüfsummen.
+Die offiziellen Pakete befinden sich im [GitHub Release v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1): Windows x64 Setup/Portable, macOS ARM64/Intel, START-Quellarchiv und SHA-256-Prüfsummen.
 
 Benutzerdatenbanken und personenbezogene Daten sind nicht Bestandteil der Releases.
 
@@ -39,4 +39,4 @@ Die vollständige Betriebsdokumentation wird auf Ukrainisch gepflegt:
 
 ## Projektstatus
 
-Taxo 10.0 ist die aktuelle stabile Betriebsversion. Sie übernimmt die geprüfte 9.1-Kandidatenlinie nach dem manuellen Operational Gate; v9.0.1 bleibt der vorherige stabile Rollback-Punkt.
+Taxo 10.1 ist die aktuelle stabile Betriebsversion. Sie übernimmt die geprüfte Linie 10.1-r5 nach automatischen Mehrplattform-Tests und dem manuellen Windows-UI-/Navigations-Gate; v10.0 bleibt der vorherige stabile Rollback-Punkt.

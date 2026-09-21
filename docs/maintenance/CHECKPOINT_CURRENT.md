@@ -1,40 +1,28 @@
 # Taxo — поточна контрольна точка
 
-**Stable:** Taxo 10.0 · 19.09.2026  
-**Previous stable / rollback:** Taxo 9.0.1  
-**Verified candidate:** v9.1-r9.8  
-**Stable release:** v10.0  
-**Release target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`
+**Stable promotion:** Taxo 10.1 · 21.09.2026  
+**Previous stable / rollback:** Taxo 10.0  
+**Verified candidate:** `v10.1-r5`  
+**Candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
+**Work branch:** `work/v10.1-driver-role-ui-refresh`  
+**PR:** #34
 
-## Статус
+## Gate
 
-Manual operational gate завершено. Лінія 9.1 більше не є поточним candidate-напрямком; вона стала основою stable 10.0.
+Manual Windows gate — **accepted**.
 
-## Що підтверджено
+Candidate automation:
+- source/START — **157 tests / OK**;
+- Windows — **157 tests / OK** + START preflight;
+- macOS ARM64 — **157 tests / OK**;
+- macOS Intel x86_64 — **157 tests / OK**.
 
-- START запускається у Windows після повного розпакування;
-- START.bat сумісний із cmd.exe;
-- місячний графік має пряме відкриття деталізації;
-- шляхівки однієї зміни мають єдиного лікаря/механіка;
-- overnight не підтягує staff наступної дати;
-- П-5, Персонал, аудит, №340, архів бланків і місячний контроль входять у stable;
-- бази/скани/персональні файли не публікуються.
+## Stable promotion
 
-## Build matrix 10.0 — success
-
-- Windows x64 Setup — published;
-- Windows x64 Portable — published;
-- macOS ARM64 — published;
-- macOS Intel x86_64 — published;
-- START/source — published;
-- SHA-256 per-platform + combined — published;
-- Windows/macOS/source regression suites — 117 tests / OK.
+Версію переведено з `10.1-r5` у `10.1`. Перед merge PR проходить повторний CI зі stable metadata. Після green PR #34 зливається у `main`, де `Publish Taxo 10.1 stable` збирає та публікує всі офіційні пакети.
 
 ## Політика
 
-- `main` = stable 10.0;
-- `v10.0` = immutable stable tag/release;
-- `v9.1-r5` … `v9.1-r9.8` = історія;
-- наступні зміни — нова work branch + PR.
-
-Повний аудит: [AUDIT_v10_0_STABLE.md](AUDIT_v10_0_STABLE.md).
+- `v10.0` та `v10.1-r1` … `v10.1-r5` — immutable;
+- `v10.1` створюється тільки stable publisher з merge commit у `main`;
+- БД/скани/персональні файли у release не входять.

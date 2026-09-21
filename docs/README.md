@@ -1,10 +1,10 @@
 # Документація Taxo
 
-Цей розділ є основною точкою входу до **експлуатаційної документації Taxo 10.0**.
+Цей розділ є основною точкою входу до **експлуатаційної документації Taxo 10.1**.
 
-**Stable:** Taxo 10.0  
-**Previous stable / rollback:** Taxo 9.0.1  
-**Verified candidate before stable:** v9.1-r9.8
+**Stable:** Taxo 10.1  
+**Previous stable / rollback:** Taxo 10.0  
+**Verified candidate before stable:** v10.1-r5
 
 ## Керівництва
 
@@ -22,24 +22,22 @@
 - [Стан продукту](PRODUCT_STATUS.md)
 - [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
 
-## Stable 10.0
+## Stable 10.1
 
-- [GitHub Release v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)
-- [Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_Setup_Windows_x64.exe)
-- [START/source](https://github.com/RomanZavadaM/Taxo/releases/download/v10.0/Taxo_v10_0_START.zip)
-- [Release notes 10.0](releases/RELEASE_NOTES_v10_0.md)
-- [Фінальний аудит 10.0](maintenance/AUDIT_v10_0_STABLE.md)
+- [GitHub Release v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1)
+- [Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Setup_Windows_x64.exe)
+- [START/source](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_START.zip)
+- [Release notes 10.1](releases/RELEASE_NOTES_v10_1.md)
+- [Фінальний аудит 10.1](maintenance/AUDIT_v10_1_STABLE.md)
 - [Поточний технічний стан](maintenance/PROJECT_STATE.md)
 - [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
 - [Повний індекс GitHub Releases](releases/RELEASE_INDEX.md)
 
-## Історичні аудити кандидатів 9.1
+## Previous stable 10.0
 
-- [r9.8 — duty staff шляхівок](maintenance/AUDIT_v9_1_r9_8.md)
-- [r9.7 — відкриття деталізації місячного графіка](maintenance/AUDIT_v9_1_r9_7.md)
-- [r9.6 — Windows START compatibility](maintenance/AUDIT_v9_1_r9_6.md)
-- [r9.5 — START package hotfix](maintenance/AUDIT_v9_1_r9_5.md)
-- [r9.4 — передетапний функціональний аудит](maintenance/AUDIT_v9_1_r9_4.md)
+- [GitHub Release v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)
+- [Release notes 10.0](releases/RELEASE_NOTES_v10_0.md)
+- [Фінальний аудит 10.0](maintenance/AUDIT_v10_0_STABLE.md)
 
 ## Історія розробки
 

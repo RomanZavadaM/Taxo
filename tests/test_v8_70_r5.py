@@ -192,8 +192,18 @@ class V870R5Tests(unittest.TestCase):
         windows = (root / ".github/workflows/build-windows-v8.70.yml").read_text("utf-8")
         macos = (root / ".github/workflows/build-macos-v8.70.yml").read_text("utf-8")
         current = version_from_file(root / "VERSION.txt")
-        if current == "10.0":
-            prefix = "Taxo_v10_0"
+        stable10 = re.fullmatch(r"10\.(\d+)(?:\.(\d+))?", current)
+        candidate10 = re.fullmatch(r"10\.(\d+)-r\d+(?:\.\d+)*", current)
+        if stable10:
+            parts = ["10", stable10.group(1)]
+            if stable10.group(2) is not None:
+                parts.append(stable10.group(2))
+            prefix = "Taxo_v" + "_".join(parts)
+        elif candidate10:
+            # 10.x candidates use the previous stable executable matrix until
+            # explicit stable promotion updates the build workflows.
+            previous_minor = max(0, int(candidate10.group(1)) - 1)
+            prefix = f"Taxo_v10_{previous_minor}"
         else:
             match = re.fullmatch(r"9\.1 candidate r(\d+(?:\.\d+)*)", current)
             self.assertIsNotNone(match)

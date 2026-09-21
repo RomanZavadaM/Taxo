@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 10.0 — модуль «Персонал», режими й табелі.
+"""Taxo 10.1 — модуль «Персонал», режими й табелі.
 
 Модуль:
 - додає окремий верхній розділ «Персонал»;
@@ -58,7 +58,7 @@ from v91_features import (
 )
 
 
-APP_VERSION = "10.0"
+APP_VERSION = "10.1"
 WINDOW_TITLE = f"Taxo {APP_VERSION} — персонал, водії, графіки та шляхівки"
 
 ABSENCE_RANGE_PLANNED = "Лише дні з робочим планом"
@@ -1764,6 +1764,17 @@ def install(core, base_app):
             nb.insert(1, self.tab_personnel, text="Персонал")
             self._build_personnel_section()
 
+            # In the approved shell «Працівники» must open the personnel
+            # registry, not the legacy driver-card list.
+            nav_buttons=getattr(self,"_nav_buttons",{})
+            driver_key=str(self.tab_drivers)
+            personnel_button=nav_buttons.pop(driver_key,None)
+            if personnel_button is not None:
+                personnel_button.configure(
+                    command=self.show_personnel_overview
+                )
+                nav_buttons[str(self.tab_personnel)]=personnel_button
+
             # Numeric tab indexes became unstable after adding «Персонал».
             # Keep a label-based preference from r3 onward.
             def remember_section(_event=None):
@@ -1782,6 +1793,15 @@ def install(core, base_app):
                             break
                 except core.tk.TclError:
                     pass
+            else:
+                try:
+                    nb.select(self.tab_personnel)
+                except core.tk.TclError:
+                    pass
+            try:
+                self._refresh_nav_selection()
+            except Exception:
+                pass
 
         def build_menu(self):
             result = super().build_menu()
@@ -1818,26 +1838,156 @@ def install(core, base_app):
             super().__init__(*args, **kwargs)
             self.title(WINDOW_TITLE)
 
+        def _select_personnel_page(self, page, nav_label="Працівники"):
+            self.show_tab(self.tab_personnel)
+            book=getattr(self,"personnel_book",None)
+            if book is not None and page is not None:
+                try:
+                    book.select(page)
+                except core.tk.TclError:
+                    pass
+            self._nav_active_override=nav_label
+            self._refresh_nav_selection()
+
+        def show_personnel_overview(self):
+            self._select_personnel_page(
+                getattr(self,"personnel_overview_page",None),"Працівники"
+            )
+            refresh=getattr(self,"_refresh_personnel_overview",None)
+            if callable(refresh):
+                refresh()
+
+        def show_reports_home(self):
+            self._select_personnel_page(
+                getattr(self,"personnel_reports_page",None),"Звіти"
+            )
+
         def _build_personnel_section(self):
             root = self.tab_personnel
-            book = core.ttk.Notebook(root)
-            book.pack(fill="both", expand=True, padx=8, pady=8)
+            # The approved shell shows the personnel registry as the page
+            # itself; the internal notebook stays only as a hidden container
+            # for legacy planning/report panels.
+            book = core.ttk.Notebook(root, style="Shell.TNotebook")
+            book.pack(fill="both", expand=True, padx=10, pady=10)
+            self.personnel_book = book
             overview = core.ttk.Frame(book)
             planning = core.ttk.Frame(book)
             timesheet = core.ttk.Frame(book)
             reports = core.ttk.Frame(book)
+            self.personnel_overview_page = overview
+            self.personnel_planning_page = planning
+            self.personnel_timesheet_page = timesheet
+            self.personnel_reports_page = reports
             book.add(overview, text="Реєстр")
             book.add(planning, text="Планування")
             book.add(timesheet, text="Табель")
             book.add(reports, text="Звіти")
 
-            # Реєстр
-            bar = core.ttk.Frame(overview, padding=8); bar.pack(fill="x")
-            core.ttk.Button(bar, text="Відкрити картки працівників", command=self.show_employee_registry).pack(side="left", padx=3)
-            core.ttk.Button(bar, text="Режим робочого часу…", command=self.show_employee_work_regime).pack(side="left", padx=(12,3))
-            core.ttk.Button(bar, text="Тижневий баланс…", command=self.show_personnel_week_balance).pack(side="left", padx=3)
-            core.ttk.Button(bar, text="Оновити", command=self._refresh_personnel_overview).pack(side="left", padx=3)
-            frame = core.ttk.Frame(overview); frame.pack(fill="both", expand=True, padx=8, pady=(0,8))
+            def sync_personnel_nav(_event=None):
+                try:
+                    selected=book.select()
+                    self._nav_active_override=(
+                        "Звіти" if selected==str(self.personnel_reports_page)
+                        else "Працівники"
+                    )
+                    self._refresh_nav_selection()
+                except (core.tk.TclError,AttributeError):
+                    pass
+            book.bind("<<NotebookTabChanged>>",sync_personnel_nav,add="+")
+
+            # Реєстр — основна сторінка «Працівники» у затвердженому shell.
+            hero = core.ttk.Frame(overview, padding=(16,14,16,8))
+            hero.pack(fill="x")
+            hero_left = core.ttk.Frame(hero)
+            hero_left.pack(side="left", fill="x", expand=True)
+            core.ttk.Label(
+                hero_left, text="Реєстр працівників", style="HeroTitle.TLabel"
+            ).pack(anchor="w")
+            core.ttk.Label(
+                hero_left,
+                text="Єдиний реєстр персоналу, посад, ролей та режимів робочого часу",
+                style="Muted.TLabel",
+            ).pack(anchor="w", pady=(3,0))
+            core.ttk.Button(
+                hero, text="＋  Новий працівник", style="Accent.TButton",
+                command=self.employee_form
+            ).pack(side="right", padx=(8,0))
+            core.ttk.Button(
+                hero, text="Відкрити картку", command=self._open_personnel_overview_employee
+            ).pack(side="right")
+
+            stats = core.ttk.Frame(overview, padding=(16,0,16,8))
+            stats.pack(fill="x")
+            self.personnel_stat_vars = {
+                "all": core.tk.StringVar(value="0"),
+                "active": core.tk.StringVar(value="0"),
+                "drivers": core.tk.StringVar(value="0"),
+                "inactive": core.tk.StringVar(value="0"),
+            }
+            def personnel_stat_card(parent, title, variable, bg, fg):
+                card = core.tk.Frame(
+                    parent, bg=bg, highlightthickness=1,
+                    highlightbackground=core.PALETTE["line"]
+                )
+                core.tk.Label(
+                    card, text=title, bg=bg, fg=core.PALETTE["navy"],
+                    font=("TkDefaultFont",9,"bold")
+                ).pack(anchor="w", padx=12, pady=(7,0))
+                core.tk.Label(
+                    card, textvariable=variable, bg=bg, fg=fg,
+                    font=("TkDefaultFont",16,"bold")
+                ).pack(anchor="w", padx=12, pady=(1,7))
+                return card
+            for idx,(key,title,bg,fg) in enumerate((
+                ("all","Всього",core.PALETTE["info_soft"],core.PALETTE["navy"]),
+                ("active","Працюють",core.PALETTE["success_soft"],core.PALETTE["success"]),
+                ("drivers","Водії",core.PALETTE["info_soft"],core.PALETTE["blue"]),
+                ("inactive","Звільнені",core.PALETTE["warning_soft"],core.PALETTE["warning"]),
+            )):
+                stats.columnconfigure(idx,weight=1)
+                personnel_stat_card(
+                    stats,title,self.personnel_stat_vars[key],bg,fg
+                ).grid(
+                    row=0,column=idx,sticky="ew",
+                    padx=(0 if idx==0 else 4,4 if idx<3 else 0)
+                )
+
+            tools = core.ttk.Frame(overview, padding=(16,4,16,8))
+            tools.pack(fill="x")
+            tool_left = core.ttk.Frame(tools)
+            tool_left.pack(side="left", fill="x", expand=True)
+            core.ttk.Button(
+                tool_left, text="Звільнити / поновити", command=self.toggle_employee_active
+            ).pack(side="left", padx=(0,4))
+            core.ttk.Button(
+                tool_left, text="Режим робочого часу…", command=self.show_employee_work_regime
+            ).pack(side="left", padx=4)
+            core.ttk.Button(
+                tool_left, text="Планування змін…", command=self.show_general_personnel_shift_planner
+            ).pack(side="left", padx=4)
+            core.ttk.Button(
+                tool_left, text="Відсутності…", command=self.show_personnel_absence_planner
+            ).pack(side="left", padx=4)
+            core.ttk.Button(
+                tool_left, text="Тижневий баланс…", command=self.show_personnel_week_balance
+            ).pack(side="left", padx=4)
+            core.ttk.Button(
+                tool_left, text="Оновити", command=self._refresh_personnel_overview
+            ).pack(side="left", padx=4)
+
+            search_box=core.ttk.Frame(tools)
+            search_box.pack(side="right", padx=(12,0))
+            core.ttk.Label(search_box,text="Пошук").pack(side="left",padx=(0,5))
+            self.personnel_search_var=core.tk.StringVar()
+            search_entry=core.ttk.Entry(
+                search_box,textvariable=self.personnel_search_var,width=28
+            )
+            search_entry.pack(side="left")
+            self.personnel_search_var.trace_add(
+                "write",lambda *_args:self._refresh_personnel_overview()
+            )
+
+            frame = core.ttk.Frame(overview); frame.pack(fill="both", expand=True, padx=12, pady=(0,8))
             frame.rowconfigure(0, weight=1); frame.columnconfigure(0, weight=1)
             cols = ("personnel","name","position","roles","regime","weeknorm","employment","status")
             tree = core.ttk.Treeview(frame, columns=cols, show="headings")
@@ -1852,6 +2002,21 @@ def install(core, base_app):
             sx=core.ttk.Scrollbar(frame,orient="horizontal",command=tree.xview)
             tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
             tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
+            tree.tag_configure("inactive",foreground=core.PALETTE["muted"])
+            tree.bind("<Double-1>",lambda _event:self._open_personnel_overview_employee())
+            tree.bind("<Return>",lambda _event:self._open_personnel_overview_employee())
+
+            footer=core.ttk.Frame(overview,padding=(12,2,12,10))
+            footer.pack(fill="x")
+            core.ttk.Label(
+                footer,
+                text="Підказка: подвійний клік по працівнику відкриває його картку.",
+                style="Muted.TLabel",
+            ).pack(side="left")
+            self.personnel_count_var=core.tk.StringVar(value="Всього: 0")
+            core.ttk.Label(
+                footer,textvariable=self.personnel_count_var,style="Muted.TLabel"
+            ).pack(side="right")
             self._refresh_personnel_overview()
 
             # Планування
@@ -1876,8 +2041,16 @@ def install(core, base_app):
             core.ttk.Button(tpanel, text="Тижневий баланс усього персоналу…", command=self.show_personnel_week_balance).pack(anchor="w", pady=4)
             core.ttk.Button(tpanel, text="Масово внести відсутність…", command=self.show_personnel_absence_planner).pack(anchor="w", pady=4)
 
-            # Звіти
+            # Звіти — це сторінка основного workspace, а не нова копія програми.
             rpanel = core.ttk.Frame(reports, padding=16); rpanel.pack(fill="x")
+            core.ttk.Label(
+                rpanel,text="Звіти та друк",style="HeroTitle.TLabel"
+            ).pack(anchor="w")
+            core.ttk.Label(
+                rpanel,
+                text="Формування табелів, П-5, балансів і контрольних звітів без відкриття нового головного вікна.",
+                style="Muted.TLabel",
+            ).pack(anchor="w",pady=(3,12))
             now = date.today()
             self.personnel_report_month = core.tk.StringVar(value=str(now.month))
             self.personnel_report_year = core.tk.StringVar(value=str(now.year))
@@ -1918,28 +2091,90 @@ def install(core, base_app):
             core.ttk.Button(b,text="Відкрити останній Excel",command=lambda:self._open_last_p5("xlsx")).pack(side="left",padx=5)
             core.ttk.Button(b,text="Звичайний місячний табель",command=self.show_employee_timesheet).pack(side="left",padx=(16,5))
 
+        def _open_personnel_overview_employee(self):
+            tree=getattr(self,"personnel_overview_tree",None)
+            if not widget_alive(tree) or not tree.selection():
+                core.messagebox.showinfo(
+                    "Працівники","Виберіть працівника у реєстрі.",parent=self
+                )
+                return
+            try:
+                employee_id=int(tree.selection()[0])
+            except (TypeError,ValueError):
+                return
+            con=core.db()
+            try:
+                row=con.execute(
+                    "SELECT * FROM employees WHERE id=?",(employee_id,)
+                ).fetchone()
+            finally:
+                con.close()
+            if row is not None:
+                self.employee_form(row)
+
         def _refresh_personnel_overview(self):
             tree = getattr(self, "personnel_overview_tree", None)
             if not widget_alive(tree):
                 return
             for item in tree.get_children(): tree.delete(item)
+            query=""
+            search_var=getattr(self,"personnel_search_var",None)
+            if search_var is not None:
+                try:
+                    query=search_var.get().strip().casefold()
+                except core.tk.TclError:
+                    query=""
             con = core.db()
+            count=0
+            active_count=0
+            driver_count=0
+            inactive_count=0
             try:
                 for row in _all_employee_rows(core, active_only=False):
+                    name=core.employee_name(row)
+                    roles=row["roles"] or ""
+                    haystack=" ".join((
+                        str(row["personnel_no"] or ""),name,
+                        str(row["position"] or ""),str(roles),
+                    )).casefold()
+                    if query and query not in haystack:
+                        continue
                     regime = latest_regime(con, row["id"])
                     regime_text = regime.label + ("" if regime.explicit else " (типово)")
-                    tree.insert("", "end", iid=str(row["id"]), values=(
-                        row["personnel_no"] or "",
-                        core.employee_name(row),
-                        row["position"] or "",
-                        row["roles"] or "",
-                        regime_text,
-                        regime_hhmm(regime.weekly_norm_minutes),
-                        core.fmt_date(row["employment_date"]),
-                        "Працює" if row["active"] else "Звільнений",
-                    ))
+                    tree.insert(
+                        "", "end", iid=str(row["id"]),
+                        values=(
+                            row["personnel_no"] or "",
+                            name,
+                            row["position"] or "",
+                            roles,
+                            regime_text,
+                            regime_hhmm(regime.weekly_norm_minutes),
+                            core.fmt_date(row["employment_date"]),
+                            "Працює" if row["active"] else "Звільнений",
+                        ),
+                        tags=(() if row["active"] else ("inactive",)),
+                    )
+                    count+=1
+                    if row["active"]:
+                        active_count+=1
+                    else:
+                        inactive_count+=1
+                    if "Водій" in roles:
+                        driver_count+=1
             finally:
                 con.close()
+            count_var=getattr(self,"personnel_count_var",None)
+            if count_var is not None:
+                count_var.set(f"Всього: {count}")
+            stat_vars=getattr(self,"personnel_stat_vars",{})
+            for key,value in (
+                ("all",count),("active",active_count),
+                ("drivers",driver_count),("inactive",inactive_count),
+            ):
+                variable=stat_vars.get(key)
+                if variable is not None:
+                    variable.set(str(value))
 
         def _active_employee_map(self):
             rows = _all_employee_rows(core, active_only=True)

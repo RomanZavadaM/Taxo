@@ -1,0 +1,108 @@
+name: Publish Taxo 10.1-r3 source prerelease
+
+on:
+  push:
+    branches:
+      - 'work/v10.1-driver-role-ui-refresh'
+    paths:
+      - '.github/workflows/publish-v10.1-r3-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify candidate identity
+        shell: bash
+        run: |
+          python - <<'PY'
+          from release_naming import version_from_file
+          version = version_from_file('VERSION.txt')
+          if version != '10.1-r3':
+              raise SystemExit(f'Expected 10.1-r3, got {version!r}')
+          PY
+
+      - name: Install Tk runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install regression dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run full regression suite
+        run: python -m unittest discover -s tests -v
+
+      - name: Build immutable START archive
+        shell: bash
+        run: |
+          stem='Taxo_v10_1_candidate_r3_START'
+          archive="${stem}.zip"
+          git archive --format=zip --prefix="${stem}/" --output="${archive}" HEAD
+
+          if unzip -l "${archive}" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included in candidate archive' >&2
+            exit 1
+          fi
+
+          required_files=(
+            START.bat
+            requirements.txt
+            taxo_app.py
+            main.py
+            branding.py
+            branding_asset.py
+            personnel_v91.py
+            v91_features.py
+            VERSION.txt
+          )
+          for file in "${required_files[@]}"; do
+            unzip -l "${archive}" | grep -q "/${file}$" || { echo "Missing ${file}" >&2; exit 1; }
+          done
+
+          unzip -p "${archive}" "*/START.bat" > /tmp/START.bat
+          python - <<'PY'
+          data = open('/tmp/START.bat', 'rb').read()
+          if not data or any(byte >= 128 for byte in data):
+              raise SystemExit('START.bat must remain non-empty ASCII')
+          if b'\r\n' not in data:
+              raise SystemExit('START.bat must contain CRLF line endings')
+          PY
+
+          sha256sum "${archive}" > SHA256SUMS_v10_1_r3.txt
+
+      - name: Refuse overwrite of immutable tag or release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin refs/tags/v10.1-r3 >/dev/null 2>&1; then
+            echo 'v10.1-r3 tag already exists; refusing to move or overwrite it.' >&2
+            exit 1
+          fi
+          if gh release view v10.1-r3 --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo 'v10.1-r3 release already exists; refusing to overwrite it.' >&2
+            exit 1
+          fi
+
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create v10.1-r3 \
+            Taxo_v10_1_candidate_r3_START.zip \
+            SHA256SUMS_v10_1_r3.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title 'Taxo 10.1-r3' \
+            --notes-file docs/releases/RELEASE_NOTES_v10_1_r3.md \
+            --prerelease

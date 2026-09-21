@@ -7,6 +7,7 @@
 """
 import calendar
 import os
+import platform
 import re
 import sqlite3
 import subprocess
@@ -20,6 +21,15 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 
+from branding import (
+    PALETTE,
+    apply_theme,
+    brand_photo,
+    configure_toplevel,
+    draw_brand_header,
+    install_runtime_icon,
+    nav_photo,
+)
 from workspace import (
     WorkspaceBusyError,
     WorkspaceLock,
@@ -60,6 +70,7 @@ try:
 except ImportError:
     build_waybill_pdf = None
 
+APP_VERSION = "10.1"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -571,6 +582,61 @@ def finish_driver_role(con, employee_id, driver_id, end_date):
     )
 
 
+def sync_legacy_driver_employee(con, dr):
+    """Synchronize legacy driver identity without mixing employment and role state.
+
+    drivers.active means only that the current driver role is active.
+    employees.active means that the person is employed.  Existing personnel
+    status is authoritative and must never be overwritten from drivers.active.
+    """
+    driver_end=(dr["driver_end_date"] or "").strip() if "driver_end_date" in dr.keys() else ""
+    driver_active=bool(dr["active"]) and not bool(driver_end)
+    employee=con.execute(
+        "SELECT id,active,dismissal_date FROM employees WHERE driver_id=?",
+        (dr["id"],),
+    ).fetchone()
+    if employee:
+        eid=employee["id"]
+        con.execute(
+            """UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,
+                   employment_date=?,notes=? WHERE id=?""",
+            (
+                dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
+                dr["employment_date"] or "",dr["notes"] or "",eid,
+            ),
+        )
+        # Repair the exact legacy corruption produced by old startup sync:
+        # role was ended (driver_end_date exists), dismissal was never recorded,
+        # but employees.active was copied from drivers.active and became 0.
+        if driver_end and not (employee["dismissal_date"] or "").strip() and not bool(employee["active"]):
+            con.execute("UPDATE employees SET active=1 WHERE id=?",(eid,))
+    else:
+        # A stored driver role end date is not an employee dismissal date.
+        employee_active=1 if driver_end else int(bool(dr["active"]))
+        cur=con.execute(
+            """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
+                   employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (
+                dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
+                "Водій",dr["employment_date"] or "",dr["notes"] or "",employee_active,dr["id"],
+                dr["created_at"] or datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+        eid=cur.lastrowid
+
+    if driver_active:
+        con.execute(
+            "INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",
+            (eid,"Водій"),
+        )
+    else:
+        con.execute(
+            "DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",
+            (eid,),
+        )
+    return eid
+
+
 def get_setting(key, default=""):
     try:
         con=db(); r=con.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone(); con.close()
@@ -1074,25 +1140,7 @@ def init_db():
         )
 
     for dr in con.execute("SELECT * FROM drivers ORDER BY id").fetchall():
-        employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(dr["id"],)).fetchone()
-        if employee:
-            eid=employee["id"]
-            con.execute(
-                """UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,
-                       employment_date=?,notes=?,active=? WHERE id=?""",
-                (dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
-                 dr["employment_date"] or "",dr["notes"] or "",int(dr["active"]),eid)
-            )
-        else:
-            cur=con.execute(
-                """INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,
-                       employment_date,notes,active,driver_id,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
-                (dr["personnel_no"] or "",dr["last_name"],dr["first_name"],dr["middle_name"] or "",
-                 "Водій",dr["employment_date"] or "",dr["notes"] or "",int(dr["active"]),dr["id"],
-                 dr["created_at"] or datetime.now().isoformat(timespec="seconds"))
-            )
-            eid=cur.lastrowid
-        con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(eid,"Водій"))
+        sync_legacy_driver_employee(con, dr)
 
     staff_map={}
     for st in con.execute("SELECT * FROM dispatch_staff ORDER BY id").fetchall():
@@ -6037,7 +6085,7 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("Taxo v8.70 r9 — Працівники, графіки та шляхівки")
+        self.title("Taxo 10.1-r3 — Працівники, графіки та шляхівки")
         fit_window_to_screen(self,1200,760,900,600)
         self.protocol("WM_DELETE_WINDOW", self.exit_app)
         self.bind("<Control-q>", lambda e: self.exit_app())
@@ -6132,25 +6180,438 @@ class App(tk.Tk):
             service_menu.add_command(label="Тахограф — шайби", command=lambda: self.show_tab(self.tab_tacho))
         menubar.add_cascade(label="Сервіс", menu=service_menu)
         help_menu = tk.Menu(menubar, tearoff=0)
-        help_menu.add_command(
-            label="Про програму",
-            command=lambda: messagebox.showinfo(
-                "Taxo v8.70 candidate r9",
-                "Облік водіїв та робочого часу — 48 місяців.\n\n"
-                "v8.70 r9: змінні локальні, мережеві та синхронізовані робочі сховища; "
-                "почергова робота кількох копій Taxo.\n"
-                "База, резервні копії, документи, журнали та скани зберігаються разом.",
-                parent=self
-            )
-        )
+        help_menu.add_command(label="Довідка користувача", accelerator="F1", command=self.show_help)
+        help_menu.add_command(label="Гарячі клавіші", command=lambda:self.show_help("Гарячі клавіші"))
+        help_menu.add_separator()
+        help_menu.add_command(label="Про програму", command=self.show_about)
         menubar.add_cascade(label="Довідка", menu=help_menu)
-        self.config(menu=menubar)
+        # Windows/Linux use the approved in-window header instead of the
+        # legacy native menu row.  The full menu remains available from ☰.
+        self._app_menu=menubar
+        if sys.platform=="darwin":
+            self.config(menu=menubar)
+        else:
+            self.config(menu="")
+        self.bind_all("<F1>", lambda _event:self.show_help(), add="+")
+
+    def _company_name_value(self):
+        vars_=getattr(self,"company_vars",{})
+        if "name" in vars_:
+            try:
+                value=vars_["name"].get().strip()
+                if value:
+                    return value
+            except tk.TclError:
+                pass
+        try:
+            con=db()
+            row=con.execute("SELECT name FROM company WHERE id=1").fetchone()
+            con.close()
+            if row and (row["name"] or "").strip():
+                return row["name"].strip()
+        except Exception:
+            pass
+        return "Назва підприємства"
+
+    def show_about(self):
+        existing=getattr(self,"_about_win",None)
+        if existing is not None:
+            try:
+                if existing.winfo_exists():
+                    existing.lift()
+                    return
+            except tk.TclError:
+                pass
+
+        win=tk.Toplevel(self)
+        self._about_win=win
+        win.title(f"Taxo / {self._company_name_value()} — Про програму")
+        fit_window_to_screen(win,900,690,760,580)
+        configure_toplevel(win)
+        win.transient(self)
+
+        banner=tk.Canvas(win,height=98,bg=PALETTE["header"],highlightthickness=0)
+        banner.pack(fill="x")
+        draw_brand_header(banner,self._company_name_value(),f"Taxo {APP_VERSION} / Driver Worktime")
+        banner.bind(
+            "<Configure>",
+            lambda _e:draw_brand_header(
+                banner,self._company_name_value(),f"Taxo {APP_VERSION} / Driver Worktime"
+            ),
+            add="+",
+        )
+
+        body=ttk.Frame(win,padding=16)
+        body.pack(fill="both",expand=True)
+        body.columnconfigure(1,weight=1)
+
+        logo=brand_photo(win,220)
+        win._about_logo=logo
+        left=ttk.Frame(body,style="Card.TFrame",padding=14)
+        left.grid(row=0,column=0,rowspan=2,sticky="nsew",padx=(0,14))
+        ttk.Label(left,image=logo).pack(pady=(4,8))
+        ttk.Label(
+            left,text="Рухаємо людей\nдо кращого завтра!",
+            foreground="#1556C0",font=("TkDefaultFont",12,"italic"),justify="center"
+        ).pack(pady=4)
+        ttk.Separator(left,orient="horizontal").pack(fill="x",pady=10)
+        ttk.Label(
+            left,text="Система обліку персоналу,\nробочого часу, маршрутів,\nдокументів і тахографів.",
+            justify="center",foreground=PALETTE["muted"]
+        ).pack()
+
+        info=ttk.Frame(body,style="Card.TFrame",padding=16)
+        info.grid(row=0,column=1,sticky="new")
+        ttk.Label(info,text="Taxo / Driver Worktime",style="HeroTitle.TLabel").grid(
+            row=0,column=0,columnspan=2,sticky="w"
+        )
+        ttk.Label(
+            info,text=self._company_name_value(),
+            foreground=PALETTE["blue"],font=("TkDefaultFont",13,"bold")
+        ).grid(row=1,column=0,columnspan=2,sticky="w",pady=(3,12))
+
+        info_rows=(
+            ("Версія",APP_VERSION),
+            ("Тип","candidate / test checkpoint"),
+            ("Платформа",f"{platform.system()} {platform.machine()}"),
+            ("База даних","SQLite workspace"),
+            ("Робоче сховище",str(DATA_ROOT)),
+            ("Резервні копії",str(BACKUP_DIR)),
+        )
+        for rr,(label,value) in enumerate(info_rows,start=2):
+            ttk.Label(info,text=f"{label}:",font=("TkDefaultFont",10,"bold")).grid(
+                row=rr,column=0,sticky="nw",padx=(0,12),pady=3
+            )
+            ttk.Label(
+                info,text=value,wraplength=500,justify="left"
+            ).grid(row=rr,column=1,sticky="w",pady=3)
+        info.columnconfigure(1,weight=1)
+
+        cards=ttk.Frame(body)
+        cards.grid(row=1,column=1,sticky="nsew",pady=(12,0))
+        cards.columnconfigure((0,1),weight=1)
+
+        modules=ttk.LabelFrame(cards,text="Основні модулі",padding=10)
+        modules.grid(row=0,column=0,sticky="nsew",padx=(0,6))
+        ttk.Label(
+            modules,
+            text=(
+                "• Працівники й ролі\n"
+                "• Табель і графіки\n"
+                "• Транспорт і маршрути\n"
+                "• Шляхові листи та П-5\n"
+                "• Підтвердження діяльності\n"
+                "• Аналогові тахокарти"
+            ),
+            justify="left",
+        ).pack(anchor="w")
+
+        resources=ttk.LabelFrame(cards,text="Підтримка / ресурси",padding=10)
+        resources.grid(row=0,column=1,sticky="nsew",padx=(6,0))
+        ttk.Button(
+            resources,text="Довідка користувача",command=lambda:self.show_help()
+        ).pack(fill="x",pady=3)
+        ttk.Button(
+            resources,text="GitHub / поточний реліз",
+            command=lambda:open_external("https://github.com/RomanZavadaM/Taxo/releases")
+        ).pack(fill="x",pady=3)
+        ttk.Button(resources,text="Відкрити папку даних",command=self.open_data_folder).pack(
+            fill="x",pady=3
+        )
+
+        footer=ttk.Frame(win,padding=(16,8,16,14))
+        footer.pack(fill="x")
+        ttk.Label(
+            footer,
+            text=f"© 2026 {self._company_name_value()} · Taxo {APP_VERSION}",
+            foreground=PALETTE["muted"],
+        ).pack(side="left")
+        ttk.Button(footer,text="Закрити",style="Accent.TButton",command=win.destroy).pack(side="right")
+
+    def show_help(self, initial_topic=None):
+        existing=getattr(self,"_help_win",None)
+        if existing is not None:
+            try:
+                if existing.winfo_exists():
+                    existing.lift()
+                    if initial_topic and hasattr(existing,"_taxo_select_topic"):
+                        existing._taxo_select_topic(initial_topic)
+                    return
+            except tk.TclError:
+                pass
+
+        win=tk.Toplevel(self)
+        self._help_win=win
+        win.title(f"Taxo / {self._company_name_value()} — Довідка")
+        fit_window_to_screen(win,1160,780,900,620)
+        configure_toplevel(win)
+
+        banner=tk.Canvas(win,height=92,bg=PALETTE["header"],highlightthickness=0)
+        banner.pack(fill="x")
+        draw_brand_header(banner,self._company_name_value(),"Taxo — Довідка користувача")
+        banner.bind(
+            "<Configure>",
+            lambda _e:draw_brand_header(
+                banner,self._company_name_value(),"Taxo — Довідка користувача"
+            ),
+            add="+",
+        )
+
+        topics={
+            "Початок роботи":(
+                "ПОЧАТОК РОБОТИ\n\n"
+                "1. Заповніть реквізити підприємства, насамперед поле «Назва підприємства».\n"
+                "2. Додайте працівників і призначте їм ролі. Статус працівника та роль «Водій» — різні поняття.\n"
+                "3. Налаштуйте режими робочого часу та планові зміни.\n"
+                "4. Додайте транспорт і маршрути.\n"
+                "5. Вносьте або підтверджуйте фактичний час.\n"
+                "6. Формуйте табелі, П-5, шляхові листи та інші звіти.\n\n"
+                "Перед оновленням програми або масовими змінами зробіть резервну копію."
+            ),
+            "Працівники й ролі":(
+                "ПРАЦІВНИКИ Й РОЛІ\n\n"
+                "У картці працівника зберігається статус «Працює / Звільнений». "
+                "Ролі «Водій», «Диспетчер», «Лікар», «Механік», «Кондуктор» ведуться окремо.\n\n"
+                "Зняття ролі «Водій» не звільняє працівника. Для ролі водія зберігається окрема дата завершення. "
+                "Після повторного запуску завершена роль не повинна відновлюватися."
+            ),
+            "Табелі":(
+                "ТАБЕЛІ ТА РОБОЧИЙ ЧАС\n\n"
+                "«Підсумок місяця» показує план, факт, відхилення та кількість днів без факту для всіх працівників. "
+                "Подвійний клік по працівнику відкриває щоденну деталізацію.\n\n"
+                "У «Щоденному табелі» можна внести ручний факт, скопіювати день, перенести план у факт, "
+                "очистити ручний запис і сформувати PDF/Excel.\n\n"
+                "План не підміняє факт автоматично. Для офіційного П-5 підстановка плану допускається лише після явного підтвердження."
+            ),
+            "Маршрути і транспорт":(
+                "МАРШРУТИ І ТРАНСПОРТ\n\n"
+                "У довіднику автомобілів зберігайте транспортні засоби, а в маршрутах — часові сценарії рейсів. "
+                "Точні інтервали підтримують поділені зміни та переходи через 00:00.\n\n"
+                "Після вибору шаблону маршруту часові параметри можна коригувати вручну."
+            ),
+            "Документи і П-5":(
+                "ДОКУМЕНТИ І П-5\n\n"
+                "Taxo формує шляхові листи, П-5, підтвердження діяльності, місячні графіки та деталізації. "
+                "PDF призначений для друку, XLSX — для контрольованого редагування та подальшого опрацювання.\n\n"
+                "Архів підтверджень діяльності зберігає історію сформованих документів."
+            ),
+            "Тахограф":(
+                "ТАХОГРАФ\n\n"
+                "Модуль аналогових тахокарт використовується для сканів, інтервалів, ручного підтвердження та протоколів. "
+                "Автоматичне розпізнавання є допоміжним: відповідальний працівник має перевірити результат перед використанням у факті."
+            ),
+            "Резервні копії":(
+                "РЕЗЕРВНІ КОПІЇ\n\n"
+                "Робоча база не входить у програмний ZIP або GitHub release. Вона зберігається у вибраному workspace.\n\n"
+                "Користуйтеся «Файл → Резервна копія» перед оновленням, масовими змінами або перенесенням даних. "
+                "Для мережевого чи синхронізованого сховища не запускайте дві копії Taxo одночасно поверх тих самих даних."
+            ),
+            "Гарячі клавіші":(
+                "ГАРЯЧІ КЛАВІШІ\n\n"
+                "Ctrl+C — копіювати\n"
+                "Ctrl+V — вставити\n"
+                "Ctrl+X — вирізати\n"
+                "Ctrl+A — виділити все\n"
+                "Shift+F10 — контекстне меню\n"
+                "F1 — відкрити довідку\n\n"
+                "На macOS замість Ctrl для основних команд використовується Command."
+            ),
+            "FAQ":(
+                "ЧАСТІ ЗАПИТАННЯ\n\n"
+                "Чому є план, але факт 0:00? — План і факт ведуться окремо; внесіть або підтвердьте фактичний час.\n\n"
+                "Чому працівник працює, але не є водієм? — Це нормальний стан: працевлаштування і спеціальна роль розділені.\n\n"
+                "Де моя база? — «Файл → Робоче сховище…» або «Файл → Відкрити папку даних».\n\n"
+                "Що перевіряти після оновлення? — Запуск, працівників/ролі, табель, документи та резервне копіювання."
+            ),
+        }
+
+        search_bar=ttk.Frame(win,padding=(12,10,12,6))
+        search_bar.pack(fill="x")
+        ttk.Label(search_bar,text="Пошук у довідці:",font=("TkDefaultFont",10,"bold")).pack(side="left")
+        query=tk.StringVar()
+        entry=ttk.Entry(search_bar,textvariable=query,width=45)
+        entry.pack(side="left",padx=8)
+
+        body=ttk.Frame(win,padding=(12,0,12,8))
+        body.pack(fill="both",expand=True)
+        body.columnconfigure(1,weight=1)
+        body.rowconfigure(0,weight=1)
+
+        left=ttk.Frame(body,style="Card.TFrame",padding=8)
+        left.grid(row=0,column=0,sticky="ns",padx=(0,10))
+        ttk.Label(left,text="Розділи",style="SectionTitle.TLabel").pack(anchor="w",pady=(2,8))
+        topic_list=tk.Listbox(
+            left,width=27,activestyle="none",exportselection=False,
+            bg="#F7FCFF",fg=PALETTE["navy"],selectbackground=PALETTE["blue"],
+            selectforeground="#FFFFFF",relief="flat",highlightthickness=1,
+            highlightbackground=PALETTE["line"],font=("TkDefaultFont",11)
+        )
+        topic_list.pack(fill="y",expand=True)
+
+        right=ttk.Frame(body,style="Card.TFrame",padding=12)
+        right.grid(row=0,column=1,sticky="nsew")
+        right.rowconfigure(1,weight=1)
+        right.columnconfigure(0,weight=1)
+        title_var=tk.StringVar()
+        ttk.Label(right,textvariable=title_var,style="HeroTitle.TLabel").grid(
+            row=0,column=0,sticky="w",pady=(0,8)
+        )
+        text_box=tk.Text(
+            right,wrap="word",relief="flat",borderwidth=0,
+            bg="#FFFFFF",fg=PALETTE["text"],font=("TkDefaultFont",11),
+            padx=10,pady=10
+        )
+        scroll=ttk.Scrollbar(right,orient="vertical",command=text_box.yview)
+        text_box.configure(yscrollcommand=scroll.set)
+        text_box.grid(row=1,column=0,sticky="nsew")
+        scroll.grid(row=1,column=1,sticky="ns")
+
+        visible=list(topics)
+
+        def populate(names):
+            nonlocal visible
+            visible=list(names)
+            topic_list.delete(0,"end")
+            for name in visible:
+                topic_list.insert("end",name)
+
+        def select_topic(name):
+            if name not in topics:
+                name=visible[0] if visible else next(iter(topics))
+            if name in visible:
+                idx=visible.index(name)
+                topic_list.selection_clear(0,"end")
+                topic_list.selection_set(idx)
+                topic_list.see(idx)
+            title_var.set(name)
+            text_box.configure(state="normal")
+            text_box.delete("1.0","end")
+            text_box.insert("1.0",topics[name])
+            text_box.configure(state="disabled")
+
+        def on_select(_event=None):
+            sel=topic_list.curselection()
+            if sel:
+                select_topic(visible[sel[0]])
+
+        def apply_search(*_args):
+            needle=query.get().strip().lower()
+            if not needle:
+                populate(topics)
+            else:
+                populate([
+                    name for name,content in topics.items()
+                    if needle in name.lower() or needle in content.lower()
+                ])
+            if visible:
+                select_topic(visible[0])
+            else:
+                title_var.set("Нічого не знайдено")
+                text_box.configure(state="normal")
+                text_box.delete("1.0","end")
+                text_box.insert("1.0","Спробуйте інше слово або коротший запит.")
+                text_box.configure(state="disabled")
+
+        win._taxo_select_topic=select_topic
+        topic_list.bind("<<ListboxSelect>>",on_select)
+        query.trace_add("write",apply_search)
+        populate(topics)
+        select_topic(initial_topic if initial_topic in topics else "Початок роботи")
+
+        footer=ttk.Frame(win,padding=(12,0,12,12))
+        footer.pack(fill="x")
+        ttk.Label(
+            footer,
+            text="Порада: подвійний клік у таблицях зазвичай відкриває деталізацію або редагування.",
+            foreground=PALETTE["muted"]
+        ).pack(side="left")
+        ttk.Button(footer,text="Про програму",command=self.show_about).pack(side="right",padx=4)
+        ttk.Button(footer,text="Закрити",style="Accent.TButton",command=win.destroy).pack(side="right")
+        entry.focus_set()
+
+    def _refresh_nav_selection(self):
+        nb=getattr(self,"notebook",None)
+        buttons=getattr(self,"_nav_buttons",{})
+        named=getattr(self,"_nav_named_buttons",{})
+        if nb is None or not named:
+            return
+        try:
+            current=str(nb.select())
+        except tk.TclError:
+            return
+        active_button=buttons.get(current)
+        override=getattr(self,"_nav_active_override",None)
+        for label,button in named.items():
+            active=(label==override) if override else (button is active_button)
+            button.configure(
+                bg="#0D8FD2" if active else PALETTE["sidebar"],
+                activebackground="#0D8FD2" if active else PALETTE["blue_dark"],
+                fg="#FFFFFF",
+                activeforeground="#FFFFFF",
+                relief="flat",
+            )
 
     def show_tab(self, tab):
-        for child in self.winfo_children():
-            if isinstance(child, ttk.Notebook):
-                child.select(tab)
-                return
+        nb=getattr(self,"notebook",None)
+        if nb is None:
+            return
+        try:
+            self._nav_active_override=None
+            nb.select(tab)
+            self._refresh_nav_selection()
+        except tk.TclError:
+            pass
+
+    def show_reports_home(self):
+        """Open reports inside the main workspace when the personnel module is active."""
+        personnel_tab=getattr(self,"tab_personnel",None)
+        book=getattr(self,"personnel_book",None)
+        reports_page=getattr(self,"personnel_reports_page",None)
+        if personnel_tab is not None and book is not None:
+            self.show_tab(personnel_tab)
+            try:
+                book.select(reports_page if reports_page is not None else 3)
+            except (tk.TclError,TypeError):
+                pass
+            self._nav_active_override="Звіти"
+            self._refresh_nav_selection()
+            return
+        # Compatibility fallback for a core-only launch without personnel_v91.
+        self.show_employee_timesheet()
+
+    def _show_app_menu(self):
+        menu=getattr(self,"_app_menu",None)
+        button=getattr(self,"header_menu_button",None)
+        if menu is None or button is None:
+            return
+        try:
+            menu.tk_popup(
+                button.winfo_rootx(),
+                button.winfo_rooty()+button.winfo_height(),
+            )
+        finally:
+            menu.grab_release()
+
+    def _refresh_header_clock(self):
+        var=getattr(self,"header_clock_var",None)
+        if var is None:
+            return
+        now=datetime.now()
+        months=(
+            "","січня","лютого","березня","квітня","травня","червня",
+            "липня","серпня","вересня","жовтня","листопада","грудня",
+        )
+        weekdays=(
+            "Понеділок","Вівторок","Середа","Четвер","П’ятниця","Субота","Неділя"
+        )
+        var.set(
+            f"Сьогодні: {now.day} {months[now.month]} {now.year} р.\n"
+            f"{weekdays[now.weekday()]}  {now:%H:%M}"
+        )
+        try:
+            self.after(30000,self._refresh_header_clock)
+        except tk.TclError:
+            pass
 
     def exit_app(self):
         if messagebox.askyesno("Вихід", "Вийти з програми?", parent=self):
@@ -6167,76 +6628,316 @@ class App(tk.Tk):
                 lock.release()
             self.destroy()
 
-    def build_ui(self):
-        style = ttk.Style(self)
+    def _refresh_brand_header(self):
+        company_name=self._company_name_value()
         try:
-            style.theme_use("vista")
+            self.title(f"Taxo / {company_name} — Облік персоналу")
+        except tk.TclError:
+            pass
+        title_var=getattr(self,"main_title_var",None)
+        if title_var is not None:
+            title_var.set(f"Taxo / {company_name}")
+        footer_var=getattr(self,"footer_company_var",None)
+        if footer_var is not None:
+            footer_var.set(f"Taxo / {company_name}")
+        canvas=getattr(self,"brand_canvas",None)
+        if canvas is not None:
+            draw_brand_header(canvas,company_name,f"Taxo {APP_VERSION} / Driver Worktime")
+
+    def _refresh_company_preview(self):
+        canvas=getattr(self,"company_preview_canvas",None)
+        if canvas is None:
+            return
+        name=self._company_name_value()
+        draw_brand_header(canvas,name,"Так виглядатиме шапка Taxo")
+
+    def build_ui(self):
+        apply_theme(self, ttk)
+        try:
+            install_runtime_icon(self)
         except Exception:
+            # Branding must never prevent access to operational data.
             pass
 
-        style.configure("TButton", padding=(8, 4))
-        style.configure("Treeview", rowheight=24)
+        # ------------------------------------------------------------------
+        # Approved application shell: light header + blue sidebar + content.
+        # The old Notebook remains only as an internal page container; its
+        # native tab strip is hidden and navigation lives in the sidebar.
+        # ------------------------------------------------------------------
+        header=tk.Frame(self,bg=PALETTE["header"],height=116)
+        header.pack(side="top",fill="x")
+        header.pack_propagate(False)
 
-        modifier="Command" if sys.platform=="darwin" else "Ctrl"
-        self.ui_status_var=tk.StringVar(
-            value=f"Підказка: контекстне меню у полі — Вирізати / Копіювати / Вставити; {modifier}-команди працюють і в українській розкладці."
+        self._main_logo=brand_photo(header,86)
+        tk.Label(
+            header,image=self._main_logo,bg=PALETTE["header"],bd=0
+        ).pack(side="left",padx=(18,10),pady=10)
+
+        brand_block=tk.Frame(header,bg=PALETTE["header"])
+        brand_block.pack(side="left",fill="y",pady=(15,8))
+        self.main_title_var=tk.StringVar(value="Taxo / Назва підприємства")
+        tk.Label(
+            brand_block,textvariable=self.main_title_var,
+            bg=PALETTE["header"],fg="#151A73",
+            font=("TkDefaultFont",20,"bold"),anchor="w"
+        ).pack(anchor="w")
+        tk.Label(
+            brand_block,text="Автотранспортне підприємство",
+            bg=PALETTE["header"],fg=PALETTE["blue_dark"],
+            font=("TkDefaultFont",11),anchor="w"
+        ).pack(anchor="w",pady=(2,0))
+
+        slogan=tk.Frame(header,bg=PALETTE["header"])
+        slogan.pack(side="left",expand=True,fill="both",padx=(26,12))
+        tk.Label(
+            slogan,text="Рухаємо людей\nдо кращого завтра!",
+            bg=PALETTE["header"],fg="#1556C0",
+            justify="center",font=("TkDefaultFont",13,"italic")
+        ).place(relx=.48,rely=.43,anchor="center")
+        accent=tk.Canvas(
+            slogan,height=16,bg=PALETTE["header"],highlightthickness=0,bd=0
         )
-        ttk.Label(
-            self,
-            textvariable=self.ui_status_var,
-            anchor="w",
-            relief="sunken",
-            padding=(8, 3)
-        ).pack(side="bottom", fill="x")
+        accent.place(relx=.48,rely=.78,anchor="center",relwidth=.48)
+        def draw_slogan_accent(event):
+            accent.delete("all")
+            w=max(10,event.width)
+            accent.create_line(
+                8,event.height-3,w-10,3,
+                fill=PALETTE["gold"],width=4,smooth=True
+            )
+        accent.bind("<Configure>",draw_slogan_accent,add="+")
 
-        nb = ttk.Notebook(self)
-        nb.pack(fill="both", expand=True, padx=8, pady=8)
+        header_right=tk.Frame(header,bg=PALETTE["header"])
+        header_right.pack(side="right",fill="y",padx=(8,16),pady=10)
+
+        self.header_clock_var=tk.StringVar()
+        tk.Label(
+            header_right,textvariable=self.header_clock_var,
+            bg=PALETTE["header"],fg=PALETTE["navy"],
+            justify="left",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,16))
+
+        tk.Frame(header_right,bg=PALETTE["line"],width=1).pack(
+            side="left",fill="y",pady=7
+        )
+        tk.Label(
+            header_right,text="●",bg=PALETTE["header"],fg=PALETTE["blue"],
+            font=("TkDefaultFont",17)
+        ).pack(side="left",padx=(12,5))
+        tk.Label(
+            header_right,text="Користувач\nАдміністратор",
+            bg=PALETTE["header"],fg=PALETTE["navy"],
+            justify="left",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,14))
+
+        self.header_settings_button=tk.Button(
+            header_right,text="⚙  Налаштування",
+            command=lambda:self.show_tab(self.tab_company),
+            bg=PALETTE["header"],fg=PALETTE["navy"],
+            activebackground=PALETTE["soft_blue_2"],
+            activeforeground=PALETTE["navy"],
+            relief="flat",bd=0,padx=8,pady=6,
+            font=("TkDefaultFont",9,"bold"),cursor="hand2"
+        )
+        self.header_settings_button.pack(side="left",padx=3)
+
+        self.header_menu_button=tk.Button(
+            header_right,text="☰",
+            command=self._show_app_menu,
+            bg=PALETTE["header"],fg=PALETTE["navy"],
+            activebackground=PALETTE["soft_blue_2"],
+            activeforeground=PALETTE["navy"],
+            relief="flat",bd=0,padx=8,pady=6,
+            font=("TkDefaultFont",13,"bold"),cursor="hand2"
+        )
+        self.header_menu_button.pack(side="left",padx=(3,0))
+
+        tk.Frame(self,bg="#79C8EC",height=2).pack(side="top",fill="x")
+
+        # Bottom operational status bar from the approved mock-up.
+        status=tk.Frame(self,bg="#F7FCFF",height=34)
+        status.pack(side="bottom",fill="x")
+        status.pack_propagate(False)
+        tk.Label(
+            status,text="●",bg="#F7FCFF",fg=PALETTE["success"],
+            font=("TkDefaultFont",12)
+        ).pack(side="left",padx=(16,4))
+        tk.Label(
+            status,text="База даних: Підключено",bg="#F7FCFF",
+            fg=PALETTE["navy"],font=("TkDefaultFont",9)
+        ).pack(side="left")
+        tk.Label(
+            status,text="│  Користувач: Адміністратор  │",
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9)
+        ).pack(side="left",padx=10)
+        workstation=(platform.node() or "—").upper()
+        tk.Label(
+            status,text=f"Робоче місце: {workstation}",
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9)
+        ).pack(side="left")
+
+        self.ui_status_var=tk.StringVar(value="Готово")
+        tk.Label(
+            status,textvariable=self.ui_status_var,
+            bg="#F7FCFF",fg=PALETTE["muted"],
+            font=("TkDefaultFont",9),anchor="w"
+        ).pack(side="left",fill="x",expand=True,padx=16)
+
+        self.footer_company_var=tk.StringVar(value="Taxo")
+        self._footer_logo=brand_photo(status,28)
+        tk.Label(
+            status,textvariable=self.footer_company_var,
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9)
+        ).pack(side="right",padx=(8,12))
+        tk.Label(
+            status,text=f"v{APP_VERSION}",bg="#F7FCFF",
+            fg=PALETTE["navy"],font=("TkDefaultFont",9,"bold")
+        ).pack(side="right",padx=8)
+        tk.Label(status,image=self._footer_logo,bg="#F7FCFF",bd=0).pack(
+            side="right",padx=(8,0)
+        )
+
+        shell=tk.Frame(self,bg=PALETTE["paper"])
+        shell.pack(side="top",fill="both",expand=True)
+
+        sidebar=tk.Frame(shell,bg=PALETTE["sidebar"],width=176)
+        sidebar.pack(side="left",fill="y")
+        sidebar.pack_propagate(False)
+
+        nav_holder=tk.Frame(sidebar,bg=PALETTE["sidebar"])
+        nav_holder.pack(side="top",fill="x",pady=(8,0))
+        self._nav_buttons={}
+        self._nav_named_buttons={}
+        self._nav_active_override=None
+        self._nav_icons={}
+
+        content_outer=tk.Frame(shell,bg="#D9EEF8",padx=10,pady=10)
+        content_outer.pack(side="left",fill="both",expand=True)
+        content=tk.Frame(
+            content_outer,bg=PALETTE["panel"],
+            highlightthickness=1,highlightbackground="#B7DCEB"
+        )
+        content.pack(fill="both",expand=True)
+
+        style=ttk.Style(self)
+        try:
+            style.layout("Shell.TNotebook.Tab",[])
+            style.configure("Shell.TNotebook",borderwidth=0,tabmargins=0)
+        except tk.TclError:
+            pass
+
+        nb=ttk.Notebook(content,style="Shell.TNotebook")
+        nb.pack(fill="both",expand=True)
         self.notebook=nb
+        self.main_notebook=nb
 
-        self.tab_company = ttk.Frame(nb)
-        self.tab_drivers = ttk.Frame(nb)
-        self.tab_vehicles = ttk.Frame(nb)
-        self.tab_work = ttk.Frame(nb)
-        self.tab_schedule = ttk.Frame(nb)
-        self.tab_route_catalog = ttk.Frame(nb)
-        self.tab_att = ttk.Frame(nb)
-        self.tab_tacho = ttk.Frame(nb)
-        nb.add(self.tab_company, text="Підприємство")
-        nb.add(self.tab_drivers, text="Працівники")
-        nb.add(self.tab_vehicles, text="Автомобілі")
-        nb.add(self.tab_work, text="Табель")
-        nb.add(self.tab_schedule, text="Графік водіїв")
-        nb.add(self.tab_route_catalog, text="Маршрути")
-        nb.add(self.tab_att, text="Підтвердження діяльності")
-        nb.add(self.tab_tacho, text="Тахограф — шайби")
+        self.tab_company=ttk.Frame(nb)
+        self.tab_drivers=ttk.Frame(nb)
+        self.tab_vehicles=ttk.Frame(nb)
+        self.tab_work=ttk.Frame(nb)
+        self.tab_schedule=ttk.Frame(nb)
+        self.tab_route_catalog=ttk.Frame(nb)
+        self.tab_att=ttk.Frame(nb)
+        self.tab_tacho=ttk.Frame(nb)
+        nb.add(self.tab_company,text="Підприємство")
+        nb.add(self.tab_drivers,text="Працівники")
+        nb.add(self.tab_vehicles,text="Автомобілі")
+        nb.add(self.tab_work,text="Табель")
+        nb.add(self.tab_schedule,text="Графік водіїв")
+        nb.add(self.tab_route_catalog,text="Маршрути")
+        nb.add(self.tab_att,text="Підтвердження діяльності")
+        nb.add(self.tab_tacho,text="Тахограф — шайби")
+
+        def add_nav(label,kind,tab=None,command=None):
+            icon=nav_photo(nav_holder,kind,26)
+            self._nav_icons[label]=icon
+            if command is None:
+                command=lambda t=tab:self.show_tab(t)
+            btn=tk.Button(
+                nav_holder,image=icon,text=label,compound="left",
+                command=command,anchor="w",
+                bg=PALETTE["sidebar"],fg="#FFFFFF",
+                activebackground=PALETTE["blue_dark"],
+                activeforeground="#FFFFFF",
+                relief="flat",bd=0,highlightthickness=0,
+                padx=16,pady=10,font=("TkDefaultFont",10,"bold"),
+                cursor="hand2"
+            )
+            btn.pack(fill="x")
+            self._nav_named_buttons[label]=btn
+            if tab is not None:
+                self._nav_buttons[str(tab)]=btn
+            return btn
+
+        add_nav("Працівники","people",self.tab_drivers)
+        add_nav("Табель обліку","calendar",self.tab_work)
+        add_nav("Графіки","chart",self.tab_schedule)
+        add_nav("Транспорт","bus",self.tab_vehicles)
+        add_nav("Маршрути","route",self.tab_route_catalog)
+        add_nav("Документи","document",self.tab_att)
+        add_nav("Тахограф","disc",self.tab_tacho)
+        add_nav("Звіти","chart",command=self.show_reports_home)
+        add_nav("Налаштування","gear",self.tab_company)
+
+        road=tk.Canvas(
+            sidebar,bg="#125E87",highlightthickness=0,bd=0,height=170
+        )
+        road.pack(side="bottom",fill="both",expand=True)
+        def draw_road(event):
+            road.delete("all")
+            w=max(176,event.width)
+            h=max(120,event.height)
+            road.create_rectangle(0,0,w,h,fill="#125E87",outline="")
+            road.create_polygon(
+                w*.18,h,w*.46,h*.42,w*.58,h*.42,w*.90,h,
+                fill="#2B7193",outline=""
+            )
+            road.create_line(
+                w*.54,h*.47,w*.54,h*.98,
+                fill="#F4CF3A",width=3
+            )
+            road.create_line(
+                w*.30,h*.70,w*.15,h*.60,w*.03,h*.62,
+                fill="#75AAC2",width=2,smooth=True
+            )
+            road.create_line(
+                w*.70,h*.68,w*.86,h*.60,w*.98,h*.64,
+                fill="#75AAC2",width=2,smooth=True
+            )
+            road.create_text(
+                18,h-48,anchor="w",text="Дороги\nоб’єднують!",
+                fill="#FFFFFF",font=("TkDefaultFont",12,"italic"),justify="left"
+            )
+            road.create_line(
+                20,h-13,w-18,h-30,fill=PALETTE["gold"],width=3
+            )
+        road.bind("<Configure>",draw_road,add="+")
 
         def remember_tab(_event=None):
             try:
-                set_setting("main_last_tab", str(nb.index(nb.select())))
-            except (tk.TclError, ValueError):
+                set_setting("main_last_tab",str(nb.index(nb.select())))
+                self._refresh_nav_selection()
+            except (tk.TclError,ValueError):
                 pass
-        nb.bind("<<NotebookTabChanged>>", remember_tab, add="+")
-        self.main_notebook=nb
-        # Alt+1…Alt+8 — швидкий перехід між розділами, навіть якщо вкладка
-        # фізично не помістилась у рядку Notebook.
+        nb.bind("<<NotebookTabChanged>>",remember_tab,add="+")
+
         for tab_index in range(8):
             self.bind_all(
                 f"<Alt-Key-{tab_index+1}>",
-                lambda _event, idx=tab_index: (nb.select(idx), "break")[1],
+                lambda _event,idx=tab_index:(nb.select(idx),"break")[1],
                 add="+"
             )
+
         try:
-            saved_tab=int(get_setting("main_last_tab", "0") or 0)
-            # r9 прибрав окрему вкладку «Шаблони маршрутів». Переносимо
-            # індекс останньої вкладки зі старої 9-вкладкової схеми.
-            if not get_setting("main_tabs_r9_migrated", ""):
-                saved_tab={5:5, 6:5, 7:6, 8:7}.get(saved_tab, saved_tab)
-                set_setting("main_last_tab", saved_tab)
-                set_setting("main_tabs_r9_migrated", "1")
+            saved_tab=int(get_setting("main_last_tab","1") or 1)
+            if not get_setting("main_tabs_r9_migrated",""):
+                saved_tab={5:5,6:5,7:6,8:7}.get(saved_tab,saved_tab)
+                set_setting("main_last_tab",saved_tab)
+                set_setting("main_tabs_r9_migrated","1")
             if 0 <= saved_tab < nb.index("end"):
                 nb.select(saved_tab)
-        except (ValueError, tk.TclError):
-            pass
+        except (ValueError,tk.TclError):
+            nb.select(self.tab_drivers)
 
         self.build_company()
         self.build_drivers()
@@ -6246,14 +6947,22 @@ class App(tk.Tk):
         self.build_route_catalog()
         self.build_attestation()
         if TachographModule:
-            # v8.53: тахокарти — тільки контроль. Модуль не отримує callback,
-            # який міг би змінювати основний графік/табель.
-            self.tacho_module = TachographModule(
-                self.tab_tacho, self.tacho_drivers, self.tacho_vehicles
+            self.tacho_module=TachographModule(
+                self.tab_tacho,self.tacho_drivers,self.tacho_vehicles
             )
-            self.tacho_module.seed_examples([APP_DIR / "tachograph_test_scan_01.jpg", APP_DIR / "tachograph_test_scan_02.jpg"])
+            self.tacho_module.seed_examples([
+                APP_DIR/"tachograph_test_scan_01.jpg",
+                APP_DIR/"tachograph_test_scan_02.jpg",
+            ])
         else:
-            ttk.Label(self.tab_tacho, text="Модуль тахографа не завантажено. Запустіть START.bat для встановлення залежностей.").pack(padx=20, pady=20)
+            ttk.Label(
+                self.tab_tacho,
+                text="Модуль тахографа не завантажено. Запустіть START.bat для встановлення залежностей."
+            ).pack(padx=20,pady=20)
+
+        self._refresh_brand_header()
+        self._refresh_nav_selection()
+        self._refresh_header_clock()
 
     def _make_scrollable_tab_body(self, tab, key):
         """Створює двонапрямно прокручувану область для всього вмісту вкладки."""
@@ -6330,11 +7039,38 @@ class App(tk.Tk):
 
     def build_company(self):
         host = self._make_scrollable_tab_body(self.tab_company, "company")
-        f = ttk.LabelFrame(host, text="Реквізити підприємства — українською")
-        f.pack(fill="x", padx=12, pady=(12,6))
         self.company_vars = {}
+
+        intro=ttk.Frame(host,padding=(12,12,12,4))
+        intro.pack(fill="x")
+        intro_left=ttk.Frame(intro)
+        intro_left.pack(side="left",fill="x",expand=True)
+        ttk.Label(
+            intro_left,text="Налаштування підприємства",style="HeroTitle.TLabel"
+        ).pack(anchor="w")
+        ttk.Label(
+            intro_left,
+            text="Основні відомості використовуються у шапці Taxo та в документах.",
+            style="Muted.TLabel"
+        ).pack(anchor="w",pady=(2,0))
+        ttk.Button(intro,text="Довідка",command=self.show_help).pack(side="right",padx=4)
+        ttk.Button(intro,text="Про програму",command=self.show_about).pack(side="right",padx=4)
+
+        preview_box=ttk.LabelFrame(host,text="Попередній перегляд шапки",padding=4)
+        preview_box.pack(fill="x",padx=12,pady=(4,8))
+        self.company_preview_canvas=tk.Canvas(
+            preview_box,height=90,bg=PALETTE["header"],highlightthickness=0
+        )
+        self.company_preview_canvas.pack(fill="x")
+        self.company_preview_canvas.bind(
+            "<Configure>",lambda _e:self._refresh_company_preview(),add="+"
+        )
+        self.after_idle(self._refresh_company_preview)
+
+        f = ttk.LabelFrame(host, text="Реквізити підприємства — українською")
+        f.pack(fill="x", padx=12, pady=(0,6))
         labels = [
-            ("name", "Найменування / ПІБ суб'єкта господарювання"),
+            ("name", "Назва підприємства"),
             ("address", "Адреса"),
             ("phone", "Телефон"),
             ("fax", "Факс"),
@@ -6346,6 +7082,11 @@ class App(tk.Tk):
             ttk.Label(f, text=label).grid(row=i, column=0, sticky="w", padx=8, pady=5)
             v = tk.StringVar()
             self.company_vars[key] = v
+            if key=="name":
+                v.trace_add(
+                    "write",
+                    lambda *_args:(self._refresh_brand_header(),self._refresh_company_preview())
+                )
             ttk.Entry(f, textvariable=v, width=90).grid(row=i, column=1, sticky="ew", padx=8, pady=5)
         f.columnconfigure(1, weight=1)
 
@@ -6399,7 +7140,8 @@ class App(tk.Tk):
         ttk.Button(
             company_save_bar,
             text="Зберегти реквізити підприємства",
-            command=self.save_company
+            command=self.save_company,
+            style="Accent.TButton"
         ).pack(side="left")
         ttk.Label(
             company_save_bar,
@@ -6695,6 +7437,20 @@ class App(tk.Tk):
         return " ".join(x for x in (row["last_name"],row["first_name"],row["middle_name"]) if x).strip()
 
     def show_employee_registry(self):
+        # In the approved application shell the personnel registry is a main
+        # page, not a separate legacy Toplevel. Keep the old window only as a
+        # compatibility fallback when the personnel module is unavailable.
+        personnel_tab=getattr(self,"tab_personnel",None)
+        if personnel_tab is not None:
+            overview_action=getattr(self,"show_personnel_overview",None)
+            if callable(overview_action):
+                overview_action()
+            else:
+                self.show_tab(personnel_tab)
+                refresh=getattr(self,"_refresh_personnel_overview",None)
+                if callable(refresh):
+                    refresh()
+            return
         if hasattr(self,"employee_win") and self.employee_win.winfo_exists():
             self.employee_win.lift(); self.load_employee_registry(); return
         win=tk.Toplevel(self); self.employee_win=win; win.title("Реєстр усіх працівників")
@@ -6731,60 +7487,252 @@ class App(tk.Tk):
             self.employee_tree.insert("","end",values=(row["id"],row["personnel_no"],self.employee_full_name(row),gender,row["roles"] or "",row["position"],tariff,fmt_date(row["employment_date"]),fmt_date(row["dismissal_date"]),row["phone"],"Працює" if row["active"] else "Звільнений"))
 
     def selected_employee(self):
-        sel=getattr(self,"employee_tree",None).selection() if hasattr(self,"employee_tree") else ()
-        if not sel: return None
-        eid=int(self.employee_tree.item(sel[0],"values")[0]); con=db()
-        row=con.execute("SELECT * FROM employees WHERE id=?",(eid,)).fetchone(); con.close(); return row
+        tree=getattr(self,"employee_tree",None)
+        sel=tree.selection() if tree is not None and tree.winfo_exists() else ()
+        eid=None
+        if sel:
+            try:
+                eid=int(tree.item(sel[0],"values")[0])
+            except (TypeError,ValueError,IndexError):
+                eid=None
+        if eid is None:
+            tree=getattr(self,"personnel_overview_tree",None)
+            sel=tree.selection() if tree is not None and tree.winfo_exists() else ()
+            if sel:
+                try:
+                    eid=int(sel[0])
+                except (TypeError,ValueError):
+                    eid=None
+        if eid is None:
+            return None
+        con=db()
+        row=con.execute("SELECT * FROM employees WHERE id=?",(eid,)).fetchone()
+        con.close()
+        return row
 
     def employee_form(self, employee=None):
-        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Картка працівника")
-        fit_window_to_screen(win,700,650,610,520); win.transient(parent); win.grab_set()
-        con=db(); current_roles={r[0] for r in con.execute("SELECT role FROM employee_roles WHERE employee_id=?",(employee["id"],)).fetchall()} if employee else set(); con.close()
-        fields=(("personnel_no","Табельний номер"),("last_name","Прізвище"),("first_name","Ім'я"),("middle_name","По батькові"),("position","Основна посада"),("gender","Стать для П-5 (ч/ж)"),("tariff_rate","Оклад / тарифна ставка, грн"),("phone","Телефон"),("employment_date","Дата прийняття"),("dismissal_date","Дата звільнення"),("notes","Примітка"))
+        parent=getattr(self,"employee_win",self)
+        win=tk.Toplevel(parent)
+        win.title(f"Taxo / {self._company_name_value()} — Картка працівника")
+        fit_window_to_screen(win,1040,740,860,620)
+        configure_toplevel(win)
+        win.transient(parent)
+        win.grab_set()
+
+        banner=tk.Canvas(win,height=82,bg=PALETTE["header"],highlightthickness=0)
+        banner.pack(fill="x")
+        draw_brand_header(banner,self._company_name_value(),"Картка працівника")
+        banner.bind(
+            "<Configure>",
+            lambda _e:draw_brand_header(
+                banner,self._company_name_value(),"Картка працівника"
+            ),
+            add="+",
+        )
+
+        con=db()
+        current_roles={
+            r[0] for r in con.execute(
+                "SELECT role FROM employee_roles WHERE employee_id=?",
+                (employee["id"],),
+            ).fetchall()
+        } if employee else set()
+        current_driver_end=""
+        if employee and employee["driver_id"]:
+            driver_row=con.execute(
+                "SELECT driver_end_date FROM drivers WHERE id=?",(employee["driver_id"],)
+            ).fetchone()
+            if driver_row:
+                current_driver_end=(driver_row["driver_end_date"] or "").strip()
+        con.close()
+
+        title=ttk.Frame(win,padding=(14,10,14,4))
+        title.pack(fill="x")
+        ttk.Label(
+            title,
+            text="Картка працівника" if employee else "Новий працівник",
+            style="HeroTitle.TLabel",
+        ).pack(side="left")
+        state_text="Працює" if (not employee or bool(employee["active"])) else "Звільнений"
+        state_color=PALETTE["success"] if state_text=="Працює" else PALETTE["danger"]
+        tk.Label(
+            title,text=state_text,bg=PALETTE["paper"],fg=state_color,
+            font=("TkDefaultFont",11,"bold")
+        ).pack(side="right",padx=6)
+
+        fields=(
+            ("personnel_no","Табельний номер"),
+            ("last_name","Прізвище"),
+            ("first_name","Ім'я"),
+            ("middle_name","По батькові"),
+            ("position","Основна посада"),
+            ("gender","Стать для П-5"),
+            ("tariff_rate","Оклад / тарифна ставка, грн"),
+            ("phone","Телефон"),
+            ("employment_date","Дата прийняття"),
+            ("dismissal_date","Дата звільнення"),
+            ("notes","Примітка"),
+        )
         values={}
-        for i,(key,label) in enumerate(fields):
-            if employee and key in employee.keys():
-                raw=employee[key]
-            else:
-                raw=""
+        for key,_label in fields:
+            raw=employee[key] if employee and key in employee.keys() else ""
             if raw is None:
                 raw=""
             if key=="tariff_rate" and raw!="":
-                try: raw=f"{float(raw):.2f}".rstrip("0").rstrip(".")
-                except Exception: raw=str(raw)
-            if key in {"employment_date","dismissal_date"}: raw=fmt_date(raw)
+                try:
+                    raw=f"{float(raw):.2f}".rstrip("0").rstrip(".")
+                except Exception:
+                    raw=str(raw)
+            if key in {"employment_date","dismissal_date"}:
+                raw=fmt_date(raw)
             values[key]=tk.StringVar(value=raw)
-            ttk.Label(win,text=label).grid(row=i,column=0,sticky="w",padx=10,pady=5)
+
+        body=ttk.Frame(win,padding=(14,4,14,8))
+        body.pack(fill="both",expand=True)
+        body.columnconfigure(0,weight=3)
+        body.columnconfigure(1,weight=2)
+        body.rowconfigure(0,weight=1)
+
+        basic=ttk.LabelFrame(body,text="Основні дані",padding=10)
+        basic.grid(row=0,column=0,sticky="nsew",padx=(0,7))
+        basic.columnconfigure(1,weight=1)
+
+        def field(frame,row,key,label,calendar_field=False):
+            ttk.Label(frame,text=label).grid(
+                row=row,column=0,sticky="w",padx=(0,8),pady=5
+            )
             if key=="gender":
-                widget=ttk.Combobox(win,textvariable=values[key],values=("", "ч", "ж"),state="readonly",width=12)
+                widget=ttk.Combobox(
+                    frame,textvariable=values[key],
+                    values=("", "ч", "ж"),state="readonly",width=12
+                )
             else:
-                widget=ttk.Entry(win,textvariable=values[key],width=48)
-            widget.grid(row=i,column=1,sticky="ew",padx=10,pady=5)
-            if key in {"employment_date","dismissal_date"}: calendar_button(win,values[key]).grid(row=i,column=2,sticky="w",padx=(0,8))
-        win.columnconfigure(1,weight=1)
-        role_box=ttk.LabelFrame(win,text="Спеціальні ролі працівника (необов'язково)",padding=8); role_box.grid(row=len(fields),column=0,columnspan=3,sticky="ew",padx=10,pady=8)
+                widget=ttk.Entry(frame,textvariable=values[key])
+            widget.grid(row=row,column=1,sticky="ew",pady=5)
+            if calendar_field:
+                calendar_button(frame,values[key]).grid(
+                    row=row,column=2,sticky="w",padx=(5,0),pady=5
+                )
+            return widget
+
+        field(basic,0,"personnel_no","Табельний номер")
+        field(basic,1,"last_name","Прізвище")
+        field(basic,2,"first_name","Ім'я")
+        field(basic,3,"middle_name","По батькові")
+        field(basic,4,"position","Основна посада")
+        field(basic,5,"phone","Телефон")
+        ttk.Label(
+            basic,
+            text="Телефон необов'язково; залиште порожнім, якщо контакт не потрібен.",
+            foreground=PALETTE["muted"],
+        ).grid(row=5,column=2,sticky="w",padx=(5,0),pady=5)
+        field(basic,6,"gender","Стать для П-5")
+        field(basic,7,"employment_date","Дата прийняття",True)
+        field(basic,8,"dismissal_date","Дата звільнення",True)
+
+        extra=ttk.LabelFrame(basic,text="Додаткова інформація",padding=8)
+        extra.grid(row=9,column=0,columnspan=3,sticky="ew",pady=(10,0))
+        extra.columnconfigure(1,weight=1)
+        ttk.Label(extra,text="Оклад / тарифна ставка, грн").grid(
+            row=0,column=0,sticky="w",padx=(0,8),pady=4
+        )
+        ttk.Entry(extra,textvariable=values["tariff_rate"]).grid(
+            row=0,column=1,sticky="ew",pady=4
+        )
+        ttk.Label(extra,text="Примітка").grid(
+            row=1,column=0,sticky="w",padx=(0,8),pady=4
+        )
+        ttk.Entry(extra,textvariable=values["notes"]).grid(
+            row=1,column=1,sticky="ew",pady=4
+        )
+
+        side=ttk.Frame(body)
+        side.grid(row=0,column=1,sticky="nsew",padx=(7,0))
+
+        role_box=ttk.LabelFrame(side,text="Спеціальні ролі",padding=10)
+        role_box.pack(fill="x")
         role_vars={}
         for i,role in enumerate(("Водій","Лікар","Механік","Диспетчер","Кондуктор","Інше")):
             role_vars[role]=tk.BooleanVar(value=role in current_roles)
-            ttk.Checkbutton(role_box,text=role,variable=role_vars[role]).grid(row=i//3,column=i%3,sticky="w",padx=8,pady=3)
+            ttk.Checkbutton(
+                role_box,text=role,variable=role_vars[role]
+            ).grid(row=i//2,column=i%2,sticky="w",padx=6,pady=5)
+
         ttk.Label(
             role_box,
-            text="Щоб зняти роль водія: приберіть прапорець «Водій» і натисніть «Зберегти». Історія графіка не видаляється.",
-            foreground="gray",wraplength=610,justify="left"
-        ).grid(row=2,column=0,columnspan=3,sticky="w",padx=8,pady=(7,2))
+            text=(
+                "Роль і статус працевлаштування не змішуються. "
+                "Щоб завершити роль водія, зніміть «Водій» і збережіть картку."
+            ),
+            foreground=PALETTE["muted"],wraplength=330,justify="left"
+        ).grid(row=3,column=0,columnspan=2,sticky="w",padx=6,pady=(8,3))
+
+        driver_box=ttk.LabelFrame(side,text="Роль водія",padding=10)
+        driver_box.pack(fill="x",pady=(10,0))
+        if current_driver_end:
+            ttk.Label(
+                driver_box,
+                text=f"Історична дата завершення: {fmt_date(current_driver_end)}",
+                foreground=PALETTE["warning"],
+                font=("TkDefaultFont",10,"bold"),
+            ).pack(anchor="w")
+        else:
+            ttk.Label(
+                driver_box,
+                text="Дата завершення ролі зберігається окремо від звільнення.",
+                foreground=PALETTE["muted"],wraplength=330,justify="left",
+            ).pack(anchor="w")
+
+        status_box=ttk.LabelFrame(side,text="Стан працівника",padding=10)
+        status_box.pack(fill="x",pady=(10,0))
         active=tk.BooleanVar(value=bool(employee["active"]) if employee else True)
-        ttk.Checkbutton(win,text="Працює",variable=active).grid(row=len(fields)+1,column=1,sticky="w",padx=10,pady=3)
+        ttk.Checkbutton(
+            status_box,text="Працює",variable=active
+        ).pack(anchor="w")
+        ttk.Label(
+            status_box,
+            text=(
+                "Зняття прапорця «Працює» означає звільнення працівника. "
+                "Це не те саме, що зняти лише роль «Водій»."
+            ),
+            foreground=PALETTE["muted"],wraplength=330,justify="left",
+        ).pack(anchor="w",pady=(6,0))
+
+        quick=ttk.LabelFrame(side,text="Пов'язані дані",padding=10)
+        quick.pack(fill="x",pady=(10,0))
+        if employee:
+            ttk.Button(
+                quick,text="Відкрити табель персоналу",
+                command=lambda:(win.destroy(),self.show_employee_timesheet())
+            ).pack(fill="x",pady=3)
+            ttk.Button(
+                quick,text="Режим робочого часу…",
+                command=lambda:(win.destroy(),self.show_employee_work_regime())
+            ).pack(fill="x",pady=3)
+        else:
+            ttk.Label(
+                quick,text="Після першого збереження стануть доступні табель і режим.",
+                foreground=PALETTE["muted"],wraplength=320,justify="left"
+            ).pack(anchor="w")
+
         def save():
             vals={k:v.get().strip() for k,v in values.items()}
             if not vals["last_name"] or not vals["first_name"]:
-                messagebox.showerror("Працівник","Прізвище та ім'я обов'язкові.",parent=win); return
+                messagebox.showerror(
+                    "Працівник","Прізвище та ім'я обов'язкові.",parent=win
+                )
+                return
             roles=[r for r,v in role_vars.items() if v.get()]
-            closing_driver=bool(employee and employee["driver_id"] and "Водій" in current_roles and "Водій" not in roles)
+            closing_driver=bool(
+                employee and employee["driver_id"]
+                and "Водій" in current_roles and "Водій" not in roles
+            )
             driver_end_date=""
             if closing_driver:
                 if not messagebox.askyesno(
                     "Завершити роль водія",
-                    "Зняти роль «Водій»? Водійська картка стане неактивною, але весь старий графік, табель і шляхівки залишаться.",
+                    "Зняти роль «Водій»? Водійська картка стане неактивною, "
+                    "але весь старий графік, табель і шляхівки залишаться.",
                     parent=win,
                 ):
                     return
@@ -6796,17 +7744,35 @@ class App(tk.Tk):
                 if raw_end is None:
                     return
                 try:
-                    driver_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                    driver_end_date=datetime.strptime(
+                        raw_end.strip(),"%d.%m.%Y"
+                    ).strftime("%Y-%m-%d")
                 except ValueError:
-                    messagebox.showerror("Працівник","Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",parent=win); return
+                    messagebox.showerror(
+                        "Працівник",
+                        "Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",
+                        parent=win,
+                    )
+                    return
             for key in ("employment_date","dismissal_date"):
                 if vals[key]:
-                    try: vals[key]=datetime.strptime(vals[key],"%d.%m.%Y").strftime("%Y-%m-%d")
+                    try:
+                        vals[key]=datetime.strptime(
+                            vals[key],"%d.%m.%Y"
+                        ).strftime("%Y-%m-%d")
                     except ValueError:
-                        messagebox.showerror("Працівник","Дата має бути у форматі ДД.ММ.РРРР.",parent=win); return
+                        messagebox.showerror(
+                            "Працівник","Дата має бути у форматі ДД.ММ.РРРР.",parent=win
+                        )
+                        return
             vals["gender"]=vals["gender"].lower()
             if vals["gender"] not in ("","ч","ж"):
-                messagebox.showerror("Працівник","Стать для П-5: залиште порожньо або виберіть «ч» / «ж».",parent=win); return
+                messagebox.showerror(
+                    "Працівник",
+                    "Стать для П-5: залиште порожньо або виберіть «ч» / «ж».",
+                    parent=win,
+                )
+                return
             tariff_rate=None
             if vals["tariff_rate"]:
                 try:
@@ -6814,32 +7780,111 @@ class App(tk.Tk):
                     if tariff_rate < 0:
                         raise ValueError
                 except ValueError:
-                    messagebox.showerror("Працівник","Оклад / тарифна ставка мають бути невід'ємним числом.",parent=win); return
+                    messagebox.showerror(
+                        "Працівник",
+                        "Оклад / тарифна ставка мають бути невід'ємним числом.",
+                        parent=win,
+                    )
+                    return
             con=db()
-            if vals["personnel_no"] and con.execute("SELECT 1 FROM employees WHERE personnel_no=? AND id<>?",(vals["personnel_no"],employee["id"] if employee else -1)).fetchone():
-                con.close(); messagebox.showerror("Працівник","Такий табельний номер уже використовується.",parent=win); return
+            if vals["personnel_no"] and con.execute(
+                "SELECT 1 FROM employees WHERE personnel_no=? AND id<>?",
+                (vals["personnel_no"],employee["id"] if employee else -1)
+            ).fetchone():
+                con.close()
+                messagebox.showerror(
+                    "Працівник","Такий табельний номер уже використовується.",parent=win
+                )
+                return
             driver_id=employee["driver_id"] if employee else None
             if "Водій" in roles and not driver_id:
-                cur=con.execute("""INSERT INTO drivers(last_name,first_name,middle_name,personnel_no,employment_date,notes,active,created_at)
-                    VALUES(?,?,?,?,?,?,?,?)""",(vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],vals["notes"],int(active.get()),datetime.now().isoformat(timespec="seconds")))
+                cur=con.execute(
+                    """INSERT INTO drivers(
+                           last_name,first_name,middle_name,personnel_no,
+                           employment_date,notes,active,created_at
+                       ) VALUES(?,?,?,?,?,?,?,?)""",
+                    (
+                        vals["last_name"],vals["first_name"],vals["middle_name"],
+                        vals["personnel_no"],vals["employment_date"],vals["notes"],
+                        int(active.get()),datetime.now().isoformat(timespec="seconds"),
+                    ),
+                )
                 driver_id=cur.lastrowid
             if employee:
                 eid=employee["id"]
-                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position=?,gender=?,tariff_rate=?,phone=?,employment_date=?,dismissal_date=?,notes=?,active=?,driver_id=? WHERE id=?""",
-                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["gender"],tariff_rate,vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,eid))
+                con.execute(
+                    """UPDATE employees SET
+                           personnel_no=?,last_name=?,first_name=?,middle_name=?,
+                           position=?,gender=?,tariff_rate=?,phone=?,
+                           employment_date=?,dismissal_date=?,notes=?,active=?,driver_id=?
+                       WHERE id=?""",
+                    (
+                        vals["personnel_no"],vals["last_name"],vals["first_name"],
+                        vals["middle_name"],vals["position"],vals["gender"],tariff_rate,
+                        vals["phone"],vals["employment_date"],vals["dismissal_date"],
+                        vals["notes"],int(active.get()),driver_id,eid,
+                    ),
+                )
             else:
-                cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,gender,tariff_rate,phone,employment_date,dismissal_date,notes,active,driver_id,created_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["position"],vals["gender"],tariff_rate,vals["phone"],vals["employment_date"],vals["dismissal_date"],vals["notes"],int(active.get()),driver_id,datetime.now().isoformat(timespec="seconds"))); eid=cur.lastrowid
+                cur=con.execute(
+                    """INSERT INTO employees(
+                           personnel_no,last_name,first_name,middle_name,position,
+                           gender,tariff_rate,phone,employment_date,dismissal_date,
+                           notes,active,driver_id,created_at
+                       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        vals["personnel_no"],vals["last_name"],vals["first_name"],
+                        vals["middle_name"],vals["position"],vals["gender"],tariff_rate,
+                        vals["phone"],vals["employment_date"],vals["dismissal_date"],
+                        vals["notes"],int(active.get()),driver_id,
+                        datetime.now().isoformat(timespec="seconds"),
+                    ),
+                )
+                eid=cur.lastrowid
             con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
-            con.executemany("INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",[(eid,r) for r in roles])
+            con.executemany(
+                "INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",
+                [(eid,r) for r in roles],
+            )
             if driver_id:
+                driver_row=con.execute(
+                    "SELECT driver_end_date FROM drivers WHERE id=?",(driver_id,)
+                ).fetchone()
+                stored_driver_end=(
+                    (driver_row["driver_end_date"] if driver_row else "") or ""
+                ).strip()
+                if "Водій" in roles:
+                    next_driver_end=""
+                elif closing_driver:
+                    next_driver_end=driver_end_date
+                else:
+                    next_driver_end=stored_driver_end
                 driver_active=int(active.get() and "Водій" in roles)
-                con.execute("""UPDATE drivers SET last_name=?,first_name=?,middle_name=?,personnel_no=?,employment_date=?,driver_end_date=?,notes=?,active=? WHERE id=?""",
-                    (vals["last_name"],vals["first_name"],vals["middle_name"],vals["personnel_no"],vals["employment_date"],"",vals["notes"],driver_active,driver_id))
+                con.execute(
+                    """UPDATE drivers SET
+                           last_name=?,first_name=?,middle_name=?,personnel_no=?,
+                           employment_date=?,driver_end_date=?,notes=?,active=?
+                       WHERE id=?""",
+                    (
+                        vals["last_name"],vals["first_name"],vals["middle_name"],
+                        vals["personnel_no"],vals["employment_date"],next_driver_end,
+                        vals["notes"],driver_active,driver_id,
+                    ),
+                )
                 if closing_driver:
                     finish_driver_role(con,eid,driver_id,driver_end_date)
-            con.commit(); con.close(); self.load_employee_registry(); self.load_drivers(); win.destroy()
-        ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields)+2,column=1,sticky="e",padx=10,pady=12)
+            con.commit()
+            con.close()
+            self.load_employee_registry()
+            self.load_drivers()
+            win.destroy()
+
+        actions=ttk.Frame(win,padding=(14,4,14,12))
+        actions.pack(fill="x")
+        ttk.Button(actions,text="Закрити",command=win.destroy).pack(side="right",padx=(6,0))
+        ttk.Button(
+            actions,text="Зберегти",style="Accent.TButton",command=save
+        ).pack(side="right")
 
     def edit_employee(self):
         row=self.selected_employee()
@@ -6849,48 +7894,280 @@ class App(tk.Tk):
         row=self.selected_employee()
         if not row: return
         new_state=0 if row["active"] else 1
-        con=db(); con.execute("UPDATE employees SET active=?,dismissal_date=CASE WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",(new_state,new_state,date.today().isoformat(),new_state,row["id"]))
-        if row["driver_id"]: con.execute("UPDATE drivers SET active=? WHERE id=?",(new_state,row["driver_id"]))
+        today=date.today().isoformat()
+        con=db()
+        con.execute(
+            "UPDATE employees SET active=?,dismissal_date=CASE WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",
+            (new_state,new_state,today,new_state,row["id"]),
+        )
+        if row["driver_id"] and new_state==0:
+            # Dismissal ends the current driver role. Re-employment is separate
+            # and must not silently restore that role.
+            driver=con.execute(
+                "SELECT active,driver_end_date FROM drivers WHERE id=?",(row["driver_id"],)
+            ).fetchone()
+            if driver and bool(driver["active"]):
+                end_date=(driver["driver_end_date"] or "").strip() or today
+                finish_driver_role(con,row["id"],row["driver_id"],end_date)
         con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
 
     def show_employee_timesheet(self):
-        parent=getattr(self,"employee_win",self); win=tk.Toplevel(parent); win.title("Табель робочого часу всіх працівників")
-        fit_window_to_screen(win,1360,760,960,560)
-        top=ttk.Frame(win,padding=8); top.pack(fill="x")
-        today=date.today(); month=tk.StringVar(value=str(today.month)); year=tk.StringVar(value=str(today.year))
-        ttk.Label(top,text="Місяць").pack(side="left"); ttk.Spinbox(top,textvariable=month,from_=1,to=12,width=5).pack(side="left",padx=4)
-        ttk.Label(top,text="Рік").pack(side="left"); ttk.Spinbox(top,textvariable=year,from_=2020,to=2100,width=7).pack(side="left",padx=4)
-        notebook=ttk.Notebook(win); notebook.pack(fill="both",expand=True,padx=8,pady=(0,8))
-        summary_tab=ttk.Frame(notebook); daily_tab=ttk.Frame(notebook)
-        notebook.add(summary_tab,text="Підсумок місяця"); notebook.add(daily_tab,text="Щоденний табель")
+        existing=getattr(self,"_employee_timesheet_win",None)
+        if existing is not None:
+            try:
+                if existing.winfo_exists():
+                    existing.deiconify()
+                    existing.lift()
+                    existing.focus_force()
+                    return existing
+            except tk.TclError:
+                pass
 
-        summary_frame=ttk.Frame(summary_tab); summary_frame.pack(fill="both",expand=True,padx=4,pady=6)
-        summary_frame.rowconfigure(0,weight=1); summary_frame.columnconfigure(0,weight=1)
-        summary_cols=("id","personnel","name","roles","planned","actual","difference","missing")
+        win=tk.Toplevel(self)
+        self._employee_timesheet_win=win
+        win.title(f"Taxo / {self._company_name_value()} — Табель робочого часу")
+        fit_window_to_screen(win,1480,860,1040,640)
+        configure_toplevel(win)
+        win.transient(self)
+
+        def close_timesheet():
+            if getattr(self,"_employee_timesheet_win",None) is win:
+                self._employee_timesheet_win=None
+            try:
+                win.destroy()
+            except tk.TclError:
+                pass
+        win.protocol("WM_DELETE_WINDOW",close_timesheet)
+
+        banner=tk.Canvas(win,height=88,bg=PALETTE["header"],highlightthickness=0)
+        banner.pack(fill="x")
+        draw_brand_header(banner,self._company_name_value(),"Облік та аналіз робочого часу персоналу")
+        banner.bind(
+            "<Configure>",
+            lambda _e:draw_brand_header(
+                banner,self._company_name_value(),"Облік та аналіз робочого часу персоналу"
+            ),
+            add="+",
+        )
+
+        # Secondary editor window: no cloned application sidebar. Main navigation
+        # remains in the main Taxo window, so opening this editor cannot recurse
+        # into another full copy of the program shell.
+        shell=tk.Frame(win,bg=PALETTE["paper"])
+        shell.pack(fill="both",expand=True)
+        workspace=ttk.Frame(shell)
+        workspace.pack(fill="both",expand=True)
+
+
+        title_row=ttk.Frame(workspace,padding=(14,10,14,4))
+        title_row.pack(fill="x")
+        title_left=ttk.Frame(title_row)
+        title_left.pack(side="left",fill="x",expand=True)
+        ttk.Label(
+            title_left,text="▣  Табель робочого часу всіх працівників",
+            style="HeroTitle.TLabel"
+        ).pack(anchor="w")
+        ttk.Label(
+            title_left,text="План, факт, відхилення, контроль відсутнього факту та звіти",
+            style="Muted.TLabel"
+        ).pack(anchor="w",pady=(2,0))
+
+        filters=ttk.Frame(title_row)
+        filters.pack(side="right",anchor="e")
+        today=date.today()
+        month=tk.StringVar(value=str(today.month))
+        month_label=tk.StringVar(value=MONTH_NAMES_UA[today.month-1])
+        year=tk.StringVar(value=str(today.year))
+        ttk.Label(filters,text="Місяць:").pack(side="left")
+        month_combo=ttk.Combobox(
+            filters,textvariable=month_label,values=MONTH_NAMES_UA,
+            state="readonly",width=12
+        )
+        month_combo.pack(side="left",padx=(4,10))
+        ttk.Label(filters,text="Рік:").pack(side="left")
+        ttk.Spinbox(filters,textvariable=year,from_=2020,to=2100,width=7).pack(
+            side="left",padx=(4,0)
+        )
+        ttk.Button(
+            filters,text="Закрити",command=close_timesheet
+        ).pack(side="left",padx=(12,0))
+        def sync_month_number(*_args):
+            try:
+                month.set(str(MONTH_NAMES_UA.index(month_label.get())+1))
+            except ValueError:
+                pass
+        month_label.trace_add("write",sync_month_number)
+
+        toolbar=ttk.Frame(workspace,padding=(14,4,14,6))
+        toolbar.pack(fill="x")
+        toolbar_actions=ttk.Frame(toolbar)
+        toolbar_actions.pack(fill="x")
+        toolbar_reports=ttk.Frame(toolbar)
+        toolbar_reports.pack(fill="x",pady=(5,0))
+
+        stats=ttk.Frame(workspace,padding=(14,0,14,8))
+        stats.pack(fill="x")
+        summary_stat_vars={
+            "employees":tk.StringVar(value="0"),
+            "planned":tk.StringVar(value="0:00"),
+            "actual":tk.StringVar(value="0:00"),
+            "difference":tk.StringVar(value="0:00"),
+            "missing":tk.StringVar(value="0"),
+        }
+        def stat_card(parent,title,var,bg,fg):
+            card=tk.Frame(parent,bg=bg,highlightthickness=1,highlightbackground=PALETTE["line"])
+            tk.Label(card,text=title,bg=bg,fg=PALETTE["navy"],font=("TkDefaultFont",9,"bold")).pack(
+                anchor="w",padx=12,pady=(7,0)
+            )
+            tk.Label(card,textvariable=var,bg=bg,fg=fg,font=("TkDefaultFont",15,"bold")).pack(
+                anchor="w",padx=12,pady=(1,7)
+            )
+            return card
+        for idx,(key,title,bg,fg) in enumerate((
+            ("employees","Працівники",PALETTE["info_soft"],PALETTE["navy"]),
+            ("planned","План",PALETTE["success_soft"],PALETTE["success"]),
+            ("actual","Факт",PALETTE["info_soft"],PALETTE["blue"]),
+            ("difference","Відхилення",PALETTE["danger_soft"],PALETTE["danger"]),
+            ("missing","Днів без факту",PALETTE["warning_soft"],PALETTE["warning"]),
+        )):
+            stats.columnconfigure(idx,weight=1)
+            stat_card(stats,title,summary_stat_vars[key],bg,fg).grid(
+                row=0,column=idx,sticky="ew",padx=(0 if idx==0 else 4,4 if idx<4 else 0)
+            )
+
+        timesheet_status=tk.Frame(workspace,bg="#F7FCFF",height=31)
+        timesheet_status.pack(side="bottom",fill="x")
+        timesheet_status.pack_propagate(False)
+        tk.Label(
+            timesheet_status,text="●",bg="#F7FCFF",fg=PALETTE["success"],
+            font=("TkDefaultFont",11)
+        ).pack(side="left",padx=(14,4))
+        tk.Label(
+            timesheet_status,text="База даних: Підключено",
+            bg="#F7FCFF",fg=PALETTE["navy"],font=("TkDefaultFont",9)
+        ).pack(side="left")
+        tk.Label(
+            timesheet_status,text=f"  │  Taxo {APP_VERSION}",
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9,"bold")
+        ).pack(side="right",padx=14)
+        tk.Label(
+            timesheet_status,text=self._company_name_value(),
+            bg="#F7FCFF",fg=PALETTE["blue_dark"],font=("TkDefaultFont",9)
+        ).pack(side="right",padx=8)
+
+        notebook=ttk.Notebook(workspace)
+        notebook.pack(fill="both",expand=True,padx=14,pady=(0,10))
+        summary_tab=ttk.Frame(notebook)
+        daily_tab=ttk.Frame(notebook)
+        notebook.add(summary_tab,text="Підсумок місяця")
+        notebook.add(daily_tab,text="Щоденний табель")
+
+        summary_frame=ttk.Frame(summary_tab)
+        summary_frame.pack(fill="both",expand=True,padx=4,pady=6)
+        summary_frame.rowconfigure(0,weight=1)
+        summary_frame.columnconfigure(0,weight=1)
+        summary_cols=("id","personnel","name","roles","planned","actual","difference","missing","status")
         summary_tree=ttk.Treeview(summary_frame,columns=summary_cols,show="headings")
-        for key,label,width in (("id","ID",45),("personnel","Таб. №",80),("name","ПІБ",270),("roles","Ролі",210),("planned","План",85),("actual","Факт",85),("difference","Відхилення",90),("missing","Без факту",90)):
-            summary_tree.heading(key,text=label); summary_tree.column(key,width=width,anchor="w")
-        sy=ttk.Scrollbar(summary_frame,orient="vertical",command=summary_tree.yview); sx=ttk.Scrollbar(summary_frame,orient="horizontal",command=summary_tree.xview)
+        for key,label,width in (
+            ("id","ID",45),("personnel","Таб. №",90),("name","ПІБ",280),
+            ("roles","Ролі",230),("planned","План",85),("actual","Факт",85),
+            ("difference","Відхилення",100),("missing","Без факту",90),("status","Статус",125)
+        ):
+            summary_tree.heading(key,text=label)
+            summary_tree.column(
+                key,width=width,
+                anchor="w" if key in ("name","roles","status") else "center"
+            )
+        summary_tree.tag_configure("missing",background=PALETTE["danger_soft"])
+        summary_tree.tag_configure("warning",background=PALETTE["warning_soft"])
+        summary_tree.tag_configure("good",background="#F4FBF7")
+        summary_tree.tag_configure("no_data",foreground=PALETTE["muted"])
+        sy=ttk.Scrollbar(summary_frame,orient="vertical",command=summary_tree.yview)
+        sx=ttk.Scrollbar(summary_frame,orient="horizontal",command=summary_tree.xview)
         summary_tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
-        summary_tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
+        summary_tree.grid(row=0,column=0,sticky="nsew")
+        sy.grid(row=0,column=1,sticky="ns")
+        sx.grid(row=1,column=0,sticky="ew")
 
-        daily_top=ttk.Frame(daily_tab,padding=(4,6)); daily_top.pack(fill="x")
-        employee_choice=tk.StringVar(); ttk.Label(daily_top,text="Працівник").pack(side="left")
-        employee_combo=ttk.Combobox(daily_top,textvariable=employee_choice,state="readonly",width=48); employee_combo.pack(side="left",padx=6)
-        ttk.Label(daily_top,text="План — із графіка або зміни; факт і уточнення — з ручного табеля.",foreground="gray").pack(side="left",padx=8)
+        summary_hint=ttk.Frame(summary_tab,padding=(8,4,8,8))
+        summary_hint.pack(fill="x")
+        ttk.Label(
+            summary_hint,
+            text="ⓘ Подвійний клік по працівнику відкриває щоденну деталізацію. "
+                 "Червоним позначені рядки, де є план, але відсутній підтверджений факт.",
+            foreground=PALETTE["blue_dark"]
+        ).pack(side="left")
 
-        edit_bar=ttk.Frame(daily_tab,padding=(4,0,4,3)); edit_bar.pack(fill="x")
-        report_bar=ttk.Frame(daily_tab,padding=(4,0,4,5)); report_bar.pack(fill="x")
-        daily_frame=ttk.Frame(daily_tab); daily_frame.pack(fill="both",expand=True,padx=4,pady=(0,6)); daily_frame.rowconfigure(0,weight=1); daily_frame.columnconfigure(0,weight=1)
+        daily_top=ttk.Frame(daily_tab,padding=(6,8,6,4))
+        daily_top.pack(fill="x")
+        employee_choice=tk.StringVar()
+        ttk.Label(daily_top,text="Працівник:",font=("TkDefaultFont",10,"bold")).pack(side="left")
+        employee_combo=ttk.Combobox(
+            daily_top,textvariable=employee_choice,state="readonly",width=52
+        )
+        employee_combo.pack(side="left",padx=6)
+        ttk.Label(
+            daily_top,
+            text="План — із графіка/зміни; факт — із підтверджених або ручних даних.",
+            foreground=PALETTE["muted"]
+        ).pack(side="left",padx=8)
+
+        daily_stats=ttk.Frame(daily_tab,padding=(6,0,6,5))
+        daily_stats.pack(fill="x")
+        daily_stat_vars={
+            "planned":tk.StringVar(value="0:00"),
+            "actual":tk.StringVar(value="0:00"),
+            "difference":tk.StringVar(value="0:00"),
+            "missing":tk.StringVar(value="0"),
+        }
+        for idx,(key,title,bg,fg) in enumerate((
+            ("planned","План",PALETTE["success_soft"],PALETTE["success"]),
+            ("actual","Факт",PALETTE["info_soft"],PALETTE["blue"]),
+            ("difference","Відхилення",PALETTE["danger_soft"],PALETTE["danger"]),
+            ("missing","Днів без факту",PALETTE["warning_soft"],PALETTE["warning"]),
+        )):
+            daily_stats.columnconfigure(idx,weight=1)
+            stat_card(daily_stats,title,daily_stat_vars[key],bg,fg).grid(
+                row=0,column=idx,sticky="ew",padx=(0 if idx==0 else 4,4 if idx<3 else 0)
+            )
+
+        edit_bar=ttk.Frame(daily_tab,padding=(6,2,6,3))
+        edit_bar.pack(fill="x")
+        report_bar=ttk.Frame(daily_tab,padding=(6,0,6,5))
+        report_bar.pack(fill="x")
+        daily_frame=ttk.Frame(daily_tab)
+        daily_frame.pack(fill="both",expand=True,padx=6,pady=(0,6))
+        daily_frame.rowconfigure(0,weight=1)
+        daily_frame.columnconfigure(0,weight=1)
         daily_cols=("date","weekday","day_type","planned","actual","difference","source","notes")
-        daily_tree=ttk.Treeview(daily_frame,columns=daily_cols,show="headings",selectmode="extended")
-        for key,label,width in (("date","Дата",90),("weekday","День",75),("day_type","Вид дня",115),("planned","План",70),("actual","Факт",70),("difference","Відхилення",85),("source","Джерело",190),("notes","Примітка",260)):
-            daily_tree.heading(key,text=label); daily_tree.column(key,width=width,anchor="w")
-        dy=ttk.Scrollbar(daily_frame,orient="vertical",command=daily_tree.yview); dx=ttk.Scrollbar(daily_frame,orient="horizontal",command=daily_tree.xview)
+        daily_tree=ttk.Treeview(
+            daily_frame,columns=daily_cols,show="headings",selectmode="extended"
+        )
+        for key,label,width in (
+            ("date","Дата",95),("weekday","День",65),("day_type","Вид дня",120),
+            ("planned","План",75),("actual","Факт",75),("difference","Відхилення",90),
+            ("source","Джерело",190),("notes","Примітка",300)
+        ):
+            daily_tree.heading(key,text=label)
+            daily_tree.column(
+                key,width=width,
+                anchor="w" if key in ("day_type","source","notes") else "center"
+            )
+        daily_tree.tag_configure("missing",background=PALETTE["danger_soft"])
+        daily_tree.tag_configure("absence",background=PALETTE["success_soft"])
+        daily_tree.tag_configure("vacation",background=PALETTE["warning_soft"])
+        daily_tree.tag_configure("manual",background="#EEF0FF")
+        daily_tree.tag_configure("weekend",background="#F2F4F6")
+        dy=ttk.Scrollbar(daily_frame,orient="vertical",command=daily_tree.yview)
+        dx=ttk.Scrollbar(daily_frame,orient="horizontal",command=daily_tree.xview)
         daily_tree.configure(yscrollcommand=dy.set,xscrollcommand=dx.set)
-        daily_tree.grid(row=0,column=0,sticky="nsew"); dy.grid(row=0,column=1,sticky="ns"); dx.grid(row=1,column=0,sticky="ew")
+        daily_tree.grid(row=0,column=0,sticky="nsew")
+        dy.grid(row=0,column=1,sticky="ns")
+        dx.grid(row=1,column=0,sticky="ew")
 
-        employee_map={}; clipboard={"value":None}; last_files={"pdf":None,"xlsx":None}
+        employee_map={}
+        clipboard={"value":None}
+        last_files={"pdf":None,"xlsx":None}
         def selected_month():
             try:
                 m=int(month.get()); yy=int(year.get())
@@ -6910,34 +8187,83 @@ class App(tk.Tk):
 
         def refresh_daily():
             start,days=selected_month()
-            if not start: return
+            if not start:
+                return
             employee=employee_map.get(employee_choice.get())
-            for item in daily_tree.get_children(): daily_tree.delete(item)
-            if not employee: return
+            for item in daily_tree.get_children():
+                daily_tree.delete(item)
+            if not employee:
+                for var in daily_stat_vars.values():
+                    var.set("0")
+                return
+
             con=db()
             weekday_names=("Пн","Вт","Ср","Чт","Пт","Сб","Нд")
+            total_plan=0
+            total_actual=0
+            missing_count=0
             for day_no in range(1,days+1):
                 work_date=start.replace(day=day_no)
                 if employee_employed_on(employee,work_date):
                     row=employee_day_time(con,employee["id"],work_date)
                 else:
-                    row={"day_type":"—","planned_minutes":0,"actual_minutes":None,"source":"поза періодом роботи","notes":""}
+                    row={
+                        "day_type":"—","planned_minutes":0,"actual_minutes":None,
+                        "source":"поза періодом роботи","notes":""
+                    }
+                planned=row["planned_minutes"]
                 actual=row["actual_minutes"]
-                difference=(actual-row["planned_minutes"]) if actual is not None else None
-                daily_tree.insert("","end",iid=work_date.isoformat(),values=(
-                    work_date.strftime("%d.%m.%Y"),weekday_names[work_date.weekday()],row["day_type"],
-                    minutes_hhmm(row["planned_minutes"]),minutes_hhmm(actual) if actual is not None else "—",
-                    signed_hours_hhmm((difference or 0)/60) if difference is not None else "—",
-                    row["source"],row["notes"],
-                ))
+                difference=(actual-planned) if actual is not None else None
+                total_plan+=planned
+                if actual is not None:
+                    total_actual+=actual
+                elif planned>0:
+                    missing_count+=1
+
+                day_type=(row["day_type"] or "").lower()
+                source=(row["source"] or "").lower()
+                tag=""
+                if planned>0 and actual is None:
+                    tag="missing"
+                elif "лікар" in day_type:
+                    tag="absence"
+                elif "відпуст" in day_type:
+                    tag="vacation"
+                elif "вихід" in day_type or "свят" in day_type:
+                    tag="weekend"
+                elif "ручн" in source:
+                    tag="manual"
+
+                daily_tree.insert(
+                    "","end",iid=work_date.isoformat(),
+                    values=(
+                        work_date.strftime("%d.%m.%Y"),
+                        weekday_names[work_date.weekday()],
+                        row["day_type"],
+                        minutes_hhmm(planned),
+                        minutes_hhmm(actual) if actual is not None else "—",
+                        signed_hours_hhmm((difference or 0)/60) if difference is not None else "—",
+                        row["source"],row["notes"],
+                    ),
+                    tags=(tag,) if tag else (),
+                )
             con.close()
+            daily_stat_vars["planned"].set(minutes_hhmm(total_plan))
+            daily_stat_vars["actual"].set(minutes_hhmm(total_actual))
+            daily_stat_vars["difference"].set(signed_hours_hhmm((total_actual-total_plan)/60))
+            daily_stat_vars["missing"].set(str(missing_count))
 
         def refresh_summary():
             start,days=selected_month()
-            if not start: return
+            if not start:
+                return
             rows=load_employees()
-            for item in summary_tree.get_children(): summary_tree.delete(item)
+            for item in summary_tree.get_children():
+                summary_tree.delete(item)
             con=db()
+            total_plan=0
+            total_actual=0
+            total_missing=0
             for employee in rows:
                 planned=actual=missing=0
                 for day_no in range(1,days+1):
@@ -6946,11 +8272,47 @@ class App(tk.Tk):
                         continue
                     row=employee_day_time(con,employee["id"],work_date)
                     planned+=row["planned_minutes"]
-                    if row["actual_minutes"] is not None: actual+=row["actual_minutes"]
-                    elif row["planned_minutes"]>0: missing+=1
-                summary_tree.insert("","end",values=(employee["id"],employee["personnel_no"],self.employee_full_name(employee),employee["roles"] or employee["position"] or "",
-                    minutes_hhmm(planned),minutes_hhmm(actual),signed_hours_hhmm((actual-planned)/60),str(missing)))
-            con.close(); refresh_daily()
+                    if row["actual_minutes"] is not None:
+                        actual+=row["actual_minutes"]
+                    elif row["planned_minutes"]>0:
+                        missing+=1
+
+                total_plan+=planned
+                total_actual+=actual
+                total_missing+=missing
+                if planned==0 and actual==0:
+                    status="Немає даних"
+                    tag="no_data"
+                elif missing>0:
+                    status="Немає факту"
+                    tag="missing"
+                elif actual<planned:
+                    status="Частково"
+                    tag="warning"
+                else:
+                    status="Працює" if bool(employee["active"]) else "Звільнений"
+                    tag="good"
+
+                summary_tree.insert(
+                    "","end",
+                    values=(
+                        employee["id"],employee["personnel_no"],
+                        self.employee_full_name(employee),
+                        employee["roles"] or employee["position"] or "",
+                        minutes_hhmm(planned),minutes_hhmm(actual),
+                        signed_hours_hhmm((actual-planned)/60),str(missing),status,
+                    ),
+                    tags=(tag,),
+                )
+            con.close()
+            summary_stat_vars["employees"].set(str(len(rows)))
+            summary_stat_vars["planned"].set(minutes_hhmm(total_plan))
+            summary_stat_vars["actual"].set(minutes_hhmm(total_actual))
+            summary_stat_vars["difference"].set(
+                signed_hours_hhmm((total_actual-total_plan)/60)
+            )
+            summary_stat_vars["missing"].set(str(total_missing))
+            refresh_daily()
 
         def selected_days():
             return [datetime.strptime(item,"%Y-%m-%d").date() for item in daily_tree.selection()]
@@ -7201,34 +8563,149 @@ class App(tk.Tk):
             ttk.Button(bar,text="Оновити",command=refresh_balance).pack(side="left",padx=5); ttk.Button(bar,text="Excel — редагувати",command=lambda:save_balance("xlsx")).pack(side="left",padx=(12,3)); ttk.Button(bar,text="PDF — друк",command=lambda:save_balance("pdf")).pack(side="left",padx=3)
             active_only.trace_add("write",lambda *_args:refresh_balance()); refresh_balance()
 
-        def open_summary_employee(_event=None):
+        def select_summary_employee(switch_tab=False):
             sel=summary_tree.selection()
-            if not sel: return
+            if not sel:
+                messagebox.showinfo(
+                    "Табель","Виберіть працівника у підсумку місяця.",parent=win
+                )
+                return False
             eid=int(summary_tree.item(sel[0],"values")[0])
             for label,row in employee_map.items():
-                if row["id"]==eid: employee_choice.set(label); break
-            notebook.select(daily_tab); refresh_daily()
+                if row["id"]==eid:
+                    employee_choice.set(label)
+                    break
+            if switch_tab:
+                notebook.select(daily_tab)
+            refresh_daily()
+            return True
 
-        ttk.Button(top,text="Оновити",command=refresh_summary).pack(side="left",padx=8)
-        ttk.Button(edit_bar,text="Новий / редагувати день",command=edit_day).pack(side="left",padx=3)
+        def open_summary_employee(_event=None):
+            select_summary_employee(switch_tab=True)
+
+        def show_selected_control():
+            if notebook.index(notebook.select())==0 and not select_summary_employee(False):
+                return
+            show_control()
+
+        def export_all(kind):
+            start,_days=selected_month()
+            if not start:
+                return
+            suffix=".xlsx" if kind=="xlsx" else ".pdf"
+            path=filedialog.asksaveasfilename(
+                parent=win,
+                title="Зберегти звіт по всьому персоналу",
+                initialdir=str(OUTPUT_DIR),
+                initialfile=f"Табель_усього_персоналу_{start.year}_{start.month:02d}{suffix}",
+                defaultextension=suffix,
+                filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")],
+            )
+            if not path:
+                return
+            writer=(
+                (lambda out:export_personnel_monthly_balance_xlsx(
+                    start.year,start.month,out,False
+                ))
+                if kind=="xlsx"
+                else
+                (lambda out:export_personnel_monthly_balance_pdf(
+                    start.year,start.month,out,False
+                ))
+            )
+            actual=write_output_file(
+                writer,path,parent=win,
+                kind="Excel-звіт по персоналу" if kind=="xlsx" else "PDF-звіт по персоналу",
+                error_title="Табель персоналу",
+            )
+            if actual is not None:
+                messagebox.showinfo("Готово",f"Файл створено:\n{actual}",parent=win)
+
+        def open_p5_report():
+            action=getattr(self,"_save_p5",None)
+            if callable(action):
+                action("pdf")
+            else:
+                messagebox.showwarning(
+                    "П-5","Модуль типової форми П-5 недоступний у цій збірці.",parent=win
+                )
+
+        ttk.Label(
+            toolbar_actions,text="Робота з табелем:",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,6))
+        ttk.Button(
+            toolbar_actions,text="Оновити",command=refresh_summary
+        ).pack(side="left",padx=(0,4))
+        ttk.Button(
+            toolbar_actions,text="Відкрити деталізацію",style="Accent.TButton",
+            command=lambda:select_summary_employee(True)
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar_actions,text="Підсумки / контроль",command=show_selected_control
+        ).pack(side="left",padx=4)
+
+        ttk.Label(
+            toolbar_reports,text="Звіти та друк:",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,6))
+        ttk.Button(
+            toolbar_reports,text="PDF звіт — весь персонал",command=lambda:export_all("pdf")
+        ).pack(side="left",padx=(0,4))
+        ttk.Button(
+            toolbar_reports,text="Excel звіт — весь персонал",command=lambda:export_all("xlsx")
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar_reports,text="Місячний табель / баланс",command=show_personnel_balance
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar_reports,text="П-5",style="Gold.TButton",command=open_p5_report
+        ).pack(side="left",padx=4)
+        ttk.Button(
+            toolbar_reports,text="Папка звітів",command=lambda:open_external(OUTPUT_DIR)
+        ).pack(side="right",padx=(8,0))
+
+        ttk.Button(
+            edit_bar,text="Новий / редагувати день",style="Accent.TButton",command=edit_day
+        ).pack(side="left",padx=3)
         ttk.Button(edit_bar,text="Копіювати день",command=copy_day).pack(side="left",padx=3)
         ttk.Button(edit_bar,text="Вставити день",command=paste_day).pack(side="left",padx=3)
         ttk.Button(edit_bar,text="План → факт",command=plan_to_fact).pack(side="left",padx=(12,3))
-        ttk.Button(edit_bar,text="Очистити ручний запис",command=clear_manual).pack(side="left",padx=3)
-        ttk.Button(edit_bar,text="⚠ Порожні будні — план 8 год",command=autofill_empty_weekdays).pack(side="right",padx=3)
-        ttk.Label(report_bar,text="Звіти:").pack(side="left",padx=(0,3))
-        ttk.Button(report_bar,text="Excel",command=lambda:export_selected("xlsx")).pack(side="left",padx=3)
-        ttk.Button(report_bar,text="PDF",command=lambda:export_selected("pdf")).pack(side="left",padx=3)
-        ttk.Button(report_bar,text="Підсумки / контроль",command=show_control).pack(side="left",padx=3)
-        ttk.Button(report_bar,text="Місячний табель / баланс",command=show_personnel_balance).pack(side="left",padx=3)
+        ttk.Button(
+            edit_bar,text="Очистити ручний запис",command=clear_manual
+        ).pack(side="left",padx=3)
+
+        ttk.Label(
+            report_bar,text="Звіт вибраного працівника:",font=("TkDefaultFont",9,"bold")
+        ).pack(side="left",padx=(0,3))
+        ttk.Button(
+            report_bar,text="Excel",command=lambda:export_selected("xlsx")
+        ).pack(side="left",padx=3)
+        ttk.Button(
+            report_bar,text="PDF",command=lambda:export_selected("pdf")
+        ).pack(side="left",padx=3)
+        ttk.Button(
+            report_bar,text="Підсумки / контроль",command=show_control
+        ).pack(side="left",padx=3)
+        ttk.Button(
+            report_bar,text="Папка звітів",command=lambda:open_external(OUTPUT_DIR)
+        ).pack(side="left",padx=(10,3))
+        ttk.Label(
+            report_bar,
+            text="Масове «8 год у порожні будні» прибрано: план формується лише з режиму/графіка.",
+            foreground=PALETTE["muted"]
+        ).pack(side="right",padx=6)
+
         employee_combo.bind("<<ComboboxSelected>>",lambda _e:refresh_daily())
+        month_combo.bind("<<ComboboxSelected>>",lambda _e:refresh_summary())
+        year.trace_add("write",lambda *_args:refresh_summary() if len(year.get())==4 else None)
         daily_tree.bind("<Double-1>",lambda _e:edit_day())
         daily_tree.bind("<Control-c>",lambda _e:copy_day())
         daily_tree.bind("<Control-v>",lambda _e:paste_day())
         if sys.platform=="darwin":
-            daily_tree.bind("<Command-c>",lambda _e:copy_day()); daily_tree.bind("<Command-v>",lambda _e:paste_day())
+            daily_tree.bind("<Command-c>",lambda _e:copy_day())
+            daily_tree.bind("<Command-v>",lambda _e:paste_day())
         summary_tree.bind("<Double-1>",open_summary_employee)
         refresh_summary()
+        return win
 
     def driver_form(self, driver=None):
         win = tk.Toplevel(self)
@@ -7365,19 +8842,37 @@ class App(tk.Tk):
             if not vals["last_name"] or not vals["first_name"]:
                 messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win)
                 return
+            role_end_date=""
+            if driver and bool(driver["active"]) and not active.get():
+                raw_end=simpledialog.askstring(
+                    "Дата завершення ролі",
+                    "Дата завершення роботи водієм (ДД.ММ.РРРР):",
+                    initialvalue=date.today().strftime("%d.%m.%Y"),
+                    parent=win,
+                )
+                if raw_end is None:
+                    return
+                try:
+                    role_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
+                except ValueError:
+                    messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
+                    return
             con=db()
             if driver:
                 saved_driver_id=driver["id"]
+                next_driver_end="" if active.get() else (
+                    role_end_date or (driver["driver_end_date"] or "").strip()
+                )
                 con.execute("""UPDATE drivers SET
                     last_name=?,first_name=?,middle_name=?,
                     last_name_en=?,first_name_en=?,middle_name_en=?,
                     personnel_no=?,birth_date=?,license_series=?,license_number=?,license_issue_date=?,
-                    employment_date=?,notes=?,active=? WHERE id=?""",
+                    employment_date=?,notes=?,active=?,driver_end_date=? WHERE id=?""",
                     (vals["last_name"],vals["first_name"],vals["middle_name"],
                      vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
                      vals["personnel_no"],vals["birth_date"],vals["license_series"],vals["license_number"],
                      vals["license_issue_date"],vals["employment_date"],vals["notes"],
-                     int(active.get()),saved_driver_id))
+                     int(active.get()),next_driver_end,saved_driver_id))
             else:
                 cur=con.execute("""INSERT INTO drivers(
                     last_name,first_name,middle_name,last_name_en,first_name_en,middle_name_en,
@@ -7392,13 +8887,17 @@ class App(tk.Tk):
             emp=con.execute("SELECT id FROM employees WHERE driver_id=?",(saved_driver_id,)).fetchone()
             if emp:
                 employee_id=emp["id"]
-                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,position='Водій',employment_date=?,notes=?,active=? WHERE id=?""",
-                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],int(active.get()),employee_id))
+                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,employment_date=?,notes=? WHERE id=?""",
+                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],employee_id))
             else:
                 cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,employment_date,notes,active,driver_id,created_at)
                     VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],int(active.get()),saved_driver_id,datetime.now().isoformat(timespec="seconds")))
                 employee_id=cur.lastrowid
-            con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
+            if active.get():
+                con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
+                con.execute("UPDATE drivers SET driver_end_date='' WHERE id=?",(saved_driver_id,))
+            else:
+                con.execute("DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",(employee_id,))
             con.commit(); con.close()
             self.load_drivers(); self.load_employee_registry(); win.destroy()
 

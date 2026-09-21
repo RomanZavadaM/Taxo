@@ -1,6 +1,14 @@
-name: Historical publisher Taxo 10.0 stable (manual only)
+name: Publish Taxo 10.1 stable
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'VERSION.txt'
+      - '.github/workflows/publish-v10.1.yml'
+      - 'installer/Taxo.iss'
+      - 'Taxo_macos.spec'
   workflow_dispatch:
 
 permissions:
@@ -20,7 +28,7 @@ jobs:
       - name: Verify stable version
         shell: bash
         run: |
-          grep -Fxq 'Version: 10.0' VERSION.txt
+          grep -Fxq 'Version: 10.1' VERSION.txt
           grep -Fxq 'Release type: stable' VERSION.txt
 
       - name: Set up Python 3.13
@@ -86,12 +94,12 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean Taxo.spec
-          Move-Item 'dist/Taxo' 'dist/Taxo_v10_0_Windows_x64'
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_1_Windows_x64'
 
       - name: Verify Windows portable bundle
         shell: pwsh
         run: |
-          $bundle = 'dist/Taxo_v10_0_Windows_x64'
+          $bundle = 'dist/Taxo_v10_1_Windows_x64'
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
           if (!(Test-Path "$bundle/_internal/Бланк підтвердження.docx")) { throw 'DOCX template not found' }
           if (!(Test-Path "$bundle/_internal/attestation_visual_template.pdf")) { throw 'PDF template not found' }
@@ -101,7 +109,7 @@ jobs:
       - name: Create Windows portable ZIP
         shell: pwsh
         run: |
-          Compress-Archive -Path 'dist/Taxo_v10_0_Windows_x64' -DestinationPath 'Taxo_v10_0_Windows_x64_Portable.zip' -Force
+          Compress-Archive -Path 'dist/Taxo_v10_1_Windows_x64' -DestinationPath 'Taxo_v10_1_Windows_x64_Portable.zip' -Force
 
       - name: Build Windows installer
         shell: pwsh
@@ -113,28 +121,28 @@ jobs:
           }
           if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
           & $iscc 'installer/Taxo.iss'
-          if (!(Test-Path 'release_out/Taxo_v10_0_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+          if (!(Test-Path 'release_out/Taxo_v10_1_Setup_Windows_x64.exe')) { throw 'Installer not found' }
 
       - name: Create Windows checksum manifest
         shell: pwsh
         run: |
           $files = @(
-            'Taxo_v10_0_Windows_x64_Portable.zip',
-            'release_out/Taxo_v10_0_Setup_Windows_x64.exe'
+            'Taxo_v10_1_Windows_x64_Portable.zip',
+            'release_out/Taxo_v10_1_Setup_Windows_x64.exe'
           )
           $lines = foreach ($file in $files) {
             "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
           }
-          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_0_Windows_x64.txt'
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_1_Windows_x64.txt'
 
       - name: Upload Windows packages
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.0-Windows-x64
+          name: Taxo-v10.1-Windows-x64
           path: |
-            Taxo_v10_0_Windows_x64_Portable.zip
-            release_out/Taxo_v10_0_Setup_Windows_x64.exe
-            SHA256SUMS_v10_0_Windows_x64.txt
+            Taxo_v10_1_Windows_x64_Portable.zip
+            release_out/Taxo_v10_1_Setup_Windows_x64.exe
+            SHA256SUMS_v10_1_Windows_x64.txt
           if-no-files-found: error
           retention-days: 30
 
@@ -198,20 +206,20 @@ jobs:
       - name: Create macOS portable ZIP and checksum
         shell: bash
         run: |
-          bundle_dir="Taxo_v10_0_macOS_${{ matrix.arch }}"
+          bundle_dir="Taxo_v10_1_macOS_${{ matrix.arch }}"
           zip_name="${bundle_dir}_Portable.zip"
           mkdir "${bundle_dir}"
           mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle_dir}" "${zip_name}"
-          shasum -a 256 "${zip_name}" > "SHA256SUMS_v10_0_macOS_${{ matrix.arch }}.txt"
+          shasum -a 256 "${zip_name}" > "SHA256SUMS_v10_1_macOS_${{ matrix.arch }}.txt"
 
       - name: Upload macOS package
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.0-macOS-${{ matrix.arch }}
+          name: Taxo-v10.1-macOS-${{ matrix.arch }}
           path: |
-            Taxo_v10_0_macOS_${{ matrix.arch }}_Portable.zip
-            SHA256SUMS_v10_0_macOS_${{ matrix.arch }}.txt
+            Taxo_v10_1_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v10_1_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30
 
@@ -227,12 +235,12 @@ jobs:
       - name: Create stable START archive
         shell: bash
         run: |
-          git archive --format=zip --prefix='Taxo_v10_0_START/' --output='Taxo_v10_0_START.zip' HEAD
+          git archive --format=zip --prefix='Taxo_v10_1_START/' --output='Taxo_v10_1_START.zip' HEAD
 
       - name: Verify clean START package
         shell: bash
         run: |
-          archive='Taxo_v10_0_START.zip'
+          archive='Taxo_v10_1_START.zip'
           if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
             echo 'Database/cache unexpectedly bundled in START' >&2
             exit 1
@@ -253,15 +261,15 @@ jobs:
           if b'\r\n' not in data:
               raise SystemExit('START.bat must contain CRLF')
           PY
-          sha256sum "$archive" > 'SHA256SUMS_v10_0_START.txt'
+          sha256sum "$archive" > 'SHA256SUMS_v10_1_START.txt'
 
       - name: Upload START package
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.0-START
+          name: Taxo-v10.1-START
           path: |
-            Taxo_v10_0_START.zip
-            SHA256SUMS_v10_0_START.txt
+            Taxo_v10_1_START.zip
+            SHA256SUMS_v10_1_START.txt
           if-no-files-found: error
           retention-days: 30
 
@@ -281,63 +289,63 @@ jobs:
       - name: Download all stable artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: Taxo-v10.0-*
+          pattern: Taxo-v10.1-*
           path: release-upload
           merge-multiple: true
 
       - name: Normalize release assets and create combined SHA-256 manifest
         shell: bash
         run: |
-          find release-upload -type f -name 'Taxo_v10_0_Setup_Windows_x64.exe' -exec cp '{}' release-upload/ \;
-          find release-upload -type f -name 'Taxo_v10_0_Windows_x64_Portable.zip' -exec cp '{}' release-upload/ \;
-          find release-upload -type f -name 'Taxo_v10_0_macOS_arm64_Portable.zip' -exec cp '{}' release-upload/ \;
-          find release-upload -type f -name 'Taxo_v10_0_macOS_x86_64_Portable.zip' -exec cp '{}' release-upload/ \;
-          find release-upload -type f -name 'Taxo_v10_0_START.zip' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_1_Setup_Windows_x64.exe' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_1_Windows_x64_Portable.zip' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_1_macOS_arm64_Portable.zip' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_1_macOS_x86_64_Portable.zip' -exec cp '{}' release-upload/ \;
+          find release-upload -type f -name 'Taxo_v10_1_START.zip' -exec cp '{}' release-upload/ \;
 
           cd release-upload
           required=(
-            Taxo_v10_0_Setup_Windows_x64.exe
-            Taxo_v10_0_Windows_x64_Portable.zip
-            Taxo_v10_0_macOS_arm64_Portable.zip
-            Taxo_v10_0_macOS_x86_64_Portable.zip
-            Taxo_v10_0_START.zip
+            Taxo_v10_1_Setup_Windows_x64.exe
+            Taxo_v10_1_Windows_x64_Portable.zip
+            Taxo_v10_1_macOS_arm64_Portable.zip
+            Taxo_v10_1_macOS_x86_64_Portable.zip
+            Taxo_v10_1_START.zip
           )
           for file in "${required[@]}"; do
             test -f "$file" || { echo "Missing stable release asset: $file" >&2; exit 1; }
           done
 
-          sha256sum "${required[@]}" | sort -k2 > SHA256SUMS_v10_0.txt
-          cat SHA256SUMS_v10_0.txt
+          sha256sum "${required[@]}" | sort -k2 > SHA256SUMS_v10_1.txt
+          cat SHA256SUMS_v10_1.txt
 
       - name: Publish immutable stable release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          if gh release view 'v10.0' >/dev/null 2>&1; then
-            echo 'v10.0 already exists; refusing to overwrite the stable release.'
+          if gh release view 'v10.1' >/dev/null 2>&1; then
+            echo 'v10.1 already exists; refusing to overwrite the stable release.'
             exit 1
           fi
 
           files=(
-            release-upload/Taxo_v10_0_Setup_Windows_x64.exe
-            release-upload/Taxo_v10_0_Windows_x64_Portable.zip
-            release-upload/Taxo_v10_0_macOS_arm64_Portable.zip
-            release-upload/Taxo_v10_0_macOS_x86_64_Portable.zip
-            release-upload/Taxo_v10_0_START.zip
-            release-upload/SHA256SUMS_v10_0_Windows_x64.txt
-            release-upload/SHA256SUMS_v10_0_macOS_arm64.txt
-            release-upload/SHA256SUMS_v10_0_macOS_x86_64.txt
-            release-upload/SHA256SUMS_v10_0_START.txt
-            release-upload/SHA256SUMS_v10_0.txt
+            release-upload/Taxo_v10_1_Setup_Windows_x64.exe
+            release-upload/Taxo_v10_1_Windows_x64_Portable.zip
+            release-upload/Taxo_v10_1_macOS_arm64_Portable.zip
+            release-upload/Taxo_v10_1_macOS_x86_64_Portable.zip
+            release-upload/Taxo_v10_1_START.zip
+            release-upload/SHA256SUMS_v10_1_Windows_x64.txt
+            release-upload/SHA256SUMS_v10_1_macOS_arm64.txt
+            release-upload/SHA256SUMS_v10_1_macOS_x86_64.txt
+            release-upload/SHA256SUMS_v10_1_START.txt
+            release-upload/SHA256SUMS_v10_1.txt
           )
           for file in "${files[@]}"; do
             test -f "$file" || { echo "Missing release file before publish: $file" >&2; exit 1; }
           done
 
-          gh release create 'v10.0' \
+          gh release create 'v10.1' \
             "${files[@]}" \
             --target "$GITHUB_SHA" \
-            --title 'Taxo 10.0' \
-            --notes-file 'docs/releases/RELEASE_NOTES_v10_0.md' \
+            --title 'Taxo 10.1' \
+            --notes-file 'docs/releases/RELEASE_NOTES_v10_1.md' \
             --latest

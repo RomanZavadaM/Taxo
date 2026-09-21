@@ -27,6 +27,12 @@
 
 r1–r4 лишилися проміжними Git-станами й навмисно не оформлювалися окремими GitHub Releases.
 
+## Taxo 10.1
+
+**21.09.2026** — лінію 10.1-r1…r5 завершено після multi-platform regression gate і ручної Windows-перевірки UI/navigation. Користувач підтвердив merge у main та stable release 10.1.
+
+Ключові зміни: driver-role persistence fix, новий application shell, затверджений text-free логотип, KPI реєстру персоналу, звіти в головному workspace, single-instance детальний табель без рекурсивного дублювання повного вікна.
+
 ## Taxo 10.0
 
 **19.09.2026** — candidate line 9.1 завершена після manual operational gate і промотована в **stable Taxo 10.0**. Release target: `91c0d6365a40eb09fe40f97a2965da40b314bc15`; Windows/macOS/START stable packages опубліковані.

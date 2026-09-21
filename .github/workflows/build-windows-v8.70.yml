@@ -1,4 +1,4 @@
-name: Test Taxo 9.x source / build Windows on demand
+name: Test Taxo source / build Windows on demand
 
 on:
   workflow_dispatch:
@@ -13,6 +13,8 @@ on:
       - 'activity_register_60.py'
       - 'v91_features.py'
       - 'personnel_v91.py'
+      - 'branding.py'
+      - 'branding_asset.py'
       - 'work_regime.py'
       - 'workspace.py'
       - 'waybill.py'
@@ -30,7 +32,7 @@ on:
       - 'README*.md'
       - '.github/workflows/build-windows-v8.70.yml'
       - '.github/workflows/source-test-archive.yml'
-      - '.github/workflows/publish-v10.0.yml'
+      - '.github/workflows/publish-v10.1.yml'
       - 'VERSION.txt'
 
 permissions:
@@ -150,13 +152,13 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean Taxo.spec
-          Move-Item 'dist/Taxo' 'dist/Taxo_v10_0_Windows_x64'
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_1_Windows_x64'
 
       - name: Verify portable bundle
         if: steps.changes.outputs.build == 'true'
         shell: pwsh
         run: |
-          $bundle = 'dist/Taxo_v10_0_Windows_x64'
+          $bundle = 'dist/Taxo_v10_1_Windows_x64'
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
           if (!(Test-Path "$bundle/_internal/Бланк підтвердження.docx")) { throw 'DOCX template not found' }
           if (!(Test-Path "$bundle/_internal/attestation_visual_template.pdf")) { throw 'PDF template not found' }
@@ -167,7 +169,7 @@ jobs:
         if: steps.changes.outputs.build == 'true'
         shell: pwsh
         run: |
-          Compress-Archive -Path 'dist/Taxo_v10_0_Windows_x64' -DestinationPath 'Taxo_v10_0_Windows_x64_Portable.zip' -Force
+          Compress-Archive -Path 'dist/Taxo_v10_1_Windows_x64' -DestinationPath 'Taxo_v10_1_Windows_x64_Portable.zip' -Force
 
       - name: Build Windows installer
         if: steps.changes.outputs.build == 'true'
@@ -180,15 +182,15 @@ jobs:
           }
           if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
           & $iscc 'installer/Taxo.iss'
-          if (!(Test-Path 'release_out/Taxo_v10_0_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+          if (!(Test-Path 'release_out/Taxo_v10_1_Setup_Windows_x64.exe')) { throw 'Installer not found' }
 
       - name: Create checksums
         if: steps.changes.outputs.build == 'true'
         shell: pwsh
         run: |
           $files = @(
-            'Taxo_v10_0_Windows_x64_Portable.zip',
-            'release_out/Taxo_v10_0_Setup_Windows_x64.exe'
+            'Taxo_v10_1_Windows_x64_Portable.zip',
+            'release_out/Taxo_v10_1_Setup_Windows_x64.exe'
           )
           $lines = foreach ($file in $files) {
             "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
@@ -200,10 +202,10 @@ jobs:
         if: steps.changes.outputs.build == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.0-Windows-x64
+          name: Taxo-v10.1-Windows-x64
           path: |
-            Taxo_v10_0_Windows_x64_Portable.zip
-            release_out/Taxo_v10_0_Setup_Windows_x64.exe
+            Taxo_v10_1_Windows_x64_Portable.zip
+            release_out/Taxo_v10_1_Setup_Windows_x64.exe
             SHA256SUMS_v10_0_Windows_x64.txt
           if-no-files-found: error
           retention-days: 30

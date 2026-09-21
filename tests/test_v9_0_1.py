@@ -14,23 +14,16 @@ class Taxo901HotfixTests(unittest.TestCase):
         self.assertEqual(hotfix_901.ABOUT_TITLE, "Taxo 9.0.1")
         self.assertIn("стабільне експлуатаційне виправлення", hotfix_901.ABOUT_TEXT)
 
-    def test_version_file_marks_901(self):
-        text = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
-        self.assertTrue(
-            "Version: 9.0.1" in text
-            or "Baseline: Taxo 9.0.1" in text
-            or "Previous stable / rollback point: Taxo 9.0.1" in text
+    def test_historical_901_release_metadata_is_preserved(self):
+        notes = (ROOT / "docs/releases/RELEASE_NOTES_v9_0_1.md").read_text(
+            encoding="utf-8"
         )
-        release_type = next(
-            line for line in text.splitlines() if line.startswith("Release type:")
-        ).lower()
-        if "Version: 9.0.1" in text:
-            self.assertIn("stable hotfix", release_type)
-        elif "Version: 10.0" in text:
-            self.assertEqual(release_type, "release type: stable")
-        else:
-            self.assertIn("candidate", release_type)
-            self.assertIn("pre-release", release_type)
+        index = (ROOT / "docs/releases/RELEASE_INDEX.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("9.0.1", notes)
+        self.assertIn("v9.0.1", index)
+        self.assertIn("rollback", index.lower())
 
     def test_operational_root_has_no_legacy_v8_report_clutter(self):
         forbidden_prefixes = (

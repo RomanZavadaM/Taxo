@@ -1,109 +1,59 @@
 # PROJECT_STATE — Taxo
 
-**Дата фіксації:** 19.09.2026  
-**Поточна stable:** Taxo 10.0  
-**Попередня stable / rollback:** Taxo 9.0.1  
-**Останній кандидат перед stable:** v9.1-r9.8  
-**Stable release tag:** `v10.0`  
-**Stable release target:** `91c0d6365a40eb09fe40f97a2965da40b314bc15`  
-**PR #29:** merged  
-**Release pipeline fixes:** PR #30 і #31 merged  
-**Фінальний аудит:** `docs/maintenance/AUDIT_v10_0_STABLE.md`
+**Дата фіксації:** 21.09.2026  
+**Stable promotion:** Taxo 10.1  
+**Попередня stable / rollback:** Taxo 10.0  
+**Verified candidate:** v10.1-r5  
+**Candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
+**Робоча гілка:** `work/v10.1-driver-role-ui-refresh`  
+**PR:** #34  
+**Stable audit:** `docs/maintenance/AUDIT_v10_1_STABLE.md`  
+**Release notes:** `docs/releases/RELEASE_NOTES_v10_1.md`
 
-## Рішення про stable
+## Рішення про stable 10.1
 
-Користувач завершив ручний operational gate на реальній Windows-базі та явно підтвердив:
-- злити робочу гілку у `main`;
-- підняти версію до **10.0**;
-- оформити документацію;
-- випустити executable packages для Windows x64, macOS ARM64 та macOS Intel x86_64;
-- опублікувати START/source і SHA-256.
+21.09.2026 користувач завершив ручний Windows gate і явно дозволив merge у `main`, multi-platform release та публікацію.
 
-До цього моменту `main` навмисно лишався на 9.0.1.
+10.1 промотує перевірену лінію `v10.1-r1` … `v10.1-r5`. Старі tags/releases лишаються immutable.
 
-## Функціональний стан 10.0
+## Ключові зміни 10.1
 
-### Робочий час
-- один канонічний стан дня для Табеля і Графіка водіїв;
-- точні інтервали, split-shift, overnight;
-- union перекриттів без подвійного часу;
-- duration-only не вигадує 08:00–16:00;
-- нові часові конфлікти блокуються;
-- історичні конфлікти не переписуються автоматично.
+- виправлено змішування `drivers.active`, `employees.active` і ролі `Водій`;
+- завершення ролі водія не звільняє працівника і не самовідновлюється після restart;
+- `driver_end_date` зберігається окремо;
+- новий application shell із затвердженим text-free логотипом;
+- динамічна назва підприємства у шапці й вікнах;
+- реєстр працівників із KPI, пошуком і впорядкованими діями;
+- «Звіти» працюють у головному workspace;
+- детальний табель single-instance, без дубльованого повного sidebar;
+- PDF/Excel, П-5, баланс, контроль і папка звітів збережені;
+- «Про програму» та «Довідка» оформлені у новому стилі.
 
-### Персонал
-- Реєстр / Планування / Табель / Звіти;
-- режими 5/40, 6/40, 6/36, 6/24, підсумований, індивідуальний;
-- відсутності не стирають історичний план;
-- внутрішнє сумісництво контролюється за точними інтервалами;
-- роль водія не дублюється через employee_shifts.
+## Перевірка перед stable
 
-### П-5
-- PDF/XLSX типової форми;
-- коди 01–30;
-- факт має пріоритет;
-- план замість факту підставляється тільки після явного запиту;
-- підстановка плану виділяється та пояснюється приміткою.
-
-### Графіки й аудит
-- місячний графік змінності;
-- PDF графіка й PDF деталізації;
-- «Відкрити деталізацію» формує актуальний PDF і відкриває його;
-- «Аудит графіків…» — технічна перевірка введення;
-- «Контроль №340» — окрема нормативна перевірка.
-
-### Шляхівки
-- нумерація, маршрути, авто, пробіг/спідометр, історія;
-- role + schedule date + shift = один duty slot;
-- нічний рейс не підхоплює персонал наступного дня;
-- legacy duplicates позначаються як конфлікт;
-- ручний тест r9.8 підтвердив однакового лікаря/механіка для двох шляхівок однієї зміни.
-
-### START / пакування
-- START.bat ASCII-only + CRLF;
-- перевірка повноти пакета до pip;
-- full/incomplete preflight у Windows CI;
-- БД/SQLite/кеші/скани/персональні файли не потрапляють у artifacts.
+v10.1-r5:
+- source/START — 157 tests / OK;
+- Windows — 157 tests / OK + START preflight;
+- macOS ARM64 — 157 tests / OK;
+- macOS Intel x86_64 — 157 tests / OK;
+- ручний Windows navigation/UI gate — підтверджено.
 
 ## Дані
 
-- робоче сховище зберігається між версіями;
+- схема БД у 10.1 не змінюється;
+- наявне робоче сховище зберігається;
 - повторне введення даних не потрібне;
-- робочі бази не зберігаються у Git;
 - retention робочих даних — 48 місяців;
-- backup/restore лишається частиною експлуатаційного контуру.
+- робочі бази, скани, кеші та персональні документи не публікуються.
 
-## Релізи
+## Пакети stable 10.1
 
-Історичні immutable контрольні точки:
-- stable: `v9.0`, `v9.0.1`;
-- candidates: `v9.1-r5` … `v9.1-r9.8`;
-- `v9.1-r9.5` лишається історичним known-bad START release і не пересувається.
-
-Нова stable:
-- `v10.0` — опублікований stable release;
-- target commit: `91c0d6365a40eb09fe40f97a2965da40b314bc15`;
+Після merge stable publisher формує:
 - Windows x64 Setup;
 - Windows x64 Portable;
 - macOS ARM64;
 - macOS Intel x86_64;
 - START/source;
-- per-platform і combined SHA-256 manifests.
+- per-platform та combined SHA-256.
 
-## Stable release result
-
-1. PR #29 — merged у `main`.
-2. PR #30/#31 — release-pipeline hardening merged.
-3. `Publish Taxo 10.0 stable` — success.
-4. Source verify — 117 tests / OK.
-5. Windows — 117 tests / OK, Setup + Portable success.
-6. macOS ARM64 — 117 tests / OK, Taxo.app package success.
-7. macOS Intel x86_64 — 117 tests / OK, Taxo.app package success.
-8. START/source verification — success.
-9. GitHub Release `v10.0` — published, 10 assets.
-10. `main` + protected tag `v10.0` є новим stable source of truth.
-
-Деталі:
-- [Release notes 10.0](docs/releases/RELEASE_NOTES_v10_0.md)
-- [Фінальний аудит](docs/maintenance/AUDIT_v10_0_STABLE.md)
-- [Release index](docs/releases/RELEASE_INDEX.md)
+Після успішної публікації `main` + `v10.1` стають новим stable source of truth; `v10.0` — rollback.
