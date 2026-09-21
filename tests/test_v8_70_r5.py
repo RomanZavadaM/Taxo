@@ -180,7 +180,7 @@ class V870R5Tests(unittest.TestCase):
             self.assertNotIn("D+1", text)
             self.assertIn("Нічліг", text)
             self.assertIn("14.09.2026 - 15.09.2026", text)
-            self.assertFalse(any(page.get_images(full=True) for page in doc))
+            self.assertFalse(any(len(page.images) for page in doc.pages))
             
 
     def test_tachograph_database_remains_separate(self):
