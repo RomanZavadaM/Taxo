@@ -18,6 +18,10 @@
 
 > Candidate line 10.1.x завершена stable релізом 10.1. Candidate tags лишаються immutable historical checkpoints.
 
+## Candidate numbering rule
+
+Поточне правило розробки: кожен завершений крок = нова ревізія; `r1 ... r10`, після `r10` — наступна minor-версія з `r1`. Уже виданий тестовий candidate не перевикористовується. Кожен крок завершується окремим START-архівом. Деталі: [../maintenance/DEVELOPMENT_RULES.md](../maintenance/DEVELOPMENT_RULES.md).
+
 ## Stable line
 
 | Tag | Статус | Пакети | Призначення |
