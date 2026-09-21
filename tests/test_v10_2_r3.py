@@ -345,6 +345,15 @@ class TestTaxo102R3TimesheetAndDriverRole(unittest.TestCase):
         self.assertIn("0<gap<=120",source)
         self.assertIn("paid_minutes/60.0",source)
 
+    def test_general_planner_exposes_safe_replanning_control(self):
+        source=inspect.getsource(personnel_v91.install)
+        self.assertIn("Перепланувати: замінити існуючий ПЛАН",source)
+        self.assertIn("actual_hours IS NULL",source)
+        self.assertIn("command=lambda: preview()",source)
+        self.assertIn("body.rowconfigure(12, weight=1)",source)
+        self.assertIn("buttons.grid(row=11",source)
+        self.assertIn("tree.grid(row=12",source)
+
     def test_audit_flags_13_hour_day_against_5_40_norm(self):
         with tempfile.TemporaryDirectory() as folder:
             db_path=Path(folder)/"audit.sqlite3"
