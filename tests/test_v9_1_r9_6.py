@@ -14,6 +14,16 @@ class TestR96StartHardening(unittest.TestCase):
             "Taxo_v9_1_candidate_r9_6_START",
         )
 
+    def test_candidate_archive_name_can_include_unique_build_id(self):
+        self.assertEqual(
+            start_archive_stem("10.2-r1", build_id="9401f959"),
+            "Taxo_v10_2_candidate_r1_9401f959_START",
+        )
+        self.assertEqual(
+            start_archive_stem("10.2-r1"),
+            "Taxo_v10_2_candidate_r1_START",
+        )
+
     def test_start_bat_is_ascii_only_and_has_no_codepage_switch(self):
         raw = (ROOT / "START.bat").read_bytes()
         self.assertTrue(raw)

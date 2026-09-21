@@ -12,19 +12,30 @@ def version_from_file(path: str | Path = "VERSION.txt") -> str:
     return "candidate"
 
 
-def start_archive_stem(version: str) -> str:
+def _safe_build_id(build_id: str | None) -> str:
+    raw = str(build_id or "").strip()
+    if not raw:
+        return ""
+    return re.sub(r"[^A-Za-z0-9_-]+", "_", raw).strip("_")[:16]
+
+
+def start_archive_stem(version: str, build_id: str | None = None) -> str:
     candidate = re.search(r"(\d+)\.(\d+).*?r(\d+(?:\.\d+)*)", version, re.I)
     stable = re.fullmatch(r"(\d+)\.(\d+)(?:\.(\d+))?", version.strip())
+    suffix = _safe_build_id(build_id)
     if candidate:
         revision = candidate.group(3).replace(".", "_")
-        return f"Taxo_v{candidate.group(1)}_{candidate.group(2)}_candidate_r{revision}_START"
+        base = f"Taxo_v{candidate.group(1)}_{candidate.group(2)}_candidate_r{revision}"
+        return f"{base}_{suffix}_START" if suffix else f"{base}_START"
     if stable:
         parts = [stable.group(1), stable.group(2)]
         if stable.group(3) is not None:
             parts.append(stable.group(3))
-        return "Taxo_v" + "_".join(parts) + "_START"
+        base = "Taxo_v" + "_".join(parts)
+        return f"{base}_{suffix}_START" if suffix else f"{base}_START"
     safe = re.sub(r"[^A-Za-z0-9._-]+", "_", version).strip("_") or "candidate"
-    return f"Taxo_{safe}_START"
+    base = f"Taxo_{safe}"
+    return f"{base}_{suffix}_START" if suffix else f"{base}_START"
 
 
 if __name__ == "__main__":

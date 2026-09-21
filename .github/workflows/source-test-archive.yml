@@ -41,7 +41,8 @@ jobs:
 
           from release_naming import start_archive_stem, version_from_file
 
-          stem = start_archive_stem(version_from_file("VERSION.txt"))
+          build_id = os.environ.get("GITHUB_SHA", "")[:8]
+          stem = start_archive_stem(version_from_file("VERSION.txt"), build_id=build_id)
           archive = stem + ".zip"
           subprocess.check_call([
               "git", "archive", "--format=zip",
