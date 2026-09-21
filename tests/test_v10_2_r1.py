@@ -203,6 +203,16 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
             self.assertTrue(target.is_file())
             self.assertEqual(target.read_bytes(), b"sample")
 
+    def test_document_copy_rejects_unsupported_file_type(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "source.txt"
+            source.write_text("not a supported document copy", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Непідтримуваний формат копії"):
+                copy_document_file(root, 7, "insurance", source)
+            target_dir = paths_for(root)["vehicle_documents"] / "7" / "insurance"
+            self.assertFalse(target_dir.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

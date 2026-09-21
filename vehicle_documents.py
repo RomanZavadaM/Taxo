@@ -26,6 +26,8 @@ DOCUMENT_TYPES = {
 EXPIRY_REQUIRED = {"insurance", "inspection", "temporary_registration"}
 WARNING_DAYS = 30
 
+ALLOWED_COPY_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff"}
+
 
 def parse_date(value):
     text = str(value or "").strip()
@@ -217,6 +219,9 @@ def copy_document_file(data_root, vehicle_id, doc_type, source):
     source = Path(source)
     if not source.is_file():
         raise FileNotFoundError(str(source))
+    if source.suffix.lower() not in ALLOWED_COPY_EXTENSIONS:
+        allowed = ", ".join(sorted(ext.upper().lstrip(".") for ext in ALLOWED_COPY_EXTENSIONS))
+        raise ValueError(f"Непідтримуваний формат копії. Дозволено: {allowed}.")
     root = paths_for(data_root)["vehicle_documents"] / str(int(vehicle_id)) / str(doc_type)
     root.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
@@ -470,7 +475,7 @@ class VehicleDocumentsWindow:
                         dtype,
                         copy_var.get().strip(),
                     )
-                except OSError as exc:
+                except (OSError, ValueError) as exc:
                     messagebox.showerror("Документ", f"Не вдалося зберегти копію:\n{exc}", parent=win)
                     return
 
