@@ -1,6 +1,6 @@
 #define MyAppName "Taxo"
 #define MyAppVersion "10.1"
-#define MyAppPublisher "RomanZavadaM"
+#define MyAppPublisher "Roman Zavada"
 #define MyAppExeName "Taxo.exe"
 
 [Setup]
