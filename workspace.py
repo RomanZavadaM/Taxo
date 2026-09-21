@@ -110,13 +110,14 @@ def paths_for(root):
         "main_db":data/"driver_worktime.sqlite3",
         "tacho_db":data/"tachograph_test.sqlite3",
         "tacho_scans":data/"TachographScans",
+        "vehicle_documents":data/"VehicleDocuments",
     }
 
 
 def ensure_workspace(root):
     root=normalize_root(root)
     p=paths_for(root)
-    for key in ("data","backups","output","logs","att_archive","att_replaced","att_deleted","waybills","tacho_scans"):
+    for key in ("data","backups","output","logs","att_archive","att_replaced","att_deleted","waybills","tacho_scans","vehicle_documents"):
         p[key].mkdir(parents=True,exist_ok=True)
     marker=root/MARKER_NAME
     if not marker.exists():
