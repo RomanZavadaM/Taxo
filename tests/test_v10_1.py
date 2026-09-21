@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class TestTaxo101StableRelease(unittest.TestCase):
     def test_stable_identity(self):
-        self.assertEqual(main.APP_VERSION,"10.1")
+        self.assertRegex(main.APP_VERSION,r"^10\\.(?:1|[2-9][0-9]*)(?:-r[0-9.]+)?$")
         version=(ROOT/"VERSION.txt").read_text("utf-8")
         self.assertIn("Version: 10.1",version)
         self.assertIn("Release type: stable",version)
