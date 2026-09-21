@@ -5,15 +5,15 @@
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Останній завершений крок:** Taxo 10.2-r7  
-**Активний крок:** Taxo 10.2-r8 — unified personnel planning candidate  
-**Стан r8:** робоча гілка `work/v10.2-r8-personnel-planning`, PR #48 відкритий  
+**Активний крок:** Taxo 10.2-r9 — attestation + legal/commercial hardening candidate  
+**Стан r9:** робоча гілка `work/v10.2-r9-attestation-and-legal-hardening`; базується на виданому r8  
 **База r8:** `main` @ `2b4568f3ad264c823eccccf69b408f044e809625`  
 **r7 accepted candidate target:** `b5aa0f3c213988fe51c2a98414b4acd3db70e710`  
 **r7 merge у main:** `e272c8794b8df17dd3ec2e64a811c707158c94a0`  
 **r7 PR:** #45 — merged  
 **GitHub prerelease r7:** `v10.2-r7` — published  
 **GitHub prerelease r8:** готується після regression suite  
-**Наступний кодовий крок після виданого r8:** тільки `10.2-r9`
+**Наступний кодовий крок після виданого r9:** тільки `10.2-r10`
 
 ## Джерело істини
 
@@ -228,3 +228,15 @@
 - PR: **#48**;
 - після зелених CI буде опубліковано immutable prerelease `v10.2-r8` з `Taxo_v10_2_candidate_r8_START.zip`;
 - після видачі цього архіву будь-яке наступне виправлення починається тільки як **10.2-r9**.
+
+
+## 10.2-r9 — attestation + legal/commercial hardening
+
+- Правовласник Taxo зафіксований як **Роман Завада, фізична особа**; Taxo є його особистим proprietary software product.
+- GitHub repository лишається public; public visibility не перетворює Taxo на open-source software.
+- Додано proprietary `LICENSE`, `COPYRIGHT`, `THIRD_PARTY_NOTICES.md` та provenance активів.
+- PyMuPDF / fitz вилучено через неприйнятну для нашої proprietary-моделі AGPL/commercial dual-license залежність.
+- PDF переглядається зовнішньою системною програмою/браузером; внутрішній preview Taxo лишається для зображень і спрощеного DOCX.
+- Дефект бланків: після створення нового запису `load_att_history()` відновлював попередній selection. Через це кнопка DOCX могла відкрити старий бланк з іншими датами, хоча новий файл був створений з правильним періодом. r9 після створення автоматично виділяє новий `att_id`.
+- DOCX generator і `Бланк підтвердження.docx` між r7/r8 не змінювалися; виправлено саме UI-selection після refresh.
+- Схема БД без змін.
