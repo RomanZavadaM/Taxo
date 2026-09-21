@@ -5,8 +5,6 @@ on:
   push:
     branches:
       - 'work/v10.3-r1-attestation-duty-boundaries'
-    paths:
-      - '.github/workflows/publish-v10.3-r1-source.yml'
   workflow_dispatch:
 
 permissions:
