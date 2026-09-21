@@ -7,8 +7,10 @@
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Verified candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
 **PR #34:** merged  
-**Latest completed candidate:** `10.2-r4` · PR #40 merged · prerelease published  
-**Active candidate:** `10.2-r5` · historical publisher cleanup
+**Latest completed candidate:** `10.2-r7` · PR #45 merged · prerelease published  
+**Accepted candidate target:** `b5aa0f3c213988fe51c2a98414b4acd3db70e710`  
+**Main merge:** `e272c8794b8df17dd3ec2e64a811c707158c94a0`  
+**Next code revision:** `10.2-r8`
 
 ## Gate
 
@@ -76,10 +78,13 @@ Candidate automation:
 - після виданого r6 наступний крок — тільки 10.2-r7.
 
 
-## 10.2-r7 у роботі
+## 10.2-r7 завершено
 
-- виправляється тільки naming/publisher defect r6;
-- approved secondary-window UI зберігається;
-- r6 не переписується;
-- правильний пакет r7: `Taxo_v10_2_candidate_r7_START.zip`;
-- після r7 наступний revision — r8.
+- approved secondary-window UI збережено;
+- r6 не переписувався;
+- опубліковано правильний пакет `Taxo_v10_2_candidate_r7_START.zip`;
+- Windows і macOS PR-gates пройшли успішно;
+- PR #45 merged;
+- candidate target: `b5aa0f3c213988fe51c2a98414b4acd3db70e710`;
+- main merge: `e272c8794b8df17dd3ec2e64a811c707158c94a0`;
+- наступний кодовий revision — `10.2-r8`.
