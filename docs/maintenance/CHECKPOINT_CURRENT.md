@@ -3,8 +3,11 @@
 **Дата:** 22.09.2026  
 **Stable:** Taxo 10.1 / `v10.1`  
 **Останній опублікований candidate:** `v10.3-r5`  
-**Активний candidate:** `10.3-r6` — copyright / proprietary license hardening  
-**Наступний кодовий крок після видачі r6:** `10.3-r7`
+**Latest completed candidate:** `v10.3-r6` — copyright / proprietary license hardening  
+**Next code revision:** `10.3-r7` — not started  
+**PR #58:** merged  
+**Release target:** `619e5995af5982cbf60f7345744789e42463498f`  
+**Main merge:** `481a189e560e0820d676043b2d06904f64b9c8f0`
 
 Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.  
 Канонічний стан: [../../PROJECT_STATE.md](../../PROJECT_STATE.md).  
