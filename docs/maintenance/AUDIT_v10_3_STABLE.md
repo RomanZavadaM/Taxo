@@ -12,9 +12,19 @@
 - ручний START-тест підтверджено;
 - останній main перед promotion має успішні START/source, Windows і macOS runs.
 
-## Stable gate
+## Stable result
 
-Stable publisher повинен перевірити stable metadata, виконати full unittest suite на source/Windows/macOS ARM64/macOS Intel, Windows START preflight, зібрати Windows Setup/Portable, macOS ARM64/Intel, clean START/source, перевірити відсутність DB/cache, опублікувати `v10.3` як latest stable і додати SHA-256 manifests.
+Stable source target: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+
+GitHub Actions run `35764396010` завершився **success**:
+- verify-source — success;
+- build-windows — success;
+- build-start — success;
+- macOS x86_64 — success;
+- macOS arm64 — success;
+- publish — success.
+
+Опубліковано `v10.3` з Windows Setup/Portable, macOS ARM64/Intel, clean START/source і SHA-256 manifests. Release містить 10 assets. Робочі БД/cache не входять у пакети.
 
 ## Recovery protocol
 

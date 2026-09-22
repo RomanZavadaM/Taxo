@@ -1,7 +1,8 @@
 # Taxo — поточна контрольна точка
 
 **Дата:** 22.09.2026  
-**Stable promotion:** Taxo 10.3 / `v10.3`  
+**Stable:** Taxo 10.3 / `v10.3`  
+**Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1`  
 **Verified candidate:** `v10.3-r6`  
 **Candidate target:** `619e5995af5982cbf60f7345744789e42463498f`  
