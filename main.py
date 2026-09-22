@@ -151,28 +151,35 @@ def attestation_history_query(
     if year is not None and month is not None:
         ym=f"{int(year):04d}-{int(month):02d}"
         where.append(
-            "(CASE WHEN length(COALESCE(a.form_date,''))>=7 "
-            "THEN substr(a.form_date,1,7) "
-            "ELSE substr(a.period_to,7,4)||'-'||substr(a.period_to,4,2) END)=?"
+            "(CASE "
+            "WHEN length(COALESCE(a.form_date,''))>=7 THEN substr(a.form_date,1,7) "
+            "WHEN instr(COALESCE(a.period_to,''),'.')>0 "
+            "THEN substr(a.period_to,13,4)||'-'||substr(a.period_to,10,2) "
+            "WHEN substr(COALESCE(a.period_to,''),5,1)='-' THEN substr(a.period_to,1,7) "
+            "ELSE '' END)=?"
         )
         params.append(ym)
     if where:
         sql += " WHERE " + " AND ".join(where)
 
+    period_date_sql=(
+        "CASE "
+        "WHEN length(COALESCE(a.form_date,''))>=10 THEN substr(a.form_date,1,10) "
+        "WHEN instr(COALESCE(a.period_to,''),'.')>0 "
+        "THEN substr(a.period_to,13,4)||'-'||substr(a.period_to,10,2)||'-'||substr(a.period_to,7,2) "
+        "WHEN substr(COALESCE(a.period_to,''),5,1)='-' THEN substr(a.period_to,1,10) "
+        "ELSE '' END"
+    )
+    period_time_sql=(
+        "CASE "
+        "WHEN instr(COALESCE(a.period_to,''),'.')>0 THEN substr(a.period_to,1,5) "
+        "WHEN substr(COALESCE(a.period_to,''),5,1)='-' THEN substr(a.period_to,12,5) "
+        "ELSE '' END"
+    )
     if sort_mode=="Період — старіші":
-        sql += (
-            " ORDER BY "
-            "CASE WHEN length(COALESCE(a.form_date,''))>=10 THEN a.form_date "
-            "ELSE substr(a.period_to,7,4)||'-'||substr(a.period_to,4,2)||'-'||substr(a.period_to,1,2) END ASC,"
-            " substr(a.period_to,1,5) ASC, a.id ASC"
-        )
+        sql += f" ORDER BY {period_date_sql} ASC, {period_time_sql} ASC, a.id ASC"
     elif sort_mode=="Період — новіші":
-        sql += (
-            " ORDER BY "
-            "CASE WHEN length(COALESCE(a.form_date,''))>=10 THEN a.form_date "
-            "ELSE substr(a.period_to,7,4)||'-'||substr(a.period_to,4,2)||'-'||substr(a.period_to,1,2) END DESC,"
-            " substr(a.period_to,1,5) DESC, a.id DESC"
-        )
+        sql += f" ORDER BY {period_date_sql} DESC, {period_time_sql} DESC, a.id DESC"
     else:
         sql += (
             " ORDER BY COALESCE(NULLIF(a.updated_at,''),NULLIF(a.created_at,'')) DESC,"
@@ -15198,6 +15205,7 @@ class App(tk.Tk):
             command=self.use_selected_attestation_gap
         )
         self.att_gap_use_btn.pack(side="left",padx=(0,8))
+        self.att_gap_use_btn.configure(state="disabled")
         self.att_gap_create_btn=ttk.Button(
             action_bar,text="Сформувати / уточнити бланк",
             command=self.create_selected_gap_attestation
@@ -15329,17 +15337,20 @@ class App(tk.Tk):
         if not sel:
             return
         r=self.att_gap_items.get(sel[0])
-        if not r or r.get("kind") not in ("missing","adjust"):
+        if not r:
             return
-        suggested=int(r.get("activity_no") or 16)
-        self.att_gap_activity.set(f"{suggested} — {ACTIVITIES[suggested]}")
+        kind=r.get("kind")
         if hasattr(self,"att_gap_use_btn"):
-            if r.get("kind")=="adjust":
+            if kind=="adjust":
                 self.att_gap_use_btn.configure(text="Уточнити фактичні межі",state="normal")
-            elif r.get("kind")=="missing":
+            elif kind=="missing":
                 self.att_gap_use_btn.configure(text="Підставити у форму",state="normal")
             else:
                 self.att_gap_use_btn.configure(text="Підставити у форму",state="disabled")
+        if kind not in ("missing","adjust"):
+            return
+        suggested=int(r.get("activity_no") or 16)
+        self.att_gap_activity.set(f"{suggested} — {ACTIVITIES[suggested]}")
 
     def use_selected_attestation_gap(self):
         if not hasattr(self,"att_gap_tree"):
