@@ -48,9 +48,8 @@ def make_db():
 
 
 class TestTaxo103R2FactualOverrides(unittest.TestCase):
-    def test_version_is_r2(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r2")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.3-r2")
+    def test_r2_checkpoint_stays_immutable_under_later_10_3_revisions(self):
+        self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.3-r2"),
             "Taxo_v10_3_candidate_r2_START",
