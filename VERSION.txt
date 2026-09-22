@@ -2,6 +2,7 @@ Taxo / Driver Worktime
 Version: 10.3
 Release date: 2026-09-22
 Release type: stable
+Stable baseline: Taxo 10.3
 Previous stable / rollback: Taxo 10.1
 Previous stable tag: v10.1
 Verified candidate: Taxo 10.3-r6
