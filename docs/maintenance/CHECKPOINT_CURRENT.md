@@ -1,5 +1,21 @@
 # Taxo — поточна контрольна точка
 
+**Дата:** 22.09.2026  
+**Stable:** Taxo 10.1 / `v10.1`  
+**Останній опублікований candidate:** `v10.3-r5`  
+**Активний candidate:** `10.3-r6` — copyright / proprietary license hardening  
+**Наступний кодовий крок після видачі r6:** `10.3-r7`
+
+Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.  
+Канонічний стан: [../../PROJECT_STATE.md](../../PROJECT_STATE.md).  
+Канонічні правила: [../../PROJECT_RULES.md](../../PROJECT_RULES.md).
+
+Нижче збережено історичні checkpoint-записи.
+
+---
+
+# Taxo — поточна контрольна точка
+
 **Stable:** Taxo 10.1 · 21.09.2026  
 **Previous stable / rollback:** Taxo 10.0  
 **Verified candidate:** `v10.1-r5`  

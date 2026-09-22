@@ -40,3 +40,11 @@ Die vollständige Betriebsdokumentation wird auf Ukrainisch gepflegt:
 ## Projektstatus
 
 Taxo 10.1 ist die aktuelle stabile Betriebsversion. Sie übernimmt die geprüfte Linie 10.1-r5 nach automatischen Mehrplattform-Tests und dem manuellen Windows-UI-/Navigations-Gate; v10.0 bleibt der vorherige stabile Rollback-Punkt.
+
+## Urheberrecht und Lizenz
+
+**Copyright © 2026 Roman Zavada (Роман Завада). Alle Rechte vorbehalten.**
+
+Taxo ist proprietäre Software. Die öffentliche Sichtbarkeit dieses Repositorys gewährt keine Open-Source-Lizenz und keine Erlaubnis zur Weiterverbreitung, zum Verkauf, zur Wiederveröffentlichung oder zur Verbreitung geänderter/abgeleiteter Versionen. Der in Taxo eingetragene Unternehmensname ist ein Betriebsmerkmal und ändert den Urheberrechtsinhaber nicht.
+
+Siehe [LICENSE.md](LICENSE.md), [COPYRIGHT.md](COPYRIGHT.md) und [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

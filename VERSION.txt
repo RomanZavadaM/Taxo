@@ -1,22 +1,26 @@
 Taxo / Driver Worktime
-Version: 10.2-r7
-Release date: 2026-09-21
+Version: 10.3-r6
+Release date: 2026-09-22
 Release type: candidate
 Stable baseline: Taxo 10.1
 Stable tag: v10.1
 Stable target: fa5bbe0a5de733af1e227847ef9584daca57676e
 
-Taxo 10.2-r7 — secondary-window UI consistency + corrected candidate packaging.
+Taxo 10.3-r6 — copyright / proprietary license hardening.
 
 Основне:
-- збережено UI-переробку 10.2-r6: 12 великих службових/звітних вікон використовують затверджену брендовану шапку;
-- виправлено naming defect publisher-а r6;
-- правильний тестовий пакет: Taxo_v10_2_candidate_r7_START.zip;
-- r6 не переписується і лишається історичним checkpoint з відомим дефектом назви ZIP;
+- власник авторських прав Taxo зафіксований як Roman Zavada (Роман Завада);
+- додано LICENSE.md, COPYRIGHT.md та THIRD_PARTY_NOTICES.md;
+- публічна видимість репозиторію явно не є open-source ліцензією;
+- у «Про програму» та довідці показується персональний правовласник, незалежно від назви підприємства;
+- майбутні executable-збірки включають файли ліцензії та copyright notice;
+- Windows installer publisher змінено на Roman Zavada і додано copyright metadata;
+- README та документація оновлені українською, англійською, німецькою, іспанською та французькою;
+- функціональна логіка r5 не змінюється;
 - stable 10.1 не змінюється.
 
 Нумерація:
-- кожен завершений крок = наступна ревізія;
+- після виданого 10.3-r6 наступний кодовий крок — 10.3-r7;
 - r1 ... r10;
-- після r10: 10.2-r10 -> 10.3-r1;
-- вже опубліковані revision tags/releases не пересуваються і не перевикористовуються.
+- після r10: 10.3-r10 -> 10.4-r1;
+- видані revision tags/releases не пересуваються і не перевикористовуються.

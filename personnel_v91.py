@@ -1977,14 +1977,25 @@ def install(core, base_app):
         def build_menu(self):
             result = super().build_menu()
             try:
-                menu_name = self.cget("menu")
-                menubar = self.nametowidget(menu_name)
+                # Windows/Linux hide the native menu row and keep the actual
+                # menu object in _app_menu.  Use it directly so personnel menu
+                # routing works on every supported platform.
+                menubar = getattr(self, "_app_menu", None)
+                if menubar is None:
+                    menu_name = self.cget("menu")
+                    menubar = self.nametowidget(menu_name) if menu_name else None
                 sections = None
-                end = menubar.index("end")
+                service = None
+                end = menubar.index("end") if menubar is not None else None
                 for index in range((end or -1) + 1):
-                    if menubar.type(index) == "cascade" and menubar.entrycget(index, "label") == "Розділи":
-                        sections = self.nametowidget(menubar.entrycget(index, "menu"))
-                        break
+                    if menubar.type(index) != "cascade":
+                        continue
+                    label = menubar.entrycget(index, "label")
+                    submenu = self.nametowidget(menubar.entrycget(index, "menu"))
+                    if label == "Розділи":
+                        sections = submenu
+                    elif label == "Сервіс":
+                        service = submenu
                 if sections is not None:
                     sections.insert_command(1, label="Персонал", accelerator="Alt+2", command=lambda: self.show_tab(self.tab_personnel))
                     # Після додавання нового верхнього розділу зсуваємо підписи
@@ -1998,6 +2009,24 @@ def install(core, base_app):
                         lambda _event: (self.main_notebook.select(8), "break")[1],
                         add="+",
                     )
+                if service is not None:
+                    service_end = service.index("end")
+                    for item_index in range((service_end or -1) + 1):
+                        if service.type(item_index) != "command":
+                            continue
+                        label = service.entrycget(item_index, "label")
+                        if label == "Випуск на лінію — зміни персоналу":
+                            service.entryconfigure(
+                                item_index,
+                                label="Планування персоналу",
+                                command=self.show_personnel_planning,
+                            )
+                        elif label == "Реєстр усіх працівників":
+                            service.entryconfigure(
+                                item_index,
+                                label="Реєстр працівників",
+                                command=self.show_personnel_overview,
+                            )
             except Exception:
                 pass
             return result
@@ -2026,6 +2055,15 @@ def install(core, base_app):
             refresh=getattr(self,"_refresh_personnel_overview",None)
             if callable(refresh):
                 refresh()
+
+        def show_personnel_planning(self):
+            self._select_personnel_page(
+                getattr(self,"personnel_planning_page",None),"Працівники"
+            )
+
+        def show_dispatch_month_planner(self):
+            """Compatibility route: old dispatch planner now opens one planner."""
+            return self.show_general_personnel_shift_planner()
 
         def show_reports_home(self):
             self._select_personnel_page(
@@ -2133,7 +2171,7 @@ def install(core, base_app):
                 tool_left, text="Режим робочого часу…", command=self.show_employee_work_regime
             ).pack(side="left", padx=4)
             core.ttk.Button(
-                tool_left, text="Планування змін…", command=self.show_general_personnel_shift_planner
+                tool_left, text="Планування…", command=self.show_personnel_planning
             ).pack(side="left", padx=4)
             core.ttk.Button(
                 tool_left, text="Відсутності…", command=self.show_personnel_absence_planner
@@ -2191,17 +2229,42 @@ def install(core, base_app):
 
             # Планування
             panel = core.ttk.Frame(planning, padding=16); panel.pack(fill="x")
-            core.ttk.Label(panel, text="Планування персоналу", font=("TkDefaultFont", 13, "bold")).pack(anchor="w")
+            core.ttk.Label(
+                panel, text="Єдине планування персоналу",
+                font=("TkDefaultFont", 13, "bold")
+            ).pack(anchor="w")
             core.ttk.Label(
                 panel,
-                text="Робочі зміни плануються для будь-якого працівника. Відсутність позначає день як відсутній у табелі, але зберігає історичний робочий графік.",
+                text=(
+                    "Водії плануються у спеціалізованому «Графіку водіїв», де зберігаються "
+                    "маршрут, автомобіль, керування і точні частини роботи. Лікар, механік, "
+                    "диспетчер та інші ролі плануються тут через єдиний механізм робочих змін. "
+                    "«Оперативні зміни випуску» читають той самий план і служать для контролю "
+                    "конкретного дня та внесення факту — другого планувальника немає."
+                ),
                 foreground="gray", wraplength=950, justify="left"
             ).pack(anchor="w", pady=(4,12))
-            core.ttk.Button(panel, text="Режими робочого часу працівників…", command=self.show_employee_work_regime).pack(anchor="w", pady=4)
-            core.ttk.Button(panel, text="Норма за режимом → план місяця…", command=self.show_regime_month_plan_filler).pack(anchor="w", pady=4)
-            core.ttk.Button(panel, text="Робочі зміни — масово…", command=self.show_general_personnel_shift_planner).pack(anchor="w", pady=4)
-            core.ttk.Button(panel, text="Відпустки / лікарняні / інші відсутності…", command=self.show_personnel_absence_planner).pack(anchor="w", pady=4)
-            core.ttk.Button(panel, text="Лікар / механік для випуску на лінію…", command=self.show_dispatch_month_planner).pack(anchor="w", pady=4)
+
+            primary = core.ttk.LabelFrame(panel, text="Робочі графіки", padding=10)
+            primary.pack(fill="x", pady=(0,10))
+            core.ttk.Button(
+                primary, text="Графік водіїв…",
+                command=lambda:self.show_tab(self.tab_schedule)
+            ).pack(anchor="w", pady=4)
+            core.ttk.Button(
+                primary, text="Робочі зміни персоналу — масово…",
+                command=self.show_general_personnel_shift_planner
+            ).pack(anchor="w", pady=4)
+            core.ttk.Button(
+                primary, text="Оперативний день випуску…",
+                command=self.show_dispatch_staff_schedule
+            ).pack(anchor="w", pady=4)
+
+            common = core.ttk.LabelFrame(panel, text="Спільні правила і відсутності", padding=10)
+            common.pack(fill="x")
+            core.ttk.Button(common, text="Режими робочого часу працівників…", command=self.show_employee_work_regime).pack(anchor="w", pady=4)
+            core.ttk.Button(common, text="Норма за режимом → план місяця…", command=self.show_regime_month_plan_filler).pack(anchor="w", pady=4)
+            core.ttk.Button(common, text="Відпустки / лікарняні / інші відсутності…", command=self.show_personnel_absence_planner).pack(anchor="w", pady=4)
 
             # Табель
             tpanel = core.ttk.Frame(timesheet, padding=16); tpanel.pack(fill="x")

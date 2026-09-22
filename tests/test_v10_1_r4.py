@@ -27,7 +27,10 @@ class TestTaxo101R4ApprovedUiPolish(unittest.TestCase):
         self.assertIn("hero_left",source)
         self.assertIn("tool_left",source)
         self.assertIn('text="Режим робочого часу…"',source)
-        self.assertIn('text="Планування змін…"',source)
+        self.assertTrue(
+            'text="Планування змін…"' in source
+            or 'text="Планування…"' in source
+        )
 
     def test_timesheet_separates_work_actions_from_reports(self):
         source=inspect.getsource(main.App.show_employee_timesheet)

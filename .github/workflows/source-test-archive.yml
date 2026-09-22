@@ -87,6 +87,11 @@ jobs:
             work_regime.py
             branding.py
             branding_asset.py
+            LICENSE.md
+            COPYRIGHT.md
+            THIRD_PARTY_NOTICES.md
+            PROJECT_RULES.md
+            PROJECT_STATE.md
           )
 
           for file in "${required_files[@]}"; do

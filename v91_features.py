@@ -202,25 +202,13 @@ def install(core, base_app):
             return result
 
         def _v91_ensure_month_planner_button(self):
-            win = getattr(self, "dispatch_win", None)
-            if not widget_alive(win):
-                return
-            button = getattr(self, "_v91_month_planner_button", None)
-            if widget_alive(button):
-                return
-            top = next(
-                (child for child in win.winfo_children() if isinstance(child, core.ttk.Frame)),
-                None,
-            )
-            if top is None:
-                return
-            button = core.ttk.Button(
-                top,
-                text="План на місяць",
-                command=self.show_dispatch_month_planner,
-            )
-            button.pack(side="left", padx=(12, 3))
-            self._v91_month_planner_button = button
+            """r8: main dispatch window already routes to the canonical planner.
+
+            Older 9.1 revisions injected a second «План на місяць» button here.
+            Keeping this compatibility hook as a no-op prevents that parallel
+            writer from reappearing while old method names remain import-safe.
+            """
+            return
 
         def _v91_staff_rows(self, role):
             con = core.db()

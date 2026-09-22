@@ -40,3 +40,11 @@ La documentación operativa completa se mantiene en ucraniano:
 ## Estado del proyecto
 
 Taxo 10.1 es la versión operativa estable actual. Promueve la línea verificada 10.1-r5 tras las pruebas multiplataforma y la comprobación manual de interfaz/navegación en Windows; v10.0 queda como punto de reversión estable anterior.
+
+## Derechos de autor y licencia
+
+**Copyright © 2026 Roman Zavada (Роман Завада). Todos los derechos reservados.**
+
+Taxo es software propietario. La visibilidad pública de este repositorio no concede una licencia de código abierto ni permiso para redistribuir, vender, volver a publicar o distribuir versiones modificadas/derivadas. El nombre de la empresa configurado en Taxo es un dato operativo y no modifica al titular de los derechos de autor.
+
+Consulte [LICENSE.md](LICENSE.md), [COPYRIGHT.md](COPYRIGHT.md) y [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

@@ -21,6 +21,7 @@
 - [Огляд системи та функціоналу](SYSTEM_OVERVIEW.md)
 - [Стан продукту](PRODUCT_STATUS.md)
 - [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
+- [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
 ## Stable 10.1
 

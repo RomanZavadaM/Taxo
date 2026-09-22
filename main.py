@@ -86,7 +86,10 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.2-r7"
+APP_VERSION = "10.3-r6"
+COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
+COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
+LICENSE_LABEL = "Proprietary / All rights reserved"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -126,8 +129,17 @@ def configure_runtime_workspace(root):
         pass
 
 
-def attestation_history_query(mode="Активні", driver_id=None, year=None, month=None):
-    """Build the archive query with explicit filters and newest periods first."""
+ATTESTATION_SORT_MODES=(
+    "Останні створені/змінені",
+    "Період — новіші",
+    "Період — старіші",
+)
+
+
+def attestation_history_query(
+        mode="Активні", driver_id=None, year=None, month=None,
+        sort_mode="Останні створені/змінені"):
+    """Build archive query with explicit filters and reliable sort order."""
     sql="""SELECT a.*, d.last_name||' '||d.first_name AS driver_name
              FROM attestations a JOIN drivers d ON d.id=a.driver_id"""
     where=[]
@@ -142,18 +154,40 @@ def attestation_history_query(mode="Активні", driver_id=None, year=None, 
     if year is not None and month is not None:
         ym=f"{int(year):04d}-{int(month):02d}"
         where.append(
-            "(CASE WHEN length(COALESCE(a.form_date,''))>=7 "
-            "THEN substr(a.form_date,1,7) ELSE substr(a.period_to,1,7) END)=?"
+            "(CASE "
+            "WHEN length(COALESCE(a.form_date,''))>=7 THEN substr(a.form_date,1,7) "
+            "WHEN instr(COALESCE(a.period_to,''),'.')>0 "
+            "THEN substr(a.period_to,13,4)||'-'||substr(a.period_to,10,2) "
+            "WHEN substr(COALESCE(a.period_to,''),5,1)='-' THEN substr(a.period_to,1,7) "
+            "ELSE '' END)=?"
         )
         params.append(ym)
     if where:
         sql += " WHERE " + " AND ".join(where)
-    # period_to is ISO YYYY-MM-DDTHH:MM, so lexical DESC is chronological DESC.
-    # form_date/id are stable fallbacks for old records.
-    sql += (
-        " ORDER BY COALESCE(NULLIF(a.period_to,''),NULLIF(a.form_date,''),a.created_at) DESC,"
-        " a.form_date DESC, a.id DESC"
+
+    period_date_sql=(
+        "CASE "
+        "WHEN length(COALESCE(a.form_date,''))>=10 THEN substr(a.form_date,1,10) "
+        "WHEN instr(COALESCE(a.period_to,''),'.')>0 "
+        "THEN substr(a.period_to,13,4)||'-'||substr(a.period_to,10,2)||'-'||substr(a.period_to,7,2) "
+        "WHEN substr(COALESCE(a.period_to,''),5,1)='-' THEN substr(a.period_to,1,10) "
+        "ELSE '' END"
     )
+    period_time_sql=(
+        "CASE "
+        "WHEN instr(COALESCE(a.period_to,''),'.')>0 THEN substr(a.period_to,1,5) "
+        "WHEN substr(COALESCE(a.period_to,''),5,1)='-' THEN substr(a.period_to,12,5) "
+        "ELSE '' END"
+    )
+    if sort_mode=="Період — старіші":
+        sql += f" ORDER BY {period_date_sql} ASC, {period_time_sql} ASC, a.id ASC"
+    elif sort_mode=="Період — новіші":
+        sql += f" ORDER BY {period_date_sql} DESC, {period_time_sql} DESC, a.id DESC"
+    else:
+        sql += (
+            " ORDER BY COALESCE(NULLIF(a.updated_at,''),NULLIF(a.created_at,'')) DESC,"
+            " a.id DESC"
+        )
     return sql, params
 
 
@@ -913,6 +947,11 @@ def init_db():
         work_start_time TEXT DEFAULT '',
         work_end_time TEXT DEFAULT '',
         work_hours REAL DEFAULT 0,
+        fact_work_start_time TEXT DEFAULT '',
+        fact_work_end_time TEXT DEFAULT '',
+        fact_work_hours REAL,
+        fact_source TEXT DEFAULT '',
+        fact_updated_at TEXT DEFAULT '',
         driving_hours REAL DEFAULT 0,
         overtime_hours REAL DEFAULT 0,
         vehicle TEXT DEFAULT '',
@@ -1198,6 +1237,8 @@ def init_db():
         updated_at TEXT DEFAULT '',
         deleted_at TEXT DEFAULT '',
         delete_reason TEXT DEFAULT '',
+        fact_from_confirmed INTEGER NOT NULL DEFAULT 0,
+        fact_to_confirmed INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
     );
 
@@ -1233,6 +1274,11 @@ def init_db():
         ("accounting_mode", "TEXT DEFAULT 'manual'"),
         ("work_start_time", "TEXT DEFAULT ''"),
         ("work_end_time", "TEXT DEFAULT ''"),
+        ("fact_work_start_time", "TEXT DEFAULT ''"),
+        ("fact_work_end_time", "TEXT DEFAULT ''"),
+        ("fact_work_hours", "REAL"),
+        ("fact_source", "TEXT DEFAULT ''"),
+        ("fact_updated_at", "TEXT DEFAULT ''"),
     ]:
         if name not in cols:
             con.execute(f"ALTER TABLE worklog ADD COLUMN {name} {ddl}")
@@ -1773,6 +1819,8 @@ def init_db():
         ("pdf_path", "TEXT DEFAULT ''"),
         ("jpg_page1_path", "TEXT DEFAULT ''"),
         ("jpg_page2_path", "TEXT DEFAULT ''"),
+        ("fact_from_confirmed", "INTEGER NOT NULL DEFAULT 0"),
+        ("fact_to_confirmed", "INTEGER NOT NULL DEFAULT 0"),
     ]:
         if name not in acols:
             con.execute(f"ALTER TABLE attestations ADD COLUMN {name} {ddl}")
@@ -2973,7 +3021,7 @@ def _record_value(record, key, default=""):
 
 
 def driver_day_view(work_day, worklog=None, segments=None, day_type_override=None,
-                    suppress_plan=False):
+                    suppress_plan=False, use_fact=False):
     """Canonical state for one driver's day used by all driver-time views.
 
     Exact intervals are the source of truth when available. Their UNION, not
@@ -3065,6 +3113,38 @@ def driver_day_view(work_day, worklog=None, segments=None, day_type_override=Non
             _record_value(worklog, "overtime_hours", 0)
         )
 
+    # r2: official/factual views use a sparse override. Planning screens keep
+    # the original plan because use_fact defaults to False.
+    fact_applied=False
+    if (use_fact and not suppress_plan and worklog is not None
+            and _worklog_has_fact_override(worklog)):
+        fact_parts=_worklog_effective_work_intervals(worklog,segments)
+        if fact_parts:
+            fact_applied=True
+            work_minutes=sum(
+                max(0,int((b-a).total_seconds()//60))
+                for a,b in fact_parts
+            )
+            plan_schedule=schedule
+            bands=[band for band in bands if band[0]!="Робота"]
+            fact_labels=[]
+            for a,b in fact_parts:
+                start_txt=a.strftime("%H:%M")
+                end_txt=b.strftime("%H:%M")
+                bands.insert(0,("Робота",start_txt,end_txt))
+                fact_labels.append(f"{start_txt}-{end_txt}")
+            schedule="ФАКТ роб. " + " / ".join(fact_labels)
+            if plan_schedule:
+                schedule += f"; план: {plan_schedule}"
+            if len(fact_parts)>1:
+                gaps=[]
+                ordered=sorted(fact_parts,key=lambda x:x[0])
+                for left,right in zip(ordered,ordered[1:]):
+                    gap=max(0,int((right[0]-left[1]).total_seconds()//60))
+                    if gap:
+                        gaps.append(minutes_hhmm(gap))
+                breaks="; ".join(gaps) if gaps else breaks
+
     return {
         "day_type": day_type,
         "schedule": schedule,
@@ -3078,6 +3158,8 @@ def driver_day_view(work_day, worklog=None, segments=None, day_type_override=Non
         "driving_overlap_minutes":int(driving_overlap_minutes or 0),
         "suppressed_plan": bool(suppress_plan),
         "explicit_worklog": explicit,
+        "fact_applied": bool(fact_applied),
+        "fact_source": str(_record_value(worklog,"fact_source","") or "") if fact_applied else "",
     }
 
 
@@ -3268,6 +3350,55 @@ def _att_set_checkbox(paragraph, number, checked, text, size=12):
     )
 
 
+def _att_find_paragraph(paragraphs, *prefixes):
+    """Знаходить рядок офіційного DOCX-бланка за текстовим маркером.
+
+    Не покладаємося на номер абзацу: Word/LibreOffice можуть змінити кількість
+    службових/порожніх paragraph nodes навіть без видимої зміни макета.
+    """
+    wanted=tuple(" ".join(str(p or "").split()) for p in prefixes if p)
+    for paragraph in paragraphs:
+        text=" ".join((paragraph.text or "").split())
+        if any(text.startswith(prefix) for prefix in wanted):
+            return paragraph
+    raise RuntimeError(
+        "Шаблон бланка змінено: не знайдено рядок " + " / ".join(wanted)
+    )
+
+
+def _attestation_docx_text(doc):
+    """Повний видимий текст DOCX, включно з таблицями."""
+    chunks=[]
+    for paragraph in doc.paragraphs:
+        if paragraph.text:
+            chunks.append(paragraph.text)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    if paragraph.text:
+                        chunks.append(paragraph.text)
+    return "\n".join(chunks)
+
+
+def _validate_attestation_docx(path, period_from, period_to, form_date):
+    """Після збереження перевіряє, що DOCX містить саме передані дати."""
+    from docx import Document
+    doc=Document(str(path))
+    text=_attestation_docx_text(doc)
+    required=[
+        str(period_from or "").strip(),
+        str(period_to or "").strip(),
+        fmt_date(form_date),
+    ]
+    missing=[value for value in required if value and value not in text]
+    if missing:
+        raise RuntimeError(
+            "DOCX створено некоректно: у файлі відсутні актуальні значення: "
+            + ", ".join(missing)
+        )
+
+
 def fill_attestation(driver, period_from, period_to, activity_no, place, form_date, out_path):
     """Заповнює чинний Додаток 3 до Положення №340.
 
@@ -3391,16 +3522,15 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
             (license_issue_date, True),
         ])
 
-    # 12-13.
-    if len(up) > 20:
-        _att_set_runs(up[19], [
-            ("12. з (година/день/місяць/рік): ", False),
-            (period_from, True),
-        ])
-        _att_set_runs(up[20], [
-            ("13. по (година/день/місяць/рік): ", False),
-            (period_to, True),
-        ])
+    # 12-13. r9: шукаємо за змістом, а не крихким номером абзацу.
+    _att_set_runs(_att_find_paragraph(up, "12. з ", "12. з("), [
+        ("12. з (година/день/місяць/рік): ", False),
+        (period_from, True),
+    ])
+    _att_set_runs(_att_find_paragraph(up, "13. по ", "13. по("), [
+        ("13. по (година/день/місяць/рік): ", False),
+        (period_to, True),
+    ])
 
     # 14-19 — одна позиція.
     if len(up) > 27:
@@ -3415,14 +3545,14 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
         _att_set_checkbox(up[26],18,activity_no==18,"виконував іншу роботу;")
         _att_set_checkbox(up[27],19,activity_no==19,"був готовий і доступний для виконання професійних обов’язків;")
 
-    # 20.
+    # 20. r9: так само прив'язуємося до тексту рядка, не до індексу.
+    _att_set_runs(_att_find_paragraph(up, "20. Місце ", "20.Місце "), [
+        ("20. Місце ", False),
+        (director_place, True),
+        ("    Дата ", False),
+        (form_date_fmt, True),
+    ])
     if len(up) > 29:
-        _att_set_runs(up[28], [
-            ("20. Місце ", False),
-            (director_place, True),
-            ("    Дата ", False),
-            (form_date_fmt, True),
-        ])
         _att_set_text(up[29], "Підпис ______________________________")
 
     # ----------------------- ЗВОРОТНИЙ БІК -----------------------
@@ -3470,15 +3600,14 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
             (employment, True),
         ])
 
-    if len(ep) > 21:
-        _att_set_runs(ep[20], [
-            ("12. from (hour/day/month/year): ", False),
-            (period_from, True),
-        ])
-        _att_set_runs(ep[21], [
-            ("13. to (hour/day/month/year): ", False),
-            (period_to, True),
-        ])
+    _att_set_runs(_att_find_paragraph(ep, "12. from ", "12.from "), [
+        ("12. from (hour/day/month/year): ", False),
+        (period_from, True),
+    ])
+    _att_set_runs(_att_find_paragraph(ep, "13. to ", "13.to "), [
+        ("13. to (hour/day/month/year): ", False),
+        (period_to, True),
+    ])
 
     if len(ep) > 30:
         _att_set_checkbox(ep[22],14,activity_no==14,"was on sick leave;")
@@ -3491,7 +3620,7 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
         # ep[26] — офіційне продовження п.17.
         _att_set_checkbox(ep[27],18,activity_no==18,"performed other work than driving;")
         _att_set_checkbox(ep[28],19,activity_no==19,"was available;")
-        _att_set_runs(ep[29], [
+        _att_set_runs(_att_find_paragraph(ep, "20. Place ", "20.Place "), [
             ("20. Place ", False),
             (director_place_en, True),
             ("    Date ", False),
@@ -3520,6 +3649,7 @@ def fill_attestation(driver, period_from, period_to, activity_no, place, form_da
             ])
 
     doc.save(str(out_path))
+    _validate_attestation_docx(out_path,period_from,period_to,form_date)
 
 
 def _attestation_render_context(driver, period_from, period_to, activity_no, place, form_date):
@@ -3689,6 +3819,7 @@ def _export_row_values(con, d, r, driver_id=None):
         d,r,segs,
         day_type_override=override,
         suppress_plan=bool(override),
+        use_fact=True,
     )
     return {
         "date": d.strftime("%d.%m.%Y"),
@@ -4350,7 +4481,7 @@ def _subtract_dt_intervals(base_start, base_end, covered):
 
 
 def _worklog_route_intervals(row, segments):
-    """Інтервали, які в режимі ТАХО закриваються маршрутом/тахокартою."""
+    """Інтервали керування/маршруту (не повна робоча зміна)."""
     work_day=datetime.strptime(row["work_date"],"%Y-%m-%d").date()
     out=[]
     source=segments
@@ -4369,6 +4500,181 @@ def _worklog_route_intervals(row, segments):
         if end>start:
             out.append((start,end))
     return out
+
+
+def _worklog_work_intervals(row, segments):
+    """Інтервали повної робочої зміни, включно з роботою поза керуванням."""
+    work_day=datetime.strptime(row["work_date"],"%Y-%m-%d").date()
+    base=datetime.combine(work_day,datetime.min.time())
+    source=segments
+    if source:
+        out=[]
+        for item in normalized_segment_intervals(source,"work"):
+            out.append((
+                base+timedelta(minutes=int(item["start"])),
+                base+timedelta(minutes=int(item["end"])),
+            ))
+        return [(a,b) for a,b in out if b>a]
+
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    ws=((row["work_start_time"] if "work_start_time" in keys else "") or "").strip()
+    we=((row["work_end_time"] if "work_end_time" in keys else "") or "").strip()
+    if not ws or not we:
+        return []
+    try:
+        sm=time_to_minutes(ws)
+        em=time_to_minutes(we)
+    except Exception:
+        return []
+    start=base+timedelta(minutes=sm)
+    end=base+timedelta(minutes=em)
+    if em<=sm:
+        end += timedelta(days=1)
+    return [(start,end)] if end>start else []
+
+
+def _worklog_has_fact_override(row):
+    """True only when a real-life correction was recorded over the plan."""
+    if row is None:
+        return False
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    return bool(
+        ((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip()
+        or ((row["fact_work_end_time"] if "fact_work_end_time" in keys else "") or "").strip()
+        or (row["fact_work_hours"] if "fact_work_hours" in keys else None) is not None
+    )
+
+
+def _fact_clock_dt(work_day, value, anchor=None):
+    """Map HH:MM factual clock to the most plausible datetime around a duty."""
+    raw=(value or "").strip()
+    if not raw:
+        return None
+    minutes=time_to_minutes(raw)
+    candidates=[
+        datetime.combine(work_day+timedelta(days=offset),datetime.min.time())
+        + timedelta(minutes=minutes)
+        for offset in (-1,0,1,2)
+    ]
+    if anchor is None:
+        return candidates[1]
+    return min(candidates,key=lambda dt:abs((dt-anchor).total_seconds()))
+
+
+def _worklog_effective_work_intervals(row, segments):
+    """Effective FACT work intervals.
+
+    Plan is the default fact. Only nullable worklog fact_* fields override the
+    outer boundaries, so ~90% ordinary days store no duplicate factual data.
+    Internal planned breaks/parts remain intact and are clipped/extended only
+    at the first/last outer boundary.
+    """
+    planned=_worklog_work_intervals(row,segments)
+    if not planned or not _worklog_has_fact_override(row):
+        return planned
+
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    start_raw=((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip()
+    end_raw=((row["fact_work_end_time"] if "fact_work_end_time" in keys else "") or "").strip()
+    planned=sorted(planned,key=lambda x:x[0])
+    plan_start=planned[0][0]
+    plan_end=max(b for _,b in planned)
+    work_day=date.fromisoformat(row["work_date"])
+
+    fact_start=_fact_clock_dt(work_day,start_raw,plan_start) if start_raw else plan_start
+    fact_end=_fact_clock_dt(work_day,end_raw,plan_end) if end_raw else plan_end
+    while fact_end<=fact_start:
+        fact_end += timedelta(days=1)
+
+    # Clip all planned pieces to the factual outer envelope.
+    clipped=[]
+    for a,b in planned:
+        left=max(a,fact_start)
+        right=min(b,fact_end)
+        if right>left:
+            clipped.append((left,right))
+
+    # If fact extends beyond the plan, extend only the outermost work part.
+    if not clipped:
+        # A factual envelope wholly inside a planned non-work gap contains
+        # no payable work interval by itself.
+        return []
+    clipped.sort(key=lambda x:x[0])
+    if fact_start < plan_start:
+        clipped[0]=(fact_start,clipped[0][1])
+    if fact_end > plan_end:
+        clipped[-1]=(clipped[-1][0],fact_end)
+    return clipped
+
+
+def _effective_work_minutes(row, segments):
+    intervals=sorted(_worklog_effective_work_intervals(row,segments),key=lambda x:x[0])
+    if not intervals:
+        return 0
+    merged=[]
+    for a,b in intervals:
+        if not merged or a>merged[-1][1]:
+            merged.append([a,b])
+        else:
+            merged[-1][1]=max(merged[-1][1],b)
+    return sum(max(0,int((b-a).total_seconds()//60)) for a,b in merged)
+
+
+def _planned_route_work_margins(route_segments):
+    """Перед-/післямаршрутний робочий запас із сценарію маршруту.
+
+    Наприклад, керування 08:15–19:25 при роботі 07:55–19:40 дає
+    20 хв до маршруту і 15 хв після нього. Це не фіксований норматив,
+    а індивідуальний запас конкретного маршруту.
+    """
+    route_segments=list(route_segments or [])
+    drive=normalized_segment_intervals(route_segments,"drive")
+    work=normalized_segment_intervals(route_segments,"work")
+    if not drive or not work:
+        return 0,0
+    drive_start=min(x["start"] for x in drive)
+    drive_end=max(x["end"] for x in drive)
+    work_start=min(x["start"] for x in work)
+    work_end=max(x["end"] for x in work)
+    return max(0,drive_start-work_start),max(0,work_end-drive_end)
+
+
+def _effective_attestation_duty_interval(row, segments, route_plan_segments=None):
+    """Duty boundary used by the attestation control.
+
+    Normal case: plan is treated as fact. If life changes the day, sparse
+    fact_work_* overrides become authoritative without destroying the plan.
+    Route-specific pre/post margins remain a planning fallback only on sides
+    where no factual work boundary was recorded.
+    """
+    route_parts=_worklog_route_intervals(row,segments)
+    planned_parts=_worklog_work_intervals(row,segments)
+    effective_parts=_worklog_effective_work_intervals(row,segments)
+
+    starts=[a for a,_ in effective_parts]
+    ends=[b for _,b in effective_parts]
+    keys=set(row.keys()) if hasattr(row,"keys") else set()
+    has_fact_start=bool(((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip())
+    has_fact_end=bool(((row["fact_work_end_time"] if "fact_work_end_time" in keys else "") or "").strip())
+
+    pre_margin=post_margin=0
+    if route_parts:
+        route_start=min(a for a,_ in route_parts)
+        route_end=max(b for _,b in route_parts)
+        pre_margin,post_margin=_planned_route_work_margins(route_plan_segments)
+        if not has_fact_start:
+            starts.append(route_start)
+            if pre_margin:
+                starts.append(route_start-timedelta(minutes=pre_margin))
+        if not has_fact_end:
+            ends.append(route_end)
+            if post_margin:
+                ends.append(route_end+timedelta(minutes=post_margin))
+
+    # No exact work parts: fall back to route envelope if available.
+    if not starts or not ends:
+        return None,None,int(pre_margin),int(post_margin)
+    return min(starts),max(ends),int(pre_margin),int(post_margin)
 
 
 def _attestation_activity_for_calendar_day(row):
@@ -4406,9 +4712,9 @@ def _build_attestation_required_segments(prev_block, next_block, row_by_day):
     Правило v8.54:
     - між двома послідовними календарними ТАХО-днями бланк не потрібен;
       міжзмінний відпочинок видно з двох добових тахокарт;
-    - якщо між ТАХО-днями є хоча б один інший календарний день, бланк
-      починається від завершення попереднього ТАХО-блоку і закінчується
-      початком наступного;
+    - якщо між маршрутними днями є хоча б один інший календарний день, бланк
+      починається лише ПІСЛЯ завершення повної попередньої робочої зміни і
+      закінчується ДО початку повної наступної робочої зміни;
     - усередині такого проміжку код визначається за видом календарного дня;
       однакові сусідні коди об'єднуються в один бланк.
     """
@@ -4429,8 +4735,8 @@ def _build_attestation_required_segments(prev_block, next_block, row_by_day):
         midnight=datetime.combine(day+timedelta(days=1),datetime.min.time())
         piece_end=min(midnight,gb)
 
-        # Після завершення ТАХО в його календарний день і перед початком
-        # наступного ТАХО в його календарний день це відпочинок (позиція 16).
+        # Після завершення РОБОТИ в його календарний день і перед початком
+        # наступної РОБОТИ в її календарний день це відпочинок (позиція 16).
         if day==prev_day or day==next_day:
             activity_no=16
         else:
@@ -4445,12 +4751,63 @@ def _build_attestation_required_segments(prev_block, next_block, row_by_day):
     return [(a,b,n) for a,b,n in pieces if b>a]
 
 
+
+def _attestation_tail_adjustment(missing, overlapping):
+    """Never auto-absorb a leftover into a form.
+
+    The difference between a planned form boundary and the later factual
+    boundary is not a separate form and must not be auto-expanded either.
+    It stays unresolved until the user records the factual boundary by
+    editing the existing attestation.
+    """
+    return None
+
+def _exclude_confirmed_attestation_edge_gaps(
+        ga,gb,missing,att_intervals,confirmed_edges):
+    """Remove manually confirmed edge gaps from the *blank* requirement only.
+
+    Such a gap is intentionally neither covered by the attestation nor
+    automatically converted into payroll work. It simply breaks rest.
+    """
+    exclusions=[]
+    for ast,aen,att_id,_activity in att_intervals:
+        from_ok,to_ok=confirmed_edges.get(int(att_id),(False,False))
+        if from_ok and ga < ast < gb:
+            exclusions.append((ga,ast))
+        if to_ok and ga < aen < gb:
+            exclusions.append((aen,gb))
+
+    kept=[]
+    excluded=[]
+    for ma,mb in missing:
+        pieces=[(ma,mb)]
+        for xa,xb in exclusions:
+            next_pieces=[]
+            for pa,pb in pieces:
+                if xb<=pa or xa>=pb:
+                    next_pieces.append((pa,pb))
+                    continue
+                if pa<xa:
+                    next_pieces.append((pa,min(pb,xa)))
+                inter_a=max(pa,xa); inter_b=min(pb,xb)
+                if inter_b>inter_a:
+                    excluded.append((inter_a,inter_b))
+                if xb<pb:
+                    next_pieces.append((max(pa,xb),pb))
+            pieces=next_pieces
+        kept.extend((a,b) for a,b in pieces if b>a)
+    return kept,_merge_dt_intervals(excluded)
+
+
 def collect_attestation_gap_control(driver_id, control_date=None, previous_days=56):
     """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
 
     Ключові правила:
-    - усі частини одного маршрутного ТАХО-дня = один ТАХО-блок від першого
-      виїзду до останнього повернення;
+    - ТАХО/маршрут не визначає межі відпочинку сам по собі;
+    - усі частини одного маршрутного дня формують робочу зміну, яка може
+      починатися ДО першого керування і закінчуватися ПІСЛЯ останнього;
+    - перед-/післямаршрутний запас беремо з налаштованого сценарію маршруту,
+      а не з фіксованої кількості хвилин;
     - якщо наступний ТАХО-день є наступним календарним днем, міжзмінний
       відпочинок окремим бланком НЕ закриваємо;
     - якщо між двома ТАХО-днями є один або більше інших календарних днів,
@@ -4513,6 +4870,39 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         for s in segs:
             seg_by.setdefault(s["worklog_id"],[]).append(s)
 
+    # Плановий сценарій маршруту потрібен не для меж відпочинку напряму,
+    # а лише щоб зберегти його штатний запас роботи ДО/ПІСЛЯ керування,
+    # коли фактичний/уточнений час маршруту зсувається.
+    route_plan_by_id={}
+    route_ids=sorted({
+        int(r["route_id"]) for r in rows
+        if "route_id" in r.keys() and r["route_id"] is not None
+    })
+    if route_ids:
+        q=",".join("?" for _ in route_ids)
+        for rs in con.execute(
+            f"""SELECT * FROM route_segments
+                 WHERE route_id IN ({q})
+                 ORDER BY route_id,segment_no""",
+            route_ids
+        ).fetchall():
+            route_plan_by_id.setdefault(int(rs["route_id"]),[]).append(rs)
+
+    legacy_plan_by_id={}
+    template_ids=sorted({
+        int(r["template_id"]) for r in rows
+        if "template_id" in r.keys() and r["template_id"] is not None
+    })
+    if template_ids:
+        q=",".join("?" for _ in template_ids)
+        for rs in con.execute(
+            f"""SELECT * FROM route_template_segments
+                 WHERE template_id IN ({q})
+                 ORDER BY template_id,segment_no""",
+            template_ids
+        ).fetchall():
+            legacy_plan_by_id.setdefault(int(rs["template_id"]),[]).append(rs)
+
     att_rows=con.execute(
         """SELECT * FROM attestations
            WHERE driver_id=? AND COALESCE(status,'active')='active'
@@ -4538,17 +4928,26 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         if mode!=WORK_MODE_TACHO:
             continue
 
-        route_parts=_worklog_route_intervals(r,seg_by.get(r["id"],[]))
-        if not route_parts:
+        route_id=(int(r["route_id"]) if "route_id" in r.keys() and r["route_id"] is not None else None)
+        template_id=(int(r["template_id"]) if "template_id" in r.keys() and r["template_id"] is not None else None)
+        route_plan=(
+            route_plan_by_id.get(route_id,[]) if route_id is not None else
+            legacy_plan_by_id.get(template_id,[]) if template_id is not None else
+            []
+        )
+        block_start,block_end,pre_margin,post_margin=_effective_attestation_duty_interval(
+            r,seg_by.get(r["id"],[]),route_plan
+        )
+        if not block_start or not block_end:
             continue
 
-        block_start=min(a for a,b in route_parts)
-        block_end=max(b for a,b in route_parts)
         duty_blocks.append({
             "work_date":d,
             "start":block_start,
             "end":block_end,
             "worklog_id":r["id"],
+            "pre_margin_minutes":pre_margin,
+            "post_margin_minutes":post_margin,
         })
 
     duty_blocks.sort(key=lambda x:x["start"])
@@ -4591,6 +4990,14 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
             continue
         att_intervals.append((st,en,a["id"],a["activity_no"]))
 
+    att_confirmed_edges={
+        int(a["id"]):(
+            bool(int(a["fact_from_confirmed"] or 0)) if "fact_from_confirmed" in a.keys() else False,
+            bool(int(a["fact_to_confirmed"] or 0)) if "fact_to_confirmed" in a.keys() else False,
+        )
+        for a in att_rows
+    }
+
     # Наявний бланк вважаємо свідомим рішенням користувача незалежно від коду.
     # Автоматичний код використовується для НОВИХ бланків і може бути змінений вручну.
     att_merged=_merge_dt_intervals([(a,b) for a,b,_,_ in att_intervals])
@@ -4609,13 +5016,68 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
             current_required_minutes += dur
 
         missing=_subtract_dt_intervals(ga,gb,att_merged)
+        missing,manual_edge_gaps=_exclude_confirmed_attestation_edge_gaps(
+            ga,gb,missing,att_intervals,att_confirmed_edges
+        )
+        manual_gap_minutes=sum(
+            max(0,int((b-a).total_seconds()//60)) for a,b in manual_edge_gaps
+        )
+        effective_required=max(0,dur-manual_gap_minutes)
+        # confirmed edge gaps are neither blank/rest nor auto-work; they are
+        # intentionally outside the blank-control requirement.
+        required_minutes -= manual_gap_minutes
+        if is_current:
+            current_required_minutes -= manual_gap_minutes
+
         miss=sum(max(0,int((b-a).total_seconds()//60)) for a,b in missing)
         missing_minutes += miss
-        covered_minutes += max(0,dur-miss)
+        covered_minutes += max(0,effective_required-miss)
         if is_current:
             current_missing_minutes += miss
 
-        if not missing:
+        # Часткове перекриття означає лише одне: межа факту ще не
+        # уточнена. Різниця між плановою межею і фактом НЕ є окремим бланком
+        # і НЕ поглинається автоматично існуючим бланком.
+        overlapping=[]
+        for ast,aen,att_id,att_activity in att_intervals:
+            ov_start=max(ga,ast)
+            ov_end=min(gb,aen)
+            if ov_end>ov_start:
+                ov_minutes=max(0,int((ov_end-ov_start).total_seconds()//60))
+                overlapping.append((ov_minutes,ast,aen,att_id,att_activity))
+        overlapping.sort(key=lambda x:(-x[0],x[3]))
+
+        if missing and len(overlapping)==1:
+            _ov,ast,aen,att_id,att_activity=overlapping[0]
+            existing_activity=int(att_activity or suggested_no)
+            rows_out.append({
+                "kind":"adjust",
+                "status":(
+                    f"ПОТОЧНИЙ — УТОЧНИТИ ФАКТ БЛАНКА №{att_id}"
+                    if is_current else
+                    f"УТОЧНИТИ ФАКТ БЛАНКА №{att_id}"
+                ),
+                "from":ast,
+                "to":aen,
+                "minutes":max(0,int((aen-ast).total_seconds()//60)),
+                "missing_minutes":miss,
+                "activity_no":existing_activity,
+                "suggested_activity_no":suggested_no,
+                "attestation_id":int(att_id),
+                "old_from":ast,
+                "old_to":aen,
+                "plan_from":ga,
+                "plan_to":gb,
+                "is_current":is_current,
+                "reason":(
+                    f"Бланк №{att_id} був підготовлений за планом. "
+                    f"Різниця {minutes_hhmm(miss)} не є окремим бланком і не "
+                    f"додається до нього автоматично. Після факту вручну "
+                    f"уточнюється саме межа відпочинку/відсутності. Суміжний час "
+                    f"до/від роботи Taxo автоматично не класифікує."
+                ),
+            })
+        elif not missing:
             rows_out.append({
                 "kind":"covered",
                 "status":"ПОТОЧНИЙ — БЛАНК ГОТОВИЙ" if is_current else "ЗАКРИТО БЛАНКОМ",
@@ -4625,9 +5087,16 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 "activity_no":suggested_no,
                 "is_current":is_current,
                 "reason":(
-                    f"Поточний період до виїзду за графіком уже перекритий бланком. Автокод: {suggested_no}."
-                    if is_current else
-                    f"Проміжок перекритий наявним бланком. Автокод для цього виду дня: {suggested_no}."
+                    (
+                        f"Відпочинок перекритий бланком; {minutes_hhmm(manual_gap_minutes)} "
+                        "по ручній фактичній межі залишено поза бланком і поза автоматичним робочим часом."
+                    )
+                    if manual_gap_minutes else
+                    (
+                        f"Поточний період до початку наступної роботи вже перекритий бланком. Автокод: {suggested_no}."
+                        if is_current else
+                        f"Проміжок перекритий наявним бланком. Автокод для цього виду дня: {suggested_no}."
+                    )
                 ),
             })
         else:
@@ -4646,14 +5115,14 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                     "activity_no":suggested_no,
                     "is_current":is_current,
                     "reason":(
-                        f"Поточний період відпочинку/діяльності до наступного виїзду за графіком. "
-                        f"Підготувати бланк ДО виїзду. Автопозиція {suggested_no}: {ACTIVITIES[suggested_no]}."
+                        f"Поточний період відпочинку/діяльності до початку наступної робочої зміни. "
+                        f"Підготувати бланк ДО початку роботи. Автопозиція {suggested_no}: {ACTIVITIES[suggested_no]}."
                         if is_current else
                         f"Автоматично запропонована позиція {suggested_no}: {ACTIVITIES[suggested_no]}."
                     ),
                 })
 
-    rank={"missing":0,"covered":1}
+    rank={"adjust":0,"missing":1,"covered":2}
     rows_out.sort(key=lambda r:(r["from"],0 if r.get("is_current") else 1,rank.get(r["kind"],9),r.get("activity_no",0)))
 
     tacho_days_in_window={
@@ -4680,6 +5149,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         "current_missing_minutes":current_missing_minutes,
         "ignored_consecutive_minutes":ignored_consecutive_minutes,
         "invalid_attestations":invalid_attestations,
+        "adjustment_count":sum(1 for r in rows_out if r.get("kind")=="adjust"),
         "rows":rows_out,
     }
 
@@ -4777,6 +5247,7 @@ def collect_monthly_work_balance(year, month, active_only=True):
                 d,r,segs,
                 day_type_override=override,
                 suppress_plan=bool(override),
+                use_fact=True,
             )
             cells.append(_work_balance_cell(state,d))
             total_work_min += state["work_minutes"]
@@ -5225,6 +5696,7 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
                 d,r,segs,
                 day_type_override=override,
                 suppress_plan=bool(override),
+                use_fact=True,
             )
             if override:
                 cell=SHIFT_DAY_CODES.get(str(override),str(override)[:4])
@@ -6582,6 +7054,8 @@ class App(tk.Tk):
         info_rows=(
             ("Версія",APP_VERSION),
             ("Тип","candidate / test checkpoint"),
+            ("Правовласник",COPYRIGHT_OWNER),
+            ("Ліцензія",LICENSE_LABEL),
             ("Платформа",f"{platform.system()} {platform.machine()}"),
             ("База даних","SQLite workspace"),
             ("Робоче сховище",str(DATA_ROOT)),
@@ -6624,6 +7098,10 @@ class App(tk.Tk):
             resources,text="GitHub / поточний реліз",
             command=lambda:open_external("https://github.com/RomanZavadaM/Taxo/releases")
         ).pack(fill="x",pady=3)
+        ttk.Button(
+            resources,text="Ліцензія / авторські права",
+            command=lambda:open_external(APP_DIR / "LICENSE.md")
+        ).pack(fill="x",pady=3)
         ttk.Button(resources,text="Відкрити папку даних",command=self.open_data_folder).pack(
             fill="x",pady=3
         )
@@ -6632,7 +7110,7 @@ class App(tk.Tk):
         footer.pack(fill="x")
         ttk.Label(
             footer,
-            text=f"© 2026 {self._company_name_value()} · Taxo {APP_VERSION}",
+            text=f"{COPYRIGHT_NOTICE} · Taxo {APP_VERSION}",
             foreground=PALETTE["muted"],
         ).pack(side="left")
         ttk.Button(footer,text="Закрити",style="Accent.TButton",command=win.destroy).pack(side="right")
@@ -6724,6 +7202,17 @@ class App(tk.Tk):
                 "Shift+F10 — контекстне меню\n"
                 "F1 — відкрити довідку\n\n"
                 "На macOS замість Ctrl для основних команд використовується Command."
+            ),
+            "Авторські права":(
+                "АВТОРСЬКІ ПРАВА ТА ЛІЦЕНЗІЯ\n\n"
+                f"Правовласник оригінальних матеріалів Taxo: {COPYRIGHT_OWNER}.\n"
+                f"{COPYRIGHT_NOTICE}\n\n"
+                "Taxo є proprietary software. Публічна видимість репозиторію не означає "
+                "відкриту ліцензію на модифікацію, перепублікацію або розповсюдження. "
+                "Умови дозволеного використання наведені у LICENSE.md.\n\n"
+                "Назва підприємства, введена в робочій базі, є реквізитом користувача "
+                "і не змінює правовласника Taxo. Сторонні бібліотеки зберігають власні "
+                "ліцензії та авторські права."
             ),
             "FAQ":(
                 "ЧАСТІ ЗАПИТАННЯ\n\n"
@@ -11574,8 +12063,8 @@ class App(tk.Tk):
         win=tk.Toplevel(self); self.dispatch_win=win
         fit_window_to_screen(win,980,620,780,500)
         self._decorate_secondary_window(
-            win,"Випуск на лінію — зміни персоналу",
-            "Лікар, механік, диспетчер та інші ролі зміни"
+            win,"Оперативні зміни випуску",
+            "Лікар, механік, диспетчер — план дня, контроль і факт"
         )
         top=ttk.Frame(win,padding=8); top.pack(fill="x")
         ttk.Label(top,text="Дата:").pack(side="left")
@@ -11585,12 +12074,22 @@ class App(tk.Tk):
         ttk.Entry(top,textvariable=self.dispatch_date_var,width=12).pack(side="left",padx=(4,2))
         calendar_button(top,self.dispatch_date_var).pack(side="left",padx=(0,8))
         ttk.Button(top,text="Показати",command=self.refresh_dispatch_shifts).pack(side="left",padx=3)
-        ttk.Button(top,text="Додати зміну",command=self.dispatch_shift_form).pack(side="left",padx=3)
-        ttk.Button(top,text="Редагувати",command=self.edit_dispatch_shift).pack(side="left",padx=3)
+        ttk.Button(
+            top,text="Планувати / перепланувати…",
+            command=lambda:getattr(
+                self,"show_general_personnel_shift_planner",self.dispatch_shift_form
+            )()
+        ).pack(side="left",padx=3)
+        ttk.Button(top,text="Редагувати / факт",command=self.edit_dispatch_shift).pack(side="left",padx=3)
         ttk.Button(top,text="Видалити",command=self.delete_dispatch_shift).pack(side="left",padx=3)
         ttk.Label(
-            win,text=("Це окремий облік роботи персоналу випуску. ПІБ чергового автоматично переходить у шляхівки цієї дати; "
-                      "фактична відмітка і власноручний підпис залишаються у паперовому документі."),
+            win,text=(
+                "Це не окремий облік: тут показано ті самі зміни, що створюються у "
+                "«Персонал → Планування → Робочі зміни персоналу». "
+                "Вікно призначене для контролю конкретного дня та внесення факту. "
+                "ПІБ лікаря/механіка автоматично переходить у шляхівки цієї дати; "
+                "власноручний підпис залишається у паперовому документі."
+            ),
             foreground="gray",wraplength=930,justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
@@ -11636,8 +12135,8 @@ class App(tk.Tk):
                               e.personnel_no FROM employee_shifts sh JOIN employees e ON e.id=sh.employee_id WHERE sh.id=?""",(sid,)).fetchone(); con.close(); return row
 
     def dispatch_shift_form(self, existing=None):
-        parent=getattr(self,"dispatch_win",self); win=tk.Toplevel(parent); win.title("Зміна працівника випуску")
-        fit_window_to_screen(win,680,650,590,520); win.transient(parent); win.grab_set()
+        parent=getattr(self,"dispatch_win",self); win=tk.Toplevel(parent); win.title("Зміна персоналу — коригування / факт")
+        fit_window_to_screen(win,700,690,600,540); win.transient(parent); win.grab_set()
         default_date=(existing["work_date"] if existing else (self._dispatch_selected_date() or date.today()).isoformat())
         try: default_date=datetime.strptime(default_date,"%Y-%m-%d").strftime("%d.%m.%Y")
         except Exception: pass
@@ -11648,10 +12147,11 @@ class App(tk.Tk):
             "start":tk.StringVar(value=existing["start_time"] if existing else ""),"end":tk.StringVar(value=existing["end_time"] if existing else ""),
             "end_day":tk.StringVar(value=str(existing["end_day_offset"] if existing else 0)),
             "location":tk.StringVar(value=existing["location"] if existing else ""),
+            "break":tk.StringVar(value=str(int(existing["unpaid_break_minutes"] or 0)) if existing else ""),
             "actual":tk.StringVar(value=(hours_value_hhmm(existing["actual_hours"]) if existing and existing["actual_hours"] is not None else "")),
             "notes":tk.StringVar(value=existing["notes"] if existing else "")
         }
-        fields=(("date","Дата початку"),("role","Роль"),("name","Працівник з реєстру"),("personnel","Табельний №"),("shift","Зміна"),("start","Початок роботи"),("end_day","Кінець, день D+"),("end","Кінець роботи"),("location","Місце випуску"),("actual","Фактично відпрацьовано ГГ:ХХ"),("notes","Примітка"))
+        fields=(("date","Дата початку"),("role","Роль"),("name","Працівник з реєстру"),("personnel","Табельний №"),("shift","Зміна"),("start","Початок роботи"),("end_day","Кінець, день D+"),("end","Кінець роботи"),("location","Місце випуску"),("break","Неоплачувана перерва, хв"),("actual","Фактично відпрацьовано ГГ:ХХ"),("notes","Примітка"))
         widgets={}
         for row,(key,label) in enumerate(fields):
             ttk.Label(win,text=label).grid(row=row,column=0,sticky="w",padx=10,pady=6)
@@ -11700,9 +12200,19 @@ class App(tk.Tk):
             try:
                 start_min=parse_hhmm(values["start"].get().strip()); end_min=parse_hhmm(values["end"].get().strip())+end_day*1440
                 if end_min<=start_min: raise ValueError
-                planned=(end_min-start_min)/60.0
+                span_minutes=end_min-start_min
             except Exception:
                 messagebox.showerror("Зміна персоналу","Кінець зміни має бути пізніше початку з урахуванням D+.",parent=win); return
+            try:
+                break_minutes=int(values["break"].get().strip() or 0)
+                if break_minutes<0 or break_minutes>=span_minutes: raise ValueError
+            except ValueError:
+                messagebox.showerror(
+                    "Зміна персоналу",
+                    "Неоплачувана перерва має бути цілим числом хвилин від 0 до тривалості зміни.",
+                    parent=win
+                ); return
+            planned=(span_minutes-break_minutes)/60.0
             actual=None
             if values["actual"].get().strip():
                 try:
@@ -11732,9 +12242,9 @@ class App(tk.Tk):
                 other_end=datetime.combine(other_date+timedelta(days=int(other["end_day_offset"] or 0)),datetime.min.time())+timedelta(minutes=parse_hhmm(other["end_time"]))
                 if new_start<other_end and other_start<new_end:
                     con.close(); messagebox.showerror("Зміна персоналу",f"Час перетинається з іншою зміною ролі «{role}» у цьому місці.",parent=win); return
-            vals=(employee["id"],role,work_date.isoformat(),shift_no,values["start"].get().strip(),end_day,values["end"].get().strip(),values["location"].get().strip(),planned,actual,"actual" if actual is not None else "planned",values["notes"].get().strip())
-            if existing: con.execute("UPDATE employee_shifts SET employee_id=?,role=?,work_date=?,shift_no=?,start_time=?,end_day_offset=?,end_time=?,location=?,planned_hours=?,actual_hours=?,status=?,notes=? WHERE id=?",vals+(existing["id"],))
-            else: con.execute("INSERT INTO employee_shifts(employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,location,planned_hours,actual_hours,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",vals)
+            vals=(employee["id"],role,work_date.isoformat(),shift_no,values["start"].get().strip(),end_day,values["end"].get().strip(),values["location"].get().strip(),break_minutes,planned,actual,"actual" if actual is not None else "planned",values["notes"].get().strip())
+            if existing: con.execute("UPDATE employee_shifts SET employee_id=?,role=?,work_date=?,shift_no=?,start_time=?,end_day_offset=?,end_time=?,location=?,unpaid_break_minutes=?,planned_hours=?,actual_hours=?,status=?,notes=? WHERE id=?",vals+(existing["id"],))
+            else: con.execute("INSERT INTO employee_shifts(employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,location,unpaid_break_minutes,planned_hours,actual_hours,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",vals)
             con.commit(); con.close(); self.dispatch_date_var.set(work_date.strftime("%d.%m.%Y")); self.refresh_dispatch_shifts(); win.destroy()
         ttk.Button(win,text="Зберегти",command=save).grid(row=len(fields),column=1,sticky="e",padx=10,pady=12)
 
@@ -14623,25 +15133,32 @@ class App(tk.Tk):
 
         ttk.Button(filter_bar,text="Оновити",command=self.load_att_history).pack(side="left",padx=4)
         ttk.Button(filter_bar,text="Скинути відбір",command=self.reset_att_history_filters).pack(side="left",padx=4)
-        ttk.Label(filter_bar,text="Новіші ↑",foreground="gray").pack(side="left",padx=(10,2))
+        ttk.Label(filter_bar,text="Сортування:").pack(side="left",padx=(10,3))
+        self.att_sort=tk.StringVar(value=ATTESTATION_SORT_MODES[0])
+        att_sort_cb=ttk.Combobox(
+            filter_bar,textvariable=self.att_sort,state="readonly",width=25,
+            values=ATTESTATION_SORT_MODES
+        )
+        att_sort_cb.pack(side="left",padx=(0,3))
+        att_sort_cb.bind("<<ComboboxSelected>>",lambda _e:self.load_att_history())
 
         summary_bar=ttk.Frame(hist)
         summary_bar.pack(fill="x",padx=6,pady=(0,3))
         self.att_list_summary=tk.StringVar(value="")
         ttk.Label(summary_bar,textvariable=self.att_list_summary,foreground="gray").pack(side="left",padx=2)
 
-        cols=("id","driver","from","to","activity","place","date","status","revision","formats","file")
+        cols=("id","driver","from","to","activity","place","date","changed","status","revision","formats","file")
         tree_frame=ttk.Frame(hist)
         tree_frame.pack(fill="both",expand=True,padx=6,pady=6)
         self.att_tree=ttk.Treeview(tree_frame,columns=cols,show="headings",selectmode="browse")
         heads={
             "id":"ID","driver":"Водій","from":"З","to":"По","activity":"Позиція",
-            "place":"Місце","date":"Дата","status":"Статус","revision":"Ред.",
+            "place":"Місце","date":"Дата","changed":"Змінено","status":"Статус","revision":"Ред.",
             "formats":"Формати","file":"Основний файл"
         }
         widths={
             "id":55,"driver":205,"from":140,"to":140,"activity":65,"place":140,
-            "date":90,"status":95,"revision":50,"formats":105,"file":270
+            "date":90,"changed":145,"status":95,"revision":50,"formats":105,"file":270
         }
         for c in cols:
             self.att_tree.heading(c,text=heads[c])
@@ -14703,14 +15220,17 @@ class App(tk.Tk):
 
         action_bar=ttk.Frame(top)
         action_bar.pack(fill="x",pady=(5,0))
-        ttk.Button(
+        self.att_gap_use_btn=ttk.Button(
             action_bar,text="Підставити у форму",
             command=self.use_selected_attestation_gap
-        ).pack(side="left",padx=(0,8))
-        ttk.Button(
-            action_bar,text="Сформувати Бланк підтвердження",
+        )
+        self.att_gap_use_btn.pack(side="left",padx=(0,8))
+        self.att_gap_use_btn.configure(state="disabled")
+        self.att_gap_create_btn=ttk.Button(
+            action_bar,text="Сформувати / уточнити бланк",
             command=self.create_selected_gap_attestation
-        ).pack(side="left",padx=8)
+        )
+        self.att_gap_create_btn.pack(side="left",padx=8)
 
         ttk.Label(
             win,
@@ -14720,7 +15240,9 @@ class App(tk.Tk):
                 "до найближчого наступного виїзду — такий бланк треба підготувати до виїзду. Між двома "
                 "ТАХО-робочими днями підряд окремий бланк не потрібен. Автокоди: 14 лікарняний, "
                 "15 відпустка, 16 вихідний/відпочинок, 18 «Без тахо — 8 год»/інша робота, 19 доступний. "
-                "Сусідні частини з однаковим кодом об'єднуються; код можна змінити вручну. Дата кожного "
+                "Сусідні частини з однаковим кодом об'єднуються; код можна змінити вручну. Якщо після уточнення "
+                "ТАХО/графіка існуючий бланк перекриває лише частину потрібного періоду, Taxo НЕ створює окремий "
+                "бланк на залишок, а пропонує уточнити межі існуючого бланка новою ревізією. Дата кожного "
                 "бланка автоматично дорівнює даті закінчення його періоду, навіть якщо бланк друкується заздалегідь."
             ),
             foreground="gray",wraplength=1200,justify="left"
@@ -14753,8 +15275,10 @@ class App(tk.Tk):
         frame.rowconfigure(0,weight=1)
         frame.columnconfigure(0,weight=1)
 
+        self.att_gap_tree.tag_configure("adjust",background="#FFF2CC")
         self.att_gap_tree.tag_configure("missing",background="#FDE8E8")
         self.att_gap_tree.tag_configure("covered",background="#E6F4EA")
+        self.att_gap_tree.tag_configure("current_adjust",background="#FFE699")
         self.att_gap_tree.tag_configure("current_missing",background="#FFF2CC")
         self.att_gap_tree.tag_configure("current_covered",background="#DDEBF7")
         self.att_gap_tree.tag_configure("no_tacho",background="#EAF2FF")
@@ -14812,17 +15336,18 @@ class App(tk.Tk):
             bad=f"    ⚠ Нечитабельні періоди бланків ID: {', '.join(map(str,data['invalid_attestations']))}"
 
         current_text=(
-            f"    ПОТОЧНИЙ до виїзду {data['current_departure'].strftime('%d.%m.%Y %H:%M')}: "
+            f"    ПОТОЧНИЙ до початку роботи {data['current_departure'].strftime('%d.%m.%Y %H:%M')}: "
             f"{minutes_hhmm(data['current_required_minutes'])}, не закрито {minutes_hhmm(data['current_missing_minutes'])}"
             if data.get("current_pair_found") and data.get("current_departure") else
-            "    ПОТОЧНИЙ: бланк до найближчого виїзду за графіком не потрібен/не визначений"
+            "    ПОТОЧНИЙ: бланк до найближчого початку роботи не потрібен/не визначений"
         )
         self.att_gap_summary.set(
             f"Період історичного контролю: {data['start_day'].strftime('%d.%m.%Y')}–{data['end_day'].strftime('%d.%m.%Y')}    "
             f"ТАХО-днів: {data['tacho_days']}    Без тахо 8 год: {data['no_tacho_days']}    "
             f"Усього потрібно: {minutes_hhmm(data['required_minutes'])}    "
             f"Закрито: {minutes_hhmm(data['covered_minutes'])}    "
-            f"НЕ ЗАКРИТО: {minutes_hhmm(data['missing_minutes'])}{current_text}{bad}"
+            f"НЕ ЗАКРИТО: {minutes_hhmm(data['missing_minutes'])}    "
+            f"УТОЧНИТИ БЛАНКІВ: {data.get('adjustment_count',0)}{current_text}{bad}"
         )
 
     def on_attestation_gap_select(self, _=None):
@@ -14832,7 +15357,17 @@ class App(tk.Tk):
         if not sel:
             return
         r=self.att_gap_items.get(sel[0])
-        if not r or r.get("kind")!="missing":
+        if not r:
+            return
+        kind=r.get("kind")
+        if hasattr(self,"att_gap_use_btn"):
+            if kind=="adjust":
+                self.att_gap_use_btn.configure(text="Уточнити фактичні межі",state="normal")
+            elif kind=="missing":
+                self.att_gap_use_btn.configure(text="Підставити у форму",state="normal")
+            else:
+                self.att_gap_use_btn.configure(text="Підставити у форму",state="disabled")
+        if kind not in ("missing","adjust"):
             return
         suggested=int(r.get("activity_no") or 16)
         self.att_gap_activity.set(f"{suggested} — {ACTIVITIES[suggested]}")
@@ -14848,11 +15383,20 @@ class App(tk.Tk):
             )
             return
         r=self.att_gap_items.get(sel[0])
-        if not r or r.get("kind")!="missing":
+        if not r or r.get("kind") not in ("missing","adjust"):
             messagebox.showwarning(
                 "Контроль бланків",
-                "Для підстановки виберіть незакритий рядок: минулий або «ПОТОЧНИЙ — ПІДГОТУВАТИ».",
+                "Виберіть незакритий проміжок або рядок «УТОЧНИТИ БЛАНК».",
                 parent=self.att_gap_win
+            )
+            return
+        if r.get("kind")=="adjust":
+            att_id=int(r.get("attestation_id") or 0)
+            self._edit_attestation_fact_boundaries(
+                att_id,
+                parent=self.att_gap_win,
+                plan_from=r.get("plan_from"),
+                plan_to=r.get("plan_to"),
             )
             return
 
@@ -14927,24 +15471,39 @@ class App(tk.Tk):
 
         con=db()
         now=datetime.now().isoformat(timespec="seconds")
-        cur=con.execute(
-            """INSERT INTO attestations(
-                driver_id,period_from,period_to,activity_no,place,form_date,
-                file_path,pdf_path,jpg_page1_path,jpg_page2_path,
-                status,revision,updated_at,deleted_at,delete_reason,created_at
-            ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (
-                d["id"],period_from,period_to,int(activity_no),place_value,dt.isoformat(),
-                stored_created["file_path"],stored_created["pdf_path"],stored_created["jpg_page1_path"],stored_created["jpg_page2_path"],
-                "active",1,now,"","",now
+        try:
+            factual_completed=(en <= datetime.now())
+            # A factual attestation boundary is NOT automatically a worklog
+            # boundary. There may be an unclassified manual interval between
+            # work and rest (for example travel between hotel and vehicle).
+            work_changes=[]
+            cur=con.execute(
+                """INSERT INTO attestations(
+                    driver_id,period_from,period_to,activity_no,place,form_date,
+                    file_path,pdf_path,jpg_page1_path,jpg_page2_path,
+                    status,revision,updated_at,deleted_at,delete_reason,created_at
+                ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    d["id"],period_from,period_to,int(activity_no),place_value,dt.isoformat(),
+                    stored_created["file_path"],stored_created["pdf_path"],stored_created["jpg_page1_path"],stored_created["jpg_page2_path"],
+                    "active",1,now,"","",now
+                )
             )
-        )
-        att_id=cur.lastrowid
-        row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
-        fmt_note=", ".join(x.upper() for x in formats)
-        _audit_attestation_snapshot(con,row,"CREATE",f"Створено бланк: {fmt_note}")
-        con.commit()
-        con.close()
+            att_id=cur.lastrowid
+            self.att_focus_id=int(att_id)
+            row=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
+            fmt_note=", ".join(x.upper() for x in formats)
+            basis="фактичний" if factual_completed else "підготовлено за планом до виїзду"
+            note=f"Створено бланк ({basis}): {fmt_note}"
+            if work_changes:
+                note += ". Факт робочого часу: " + "; ".join(work_changes)
+            _audit_attestation_snapshot(con,row,"CREATE",note)
+            con.commit()
+        except Exception:
+            con.rollback()
+            raise
+        finally:
+            con.close()
 
         self.load_att_history()
         if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
@@ -14959,6 +15518,121 @@ class App(tk.Tk):
             )
         return created
 
+    def _edit_attestation_fact_boundaries(self, att_id, parent=None, plan_from=None, plan_to=None):
+        """Edit factual rest/absence boundaries without guessing adjacent time.
+
+        A form boundary is not automatically a work boundary. Any interval
+        between work and the manually confirmed form edge remains outside the
+        form and outside automatic payroll work, and therefore also outside
+        continuous rest.
+        """
+        con=db()
+        current=con.execute("SELECT * FROM attestations WHERE id=?",(int(att_id),)).fetchone()
+        con.close()
+        if not current or not _attestation_is_active(current):
+            messagebox.showerror(
+                "Уточнення факту",
+                f"Активний Бланк №{att_id} не знайдено.",
+                parent=parent or self
+            )
+            return
+
+        win=tk.Toplevel(parent or self)
+        win.title(f"Уточнення фактичних меж Бланка №{att_id}")
+        fit_window_to_screen(win,760,430,650,390)
+        win.transient(parent or self)
+        win.grab_set()
+
+        from_var=tk.StringVar(value=current["period_from"] or "")
+        to_var=tk.StringVar(value=current["period_to"] or "")
+        activity_no=int(current["activity_no"] or 16)
+        place=current["place"] or ""
+
+        ttk.Label(
+            win,
+            text=f"Бланк №{att_id}: {ACTIVITIES.get(activity_no,'')}",
+            font=("TkDefaultFont",10,"bold")
+        ).grid(row=0,column=0,columnspan=3,sticky="w",padx=12,pady=(12,8))
+
+        if plan_from is not None or plan_to is not None:
+            plan_text=[]
+            if plan_from is not None:
+                plan_text.append(f"плановий кінець попередньої роботи: {format_attestation_period(plan_from)}")
+            if plan_to is not None:
+                plan_text.append(f"плановий початок наступної роботи: {format_attestation_period(plan_to)}")
+            ttk.Label(
+                win,
+                text="Плановий орієнтир (не факт): " + " | ".join(plan_text),
+                foreground="gray",wraplength=720,justify="left"
+            ).grid(row=1,column=0,columnspan=3,sticky="w",padx=12,pady=(0,10))
+
+        ttk.Label(
+            win,text="Фактичний початок відпочинку / відсутності"
+        ).grid(row=2,column=0,sticky="w",padx=12,pady=8)
+        ttk.Entry(win,textvariable=from_var,width=28).grid(row=2,column=1,sticky="w",padx=6,pady=8)
+        calendar_button(win,from_var).grid(row=2,column=2,sticky="w",padx=4,pady=8)
+
+        ttk.Label(
+            win,text="Фактичне закінчення відпочинку / відсутності"
+        ).grid(row=3,column=0,sticky="w",padx=12,pady=8)
+        ttk.Entry(win,textvariable=to_var,width=28).grid(row=3,column=1,sticky="w",padx=6,pady=8)
+        calendar_button(win,to_var).grid(row=3,column=2,sticky="w",padx=4,pady=8)
+
+        ttk.Label(
+            win,
+            text=(
+                "Змінюйте тільки ту межу відпочинку/відсутності, яка вже відома по факту. "
+                "Між роботою і цією межею може бути ручний проміжок добирання до/від ТЗ. "
+                "Taxo не відносить його автоматично ні до бланка, ні до оплачуваного робочого часу, "
+                "але він не входить у безперервний відпочинок. План при цьому не змінюється."
+            ),
+            foreground="gray",wraplength=720,justify="left"
+        ).grid(row=4,column=0,columnspan=3,sticky="w",padx=12,pady=(10,12))
+
+        def save_fact():
+            period_from=from_var.get().strip()
+            period_to=to_var.get().strip()
+            st=parse_attestation_period(period_from)
+            en=parse_attestation_period(period_to)
+            if not st or not en or en<=st:
+                messagebox.showerror(
+                    "Уточнення факту",
+                    "Перевірте фактичні межі: початок бланка має бути раніше його кінця.",
+                    parent=win
+                )
+                return
+            try:
+                confirm_from=(period_from != (current["period_from"] or ""))
+                confirm_to=(period_to != (current["period_to"] or ""))
+                out=self._update_attestation_record(
+                    int(att_id),period_from,period_to,activity_no,place,
+                    confirm_from=confirm_from,
+                    confirm_to=confirm_to,
+                    sync_worklog=False,
+                )
+                self.att_from.set(period_from)
+                self.att_to.set(period_to)
+                self.att_activity.set(f"{activity_no} — {ACTIVITIES[activity_no]}")
+                win.destroy()
+                if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
+                    self.refresh_attestation_gap_control()
+                messagebox.showinfo(
+                    "Фактичні межі уточнено",
+                    f"Бланк №{att_id} оновлено за фактом.\n\n"
+                    f"Відпочинок/відсутність:\n{period_from} → {period_to}\n\n"
+                    "План не змінено. Різниця до/від роботи не створює окремого бланка, "
+                    "не додається автоматично в роботу і не вважається відпочинком.",
+                    parent=parent or self
+                )
+            except Exception as exc:
+                messagebox.showerror("Помилка уточнення",str(exc),parent=win)
+
+        buttons=ttk.Frame(win)
+        buttons.grid(row=5,column=0,columnspan=3,sticky="e",padx=12,pady=12)
+        ttk.Button(buttons,text="Скасувати",command=win.destroy).pack(side="right",padx=4)
+        ttk.Button(buttons,text="Зберегти факт",command=save_fact).pack(side="right",padx=4)
+        win.columnconfigure(1,weight=1)
+
     def create_selected_gap_attestation(self):
         if not hasattr(self,"att_gap_tree"):
             return
@@ -14972,11 +15646,21 @@ class App(tk.Tk):
             return
 
         r=self.att_gap_items.get(sel[0])
-        if not r or r.get("kind")!="missing":
+        if not r or r.get("kind") not in ("missing","adjust"):
             messagebox.showwarning(
                 "Контроль бланків",
-                "Бланк можна сформувати тільки для незакритого проміжку.",
+                "Виберіть незакритий проміжок або рядок «УТОЧНИТИ БЛАНК».",
                 parent=self.att_gap_win
+            )
+            return
+
+        if r.get("kind")=="adjust":
+            att_id=int(r.get("attestation_id") or 0)
+            self._edit_attestation_fact_boundaries(
+                att_id,
+                parent=self.att_gap_win,
+                plan_from=r.get("plan_from"),
+                plan_to=r.get("plan_to"),
             )
             return
 
@@ -15051,7 +15735,233 @@ class App(tk.Tk):
         except Exception:
             return None
 
-    def _update_attestation_record(self, attestation_id, period_from, period_to, activity_no, place):
+    @staticmethod
+    def _attestation_adjacent_worklogs(con, driver_id, old_from_dt, old_to_dt):
+        """Знаходить робочі дні, між якими лежить уже існуючий бланк.
+
+        Прив'язка виконується до старих меж бланка, тому зміна часу самого
+        бланка не може випадково перескочити на інший робочий день.
+        Рядки без фактичних/планових часових меж роботи або керування
+        (вихідні, відпустки тощо) не вважаються суміжною зміною.
+        """
+        start_day=(old_from_dt.date()-timedelta(days=2)).isoformat()
+        end_day=(old_to_dt.date()+timedelta(days=2)).isoformat()
+        rows=con.execute(
+            """SELECT * FROM worklog
+               WHERE driver_id=? AND work_date BETWEEN ? AND ?
+               ORDER BY work_date,id""",
+            (int(driver_id),start_day,end_day)
+        ).fetchall()
+        if not rows:
+            return None,None
+
+        ids=[r["id"] for r in rows]
+        q=",".join("?" for _ in ids)
+        seg_by={}
+        for seg in con.execute(
+            f"""SELECT * FROM work_segments
+                 WHERE worklog_id IN ({q})
+                 ORDER BY worklog_id,segment_no""",
+            ids
+        ).fetchall():
+            seg_by.setdefault(seg["worklog_id"],[]).append(seg)
+
+        candidates=[]
+        for row in rows:
+            work_parts=_worklog_effective_work_intervals(row,seg_by.get(row["id"],[]))
+            route_parts=_worklog_route_intervals(row,seg_by.get(row["id"],[]))
+            parts=work_parts or route_parts
+            if not parts:
+                continue
+            candidates.append({
+                "row":row,
+                "segments":seg_by.get(row["id"],[]),
+                "start":min(a for a,_ in parts),
+                "end":max(b for _,b in parts),
+            })
+
+        previous=[
+            item for item in candidates
+            if date.fromisoformat(item["row"]["work_date"]) <= old_from_dt.date()
+        ]
+        following=[
+            item for item in candidates
+            if date.fromisoformat(item["row"]["work_date"]) >= old_to_dt.date()
+        ]
+        prev=max(previous,key=lambda x:(x["row"]["work_date"],x["row"]["id"])) if previous else None
+        nxt=min(following,key=lambda x:(x["row"]["work_date"],x["row"]["id"])) if following else None
+        if prev and nxt and int(prev["row"]["id"])==int(nxt["row"]["id"]):
+            return None,None
+        return prev,nxt
+
+    @staticmethod
+    def _set_worklog_boundary(con, item, boundary, value_dt):
+        """Записує ФАКТИЧНУ межу роботи поверх плану.
+
+        Планові work_start_time/work_end_time і work_segments не змінюються.
+        Якщо factual override відсутній, план автоматично є фактом.
+        """
+        if item is None:
+            return
+        row=item["row"]
+        segments=list(item.get("segments") or [])
+        value=value_dt.strftime("%H:%M")
+
+        # Не блокуємо факт плановими межами керування. Реальний рейс може
+        # завершитися раніше (несправність, хвороба) або початися інакше.
+        # План start_time/end_time зберігається незмінним для порівняння;
+        # ТАХО лишається окремим фактичним джерелом контролю.
+
+        keys=set(row.keys()) if hasattr(row,"keys") else set()
+        fact_start=((row["fact_work_start_time"] if "fact_work_start_time" in keys else "") or "").strip()
+        fact_end=((row["fact_work_end_time"] if "fact_work_end_time" in keys else "") or "").strip()
+        if boundary=="end":
+            fact_end=value
+        else:
+            fact_start=value
+
+        # Apply the prospective override in-memory to calculate factual hours.
+        shadow=dict(row)
+        shadow["fact_work_start_time"]=fact_start
+        shadow["fact_work_end_time"]=fact_end
+        fact_minutes=_effective_work_minutes(shadow,segments)
+        if fact_minutes<=0:
+            raise ValueError("Після фактичної корекції робоча зміна має нульову тривалість.")
+
+        con.execute(
+            """UPDATE worklog
+                  SET fact_work_start_time=?,fact_work_end_time=?,fact_work_hours=?,
+                      fact_source='attestation',fact_updated_at=?
+                WHERE id=?""",
+            (
+                fact_start,fact_end,minutes_to_db_hours(fact_minutes),
+                datetime.now().isoformat(timespec="seconds"),int(row["id"])
+            )
+        )
+
+    @staticmethod
+    def _attestation_nonwork_activity(activity_no):
+        """Activities whose interval is outside working time in Taxo."""
+        return int(activity_no) in (14,15,16)
+
+    def _sync_new_nonwork_attestation_to_worklog(
+            self, con, driver_id, period_from, period_to, activity_no):
+        """Explicit helper for manually linking a form edge to worklog.
+
+        This function is not called automatically by form creation/editing.
+        Use only when the operator explicitly confirms that a form edge is
+        also the factual work boundary; otherwise a neutral manual gap may
+        exist between work and rest.
+        """
+        if not self._attestation_nonwork_activity(activity_no):
+            return []
+        st=parse_attestation_period(period_from)
+        en=parse_attestation_period(period_to)
+        if not st or not en or en<=st:
+            raise ValueError("Некоректний фактичний період бланка.")
+
+        start_day=(st.date()-timedelta(days=1)).isoformat()
+        end_day=en.date().isoformat()
+        rows=con.execute(
+            """SELECT * FROM worklog
+               WHERE driver_id=? AND work_date BETWEEN ? AND ?
+               ORDER BY work_date,id""",
+            (int(driver_id),start_day,end_day)
+        ).fetchall()
+        if not rows:
+            return []
+
+        ids=[r["id"] for r in rows]
+        q=",".join("?" for _ in ids)
+        seg_by={}
+        for seg in con.execute(
+            f"""SELECT * FROM work_segments
+                 WHERE worklog_id IN ({q})
+                 ORDER BY worklog_id,segment_no""",
+            ids
+        ).fetchall():
+            seg_by.setdefault(seg["worklog_id"],[]).append(seg)
+
+        items=[]
+        for row in rows:
+            segs=seg_by.get(row["id"],[])
+            parts=_worklog_effective_work_intervals(row,segs) or _worklog_route_intervals(row,segs)
+            if not parts:
+                continue
+            items.append({
+                "row":row,
+                "segments":segs,
+                "start":min(a for a,_ in parts),
+                "end":max(b for _,b in parts),
+            })
+
+        changes=[]
+        # If absence starts inside/after an actual work day, it closes that duty.
+        previous=[
+            item for item in items
+            if item["start"] < st
+            and date.fromisoformat(item["row"]["work_date"]) in (st.date(),st.date()-timedelta(days=1))
+        ]
+        if previous:
+            prev=max(previous,key=lambda x:x["start"])
+            # Only change if boundary is meaningful versus current effective end.
+            if st != prev["end"]:
+                self._set_worklog_boundary(con,prev,"end",st)
+                changes.append(
+                    f"кінець роботи {prev['row']['work_date']} → {st.strftime('%d.%m.%Y %H:%M')}"
+                )
+
+        # If absence ends on a day that already has a planned/effective duty,
+        # it establishes the factual start of that duty. An internal boundary
+        # between two absence reasons creates no work.
+        following=[
+            item for item in items
+            if date.fromisoformat(item["row"]["work_date"])==en.date()
+            and item["end"] > en
+        ]
+        if following:
+            nxt=min(following,key=lambda x:x["start"])
+            if en != nxt["start"]:
+                self._set_worklog_boundary(con,nxt,"start",en)
+                changes.append(
+                    f"початок роботи {nxt['row']['work_date']} → {en.strftime('%d.%m.%Y %H:%M')}"
+                )
+        return changes
+
+    def _sync_attestation_boundaries_to_worklog(
+            self, con, driver_id, old_period_from, old_period_to,
+            new_period_from, new_period_to):
+        """Редагування бланка автоматично коригує суміжні межі робочого часу."""
+        old_from=parse_attestation_period(old_period_from)
+        old_to=parse_attestation_period(old_period_to)
+        new_from=parse_attestation_period(new_period_from)
+        new_to=parse_attestation_period(new_period_to)
+        if not all((old_from,old_to,new_from,new_to)):
+            raise ValueError("Неможливо синхронізувати бланк: некоректні часові межі.")
+
+        prev,nxt=self._attestation_adjacent_worklogs(
+            con,int(driver_id),old_from,old_to
+        )
+        changes=[]
+        if new_from != old_from and prev is not None:
+            self._set_worklog_boundary(con,prev,"end",new_from)
+            changes.append(
+                f"кінець роботи {prev['row']['work_date']} → {new_from.strftime('%d.%m.%Y %H:%M')}"
+            )
+        # Старі/очищені дані можуть уже не мати суміжного worklog. Це не
+        # повинно блокувати виправлення самого фактичного бланка: якщо
+        # коригувати робочий запис фізично нема де, просто зберігаємо нову
+        # ревізію бланка без вигаданого worklog.
+        if new_to != old_to and nxt is not None:
+            self._set_worklog_boundary(con,nxt,"start",new_to)
+            changes.append(
+                f"початок роботи {nxt['row']['work_date']} → {new_to.strftime('%d.%m.%Y %H:%M')}"
+            )
+        return changes
+
+    def _update_attestation_record(
+            self, attestation_id, period_from, period_to, activity_no, place,
+            confirm_from=False, confirm_to=False, sync_worklog=False):
         st=parse_attestation_period(period_from)
         en=parse_attestation_period(period_to)
         if not st or not en or en<=st:
@@ -15089,20 +15999,47 @@ class App(tk.Tk):
         try:
             current=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             _ensure_attestation_audit_baseline(con,current)
+            work_changes=[]
+            if sync_worklog and self._attestation_nonwork_activity(activity_no):
+                work_changes=self._sync_attestation_boundaries_to_worklog(
+                    con,current["driver_id"],
+                    current["period_from"],current["period_to"],
+                    period_from,period_to
+                )
+            old_from_confirmed=(
+                int(current["fact_from_confirmed"] or 0)
+                if "fact_from_confirmed" in current.keys() else 0
+            )
+            old_to_confirmed=(
+                int(current["fact_to_confirmed"] or 0)
+                if "fact_to_confirmed" in current.keys() else 0
+            )
+            fact_from_confirmed=1 if confirm_from else old_from_confirmed
+            fact_to_confirmed=1 if confirm_to else old_to_confirmed
             new_revision=int(current["revision"] or 1)+1
+            self.att_focus_id=int(attestation_id)
             con.execute(
                 """UPDATE attestations
                        SET period_from=?,period_to=?,activity_no=?,place=?,form_date=?,
                            file_path=?,pdf_path=?,jpg_page1_path=?,jpg_page2_path=?,
-                           status='active',revision=?,updated_at=?,deleted_at='',delete_reason=''
+                           status='active',revision=?,updated_at=?,deleted_at='',delete_reason='',
+                           fact_from_confirmed=?,fact_to_confirmed=?
                      WHERE id=?""",
                 (period_from,period_to,int(activity_no),place,en.date().isoformat(),
                  stored_created["file_path"],stored_created["pdf_path"],stored_created["jpg_page1_path"],stored_created["jpg_page2_path"],
-                 new_revision,now,int(attestation_id))
+                 new_revision,now,fact_from_confirmed,fact_to_confirmed,int(attestation_id))
             )
             updated=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             moved=[v for k,v in archived_old.items() if v and v != ((current[k] or "") if k in current.keys() else "")]
-            note="Відредаговано після зміни графіка/періоду; перегенеровано: " + ", ".join(x.upper() for x in formats)
+            note="Відредаговано після уточнення фактичної межі бланка; перегенеровано: " + ", ".join(x.upper() for x in formats)
+            if confirm_from or confirm_to:
+                sides=[]
+                if confirm_from: sides.append("початок відпочинку/відсутності")
+                if confirm_to: sides.append("кінець відпочинку/відсутності")
+                note += ". Підтверджено вручну: " + ", ".join(sides)
+                note += ". Проміжок до/від роботи не класифікується автоматично."
+            if work_changes:
+                note += ". Окремо записано фактичну поправку робочого часу: " + "; ".join(work_changes)
             if moved:
                 note += ". Попередні файли перенесено в архів."
             _audit_attestation_snapshot(con,updated,"EDIT",note)
@@ -15173,8 +16110,10 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text=(
-                "Після збереження старий DOCX не знищується: він переноситься у контрольний архів, "
-                "а в журналі змін залишається попередня ревізія. Контроль 56 днів одразу перерахується."
+                "Плановий бланк можна підготувати наперед. Редагування «Період з/по» змінює "
+                "лише фактичні межі самого бланка. Воно не пересуває робочий час автоматично. "
+                "Між роботою та відпочинком може бути ручний некласифікований проміжок "
+                "(наприклад добирання до/від ТЗ), який не входить у бланк і не додається в табель."
             ),
             foreground="gray",wraplength=700,justify="left"
         ).grid(row=5,column=0,columnspan=3,sticky="w",padx=12,pady=(8,12))
@@ -15477,12 +16416,15 @@ class App(tk.Tk):
             self.att_filter_month.set(str(today.month))
         if hasattr(self,"att_filter_year"):
             self.att_filter_year.set(str(today.year))
+        if hasattr(self,"att_sort"):
+            self.att_sort.set(ATTESTATION_SORT_MODES[0])
         self.load_att_history()
 
     def load_att_history(self):
         if not hasattr(self,"att_tree"):
             return
-        selected_id=self._selected_attestation_id() if self.att_tree.selection() else None
+        focus_id=getattr(self,"att_focus_id",None)
+        selected_id=focus_id or (self._selected_attestation_id() if self.att_tree.selection() else None)
         for x in self.att_tree.get_children():
             self.att_tree.delete(x)
 
@@ -15510,17 +16452,34 @@ class App(tk.Tk):
                 )
                 return
 
+        sort_mode=(
+            self.att_sort.get().strip()
+            if hasattr(self,"att_sort") and self.att_sort.get().strip()
+            else ATTESTATION_SORT_MODES[0]
+        )
+
         con=db()
-        total=con.execute("SELECT COUNT(*) FROM attestations").fetchone()[0]
-        active_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')='active'").fetchone()[0]
-        deleted_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')<>'active'").fetchone()[0]
+        archive_total=con.execute("SELECT COUNT(*) FROM attestations").fetchone()[0]
         sql,params=attestation_history_query(
             mode=mode,
             driver_id=driver_id,
             year=filter_year,
             month=filter_month,
+            sort_mode=sort_mode,
         )
         rows=con.execute(sql,params).fetchall()
+
+        all_sql,all_params=attestation_history_query(
+            mode="Усі",
+            driver_id=driver_id,
+            year=filter_year,
+            month=filter_month,
+            sort_mode=sort_mode,
+        )
+        filtered_all=con.execute(all_sql,all_params).fetchall()
+        filtered_total=len(filtered_all)
+        active_count=sum(1 for r in filtered_all if _attestation_is_active(r))
+        deleted_count=filtered_total-active_count
         con.close()
 
         if hasattr(self,"att_list_summary"):
@@ -15534,8 +16493,9 @@ class App(tk.Tk):
                 filters.append(f"місяць: {filter_month:02d}.{filter_year}")
             filter_text=(" | відбір: "+", ".join(filters)) if filters else ""
             self.att_list_summary.set(
-                f"Показано: {len(rows)} з {total} | активних: {active_count} | вилучених: {deleted_count}"
-                + filter_text
+                f"Показано: {len(rows)} з {filtered_total} | активних: {active_count} | "
+                f"вилучених: {deleted_count} | усього в архіві: {archive_total}"
+                + filter_text + f" | сортування: {sort_mode}"
             )
 
         selected_iid=None
@@ -15553,7 +16513,9 @@ class App(tk.Tk):
                 "","end",
                 values=(
                     r["id"],r["driver_name"],r["period_from"],r["period_to"],r["activity_no"],
-                    r["place"],r["form_date"],status_text,r["revision"]," / ".join(formats),primary
+                    r["place"],r["form_date"],
+                    ((r["updated_at"] or r["created_at"] or "").replace("T"," ")),
+                    status_text,r["revision"]," / ".join(formats),primary
                 ),
                 tags=tags
             )
@@ -15561,7 +16523,10 @@ class App(tk.Tk):
                 selected_iid=iid
         if selected_iid:
             self.att_tree.selection_set(selected_iid)
+            self.att_tree.focus(selected_iid)
             self.att_tree.see(selected_iid)
+        if focus_id is not None:
+            self.att_focus_id=None
 
     def _selected_attestation_row(self):
         att_id=self._selected_attestation_id()

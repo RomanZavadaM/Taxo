@@ -40,8 +40,9 @@ from workspace import (
 class TestTaxo102R1VehicleDocuments(unittest.TestCase):
     def test_candidate_identity(self):
         root = Path(__file__).resolve().parents[1]
+        # Historical r1 feature tests remain valid after the candidate line
+        # rolls forward (10.2-r10 -> 10.3-r1).
         self.assertEqual(main.APP_VERSION, version_from_file(root / "VERSION.txt"))
-        self.assertRegex(main.APP_VERSION, r"^10\.2-r(?:[1-9]|10)$")
 
     def test_core_owns_current_shell_identity(self):
         core_source = inspect.getsource(main.App.__init__)
