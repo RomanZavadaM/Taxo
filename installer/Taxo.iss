@@ -1,6 +1,6 @@
 #define MyAppName "Taxo"
 #define MyAppVersion "10.1"
-#define MyAppPublisher "RomanZavadaM"
+#define MyAppPublisher "Roman Zavada"
 #define MyAppExeName "Taxo.exe"
 
 [Setup]
@@ -25,6 +25,7 @@ CloseApplications=yes
 RestartApplications=no
 ChangesAssociations=no
 SetupLogging=yes
+VersionInfoCopyright=Copyright (C) 2026 Roman Zavada. All rights reserved.
 
 [Languages]
 Name: "ukrainian"; MessagesFile: "compiler:Languages\Ukrainian.isl"
