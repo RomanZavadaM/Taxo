@@ -1,3 +1,12 @@
+# Індекс релізів Taxo
+
+> Поточний candidate: **v10.3-r6** — copyright / proprietary license hardening.  
+> Stable: **v10.1**.
+
+- [Taxo 10.3-r6](RELEASE_NOTES_v10_3_r6.md) — правовласник Roman Zavada, proprietary license, legal notices у програмі та пакетах.
+- [Taxo 10.3-r5](RELEASE_NOTES_v10_3_r5.md) — сортування/лічильники архіву бланків і контекстна дія.
+- [Taxo 10.3-r4](RELEASE_NOTES_v10_3_r4.md) — ручні фактичні межі бланка.
+
 # Taxo — індекс релізів
 
 **Стан:** 21.09.2026  
