@@ -1203,6 +1203,8 @@ def init_db():
         updated_at TEXT DEFAULT '',
         deleted_at TEXT DEFAULT '',
         delete_reason TEXT DEFAULT '',
+        fact_from_confirmed INTEGER NOT NULL DEFAULT 0,
+        fact_to_confirmed INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
     );
 
@@ -1783,6 +1785,8 @@ def init_db():
         ("pdf_path", "TEXT DEFAULT ''"),
         ("jpg_page1_path", "TEXT DEFAULT ''"),
         ("jpg_page2_path", "TEXT DEFAULT ''"),
+        ("fact_from_confirmed", "INTEGER NOT NULL DEFAULT 0"),
+        ("fact_to_confirmed", "INTEGER NOT NULL DEFAULT 0"),
     ]:
         if name not in acols:
             con.execute(f"ALTER TABLE attestations ADD COLUMN {name} {ddl}")
@@ -4724,6 +4728,43 @@ def _attestation_tail_adjustment(missing, overlapping):
     """
     return None
 
+def _exclude_confirmed_attestation_edge_gaps(
+        ga,gb,missing,att_intervals,confirmed_edges):
+    """Remove manually confirmed edge gaps from the *blank* requirement only.
+
+    Such a gap is intentionally neither covered by the attestation nor
+    automatically converted into payroll work. It simply breaks rest.
+    """
+    exclusions=[]
+    for ast,aen,att_id,_activity in att_intervals:
+        from_ok,to_ok=confirmed_edges.get(int(att_id),(False,False))
+        if from_ok and ga < ast < gb:
+            exclusions.append((ga,ast))
+        if to_ok and ga < aen < gb:
+            exclusions.append((aen,gb))
+
+    kept=[]
+    excluded=[]
+    for ma,mb in missing:
+        pieces=[(ma,mb)]
+        for xa,xb in exclusions:
+            next_pieces=[]
+            for pa,pb in pieces:
+                if xb<=pa or xa>=pb:
+                    next_pieces.append((pa,pb))
+                    continue
+                if pa<xa:
+                    next_pieces.append((pa,min(pb,xa)))
+                inter_a=max(pa,xa); inter_b=min(pb,xb)
+                if inter_b>inter_a:
+                    excluded.append((inter_a,inter_b))
+                if xb<pb:
+                    next_pieces.append((max(pa,xb),pb))
+            pieces=next_pieces
+        kept.extend((a,b) for a,b in pieces if b>a)
+    return kept,_merge_dt_intervals(excluded)
+
+
 def collect_attestation_gap_control(driver_id, control_date=None, previous_days=56):
     """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
 
@@ -4915,6 +4956,14 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
             continue
         att_intervals.append((st,en,a["id"],a["activity_no"]))
 
+    att_confirmed_edges={
+        int(a["id"]):(
+            bool(int(a["fact_from_confirmed"] or 0)) if "fact_from_confirmed" in a.keys() else False,
+            bool(int(a["fact_to_confirmed"] or 0)) if "fact_to_confirmed" in a.keys() else False,
+        )
+        for a in att_rows
+    }
+
     # Наявний бланк вважаємо свідомим рішенням користувача незалежно від коду.
     # Автоматичний код використовується для НОВИХ бланків і може бути змінений вручну.
     att_merged=_merge_dt_intervals([(a,b) for a,b,_,_ in att_intervals])
@@ -4933,9 +4982,22 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
             current_required_minutes += dur
 
         missing=_subtract_dt_intervals(ga,gb,att_merged)
+        missing,manual_edge_gaps=_exclude_confirmed_attestation_edge_gaps(
+            ga,gb,missing,att_intervals,att_confirmed_edges
+        )
+        manual_gap_minutes=sum(
+            max(0,int((b-a).total_seconds()//60)) for a,b in manual_edge_gaps
+        )
+        effective_required=max(0,dur-manual_gap_minutes)
+        # confirmed edge gaps are neither blank/rest nor auto-work; they are
+        # intentionally outside the blank-control requirement.
+        required_minutes -= manual_gap_minutes
+        if is_current:
+            current_required_minutes -= manual_gap_minutes
+
         miss=sum(max(0,int((b-a).total_seconds()//60)) for a,b in missing)
         missing_minutes += miss
-        covered_minutes += max(0,dur-miss)
+        covered_minutes += max(0,effective_required-miss)
         if is_current:
             current_missing_minutes += miss
 
@@ -4991,9 +5053,16 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 "activity_no":suggested_no,
                 "is_current":is_current,
                 "reason":(
-                    f"Поточний період до початку наступної роботи вже перекритий бланком. Автокод: {suggested_no}."
-                    if is_current else
-                    f"Проміжок перекритий наявним бланком. Автокод для цього виду дня: {suggested_no}."
+                    (
+                        f"Відпочинок перекритий бланком; {minutes_hhmm(manual_gap_minutes)} "
+                        "по ручній фактичній межі залишено поза бланком і поза автоматичним робочим часом."
+                    )
+                    if manual_gap_minutes else
+                    (
+                        f"Поточний період до початку наступної роботи вже перекритий бланком. Автокод: {suggested_no}."
+                        if is_current else
+                        f"Проміжок перекритий наявним бланком. Автокод для цього виду дня: {suggested_no}."
+                    )
                 ),
             })
         else:
@@ -15441,11 +15510,10 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text=(
-                "Змінюйте тільки ту межу, яка вже відома по факту. "
-                "Якщо наступна робота ще не почалася — її межу поки залиште без змін. "
-                "Taxo не створює окремий бланк на різницю з планом і не розширює "
-                "бланк автоматично. Для позицій 14/15/16 введена межа одночасно "
-                "стає фактичною межею суміжного робочого часу; сам план зберігається."
+                "Змінюйте тільки ту межу відпочинку/відсутності, яка вже відома по факту. "
+                "Між роботою і цією межею може бути ручний проміжок добирання до/від ТЗ. "
+                "Taxo не відносить його автоматично ні до бланка, ні до оплачуваного робочого часу, "
+                "але він не входить у безперервний відпочинок. План при цьому не змінюється."
             ),
             foreground="gray",wraplength=720,justify="left"
         ).grid(row=4,column=0,columnspan=3,sticky="w",padx=12,pady=(10,12))
@@ -15463,8 +15531,13 @@ class App(tk.Tk):
                 )
                 return
             try:
+                confirm_from=(period_from != (current["period_from"] or "")),
+                confirm_to=(period_to != (current["period_to"] or "")),
                 out=self._update_attestation_record(
-                    int(att_id),period_from,period_to,activity_no,place
+                    int(att_id),period_from,period_to,activity_no,place,
+                    confirm_from=confirm_from,
+                    confirm_to=confirm_to,
+                    sync_worklog=False,
                 )
                 self.att_from.set(period_from)
                 self.att_to.set(period_to)
@@ -15476,7 +15549,8 @@ class App(tk.Tk):
                     "Фактичні межі уточнено",
                     f"Бланк №{att_id} оновлено за фактом.\n\n"
                     f"Відпочинок/відсутність:\n{period_from} → {period_to}\n\n"
-                    "План не змінено. Різниця з планом не створює окремого бланка.",
+                    "План не змінено. Різниця до/від роботи не створює окремого бланка, "
+                    "не додається автоматично в роботу і не вважається відпочинком.",
                     parent=parent or self
                 )
             except Exception as exc:
@@ -15812,7 +15886,9 @@ class App(tk.Tk):
             )
         return changes
 
-    def _update_attestation_record(self, attestation_id, period_from, period_to, activity_no, place):
+    def _update_attestation_record(
+            self, attestation_id, period_from, period_to, activity_no, place,
+            confirm_from=False, confirm_to=False, sync_worklog=False):
         st=parse_attestation_period(period_from)
         en=parse_attestation_period(period_to)
         if not st or not en or en<=st:
@@ -15851,28 +15927,45 @@ class App(tk.Tk):
             current=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             _ensure_attestation_audit_baseline(con,current)
             work_changes=[]
-            if self._attestation_nonwork_activity(activity_no):
+            if sync_worklog and self._attestation_nonwork_activity(activity_no):
                 work_changes=self._sync_attestation_boundaries_to_worklog(
                     con,current["driver_id"],
                     current["period_from"],current["period_to"],
                     period_from,period_to
                 )
+            old_from_confirmed=(
+                int(current["fact_from_confirmed"] or 0)
+                if "fact_from_confirmed" in current.keys() else 0
+            )
+            old_to_confirmed=(
+                int(current["fact_to_confirmed"] or 0)
+                if "fact_to_confirmed" in current.keys() else 0
+            )
+            fact_from_confirmed=1 if confirm_from else old_from_confirmed
+            fact_to_confirmed=1 if confirm_to else old_to_confirmed
             new_revision=int(current["revision"] or 1)+1
             con.execute(
                 """UPDATE attestations
                        SET period_from=?,period_to=?,activity_no=?,place=?,form_date=?,
                            file_path=?,pdf_path=?,jpg_page1_path=?,jpg_page2_path=?,
-                           status='active',revision=?,updated_at=?,deleted_at='',delete_reason=''
+                           status='active',revision=?,updated_at=?,deleted_at='',delete_reason='',
+                           fact_from_confirmed=?,fact_to_confirmed=?
                      WHERE id=?""",
                 (period_from,period_to,int(activity_no),place,en.date().isoformat(),
                  stored_created["file_path"],stored_created["pdf_path"],stored_created["jpg_page1_path"],stored_created["jpg_page2_path"],
-                 new_revision,now,int(attestation_id))
+                 new_revision,now,fact_from_confirmed,fact_to_confirmed,int(attestation_id))
             )
             updated=con.execute("SELECT * FROM attestations WHERE id=?",(int(attestation_id),)).fetchone()
             moved=[v for k,v in archived_old.items() if v and v != ((current[k] or "") if k in current.keys() else "")]
-            note="Відредаговано після уточнення факту/періоду; перегенеровано: " + ", ".join(x.upper() for x in formats)
+            note="Відредаговано після уточнення фактичної межі бланка; перегенеровано: " + ", ".join(x.upper() for x in formats)
+            if confirm_from or confirm_to:
+                sides=[]
+                if confirm_from: sides.append("початок відпочинку/відсутності")
+                if confirm_to: sides.append("кінець відпочинку/відсутності")
+                note += ". Підтверджено вручну: " + ", ".join(sides)
+                note += ". Проміжок до/від роботи не класифікується автоматично."
             if work_changes:
-                note += ". План збережено; записано фактичну поправку робочого часу: " + "; ".join(work_changes)
+                note += ". Окремо записано фактичну поправку робочого часу: " + "; ".join(work_changes)
             if moved:
                 note += ". Попередні файли перенесено в архів."
             _audit_attestation_snapshot(con,updated,"EDIT",note)
@@ -15943,10 +16036,10 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text=(
-                "Плановий бланк можна підготувати наперед. Якщо факт відрізняється, зміна меж позицій "
-                "14/15/16 записує окрему фактичну поправку робочого часу: план не стирається. "
-                "«Період з» уточнює кінець попередньої роботи, «Період по» — початок наступної. "
-                "Час керування/маршруту не переписується. Для 17/18/19 межі роботи автоматично не обрізаються."
+                "Плановий бланк можна підготувати наперед. Редагування «Період з/по» змінює "
+                "лише фактичні межі самого бланка. Воно не пересуває робочий час автоматично. "
+                "Між роботою та відпочинком може бути ручний некласифікований проміжок "
+                "(наприклад добирання до/від ТЗ), який не входить у бланк і не додається в табель."
             ),
             foreground="gray",wraplength=700,justify="left"
         ).grid(row=5,column=0,columnspan=3,sticky="w",padx=12,pady=(8,12))
