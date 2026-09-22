@@ -1,21 +1,20 @@
-# Taxo / Driver Worktime 10.1
+# Taxo / Driver Worktime 10.3
 
 [Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
 
 **Облік роботи водіїв і персоналу, графіків, табелів, шляхових листів, П-5, бланків підтвердження діяльності та аналогових тахокарт.**
 
-> **Stable:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) — актуальна експлуатаційна версія.  
-> **Previous stable / rollback:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0).  
-> **Current prerelease:** [Taxo 10.3-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r6) — оформлення авторських прав і proprietary-ліцензії; власник прав — Roman Zavada (Роман Завада).  
-> **Stable:** 10.1 залишається основною експлуатаційною версією до окремого рішення про підвищення stable.
+> **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — актуальна експлуатаційна версія, промотована після ручного тесту 10.3-r6.  
+> **Previous stable / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1).  
+> **Verified candidate:** [Taxo 10.3-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r6) — immutable prerelease/checkpoint.
 
-[Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Setup_Windows_x64.exe) · [Windows Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_Windows_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/Taxo_v10_1_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.1/SHA256SUMS_v10_1.txt)
+[Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_Setup_Windows_x64.exe) · [Windows Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_Windows_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/SHA256SUMS_v10_3.txt)
 
 ---
 
 ## Для експлуатації
 
-Незмінним stable release залишається **Taxo 10.1 (`v10.1`)**. Робочий candidate **10.3-r6** продовжує прийняту candidate-лінію 10.3 і проходить candidate-перевірку. Робочі БД, скани, кеші та персональні документи не входять до GitHub-релізів; оновлення програми не потребує повторного введення робочої бази.
+Актуальна stable-лінія — **Taxo 10.3 (`v10.3`)**, промотована з вручну перевіреного candidate **10.3-r6**. `v10.1` залишається rollback checkpoint. Робочі БД, скани, кеші та персональні документи не входять до GitHub-релізів; оновлення програми не потребує повторного введення робочої бази.
 
 Історичні checkpoint/test/publish-файли, старі патчі та ранні архіви версій 8.x прибрані з `main` і збережені окремо в гілці [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
 
@@ -84,11 +83,11 @@ Taxo 10.1 формує окремий документ за 60 календар�
 
 ## Поточний етап
 
-**Taxo 10.1 — stable.** Лінію r1–r5 завершено після автоматичних перевірок і ручного Windows UI/navigation gate. Immutable stable release target: `fa5bbe0a5de733af1e227847ef9584daca57676e`. У stable увійшли новий application shell, виправлення ролі водія, KPI-реєстр персоналу, звіти в головному workspace і single-instance детальний табель.
+**Taxo 10.3 — stable.** Лінію 10.3-r1…r6 промотовано після автоматичних перевірок і ручного тесту r6. Основні зміни: коректні фактичні межі бланків/роботи, ручний некласифікований проміжок між роботою і відпочинком, виправлений архів бланків та proprietary licensing.
 
-**Taxo 10.0 — previous stable / rollback.** Він лишається immutable і доступний для повернення за потреби.
+**Taxo 10.1 — previous stable / rollback.** Він лишається immutable і доступний для повернення за потреби.
 
-Виконавчі пакети 10.1 **опубліковані** для Windows x64, macOS ARM64, macOS Intel x86_64 та START/source. Повний підсумок: [Release notes 10.1](docs/releases/RELEASE_NOTES_v10_1.md).
+Виконавчі пакети 10.3 формуються для Windows x64, macOS ARM64, macOS Intel x86_64 та START/source. Повний підсумок: [Release notes 10.3](docs/releases/RELEASE_NOTES_v10_3.md).
 
 ## Авторські права та ліцензія
 

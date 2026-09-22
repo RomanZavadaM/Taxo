@@ -139,3 +139,14 @@ START-пакет формується для кожної тестової ре�
 - `LICENSE.md`, `COPYRIGHT.md` і `THIRD_PARTY_NOTICES.md` повинні входити в source/START release; для executable-збірок legal notices включаються в пакет.
 - Copyright notice в інтерфейсі не можна будувати з `company.name`; він завжди посилається на особистого правовласника.
 - Сторонні бібліотеки та матеріали зберігають власні ліцензії; Taxo не заявляє права на них.
+
+
+## 14. Startup / recovery protocol
+
+- Кожна нова сесія або новий чат Taxo починається з `START_HERE.md`.
+- Після нього обов'язково читаються `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` і live ledger Issue #61.
+- GitHub є фактичним арбітром для branch/PR/SHA/CI/release; текстові файли мають бути синхронізовані з ним.
+- `PROJECT_STATE.md` містить підтверджений інтегрований стан, а не незлиті експерименти.
+- `WORKLOG.md` містить оперативний active slice і точну наступну дію.
+- Кожен завершений slice записується в Issue #61.
+- Після обриву не відтворювати стан з пам'яті чату, якщо його можна відновити з GitHub.

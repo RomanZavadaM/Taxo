@@ -1,8 +1,8 @@
-# Taxo 10.1
+# Taxo 10.3
 
 [Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
 
-**Stabile Version: v10.1 — 21. September 2026. Vorherige stabile/Rollback-Version: v10.0.**
+**Stabile Version: v10.3 — 22. September 2026. Vorherige stabile/Rollback-Version: v10.1. Verifizierter Kandidat: v10.3-r6.**
 
 Taxo ist eine Desktop-Anwendung für ein einzelnes Verkehrsunternehmen. Sie verbindet Fahrerplanung, Arbeitszeiterfassung, Routen- und Fahrzeugdaten, Fahrtenblätter, Tätigkeitsbestätigungen, Berichte und die selektive Auswertung analoger Tachographenscheiben.
 
@@ -23,7 +23,7 @@ Taxo ist eine Desktop-Anwendung für ein einzelnes Verkehrsunternehmen. Sie verb
 
 ## Download
 
-Die offiziellen Pakete befinden sich im [GitHub Release v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1): Windows x64 Setup/Portable, macOS ARM64/Intel, START-Quellarchiv und SHA-256-Prüfsummen.
+Die offiziellen Pakete befinden sich im [GitHub Release v10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3): Windows x64 Setup/Portable, macOS ARM64/Intel, START-Quellarchiv und SHA-256-Prüfsummen.
 
 Benutzerdatenbanken und personenbezogene Daten sind nicht Bestandteil der Releases.
 

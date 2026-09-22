@@ -1,7 +1,7 @@
 # Індекс релізів Taxo
 
-> Поточний candidate: **v10.3-r6** — copyright / proprietary license hardening.  
-> Stable: **v10.1**.
+> Verified candidate: **v10.3-r6** — immutable checkpoint перед stable.  
+> Stable: **v10.3** (promotion 22.09.2026).
 
 - [Taxo 10.3-r6](RELEASE_NOTES_v10_3_r6.md) — правовласник Roman Zavada, proprietary license, legal notices у програмі та пакетах.
 - [Taxo 10.3-r5](RELEASE_NOTES_v10_3_r5.md) — сортування/лічильники архіву бланків і контекстна дія.
@@ -10,10 +10,12 @@
 # Taxo — індекс релізів
 
 **Стан:** 21.09.2026  
-**Поточна stable:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1)  
-**Previous stable / rollback:** [Taxo 10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0)
+**Поточна stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)  
+**Previous stable / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1)
 
 > Stable 10.1 промотовано після verified candidate v10.1-r5, ручного Windows UI/navigation gate та повторного stable regression: **162 tests / OK** на source, Windows і обох macOS architectures. Stable target: `fa5bbe0a5de733af1e227847ef9584daca57676e`. Stable 10.0 лишається rollback; старі tags/releases не пересуваються.
+
+- [Release notes 10.3](RELEASE_NOTES_v10_3.md)
 
 ## Current candidate line 10.x
 
@@ -36,7 +38,8 @@
 
 | Tag | Статус | Пакети | Призначення |
 |---|---|---|---|
-| [v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) | **Stable** | Windows Setup/Portable, macOS ARM64/Intel, START, SHA-256 | UI/driver-role line r1–r5 promoted after manual gate |
+| [v10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) | **Stable** | Windows Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Promoted from manually tested v10.3-r6 |
+| [v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) | Previous stable / rollback | Windows Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Previous production checkpoint |
 | [v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) | Previous stable / rollback | Windows Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Перевірена лінія 9.1 |
 | [v9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) | Previous stable / rollback | Windows Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Hotfix 9.0 |
 | [v9.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0) | Historical stable | Windows Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Базовий stable 9.x |

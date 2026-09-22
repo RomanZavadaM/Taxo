@@ -9,9 +9,8 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo103R6Copyright(unittest.TestCase):
-    def test_version_is_r6(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r6")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.3-r6")
+    def test_r6_checkpoint_stays_immutable_after_stable_promotion(self):
+        self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.3-r6"),
             "Taxo_v10_3_candidate_r6_START",
