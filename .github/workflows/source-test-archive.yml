@@ -92,6 +92,8 @@ jobs:
             THIRD_PARTY_NOTICES.md
             PROJECT_RULES.md
             PROJECT_STATE.md
+            START_HERE.md
+            WORKLOG.md
           )
 
           for file in "${required_files[@]}"; do
