@@ -15,3 +15,9 @@ START.bat сам переходить у власну папку, тому пі�
 його можна запускати подвійним кліком.
 
 Робочі бази, скани й персональні дані до тестового ZIP не входять.
+
+
+АВТОРСЬКІ ПРАВА
+Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.
+Taxo є proprietary software. Умови використання: LICENSE.md.
+Сторонні компоненти: THIRD_PARTY_NOTICES.md.
