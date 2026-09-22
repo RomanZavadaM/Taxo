@@ -425,9 +425,10 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         candidate_mac=(root/"Taxo_macos_v10_2_r2.spec").read_text(encoding="utf-8")
         publisher=(root/".github"/"workflows"/"publish-v10.2-r2.yml").read_text(encoding="utf-8")
 
-        self.assertIn('#define MyAppVersion "10.1"',stable_iss)
+        current_stable=version_from_file(root/"VERSION.txt")
+        self.assertIn(f'#define MyAppVersion "{current_stable}"',stable_iss)
         self.assertIn('#define MyAppVersion "10.2-r2"',candidate_iss)
-        self.assertIn("version='10.1'",stable_mac)
+        self.assertIn(f"version='{current_stable}'",stable_mac)
         self.assertIn("version='10.2.2'",candidate_mac)
         self.assertIn("Taxo_v10_2_r2.iss",publisher)
         self.assertIn("Taxo_macos_v10_2_r2.spec",publisher)
