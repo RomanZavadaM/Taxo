@@ -1,26 +1,26 @@
 Taxo / Driver Worktime
-Version: 10.3-r6
+Version: 10.3
 Release date: 2026-09-22
-Release type: candidate
-Stable baseline: Taxo 10.1
-Stable tag: v10.1
-Stable target: fa5bbe0a5de733af1e227847ef9584daca57676e
+Release type: stable
+Previous stable / rollback: Taxo 10.1
+Previous stable tag: v10.1
+Verified candidate: Taxo 10.3-r6
+Verified candidate tag: v10.3-r6
+Verified candidate target: 619e5995af5982cbf60f7345744789e42463498f
 
-Taxo 10.3-r6 — copyright / proprietary license hardening.
+Taxo 10.3 — stable promotion of the manually tested 10.3-r6 candidate line.
 
 Основне:
-- власник авторських прав Taxo зафіксований як Roman Zavada (Роман Завада);
-- додано LICENSE.md, COPYRIGHT.md та THIRD_PARTY_NOTICES.md;
-- публічна видимість репозиторію явно не є open-source ліцензією;
-- у «Про програму» та довідці показується персональний правовласник, незалежно від назви підприємства;
-- майбутні executable-збірки включають файли ліцензії та copyright notice;
-- Windows installer publisher змінено на Roman Zavada і додано copyright metadata;
-- README та документація оновлені українською, англійською, німецькою, іспанською та французькою;
-- функціональна логіка r5 не змінюється;
-- stable 10.1 не змінюється.
+- перевірений користувачем candidate Taxo_v10_3_candidate_r6_START.zip промотується у stable 10.3;
+- збережено функціональну логіку 10.3-r1...r5;
+- r6 додає правовласника Roman Zavada (Роман Завада), proprietary license і legal notices;
+- stable publisher повторно виконує regression suite та формує Windows/macOS/START пакети;
+- робочі БД, скани, кеші та персональні документи до релізу не входять;
+- candidate v10.3-r6 залишається immutable historical checkpoint.
 
 Нумерація:
-- після виданого 10.3-r6 наступний кодовий крок — 10.3-r7;
+- після stable 10.3 наступний кодовий крок — 10.3-r7;
 - r1 ... r10;
 - після r10: 10.3-r10 -> 10.4-r1;
+- перший розряд змінюється тільки за прямим рішенням власника;
 - видані revision tags/releases не пересуваються і не перевикористовуються.
