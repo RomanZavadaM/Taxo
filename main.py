@@ -15495,13 +15495,13 @@ class App(tk.Tk):
             ).grid(row=1,column=0,columnspan=3,sticky="w",padx=12,pady=(0,10))
 
         ttk.Label(
-            win,text="Фактичне закінчення попередньої роботи"
+            win,text="Фактичний початок відпочинку / відсутності"
         ).grid(row=2,column=0,sticky="w",padx=12,pady=8)
         ttk.Entry(win,textvariable=from_var,width=28).grid(row=2,column=1,sticky="w",padx=6,pady=8)
         calendar_button(win,from_var).grid(row=2,column=2,sticky="w",padx=4,pady=8)
 
         ttk.Label(
-            win,text="Фактичний початок наступної роботи"
+            win,text="Фактичне закінчення відпочинку / відсутності"
         ).grid(row=3,column=0,sticky="w",padx=12,pady=8)
         ttk.Entry(win,textvariable=to_var,width=28).grid(row=3,column=1,sticky="w",padx=6,pady=8)
         calendar_button(win,to_var).grid(row=3,column=2,sticky="w",padx=4,pady=8)
