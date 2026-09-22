@@ -4970,13 +4970,15 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 "attestation_id":int(att_id),
                 "old_from":ast,
                 "old_to":aen,
+                "plan_from":ga,
+                "plan_to":gb,
                 "is_current":is_current,
                 "reason":(
                     f"Бланк №{att_id} був підготовлений за планом. "
-                    f"Залишок {minutes_hhmm(miss)} не є окремим бланком і не "
-                    f"додається до нього автоматично. Після фактичного завершення "
-                    f"роботи уточніть межу цього ж бланка вручну; ця межа стане "
-                    f"фактичною межею робочого часу."
+                    f"Різниця {minutes_hhmm(miss)} не є окремим бланком і не "
+                    f"додається до нього автоматично. Фактичну межу вводять "
+                    f"після факту: кінець попередньої роботи = початок бланка, "
+                    f"початок наступної роботи = кінець бланка."
                 ),
             })
         elif not missing:
@@ -15376,6 +15378,116 @@ class App(tk.Tk):
             )
         return created
 
+    def _edit_attestation_fact_boundaries(self, att_id, parent=None, plan_from=None, plan_to=None):
+        """Edit factual rest boundaries without guessing pre/post work time.
+
+        The form interval is complementary to work:
+        - factual end of previous work == attestation start;
+        - factual start of next work == attestation end.
+        Unknown sides are left unchanged until they are known from fact.
+        """
+        con=db()
+        current=con.execute("SELECT * FROM attestations WHERE id=?",(int(att_id),)).fetchone()
+        con.close()
+        if not current or not _attestation_is_active(current):
+            messagebox.showerror(
+                "Уточнення факту",
+                f"Активний Бланк №{att_id} не знайдено.",
+                parent=parent or self
+            )
+            return
+
+        win=tk.Toplevel(parent or self)
+        win.title(f"Уточнення фактичних меж Бланка №{att_id}")
+        fit_window_to_screen(win,760,430,650,390)
+        win.transient(parent or self)
+        win.grab_set()
+
+        from_var=tk.StringVar(value=current["period_from"] or "")
+        to_var=tk.StringVar(value=current["period_to"] or "")
+        activity_no=int(current["activity_no"] or 16)
+        place=current["place"] or ""
+
+        ttk.Label(
+            win,
+            text=f"Бланк №{att_id}: {ACTIVITIES.get(activity_no,'')}",
+            font=("TkDefaultFont",10,"bold")
+        ).grid(row=0,column=0,columnspan=3,sticky="w",padx=12,pady=(12,8))
+
+        if plan_from is not None or plan_to is not None:
+            plan_text=[]
+            if plan_from is not None:
+                plan_text.append(f"плановий кінець попередньої роботи: {format_attestation_period(plan_from)}")
+            if plan_to is not None:
+                plan_text.append(f"плановий початок наступної роботи: {format_attestation_period(plan_to)}")
+            ttk.Label(
+                win,
+                text="Плановий орієнтир (не факт): " + " | ".join(plan_text),
+                foreground="gray",wraplength=720,justify="left"
+            ).grid(row=1,column=0,columnspan=3,sticky="w",padx=12,pady=(0,10))
+
+        ttk.Label(
+            win,text="Фактичне закінчення попередньої роботи"
+        ).grid(row=2,column=0,sticky="w",padx=12,pady=8)
+        ttk.Entry(win,textvariable=from_var,width=28).grid(row=2,column=1,sticky="w",padx=6,pady=8)
+        calendar_button(win,from_var).grid(row=2,column=2,sticky="w",padx=4,pady=8)
+
+        ttk.Label(
+            win,text="Фактичний початок наступної роботи"
+        ).grid(row=3,column=0,sticky="w",padx=12,pady=8)
+        ttk.Entry(win,textvariable=to_var,width=28).grid(row=3,column=1,sticky="w",padx=6,pady=8)
+        calendar_button(win,to_var).grid(row=3,column=2,sticky="w",padx=4,pady=8)
+
+        ttk.Label(
+            win,
+            text=(
+                "Змінюйте тільки ту межу, яка вже відома по факту. "
+                "Якщо наступна робота ще не почалася — її межу поки залиште без змін. "
+                "Taxo не створює окремий бланк на різницю з планом і не розширює "
+                "бланк автоматично. Для позицій 14/15/16 введена межа одночасно "
+                "стає фактичною межею суміжного робочого часу; сам план зберігається."
+            ),
+            foreground="gray",wraplength=720,justify="left"
+        ).grid(row=4,column=0,columnspan=3,sticky="w",padx=12,pady=(10,12))
+
+        def save_fact():
+            period_from=from_var.get().strip()
+            period_to=to_var.get().strip()
+            st=parse_attestation_period(period_from)
+            en=parse_attestation_period(period_to)
+            if not st or not en or en<=st:
+                messagebox.showerror(
+                    "Уточнення факту",
+                    "Перевірте фактичні межі: початок бланка має бути раніше його кінця.",
+                    parent=win
+                )
+                return
+            try:
+                out=self._update_attestation_record(
+                    int(att_id),period_from,period_to,activity_no,place
+                )
+                self.att_from.set(period_from)
+                self.att_to.set(period_to)
+                self.att_activity.set(f"{activity_no} — {ACTIVITIES[activity_no]}")
+                win.destroy()
+                if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
+                    self.refresh_attestation_gap_control()
+                messagebox.showinfo(
+                    "Фактичні межі уточнено",
+                    f"Бланк №{att_id} оновлено за фактом.\n\n"
+                    f"Відпочинок/відсутність:\n{period_from} → {period_to}\n\n"
+                    "План не змінено. Різниця з планом не створює окремого бланка.",
+                    parent=parent or self
+                )
+            except Exception as exc:
+                messagebox.showerror("Помилка уточнення",str(exc),parent=win)
+
+        buttons=ttk.Frame(win)
+        buttons.grid(row=5,column=0,columnspan=3,sticky="e",padx=12,pady=12)
+        ttk.Button(buttons,text="Скасувати",command=win.destroy).pack(side="right",padx=4)
+        ttk.Button(buttons,text="Зберегти факт",command=save_fact).pack(side="right",padx=4)
+        win.columnconfigure(1,weight=1)
+
     def create_selected_gap_attestation(self):
         if not hasattr(self,"att_gap_tree"):
             return
@@ -15399,50 +15511,12 @@ class App(tk.Tk):
 
         if r.get("kind")=="adjust":
             att_id=int(r.get("attestation_id") or 0)
-            con=db()
-            current=con.execute("SELECT * FROM attestations WHERE id=?",(att_id,)).fetchone()
-            con.close()
-            if not current or not _attestation_is_active(current):
-                messagebox.showerror(
-                    "Контроль бланків",
-                    f"Активний Бланк №{att_id} не знайдено. Оновіть контроль.",
-                    parent=self.att_gap_win
-                )
-                return
-            period_from=format_attestation_period(r["from"])
-            period_to=format_attestation_period(r["to"])
-            old_from=current["period_from"]
-            old_to=current["period_to"]
-            activity_no=int(current["activity_no"] or r.get("activity_no") or 16)
-            place=(current["place"] or self.att_place.get().strip())
-            if not messagebox.askyesno(
-                "Уточнити існуючий бланк",
-                f"Бланк №{att_id} був підготовлений за планом.\n\n"
-                f"Поточні межі:\n{old_from} → {old_to}\n\n"
-                "Фактичну межу треба ввести після завершення роботи. "
-                "Taxo не створює окремий бланк на різницю і не розширює цей бланк автоматично.\n\n"
-                f"Запропоновані фактичні межі:\n{period_from} → {period_to}\n\n"
-                "Створити нову ревізію цього ж бланка? План залишиться незмінним; "
-                "введена межа стане фактичною межею робочого часу. Попередні файли будуть збережені в архіві.",
-                parent=self.att_gap_win
-            ):
-                return
-            try:
-                self.att_from.set(period_from)
-                self.att_to.set(period_to)
-                self.att_activity.set(f"{activity_no} — {ACTIVITIES[activity_no]}")
-                out=self._update_attestation_record(
-                    att_id,period_from,period_to,activity_no,place
-                )
-                self.refresh_attestation_gap_control()
-                messagebox.showinfo(
-                    "Бланк уточнено",
-                    f"Створено нову ревізію Бланка №{att_id}.\n\n"
-                    f"{period_from}\n→ {period_to}\n\nФайл:\n{out}",
-                    parent=self.att_gap_win
-                )
-            except Exception as e:
-                messagebox.showerror("Помилка уточнення",str(e),parent=self.att_gap_win)
+            self._edit_attestation_fact_boundaries(
+                att_id,
+                parent=self.att_gap_win,
+                plan_from=r.get("plan_from"),
+                plan_to=r.get("plan_to"),
+            )
             return
 
         suggested_no=int(r.get("activity_no") or 16)
