@@ -4,7 +4,7 @@
 **Stable baseline:** Taxo 10.1  
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Останній опублікований candidate:** Taxo 10.3-r5  
+**Останній опублікований candidate:** Taxo 10.3-r6  
 **Candidate target r5:** `b4a5676408561a76ba4ba32bb62a6b5150ca053b`  
 **Release target r6:** `619e5995af5982cbf60f7345744789e42463498f`  
 **Merge у main:** `481a189e560e0820d676043b2d06904f64b9c8f0`  
