@@ -1,4 +1,5 @@
 # Taxo 10.3-r5 attestation-list publisher
+# publish after green archive regression
 name: Publish Taxo 10.3-r5 source prerelease
 
 on:
