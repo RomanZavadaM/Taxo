@@ -2,9 +2,9 @@
 
 ## Актуальний стан на 22.09.2026
 
-- **Stable promotion:** Taxo 10.3 з перевіреного `v10.3-r6`; ручний operational gate пройдено.
+- **Stable:** Taxo 10.3 (`v10.3`) — опублікований latest stable; target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Previous stable / rollback:** Taxo 10.1 (`v10.1`).
-- **Verified candidate:** Taxo 10.3-r6; `v10.3-r6` published, PR #58 merged.
+- **Verified candidate:** Taxo 10.3-r6; `v10.3-r6` published and immutable.
 - **Правовласник:** Roman Zavada (Роман Завада).
 - **Ліцензія:** proprietary / all rights reserved; сторонні компоненти зберігають власні ліцензії.
 - **Recovery protocol:** `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61.
