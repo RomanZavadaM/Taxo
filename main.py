@@ -15531,8 +15531,8 @@ class App(tk.Tk):
                 )
                 return
             try:
-                confirm_from=(period_from != (current["period_from"] or "")),
-                confirm_to=(period_to != (current["period_to"] or "")),
+                confirm_from=(period_from != (current["period_from"] or ""))
+                confirm_to=(period_to != (current["period_to"] or ""))
                 out=self._update_attestation_record(
                     int(att_id),period_from,period_to,activity_no,place,
                     confirm_from=confirm_from,
