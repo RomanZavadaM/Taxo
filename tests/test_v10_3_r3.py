@@ -47,9 +47,8 @@ def make_db():
 
 
 class TestTaxo103R3AttestationTailFix(unittest.TestCase):
-    def test_version_is_r3(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r3")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.3-r3")
+    def test_r3_checkpoint_stays_immutable_under_later_10_3_revisions(self):
+        self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.3-r3"),
             "Taxo_v10_3_candidate_r3_START",
