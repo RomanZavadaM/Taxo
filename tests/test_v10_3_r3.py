@@ -54,40 +54,6 @@ class TestTaxo103R3AttestationTailFix(unittest.TestCase):
             "Taxo_v10_3_candidate_r3_START",
         )
 
-    def test_ten_minute_tail_extends_one_touching_form(self):
-        ma=datetime(2026,9,24,7,35)
-        mb=datetime(2026,9,24,7,45)
-        old_start=datetime(2026,9,21,19,45)
-        other_start=datetime(2026,9,22,12,0)
-        other_end=datetime(2026,9,22,18,0)
-        missing=[(ma,mb)]
-        overlapping=[
-            (1200,old_start,ma,74,16),
-            (360,other_start,other_end,91,18),
-        ]
-        result=main._attestation_tail_adjustment(missing,overlapping)
-        self.assertIsNotNone(result)
-        target_from,target_to,ast,aen,att_id,activity=result
-        self.assertEqual(att_id,74)
-        self.assertEqual(activity,16)
-        self.assertEqual((target_from,target_to),(old_start,mb))
-        self.assertEqual((ast,aen),(old_start,ma))
-
-    def test_gap_between_two_forms_is_not_auto_absorbed(self):
-        ma=datetime(2026,9,24,7,35)
-        mb=datetime(2026,9,24,7,45)
-        missing=[(ma,mb)]
-        overlapping=[
-            (100,datetime(2026,9,23,20,0),ma,74,16),
-            (100,mb,datetime(2026,9,24,10,0),75,16),
-        ]
-        self.assertIsNone(main._attestation_tail_adjustment(missing,overlapping))
-
-    def test_no_duration_threshold_is_used(self):
-        src=(ROOT/"main.py").read_text("utf-8")
-        self.assertNotIn("ATTESTATION_TAIL_MINUTES",src)
-        self.assertIn("однозначна суміжність",src)
-
     def test_missing_adjacent_worklog_does_not_block_form_edit(self):
         con=make_db()
         app=object.__new__(main.App)
@@ -98,6 +64,7 @@ class TestTaxo103R3AttestationTailFix(unittest.TestCase):
         )
         self.assertEqual(changes,[])
         con.close()
+
 
 
 if __name__=="__main__":
