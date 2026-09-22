@@ -26,19 +26,22 @@ class TestTaxo102R10AttestationReconcile(unittest.TestCase):
         self.assertIn('"old_from":ast',source)
         self.assertIn('"old_to":aen',source)
         self.assertIn(
-            "Не створювати окремий бланк на залишок",
+            "не є окремим бланком",
             source,
         )
 
     def test_adjustment_reuses_existing_revision_mechanism(self):
         source=(ROOT/"main.py").read_text("utf-8")
         self.assertIn(
-            "out=self._update_attestation_record(\n"
-            "                    att_id,period_from,period_to,activity_no,place",
+            "def _edit_attestation_fact_boundaries",
             source,
         )
         self.assertIn(
-            "Попередні файли будуть збережені в архіві.",
+            "out=self._update_attestation_record(",
+            source,
+        )
+        self.assertIn(
+            "sync_worklog=False",
             source,
         )
         self.assertIn(
