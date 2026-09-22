@@ -4,29 +4,25 @@
 **Stable baseline:** Taxo 10.1  
 **Stable tag:** `v10.1`  
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Останній завершений крок:** Taxo 10.2-r7  
-**Активний крок:** Taxo 10.3-r4 — фактична межа бланка тільки після факту
-**Стан r8:** робоча гілка `work/v10.2-r8-personnel-planning`, PR #48 відкритий  
-**База r8:** `main` @ `2b4568f3ad264c823eccccf69b408f044e809625`  
-**r7 accepted candidate target:** `b5aa0f3c213988fe51c2a98414b4acd3db70e710`  
-**r7 merge у main:** `e272c8794b8df17dd3ec2e64a811c707158c94a0`  
-**r7 PR:** #45 — merged  
-**GitHub prerelease r7:** `v10.2-r7` — published  
-**GitHub prerelease r8:** готується після regression suite  
-**Наступний кодовий крок після виданого 10.3-r3:** `10.3-r4`
+**Останній опублікований candidate:** Taxo 10.3-r3  
+**Candidate target r3:** `f31bb224659716288fa498f105df8c12f70daf71`  
+**Активний крок:** Taxo 10.3-r4 — фактична межа бланка задається після факту  
+**Робоча гілка:** `work/v10.3-r4-attestation-work-boundaries`  
+**Наступний кодовий крок після виданого 10.3-r4:** `10.3-r5`
 
 ## Джерело істини
 
-- `v10.1` — незмінний stable release / rollback checkpoint.
-- `main` містить прийнятий candidate checkpoint `10.2-r7`; stable tag при цьому залишається `v10.1`.
-- Активна кодова робота `10.2-r8` ведеться тільки у `work/v10.2-r8-personnel-planning` від зафіксованого актуального `main`.
-- Старі candidate/work/docs/tmp-гілки не є робочими напрямами.
-- Старі релізи й теги залишаються лише історією GitHub; повертатися до них у розробці не планується.
-- Застарілі відкриті PR #33 і #35 закриті.
+- **Постійні правила:** [PROJECT_RULES.md](PROJECT_RULES.md).
+- **Поточний стан:** цей файл `PROJECT_STATE.md`.
+- `v10.1` — незмінний stable / rollback checkpoint.
+- Candidate-лінія продовжується від опублікованого `v10.3-r3`.
+- `10.3-r4` базується на точному target commit `v10.3-r3`.
+- Опубліковані candidate tags/releases immutable і не перевикористовуються.
+- Старі work/candidate/tmp-гілки не використовувати як нову базу без окремого рішення.
 
 ## Обов’язковий цикл розробки
 
-Канонічні правила: [docs/maintenance/DEVELOPMENT_RULES.md](docs/maintenance/DEVELOPMENT_RULES.md).
+Канонічні правила: [PROJECT_RULES.md](PROJECT_RULES.md).
 
 - **Кожен завершений крок = нова ревізія.** Одну ревізію не використовувати для двох різних тестових станів.
 - Послідовність: `r1 ... r10`; після `r10` автоматично підняти minor-версію: `10.2-r10 -> 10.3-r1`.
