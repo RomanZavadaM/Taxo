@@ -104,11 +104,12 @@ class TestTaxo103R4FactualBoundary(unittest.TestCase):
         src=(ROOT/"main.py").read_text("utf-8")
         self.assertIn("не є окремим бланком",src)
         self.assertIn("не додається до нього автоматично",src)
-        self.assertIn("Фактичну межу вводять",src)
+        self.assertIn("уточнюється саме межа відпочинку/відсутності",src)
         self.assertIn("Фактичний початок відпочинку / відсутності",src)
         self.assertIn("Фактичне закінчення відпочинку / відсутності",src)
         self.assertIn("не додається автоматично в роботу",src)
         self.assertIn("sync_worklog=False",src)
+        self.assertIn("This function is not called automatically by form creation/editing.",src)
 
 
     def test_confirmed_edge_gap_is_not_rest_and_not_missing_blank(self):
