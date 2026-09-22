@@ -63,9 +63,8 @@ class TestTaxo103R5AttestationArchive(unittest.TestCase):
         sql,params=main.attestation_history_query(**kwargs)
         return self.con.execute(sql,params).fetchall()
 
-    def test_version_is_r5(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r5")
-        self.assertEqual(version_from_file(ROOT/"VERSION.txt"),"10.3-r5")
+    def test_r5_checkpoint_stays_immutable_under_later_10_3_revisions(self):
+        self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.3-r5"),
             "Taxo_v10_3_candidate_r5_START",
