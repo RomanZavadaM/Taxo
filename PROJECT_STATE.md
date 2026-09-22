@@ -1,20 +1,22 @@
 # PROJECT_STATE — Taxo
 
 **Дата:** 22.09.2026  
-**Stable promotion:** Taxo 10.3 — підтверджено ручним тестом candidate r6; stable release pipeline запускається з promotion merge  
+**Stable:** Taxo 10.3 / `v10.3`  
+**Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1` / `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Verified candidate:** Taxo 10.3-r6 / `v10.3-r6`  
-**Candidate release target:** `619e5995af5982cbf60f7345744789e42463498f`  
-**Candidate merge у main:** `481a189e560e0820d676043b2d06904f64b9c8f0`  
+**Verified candidate:** Taxo 10.3-r6 / `v10.3-r6` / `619e5995af5982cbf60f7345744789e42463498f`  
+**Stable promotion PR:** #62 merged  
+**Stable publisher:** run `35764396010` — success  
 **Manual operational gate:** пройдено користувачем 22.09.2026  
 **Live ledger:** Issue #61  
-**Наступний кодовий крок після stable:** `10.3-r7` — ще не розпочатий
+**Наступний кодовий крок:** `10.3-r7` — ще не розпочатий
 
 ## Джерело істини
 
 - **Постійні правила:** [PROJECT_RULES.md](PROJECT_RULES.md).
 - **Поточний стан:** цей файл `PROJECT_STATE.md`.
-- `v10.1` — previous stable / rollback checkpoint; після успішної публікації `v10.3` новим stable стає Taxo 10.3.
+- `v10.3` — immutable stable checkpoint і актуальна експлуатаційна версія.
+- `v10.1` — previous stable / rollback checkpoint.
 - `v10.3-r6` — immutable candidate checkpoint; PR #58 злитий у `main`.
 - Опубліковані candidate tags/releases не пересуваються і не перевикористовуються.
 - Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.
