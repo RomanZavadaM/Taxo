@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.3-r3"
+APP_VERSION = "10.3-r4"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -126,8 +126,17 @@ def configure_runtime_workspace(root):
         pass
 
 
-def attestation_history_query(mode="Активні", driver_id=None, year=None, month=None):
-    """Build the archive query with explicit filters and newest periods first."""
+ATTESTATION_SORT_MODES=(
+    "Останні створені/змінені",
+    "Період — новіші",
+    "Період — старіші",
+)
+
+
+def attestation_history_query(
+        mode="Активні", driver_id=None, year=None, month=None,
+        sort_mode="Останні створені/змінені"):
+    """Build archive query with explicit filters and predictable sorting."""
     sql="""SELECT a.*, d.last_name||' '||d.first_name AS driver_name
              FROM attestations a JOIN drivers d ON d.id=a.driver_id"""
     where=[]
@@ -148,12 +157,25 @@ def attestation_history_query(mode="Активні", driver_id=None, year=None, 
         params.append(ym)
     if where:
         sql += " WHERE " + " AND ".join(where)
-    # period_to is ISO YYYY-MM-DDTHH:MM, so lexical DESC is chronological DESC.
-    # form_date/id are stable fallbacks for old records.
-    sql += (
-        " ORDER BY COALESCE(NULLIF(a.period_to,''),NULLIF(a.form_date,''),a.created_at) DESC,"
-        " a.form_date DESC, a.id DESC"
-    )
+
+    if sort_mode=="Період — старіші":
+        sql += (
+            " ORDER BY COALESCE(NULLIF(a.period_to,''),NULLIF(a.form_date,''),a.created_at) ASC,"
+            " a.form_date ASC, a.id ASC"
+        )
+    elif sort_mode=="Період — новіші":
+        sql += (
+            " ORDER BY COALESCE(NULLIF(a.period_to,''),NULLIF(a.form_date,''),a.created_at) DESC,"
+            " a.form_date DESC, a.id DESC"
+        )
+    else:
+        # Default operator workflow: the record just created or revised must
+        # be immediately visible, even when its period belongs to an older day.
+        sql += (
+            " ORDER BY COALESCE(NULLIF(a.updated_at,''),NULLIF(a.created_at,''),"
+            " NULLIF(a.period_to,''),NULLIF(a.form_date,'')) DESC,"
+            " a.id DESC"
+        )
     return sql, params
 
 
@@ -15054,25 +15076,32 @@ class App(tk.Tk):
 
         ttk.Button(filter_bar,text="Оновити",command=self.load_att_history).pack(side="left",padx=4)
         ttk.Button(filter_bar,text="Скинути відбір",command=self.reset_att_history_filters).pack(side="left",padx=4)
-        ttk.Label(filter_bar,text="Новіші ↑",foreground="gray").pack(side="left",padx=(10,2))
+        ttk.Label(filter_bar,text="Сортування:").pack(side="left",padx=(12,4))
+        self.att_sort=tk.StringVar(value=ATTESTATION_SORT_MODES[0])
+        att_sort_cb=ttk.Combobox(
+            filter_bar,textvariable=self.att_sort,state="readonly",width=24,
+            values=ATTESTATION_SORT_MODES
+        )
+        att_sort_cb.pack(side="left",padx=(0,4))
+        att_sort_cb.bind("<<ComboboxSelected>>",lambda _e:self.load_att_history())
 
         summary_bar=ttk.Frame(hist)
         summary_bar.pack(fill="x",padx=6,pady=(0,3))
         self.att_list_summary=tk.StringVar(value="")
         ttk.Label(summary_bar,textvariable=self.att_list_summary,foreground="gray").pack(side="left",padx=2)
 
-        cols=("id","driver","from","to","activity","place","date","status","revision","formats","file")
+        cols=("id","driver","from","to","activity","place","date","changed","status","revision","formats","file")
         tree_frame=ttk.Frame(hist)
         tree_frame.pack(fill="both",expand=True,padx=6,pady=6)
         self.att_tree=ttk.Treeview(tree_frame,columns=cols,show="headings",selectmode="browse")
         heads={
             "id":"ID","driver":"Водій","from":"З","to":"По","activity":"Позиція",
-            "place":"Місце","date":"Дата","status":"Статус","revision":"Ред.",
+            "place":"Місце","date":"Дата","changed":"Змінено","status":"Статус","revision":"Ред.",
             "formats":"Формати","file":"Основний файл"
         }
         widths={
             "id":55,"driver":205,"from":140,"to":140,"activity":65,"place":140,
-            "date":90,"status":95,"revision":50,"formats":105,"file":270
+            "date":90,"changed":145,"status":95,"revision":50,"formats":105,"file":270
         }
         for c in cols:
             self.att_tree.heading(c,text=heads[c])
@@ -15406,6 +15435,7 @@ class App(tk.Tk):
         finally:
             con.close()
 
+        self.att_focus_id=int(att_id)
         self.load_att_history()
         if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
             self.refresh_attestation_gap_control()
@@ -15852,6 +15882,7 @@ class App(tk.Tk):
 
         if place:
             set_setting("attestation_place",place)
+        self.att_focus_id=int(att_id)
         self.load_att_history()
         if hasattr(self,"att_gap_win") and self.att_gap_win.winfo_exists():
             self.refresh_attestation_gap_control()
@@ -16216,12 +16247,15 @@ class App(tk.Tk):
             self.att_filter_month.set(str(today.month))
         if hasattr(self,"att_filter_year"):
             self.att_filter_year.set(str(today.year))
+        if hasattr(self,"att_sort"):
+            self.att_sort.set(ATTESTATION_SORT_MODES[0])
         self.load_att_history()
 
     def load_att_history(self):
         if not hasattr(self,"att_tree"):
             return
-        selected_id=self._selected_attestation_id() if self.att_tree.selection() else None
+        focus_id=getattr(self,"att_focus_id",None)
+        selected_id=focus_id or (self._selected_attestation_id() if self.att_tree.selection() else None)
         for x in self.att_tree.get_children():
             self.att_tree.delete(x)
 
@@ -16253,11 +16287,17 @@ class App(tk.Tk):
         total=con.execute("SELECT COUNT(*) FROM attestations").fetchone()[0]
         active_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')='active'").fetchone()[0]
         deleted_count=con.execute("SELECT COUNT(*) FROM attestations WHERE COALESCE(status,'active')<>'active'").fetchone()[0]
+        sort_mode=(
+            self.att_sort.get().strip()
+            if hasattr(self,"att_sort") and self.att_sort.get().strip()
+            else ATTESTATION_SORT_MODES[0]
+        )
         sql,params=attestation_history_query(
             mode=mode,
             driver_id=driver_id,
             year=filter_year,
             month=filter_month,
+            sort_mode=sort_mode,
         )
         rows=con.execute(sql,params).fetchall()
         con.close()
@@ -16274,7 +16314,7 @@ class App(tk.Tk):
             filter_text=(" | відбір: "+", ".join(filters)) if filters else ""
             self.att_list_summary.set(
                 f"Показано: {len(rows)} з {total} | активних: {active_count} | вилучених: {deleted_count}"
-                + filter_text
+                + filter_text + f" | сортування: {sort_mode}"
             )
 
         selected_iid=None
@@ -16292,7 +16332,9 @@ class App(tk.Tk):
                 "","end",
                 values=(
                     r["id"],r["driver_name"],r["period_from"],r["period_to"],r["activity_no"],
-                    r["place"],r["form_date"],status_text,r["revision"]," / ".join(formats),primary
+                    r["place"],r["form_date"],
+                    ((r["updated_at"] or r["created_at"] or "").replace("T"," ")),
+                    status_text,r["revision"]," / ".join(formats),primary
                 ),
                 tags=tags
             )
@@ -16300,7 +16342,10 @@ class App(tk.Tk):
                 selected_iid=iid
         if selected_iid:
             self.att_tree.selection_set(selected_iid)
+            self.att_tree.focus(selected_iid)
             self.att_tree.see(selected_iid)
+        if focus_id is not None:
+            self.att_focus_id=None
 
     def _selected_attestation_row(self):
         att_id=self._selected_attestation_id()
