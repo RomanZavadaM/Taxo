@@ -6,16 +6,18 @@
 **Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
 **Останній опублікований candidate:** Taxo 10.3-r5  
 **Candidate target r5:** `b4a5676408561a76ba4ba32bb62a6b5150ca053b`  
-**Активний крок:** Taxo 10.3-r6 — авторські права і proprietary license  
-**Робоча гілка:** `work/v10.3-r6-copyright`  
-**Наступний кодовий крок після виданого 10.3-r6:** `10.3-r7`
+**Release target r6:** `619e5995af5982cbf60f7345744789e42463498f`  
+**Merge у main:** `481a189e560e0820d676043b2d06904f64b9c8f0`  
+**Останній завершений крок:** Taxo 10.3-r6 — авторські права і proprietary license  
+**Стан r6:** опубліковано `v10.3-r6`, PR #58 merged у `main`  
+**Наступний кодовий крок:** `10.3-r7` — ще не розпочатий
 
 ## Джерело істини
 
 - **Постійні правила:** [PROJECT_RULES.md](PROJECT_RULES.md).
 - **Поточний стан:** цей файл `PROJECT_STATE.md`.
 - `v10.1` — незмінний stable / rollback checkpoint.
-- Candidate-лінія r6 продовжується від immutable `v10.3-r5`.
+- `v10.3-r6` — immutable candidate checkpoint; PR #58 злитий у `main`.
 - Опубліковані candidate tags/releases не пересуваються і не перевикористовуються.
 - Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.
 - Старі work/candidate/tmp-гілки не використовувати як нову базу без окремого рішення.
