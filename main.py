@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.3-r3"
+APP_VERSION = "10.3-r4"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -4715,22 +4715,14 @@ def _build_attestation_required_segments(prev_block, next_block, row_by_day):
 
 
 def _attestation_tail_adjustment(missing, overlapping):
-    """Return one unambiguous existing form that should absorb a leftover tail.
+    """Never auto-absorb a leftover into a form.
 
-    No duration threshold is used. A fragment is eligible only when exactly
-    one active form inside the same required interval directly touches the
-    single missing fragment. A gap between two forms stays ambiguous.
+    The difference between a planned form boundary and the later factual
+    boundary is not a separate form and must not be auto-expanded either.
+    It stays unresolved until the user records the factual boundary by
+    editing the existing attestation.
     """
-    if not missing or len(missing)!=1:
-        return None
-    ma,mb=missing[0]
-    touching=[]
-    for _ov,ast,aen,att_id,att_activity in overlapping:
-        if aen==ma:
-            touching.append((ast,mb,ast,aen,att_id,att_activity))
-        if ast==mb:
-            touching.append((ma,aen,ast,aen,att_id,att_activity))
-    return touching[0] if len(touching)==1 else None
+    return None
 
 def collect_attestation_gap_control(driver_id, control_date=None, previous_days=56):
     """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
@@ -4947,8 +4939,9 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         if is_current:
             current_missing_minutes += miss
 
-        # Часткове перекриття — це насамперед уточнення меж уже існуючого
-        # бланка, а не привід плодити нові дрібні бланки.
+        # Часткове перекриття означає лише одне: межа факту ще не
+        # уточнена. Різниця між плановою межею і фактом НЕ є окремим бланком
+        # і НЕ поглинається автоматично існуючим бланком.
         overlapping=[]
         for ast,aen,att_id,att_activity in att_intervals:
             ov_start=max(ga,ast)
@@ -4958,54 +4951,19 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 overlapping.append((ov_minutes,ast,aen,att_id,att_activity))
         overlapping.sort(key=lambda x:(-x[0],x[3]))
 
-        # r3: після прибирання старих фрагментів може залишитися хвіст
-        # (наприклад 10 хв), який безпосередньо прилягає до одного з активних
-        # бланків у цьому ж потрібному періоді. Не застосовуємо поріг за
-        # тривалістю: реальні 10 хв теж можуть бути фактом. Важлива саме
-        # однозначна суміжність. У такому випадку розширюємо той самий бланк.
-        tail_adjust=_attestation_tail_adjustment(missing,overlapping)
-
-        if tail_adjust is not None:
-            target_from,target_to,ast,aen,att_id,att_activity=tail_adjust
-            existing_activity=int(att_activity or suggested_no)
-            target_minutes=max(0,int((target_to-target_from).total_seconds()//60))
-            rows_out.append({
-                "kind":"adjust",
-                "status":(
-                    f"ПОТОЧНИЙ — УТОЧНИТИ БЛАНК №{att_id}"
-                    if is_current else
-                    f"УТОЧНИТИ БЛАНК №{att_id}"
-                ),
-                "from":target_from,
-                "to":target_to,
-                "minutes":target_minutes,
-                "missing_minutes":miss,
-                "activity_no":existing_activity,
-                "suggested_activity_no":suggested_no,
-                "attestation_id":int(att_id),
-                "old_from":ast,
-                "old_to":aen,
-                "is_current":is_current,
-                "reason":(
-                    f"До Бланка №{att_id} безпосередньо прилягає незакритий хвіст "
-                    f"{format_attestation_period(ma)} → {format_attestation_period(mb)} "
-                    f"({minutes_hhmm(miss)}). Не створювати окремий бланк; "
-                    f"потрібна нова ревізія цього ж Бланка №{att_id}."
-                ),
-            })
-        elif missing and len(overlapping)==1:
+        if missing and len(overlapping)==1:
             _ov,ast,aen,att_id,att_activity=overlapping[0]
             existing_activity=int(att_activity or suggested_no)
             rows_out.append({
                 "kind":"adjust",
                 "status":(
-                    f"ПОТОЧНИЙ — УТОЧНИТИ БЛАНК №{att_id}"
+                    f"ПОТОЧНИЙ — УТОЧНИТИ ФАКТ БЛАНКА №{att_id}"
                     if is_current else
-                    f"УТОЧНИТИ БЛАНК №{att_id}"
+                    f"УТОЧНИТИ ФАКТ БЛАНКА №{att_id}"
                 ),
-                "from":ga,
-                "to":gb,
-                "minutes":dur,
+                "from":ast,
+                "to":aen,
+                "minutes":max(0,int((aen-ast).total_seconds()//60)),
                 "missing_minutes":miss,
                 "activity_no":existing_activity,
                 "suggested_activity_no":suggested_no,
@@ -5014,12 +4972,11 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 "old_to":aen,
                 "is_current":is_current,
                 "reason":(
-                    f"Період частково перекритий Бланком №{att_id}: "
-                    f"{format_attestation_period(ast)} → {format_attestation_period(aen)}. "
-                    f"Після зміни графіка/ТАХО межі потрібного періоду стали "
-                    f"{format_attestation_period(ga)} → {format_attestation_period(gb)}. "
-                    f"Не створювати окремий бланк на залишок {minutes_hhmm(miss)}; "
-                    f"потрібна нова ревізія існуючого Бланка №{att_id}."
+                    f"Бланк №{att_id} був підготовлений за планом. "
+                    f"Залишок {minutes_hhmm(miss)} не є окремим бланком і не "
+                    f"додається до нього автоматично. Після фактичного завершення "
+                    f"роботи уточніть межу цього ж бланка вручну; ця межа стане "
+                    f"фактичною межею робочого часу."
                 ),
             })
         elif not missing:
@@ -15460,11 +15417,13 @@ class App(tk.Tk):
             place=(current["place"] or self.att_place.get().strip())
             if not messagebox.askyesno(
                 "Уточнити існуючий бланк",
-                f"Бланк №{att_id} уже частково перекриває цей період.\n\n"
-                f"Було:\n{old_from} → {old_to}\n\n"
-                f"Після уточнення факту має бути:\n{period_from} → {period_to}\n\n"
+                f"Бланк №{att_id} був підготовлений за планом.\n\n"
+                f"Поточні межі:\n{old_from} → {old_to}\n\n"
+                "Фактичну межу треба ввести після завершення роботи. "
+                "Taxo не створює окремий бланк на різницю і не розширює цей бланк автоматично.\n\n"
+                f"Запропоновані фактичні межі:\n{period_from} → {period_to}\n\n"
                 "Створити нову ревізію цього ж бланка? План залишиться незмінним; "
-                "фактична межа робочого часу буде записана окремо. Попередні файли будуть збережені в архіві.",
+                "введена межа стане фактичною межею робочого часу. Попередні файли будуть збережені в архіві.",
                 parent=self.att_gap_win
             ):
                 return
