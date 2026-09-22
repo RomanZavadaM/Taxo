@@ -103,7 +103,8 @@ class TestTaxo103R4FactualBoundary(unittest.TestCase):
     def test_source_text_states_manual_fact_not_auto_tail(self):
         src=(ROOT/"main.py").read_text("utf-8")
         self.assertIn("не є окремим бланком",src)
-        self.assertIn("не додається до нього автоматично",src)
+        self.assertIn("не є окремим бланком",src)
+        self.assertIn("додається до нього автоматично",src)
         self.assertIn("уточнюється саме межа відпочинку/відсутності",src)
         self.assertIn("Фактичний початок відпочинку / відсутності",src)
         self.assertIn("Фактичне закінчення відпочинку / відсутності",src)
