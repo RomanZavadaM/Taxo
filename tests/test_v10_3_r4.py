@@ -105,6 +105,9 @@ class TestTaxo103R4FactualBoundary(unittest.TestCase):
         self.assertIn("не є окремим бланком",src)
         self.assertIn("не додається до нього автоматично",src)
         self.assertIn("уточніть межу цього ж бланка вручну",src)
+        self.assertIn("Фактичне закінчення попередньої роботи",src)
+        self.assertIn("Фактичний початок наступної роботи",src)
+        self.assertIn("Змінюйте тільки ту межу, яка вже відома по факту",src)
 
 
 if __name__=="__main__":
