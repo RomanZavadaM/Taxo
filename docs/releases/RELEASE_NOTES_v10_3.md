@@ -35,7 +35,7 @@ Taxo 10.3 переводить перевірену лінію 10.3-r1…r6 у �
 
 ## Перевірка
 
-Перед stable promotion актуальний main після r6 пройшов START/source, Windows і macOS GitHub Actions; користувач вручну протестував `Taxo_v10_3_candidate_r6_START.zip`. Stable publisher повторно виконує regression suite для source, Windows і обох macOS architectures, Windows START preflight та packaging checks.
+Перед stable promotion актуальний main після r6 пройшов START/source, Windows і macOS GitHub Actions; користувач вручну протестував `Taxo_v10_3_candidate_r6_START.zip`. Після merge PR #62 stable publisher run `35764396010` успішно повторив source regression, Windows regression + START preflight, macOS ARM64/x86_64 regression, clean START packaging і фінальну публікацію.
 
 ## Офіційні пакети
 
@@ -47,3 +47,12 @@ Taxo 10.3 переводить перевірену лінію 10.3-r1…r6 у �
 - per-platform та combined SHA-256 manifests.
 
 `v10.3-r6` і `v10.1` залишаються immutable historical/rollback checkpoints. Наступна кодова зміна після stable 10.3 — **10.3-r7**.
+
+
+## Фінальний stable результат
+
+**Stable tag:** `v10.3`  
+**Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
+**Publisher:** GitHub Actions `35764396010` — success.
+
+Release містить 10 assets: 5 основних пакетів і 5 SHA-256 manifest-файлів. `v10.3` опублікований як stable/latest; `v10.1` зберігається як rollback, `v10.3-r6` — як immutable verified candidate.
