@@ -1,3 +1,21 @@
+# Taxo — технічний стан
+
+## Актуальний candidate
+
+**Дата:** 22.09.2026  
+**Stable:** Taxo 10.1 / `v10.1`  
+**Останній опублікований candidate:** Taxo 10.3-r5  
+**Активний:** Taxo 10.3-r6 — copyright / proprietary license hardening  
+**Правовласник:** Roman Zavada (Роман Завада)
+
+Канонічний поточний стан: [../../PROJECT_STATE.md](../../PROJECT_STATE.md).  
+Постійні правила: [../../PROJECT_RULES.md](../../PROJECT_RULES.md).  
+Ліцензія: [../../LICENSE.md](../../LICENSE.md).
+
+Нижче збережено історичні технічні записи попередніх checkpoint.
+
+---
+
 # Taxo — технічний стан 10.1
 
 **Stable published:** 21.09.2026  
