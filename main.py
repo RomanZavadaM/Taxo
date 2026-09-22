@@ -86,7 +86,10 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.3-r5"
+APP_VERSION = "10.3-r6"
+COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
+COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
+LICENSE_LABEL = "Proprietary / All rights reserved"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -7051,6 +7054,8 @@ class App(tk.Tk):
         info_rows=(
             ("Версія",APP_VERSION),
             ("Тип","candidate / test checkpoint"),
+            ("Правовласник",COPYRIGHT_OWNER),
+            ("Ліцензія",LICENSE_LABEL),
             ("Платформа",f"{platform.system()} {platform.machine()}"),
             ("База даних","SQLite workspace"),
             ("Робоче сховище",str(DATA_ROOT)),
@@ -7093,6 +7098,10 @@ class App(tk.Tk):
             resources,text="GitHub / поточний реліз",
             command=lambda:open_external("https://github.com/RomanZavadaM/Taxo/releases")
         ).pack(fill="x",pady=3)
+        ttk.Button(
+            resources,text="Ліцензія / авторські права",
+            command=lambda:open_external(APP_DIR / "LICENSE.md")
+        ).pack(fill="x",pady=3)
         ttk.Button(resources,text="Відкрити папку даних",command=self.open_data_folder).pack(
             fill="x",pady=3
         )
@@ -7101,7 +7110,7 @@ class App(tk.Tk):
         footer.pack(fill="x")
         ttk.Label(
             footer,
-            text=f"© 2026 {self._company_name_value()} · Taxo {APP_VERSION}",
+            text=f"{COPYRIGHT_NOTICE} · Taxo {APP_VERSION}",
             foreground=PALETTE["muted"],
         ).pack(side="left")
         ttk.Button(footer,text="Закрити",style="Accent.TButton",command=win.destroy).pack(side="right")
@@ -7193,6 +7202,17 @@ class App(tk.Tk):
                 "Shift+F10 — контекстне меню\n"
                 "F1 — відкрити довідку\n\n"
                 "На macOS замість Ctrl для основних команд використовується Command."
+            ),
+            "Авторські права":(
+                "АВТОРСЬКІ ПРАВА ТА ЛІЦЕНЗІЯ\n\n"
+                f"Правовласник оригінальних матеріалів Taxo: {COPYRIGHT_OWNER}.\n"
+                f"{COPYRIGHT_NOTICE}\n\n"
+                "Taxo є proprietary software. Публічна видимість репозиторію не означає "
+                "відкриту ліцензію на модифікацію, перепублікацію або розповсюдження. "
+                "Умови дозволеного використання наведені у LICENSE.md.\n\n"
+                "Назва підприємства, введена в робочій базі, є реквізитом користувача "
+                "і не змінює правовласника Taxo. Сторонні бібліотеки зберігають власні "
+                "ліцензії та авторські права."
             ),
             "FAQ":(
                 "ЧАСТІ ЗАПИТАННЯ\n\n"
