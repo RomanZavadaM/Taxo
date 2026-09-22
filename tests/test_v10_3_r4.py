@@ -105,9 +105,37 @@ class TestTaxo103R4FactualBoundary(unittest.TestCase):
         self.assertIn("не є окремим бланком",src)
         self.assertIn("не додається до нього автоматично",src)
         self.assertIn("уточніть межу цього ж бланка вручну",src)
-        self.assertIn("Фактичне закінчення попередньої роботи",src)
-        self.assertIn("Фактичний початок наступної роботи",src)
-        self.assertIn("Змінюйте тільки ту межу, яка вже відома по факту",src)
+        self.assertIn("Фактичний початок відпочинку / відсутності",src)
+        self.assertIn("Фактичне закінчення відпочинку / відсутності",src)
+        self.assertIn("не додається автоматично в роботу",src)
+        self.assertIn("sync_worklog=False",src)
+
+
+    def test_confirmed_edge_gap_is_not_rest_and_not_missing_blank(self):
+        ga=datetime(2026,9,21,20,40)
+        gb=datetime(2026,9,24,7,35)
+        ast=datetime(2026,9,21,20,50)
+        aen=datetime(2026,9,24,7,25)
+        missing=[(ga,ast),(aen,gb)]
+        att_intervals=[(ast,aen,74,16)]
+        kept,excluded=main._exclude_confirmed_attestation_edge_gaps(
+            ga,gb,missing,att_intervals,{74:(True,True)}
+        )
+        self.assertEqual(kept,[])
+        self.assertEqual(excluded,[(ga,ast),(aen,gb)])
+
+    def test_unconfirmed_edge_gap_stays_for_manual_review(self):
+        ga=datetime(2026,9,21,20,40)
+        gb=datetime(2026,9,24,7,35)
+        ast=datetime(2026,9,21,20,50)
+        aen=datetime(2026,9,24,7,25)
+        missing=[(ga,ast),(aen,gb)]
+        att_intervals=[(ast,aen,74,16)]
+        kept,excluded=main._exclude_confirmed_attestation_edge_gaps(
+            ga,gb,missing,att_intervals,{74:(False,False)}
+        )
+        self.assertEqual(kept,missing)
+        self.assertEqual(excluded,[])
 
 
 if __name__=="__main__":
