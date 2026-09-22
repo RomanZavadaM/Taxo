@@ -52,12 +52,15 @@ class TestTaxo102R10AttestationReconcile(unittest.TestCase):
     def test_adjustment_cannot_be_loaded_as_new_blank(self):
         source=(ROOT/"main.py").read_text("utf-8")
         self.assertIn(
-            'if r.get("kind")=="adjust":\n'
-            '            messagebox.showinfo(',
+            'if r.get("kind")=="adjust":',
             source,
         )
         self.assertIn(
-            "Щоб не створити дубль",
+            "self._edit_attestation_fact_boundaries(",
+            source,
+        )
+        self.assertIn(
+            'text="Уточнити фактичні межі"',
             source,
         )
 
