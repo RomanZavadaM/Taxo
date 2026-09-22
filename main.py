@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.3-r2"
+APP_VERSION = "10.3-r3"
 APP_DIR = Path(__file__).resolve().parent
 
 # Постійне робоче сховище не залежить від версії програми. Його адресу можна
@@ -4928,9 +4928,8 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         if is_current:
             current_missing_minutes += miss
 
-        # r10: якщо потрібний проміжок уже ЧАСТКОВО перекритий одним активним
-        # бланком, це не новий окремий бланк. Це зміна меж уже існуючого
-        # документа після уточнення графіка/ТАХО-факту.
+        # Часткове перекриття — це насамперед уточнення меж уже існуючого
+        # бланка, а не привід плодити нові дрібні бланки.
         overlapping=[]
         for ast,aen,att_id,att_activity in att_intervals:
             ov_start=max(ga,ast)
@@ -4940,7 +4939,52 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 overlapping.append((ov_minutes,ast,aen,att_id,att_activity))
         overlapping.sort(key=lambda x:(-x[0],x[3]))
 
-        if missing and len(overlapping)==1:
+        # r3: після прибирання старих фрагментів може залишитися хвіст
+        # (наприклад 10 хв), який безпосередньо прилягає до одного з активних
+        # бланків у цьому ж потрібному періоді. Не застосовуємо поріг за
+        # тривалістю: реальні 10 хв теж можуть бути фактом. Важлива саме
+        # однозначна суміжність. У такому випадку розширюємо той самий бланк.
+        tail_adjust=None
+        if missing and len(missing)==1:
+            ma,mb=missing[0]
+            touching=[]
+            for _ov,ast,aen,att_id,att_activity in overlapping:
+                if aen==ma:
+                    touching.append((ast,mb,ast,aen,att_id,att_activity))
+                if ast==mb:
+                    touching.append((ma,aen,ast,aen,att_id,att_activity))
+            if len(touching)==1:
+                tail_adjust=touching[0]
+
+        if tail_adjust is not None:
+            target_from,target_to,ast,aen,att_id,att_activity=tail_adjust
+            existing_activity=int(att_activity or suggested_no)
+            target_minutes=max(0,int((target_to-target_from).total_seconds()//60))
+            rows_out.append({
+                "kind":"adjust",
+                "status":(
+                    f"ПОТОЧНИЙ — УТОЧНИТИ БЛАНК №{att_id}"
+                    if is_current else
+                    f"УТОЧНИТИ БЛАНК №{att_id}"
+                ),
+                "from":target_from,
+                "to":target_to,
+                "minutes":target_minutes,
+                "missing_minutes":miss,
+                "activity_no":existing_activity,
+                "suggested_activity_no":suggested_no,
+                "attestation_id":int(att_id),
+                "old_from":ast,
+                "old_to":aen,
+                "is_current":is_current,
+                "reason":(
+                    f"До Бланка №{att_id} безпосередньо прилягає незакритий хвіст "
+                    f"{format_attestation_period(ma)} → {format_attestation_period(mb)} "
+                    f"({minutes_hhmm(miss)}). Не створювати окремий бланк; "
+                    f"потрібна нова ревізія цього ж Бланка №{att_id}."
+                ),
+            })
+        elif missing and len(overlapping)==1:
             _ov,ast,aen,att_id,att_activity=overlapping[0]
             existing_activity=int(att_activity or suggested_no)
             rows_out.append({
@@ -15710,22 +15754,16 @@ class App(tk.Tk):
             con,int(driver_id),old_from,old_to
         )
         changes=[]
-        if new_from != old_from:
-            if prev is None:
-                raise ValueError(
-                    "Не знайдено попередню робочу зміну для автоматичної корекції "
-                    "початку відпочинку."
-                )
+        if new_from != old_from and prev is not None:
             self._set_worklog_boundary(con,prev,"end",new_from)
             changes.append(
                 f"кінець роботи {prev['row']['work_date']} → {new_from.strftime('%d.%m.%Y %H:%M')}"
             )
-        if new_to != old_to:
-            if nxt is None:
-                raise ValueError(
-                    "Не знайдено наступну робочу зміну для автоматичної корекції "
-                    "кінця відпочинку."
-                )
+        # Старі/очищені дані можуть уже не мати суміжного worklog. Це не
+        # повинно блокувати виправлення самого фактичного бланка: якщо
+        # коригувати робочий запис фізично нема де, просто зберігаємо нову
+        # ревізію бланка без вигаданого worklog.
+        if new_to != old_to and nxt is not None:
             self._set_worklog_boundary(con,nxt,"start",new_to)
             changes.append(
                 f"початок роботи {nxt['row']['work_date']} → {new_to.strftime('%d.%m.%Y %H:%M')}"
