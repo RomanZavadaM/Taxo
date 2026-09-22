@@ -5038,9 +5038,9 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
                 "reason":(
                     f"Бланк №{att_id} був підготовлений за планом. "
                     f"Різниця {minutes_hhmm(miss)} не є окремим бланком і не "
-                    f"додається до нього автоматично. Фактичну межу вводять "
-                    f"після факту: кінець попередньої роботи = початок бланка, "
-                    f"початок наступної роботи = кінець бланка."
+                    f"додається до нього автоматично. Після факту вручну "
+                    f"уточнюється саме межа відпочинку/відсутності. Суміжний час "
+                    f"до/від роботи Taxo автоматично не класифікує."
                 ),
             })
         elif not missing:
@@ -15402,11 +15402,10 @@ class App(tk.Tk):
         now=datetime.now().isoformat(timespec="seconds")
         try:
             factual_completed=(en <= datetime.now())
+            # A factual attestation boundary is NOT automatically a worklog
+            # boundary. There may be an unclassified manual interval between
+            # work and rest (for example travel between hotel and vehicle).
             work_changes=[]
-            if factual_completed and self._attestation_nonwork_activity(activity_no):
-                work_changes=self._sync_new_nonwork_attestation_to_worklog(
-                    con,d["id"],period_from,period_to,int(activity_no)
-                )
             cur=con.execute(
                 """INSERT INTO attestations(
                     driver_id,period_from,period_to,activity_no,place,form_date,
@@ -15448,12 +15447,12 @@ class App(tk.Tk):
         return created
 
     def _edit_attestation_fact_boundaries(self, att_id, parent=None, plan_from=None, plan_to=None):
-        """Edit factual rest boundaries without guessing pre/post work time.
+        """Edit factual rest/absence boundaries without guessing adjacent time.
 
-        The form interval is complementary to work:
-        - factual end of previous work == attestation start;
-        - factual start of next work == attestation end.
-        Unknown sides are left unchanged until they are known from fact.
+        A form boundary is not automatically a work boundary. Any interval
+        between work and the manually confirmed form edge remains outside the
+        form and outside automatic payroll work, and therefore also outside
+        continuous rest.
         """
         con=db()
         current=con.execute("SELECT * FROM attestations WHERE id=?",(int(att_id),)).fetchone()
@@ -15775,10 +15774,12 @@ class App(tk.Tk):
 
     def _sync_new_nonwork_attestation_to_worklog(
             self, con, driver_id, period_from, period_to, activity_no):
-        """A newly created factual 14/15/16 form can establish duty boundaries.
+        """Explicit helper for manually linking a form edge to worklog.
 
-        This is used only once the whole attestation period is in the past.
-        A prepared future form does NOT write fact_* overrides.
+        This function is not called automatically by form creation/editing.
+        Use only when the operator explicitly confirms that a form edge is
+        also the factual work boundary; otherwise a neutral manual gap may
+        exist between work and rest.
         """
         if not self._attestation_nonwork_activity(activity_no):
             return []
