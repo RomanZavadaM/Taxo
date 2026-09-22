@@ -4713,6 +4713,25 @@ def _build_attestation_required_segments(prev_block, next_block, row_by_day):
     return [(a,b,n) for a,b,n in pieces if b>a]
 
 
+
+def _attestation_tail_adjustment(missing, overlapping):
+    """Return one unambiguous existing form that should absorb a leftover tail.
+
+    No duration threshold is used. A fragment is eligible only when exactly
+    one active form inside the same required interval directly touches the
+    single missing fragment. A gap between two forms stays ambiguous.
+    """
+    if not missing or len(missing)!=1:
+        return None
+    ma,mb=missing[0]
+    touching=[]
+    for _ov,ast,aen,att_id,att_activity in overlapping:
+        if aen==ma:
+            touching.append((ast,mb,ast,aen,att_id,att_activity))
+        if ast==mb:
+            touching.append((ma,aen,ast,aen,att_id,att_activity))
+    return touching[0] if len(touching)==1 else None
+
 def collect_attestation_gap_control(driver_id, control_date=None, previous_days=56):
     """Контроль Бланків підтвердження за внутрішнім правилом v8.57.
 
@@ -4944,17 +4963,7 @@ def collect_attestation_gap_control(driver_id, control_date=None, previous_days=
         # бланків у цьому ж потрібному періоді. Не застосовуємо поріг за
         # тривалістю: реальні 10 хв теж можуть бути фактом. Важлива саме
         # однозначна суміжність. У такому випадку розширюємо той самий бланк.
-        tail_adjust=None
-        if missing and len(missing)==1:
-            ma,mb=missing[0]
-            touching=[]
-            for _ov,ast,aen,att_id,att_activity in overlapping:
-                if aen==ma:
-                    touching.append((ast,mb,ast,aen,att_id,att_activity))
-                if ast==mb:
-                    touching.append((ma,aen,ast,aen,att_id,att_activity))
-            if len(touching)==1:
-                tail_adjust=touching[0]
+        tail_adjust=_attestation_tail_adjustment(missing,overlapping)
 
         if tail_adjust is not None:
             target_from,target_to,ast,aen,att_id,att_activity=tail_adjust
