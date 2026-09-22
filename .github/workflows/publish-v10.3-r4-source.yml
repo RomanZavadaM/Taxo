@@ -1,4 +1,5 @@
 # Taxo 10.3-r4 factual-boundary publisher
+# publish after green manual-gap regression
 name: Publish Taxo 10.3-r4 source prerelease
 
 on:
