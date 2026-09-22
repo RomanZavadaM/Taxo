@@ -21,7 +21,7 @@ class TestTaxo102R10AttestationReconcile(unittest.TestCase):
     def test_partial_overlap_is_reconciliation_not_extra_blank(self):
         source=(ROOT/"main.py").read_text("utf-8")
         self.assertIn('"kind":"adjust"',source)
-        self.assertIn('f"УТОЧНИТИ БЛАНК №{att_id}"',source)
+        self.assertIn('f"УТОЧНИТИ ФАКТ БЛАНКА №{att_id}"',source)
         self.assertIn('"attestation_id":int(att_id)',source)
         self.assertIn('"old_from":ast',source)
         self.assertIn('"old_to":aen',source)
