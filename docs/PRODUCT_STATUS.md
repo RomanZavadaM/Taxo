@@ -4,11 +4,13 @@
 
 - **Stable:** Taxo 10.1 (`v10.1`) — незмінний rollback/production checkpoint.
 - **Останній опублікований candidate:** Taxo 10.3-r5.
-- **Активний candidate:** Taxo 10.3-r6 — copyright / proprietary license hardening.
+- **Поточний завершений candidate:** Taxo 10.3-r6 — copyright / proprietary license hardening; `v10.3-r6` published, PR #58 merged.
 - **Правовласник оригінальних матеріалів Taxo:** Roman Zavada (Роман Завада).
 - **Ліцензія Taxo:** proprietary / all rights reserved; сторонні компоненти зберігають власні ліцензії.
 
 Документи: [LICENSE.md](../LICENSE.md) · [COPYRIGHT.md](../COPYRIGHT.md) · [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
+
+**Наступний кодовий крок:** `10.3-r7` — ще не розпочатий.
 
 ---
 
