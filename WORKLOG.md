@@ -48,7 +48,7 @@ macOS Aqua може малювати native `tk.Button` власною світ�
 - [x] Зафіксовано прийняття manual gate 10.3-r7.
 - [x] Створено branch `work/v10.3-r8-macos-sidebar-contrast`.
 - [x] Реалізовано macOS-safe sidebar navigation.
-- [ ] Додати regression test і release notes.
+- [x] Додано regression test і release notes.
 - [ ] Відкрити PR.
 - [ ] Запустити exact-head candidate publisher і PR gates.
 - [ ] Перевірити release asset/tag.
@@ -56,7 +56,7 @@ macOS Aqua може малювати native `tk.Button` власною світ�
 
 ## NEXT
 
-Додати regression test + release notes, відкрити PR і виконати exact-head gate.
+Відкрити PR, зафіксувати номер у WORKLOG, потім останнім commit додати exact-head candidate publisher.
 
 ## BLOCKED
 
