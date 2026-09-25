@@ -4,13 +4,14 @@
 **Stable:** Taxo 10.3 / `v10.3`  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1`  
-**Latest published candidate:** `v10.3-r7`  
-**Candidate target:** `3bcdb93b9ceffecd07705e3d2a9e6d8b6864e420`  
-**PR #64:** merged  
-**Main merge:** `398b0831fcdf11f71032c041d98413b4cac26a30`  
-**Automated gate:** source + Windows + macOS ARM64/Intel — success  
-**Manual r7 gate:** очікується  
-**Next code revision after issued r7:** `10.3-r8`  
+**Latest published candidate:** `v10.3-r8`  
+**Candidate target:** `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`  
+**PR #66:** merged  
+**Main merge:** `a513e484f8d735120a2c0e1072fe2f40cdd5a26a`  
+**Automated gate:** publisher + Windows + macOS ARM64/Intel — success  
+**Manual r7 gate:** accepted  
+**Manual r8 gate:** pending  
+**Next code revision after issued r8:** `10.3-r9`  
 **Recovery:** `START_HERE.md` + `WORKLOG.md` + Issue #61
 
 Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.  
