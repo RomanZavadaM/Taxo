@@ -7,56 +7,34 @@
 
 **Stable:** Taxo 10.3 / `v10.3`  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
-**Previous published candidate:** `v10.3-r7` → `3bcdb93b9ceffecd07705e3d2a9e6d8b6864e420`  
-**r7 manual gate:** accepted by user for the backup-window fix  
-**Active candidate:** `10.3-r8`  
-**Branch:** `work/v10.3-r8-macos-sidebar-contrast`  
-**PR:** #66  
+**Latest published candidate:** `v10.3-r8` → `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`  
+**Candidate PR:** #66 — merged  
+**Main merge:** `a513e484f8d735120a2c0e1072fe2f40cdd5a26a`  
+**START asset:** `Taxo_v10_3_candidate_r8_START.zip`  
+**r7 manual gate:** accepted  
+**r8 manual gate:** pending macOS sidebar check  
 **Live ledger:** Issue #61.
 
-## ACTIVE SLICE — 10.3-r8
-
-### Ціль
-Виправити слабку читабельність лівого navigation sidebar у macOS, показану користувачем на реальній збірці.
-
-### Причина
-macOS Aqua може малювати native `tk.Button` власною світлою поверхнею, ігноруючи заданий синій `background`. При білому `foreground` пункти меню стають майже невидимими.
-
-### Рішення
-- тільки на macOS sidebar navigation використовує clickable `tk.Label` замість native `tk.Button`;
-- фон/текст/іконки залишаються під повним контролем Taxo;
-- normal = фірмовий синій + білий текст;
-- selected = темний navy + білий текст;
-- hover/focus = `blue_dark` + білий текст;
-- mouse click, Enter і Space запускають ту саму команду;
-- Windows/Linux лишаються на попередньому button rendering.
-
-### Критерії готовності
-- `main.APP_VERSION == VERSION.txt == 10.3-r8`;
-- regression guard перевіряє Darwin-safe navigation path;
-- бізнес-логіка та схема БД не змінені;
-- full regression suite зелений;
-- Windows PR gate зелений;
-- macOS ARM64 та Intel gates зелені;
-- immutable `v10.3-r8` містить `Taxo_v10_3_candidate_r8_START.zip`;
-- PR merged у `main`;
-- `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61 синхронізовані.
-
-## DOING
+## DONE — 10.3-r8
 
 - [x] Відновлено стан за `START_HERE.md`.
 - [x] Зафіксовано прийняття manual gate 10.3-r7.
-- [x] Створено branch `work/v10.3-r8-macos-sidebar-contrast`.
-- [x] Реалізовано macOS-safe sidebar navigation.
-- [x] Додано regression test і release notes.
-- [x] Відкрито PR #66.
-- [x] Перший r8 gate запущено; source regression виявив stale r7 identity assertion, що вимагав active APP_VERSION == 10.3-r7.
-- [ ] Перевірити release asset/tag.
-- [ ] Merge та фінальна документація.
+- [x] Виправлено слабку читабельність sidebar на macOS: Darwin використовує explicit-color clickable labels замість native Aqua buttons.
+- [x] Додано normal/selected/hover/focus states і keyboard activation.
+- [x] Windows/Linux path не змінено.
+- [x] Додано regression `tests/test_v10_3_r8.py`.
+- [x] Перший gate виявив stale historical r7 identity test; виправлено без зміни r7 checkpoint.
+- [x] Exact-head publisher run `36105901328` — success.
+- [x] Windows gate run `36105905499` — success.
+- [x] macOS ARM64 + Intel gate run `36105905210` — success.
+- [x] Опубліковано `v10.3-r8` з START + SHA-256.
+- [x] PR #66 merged у `main`.
 
 ## NEXT
 
-Виправлено historical r7 identity test: він перевіряє immutable r7 checkpoint, але не блокує наступні 10.3-rN. Повторити exact-head r8 gate.
+Ручно перевірити на macOS `Taxo_v10_3_candidate_r8_START.zip`: ліве меню має мати темно-синій фон, чіткий білий текст/іконки та виразний активний пункт.
+
+Після вже виданого r8 будь-яка нова кодова зміна починається тільки як **`10.3-r9`**.
 
 ## BLOCKED
 
