@@ -3,7 +3,6 @@ name: Publish Taxo 10.3-r10 Windows 7 candidate
 on:
   push:
     branches: ['work/v10.3-r10-windows7-compat']
-    paths: ['.github/workflows/publish-v10.3-r10-win7.yml']
   workflow_dispatch:
 
 permissions:
@@ -28,7 +27,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip==24.3.1
           python -m pip install -r requirements-win7.txt
-          python -m pip install pyinstaller==5.13.2
+          python -m pip install pyinstaller==5.13.2 pefile==2023.2.7
       - name: Compile and test on Python 3.8
         shell: pwsh
         run: |
@@ -43,6 +42,55 @@ jobs:
           $bundle='dist/Taxo_v10_3_candidate_r10_Windows7_x64'
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe missing' }
           if (!(Get-ChildItem $bundle -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll missing' }
+
+      - name: Verify Win7 PE import compatibility
+        shell: pwsh
+        run: |
+          $env:TAXO_WIN7_BUNDLE = (Resolve-Path 'dist/Taxo_v10_3_candidate_r10_Windows7_x64').Path
+          @'
+          import os
+          from pathlib import Path
+          import pefile
+
+          root = Path(os.environ["TAXO_WIN7_BUNDLE"])
+          forbidden = b"api-ms-win-core-path-l1-1-0.dll"
+          checked = 0
+          offenders = []
+
+          for path in root.rglob("*"):
+              if path.suffix.lower() not in {".exe", ".dll", ".pyd"}:
+                  continue
+              try:
+                  pe = pefile.PE(str(path), fast_load=True)
+                  dirs = [pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"]]
+                  delay = pefile.DIRECTORY_ENTRY.get("IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT")
+                  if delay is not None:
+                      dirs.append(delay)
+                  pe.parse_data_directories(directories=dirs)
+              except Exception:
+                  continue
+
+              checked += 1
+              entries = list(getattr(pe, "DIRECTORY_ENTRY_IMPORT", []))
+              entries += list(getattr(pe, "DIRECTORY_ENTRY_DELAY_IMPORT", []))
+              for entry in entries:
+                  if (entry.dll or b"").lower() == forbidden:
+                      offenders.append(str(path.relative_to(root)))
+
+          print("PE files checked:", checked)
+          if checked == 0:
+              raise SystemExit("No PE files were inspected")
+          if offenders:
+              raise SystemExit(
+                  "Forbidden Win8+ path API import found: " + ", ".join(sorted(offenders))
+              )
+          '@ | Set-Content -Encoding utf8 check_win7_pe.py
+          python check_win7_pe.py
+
+      - name: Create Win7 Portable ZIP
+        shell: pwsh
+        run: |
+          $bundle='dist/Taxo_v10_3_candidate_r10_Windows7_x64'
           Compress-Archive -Path $bundle -DestinationPath 'Taxo_v10_3_candidate_r10_Windows7_x64_Portable.zip' -Force
       - name: Build Win7 installer
         shell: pwsh
