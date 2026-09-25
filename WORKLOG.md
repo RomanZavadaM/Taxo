@@ -11,7 +11,7 @@
 **r7 manual gate:** accepted by user for the backup-window fix  
 **Active candidate:** `10.3-r8`  
 **Branch:** `work/v10.3-r8-macos-sidebar-contrast`  
-**PR:** pending  
+**PR:** #66  
 **Live ledger:** Issue #61.
 
 ## ACTIVE SLICE — 10.3-r8
@@ -49,14 +49,14 @@ macOS Aqua може малювати native `tk.Button` власною світ�
 - [x] Створено branch `work/v10.3-r8-macos-sidebar-contrast`.
 - [x] Реалізовано macOS-safe sidebar navigation.
 - [x] Додано regression test і release notes.
-- [ ] Відкрити PR.
+- [x] Відкрито PR #66.
 - [ ] Запустити exact-head candidate publisher і PR gates.
 - [ ] Перевірити release asset/tag.
 - [ ] Merge та фінальна документація.
 
 ## NEXT
 
-Відкрити PR, зафіксувати номер у WORKLOG, потім останнім commit додати exact-head candidate publisher.
+PR #66 відкрито. Останнім branch commit додати r8 publisher; після цього head не змінювати без нового виявленого дефекту.
 
 ## BLOCKED
 
