@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.3-r7"
+APP_VERSION = "10.3-r8"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -7341,13 +7341,23 @@ class App(tk.Tk):
         override=getattr(self,"_nav_active_override",None)
         for label,button in named.items():
             active=(label==override) if override else (button is active_button)
-            button.configure(
-                bg="#0D8FD2" if active else PALETTE["sidebar"],
-                activebackground="#0D8FD2" if active else PALETTE["blue_dark"],
-                fg="#FFFFFF",
-                activeforeground="#FFFFFF",
-                relief="flat",
-            )
+            if sys.platform=="darwin":
+                # Aqua ignores/overrides custom backgrounds of native tk.Button
+                # controls. macOS navigation uses a clickable Label instead, so
+                # keep its state styling to properties that Label actually owns.
+                button.configure(
+                    bg=PALETTE["navy"] if active else PALETTE["sidebar"],
+                    fg="#FFFFFF",
+                    relief="flat",
+                )
+            else:
+                button.configure(
+                    bg="#0D8FD2" if active else PALETTE["sidebar"],
+                    activebackground="#0D8FD2" if active else PALETTE["blue_dark"],
+                    fg="#FFFFFF",
+                    activeforeground="#FFFFFF",
+                    relief="flat",
+                )
 
     def show_tab(self, tab):
         nb=getattr(self,"notebook",None)
@@ -7839,16 +7849,52 @@ class App(tk.Tk):
             self._nav_icons[label]=icon
             if command is None:
                 command=lambda t=tab:self.show_tab(t)
-            btn=tk.Button(
-                nav_holder,image=icon,text=label,compound="left",
-                command=command,anchor="w",
-                bg=PALETTE["sidebar"],fg="#FFFFFF",
-                activebackground=PALETTE["blue_dark"],
-                activeforeground="#FFFFFF",
-                relief="flat",bd=0,highlightthickness=0,
-                padx=16,pady=10,font=("TkDefaultFont",10,"bold"),
-                cursor="hand2"
-            )
+
+            if sys.platform=="darwin":
+                # Native Aqua buttons may paint their own pale surface even when
+                # bg/fg are explicitly set, which made the white sidebar labels
+                # almost disappear. A Label keeps the approved colors verbatim
+                # while still acting as a keyboard-accessible navigation item.
+                btn=tk.Label(
+                    nav_holder,image=icon,text=label,compound="left",
+                    anchor="w",takefocus=1,
+                    bg=PALETTE["sidebar"],fg="#FFFFFF",
+                    relief="flat",bd=0,highlightthickness=0,
+                    padx=16,pady=11,font=("TkDefaultFont",11,"bold"),
+                    cursor="pointinghand"
+                )
+
+                def invoke_nav(_event=None,cmd=command):
+                    cmd()
+                    return "break"
+
+                def highlight_nav(_event=None,widget=btn):
+                    try:
+                        widget.configure(bg=PALETTE["blue_dark"],fg="#FFFFFF")
+                    except tk.TclError:
+                        pass
+
+                def restore_nav(_event=None):
+                    self._refresh_nav_selection()
+
+                btn.bind("<Button-1>",invoke_nav,add="+")
+                btn.bind("<Return>",invoke_nav,add="+")
+                btn.bind("<space>",invoke_nav,add="+")
+                btn.bind("<Enter>",highlight_nav,add="+")
+                btn.bind("<FocusIn>",highlight_nav,add="+")
+                btn.bind("<Leave>",restore_nav,add="+")
+                btn.bind("<FocusOut>",restore_nav,add="+")
+            else:
+                btn=tk.Button(
+                    nav_holder,image=icon,text=label,compound="left",
+                    command=command,anchor="w",
+                    bg=PALETTE["sidebar"],fg="#FFFFFF",
+                    activebackground=PALETTE["blue_dark"],
+                    activeforeground="#FFFFFF",
+                    relief="flat",bd=0,highlightthickness=0,
+                    padx=16,pady=10,font=("TkDefaultFont",10,"bold"),
+                    cursor="hand2"
+                )
             btn.pack(fill="x")
             self._nav_named_buttons[label]=btn
             if tab is not None:
