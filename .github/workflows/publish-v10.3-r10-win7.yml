@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build-win7:
-    runs-on: windows-2019
+    runs-on: windows-2022
     env:
       PYTHONUTF8: '1'
     steps:
