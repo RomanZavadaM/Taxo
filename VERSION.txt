@@ -1,26 +1,22 @@
 Taxo / Driver Worktime
-Version: 10.3
-Release date: 2026-09-22
-Release type: stable
+Version: 10.3-r7
+Release date: 2026-09-25
+Release type: candidate
 Stable baseline: Taxo 10.3
-Previous stable / rollback: Taxo 10.1
-Previous stable tag: v10.1
-Verified candidate: Taxo 10.3-r6
-Verified candidate tag: v10.3-r6
-Verified candidate target: 619e5995af5982cbf60f7345744789e42463498f
+Stable tag: v10.3
+Stable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60
 
-Taxo 10.3 — stable promotion of the manually tested 10.3-r6 candidate line.
+Taxo 10.3-r7 — backup dialog layout + recovery protocol hardening.
 
 Основне:
-- перевірений користувачем candidate Taxo_v10_3_candidate_r6_START.zip промотується у stable 10.3;
-- збережено функціональну логіку 10.3-r1...r5;
-- r6 додає правовласника Roman Zavada (Роман Завада), proprietary license і legal notices;
-- stable publisher повторно виконує regression suite та формує Windows/macOS/START пакети;
-- робочі БД, скани, кеші та персональні документи до релізу не входять;
-- candidate v10.3-r6 залишається immutable historical checkpoint.
+- у вікні «Резервна копія» кнопки «Створити копію» та «Скасувати» винесені в окремий зарезервований footer і більше не залежать від висоти основного контенту;
+- збільшено робочий розмір діалогу для масштабованих Windows-екранів;
+- логіка складу резервної копії та робочі дані не змінюються;
+- START_HERE.md деталізовано за вдосконаленим recovery-підходом OVDP Hub;
+- окремо зафіксовано значення команди власника «злити у main» як повного релізного checkpoint.
 
 Нумерація:
-- після stable 10.3 наступний кодовий крок — 10.3-r7;
+- після виданого 10.3-r7 наступний кодовий крок — 10.3-r8;
 - r1 ... r10;
 - після r10: 10.3-r10 -> 10.4-r1;
 - перший розряд змінюється тільки за прямим рішенням власника;
