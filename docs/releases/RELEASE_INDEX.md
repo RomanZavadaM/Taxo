@@ -1,20 +1,20 @@
 # Індекс релізів Taxo
 
-> Latest full checkpoint: **v10.3-r9** — accepted r8 state packaged for Windows/macOS/START; PR #68 merged; full publisher green.  
-> Previous candidate: **v10.3-r8** — macOS Aqua-safe sidebar contrast; manual gate accepted.  
-> Stable: **v10.3** (promotion 22.09.2026; immutable).  
-> Previous stable candidate checkpoint: **v10.3-r6**.
+> Latest full checkpoint: **v10.4-r1** — modern Windows + Windows 7 SP1 + macOS ARM64/Intel + START; PR #71 merged; full publisher green.  
+> Windows 7 compatibility checkpoint: **v10.3-r10** — Portable manual gate accepted on real Windows 7 x64; PR #70 merged.  
+> Stable: **v10.3** (immutable; unchanged).  
+> Next code revision: **10.4-r2**.
 
-- [Taxo 10.3-r9](RELEASE_NOTES_v10_3_r9.md) — full multi-platform main checkpoint після прийнятого r8.
+- [Taxo 10.4-r1](RELEASE_NOTES_v10_4_r1.md) — full multi-platform checkpoint with Windows 7 support.
+- [Taxo 10.3-r10](RELEASE_NOTES_v10_3_r10.md) — Windows 7 SP1 x64 compatibility.
+- [Taxo 10.3-r9](RELEASE_NOTES_v10_3_r9.md) — previous full multi-platform checkpoint.
 - [Taxo 10.3-r8](RELEASE_NOTES_v10_3_r8.md) — macOS sidebar contrast / Aqua-safe navigation.
-- [Taxo 10.3-r7](RELEASE_NOTES_v10_3_r7.md) — видимі дії у вікні резервної копії та посилений START_HERE/recovery protocol.
-- [Taxo 10.3-r6](RELEASE_NOTES_v10_3_r6.md) — правовласник Roman Zavada, proprietary license, legal notices у програмі та пакетах.
-- [Taxo 10.3-r5](RELEASE_NOTES_v10_3_r5.md) — сортування/лічильники архіву бланків і контекстна дія.
-- [Taxo 10.3-r4](RELEASE_NOTES_v10_3_r4.md) — ручні фактичні межі бланка.
+- [Taxo 10.3-r7](RELEASE_NOTES_v10_3_r7.md) — backup dialog + recovery protocol.
+- [Taxo 10.3-r6](RELEASE_NOTES_v10_3_r6.md) — legal/copyright checkpoint.
 
 # Taxo — індекс релізів
 
-**Стан:** 21.09.2026  
+**Стан:** 25.09.2026  
 **Поточна stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)  
 **Previous stable / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1)
 
@@ -26,6 +26,8 @@
 
 | Tag | Статус | Пакет | Призначення |
 |---|---|---|---|
+| [v10.4-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r1) | **Latest full checkpoint; merged** | Modern Windows Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START + SHA-256 | Full packaging with accepted Windows 7 support |
+| [v10.3-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r10) | Published; merged; Win7 manual gate accepted | Windows 7 SP1 Setup/Portable, START + SHA-256 | Windows 7 compatibility fix |
 | [v10.3-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r9) | Full checkpoint; merged | Windows Setup/Portable, macOS ARM64/Intel, START + SHA-256 | Accepted r8 state, complete multi-platform packaging |
 | [v10.3-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r8) | Published prerelease; manual gate accepted | START/source + SHA-256 | Aqua-safe sidebar contrast |
 | [v10.3-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r7) | Published prerelease; manual gate accepted | START/source + SHA-256 | Backup dialog footer + recovery protocol hardening |
