@@ -35,7 +35,7 @@
 - [x] Порівняно Taxo та OVDP Hub `START_HERE.md`.
 - [x] Виправлено layout backup dialog.
 - [x] Посилено startup/recovery protocol.
-- [ ] Додати regression test і release notes.
+- [x] Додано regression test і release notes.
 - [ ] Відкрити PR та зафіксувати його номер.
 - [ ] Запустити candidate publisher / CI.
 - [ ] Перевірити prerelease asset.
@@ -43,7 +43,7 @@
 
 ## NEXT
 
-Додати regression/release files, відкрити PR і запустити точний candidate gate.
+Відкрити PR, зафіксувати номер у WORKLOG і останнім commit додати candidate publisher.
 
 ## BLOCKED
 
