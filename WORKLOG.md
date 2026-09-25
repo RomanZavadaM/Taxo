@@ -7,34 +7,60 @@
 
 **Stable:** Taxo 10.3 / `v10.3`  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
-**Latest published candidate:** `v10.3-r8` → `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`  
-**Candidate PR:** #66 — merged  
-**Main merge:** `a513e484f8d735120a2c0e1072fe2f40cdd5a26a`  
-**START asset:** `Taxo_v10_3_candidate_r8_START.zip`  
-**r7 manual gate:** accepted  
-**r8 manual gate:** pending macOS sidebar check  
+**Accepted checkpoint:** `v10.3-r8` → `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`  
+**r8 manual gate:** accepted by owner  
+**Active candidate:** `10.3-r9`  
+**Branch:** `work/v10.3-r9-main-checkpoint`  
+**PR:** pending  
 **Live ledger:** Issue #61.
 
-## DONE — 10.3-r8
+## ACTIVE SLICE — 10.3-r9
 
-- [x] Відновлено стан за `START_HERE.md`.
-- [x] Зафіксовано прийняття manual gate 10.3-r7.
-- [x] Виправлено слабку читабельність sidebar на macOS: Darwin використовує explicit-color clickable labels замість native Aqua buttons.
-- [x] Додано normal/selected/hover/focus states і keyboard activation.
-- [x] Windows/Linux path не змінено.
-- [x] Додано regression `tests/test_v10_3_r8.py`.
-- [x] Перший gate виявив stale historical r7 identity test; виправлено без зміни r7 checkpoint.
-- [x] Exact-head publisher run `36105901328` — success.
-- [x] Windows gate run `36105905499` — success.
-- [x] macOS ARM64 + Intel gate run `36105905210` — success.
-- [x] Опубліковано `v10.3-r8` з START + SHA-256.
-- [x] PR #66 merged у `main`.
+### Ціль
+Виконати команду власника «дописуй, доробляй, зливай в main» як повний релізний checkpoint згідно з `PROJECT_RULES.md`.
+
+r8 уже був виданий як immutable START prerelease, тому повний multi-platform checkpoint отримує наступну ревізію `10.3-r9`.
+
+### Scope
+- без нової бізнес-логіки відносно прийнятого r8;
+- Windows x64 Setup + Portable;
+- macOS ARM64 + Intel x86_64 Portable;
+- START/source;
+- per-platform + combined SHA-256;
+- legal notices у source та executable packages;
+- immutable `v10.3-r9`;
+- merge PR у `main`;
+- синхронізація PROJECT_STATE / WORKLOG / checkpoint / release index / Issue #61.
+
+### Критерії готовності
+- `main.APP_VERSION == VERSION.txt == 10.3-r9`;
+- historical r8 regression не блокує наступний revision;
+- source regression зелений;
+- Windows package build + regression + START preflight зелені;
+- macOS ARM64 та Intel package builds/regression зелені;
+- release має 5 основних пакетів + checksum manifests;
+- PR merged у `main`;
+- stable `v10.3` не пересувається.
+
+## DOING
+
+- [x] r8 manual gate accepted.
+- [x] Створено `work/v10.3-r9-main-checkpoint`.
+- [x] Версію піднято до `10.3-r9`.
+- [x] Historical r8 identity test відв’язано від active candidate version.
+- [x] Додано r9 Windows installer spec.
+- [x] Додано r9 macOS bundle spec із legal notices.
+- [x] Додано r9 regression і release notes.
+- [ ] Додати full multi-platform publisher.
+- [ ] Відкрити PR.
+- [ ] Пройти exact-head source/Windows/macOS gates.
+- [ ] Перевірити tag/release/assets.
+- [ ] Merge у `main`.
+- [ ] Фінально синхронізувати документацію та ledger.
 
 ## NEXT
 
-Ручно перевірити на macOS `Taxo_v10_3_candidate_r8_START.zip`: ліве меню має мати темно-синій фон, чіткий білий текст/іконки та виразний активний пункт.
-
-Після вже виданого r8 будь-яка нова кодова зміна починається тільки як **`10.3-r9`**.
+Додати full r9 publisher, відкрити PR, потім запустити exact-head release gate.
 
 ## BLOCKED
 

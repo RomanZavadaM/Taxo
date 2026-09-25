@@ -10,13 +10,14 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo103R8MacSidebar(unittest.TestCase):
-    def test_candidate_identity_is_r8(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r8")
+    def test_r8_checkpoint_stays_immutable_after_later_revisions(self):
         self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.3-r8"),
             "Taxo_v10_3_candidate_r8_START",
         )
+        notes=(ROOT/"docs"/"releases"/"RELEASE_NOTES_v10_3_r8.md").read_text("utf-8")
+        self.assertIn("Taxo 10.3-r8",notes)
 
     def test_macos_navigation_avoids_native_aqua_button_surface(self):
         source=(ROOT/"main.py").read_text("utf-8")
