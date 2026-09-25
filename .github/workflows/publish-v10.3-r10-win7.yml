@@ -1,8 +1,6 @@
 name: Publish Taxo 10.3-r10 Windows 7 candidate
 
 on:
-  push:
-    branches: ['work/v10.3-r10-windows7-compat']
   workflow_dispatch:
 
 permissions:
