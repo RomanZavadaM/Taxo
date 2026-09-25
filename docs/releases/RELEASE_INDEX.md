@@ -1,8 +1,8 @@
 # Індекс релізів Taxo
 
-> Active candidate: **v10.3-r7** — backup dialog footer fix + strengthened recovery protocol; PR #64.  
-> Verified candidate: **v10.3-r6** — immutable checkpoint перед stable.  
-> Stable: **v10.3** (promotion 22.09.2026).
+> Latest published candidate: **v10.3-r7** — backup dialog footer fix + strengthened recovery protocol; PR #64 merged; automated gates green; manual UI gate pending.  
+> Stable: **v10.3** (promotion 22.09.2026).  
+> Previous stable candidate checkpoint: **v10.3-r6**.
 
 - [Taxo 10.3-r7](RELEASE_NOTES_v10_3_r7.md) — видимі дії у вікні резервної копії та посилений START_HERE/recovery protocol.
 - [Taxo 10.3-r6](RELEASE_NOTES_v10_3_r6.md) — правовласник Roman Zavada, proprietary license, legal notices у програмі та пакетах.
@@ -23,6 +23,7 @@
 
 | Tag | Статус | Пакет | Призначення |
 |---|---|---|---|
+| [v10.3-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r7) | Published prerelease; manual UI gate pending | START/source + SHA-256 | Backup dialog footer + recovery protocol hardening |
 | [v10.2-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r4) | Published prerelease | START/source + SHA-256 | Replanning fix, timesheet/driver-role corrections, clean START package |
 | [v10.1-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r5) | Final verified candidate before stable 10.1 | START/source + SHA-256 | Reports navigation loop fix + single-instance timesheet |
 | [v10.1-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r4) | Previous immutable candidate | START/source + SHA-256 | Approved central-page UI polish + reports grouping |
