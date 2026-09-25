@@ -41,13 +41,13 @@ class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
                 writer(generated)
                 return generated
 
-            with (
-                patch.object(main, "OUTPUT_DIR", output_dir),
-                patch.object(main, "write_output_file", side_effect=fake_write),
-                patch.object(main, "export_monthly_shift_detail_pdf") as export_detail,
-                patch.object(main, "open_external") as open_external,
-            ):
-                main.App.open_monthly_shift_detail_pdf(app)
+            with patch.object(main, "OUTPUT_DIR", output_dir), \
+                    patch.object(main, "write_output_file", side_effect=fake_write):
+                with patch.object(
+                    main, "export_monthly_shift_detail_pdf"
+                ) as export_detail, \
+                        patch.object(main, "open_external") as open_external:
+                    main.App.open_monthly_shift_detail_pdf(app)
 
             export_detail.assert_called_once_with(
                 2026, 9, generated, active_only=True

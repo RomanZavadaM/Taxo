@@ -6,36 +6,35 @@
 ## CURRENT
 
 **Stable:** Taxo 10.3 / `v10.3`  
-**Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Latest full checkpoint:** `v10.3-r9` → `9268f9a94d48388238ac957ee7c32071e887da2b`  
-**Checkpoint PR:** #68 — merged  
-**Main merge:** `378cd6fc6e18caceb850edcac5ec5e171d8a4aba`  
-**Full publisher:** `36108173549` — success  
-**r8 manual gate:** accepted  
+**Published candidate:** `v10.3-r10` → `b9e3d122728c4043a1e7ec9e0a85ece949d14d38`  
+**Active branch:** `work/v10.3-r10-windows7-compat`  
+**Problem reproduced:** Windows 7 x64 loader error `api-ms-win-core-path-l1-1-0.dll`  
+**Publisher run:** `36110712792` — success  
 **Live ledger:** Issue #61.
 
-## DONE — 10.3-r9
+## ACTIVE SLICE — 10.3-r10 Windows 7 compatibility
 
-- [x] Виконано команду «злити у main» як full release checkpoint.
-- [x] Функціональний стан відповідає прийнятому r8; нової бізнес-логіки не додано.
-- [x] Historical r8 identity regression не блокує r9.
-- [x] Windows x64 Setup сформований і перевірений.
-- [x] Windows x64 Portable сформований і перевірений.
-- [x] macOS ARM64 Portable сформований і перевірений.
-- [x] macOS Intel x86_64 Portable сформований і перевірений.
-- [x] START/source сформований і перевірений.
-- [x] Legal notices входять у source та executable packages.
-- [x] Опубліковано per-platform і combined SHA-256 manifests.
-- [x] Full publisher run `36108173549` — success.
-- [x] PR Windows gate `36108197034` — success.
-- [x] PR macOS gate `36108196993` — success.
-- [x] `v10.3-r9` опубліковано з 10 assets.
-- [x] PR #68 merged у `main`.
+### Реалізовано
+- CPython 3.8.10 x64 compatibility build;
+- PyInstaller 5.13.2;
+- Python-3.8-compatible dependency pins;
+- окремий `Taxo_win7.spec`;
+- Windows 7 SP1 installer minimum;
+- Python 3.8 regression suite: **287 tests / OK**;
+- Win7 Portable build: success;
+- PE import scan: success, exact failing `api-ms-win-core-path-l1-1-0.dll` не імпортується;
+- Win7 Setup build: success;
+- START + SHA-256: success;
+- immutable prerelease `v10.3-r10` published.
+
+### Manual gate — ACCEPTED
+Власник перевірив `Taxo_v10_3_candidate_r10_Windows7_x64_Portable.zip` на реальному Windows 7 x64: **Portable запускається успішно**. Цього gate достатньо для інтеграції r10. Setup окремо на цій машині не перевірявся, але його CI build завершився успішно.
 
 ## NEXT
 
-Наступний кодовий крок після вже виданого r9 починається тільки як **`10.3-r10`**. До нової задачі нічого автоматично не змінювати.
+Користувач тестує `v10.3-r10` на тому самому Windows 7. Якщо запускається — прийняти manual gate і завершити merge/documentation. Якщо ні — зафіксувати точний новий loader/runtime error; наступна кодова зміна після вже виданого r10 буде тільки **10.4-r1**.
 
 ## BLOCKED
 
-Немає.
+Manual Windows 7 gate.

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Union
 
 
-def version_from_file(path: str | Path = "VERSION.txt") -> str:
+def version_from_file(path: Union[str, Path] = "VERSION.txt") -> str:
     text = Path(path).read_text(encoding="utf-8")
     for line in text.splitlines():
         if line.startswith("Version:"):

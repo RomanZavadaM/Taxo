@@ -1,0 +1,10 @@
+# Windows 7 SP1 x64 compatibility build (CPython 3.8.10)
+python-docx==1.1.2
+lxml==5.3.0
+openpyxl==3.1.5
+reportlab==4.3.0
+Pillow==10.4.0
+PyMuPDF==1.24.11
+numpy==1.24.4
+opencv-python-headless==4.10.0.84
+pywin32==306; sys_platform == "win32"

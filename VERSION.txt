@@ -1,24 +1,23 @@
 Taxo / Driver Worktime
-Version: 10.3-r9
+Version: 10.3-r10
 Release date: 2026-09-25
 Release type: candidate
 Stable baseline: Taxo 10.3
 Stable tag: v10.3
 Stable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60
 
-Taxo 10.3-r9 — full main checkpoint after accepted r8.
+Taxo 10.3-r10 — Windows 7 SP1 x64 compatibility candidate.
 
 Основне:
-- manual gate 10.3-r8 accepted by owner;
-- no new business logic compared with accepted r8;
-- full checkpoint packages: Windows x64 Setup + Portable, macOS ARM64 + Intel x86_64 Portable, START/source;
-- per-platform and combined SHA-256 manifests;
-- legal notices are included in executable/source packages;
-- database schema and working data are unchanged.
+- окремий Windows 7 SP1 x64 пакет на CPython 3.8.10;
+- PyInstaller 5.13.2 для legacy Windows bootloader compatibility;
+- окремий набір залежностей, сумісний з Python 3.8;
+- перевірка відсутності імпорту api-ms-win-core-path-l1-1-0.dll у ключових PE-файлах;
+- modern Windows/macOS packaging не змінюється;
+- схема БД, бізнес-логіка та робочі дані не змінюються.
 
 Нумерація:
-- після виданого 10.3-r9 наступний кодовий крок — 10.3-r10;
-- r1 ... r10;
-- після r10: 10.3-r10 -> 10.4-r1;
+- це остання ревізія лінії 10.3;
+- після виданого 10.3-r10 наступний кодовий крок — 10.4-r1;
 - перший розряд змінюється тільки за прямим рішенням власника;
 - видані revision tags/releases не пересуваються і не перевикористовуються.
