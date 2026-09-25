@@ -1,17 +1,19 @@
 # Taxo — поточна контрольна точка
 
 **Дата:** 25.09.2026  
-**Stable:** Taxo 10.3 / `v10.3`  
+**Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1`  
-**Latest full checkpoint:** `v10.3-r9`  
-**Checkpoint target:** `9268f9a94d48388238ac957ee7c32071e887da2b`  
-**PR #68:** merged  
-**Main merge:** `378cd6fc6e18caceb850edcac5ec5e171d8a4aba`  
-**Full publisher:** `36108173549` — success  
-**Packages:** Windows Setup/Portable + macOS ARM64/Intel + START + SHA-256  
-**Manual r8 gate:** accepted  
-**Next code revision:** `10.3-r10`  
+**Latest full checkpoint:** `v10.4-r1`  
+**Checkpoint target:** `4970ee3497c9340c1c5f414d7a193071092ce70c`  
+**PR #71:** merged  
+**Main merge:** `afa74f8a31937bc72904fc77aa0c650f37e48b58`  
+**Full publisher:** `36113236225` — success  
+**PR gates:** Windows `36113238834`; macOS ARM64/Intel `36113238841` — success  
+**Windows 7 gate:** 10.3-r10 Portable launched successfully on real Windows 7 x64  
+**Packages:** modern Windows Setup/Portable + Windows 7 SP1 Setup/Portable + macOS ARM64/Intel + START + SHA-256  
+**Release assets:** 7 primary packages + 6 checksum manifests  
+**Next code revision:** `10.4-r2`  
 **Recovery:** `START_HERE.md` + `WORKLOG.md` + Issue #61
 
 Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.  

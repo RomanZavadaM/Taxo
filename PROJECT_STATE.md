@@ -4,26 +4,23 @@
 **Stable:** Taxo 10.3 / `v10.3`  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1` / `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Latest published checkpoint:** Taxo 10.3-r9 / `v10.3-r9` / `9268f9a94d48388238ac957ee7c32071e887da2b`  
-**Checkpoint PR:** #68 merged  
-**Checkpoint main merge:** `378cd6fc6e18caceb850edcac5ec5e171d8a4aba`  
-**Full publisher:** run `36108173549` — success  
-**PR gates:** Windows `36108197034` + macOS ARM64/Intel `36108196993` — success  
-**Manual operational gate for r7:** accepted  
-**Manual operational gate for r8:** accepted by owner  
+**Latest published full checkpoint:** Taxo 10.4-r1 / `v10.4-r1` / `4970ee3497c9340c1c5f414d7a193071092ce70c`  
+**Checkpoint PR:** #71 merged  
+**Checkpoint main merge:** `afa74f8a31937bc72904fc77aa0c650f37e48b58`  
+**Full publisher:** run `36113236225` — success  
+**PR gates:** Windows `36113238834` + macOS ARM64/Intel `36113238841` — success  
+**Windows 7 manual gate:** accepted by owner on real Windows 7 x64 for 10.3-r10 Portable  
+**Compatibility integration:** 10.3-r10 / PR #70 merged → `160116ceee2e86b2ecfe8ffabef6d578ab1215c2`  
 **Live ledger:** Issue #61  
-**Наступний кодовий крок після виданого r9:** тільки `10.3-r10`
+**Наступний кодовий крок після виданого 10.4-r1:** тільки `10.4-r2`
 
 ## Джерело істини
 
 - **Постійні правила:** [PROJECT_RULES.md](PROJECT_RULES.md).
 - **Поточний стан:** цей файл `PROJECT_STATE.md`.
-- `v10.3` — immutable stable checkpoint і актуальна експлуатаційна версія.
-- `v10.1` — previous stable / rollback checkpoint.
-- `v10.3-r9` — latest immutable full checkpoint; PR #68 злитий у `main`; містить Windows/macOS/START пакети й checksums.
-- `v10.3-r8` — immutable candidate checkpoint; manual gate прийнятий власником.
-- `v10.3-r7` — immutable candidate checkpoint; ручна перевірка виправлення резервної копії прийнята користувачем.
-- `v10.3-r6` — verified candidate, з якого був промотований stable 10.3; лишається immutable.
+- `v10.3` — immutable stable checkpoint; він **не пересувався** під час 10.3-r10 / 10.4-r1.
+- `v10.4-r1` — latest immutable full checkpoint, злитий у `main`.
+- `v10.3-r10` — immutable Windows 7 compatibility checkpoint; Portable перевірений власником на реальному Windows 7 x64.
 - Опубліковані candidate tags/releases не пересуваються і не перевикористовуються.
 - Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.
 - Старі work/candidate/tmp-гілки не використовувати як нову базу без окремого рішення.
@@ -32,41 +29,60 @@
 
 Канонічні правила: [PROJECT_RULES.md](PROJECT_RULES.md).
 
-- **Кожен завершений крок = нова ревізія.** Одну ревізію не використовувати для двох різних тестових станів.
-- Послідовність: `r1 ... r10`; після `r10` автоматично підняти minor-версію: `10.2-r10 -> 10.3-r1`.
-- Перший розряд (`10 -> 11`) змінюється лише за прямим рішенням власника.
-- Кожна завершена переробка або виправлення завершується зібраним тестовим START-архівом і прямим посиланням користувачу.
-- Наступний крок після виданого архіву починається вже з наступної ревізії.
-- START artifact має бути кінцевим ZIP без вкладеного другого ZIP; усередині — одна коренева папка з тією самою назвою без `.zip`.
-- Для робочих кандидатів використовується GitHub Actions `Package Taxo START source`; БД, кеші та персональні дані в пакет не входять.
+- **Кожен завершений крок = нова ревізія.**
+- Послідовність: `r1 ... r10`; після `r10` автоматично підняти minor: `10.3-r10 -> 10.4-r1`.
+- Уже видані revisions не перевикористовуються.
+- Перший розряд змінюється лише за прямим рішенням власника.
+- START artifact має бути окремим чистим ZIP без робочих БД/сканів/персональних даних.
 
-## 10.3-r9 — full main checkpoint
+## 10.4-r1 — full multi-platform checkpoint with Windows 7
 
-Причина ревізії:
-- власник прийняв manual gate 10.3-r8 і дав команду «дописуй, доробляй, зливай в main»;
-- за PROJECT_RULES ця команда означає повний релізний checkpoint;
-- r8 уже був виданий як immutable START prerelease, тому повний checkpoint отримав наступну ревізію r9.
+Причина:
+- 10.3-r10 уже був виданий як immutable Windows 7 compatibility prerelease;
+- власник підтвердив запуск r10 Portable на реальному Windows 7 x64;
+- команда «зливай і релізь то все з врахуванням Windows 7» означає повний checkpoint;
+- після r10 за правилом нумерації наступна ревізія — `10.4-r1`.
 
 Scope:
-- без нової бізнес-логіки відносно прийнятого r8;
-- Windows x64 Setup + Portable;
+- без нової бізнес-логіки відносно прийнятого 10.3-r10;
+- Windows x64 modern Setup + Portable;
+- Windows 7 SP1 x64 Setup + Portable;
 - macOS ARM64 + Intel x86_64 Portable;
 - START/source;
-- per-platform та combined SHA-256 manifests;
+- per-platform + combined SHA-256;
 - legal notices у source/executable packages;
 - схема БД та робочі дані без змін.
 
 Публікація:
-- tag/prerelease: `v10.3-r9`;
-- exact target: `9268f9a94d48388238ac957ee7c32071e887da2b`;
-- full publisher run `36108173549` — success;
-- PR Windows gate `36108197034` — success;
-- PR macOS ARM64/Intel gate `36108196993` — success;
-- release містить 5 основних пакетів + 5 checksum manifests;
-- PR #68 merged у `main`: `378cd6fc6e18caceb850edcac5ec5e171d8a4aba`;
+- tag/prerelease: `v10.4-r1`;
+- exact target: `4970ee3497c9340c1c5f414d7a193071092ce70c`;
+- full publisher run `36113236225` — success;
+- PR Windows gate `36113238834` — success;
+- PR macOS ARM64/Intel gate `36113238841` — success;
+- release містить **7 основних пакетів + 6 checksum manifests**;
+- PR #71 merged у `main`: `afa74f8a31937bc72904fc77aa0c650f37e48b58`;
 - stable `v10.3` не пересувався.
 
-Після виданого r9 наступний кодовий крок — тільки `10.3-r10`.
+Після виданого 10.4-r1 наступний кодовий крок — тільки `10.4-r2`.
+
+## 10.3-r10 — Windows 7 compatibility
+
+- field failure r9 на Windows 7: `api-ms-win-core-path-l1-1-0.dll`;
+- compatibility package: CPython 3.8.10 x64 + PyInstaller 5.13.2 + pinned Win7 dependencies;
+- dedicated `Taxo_win7.spec` та Windows 7 SP1 installer;
+- PE import gate пройдено;
+- `v10.3-r10` exact target: `b9e3d122728c4043a1e7ec9e0a85ece949d14d38`;
+- publisher `36110712792` — success;
+- власник підтвердив реальний запуск Portable на Windows 7 x64;
+- PR #70 merged у `main`: `160116ceee2e86b2ecfe8ffabef6d578ab1215c2`.
+
+## 10.3-r9 — previous full checkpoint
+
+- tag/prerelease: `v10.3-r9`;
+- exact target: `9268f9a94d48388238ac957ee7c32071e887da2b`;
+- publisher `36108173549` — success;
+- PR #68 merged у `main`: `378cd6fc6e18caceb850edcac5ec5e171d8a4aba`;
+- stable `v10.3` не пересувався.
 
 ## 10.3-r8 — macOS sidebar contrast
 

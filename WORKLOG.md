@@ -5,36 +5,38 @@
 
 ## CURRENT
 
-**Stable:** Taxo 10.3 / `v10.3`  
-**Latest full checkpoint:** `v10.3-r9` → `9268f9a94d48388238ac957ee7c32071e887da2b`  
-**Published candidate:** `v10.3-r10` → `b9e3d122728c4043a1e7ec9e0a85ece949d14d38`  
-**Active branch:** `work/v10.3-r10-windows7-compat`  
-**Problem reproduced:** Windows 7 x64 loader error `api-ms-win-core-path-l1-1-0.dll`  
-**Publisher run:** `36110712792` — success  
+**Stable:** Taxo 10.3 / `v10.3` — immutable  
+**Latest full checkpoint:** `v10.4-r1` → `4970ee3497c9340c1c5f414d7a193071092ce70c`  
+**Checkpoint PR:** #71 — merged  
+**Main merge:** `afa74f8a31937bc72904fc77aa0c650f37e48b58`  
+**Full publisher:** `36113236225` — success  
+**PR Windows gate:** `36113238834` — success  
+**PR macOS gate:** `36113238841` — success  
+**Windows 7 compatibility:** accepted; r10 Portable launched on real Windows 7 x64  
 **Live ledger:** Issue #61.
 
-## ACTIVE SLICE — 10.3-r10 Windows 7 compatibility
+## DONE — 10.4-r1
 
-### Реалізовано
-- CPython 3.8.10 x64 compatibility build;
-- PyInstaller 5.13.2;
-- Python-3.8-compatible dependency pins;
-- окремий `Taxo_win7.spec`;
-- Windows 7 SP1 installer minimum;
-- Python 3.8 regression suite: **287 tests / OK**;
-- Win7 Portable build: success;
-- PE import scan: success, exact failing `api-ms-win-core-path-l1-1-0.dll` не імпортується;
-- Win7 Setup build: success;
-- START + SHA-256: success;
-- immutable prerelease `v10.3-r10` published.
-
-### Manual gate — ACCEPTED
-Власник перевірив `Taxo_v10_3_candidate_r10_Windows7_x64_Portable.zip` на реальному Windows 7 x64: **Portable запускається успішно**. Цього gate достатньо для інтеграції r10. Setup окремо на цій машині не перевірявся, але його CI build завершився успішно.
+- [x] 10.3-r10 Windows 7 compatibility integrated via PR #70.
+- [x] Windows 7 real-machine Portable gate accepted by owner.
+- [x] Version advanced correctly after issued r10: `10.3-r10 -> 10.4-r1`.
+- [x] Source regression — success.
+- [x] Modern Windows x64 Setup + Portable — success.
+- [x] Windows 7 SP1 x64 Setup + Portable — success.
+- [x] Windows 7 PE import compatibility gate — success.
+- [x] macOS ARM64 Portable — success.
+- [x] macOS Intel x86_64 Portable — success.
+- [x] START/source — success.
+- [x] Per-platform + combined SHA-256 — published.
+- [x] Legal notices included.
+- [x] Immutable prerelease `v10.4-r1` published with 13 assets.
+- [x] PR #71 merged into `main`.
+- [x] Stable `v10.3` remained unchanged.
 
 ## NEXT
 
-Користувач тестує `v10.3-r10` на тому самому Windows 7. Якщо запускається — прийняти manual gate і завершити merge/documentation. Якщо ні — зафіксувати точний новий loader/runtime error; наступна кодова зміна після вже виданого r10 буде тільки **10.4-r1**.
+До нової задачі нічого автоматично не змінювати. Наступний кодовий крок після вже виданого `10.4-r1` починається тільки як **`10.4-r2`**.
 
 ## BLOCKED
 
-Manual Windows 7 gate.
+Немає.
