@@ -4,19 +4,20 @@
 
 - **Stable:** Taxo 10.3 (`v10.3`) — immutable stable/rollback checkpoint; target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Previous stable / rollback:** Taxo 10.1 (`v10.1`).
-- **Latest full checkpoint:** Taxo 10.3-r9 / `v10.3-r9` → `9268f9a94d48388238ac957ee7c32071e887da2b`; PR #68 merged.
-- **r8 manual gate:** accepted by owner.
-- **r9:** packaging/release checkpoint без нової бізнес-логіки; включає прийняті r7/r8 UI fixes.
-- **Packages:** Windows Setup/Portable, macOS ARM64/Intel, START/source.
-- **Automated verification:** full publisher + PR Windows/macOS gates — success.
+- **Latest full checkpoint:** Taxo 10.4-r1 / `v10.4-r1` → `4970ee3497c9340c1c5f414d7a193071092ce70c`; PR #71 merged → `afa74f8a31937bc72904fc77aa0c650f37e48b58`.
+- **Windows 7 compatibility:** 10.3-r10 Portable manually launched successfully on real Windows 7 x64; compatibility code merged via PR #70.
+- **Packages:** modern Windows x64 Setup/Portable; Windows 7 SP1 x64 Setup/Portable; macOS ARM64/Intel Portable; START/source.
+- **Automated verification:** full publisher `36113236225`, Windows PR gate `36113238834`, macOS PR gate `36113238841` — success.
 - **Checksums/legal:** per-platform + combined SHA-256; legal notices included.
+- **Release contents:** 7 primary packages + 6 checksum manifests.
+- **Business/data scope:** no new business logic relative to accepted r10; schema and user data unchanged.
 - **Правовласник:** Roman Zavada (Роман Завада).
 - **Ліцензія:** proprietary / all rights reserved.
 - **Recovery protocol:** `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61.
 
 Документи: [LICENSE.md](../LICENSE.md) · [COPYRIGHT.md](../COPYRIGHT.md) · [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-Після вже виданого r9 наступна кодова зміна — тільки **`10.3-r10`**.
+Після вже виданого 10.4-r1 наступна кодова зміна — тільки **`10.4-r2`**.
 
 ---
 
