@@ -1,15 +1,16 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 22.09.2026  
+**Дата:** 25.09.2026  
 **Stable:** Taxo 10.3 / `v10.3`  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1` / `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Verified candidate:** Taxo 10.3-r6 / `v10.3-r6` / `619e5995af5982cbf60f7345744789e42463498f`  
-**Stable promotion PR:** #62 merged  
-**Stable publisher:** run `35764396010` — success  
-**Manual operational gate:** пройдено користувачем 22.09.2026  
+**Latest published candidate:** Taxo 10.3-r7 / `v10.3-r7` / `3bcdb93b9ceffecd07705e3d2a9e6d8b6864e420`  
+**Candidate PR:** #64 merged  
+**Candidate main merge:** `398b0831fcdf11f71032c041d98413b4cac26a30`  
+**Candidate gates:** Windows + macOS ARM64/Intel — success  
+**Manual operational gate for r7:** очікується  
 **Live ledger:** Issue #61  
-**Наступний кодовий крок:** `10.3-r7` — ще не розпочатий
+**Наступний кодовий крок після виданого r7:** тільки `10.3-r8`
 
 ## Джерело істини
 
@@ -17,7 +18,8 @@
 - **Поточний стан:** цей файл `PROJECT_STATE.md`.
 - `v10.3` — immutable stable checkpoint і актуальна експлуатаційна версія.
 - `v10.1` — previous stable / rollback checkpoint.
-- `v10.3-r6` — immutable candidate checkpoint; PR #58 злитий у `main`.
+- `v10.3-r7` — latest immutable candidate checkpoint; PR #64 злитий у `main`; очікує ручної UI-перевірки.
+- `v10.3-r6` — verified candidate, з якого був промотований stable 10.3; лишається immutable.
 - Опубліковані candidate tags/releases не пересуваються і не перевикористовуються.
 - Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.
 - Старі work/candidate/tmp-гілки не використовувати як нову базу без окремого рішення.
@@ -33,6 +35,29 @@
 - Наступний крок після виданого архіву починається вже з наступної ревізії.
 - START artifact має бути кінцевим ZIP без вкладеного другого ZIP; усередині — одна коренева папка з тією самою назвою без `.zip`.
 - Для робочих кандидатів використовується GitHub Actions `Package Taxo START source`; БД, кеші та персональні дані в пакет не входять.
+
+## 10.3-r7 — вікно резервної копії та recovery protocol
+
+Причина ревізії:
+- на Windows з display scaling / обмеженою висотою нижні кнопки у вікні «Резервна копія» могли обрізатися;
+- після паралельного розвитку OVDP Hub startup/recovery protocol Taxo потребував такого самого чіткого розділення джерел істини.
+
+Реалізація:
+- кнопки «Створити копію» та «Скасувати» винесено в окремий зарезервований footer;
+- робочу висоту діалогу збільшено; backup-логіка, БД і склад даних не змінюються;
+- `START_HERE.md` тепер явно визначає ролі `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md`, Issue #61, `VERSION.txt` + `main.APP_VERSION` і release index;
+- команда власника «злити у main» зафіксована як повний релізний checkpoint; для простого merge використовується «інтегрувати PR у main»;
+- historical stable tests відв’язано від активного candidate version, щоб stable 10.3 лишався immutable під час розвитку 10.3-rN.
+
+Публікація:
+- tag/prerelease: `v10.3-r7`;
+- candidate target: `3bcdb93b9ceffecd07705e3d2a9e6d8b6864e420`;
+- START: `Taxo_v10_3_candidate_r7_START.zip`;
+- PR #64 merged у `main`: `398b0831fcdf11f71032c041d98413b4cac26a30`;
+- Windows та macOS ARM64/Intel PR gates — success;
+- stable `v10.3` не пересувався.
+
+Після виданого r7 наступний кодовий крок — тільки `10.3-r8`. Перед ним очікується ручна перевірка цього UI-виправлення.
 
 ## 10.2-r2 — транспортні засоби
 
