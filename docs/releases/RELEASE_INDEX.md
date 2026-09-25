@@ -1,8 +1,10 @@
 # Індекс релізів Taxo
 
+> Active candidate: **v10.3-r7** — backup dialog footer fix + strengthened recovery protocol; PR #64.  
 > Verified candidate: **v10.3-r6** — immutable checkpoint перед stable.  
 > Stable: **v10.3** (promotion 22.09.2026).
 
+- [Taxo 10.3-r7](RELEASE_NOTES_v10_3_r7.md) — видимі дії у вікні резервної копії та посилений START_HERE/recovery protocol.
 - [Taxo 10.3-r6](RELEASE_NOTES_v10_3_r6.md) — правовласник Roman Zavada, proprietary license, legal notices у програмі та пакетах.
 - [Taxo 10.3-r5](RELEASE_NOTES_v10_3_r5.md) — сортування/лічильники архіву бланків і контекстна дія.
 - [Taxo 10.3-r4](RELEASE_NOTES_v10_3_r4.md) — ручні фактичні межі бланка.

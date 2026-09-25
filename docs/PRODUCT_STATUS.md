@@ -11,7 +11,7 @@
 
 Документи: [LICENSE.md](../LICENSE.md) · [COPYRIGHT.md](../COPYRIGHT.md) · [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-**Наступний кодовий крок після stable:** `10.3-r7` — ще не розпочатий.
+**Активний candidate:** `10.3-r7` — PR #64; виправлення layout вікна резервної копії + посилення startup/recovery protocol. Stable `v10.3` не пересувається.
 
 ---
 

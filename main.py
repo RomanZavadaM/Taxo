@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.3"
+APP_VERSION = "10.3-r7"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -8185,14 +8185,19 @@ class App(tk.Tk):
     def manual_backup(self):
         choice={"value":None}
         win=tk.Toplevel(self)
-        fit_window_to_screen(win,720,470,620,420)
+        fit_window_to_screen(win,760,560,660,500)
         self._decorate_secondary_window(
             win,"Резервна копія","Безпечне резервування робочого сховища"
         )
         win.transient(self); win.grab_set()
 
-        body=ttk.Frame(win,padding=16)
-        body.pack(fill="both",expand=True)
+        shell=ttk.Frame(win)
+        shell.pack(fill="both",expand=True)
+        shell.columnconfigure(0,weight=1)
+        shell.rowconfigure(0,weight=1)
+
+        body=ttk.Frame(shell,padding=(16,14,16,8))
+        body.grid(row=0,column=0,sticky="nsew")
         ttk.Label(
             body,text="Що включити в резервну копію?",
             font=("TkDefaultFont",11,"bold")
@@ -8244,8 +8249,8 @@ class App(tk.Tk):
             foreground="#7A4E00",wraplength=660,justify="left",
         ).pack(anchor="w",pady=(12,4))
 
-        buttons=ttk.Frame(body)
-        buttons.pack(fill="x",side="bottom",pady=(14,0))
+        buttons=ttk.Frame(shell,padding=(16,8,16,14))
+        buttons.grid(row=1,column=0,sticky="ew")
         def cancel():
             win.destroy()
         def accept():
