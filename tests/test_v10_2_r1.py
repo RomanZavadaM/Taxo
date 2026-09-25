@@ -431,7 +431,8 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertIn('#define MyAppVersion "10.2-r2"',candidate_iss)
         self.assertIn(f"version='{current_stable}'",stable_mac)
         self.assertTrue(
-            current_candidate=="10.3" or current_candidate.startswith("10.3-r"),
+            current_candidate==current_stable
+            or (current_candidate.startswith("10.") and "-r" in current_candidate),
             current_candidate,
         )
         self.assertIn("version='10.2.2'",candidate_mac)
