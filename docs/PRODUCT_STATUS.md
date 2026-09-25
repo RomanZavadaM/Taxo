@@ -1,17 +1,20 @@
 # Taxo — стан продукту
 
-## Актуальний стан на 22.09.2026
+## Актуальний стан на 25.09.2026
 
-- **Stable:** Taxo 10.3 (`v10.3`) — опублікований latest stable; target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+- **Stable:** Taxo 10.3 (`v10.3`) — актуальна експлуатаційна версія; target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Previous stable / rollback:** Taxo 10.1 (`v10.1`).
-- **Verified candidate:** Taxo 10.3-r6; `v10.3-r6` published and immutable.
+- **Latest published candidate:** Taxo 10.3-r7 / `v10.3-r7` → `3bcdb93b9ceffecd07705e3d2a9e6d8b6864e420`; PR #64 merged.
+- **10.3-r7:** виправлено обрізаний footer вікна резервної копії та посилено startup/recovery protocol.
+- **Automated verification:** source + Windows + macOS ARM64/Intel — success.
+- **Manual r7 gate:** очікується.
 - **Правовласник:** Roman Zavada (Роман Завада).
-- **Ліцензія:** proprietary / all rights reserved; сторонні компоненти зберігають власні ліцензії.
+- **Ліцензія:** proprietary / all rights reserved.
 - **Recovery protocol:** `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61.
 
 Документи: [LICENSE.md](../LICENSE.md) · [COPYRIGHT.md](../COPYRIGHT.md) · [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-**Активний candidate:** `10.3-r7` — PR #64; виправлення layout вікна резервної копії + посилення startup/recovery protocol. Stable `v10.3` не пересувається.
+Після вже виданого r7 наступна кодова зміна — тільки **`10.3-r8`**.
 
 ---
 
