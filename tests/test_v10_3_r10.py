@@ -18,6 +18,13 @@ class TestTaxo103R10Windows7(unittest.TestCase):
         for item in ("python-docx==1.1.2","reportlab==4.3.0","Pillow==10.4.0","PyMuPDF==1.24.11","opencv-python-headless==4.10.0.84","pywin32==306"):
             self.assertIn(item,text)
 
+    def test_win7_pyinstaller_spec_avoids_modern_analysis_arguments(self):
+        text=(ROOT/"Taxo_win7.spec").read_text("utf-8")
+        self.assertNotIn("optimize=",text)
+        self.assertIn("LICENSE.md",text)
+        self.assertIn("COPYRIGHT.md",text)
+        self.assertIn("THIRD_PARTY_NOTICES.md",text)
+
     def test_win7_installer_requires_sp1(self):
         text=(ROOT/"installer"/"Taxo_v10_3_r10_win7.iss").read_text("utf-8")
         self.assertIn("MinVersion=6.1sp1",text)
