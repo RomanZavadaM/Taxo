@@ -37,13 +37,13 @@
 - [x] Посилено startup/recovery protocol.
 - [x] Додано regression test і release notes.
 - [x] Відкрито PR #64 і зафіксовано його номер.
-- [ ] Запустити candidate publisher / CI.
+- [x] Перший candidate/CI gate запущено; виявлено 3 historical stable-test assumptions після переходу stable 10.3 → candidate r7.
 - [ ] Перевірити prerelease asset.
 - [ ] Merge у `main` і фінальна синхронізація стану.
 
 ## NEXT
 
-Додати candidate publisher останнім branch commit; далі не змінювати head до завершення prerelease/CI.
+Historical stable tests виправлено: stable packaging лишається 10.3, а active VERSION може бути 10.3-r7. Повторно запустити exact-head publisher/CI.
 
 ## BLOCKED
 
