@@ -456,6 +456,12 @@ jobs:
             cp "$setup_path" release-upload/Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe
           fi
 
+          win7_setup_path="$(find release-upload -type f -name 'Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe' -print -quit)"
+          test -n "$win7_setup_path" || { echo 'Windows 7 installer missing from downloaded artifacts' >&2; exit 1; }
+          if [ "$win7_setup_path" != "release-upload/Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe" ]; then
+            cp "$win7_setup_path" release-upload/Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe
+          fi
+
           cd release-upload
           required=(
             Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe
