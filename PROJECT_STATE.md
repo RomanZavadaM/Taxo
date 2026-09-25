@@ -4,13 +4,14 @@
 **Stable:** Taxo 10.3 / `v10.3`  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1` / `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Latest published candidate:** Taxo 10.3-r7 / `v10.3-r7` / `3bcdb93b9ceffecd07705e3d2a9e6d8b6864e420`  
-**Candidate PR:** #64 merged  
-**Candidate main merge:** `398b0831fcdf11f71032c041d98413b4cac26a30`  
-**Candidate gates:** Windows + macOS ARM64/Intel — success  
-**Manual operational gate for r7:** очікується  
+**Latest published candidate:** Taxo 10.3-r8 / `v10.3-r8` / `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`  
+**Candidate PR:** #66 merged  
+**Candidate main merge:** `a513e484f8d735120a2c0e1072fe2f40cdd5a26a`  
+**Candidate gates:** source publisher + Windows + macOS ARM64/Intel — success  
+**Manual operational gate for r7:** accepted  
+**Manual operational gate for r8:** очікується  
 **Live ledger:** Issue #61  
-**Наступний кодовий крок після виданого r7:** тільки `10.3-r8`
+**Наступний кодовий крок після виданого r8:** тільки `10.3-r9`
 
 ## Джерело істини
 
@@ -18,7 +19,8 @@
 - **Поточний стан:** цей файл `PROJECT_STATE.md`.
 - `v10.3` — immutable stable checkpoint і актуальна експлуатаційна версія.
 - `v10.1` — previous stable / rollback checkpoint.
-- `v10.3-r7` — latest immutable candidate checkpoint; PR #64 злитий у `main`; очікує ручної UI-перевірки.
+- `v10.3-r8` — latest immutable candidate checkpoint; PR #66 злитий у `main`; очікує ручної macOS UI-перевірки.
+- `v10.3-r7` — immutable candidate checkpoint; ручна перевірка виправлення резервної копії прийнята користувачем.
 - `v10.3-r6` — verified candidate, з якого був промотований stable 10.3; лишається immutable.
 - Опубліковані candidate tags/releases не пересуваються і не перевикористовуються.
 - Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.
@@ -35,6 +37,34 @@
 - Наступний крок після виданого архіву починається вже з наступної ревізії.
 - START artifact має бути кінцевим ZIP без вкладеного другого ZIP; усередині — одна коренева папка з тією самою назвою без `.zip`.
 - Для робочих кандидатів використовується GitHub Actions `Package Taxo START source`; БД, кеші та персональні дані в пакет не входять.
+
+## 10.3-r8 — macOS sidebar contrast
+
+Причина ревізії:
+- ручна перевірка r7 підтвердила виправлення вікна «Резервна копія»;
+- на macOS Aqua native `tk.Button` міг малювати світлу системну поверхню незалежно від заданого синього background, через що білий текст та іконки лівого меню ставали слабкочитабельними.
+
+Реалізація:
+- тільки на macOS navigation sidebar використовує clickable `tk.Label` замість native `tk.Button`;
+- normal state: фірмовий `sidebar` blue + білий текст/іконки;
+- selected state: темний `navy` + білий текст;
+- hover та keyboard focus: `blue_dark` + білий текст;
+- click, Enter і Space запускають ту саму навігаційну команду;
+- Windows/Linux sidebar rendering не змінено;
+- бізнес-логіка, БД і робочі дані не змінюються.
+
+Gate/publish:
+- перший gate виявив stale historical r7 identity assertion; тест виправлено так, щоб immutable r7 не блокував наступні revision;
+- exact candidate target: `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`;
+- tag/prerelease: `v10.3-r8`;
+- START: `Taxo_v10_3_candidate_r8_START.zip`;
+- publisher run `36105901328` — success;
+- Windows PR gate `36105905499` — success;
+- macOS ARM64 + Intel PR gate `36105905210` — success;
+- PR #66 merged у `main`: `a513e484f8d735120a2c0e1072fe2f40cdd5a26a`;
+- stable `v10.3` не пересувався.
+
+Після виданого r8 наступний кодовий крок — тільки `10.3-r9`. Перед ним очікується ручна macOS UI-перевірка лівого меню.
 
 ## 10.3-r7 — вікно резервної копії та recovery protocol
 
