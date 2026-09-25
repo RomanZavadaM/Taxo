@@ -2,7 +2,7 @@
 
 # Taxo Windows 7 SP1 x64 compatibility build.
 # Kept separate from the modern Taxo.spec because PyInstaller 5.13.2
-# does not support newer Analysis() arguments such as optimize=.
+# does not support the newer Analysis() optimization argument.
 from branding import generate_build_icons
 
 BRAND_ICONS = generate_build_icons()
