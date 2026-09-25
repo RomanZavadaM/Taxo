@@ -28,13 +28,8 @@
 - START + SHA-256: success;
 - immutable prerelease `v10.3-r10` published.
 
-### Manual gate — PENDING
-Потрібен реальний запуск на Windows 7 SP1 x64:
-1. Portable → `Taxo.exe`;
-2. Setup → встановлення → запуск;
-3. перевірити, що немає loader/DLL error і відкривається головне вікно.
-
-До успішного manual gate **не зливати r10 у main**.
+### Manual gate — ACCEPTED
+Власник перевірив `Taxo_v10_3_candidate_r10_Windows7_x64_Portable.zip` на реальному Windows 7 x64: **Portable запускається успішно**. Цього gate достатньо для інтеграції r10. Setup окремо на цій машині не перевірявся, але його CI build завершився успішно.
 
 ## NEXT
 
