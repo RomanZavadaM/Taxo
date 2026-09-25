@@ -1,7 +1,7 @@
 # Індекс релізів Taxo
 
-> Active candidate: **v10.3-r8** — macOS Aqua-safe sidebar contrast; PR #66.  
-> Latest published candidate: **v10.3-r7** — backup dialog footer fix + strengthened recovery protocol; PR #64 merged; automated gates green; manual UI gate pending.  
+> Latest published candidate: **v10.3-r8** — macOS Aqua-safe sidebar contrast; PR #66 merged; automated gates green; manual macOS UI gate pending.  
+> Previous candidate: **v10.3-r7** — backup dialog footer fix; manual gate accepted.  
 > Stable: **v10.3** (promotion 22.09.2026).  
 > Previous stable candidate checkpoint: **v10.3-r6**.
 
@@ -25,7 +25,8 @@
 
 | Tag | Статус | Пакет | Призначення |
 |---|---|---|---|
-| [v10.3-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r7) | Published prerelease; manual UI gate pending | START/source + SHA-256 | Backup dialog footer + recovery protocol hardening |
+| [v10.3-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r8) | Published prerelease; manual macOS UI gate pending | START/source + SHA-256 | Aqua-safe sidebar contrast |
+| [v10.3-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r7) | Published prerelease; manual gate accepted | START/source + SHA-256 | Backup dialog footer + recovery protocol hardening |
 | [v10.2-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.2-r4) | Published prerelease | START/source + SHA-256 | Replanning fix, timesheet/driver-role corrections, clean START package |
 | [v10.1-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r5) | Final verified candidate before stable 10.1 | START/source + SHA-256 | Reports navigation loop fix + single-instance timesheet |
 | [v10.1-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1-r4) | Previous immutable candidate | START/source + SHA-256 | Approved central-page UI polish + reports grouping |
