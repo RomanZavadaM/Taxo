@@ -2,20 +2,21 @@
 
 ## Актуальний стан на 25.09.2026
 
-- **Stable:** Taxo 10.3 (`v10.3`) — актуальна експлуатаційна версія; target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+- **Stable:** Taxo 10.3 (`v10.3`) — immutable stable/rollback checkpoint; target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Previous stable / rollback:** Taxo 10.1 (`v10.1`).
-- **Latest published candidate:** Taxo 10.3-r8 / `v10.3-r8` → `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`; PR #66 merged.
-- **r7 manual gate:** accepted — backup window confirmed correct.
-- **10.3-r8:** macOS Aqua-safe sidebar with explicit dark blue surfaces and white navigation text/icons.
-- **Automated verification:** source publisher + Windows + macOS ARM64/Intel — success.
-- **Manual r8 gate:** pending macOS UI check.
+- **Latest full checkpoint:** Taxo 10.3-r9 / `v10.3-r9` → `9268f9a94d48388238ac957ee7c32071e887da2b`; PR #68 merged.
+- **r8 manual gate:** accepted by owner.
+- **r9:** packaging/release checkpoint без нової бізнес-логіки; включає прийняті r7/r8 UI fixes.
+- **Packages:** Windows Setup/Portable, macOS ARM64/Intel, START/source.
+- **Automated verification:** full publisher + PR Windows/macOS gates — success.
+- **Checksums/legal:** per-platform + combined SHA-256; legal notices included.
 - **Правовласник:** Roman Zavada (Роман Завада).
 - **Ліцензія:** proprietary / all rights reserved.
 - **Recovery protocol:** `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61.
 
 Документи: [LICENSE.md](../LICENSE.md) · [COPYRIGHT.md](../COPYRIGHT.md) · [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-Після вже виданого r8 наступна кодова зміна — тільки **`10.3-r9`**.
+Після вже виданого r9 наступна кодова зміна — тільки **`10.3-r10`**.
 
 ---
 

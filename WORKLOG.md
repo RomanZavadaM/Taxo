@@ -7,60 +7,34 @@
 
 **Stable:** Taxo 10.3 / `v10.3`  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
-**Accepted checkpoint:** `v10.3-r8` → `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`  
-**r8 manual gate:** accepted by owner  
-**Active candidate:** `10.3-r9`  
-**Branch:** `work/v10.3-r9-main-checkpoint`  
-**PR:** pending  
+**Latest full checkpoint:** `v10.3-r9` → `9268f9a94d48388238ac957ee7c32071e887da2b`  
+**Checkpoint PR:** #68 — merged  
+**Main merge:** `378cd6fc6e18caceb850edcac5ec5e171d8a4aba`  
+**Full publisher:** `36108173549` — success  
+**r8 manual gate:** accepted  
 **Live ledger:** Issue #61.
 
-## ACTIVE SLICE — 10.3-r9
+## DONE — 10.3-r9
 
-### Ціль
-Виконати команду власника «дописуй, доробляй, зливай в main» як повний релізний checkpoint згідно з `PROJECT_RULES.md`.
-
-r8 уже був виданий як immutable START prerelease, тому повний multi-platform checkpoint отримує наступну ревізію `10.3-r9`.
-
-### Scope
-- без нової бізнес-логіки відносно прийнятого r8;
-- Windows x64 Setup + Portable;
-- macOS ARM64 + Intel x86_64 Portable;
-- START/source;
-- per-platform + combined SHA-256;
-- legal notices у source та executable packages;
-- immutable `v10.3-r9`;
-- merge PR у `main`;
-- синхронізація PROJECT_STATE / WORKLOG / checkpoint / release index / Issue #61.
-
-### Критерії готовності
-- `main.APP_VERSION == VERSION.txt == 10.3-r9`;
-- historical r8 regression не блокує наступний revision;
-- source regression зелений;
-- Windows package build + regression + START preflight зелені;
-- macOS ARM64 та Intel package builds/regression зелені;
-- release має 5 основних пакетів + checksum manifests;
-- PR merged у `main`;
-- stable `v10.3` не пересувається.
-
-## DOING
-
-- [x] r8 manual gate accepted.
-- [x] Створено `work/v10.3-r9-main-checkpoint`.
-- [x] Версію піднято до `10.3-r9`.
-- [x] Historical r8 identity test відв’язано від active candidate version.
-- [x] Додано r9 Windows installer spec.
-- [x] Додано r9 macOS bundle spec із legal notices.
-- [x] Додано r9 regression і release notes.
-- [ ] Додати full multi-platform publisher.
-- [ ] Відкрити PR.
-- [ ] Пройти exact-head source/Windows/macOS gates.
-- [ ] Перевірити tag/release/assets.
-- [ ] Merge у `main`.
-- [ ] Фінально синхронізувати документацію та ledger.
+- [x] Виконано команду «злити у main» як full release checkpoint.
+- [x] Функціональний стан відповідає прийнятому r8; нової бізнес-логіки не додано.
+- [x] Historical r8 identity regression не блокує r9.
+- [x] Windows x64 Setup сформований і перевірений.
+- [x] Windows x64 Portable сформований і перевірений.
+- [x] macOS ARM64 Portable сформований і перевірений.
+- [x] macOS Intel x86_64 Portable сформований і перевірений.
+- [x] START/source сформований і перевірений.
+- [x] Legal notices входять у source та executable packages.
+- [x] Опубліковано per-platform і combined SHA-256 manifests.
+- [x] Full publisher run `36108173549` — success.
+- [x] PR Windows gate `36108197034` — success.
+- [x] PR macOS gate `36108196993` — success.
+- [x] `v10.3-r9` опубліковано з 10 assets.
+- [x] PR #68 merged у `main`.
 
 ## NEXT
 
-Додати full r9 publisher, відкрити PR, потім запустити exact-head release gate.
+Наступний кодовий крок після вже виданого r9 починається тільки як **`10.3-r10`**. До нової задачі нічого автоматично не змінювати.
 
 ## BLOCKED
 

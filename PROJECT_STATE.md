@@ -4,14 +4,15 @@
 **Stable:** Taxo 10.3 / `v10.3`  
 **Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1` / `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Latest published candidate:** Taxo 10.3-r8 / `v10.3-r8` / `ac5b22266cdf48ff664a3d13c7e3c3ec86876cfc`  
-**Candidate PR:** #66 merged  
-**Candidate main merge:** `a513e484f8d735120a2c0e1072fe2f40cdd5a26a`  
-**Candidate gates:** source publisher + Windows + macOS ARM64/Intel — success  
+**Latest published checkpoint:** Taxo 10.3-r9 / `v10.3-r9` / `9268f9a94d48388238ac957ee7c32071e887da2b`  
+**Checkpoint PR:** #68 merged  
+**Checkpoint main merge:** `378cd6fc6e18caceb850edcac5ec5e171d8a4aba`  
+**Full publisher:** run `36108173549` — success  
+**PR gates:** Windows `36108197034` + macOS ARM64/Intel `36108196993` — success  
 **Manual operational gate for r7:** accepted  
-**Manual operational gate for r8:** очікується  
+**Manual operational gate for r8:** accepted by owner  
 **Live ledger:** Issue #61  
-**Наступний кодовий крок після виданого r8:** тільки `10.3-r9`
+**Наступний кодовий крок після виданого r9:** тільки `10.3-r10`
 
 ## Джерело істини
 
@@ -19,7 +20,8 @@
 - **Поточний стан:** цей файл `PROJECT_STATE.md`.
 - `v10.3` — immutable stable checkpoint і актуальна експлуатаційна версія.
 - `v10.1` — previous stable / rollback checkpoint.
-- `v10.3-r8` — latest immutable candidate checkpoint; PR #66 злитий у `main`; очікує ручної macOS UI-перевірки.
+- `v10.3-r9` — latest immutable full checkpoint; PR #68 злитий у `main`; містить Windows/macOS/START пакети й checksums.
+- `v10.3-r8` — immutable candidate checkpoint; manual gate прийнятий власником.
 - `v10.3-r7` — immutable candidate checkpoint; ручна перевірка виправлення резервної копії прийнята користувачем.
 - `v10.3-r6` — verified candidate, з якого був промотований stable 10.3; лишається immutable.
 - Опубліковані candidate tags/releases не пересуваються і не перевикористовуються.
@@ -37,6 +39,34 @@
 - Наступний крок після виданого архіву починається вже з наступної ревізії.
 - START artifact має бути кінцевим ZIP без вкладеного другого ZIP; усередині — одна коренева папка з тією самою назвою без `.zip`.
 - Для робочих кандидатів використовується GitHub Actions `Package Taxo START source`; БД, кеші та персональні дані в пакет не входять.
+
+## 10.3-r9 — full main checkpoint
+
+Причина ревізії:
+- власник прийняв manual gate 10.3-r8 і дав команду «дописуй, доробляй, зливай в main»;
+- за PROJECT_RULES ця команда означає повний релізний checkpoint;
+- r8 уже був виданий як immutable START prerelease, тому повний checkpoint отримав наступну ревізію r9.
+
+Scope:
+- без нової бізнес-логіки відносно прийнятого r8;
+- Windows x64 Setup + Portable;
+- macOS ARM64 + Intel x86_64 Portable;
+- START/source;
+- per-platform та combined SHA-256 manifests;
+- legal notices у source/executable packages;
+- схема БД та робочі дані без змін.
+
+Публікація:
+- tag/prerelease: `v10.3-r9`;
+- exact target: `9268f9a94d48388238ac957ee7c32071e887da2b`;
+- full publisher run `36108173549` — success;
+- PR Windows gate `36108197034` — success;
+- PR macOS ARM64/Intel gate `36108196993` — success;
+- release містить 5 основних пакетів + 5 checksum manifests;
+- PR #68 merged у `main`: `378cd6fc6e18caceb850edcac5ec5e171d8a4aba`;
+- stable `v10.3` не пересувався.
+
+Після виданого r9 наступний кодовий крок — тільки `10.3-r10`.
 
 ## 10.3-r8 — macOS sidebar contrast
 
