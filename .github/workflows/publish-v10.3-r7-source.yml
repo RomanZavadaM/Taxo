@@ -1,4 +1,5 @@
 # Taxo 10.3-r7 backup dialog / recovery protocol publisher
+# Retry gate after decoupling immutable stable-10.3 tests from active candidate metadata.
 name: Publish Taxo 10.3-r7 source prerelease
 
 on:
