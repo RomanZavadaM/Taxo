@@ -9,13 +9,14 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo103R9MainCheckpoint(unittest.TestCase):
-    def test_candidate_identity_is_r9(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r9")
+    def test_r9_checkpoint_stays_immutable_after_later_revisions(self):
         self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.3-r9"),
             "Taxo_v10_3_candidate_r9_START",
         )
+        notes=(ROOT/"docs"/"releases"/"RELEASE_NOTES_v10_3_r9.md").read_text("utf-8")
+        self.assertIn("Taxo 10.3-r9",notes)
 
     def test_windows_candidate_installer_metadata(self):
         text=(ROOT/"installer"/"Taxo_v10_3_r9.iss").read_text("utf-8")
