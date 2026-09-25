@@ -7022,13 +7022,8 @@ class App(tk.Tk):
             add="+",
         )
 
-        shell=ttk.Frame(win)
-        shell.pack(fill="both",expand=True)
-        shell.columnconfigure(0,weight=1)
-        shell.rowconfigure(0,weight=1)
-
-        body=ttk.Frame(shell,padding=(16,14,16,8))
-        body.grid(row=0,column=0,sticky="nsew")
+        body=ttk.Frame(win,padding=16)
+        body.pack(fill="both",expand=True)
         body.columnconfigure(1,weight=1)
 
         logo=brand_photo(win,220)
@@ -8196,8 +8191,13 @@ class App(tk.Tk):
         )
         win.transient(self); win.grab_set()
 
-        body=ttk.Frame(win,padding=16)
-        body.pack(fill="both",expand=True)
+        shell=ttk.Frame(win)
+        shell.pack(fill="both",expand=True)
+        shell.columnconfigure(0,weight=1)
+        shell.rowconfigure(0,weight=1)
+
+        body=ttk.Frame(shell,padding=(16,14,16,8))
+        body.grid(row=0,column=0,sticky="nsew")
         ttk.Label(
             body,text="Що включити в резервну копію?",
             font=("TkDefaultFont",11,"bold")
