@@ -10,7 +10,7 @@
 **Main base at slice start:** `ae5756da141ac1c27e7fc16034fc40b709f0761e`  
 **Active candidate:** `10.3-r7`  
 **Branch:** `work/v10.3-r7-backup-dialog-recovery`  
-**PR:** pending  
+**PR:** #64  
 **Live ledger:** Issue #61.
 
 ## ACTIVE SLICE — 10.3-r7
@@ -36,14 +36,14 @@
 - [x] Виправлено layout backup dialog.
 - [x] Посилено startup/recovery protocol.
 - [x] Додано regression test і release notes.
-- [ ] Відкрити PR та зафіксувати його номер.
+- [x] Відкрито PR #64 і зафіксовано його номер.
 - [ ] Запустити candidate publisher / CI.
 - [ ] Перевірити prerelease asset.
 - [ ] Merge у `main` і фінальна синхронізація стану.
 
 ## NEXT
 
-Відкрити PR, зафіксувати номер у WORKLOG і останнім commit додати candidate publisher.
+Додати candidate publisher останнім branch commit; далі не змінювати head до завершення prerelease/CI.
 
 ## BLOCKED
 
