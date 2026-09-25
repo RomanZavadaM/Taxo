@@ -1,9 +1,11 @@
 # Індекс релізів Taxo
 
+> Active candidate: **v10.3-r8** — macOS Aqua-safe sidebar contrast; PR #66.  
 > Latest published candidate: **v10.3-r7** — backup dialog footer fix + strengthened recovery protocol; PR #64 merged; automated gates green; manual UI gate pending.  
 > Stable: **v10.3** (promotion 22.09.2026).  
 > Previous stable candidate checkpoint: **v10.3-r6**.
 
+- [Taxo 10.3-r8](RELEASE_NOTES_v10_3_r8.md) — macOS sidebar contrast / Aqua-safe navigation.
 - [Taxo 10.3-r7](RELEASE_NOTES_v10_3_r7.md) — видимі дії у вікні резервної копії та посилений START_HERE/recovery protocol.
 - [Taxo 10.3-r6](RELEASE_NOTES_v10_3_r6.md) — правовласник Roman Zavada, proprietary license, legal notices у програмі та пакетах.
 - [Taxo 10.3-r5](RELEASE_NOTES_v10_3_r5.md) — сортування/лічильники архіву бланків і контекстна дія.

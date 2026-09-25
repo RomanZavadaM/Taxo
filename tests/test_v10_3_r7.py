@@ -10,13 +10,14 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo103R7BackupDialogRecovery(unittest.TestCase):
-    def test_candidate_identity_is_r7(self):
-        self.assertEqual(main.APP_VERSION,"10.3-r7")
+    def test_r7_checkpoint_stays_immutable_after_later_revisions(self):
         self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.3-r7"),
             "Taxo_v10_3_candidate_r7_START",
         )
+        notes=(ROOT/"docs"/"releases"/"RELEASE_NOTES_v10_3_r7.md").read_text("utf-8")
+        self.assertIn("Taxo 10.3-r7",notes)
 
     def test_backup_dialog_reserves_visible_footer(self):
         source=(ROOT/"main.py").read_text("utf-8")
