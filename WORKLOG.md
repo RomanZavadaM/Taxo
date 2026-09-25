@@ -50,13 +50,13 @@ macOS Aqua може малювати native `tk.Button` власною світ�
 - [x] Реалізовано macOS-safe sidebar navigation.
 - [x] Додано regression test і release notes.
 - [x] Відкрито PR #66.
-- [ ] Запустити exact-head candidate publisher і PR gates.
+- [x] Перший r8 gate запущено; source regression виявив stale r7 identity assertion, що вимагав active APP_VERSION == 10.3-r7.
 - [ ] Перевірити release asset/tag.
 - [ ] Merge та фінальна документація.
 
 ## NEXT
 
-PR #66 відкрито. Останнім branch commit додати r8 publisher; після цього head не змінювати без нового виявленого дефекту.
+Виправлено historical r7 identity test: він перевіряє immutable r7 checkpoint, але не блокує наступні 10.3-rN. Повторити exact-head r8 gate.
 
 ## BLOCKED
 
