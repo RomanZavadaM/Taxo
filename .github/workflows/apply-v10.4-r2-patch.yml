@@ -18,10 +18,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Decode and apply verified patch
+      - name: Verify, decode and apply patch
         shell: bash
         run: |
           set -euo pipefail
+          echo 'Payload checksums:'
+          sha256sum .release/v10.4-r2-patch/part*.b85
           cat .release/v10.4-r2-patch/part*.b85 > /tmp/v10_4_r2.b85
           python - <<'PY'
           from pathlib import Path
