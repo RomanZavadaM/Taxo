@@ -1,12 +1,12 @@
 Taxo / Driver Worktime
-Version: 10.4-r1
-Release date: 2026-09-25
+Version: 10.4-r2
+Release date: 2026-09-26
 Release type: candidate
 Stable baseline: Taxo 10.3
 Stable tag: v10.3
 Stable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60
 
-Taxo 10.4-r1 — full multi-platform checkpoint with Windows 7 SP1 x64 support.
+Taxo 10.4-r2 — UI cleanup, vehicle document registry and waybill readability checkpoint.
 
 Основне:
 - прийнятий Windows 7 compatibility fix з 10.3-r10;
@@ -16,11 +16,13 @@ Taxo 10.4-r1 — full multi-platform checkpoint with Windows 7 SP1 x64 support.
 - START/source;
 - per-platform та combined SHA-256;
 - legal notices у source та executable packages;
-- без нової бізнес-логіки відносно прийнятого 10.3-r10;
+- адаптивність інтерфейсу й очищення недороблених UI-фрагментів;
+- ДЦВ страхування як необов’язковий документ; кілька активних документів одного типу; ручне архівування;
+- шляховий лист: дані +20% та кутовий штамп підприємства;
 - схема БД та робочі дані не змінюються.
 
 Нумерація:
-- 10.3-r10 вже виданий та immutable;
-- тому наступний повний checkpoint правильно має номер 10.4-r1;
-- після виданого 10.4-r1 наступний кодовий крок — 10.4-r2;
+- 10.4-r1 вже виданий та immutable;
+- тому наступний кодовий checkpoint правильно має номер 10.4-r2;
+- після виданого 10.4-r2 наступний кодовий крок — 10.4-r3;
 - перший розряд змінюється тільки за прямим рішенням власника.

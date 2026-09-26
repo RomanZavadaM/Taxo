@@ -55,7 +55,7 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         personnel_source=inspect.getsource(personnel_v91)
         self.assertIn('style="Shell.TNotebook"',personnel_source)
         self.assertIn('text="Реєстр працівників"',personnel_source)
-        self.assertIn('text="＋  Новий працівник"',personnel_source)
+        self.assertIn('text="Новий працівник"',personnel_source)
         self.assertIn('text="Відкрити картку"',personnel_source)
         self.assertIn('text="Звільнити / поновити"',personnel_source)
         self.assertIn('text="Пошук"',personnel_source)

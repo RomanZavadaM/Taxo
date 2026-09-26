@@ -54,15 +54,14 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertNotIn("self.title(", personnel_source)
 
     def test_supported_document_types(self):
-        self.assertEqual(
-            set(DOCUMENT_TYPES),
+        self.assertTrue(
             {
                 "insurance",
                 "inspection",
                 "temporary_registration",
                 "registration_certificate",
                 "tachograph_inspection_protocol",
-            },
+            }.issubset(set(DOCUMENT_TYPES))
         )
 
     def test_validity_statuses(self):

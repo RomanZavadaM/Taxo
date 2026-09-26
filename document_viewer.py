@@ -21,6 +21,20 @@ DOCX_EXTENSIONS = {".docx"}
 PREVIEW_EXTENSIONS = PDF_EXTENSIONS | IMAGE_EXTENSIONS | DOCX_EXTENSIONS
 
 
+def fit_window_to_screen(win, width, height, min_width=420, min_height=260):
+    """Keep document viewers usable on small screens and high DPI."""
+    win.update_idletasks()
+    screen_w=max(640,int(win.winfo_screenwidth()))
+    screen_h=max(480,int(win.winfo_screenheight()))
+    max_w=max(520,screen_w-80)
+    max_h=max(360,screen_h-120)
+    final_w=max(420,min(int(width),max_w))
+    final_h=max(260,min(int(height),max_h))
+    win.geometry(f"{final_w}x{final_h}")
+    win.minsize(min(int(min_width),final_w),min(int(min_height),final_h))
+    win.resizable(True,True)
+
+
 def document_kind(path):
     suffix = Path(path).suffix.lower()
     if suffix in PDF_EXTENSIONS:
@@ -168,8 +182,7 @@ class RasterDocumentWindow:
 
         self.win = tk.Toplevel(parent)
         self.win.title(f"Taxo — перегляд: {self.path.name}")
-        self.win.geometry("1050x780")
-        self.win.minsize(720, 520)
+        fit_window_to_screen(self.win, 1050, 780, 720, 520)
         if parent is not None:
             try:
                 self.win.transient(parent)
@@ -179,29 +192,34 @@ class RasterDocumentWindow:
 
         toolbar = ttk.Frame(self.win, padding=(8, 7))
         toolbar.pack(fill="x")
-        self.prev_button = ttk.Button(toolbar, text="◀", width=4, command=self.prev_page)
+        nav = ttk.Frame(toolbar)
+        nav.pack(fill="x")
+        self.prev_button = ttk.Button(nav, text="Назад", width=8, command=self.prev_page)
         self.prev_button.pack(side="left")
-        self.next_button = ttk.Button(toolbar, text="▶", width=4, command=self.next_page)
+        self.next_button = ttk.Button(nav, text="Далі", width=8, command=self.next_page)
         self.next_button.pack(side="left", padx=(4, 8))
         self.page_var = tk.StringVar()
-        ttk.Label(toolbar, textvariable=self.page_var, width=18).pack(side="left")
-        ttk.Button(toolbar, text="−", width=4, command=lambda: self.change_zoom(-0.15)).pack(side="left")
-        ttk.Button(toolbar, text="+", width=4, command=lambda: self.change_zoom(0.15)).pack(side="left", padx=(4, 4))
-        ttk.Button(toolbar, text="По ширині", command=self.set_fit_width).pack(side="left", padx=(4, 12))
+        ttk.Label(nav, textvariable=self.page_var, width=18).pack(side="left")
+        ttk.Button(nav, text="-", width=4, command=lambda: self.change_zoom(-0.15)).pack(side="left")
+        ttk.Button(nav, text="+", width=4, command=lambda: self.change_zoom(0.15)).pack(side="left", padx=(4, 4))
+        ttk.Button(nav, text="По ширині", command=self.set_fit_width).pack(side="left", padx=(4, 12))
         self.zoom_var = tk.StringVar()
-        ttk.Label(toolbar, textvariable=self.zoom_var, width=9).pack(side="left")
+        ttk.Label(nav, textvariable=self.zoom_var, width=9).pack(side="left")
+
+        actions = ttk.Frame(toolbar)
+        actions.pack(fill="x", pady=(6, 0))
         ttk.Button(
-            toolbar, text="Друк",
-            command=lambda: _print(self.win, self.path)
-        ).pack(side="right", padx=(4, 0))
-        ttk.Button(
-            toolbar, text="Відкрити зовнішньо",
-            command=lambda: _external(self.win, self.path, self.external_opener),
-        ).pack(side="right", padx=4)
-        ttk.Button(
-            toolbar, text="Зберегти копію",
+            actions, text="Зберегти копію",
             command=lambda: _save_copy(self.win, self.path),
-        ).pack(side="right", padx=4)
+        ).pack(side="left")
+        ttk.Button(
+            actions, text="Відкрити зовнішньо",
+            command=lambda: _external(self.win, self.path, self.external_opener),
+        ).pack(side="left", padx=4)
+        ttk.Button(
+            actions, text="Друк",
+            command=lambda: _print(self.win, self.path)
+        ).pack(side="left", padx=4)
 
         body = ttk.Frame(self.win)
         body.pack(fill="both", expand=True)
@@ -299,8 +317,7 @@ class DocxDocumentWindow:
         self.external_opener = external_opener
         self.win = tk.Toplevel(parent)
         self.win.title(f"Taxo — DOCX: {self.path.name}")
-        self.win.geometry("980x720")
-        self.win.minsize(700, 500)
+        fit_window_to_screen(self.win, 980, 720, 700, 500)
         if parent is not None:
             try:
                 self.win.transient(parent)
@@ -309,21 +326,25 @@ class DocxDocumentWindow:
 
         toolbar = ttk.Frame(self.win, padding=(8, 7))
         toolbar.pack(fill="x")
+        actions = ttk.Frame(toolbar)
+        actions.pack(fill="x")
+        ttk.Button(
+            actions, text="Зберегти копію",
+            command=lambda: _save_copy(self.win, self.path),
+        ).pack(side="left")
+        ttk.Button(
+            actions, text="Відкрити оригінал",
+            command=lambda: _external(self.win, self.path, self.external_opener),
+        ).pack(side="left", padx=4)
         ttk.Label(
             toolbar,
             text=(
                 "Спрощений перегляд DOCX. Для точного макета використовуйте PDF/JPG, якщо вони збережені."
             ),
             foreground="#7A4E00",
-        ).pack(side="left")
-        ttk.Button(
-            toolbar, text="Відкрити оригінал",
-            command=lambda: _external(self.win, self.path, self.external_opener),
-        ).pack(side="right")
-        ttk.Button(
-            toolbar, text="Зберегти копію",
-            command=lambda: _save_copy(self.win, self.path),
-        ).pack(side="right", padx=4)
+            wraplength=760,
+            justify="left",
+        ).pack(fill="x", pady=(6, 0))
 
         frame = ttk.Frame(self.win)
         frame.pack(fill="both", expand=True, padx=8, pady=(0, 8))

@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.4-r1"
+APP_VERSION = "10.4-r2"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -6435,10 +6435,10 @@ def show_calendar_picker(parent, variable, title="Вибір дати"):
         state["year"], state["month"] = y, m
         redraw()
 
-    ttk.Button(header, text="◀", width=4, command=lambda: move(-1)).pack(side="left")
+    ttk.Button(header, text="Назад", width=7, command=lambda: move(-1)).pack(side="left")
     ttk.Label(header, textvariable=month_title, width=20, anchor="center",
               font=("TkDefaultFont", 10, "bold")).pack(side="left", padx=6)
-    ttk.Button(header, text="▶", width=4, command=lambda: move(1)).pack(side="left")
+    ttk.Button(header, text="Далі", width=7, command=lambda: move(1)).pack(side="left")
     ttk.Button(header, text="Сьогодні", command=lambda: choose(date.today())).pack(side="left", padx=(8, 0))
 
     def redraw():
@@ -6908,7 +6908,7 @@ class App(tk.Tk):
         sections_menu = tk.Menu(menubar, tearoff=0)
         for section_index, (label, tab) in enumerate((
             ("Підприємство", self.tab_company),
-            ("Водії", self.tab_drivers),
+            ("Працівники", self.tab_drivers),
             ("Автомобілі", self.tab_vehicles),
             ("Табель", self.tab_work),
             ("Графік водіїв", self.tab_schedule),
@@ -6943,7 +6943,7 @@ class App(tk.Tk):
         help_menu.add_command(label="Про програму", command=self.show_about)
         menubar.add_cascade(label="Довідка", menu=help_menu)
         # Windows/Linux use the approved in-window header instead of the
-        # legacy native menu row.  The full menu remains available from ☰.
+        # legacy native menu row.  The full menu remains available from the menu button.
         self._app_menu=menubar
         if sys.platform=="darwin":
             self.config(menu=menubar)
@@ -7660,11 +7660,16 @@ class App(tk.Tk):
         # The old Notebook remains only as an internal page container; its
         # native tab strip is hidden and navigation lives in the sidebar.
         # ------------------------------------------------------------------
-        header=tk.Frame(self,bg=PALETTE["header"],height=116)
+        compact_shell = (
+            int(self.winfo_screenwidth()) < 1100
+            or int(self.winfo_screenheight()) < 720
+        )
+        header_height = 94 if compact_shell else 116
+        header=tk.Frame(self,bg=PALETTE["header"],height=header_height)
         header.pack(side="top",fill="x")
         header.pack_propagate(False)
 
-        self._main_logo=brand_photo(header,86)
+        self._main_logo=brand_photo(header,68 if compact_shell else 86)
         tk.Label(
             header,image=self._main_logo,bg=PALETTE["header"],bd=0
         ).pack(side="left",padx=(18,10),pady=10)
@@ -7675,7 +7680,7 @@ class App(tk.Tk):
         tk.Label(
             brand_block,textvariable=self.main_title_var,
             bg=PALETTE["header"],fg="#151A73",
-            font=("TkDefaultFont",20,"bold"),anchor="w"
+            font=("TkDefaultFont",16 if compact_shell else 20,"bold"),anchor="w"
         ).pack(anchor="w")
         tk.Label(
             brand_block,text="Автотранспортне підприємство",
@@ -7684,7 +7689,8 @@ class App(tk.Tk):
         ).pack(anchor="w",pady=(2,0))
 
         slogan=tk.Frame(header,bg=PALETTE["header"])
-        slogan.pack(side="left",expand=True,fill="both",padx=(26,12))
+        if not compact_shell:
+            slogan.pack(side="left",expand=True,fill="both",padx=(26,12))
         tk.Label(
             slogan,text="Рухаємо людей\nдо кращого завтра!",
             bg=PALETTE["header"],fg="#1556C0",
@@ -7717,7 +7723,7 @@ class App(tk.Tk):
             side="left",fill="y",pady=7
         )
         tk.Label(
-            header_right,text="●",bg=PALETTE["header"],fg=PALETTE["blue"],
+            header_right,text="*",bg=PALETTE["header"],fg=PALETTE["blue"],
             font=("TkDefaultFont",17)
         ).pack(side="left",padx=(12,5))
         tk.Label(
@@ -7727,7 +7733,7 @@ class App(tk.Tk):
         ).pack(side="left",padx=(0,14))
 
         self.header_settings_button=tk.Button(
-            header_right,text="⚙  Налаштування",
+            header_right,text="Налаштування",
             command=lambda:self.show_tab(self.tab_company),
             bg=PALETTE["header"],fg=PALETTE["navy"],
             activebackground=PALETTE["soft_blue_2"],
@@ -7738,7 +7744,7 @@ class App(tk.Tk):
         self.header_settings_button.pack(side="left",padx=3)
 
         self.header_menu_button=tk.Button(
-            header_right,text="☰",
+            header_right,text="Меню",
             command=self._show_app_menu,
             bg=PALETTE["header"],fg=PALETTE["navy"],
             activebackground=PALETTE["soft_blue_2"],
@@ -7751,11 +7757,10 @@ class App(tk.Tk):
         tk.Frame(self,bg="#79C8EC",height=2).pack(side="top",fill="x")
 
         # Bottom operational status bar from the approved mock-up.
-        status=tk.Frame(self,bg="#F7FCFF",height=34)
+        status=tk.Frame(self,bg="#F7FCFF")
         status.pack(side="bottom",fill="x")
-        status.pack_propagate(False)
         tk.Label(
-            status,text="●",bg="#F7FCFF",fg=PALETTE["success"],
+            status,text="*",bg="#F7FCFF",fg=PALETTE["success"],
             font=("TkDefaultFont",12)
         ).pack(side="left",padx=(16,4))
         tk.Label(
@@ -7860,7 +7865,7 @@ class App(tk.Tk):
                     anchor="w",takefocus=1,
                     bg=PALETTE["sidebar"],fg="#FFFFFF",
                     relief="flat",bd=0,highlightthickness=0,
-                    padx=16,pady=11,font=("TkDefaultFont",11,"bold"),
+                    padx=12 if compact_shell else 16,pady=7 if compact_shell else 11,font=("TkDefaultFont",10 if compact_shell else 11,"bold"),
                     cursor="pointinghand"
                 )
 
@@ -7892,7 +7897,7 @@ class App(tk.Tk):
                     activebackground=PALETTE["blue_dark"],
                     activeforeground="#FFFFFF",
                     relief="flat",bd=0,highlightthickness=0,
-                    padx=16,pady=10,font=("TkDefaultFont",10,"bold"),
+                    padx=12 if compact_shell else 16,pady=6 if compact_shell else 10,font=("TkDefaultFont",9 if compact_shell else 10,"bold"),
                     cursor="hand2"
                 )
             btn.pack(fill="x")
@@ -7914,7 +7919,8 @@ class App(tk.Tk):
         road=tk.Canvas(
             sidebar,bg="#125E87",highlightthickness=0,bd=0,height=170
         )
-        road.pack(side="bottom",fill="both",expand=True)
+        if not compact_shell:
+            road.pack(side="bottom",fill="both",expand=True)
         def draw_road(event):
             road.delete("all")
             w=max(176,event.width)
@@ -8065,6 +8071,21 @@ class App(tk.Tk):
         # чи подія справді належить цій вкладці, і не забирає колесо у таблиць.
         canvas.bind_all("<MouseWheel>", wheel, add="+")
         canvas.bind_all("<Shift-MouseWheel>", shift_wheel, add="+")
+        # X11/Linux Tk reports wheel events as Button-4/Button-5.
+        canvas.bind_all(
+            "<Button-4>",
+            lambda event: (canvas.yview_scroll(-1, "units"), "break")[1]
+            if owns_event(event) and event.widget.winfo_class() not in {"Treeview", "Text"}
+            else None,
+            add="+",
+        )
+        canvas.bind_all(
+            "<Button-5>",
+            lambda event: (canvas.yview_scroll(1, "units"), "break")[1]
+            if owns_event(event) and event.widget.winfo_class() not in {"Treeview", "Text"}
+            else None,
+            add="+",
+        )
 
         setattr(self, f"_{key}_scroll_canvas", canvas)
         return body
@@ -8139,7 +8160,7 @@ class App(tk.Tk):
                 "Якщо поле порожнє — в англійську сторону автоматично підставляється українське значення. "
                 "Телефон, факс та E-mail копіюються без змін."
             ),
-            foreground="gray", wraplength=1050, justify="left"
+            foreground=PALETTE["muted"], wraplength=1050, justify="left"
         ).grid(row=0, column=0, columnspan=2, sticky="w", padx=8, pady=(7,4))
         for i, (key, label) in enumerate(en_labels, start=1):
             ttk.Label(en_box, text=label).grid(row=i, column=0, sticky="w", padx=8, pady=5)
@@ -8163,7 +8184,7 @@ class App(tk.Tk):
         ttk.Label(
             waybill_box,
             text="Офіційний номер береться з активного пулу за датою роботи. Перегляд не витрачає номер; повторний друк зберігає номер і збільшує ревізію.",
-            foreground="gray",wraplength=850,justify="left"
+            foreground=PALETTE["muted"],wraplength=850,justify="left"
         ).grid(row=4,column=0,columnspan=2,sticky="w",padx=8,pady=(2,7))
         waybill_box.columnconfigure(1,weight=1)
 
@@ -8181,7 +8202,7 @@ class App(tk.Tk):
                 "Під час створення або редагування Бланка поточні реквізити "
                 "також зберігаються автоматично."
             ),
-            foreground="gray"
+            foreground=PALETTE["muted"]
         ).pack(side="left", padx=(12,0))
 
         transport_box = ttk.LabelFrame(
@@ -8209,7 +8230,7 @@ class App(tk.Tk):
                 "Вибір зберігається в базі та використовується у «Підсумки / контроль». "
                 "Для інших профілів спеціальні винятки №340 будемо підключати окремо."
             ),
-            foreground="gray",
+            foreground=PALETTE["muted"],
             wraplength=850,
             justify="left"
         ).grid(row=1, column=0, columnspan=2, sticky="w", padx=8, pady=(0, 8))
@@ -8223,10 +8244,10 @@ class App(tk.Tk):
         ttk.Button(btns, text="Відкрити папку даних", command=self.open_data_folder).pack(side="left")
         ttk.Button(btns, text="Вийти", command=self.exit_app).pack(side="right")
         kind_label={"local":"локальне","network":"мережеве","cloud":"синхронізована хмара"}.get(storage_kind(DATA_ROOT),"інше")
-        ttk.Label(host, text=f"Робоче сховище ({kind_label}): {DATA_ROOT}", foreground="gray").pack(anchor="w", padx=12)
-        ttk.Label(host, text=f"База: {DB_PATH}", foreground="gray").pack(anchor="w", padx=12)
-        ttk.Label(host, text=f"Резервні копії: {BACKUP_DIR}", foreground="gray").pack(anchor="w", padx=12)
-        ttk.Label(host, text="Усі змінні дані зберігаються тут окремо від програми. Одночасно сховище відкриває лише одна копія Taxo.", foreground="gray").pack(anchor="w", padx=12)
+        ttk.Label(host, text=f"Робоче сховище ({kind_label}): {DATA_ROOT}", foreground=PALETTE["muted"]).pack(anchor="w", padx=12)
+        ttk.Label(host, text=f"База: {DB_PATH}", foreground=PALETTE["muted"]).pack(anchor="w", padx=12)
+        ttk.Label(host, text=f"Резервні копії: {BACKUP_DIR}", foreground=PALETTE["muted"]).pack(anchor="w", padx=12)
+        ttk.Label(host, text="Усі змінні дані зберігаються тут окремо від програми. Одночасно сховище відкриває лише одна копія Taxo.", foreground=PALETTE["muted"]).pack(anchor="w", padx=12)
 
     def manual_backup(self):
         choice={"value":None}
@@ -8254,7 +8275,7 @@ class App(tk.Tk):
                 "Основна БД і тахографічна БД копіюються завжди. "
                 "Великі файлові каталоги додавайте лише коли це потрібно."
             ),
-            foreground="gray",wraplength=660,justify="left",
+            foreground=PALETTE["muted"],wraplength=660,justify="left",
         ).pack(anchor="w",pady=(5,12))
 
         mandatory=ttk.LabelFrame(body,text="Завжди")
@@ -8391,7 +8412,7 @@ class App(tk.Tk):
         kind_label={"local":"Локальна папка","network":"Мережева папка / NAS","cloud":"Синхронізована хмарна папка"}.get(kind,"Папка")
         ttk.Label(body,text="Поточне робоче сховище",font=("TkDefaultFont",11,"bold")).pack(anchor="w")
         ttk.Label(body,text=str(DATA_ROOT),wraplength=760,justify="left").pack(anchor="w",pady=(5,2))
-        ttk.Label(body,text=kind_label,foreground="gray").pack(anchor="w")
+        ttk.Label(body,text=kind_label,foreground=PALETTE["muted"]).pack(anchor="w")
 
         ttk.Separator(body).pack(fill="x",pady=12)
         ttk.Label(
@@ -8696,7 +8717,7 @@ class App(tk.Tk):
         ttk.Button(top,text="Звільнити / поновити",command=self.toggle_employee_active).pack(side="left",padx=3)
         ttk.Button(top,text="Зміни випуску",command=self.show_dispatch_staff_schedule).pack(side="left",padx=3)
         ttk.Button(top,text="Табель персоналу",command=self.show_employee_timesheet).pack(side="left",padx=3)
-        ttk.Label(win,text="Водій є працівником із додатковою водійською карткою. Лікаря, механіка, диспетчера та інших вводьте тут один раз.",foreground="gray",wraplength=1020,justify="left").pack(fill="x",padx=10,pady=(0,6))
+        ttk.Label(win,text="Водій є працівником із додатковою водійською карткою. Лікаря, механіка, диспетчера та інших вводьте тут один раз.",foreground=PALETTE["muted"],wraplength=1020,justify="left").pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6)
         frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
         cols=("id","personnel","name","gender","roles","position","tariff","employment","dismissal","phone","status")
@@ -9241,7 +9262,7 @@ class App(tk.Tk):
         title_left=ttk.Frame(title_row)
         title_left.pack(side="left",fill="x",expand=True)
         ttk.Label(
-            title_left,text="▣  Табель робочого часу всіх працівників",
+            title_left,text="Табель робочого часу всіх працівників",
             style="HeroTitle.TLabel"
         ).pack(anchor="w")
         ttk.Label(
@@ -9316,7 +9337,7 @@ class App(tk.Tk):
         timesheet_status.pack(side="bottom",fill="x")
         timesheet_status.pack_propagate(False)
         tk.Label(
-            timesheet_status,text="●",bg="#F7FCFF",fg=PALETTE["success"],
+            timesheet_status,text="*",bg="#F7FCFF",fg=PALETTE["success"],
             font=("TkDefaultFont",11)
         ).pack(side="left",padx=(14,4))
         tk.Label(
@@ -9370,7 +9391,7 @@ class App(tk.Tk):
         summary_hint.pack(fill="x")
         ttk.Label(
             summary_hint,
-            text="ⓘ Подвійний клік по працівнику відкриває щоденну деталізацію. "
+            text="Подвійний клік по працівнику відкриває щоденну деталізацію. "
                  "Червоним позначені рядки, де є план, але відсутній підтверджений факт.",
             foreground=PALETTE["blue_dark"]
         ).pack(side="left")
@@ -9620,7 +9641,7 @@ class App(tk.Tk):
             ttk.Combobox(dialog,textvariable=day_type,values=DAY_TYPES,state="readonly",width=38).grid(row=0,column=1,sticky="ew",padx=10,pady=7)
             ttk.Label(dialog,text="План, ГГ:ХХ").grid(row=1,column=0,sticky="w",padx=10,pady=7)
             ttk.Entry(dialog,textvariable=plan).grid(row=1,column=1,sticky="ew",padx=10,pady=7)
-            ttk.Label(dialog,text=f"Порожньо = автоматично {minutes_hhmm(current['planned_minutes'])}",foreground="gray").grid(row=2,column=1,sticky="w",padx=10)
+            ttk.Label(dialog,text=f"Порожньо = автоматично {minutes_hhmm(current['planned_minutes'])}",foreground=PALETTE["muted"]).grid(row=2,column=1,sticky="w",padx=10)
             ttk.Label(dialog,text="Факт — відпрацьовано всього, ГГ:ХХ").grid(row=3,column=0,sticky="w",padx=10,pady=7)
             ttk.Entry(dialog,textvariable=actual).grid(row=3,column=1,sticky="ew",padx=10,pady=7)
 
@@ -9639,7 +9660,7 @@ class App(tk.Tk):
                 fact_box,
                 text=("Ці поля — фактичні складові загального факту. Вечірні години Taxo не вигадує автоматично: "
                       "їх вносять за правилом/колективним договором підприємства."),
-                foreground="gray",wraplength=620,justify="left"
+                foreground=PALETTE["muted"],wraplength=620,justify="left"
             ).grid(row=4,column=0,columnspan=2,sticky="w",pady=(5,0))
 
             ttk.Label(dialog,text="Примітка").grid(row=5,column=0,sticky="w",padx=10,pady=7)
@@ -10142,7 +10163,7 @@ class App(tk.Tk):
         ttk.Label(
             en,
             text="Якщо англійське поле порожнє, у англійську сторону Бланка автоматично підставляється відповідне українське поле.",
-            foreground="gray",wraplength=680,justify="left"
+            foreground=PALETTE["muted"],wraplength=680,justify="left"
         ).grid(row=len(en_fields),column=0,columnspan=2,sticky="w",padx=6,pady=(5,2))
         en.columnconfigure(1,weight=1)
 
@@ -10490,7 +10511,7 @@ class App(tk.Tk):
         ttk.Button(top,text="Новий пул",command=self.waybill_number_pool_form).pack(side="left",padx=3)
         ttk.Button(top,text="Редагувати",command=self.edit_waybill_number_pool).pack(side="left",padx=3)
         ttk.Button(top,text="Закрити / активувати",command=self.toggle_waybill_number_pool).pack(side="left",padx=3)
-        ttk.Label(win,text="Taxo вибирає пул за датою роботи. Для готових пронумерованих бланків використовуйте ручний режим.",foreground="gray",wraplength=990,justify="left").pack(fill="x",padx=10,pady=(0,6))
+        ttk.Label(win,text="Taxo вибирає пул за датою роботи. Для готових пронумерованих бланків використовуйте ручний режим.",foreground=PALETTE["muted"],wraplength=990,justify="left").pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6); frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
         cols=("id","series","range","next","dates","mode","status","notes")
         self.pool_tree=ttk.Treeview(frame,columns=cols,show="headings")
@@ -10632,7 +10653,7 @@ class App(tk.Tk):
         ttk.Label(
             self.tab_vehicles,
             text="Каталог транспортних засобів. Документи зберігаються з копіями та контролем строків дії.",
-            foreground="gray",
+            foreground=PALETTE["muted"],
         ).pack(anchor="w", padx=12)
         cols=("id","name","plate","garage","make","year","ownership","active","documents","notes")
         self.vehicle_tree=ttk.Treeview(self.tab_vehicles,columns=cols,show="headings",height=25)
@@ -10828,7 +10849,7 @@ class App(tk.Tk):
                 "робочий час дорівнює керуванню; далі його можна збільшити/уточнити окремо. "
                 "Проміжки між частинами використовуються для контролю перерв у керуванні 4:30 → 45 хв або 15+30."
             ),
-            foreground="gray",wraplength=1080,justify="left"
+            foreground=PALETTE["muted"],wraplength=1080,justify="left"
         ).pack(anchor="w",padx=12,pady=(2,0))
         cols=("id","date","weekday","type","schedule","breaks","work","drive","over","route","vehicle","notes","mode")
         self.work_tree=ttk.Treeview(self.tab_work,columns=cols,show="headings",height=24,selectmode="extended")
@@ -10917,7 +10938,7 @@ class App(tk.Tk):
                 "(наприклад 8:00 або 7:30). Без часу початку/закінчення зміни. "
                 "PDF та Excel розраховані на A4, альбомна орієнтація, з поділом місяця на три частини."
             ),
-            foreground="gray",
+            foreground=PALETTE["muted"],
             wraplength=1350,
             justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
@@ -10951,7 +10972,7 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text="Позначення: В - вихідний; Відп - відпустка; Лік - лікарняний; Відпч - відпочинок; Гот - готовність; Інш - інша робота.",
-            foreground="gray"
+            foreground=PALETTE["muted"]
         ).pack(fill="x",padx=10,pady=(0,8))
 
         self.refresh_monthly_work_balance()
@@ -11125,9 +11146,9 @@ class App(tk.Tk):
         ttk.Label(nav,text="Дата:").pack(side="left")
         ttk.Entry(nav,textvariable=self.schedule_date_var,width=13).pack(side="left",padx=5)
         calendar_button(nav,self.schedule_date_var).pack(side="left",padx=2)
-        ttk.Button(nav,text="◀ День",command=lambda:self.shift_schedule_day(-1)).pack(side="left",padx=3)
+        ttk.Button(nav,text="Попередній день",command=lambda:self.shift_schedule_day(-1)).pack(side="left",padx=3)
         ttk.Button(nav,text="Сьогодні",command=self.schedule_today).pack(side="left",padx=3)
-        ttk.Button(nav,text="День ▶",command=lambda:self.shift_schedule_day(1)).pack(side="left",padx=3)
+        ttk.Button(nav,text="Наступний день",command=lambda:self.shift_schedule_day(1)).pack(side="left",padx=3)
         ttk.Button(nav,text="Оновити",command=self.refresh_schedule).pack(side="left",padx=5)
 
         actions=ttk.Frame(top); actions.pack(fill="x",pady=(5,0))
@@ -11156,7 +11177,7 @@ class App(tk.Tk):
         ttk.Label(
             self.tab_schedule,
             text="План дня по всіх активних водіях. Подвійний клік по смузі або рядку відкриває день для редагування.",
-            foreground="gray",wraplength=1080,justify="left"
+            foreground=PALETTE["muted"],wraplength=1080,justify="left"
         ).pack(anchor="w",padx=12)
 
         legend=ttk.Frame(self.tab_schedule); legend.pack(fill="x",padx=12,pady=(4,2))
@@ -11609,7 +11630,7 @@ class App(tk.Tk):
                 "«Відкрити деталізацію» формує актуальний PDF без діалогу збереження та одразу відкриває його. "
                 "Для ручного редагування використовуйте «Excel — редагувати»."
             ),
-            foreground="gray",
+            foreground=PALETTE["muted"],
             wraplength=1350,
             justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
@@ -11640,7 +11661,7 @@ class App(tk.Tk):
         ttk.Label(
             win,
             text="Позначення: В - вихідний; Відп - відпустка; Лік - лікарняний; Відпч - відпочинок; Гот - готовність.",
-            foreground="gray"
+            foreground=PALETTE["muted"]
         ).pack(fill="x",padx=10,pady=(0,8))
 
         self.refresh_monthly_shift_schedule()
@@ -12141,7 +12162,7 @@ class App(tk.Tk):
                 "ПІБ лікаря/механіка автоматично переходить у шляхівки цієї дати; "
                 "власноручний підпис залишається у паперовому документі."
             ),
-            foreground="gray",wraplength=930,justify="left"
+            foreground=PALETTE["muted"],wraplength=930,justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
         frame.columnconfigure(0,weight=1); frame.rowconfigure(0,weight=1)
@@ -12555,7 +12576,7 @@ class App(tk.Tk):
             win,
             text=("Планові реквізити беруться безпосередньо з графіка: водій, маршрут, автомобіль, "
                   "графік зупинок прямого/зворотного напрямку та чергові лікар/механік. Фактичні, паливні й підписні поля залишаються порожніми."),
-            foreground="gray",wraplength=1050,justify="left"
+            foreground=PALETTE["muted"],wraplength=1050,justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=5)
         cols=("driver","route","vehicle","depart","return","odometer","doctor","mechanic","work","drive","status")
@@ -12623,7 +12644,7 @@ class App(tk.Tk):
         end=tk.StringVar(value="" if row["odometer_end"] is None else str(row["odometer_end"]))
         notes=tk.StringVar()
         ttk.Label(win,text=row["vehicle"],font=("TkDefaultFont",10,"bold"),wraplength=600).grid(row=0,column=0,columnspan=2,sticky="w",padx=12,pady=(12,4))
-        ttk.Label(win,text=f"Рейс: {waybill_date_range_label(row['date'],row['end_date'])}; {row['driver']}",foreground="gray").grid(row=1,column=0,columnspan=2,sticky="w",padx=12,pady=(0,10))
+        ttk.Label(win,text=f"Рейс: {waybill_date_range_label(row['date'],row['end_date'])}; {row['driver']}",foreground=PALETTE["muted"]).grid(row=1,column=0,columnspan=2,sticky="w",padx=12,pady=(0,10))
         ttk.Label(win,text="На початок рейсу, км").grid(row=2,column=0,sticky="w",padx=12,pady=7)
         ttk.Entry(win,textvariable=start,width=28).grid(row=2,column=1,sticky="ew",padx=12,pady=7)
         ttk.Label(win,text="На завершення рейсу, км").grid(row=3,column=0,sticky="w",padx=12,pady=7)
@@ -12643,7 +12664,7 @@ class App(tk.Tk):
         start.trace_add("write",refresh_forecast); refresh_forecast()
         ttk.Label(win,text="Примітка").grid(row=6,column=0,sticky="w",padx=12,pady=7)
         ttk.Entry(win,textvariable=notes,width=42).grid(row=6,column=1,sticky="ew",padx=12,pady=7)
-        ttk.Label(win,text="Обидва фактичні показники можна лишити порожніми. Прогноз не записується як факт; перевірки лише попереджають і не блокують збереження чи видачу.",foreground="gray",wraplength=600,justify="left").grid(row=7,column=0,columnspan=2,sticky="w",padx=12,pady=8)
+        ttk.Label(win,text="Обидва фактичні показники можна лишити порожніми. Прогноз не записується як факт; перевірки лише попереджають і не блокують збереження чи видачу.",foreground=PALETTE["muted"],wraplength=600,justify="left").grid(row=7,column=0,columnspan=2,sticky="w",padx=12,pady=8)
         win.columnconfigure(1,weight=1)
         def save_readings():
             try:
@@ -12682,7 +12703,7 @@ class App(tk.Tk):
         for item in readings:
             driver=" ".join(x for x in (item["last_name"],item["first_name"],item["middle_name"]) if x)
             tree.insert("","end",values=((item["reading_at"] or item["work_date"]).replace("T"," "),kind_labels.get(item["reading_kind"],item["reading_kind"]),item["reading_km"],item["source_type"],driver,item["notes"]))
-        ttk.Label(win,text="Журнал уже підтримує різні джерела. Майбутнє зчитування з тахокарти додаватиме записи з джерелом tachograph.",foreground="gray").pack(anchor="w",padx=10,pady=(0,8))
+        ttk.Label(win,text="Журнал уже підтримує різні джерела. Майбутнє зчитування з тахокарти додаватиме записи з джерелом tachograph.",foreground=PALETTE["muted"]).pack(anchor="w",padx=10,pady=(0,8))
 
     def _waybill_pool_for_date(self, con, work_date):
         return con.execute("""SELECT * FROM waybill_number_pools WHERE status='active' AND valid_from<=?
@@ -12783,7 +12804,12 @@ class App(tk.Tk):
             "planned_return":waybill_time_label(row["date"],row["end_day_offset"],row["end_time_raw"],row["end_date"]>row["date"],"\n"),
             "work_span":row["work_span"],"drive_span":row["drive_span"],
             "route_code":row["route_code"],"driver_personnel_no":row["driver_personnel_no"],
-            "company_name":company["name"] if company else "","waybill_series":document_series,
+            "company_name":company["name"] if company else "",
+            "company_address":company["address"] if company else "",
+            "company_phone":company["phone"] if company else "",
+            "company_fax":company["fax"] if company else "",
+            "company_email":company["email"] if company else "",
+            "waybill_series":document_series,
             "transport_column":company["transport_column"] if company else "","brigade":company["brigade"] if company else "",
             "start_location":row["start_location"],"end_location":row["end_location"],
             "start_direction":row["start_direction"],
@@ -13032,7 +13058,7 @@ class App(tk.Tk):
         ttk.Label(
             top,
             text="Маршрут = готовий ПЛАН з точними годинами. Після застосування його можна змінити для конкретного дня. Тахокарта дає окремий ФАКТ.",
-            foreground="gray"
+            foreground=PALETTE["muted"]
         ).grid(row=2,column=3,columnspan=4,padx=(8,4),sticky="w")
 
         top.columnconfigure(1,weight=1)
@@ -13043,7 +13069,7 @@ class App(tk.Tk):
         ttk.Label(
             apply_frame,
             text="Виберіть маршрут вище та застосуйте його точний часовий сценарій:",
-            foreground="gray"
+            foreground=PALETTE["muted"]
         ).pack(side="left")
 
         cols=("no","work_start","work_end","drive_start","drive_end","work","drive","activity","note")
@@ -13059,7 +13085,7 @@ class App(tk.Tk):
         for c in cols: tree.heading(c,text=heads[c]); tree.column(c,width=widths[c],anchor="w")
         tree.pack(fill="both",expand=True,padx=10,pady=5)
         summary_var=tk.StringVar(value="")
-        ttk.Label(win,textvariable=summary_var,foreground="gray").pack(anchor="w",padx=12,pady=3)
+        ttk.Label(win,textvariable=summary_var,foreground=PALETTE["muted"]).pack(anchor="w",padx=12,pady=3)
 
         seg_data=[]
         def _value(r,key,default=""):
@@ -13141,7 +13167,7 @@ class App(tk.Tk):
                 w.grid(row=i,column=1,padx=10,pady=7,sticky="ew")
 
             duration_var=tk.StringVar(value="")
-            ttk.Label(sw,textvariable=duration_var,foreground="gray").grid(row=6,column=0,columnspan=2,sticky="w",padx=10,pady=(3,5))
+            ttk.Label(sw,textvariable=duration_var,foreground=PALETTE["muted"]).grid(row=6,column=0,columnspan=2,sticky="w",padx=10,pady=(3,5))
             def refresh_durations(*_):
                 try:
                     wm=duration_minutes(vv["work_start_time"].get(),vv["work_end_time"].get())
@@ -14256,7 +14282,7 @@ class App(tk.Tk):
         ttk.Label(
             head,
             text=f"Профіль контролю: {data.get('transport_profile',DEFAULT_TRANSPORT_PROFILE)}",
-            foreground="gray"
+            foreground=PALETTE["muted"]
         ).pack(anchor="w",pady=(2,0))
 
         notebook=ttk.Notebook(win)
@@ -14270,7 +14296,7 @@ class App(tk.Tk):
         ttk.Label(
             day_tools,
             text="Подвійний клік — відкрити день для редагування.",
-            foreground="gray"
+            foreground=PALETTE["muted"]
         ).pack(side="left")
 
         day_frame=ttk.Frame(day_tab)
@@ -14380,7 +14406,7 @@ class App(tk.Tk):
                 "Один маршрут = один точний часовий сценарій. Номер / назва використовується у списках; "
                 "автомобіль, робочі інтервали та керування зберігаються всередині маршруту."
             ),
-            foreground="gray",wraplength=1050,justify="left"
+            foreground=PALETTE["muted"],wraplength=1050,justify="left"
         ).pack(anchor="w",padx=12,pady=(0,6))
         cols=("id","label","vehicle","distance","shift","segments","description","active")
         self.route_catalog_tree=ttk.Treeview(self.tab_route_catalog,columns=cols,show="headings",height=25)
@@ -14561,7 +14587,7 @@ class App(tk.Tk):
             ttk.Label(
                 sw,text=("До 15 рядків у кожному напрямку. Планові прибуття/відправлення друкуються на звороті; "
                          "фактичний час, підпис і особливі відмітки залишаються порожніми."),
-                foreground="gray",wraplength=1020,justify="left"
+                foreground=PALETTE["muted"],wraplength=1020,justify="left"
             ).pack(fill="x",padx=10,pady=(10,5))
             body=ttk.Frame(sw); body.pack(fill="both",expand=True,padx=8,pady=5)
             body.columnconfigure(0,weight=1); body.columnconfigure(1,weight=1); body.rowconfigure(0,weight=1)
@@ -14607,7 +14633,7 @@ class App(tk.Tk):
                           "Колонки: Назва | Прибуття | Відправлення | Тип | Примітка.\n"
                           "D+ вводити не потрібно: після 23:55 → 00:40 програма поставить D+1 сама. "
                           "Порожній час позначайте «-»."),
-                    wraplength=800,justify="left",foreground="gray"
+                    wraplength=800,justify="left",foreground=PALETTE["muted"]
                 ).pack(fill="x",padx=10,pady=(10,6))
                 host=ttk.Frame(qw); host.pack(fill="both",expand=True,padx=10,pady=5)
                 host.rowconfigure(0,weight=1); host.columnconfigure(0,weight=1)
@@ -14655,7 +14681,7 @@ class App(tk.Tk):
                     text=("Найпростіше: скопіюйте з Excel дві колонки — Точка | Час. "
                           "Програма сама поставить перший час як відправлення, останній як прибуття і визначить D+ після півночі.\n"
                           "Якщо потрібна стоянка, використайте три колонки: Точка | Прибуття | Відправлення."),
-                    wraplength=1020,justify="left",foreground="gray"
+                    wraplength=1020,justify="left",foreground=PALETTE["muted"]
                 ).pack(fill="x",padx=10,pady=(10,6))
                 body2=ttk.Frame(qw); body2.pack(fill="both",expand=True,padx=8,pady=5)
                 body2.columnconfigure(0,weight=1); body2.columnconfigure(1,weight=1); body2.rowconfigure(0,weight=1)
@@ -14754,7 +14780,7 @@ class App(tk.Tk):
                     if index is None: stop_data[direction].append(item)
                     else: stop_data[direction][index]=item
                     redraw_stops(direction); refresh_stops_summary(); fw.destroy()
-                ttk.Button(fw,text="Зберегти",command=save_stop).grid(row=4,column=1,sticky="e",padx=10,pady=12)
+                ttk.Button(fw,text="Зберегти",command=save_stop).grid(row=7,column=1,sticky="e",padx=10,pady=12)
 
             for col,(direction,title) in enumerate((("outbound","Прямий напрямок"),("return","Зворотний напрямок"))):
                 frame=ttk.LabelFrame(body,text=title); frame.grid(row=0,column=col,sticky="nsew",padx=5,pady=3)
@@ -14788,7 +14814,7 @@ class App(tk.Tk):
             ttk.Button(bottom,text="Готово",command=sw.destroy).pack(side="right")
 
         refresh_stops_summary()
-        ttk.Label(win,textvariable=stops_summary,foreground="gray").grid(row=8,column=1,columnspan=2,sticky="e",padx=(10,3),pady=(3,5))
+        ttk.Label(win,textvariable=stops_summary,foreground=PALETTE["muted"]).grid(row=8,column=1,columnspan=2,sticky="e",padx=(10,3),pady=(3,5))
         ttk.Button(win,text="Заповнити маршрут для шляхівки…",command=edit_stop_schedule).grid(row=8,column=3,sticky="e",padx=10,pady=(3,5))
         ttk.Label(win,text="Частини робочої зміни").grid(row=9,column=0,sticky="nw",padx=10,pady=8)
 
@@ -14854,7 +14880,7 @@ class App(tk.Tk):
                 )
                 widget.grid(row=row,column=1,padx=10,pady=6,sticky="ew")
             duration_var=tk.StringVar()
-            ttk.Label(sw,textvariable=duration_var,foreground="gray").grid(
+            ttk.Label(sw,textvariable=duration_var,foreground=PALETTE["muted"]).grid(
                 row=6,column=0,columnspan=2,sticky="w",padx=10,pady=4
             )
             def refresh(*_):
@@ -15101,7 +15127,7 @@ class App(tk.Tk):
         ttk.Label(
             f,
             text="Місце водія в нижньому блоці заповнюється автоматично тим самим місцем, що й у директора.",
-            foreground="gray"
+            foreground=PALETTE["muted"]
         ).grid(row=4,column=3,sticky="w",padx=(8,6),pady=6)
         ttk.Label(f,text="Позиція 14–19").grid(row=5,column=0,sticky="w",padx=6,pady=6)
         cb=ttk.Combobox(f,state="readonly",width=55,textvariable=self.att_activity,
@@ -15196,7 +15222,7 @@ class App(tk.Tk):
         summary_bar=ttk.Frame(hist)
         summary_bar.pack(fill="x",padx=6,pady=(0,3))
         self.att_list_summary=tk.StringVar(value="")
-        ttk.Label(summary_bar,textvariable=self.att_list_summary,foreground="gray").pack(side="left",padx=2)
+        ttk.Label(summary_bar,textvariable=self.att_list_summary,foreground=PALETTE["muted"]).pack(side="left",padx=2)
 
         cols=("id","driver","from","to","activity","place","date","changed","status","revision","formats","file")
         tree_frame=ttk.Frame(hist)
@@ -15214,7 +15240,7 @@ class App(tk.Tk):
         for c in cols:
             self.att_tree.heading(c,text=heads[c])
             self.att_tree.column(c,width=widths[c],anchor="w",stretch=(c=="file"))
-        self.att_tree.tag_configure("deleted",foreground="gray")
+        self.att_tree.tag_configure("deleted",foreground=PALETTE["muted"])
         att_y=ttk.Scrollbar(tree_frame,orient="vertical",command=self.att_tree.yview)
         att_x=ttk.Scrollbar(tree_frame,orient="horizontal",command=self.att_tree.xview)
         self.att_tree.configure(yscrollcommand=att_y.set,xscrollcommand=att_x.set)
@@ -15296,7 +15322,7 @@ class App(tk.Tk):
                 "бланк на залишок, а пропонує уточнити межі існуючого бланка новою ревізією. Дата кожного "
                 "бланка автоматично дорівнює даті закінчення його періоду, навіть якщо бланк друкується заздалегідь."
             ),
-            foreground="gray",wraplength=1200,justify="left"
+            foreground=PALETTE["muted"],wraplength=1200,justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
 
         frame=ttk.Frame(win)
@@ -15614,7 +15640,7 @@ class App(tk.Tk):
             ttk.Label(
                 win,
                 text="Плановий орієнтир (не факт): " + " | ".join(plan_text),
-                foreground="gray",wraplength=720,justify="left"
+                foreground=PALETTE["muted"],wraplength=720,justify="left"
             ).grid(row=1,column=0,columnspan=3,sticky="w",padx=12,pady=(0,10))
 
         ttk.Label(
@@ -15637,7 +15663,7 @@ class App(tk.Tk):
                 "Taxo не відносить його автоматично ні до бланка, ні до оплачуваного робочого часу, "
                 "але він не входить у безперервний відпочинок. План при цьому не змінюється."
             ),
-            foreground="gray",wraplength=720,justify="left"
+            foreground=PALETTE["muted"],wraplength=720,justify="left"
         ).grid(row=4,column=0,columnspan=3,sticky="w",padx=12,pady=(10,12))
 
         def save_fact():
@@ -16166,7 +16192,7 @@ class App(tk.Tk):
                 "Між роботою та відпочинком може бути ручний некласифікований проміжок "
                 "(наприклад добирання до/від ТЗ), який не входить у бланк і не додається в табель."
             ),
-            foreground="gray",wraplength=700,justify="left"
+            foreground=PALETTE["muted"],wraplength=700,justify="left"
         ).grid(row=5,column=0,columnspan=3,sticky="w",padx=12,pady=(8,12))
 
         def save_edit():
