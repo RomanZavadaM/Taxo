@@ -1,0 +1,56 @@
+name: Fix Taxo 10.4-r2 Win7 publisher gate
+
+on:
+  push:
+    branches:
+      - 'work/v10.4-r2-ui-docs-waybill'
+    paths:
+      - '.github/workflows/fix-v10.4-r2-win7-gate.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/v10.4-r2-ui-docs-waybill
+          fetch-depth: 0
+
+      - name: Replace embedded PE checker with reusable script
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/publish-v10.4-r2.yml')
+          text = path.read_text(encoding='utf-8')
+          start = "      - name: Verify Windows 7 PE import compatibility\n"
+          end = "      - name: Create Windows 7 portable ZIP\n"
+          if start not in text or end not in text:
+              raise SystemExit('Win7 PE gate markers not found')
+          before, tail = text.split(start, 1)
+          _, after = tail.split(end, 1)
+          replacement = (
+              start
+              + "        shell: pwsh\n"
+              + "        run: |\n"
+              + "          $env:TAXO_WIN7_BUNDLE = (Resolve-Path 'dist/Taxo_v10_4_candidate_r2_Windows7_x64').Path\n"
+              + "          python scripts/check_win7_pe.py\n\n"
+              + end
+          )
+          path.write_text(before + replacement + after, encoding='utf-8')
+          PY
+
+      - name: Commit clean publisher repair and remove helper
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-v10.4-r2-win7-gate.yml
+          git add .github/workflows/publish-v10.4-r2.yml scripts/check_win7_pe.py
+          git commit -m 'ci: harden Taxo 10.4-r2 Windows 7 PE gate'
+          git push origin HEAD:work/v10.4-r2-ui-docs-waybill
