@@ -1,8 +1,11 @@
 # Taxo 10.4-r2 — UI cleanup, vehicle documents and waybill readability
 
-**Дата:** 26.09.2026  
+**Дата:** 26–27.09.2026  
 **Тип:** full multi-platform candidate checkpoint  
-**Stable baseline:** Taxo 10.3 (`v10.3`)
+**Stable baseline:** Taxo 10.3 (`v10.3`) — unchanged  
+**Tag/prerelease:** `v10.4-r2`  
+**Exact release target:** `ee6687c59d7dc1a8a38de4b7858669fddc3f647c`  
+**Main integration:** PR #74 → `271d43c0912e24c95014ac2a92ba2fc1695f4a11`
 
 ## Що змінено
 
@@ -45,13 +48,17 @@
 ## Перевірки
 
 - `python -m py_compile` для змінених модулів — OK;
-- regression suite: **300 tests passed + 12 subtests passed**;
+- source regression suite: **300 tests / OK**;
+- Windows 7 / Python 3.8 regression suite: **300 tests / OK**;
 - окремий regression coverage для ДЦВ, кількох активних документів одного типу, explicit archive, UI-remediation markers і packaging identity;
-- тестовий PDF шляхового листа відрендерено у дві A4-сторінки та перевірено візуально.
+- тестовий PDF шляхового листа відрендерено у дві A4-сторінки та перевірено візуально;
+- Windows 7 PE compatibility scan — **success**; заборонений Win8+ import `api-ms-win-core-path-l1-1-0.dll` у bundle не виявлено;
+- фінальний Windows PR gate `36275442986` — success;
+- фінальний macOS ARM64/Intel PR gate `36275442988` — success.
 
 ## Пакети checkpoint
 
-Повний publisher формує:
+Опубліковано:
 
 - Windows x64 Setup;
 - Windows x64 Portable;
@@ -63,4 +70,13 @@
 - per-platform та combined SHA-256 manifests;
 - legal notices у source/executable packages.
 
-Опублікований `v10.4-r1` не змінюється. Після виданого `10.4-r2` наступний кодовий крок — тільки **10.4-r3**.
+Full publisher run: `36275440403` — **success**.
+
+## Інтеграція
+
+- `v10.4-r2` опубліковано з exact candidate head `ee6687c59d7dc1a8a38de4b7858669fddc3f647c`;
+- PR #74 після успішних publisher/gates merged у `main` як `271d43c0912e24c95014ac2a92ba2fc1695f4a11`;
+- stable `v10.3` не пересувався;
+- `v10.4-r1` та всі попередні tags/releases лишаються immutable historical checkpoints.
+
+Після виданого `10.4-r2` наступний кодовий крок — тільки **10.4-r3**.
