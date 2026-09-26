@@ -31,8 +31,8 @@ jobs:
           encoded = Path('/tmp/v10_4_r2.b85').read_bytes()
           Path('/tmp/v10_4_r2.patch').write_bytes(zlib.decompress(base64.b85decode(encoded)))
           PY
-          git apply --check /tmp/v10_4_r2.patch
-          git apply /tmp/v10_4_r2.patch
+          git apply --check --exclude=docs/releases/RELEASE_INDEX.md /tmp/v10_4_r2.patch
+          git apply --exclude=docs/releases/RELEASE_INDEX.md /tmp/v10_4_r2.patch
           git rm -r .release/v10.4-r2-patch
           git rm .github/workflows/apply-v10.4-r2-patch.yml
           git config user.name 'github-actions[bot]'
