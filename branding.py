@@ -15,7 +15,7 @@ from branding_asset import APPROVED_LOGO_PNG_BASE64
 
 PALETTE = {
     "navy": "#0F3A67",
-    "blue": "#087FC3",
+    "blue": "#0675B0",
     "blue_dark": "#075B8B",
     "sidebar": "#126B99",
     "header": "#EAF7FD",
@@ -28,11 +28,11 @@ PALETTE = {
     "paper": "#F4FAFD",
     "panel": "#FFFFFF",
     "text": "#17324D",
-    "muted": "#667A8D",
+    "muted": "#52687A",
     "line": "#B8D7E8",
     "success": "#159A59",
     "success_soft": "#E6F6EC",
-    "warning": "#E49B00",
+    "warning": "#9A5C00",
     "warning_soft": "#FFF4D2",
     "danger": "#D9434E",
     "danger_soft": "#FDEBEC",
@@ -50,6 +50,10 @@ def apply_theme(root, ttk):
 
     root.configure(bg=PALETTE["paper"])
     style.configure(".", font=("TkDefaultFont", 10))
+    try:
+        tree_rowheight=max(26,int(root.tk.call("font","metrics","TkDefaultFont","-linespace"))+10)
+    except Exception:
+        tree_rowheight=28
     style.configure("TFrame", background=PALETTE["paper"])
     style.configure("Card.TFrame", background=PALETTE["panel"], relief="solid", borderwidth=1)
     style.configure("Toolbar.TFrame", background=PALETTE["header"])
@@ -122,7 +126,7 @@ def apply_theme(root, ttk):
         background=PALETTE["panel"],
         fieldbackground=PALETTE["panel"],
         foreground=PALETTE["text"],
-        rowheight=26,
+        rowheight=tree_rowheight,
         bordercolor=PALETTE["line"],
     )
     style.configure(

@@ -83,7 +83,7 @@ class V870R6Tests(unittest.TestCase):
                 "2026-09-15T08:00:00","2026-09-15T18:00:00")
             con.commit()
             self.assertEqual(main.get_waybill_odometer_readings(con,worklog_id),(120000,120275))
-            self.assertEqual(con.execute("SELECT COUNT(*) FROM vehicle_odometer_readings WHERE source_type='waybill'").fetchone()[0],2)
+            self.assertEqual(con.execute("SELECT COUNT(*) FROM vehicle_odometer_readings WHERE source_type='waybill' AND source_id=? AND vehicle_id=?",(worklog_id,vehicle_id)).fetchone()[0],2)
             warnings=main.odometer_consistency_warnings(con,vehicle_id,119900,119800,"2026-09-16T08:00:00")
             self.assertGreaterEqual(len(warnings),2)
         finally:

@@ -2,8 +2,8 @@
 """Taxo 10.1 — модуль «Персонал», режими й табелі.
 
 Модуль:
-- додає окремий верхній розділ «Персонал»;
-- залишає стару вкладку водіїв як «Водії»;
+- вбудовує єдиний розділ «Працівники» у затверджений shell;
+- зберігає legacy-водійські дані лише як сумісний внутрішній шар;
 - додає загальне масове планування робочих змін для будь-якого працівника;
 - додає масове внесення відсутностей/відпусток у табель;
 - надає PDF/XLSX типової форми № П-5; план замість відсутнього факту підставляється лише після явного підтвердження користувача;
@@ -2117,7 +2117,7 @@ def install(core, base_app):
                 style="Muted.TLabel",
             ).pack(anchor="w", pady=(3,0))
             core.ttk.Button(
-                hero, text="＋  Новий працівник", style="Accent.TButton",
+                hero, text="Новий працівник", style="Accent.TButton",
                 command=self.employee_form
             ).pack(side="right", padx=(8,0))
             core.ttk.Button(
@@ -2163,7 +2163,7 @@ def install(core, base_app):
             tools = core.ttk.Frame(overview, padding=(16,4,16,8))
             tools.pack(fill="x")
             tool_left = core.ttk.Frame(tools)
-            tool_left.pack(side="left", fill="x", expand=True)
+            tool_left.pack(fill="x", expand=True)
             core.ttk.Button(
                 tool_left, text="Звільнити / поновити", command=self.toggle_employee_active
             ).pack(side="left", padx=(0,4))
@@ -2184,7 +2184,7 @@ def install(core, base_app):
             ).pack(side="left", padx=4)
 
             search_box=core.ttk.Frame(tools)
-            search_box.pack(side="right", padx=(12,0))
+            search_box.pack(fill="x", pady=(7,0))
             core.ttk.Label(search_box,text="Пошук").pack(side="left",padx=(0,5))
             self.personnel_search_var=core.tk.StringVar()
             search_entry=core.ttk.Entry(
@@ -2242,7 +2242,7 @@ def install(core, base_app):
                     "«Оперативні зміни випуску» читають той самий план і служать для контролю "
                     "конкретного дня та внесення факту — другого планувальника немає."
                 ),
-                foreground="gray", wraplength=950, justify="left"
+                foreground=core.PALETTE["muted"], wraplength=950, justify="left"
             ).pack(anchor="w", pady=(4,12))
 
             primary = core.ttk.LabelFrame(panel, text="Робочі графіки", padding=10)
@@ -2269,13 +2269,16 @@ def install(core, base_app):
             # Табель
             tpanel = core.ttk.Frame(timesheet, padding=16); tpanel.pack(fill="x")
             core.ttk.Label(tpanel, text="Табель персоналу", font=("TkDefaultFont",13,"bold")).pack(anchor="w")
-            core.ttk.Label(tpanel, text="Щоденний табель, місячний баланс, ручний факт і контроль відсутнього факту.", foreground="gray").pack(anchor="w", pady=(4,12))
+            core.ttk.Label(tpanel, text="Щоденний табель, місячний баланс, ручний факт і контроль відсутнього факту.", foreground=core.PALETTE["muted"]).pack(anchor="w", pady=(4,12))
             core.ttk.Button(tpanel, text="Відкрити табель персоналу", command=self.show_employee_timesheet).pack(anchor="w", pady=4)
             core.ttk.Button(tpanel, text="Тижневий баланс усього персоналу…", command=self.show_personnel_week_balance).pack(anchor="w", pady=4)
             core.ttk.Button(tpanel, text="Масово внести відсутність…", command=self.show_personnel_absence_planner).pack(anchor="w", pady=4)
 
             # Звіти — це сторінка основного workspace, а не нова копія програми.
-            rpanel = core.ttk.Frame(reports, padding=16); rpanel.pack(fill="x")
+            # Використовуємо загальний scroll-body: на ноутбуках/DPI нижні блоки
+            # залишаються доступними, а широкі реквізити можна прокрутити.
+            reports_body = self._make_scrollable_tab_body(reports, "personnel_reports")
+            rpanel = core.ttk.Frame(reports_body, padding=16); rpanel.pack(fill="both", expand=True)
             core.ttk.Label(
                 rpanel,text="Звіти та друк",style="HeroTitle.TLabel"
             ).pack(anchor="w")
@@ -2315,14 +2318,16 @@ def install(core, base_app):
                     "причини неявок і підсумкові показники. Якщо є план без факту, Taxo "
                     "перед формуванням окремо запитає, чи підставляти план."
                 ),
-                foreground="gray",wraplength=980,justify="left"
+                foreground=core.PALETTE["muted"],wraplength=980,justify="left"
             ).pack(anchor="w",pady=(12,8))
             b = core.ttk.Frame(rpanel); b.pack(fill="x")
-            core.ttk.Button(b,text="Табель П-5 — PDF",command=lambda:self._save_p5("pdf")).pack(side="left",padx=(0,5))
-            core.ttk.Button(b,text="Відкрити останній PDF",command=lambda:self._open_last_p5("pdf")).pack(side="left",padx=5)
-            core.ttk.Button(b,text="Табель П-5 — Excel",command=lambda:self._save_p5("xlsx")).pack(side="left",padx=(16,5))
-            core.ttk.Button(b,text="Відкрити останній Excel",command=lambda:self._open_last_p5("xlsx")).pack(side="left",padx=5)
-            core.ttk.Button(b,text="Звичайний місячний табель",command=self.show_employee_timesheet).pack(side="left",padx=(16,5))
+            b1 = core.ttk.Frame(b); b1.pack(fill="x")
+            core.ttk.Button(b1,text="Табель П-5 — PDF",command=lambda:self._save_p5("pdf")).pack(side="left",padx=(0,5))
+            core.ttk.Button(b1,text="Відкрити останній PDF",command=lambda:self._open_last_p5("pdf")).pack(side="left",padx=5)
+            core.ttk.Button(b1,text="Табель П-5 — Excel",command=lambda:self._save_p5("xlsx")).pack(side="left",padx=(16,5))
+            b2 = core.ttk.Frame(b); b2.pack(fill="x",pady=(6,0))
+            core.ttk.Button(b2,text="Відкрити останній Excel",command=lambda:self._open_last_p5("xlsx")).pack(side="left",padx=(0,5))
+            core.ttk.Button(b2,text="Звичайний місячний табель",command=self.show_employee_timesheet).pack(side="left",padx=5)
 
             vehicle_reports = core.ttk.LabelFrame(
                 rpanel, text="Транспортні засоби", padding=10
@@ -2331,10 +2336,10 @@ def install(core, base_app):
             core.ttk.Label(
                 vehicle_reports,
                 text=(
-                    "Контроль на вибрану дату: страховка, техконтроль, постійний/тимчасовий "
-                    "реєстраційний документ і протокол перевірки тахографа."
+                    "Контроль на вибрану дату: обов’язкові документи ТЗ та їх строки. "
+                    "ДЦВ страхування відображається в реєстрі як додатковий необов’язковий документ."
                 ),
-                foreground="gray", wraplength=900, justify="left"
+                foreground=core.PALETTE["muted"], wraplength=900, justify="left"
             ).pack(side="left", fill="x", expand=True)
             core.ttk.Button(
                 vehicle_reports,
@@ -2557,7 +2562,7 @@ def install(core, base_app):
             field(8, "Примітка / підстава", notes)
             info_var = core.tk.StringVar()
             core.ttk.Label(
-                body, textvariable=info_var, foreground="gray",
+                body, textvariable=info_var, foreground=core.PALETTE["muted"],
                 wraplength=940, justify="left"
             ).grid(row=9, column=0, columnspan=3, sticky="w", pady=(2,6))
 
@@ -2805,7 +2810,7 @@ def install(core, base_app):
                     "які за графіком мали бути робочими. Для підсумованого обліку тижневий Δ "
                     "інформаційний — надурочні визначаються наприкінці облікового періоду."
                 ),
-                foreground="gray", wraplength=1450, justify="left",
+                foreground=core.PALETTE["muted"], wraplength=1450, justify="left",
             ).pack(fill="x", padx=10, pady=(0,7))
 
             def read_anchor():
@@ -2884,7 +2889,7 @@ def install(core, base_app):
 
             info = core.tk.StringVar()
             core.ttk.Label(
-                body,textvariable=info,foreground="gray",wraplength=820,justify="left"
+                body,textvariable=info,foreground=core.PALETTE["muted"],wraplength=820,justify="left"
             ).grid(row=2,column=0,columnspan=2,sticky="w",pady=(4,8))
 
             tree = core.ttk.Treeview(
@@ -2897,7 +2902,10 @@ def install(core, base_app):
                 tree.heading(key,text=label); tree.column(key,width=width,anchor="w")
             tree.grid(row=5,column=0,columnspan=2,sticky="nsew")
             sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview)
-            tree.configure(yscrollcommand=sy.set); sy.grid(row=5,column=2,sticky="ns")
+            sx=core.ttk.Scrollbar(body,orient="horizontal",command=tree.xview)
+            tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
+            sy.grid(row=5,column=2,sticky="ns")
+            sx.grid(row=6,column=0,columnspan=2,sticky="ew")
 
             def evaluate():
                 employee = employees.get(employee_var.get())
@@ -3068,8 +3076,11 @@ def install(core, base_app):
             tree=core.ttk.Treeview(body,columns=("date","action","current"),show="headings")
             for k,l,w in (("date","Дата",95),("action","Дія",220),("current","Поточне / конфлікт",520)):
                 tree.heading(k,text=l); tree.column(k,width=w,anchor="w")
-            sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview); tree.configure(yscrollcommand=sy.set)
+            sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview)
+            sx=core.ttk.Scrollbar(body,orient="horizontal",command=tree.xview)
+            tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
             tree.grid(row=12,column=0,columnspan=2,sticky="nsew",pady=(8,0)); sy.grid(row=12,column=2,sticky="ns",pady=(8,0))
+            sx.grid(row=13,column=0,columnspan=2,sticky="ew")
 
             def refresh_roles(_event=None):
                 emp=employees.get(employee_var.get())
@@ -3252,7 +3263,7 @@ def install(core, base_app):
                     "до 2 годин, коли часовий інтервал довший за денну норму фіксованого режиму. "
                     "Більші розбіжності не маскуються і мають перевірятися."
                 ),
-                foreground="gray", wraplength=900, justify="left",
+                foreground=core.PALETTE["muted"], wraplength=900, justify="left",
             ).grid(row=10,column=0,columnspan=3,sticky="w",pady=(2,6))
             buttons=core.ttk.Frame(body); buttons.grid(row=11,column=0,columnspan=3,sticky="ew")
             core.ttk.Button(buttons,text="Переглянути",command=preview).pack(side="left",padx=3)
@@ -3293,13 +3304,16 @@ def install(core, base_app):
             ).grid(row=5,column=1,sticky="ew",pady=5)
             core.ttk.Checkbutton(body,text="Замінювати існуючий ручний запис, якщо в ньому немає фактичних годин",variable=replace).grid(row=6,column=0,columnspan=3,sticky="w",pady=5)
             code_label=core.tk.StringVar()
-            core.ttk.Label(body,textvariable=code_label,foreground="gray").grid(row=7,column=0,columnspan=3,sticky="w",pady=(0,5))
+            core.ttk.Label(body,textvariable=code_label,foreground=core.PALETTE["muted"]).grid(row=7,column=0,columnspan=3,sticky="w",pady=(0,5))
 
             tree=core.ttk.Treeview(body,columns=("date","before","action"),show="headings")
             for k,l,w in (("date","Дата",100),("before","Було",520),("action","Результат",250)):
                 tree.heading(k,text=l); tree.column(k,width=w,anchor="w")
-            sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview); tree.configure(yscrollcommand=sy.set)
+            sy=core.ttk.Scrollbar(body,orient="vertical",command=tree.yview)
+            sx=core.ttk.Scrollbar(body,orient="horizontal",command=tree.xview)
+            tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
             tree.grid(row=9,column=0,columnspan=2,sticky="nsew"); sy.grid(row=9,column=2,sticky="ns")
+            sx.grid(row=10,column=0,columnspan=2,sticky="ew")
 
             def selected_period():
                 emp=employees.get(employee_var.get())

@@ -18,7 +18,7 @@ class TestTaxo101R4ApprovedUiPolish(unittest.TestCase):
         for marker in (
             "personnel_stat_vars",'("all","Всього"','("active","Працюють"',
             '("drivers","Водії"','("inactive","Звільнені"',
-            'text="＋  Новий працівник"','text="Пошук"',
+            'text="Новий працівник"','text="Пошук"',
         ):
             self.assertIn(marker,source)
 

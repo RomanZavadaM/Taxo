@@ -19,16 +19,70 @@ from workspace import paths_for, resolved_path, stored_path
 
 DOCUMENT_TYPES = {
     "insurance": "Страховка",
+    "additional_liability_insurance": "ДЦВ страхування",
     "inspection": "Діагностика / техконтроль",
     "temporary_registration": "Тимчасовий реєстраційний документ",
     "registration_certificate": "Постійний техпаспорт / свідоцтво про реєстрацію",
     "tachograph_inspection_protocol": "Протокол перевірки тахографа",
 }
 
+# ДЦВ є додатковим, необов'язковим документом. Якщо він внесений,
+# дата завершення може контролюватися, але його відсутність не створює
+# попередження під час випуску шляхівки.
 EXPIRY_REQUIRED = {"insurance", "inspection", "temporary_registration", "tachograph_inspection_protocol"}
+OPTIONAL_DOCUMENT_TYPES = {"additional_liability_insurance"}
 WARNING_DAYS = 30
 
 ALLOWED_COPY_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff"}
+
+
+def fit_window_to_screen(win, width, height, min_width=420, min_height=260):
+    """Fit secondary vehicle-document windows to the usable screen area."""
+    win.update_idletasks()
+    screen_w = max(640, int(win.winfo_screenwidth()))
+    screen_h = max(480, int(win.winfo_screenheight()))
+    max_w = max(520, screen_w - 80)
+    max_h = max(360, screen_h - 120)
+    final_w = max(420, min(int(width), max_w))
+    final_h = max(260, min(int(height), max_h))
+    win.geometry(f"{final_w}x{final_h}")
+    win.minsize(min(int(min_width), final_w), min(int(min_height), final_h))
+    win.resizable(True, True)
+
+
+def active_documents_of_type(con, vehicle_id, doc_type):
+    return con.execute(
+        """
+        SELECT *
+          FROM vehicle_documents
+         WHERE vehicle_id=? AND doc_type=? AND COALESCE(archived,0)=0
+         ORDER BY id DESC
+        """,
+        (int(vehicle_id), str(doc_type)),
+    ).fetchall()
+
+
+def best_current_document(con, vehicle_id, doc_type, today=None):
+    """Choose the strongest current record when several documents coexist.
+
+    Multiple active records of the same type are allowed. This matters for
+    temporary registrations/talons and other situations where replacing one
+    paper does not automatically invalidate another one.
+    """
+    rows = active_documents_of_type(con, vehicle_id, doc_type)
+    if not rows:
+        return None
+    today = today or date.today()
+
+    def key(row):
+        status = document_status(doc_type, row["valid_until"], today=today)
+        try:
+            start = parse_date(row["valid_from"]) or date.min
+        except ValueError:
+            start = date.min
+        return (status_rank(status), start, int(row["id"]))
+
+    return max(rows, key=key)
 
 
 def parse_date(value):
@@ -120,20 +174,12 @@ def archive_current_document_slot(con, vehicle_id, doc_type, keep_id=None, now=N
     con.execute(sql, params)
 
 
-def latest_documents(con, vehicle_id):
-    rows = con.execute(
-        """
-        SELECT *
-          FROM vehicle_documents
-         WHERE vehicle_id=? AND COALESCE(archived,0)=0
-         ORDER BY id DESC
-        """,
-        (int(vehicle_id),),
-    ).fetchall()
+def latest_documents(con, vehicle_id, today=None):
+    """Return one effective current record per type without archiving siblings."""
     latest = {}
-    for row in rows:
-        dtype = row["doc_type"]
-        if dtype not in latest:
+    for dtype in DOCUMENT_TYPES:
+        row = best_current_document(con, vehicle_id, dtype, today=today)
+        if row is not None:
             latest[dtype] = row
     return latest
 
@@ -145,7 +191,7 @@ def vehicle_document_summary(con, vehicle_id, today=None):
     A temporary registration document is an additional requirement only when
     the vehicle card marks it as required for that ownership/use arrangement.
     """
-    latest = latest_documents(con, vehicle_id)
+    latest = latest_documents(con, vehicle_id, today=today)
     vehicle = con.execute(
         "SELECT temporary_registration_required FROM vehicles WHERE id=?",
         (int(vehicle_id),),
@@ -524,8 +570,7 @@ class VehicleDocumentsWindow:
 
         self.win = tk.Toplevel(parent)
         self.win.title(f"Документи авто — {_vehicle_label(vehicle)}")
-        self.win.geometry("1050x650")
-        self.win.minsize(820, 500)
+        fit_window_to_screen(self.win, 1120, 680, 820, 500)
         self.win.transient(parent)
 
         self.summary_var = tk.StringVar(value="")
@@ -652,8 +697,7 @@ class VehicleDocumentsWindow:
     def _form(self, row=None):
         win = tk.Toplevel(self.win)
         win.title("Документ транспортного засобу")
-        win.geometry("660x520")
-        win.minsize(560, 460)
+        fit_window_to_screen(win, 720, 650, 580, 520)
         win.transient(self.win)
         win.grab_set()
 
@@ -663,9 +707,9 @@ class VehicleDocumentsWindow:
         issuer_var = tk.StringVar(value=(row["issuer"] or "") if row is not None else "")
         from_var = tk.StringVar(value=display_date(row["valid_from"]) if row is not None else "")
         until_var = tk.StringVar(value=display_date(row["valid_until"]) if row is not None else "")
-        notes_var = tk.StringVar(value=(row["notes"] or "") if row is not None else "")
         copy_var = tk.StringVar(value="")
         current_copy = (row["copy_path"] or "") if row is not None else ""
+        archive_previous = tk.BooleanVar(value=False)
 
         entries = [
             ("Тип документа", type_var),
@@ -673,7 +717,6 @@ class VehicleDocumentsWindow:
             ("Ким видано / страхова", issuer_var),
             ("Дата від, ДД.ММ.РРРР", from_var),
             ("Діє до, ДД.ММ.РРРР", until_var),
-            ("Примітка", notes_var),
         ]
         for i, (label, var) in enumerate(entries):
             ttk.Label(win, text=label).grid(row=i, column=0, sticky="w", padx=10, pady=7)
@@ -688,7 +731,30 @@ class VehicleDocumentsWindow:
             else:
                 ttk.Entry(win, textvariable=var, width=50).grid(row=i, column=1, sticky="ew", padx=10, pady=7)
 
-        copy_row = len(entries)
+        notes_row = len(entries)
+        ttk.Label(win, text="Примітка").grid(row=notes_row, column=0, sticky="nw", padx=10, pady=7)
+        notes_text = tk.Text(win, height=4, wrap="word")
+        notes_text.grid(row=notes_row, column=1, sticky="nsew", padx=10, pady=7)
+        if row is not None and (row["notes"] or ""):
+            notes_text.insert("1.0", row["notes"] or "")
+
+        archive_row = notes_row + 1
+        ttk.Checkbutton(
+            win,
+            text="Вивести інші активні документи цього типу в архів",
+            variable=archive_previous,
+        ).grid(row=archive_row, column=1, sticky="w", padx=10, pady=(2, 2))
+        ttk.Label(
+            win,
+            text=(
+                "За замовчуванням попередні документи не архівуються. "
+                "Це дозволяє мати одночасно кілька тимчасових талонів або інших документів одного типу."
+            ),
+            wraplength=520,
+            justify="left",
+        ).grid(row=archive_row + 1, column=1, sticky="w", padx=10, pady=(0, 6))
+
+        copy_row = archive_row + 2
         ttk.Label(win, text="Копія документа").grid(row=copy_row, column=0, sticky="w", padx=10, pady=7)
         copy_frame = ttk.Frame(win)
         copy_frame.grid(row=copy_row, column=1, sticky="ew", padx=10, pady=7)
@@ -714,6 +780,7 @@ class VehicleDocumentsWindow:
             ).grid(row=copy_row + 1, column=1, sticky="w", padx=10, pady=(0, 5))
 
         win.columnconfigure(1, weight=1)
+        win.rowconfigure(notes_row, weight=1)
 
         def save():
             dtype = next((k for k, v in DOCUMENT_TYPES.items() if v == type_var.get()), None)
@@ -757,18 +824,19 @@ class VehicleDocumentsWindow:
                     valid_from,
                     valid_until,
                     copy_path,
-                    notes_var.get().strip(),
+                    notes_text.get("1.0", "end-1c").strip(),
                     now,
                 )
-                # One current record per logical document slot. A renewal does
-                # not overwrite history: the previous record is archived with its copy.
-                archive_current_document_slot(
-                    con,
-                    self.vehicle["id"],
-                    dtype,
-                    keep_id=(row["id"] if row is not None else None),
-                    now=now,
-                )
+                # Several active documents of the same type may coexist.
+                # Archiving siblings is an explicit user choice, never an automatic side effect.
+                if archive_previous.get():
+                    archive_current_document_slot(
+                        con,
+                        self.vehicle["id"],
+                        dtype,
+                        keep_id=(row["id"] if row is not None else None),
+                        now=now,
+                    )
 
                 if row is None:
                     con.execute(
@@ -849,8 +917,7 @@ def open_vehicle_documents(parent, db_factory, data_root, vehicle, on_change=Non
 def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle=None):
     win = tk.Toplevel(parent)
     win.title("Контроль документів транспортних засобів")
-    win.geometry("1100x680")
-    win.minsize(850, 500)
+    fit_window_to_screen(win, 1180, 700, 850, 500)
     win.transient(parent)
 
     info_var = tk.StringVar(value="")
@@ -875,10 +942,16 @@ def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle
     for col in cols:
         tree.heading(col, text=heads[col])
         tree.column(col, width=widths[col], anchor="w")
-    ybar = ttk.Scrollbar(win, orient="vertical", command=tree.yview)
-    tree.configure(yscrollcommand=ybar.set)
-    ybar.pack(side="right", fill="y", pady=6)
-    tree.pack(fill="both", expand=True, padx=(10, 0), pady=6)
+    table = ttk.Frame(win)
+    table.pack(fill="both", expand=True, padx=10, pady=6)
+    table.rowconfigure(0, weight=1)
+    table.columnconfigure(0, weight=1)
+    ybar = ttk.Scrollbar(table, orient="vertical", command=tree.yview)
+    xbar = ttk.Scrollbar(table, orient="horizontal", command=tree.xview)
+    tree.configure(yscrollcommand=ybar.set, xscrollcommand=xbar.set)
+    tree.grid(row=0, column=0, sticky="nsew")
+    ybar.grid(row=0, column=1, sticky="ns")
+    xbar.grid(row=1, column=0, sticky="ew")
 
     row_map = {}
 

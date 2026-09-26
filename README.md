@@ -6,7 +6,8 @@
 
 > **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — актуальна експлуатаційна версія, промотована після ручного тесту 10.3-r6.  
 > **Previous stable / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1).  
-> **Verified candidate:** [Taxo 10.3-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r6) — immutable prerelease/checkpoint.
+> **Latest full checkpoint:** [Taxo 10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) — UI cleanup, vehicle documents, waybill readability, Windows 7 + modern Windows + macOS + START.  
+> **Stable remains:** `v10.3` until a separate stable-promotion decision.
 
 [Windows Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_Setup_Windows_x64.exe) · [Windows Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_Windows_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/Taxo_v10_3_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.3/SHA256SUMS_v10_3.txt)
 
@@ -34,7 +35,7 @@ Taxo — настільна система для одного автотран�
 
 - реєстр працівників і водіїв з ролями та історією;
 - реквізити підприємства, серії та номери документів;
-- транспортні засоби, історія пробігу та реєстр страховок/техконтролю/техпаспортів/протоколів тахографа;
+- транспортні засоби, історія пробігу та реєстр страховок/ДЦВ/техконтролю/техпаспортів/протоколів тахографа; кілька активних документів одного типу;
 - маршрути з точними часовими сценаріями;
 - графік водіїв;
 - табель робочого часу з поділеними змінами, планом і фактом;
@@ -57,7 +58,7 @@ Taxo — настільна система для одного автотран�
 | [Швидкий старт](docs/guides/QUICK_START.md) | Перший запуск і базове налаштування |
 | [Інструкція для персоналу](docs/guides/USER_MANUAL.md) | Щоденна робота з Taxo |
 
-> **Планування персоналу в 10.2-r10:** водії плануються у **«Графіку водіїв»**; лікар, механік, диспетчер та інші ролі — через **Персонал → Планування → «Робочі зміни персоналу — масово…»**. **«Оперативний день випуску»** показує ті самі зміни для конкретної дати та дає внести факт.
+> **Планування персоналу:** водії плануються у **«Графіку водіїв»**; лікар, механік, диспетчер та інші ролі — через **Працівники → Планування → «Робочі зміни персоналу — масово…»**. **«Оперативний день випуску»** показує ті самі зміни для конкретної дати та дає внести факт.
 | [Робота з тахографом](docs/guides/TACHOGRAPH_GUIDE.md) | Скани, інтервали, підтвердження, протоколи |
 | [Звіти](docs/guides/REPORTS_GUIDE.md) | Табелі, №340, 60-денний реєстр, PDF/Excel |
 | [Адміністрування](docs/guides/ADMIN_GUIDE.md) | Сховище, резервування, перенесення |
@@ -69,7 +70,7 @@ Taxo 10.1 формує окремий документ за 60 календар�
 
 ## Завантаження
 
-Для перевірки нових функцій готується **Taxo 10.3-r2** як prerelease зі START/source. Виконавчі пакети публікуються лише на запланованих контрольних точках; назви тестових пакетів і внутрішніх папок містять зрозумілу версію/ревізію без commit-хешів.
+Для перевірки нових функцій використовується immutable checkpoint **Taxo 10.4-r2**. Для цього checkpoint публікуються Windows modern, Windows 7 SP1, macOS ARM64/Intel та START/source; назви тестових пакетів і внутрішніх папок містять зрозумілу версію/ревізію без commit-хешів.
 
 У [стабільному релізі Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) опубліковані Windows x64 Setup/Portable, macOS ARM64/Intel Portable, `Taxo_v10_1_START.zip` і SHA-256 manifests. Робочі бази та персональні дані до релізів **не входять**.
 
@@ -83,7 +84,7 @@ Taxo 10.1 формує окремий документ за 60 календар�
 
 ## Поточний етап
 
-**Taxo 10.3 — stable.** Лінію 10.3-r1…r6 промотовано після автоматичних перевірок і ручного тесту r6. Основні зміни: коректні фактичні межі бланків/роботи, ручний некласифікований проміжок між роботою і відпочинком, виправлений архів бланків та proprietary licensing.
+**Taxo 10.3 — stable.** Окремо доступний повний candidate checkpoint **10.4-r2** з UI cleanup, ДЦВ/ручним архівуванням документів ТЗ та оновленою шляхівкою. Лінію 10.3-r1…r6 промотовано після автоматичних перевірок і ручного тесту r6. Основні зміни: коректні фактичні межі бланків/роботи, ручний некласифікований проміжок між роботою і відпочинком, виправлений архів бланків та proprietary licensing.
 
 **Taxo 10.1 — previous stable / rollback.** Він лишається immutable і доступний для повернення за потреби.
 

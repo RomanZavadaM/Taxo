@@ -9,8 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestTaxo104R1FullCheckpoint(unittest.TestCase):
-    def test_candidate_identity_is_10_4_r1(self):
-        self.assertEqual(main.APP_VERSION, "10.4-r1")
+    def test_r1_checkpoint_stays_immutable_after_later_revisions(self):
         self.assertEqual(main.APP_VERSION, version_from_file(ROOT / "VERSION.txt"))
         self.assertEqual(
             start_archive_stem("10.4-r1"),

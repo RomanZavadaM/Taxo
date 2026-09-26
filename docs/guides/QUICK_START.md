@@ -1,14 +1,14 @@
-# Короткий старт — Taxo 10.0
+# Короткий старт — Taxo 10.4
 
 ## Варіанти запуску
 
 ### Windows — встановлена версія
-1. Завантажте `Taxo_v10_0_Setup_Windows_x64.exe` з GitHub Releases.
+1. Завантажте актуальний `Taxo_*_Setup_Windows_x64.exe` з GitHub Releases.
 2. Встановіть програму.
 3. Запустіть Taxo з ярлика.
 
 ### Windows — portable
-1. Завантажте `Taxo_v10_0_Windows_x64_Portable.zip`.
+1. Завантажте актуальний `Taxo_*_Windows_x64_Portable.zip`.
 2. Розпакуйте в окрему папку.
 3. Запустіть `Taxo.exe`.
 
@@ -24,7 +24,10 @@
 5. Запустіть `START.bat`.
 6. Скрипт встановить залежності з `requirements.txt` і запустить `taxo_app.py`.
 
-У Taxo 10.0 START додатково перевіряє повноту папки. Сам BAT збережено у Windows-safe ASCII/CRLF; локалізована інструкція знаходиться в `00_README_START.txt`.
+У Taxo 10.x START додатково перевіряє повноту папки. Сам BAT збережено у Windows-safe ASCII/CRLF; локалізована інструкція знаходиться в `00_README_START.txt`.
+
+### Windows 7 SP1 x64
+Для підтримуваного legacy-середовища використовуйте окремий пакет з позначкою `Windows7_x64`; modern Windows package для Windows 7 не призначений.
 
 ### macOS
 З GitHub Releases виберіть portable ZIP для вашої архітектури: `arm64` для Apple Silicon або `x86_64` для Intel.
