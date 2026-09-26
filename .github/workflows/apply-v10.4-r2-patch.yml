@@ -18,11 +18,17 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Apply verified patch
+      - name: Decode and apply verified patch
         shell: bash
         run: |
           set -euo pipefail
-          cat .release/v10.4-r2-patch/part*.patch > /tmp/v10_4_r2.patch
+          cat .release/v10.4-r2-patch/part*.b85 > /tmp/v10_4_r2.b85
+          python - <<'PY'
+          from pathlib import Path
+          import base64, zlib
+          encoded = Path('/tmp/v10_4_r2.b85').read_bytes()
+          Path('/tmp/v10_4_r2.patch').write_bytes(zlib.decompress(base64.b85decode(encoded)))
+          PY
           git apply --check /tmp/v10_4_r2.patch
           git apply /tmp/v10_4_r2.patch
           git rm -r .release/v10.4-r2-patch
