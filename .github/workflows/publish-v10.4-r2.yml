@@ -327,7 +327,7 @@ jobs:
         shell: bash
         run: |
           test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
-          for file in 'Боланк підтвердження.docx' 'attestation_visual_template.pdf' 'LICENSE.md' 'COPYRIGHT.md' 'THIRD_PARTY_NOTICES.md'; do
+          for file in 'Бланк підтвердження.docx' 'attestation_visual_template.pdf' 'LICENSE.md' 'COPYRIGHT.md' 'THIRD_PARTY_NOTICES.md'; do
             find 'dist/Taxo.app' -name "$file" -print -quit | grep -q . || { echo "Required bundle file missing: $file" >&2; exit 1; }
           done
           if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then
