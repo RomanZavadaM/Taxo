@@ -5,39 +5,37 @@
 
 ## CURRENT
 
-**Stable:** Taxo 10.3 / `v10.3` — immutable, не пересувався  
+**Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest published full checkpoint:** `v10.4-r2` → `ee6687c59d7dc1a8a38de4b7858669fddc3f647c`  
-**Checkpoint PR:** #74 — merged  
-**Main merge:** `271d43c0912e24c95014ac2a92ba2fc1695f4a11`  
-**Full publisher:** run `36275440403` — success  
-**Final PR gates:** Windows `36275442986` — success; macOS ARM64/Intel `36275442988` — success  
-**Regression:** **300 tests / OK**; Win7 Python 3.8 regression — **300 tests / OK**  
-**Windows 7 PE compatibility gate:** success  
-**Live ledger:** Issue #61  
-**Next code revision:** тільки `10.4-r3`.
+**Latest issued fast-test revision:** Taxo `10.4-r3` / branch `work/v10.4-r3-preserve-driver-schedules` / head `f70a4a7644405d200d9f374fa93d687df87d65a2` / START run `36336020357` — success  
+**Active revision:** Taxo `10.4-r4`  
+**Active branch:** `work/v10.4-r4-waybill-boundary-times`  
+**Last code/identity head:** `ba361e9133f89e927cb9688dc3a48f17b2917145`  
+**Stable `main`:** remains on the 10.4-r2 integrated line; r3/r4 are not merged  
+**Live ledger:** Issue #61
 
-## DONE — Taxo 10.4-r2
+## DONE — Taxo 10.4-r3 fast-test checkpoint
 
-- [x] Виправлено перекриття кнопки «Зберегти» у формі точки маршруту.
-- [x] Покращено адаптивність secondary windows і document viewer.
-- [x] Додано/вирівняно горизонтальну та вертикальну прокрутку у широких таблицях і сторінках персоналу.
-- [x] Перегруповано переповнені toolbars; зменшено ризики обрізання на вузьких екранах і при DPI scaling.
-- [x] Прибрано критичні Unicode glyphs, проблемні для Windows 7.
-- [x] У реєстр документів ТЗ додано необов’язковий тип **«ДЦВ страхування»**.
-- [x] Скасовано автоматичне архівування попереднього документа того самого типу.
-- [x] Додано явну опцію архівування; кілька активних документів одного типу можуть співіснувати.
-- [x] У шляховому листі збільшено приблизно на 20% шрифт внесених даних.
-- [x] Верхній лівий блок шляхового листа оформлено як кутовий штамп підприємства з наявних реквізитів.
-- [x] Оновлено USER_MANUAL, QUICK_START, ADMIN_GUIDE, REPORTS_GUIDE, SYSTEM_OVERVIEW, release notes та UI remediation report.
-- [x] Full publisher сформував modern Windows Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel Portable, START та SHA-256 manifests.
-- [x] Виправлено publisher-gates: macOS bundle filename check і Win7 PE checker винесено в `scripts/check_win7_pe.py`.
-- [x] Win7 PE scan реально виконано й пройдено.
-- [x] Опубліковано immutable candidate checkpoint `v10.4-r2`.
-- [x] PR #74 пройшов фінальні Windows/macOS gates та merged у `main`.
+- [x] «Без тахо — стандартні 8 год» більше не переписує вже сплановані дні, маршрути й часові сегменти.
+- [x] Дні з плановою тривалістю без точного часу видимі в графіку без вигадування початку/кінця.
+- [x] ЄДРПОУ перенесено в єдині реквізити підприємства; П-5 і кутовий штамп шляхівки використовують це поле.
+- [x] Прибрано спадкове відображення `Taxo 9.0.1` у runtime-заголовку.
+- [x] START run `36336020357` успішний; ревізія r3 вже видана для тестування і повторно не використовується.
+
+## DOING — Taxo 10.4-r4
+
+- [x] Розібрано випадок різних часів на лицьовій/зворотній сторонах шляхівки; власник підтвердив помилку введення графіка, тому автоматична підміна часу в шляхівці скасована.
+- [x] Додано аудит розбіжності між крайніми часовими частинами маршруту та першою/останньою точкою маршруту.
+- [x] Аудит не повинен виглядати «мовчазно порожнім»: при відсутності findings показується явний інформаційний рядок; при exception — явна помилка.
+- [x] `VERSION.txt`, `main.APP_VERSION` та runtime extension синхронізовано на `10.4-r4`.
+- [x] Одноразовий workflow для безпечної заміни маркера у великому `main.py` самовидалився після успішного коміту.
+- [ ] Повний regression suite має пройти на фінальному head r4.
+- [ ] Сформувати і перевірити новий START artifact `Taxo_v10_4_candidate_r4_START`.
+- [ ] Зафіксувати CI/artifact у Issue #61 і дати власнику посилання на тестування.
 
 ## NEXT
 
-Новий функціональний код не додавати під номером r2. Наступний завершений крок розробки має бути **Taxo 10.4-r3** в окремій work-гілці з новим test archive/checkpoint.
+Після зеленого START/регресії — ручна перевірка вікна «Аудит графіків» на робочій БД: чистий місяць повинен показати явний позитивний результат, а навмисно неузгоджений маршрут — конкретний finding із різницею часу.
 
 ## BLOCKED
 
