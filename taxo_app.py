@@ -8,18 +8,22 @@ from hotfix_901 import install as install_hotfix_901
 from v91_features import install as install_v91
 from personnel_v91 import install as install_personnel
 from v1043_features import install as install_v1043
+from v1044_features import install as install_v1044
 
-App = install_v1043(
+App = install_v1044(
     core,
-    install_personnel(
+    install_v1043(
         core,
-        install_v91(
+        install_personnel(
             core,
-            install_hotfix_901(
+            install_v91(
                 core,
-                install_v9(
+                install_hotfix_901(
                     core,
-                    install_activity_register(core, install_work_analysis(core)),
+                    install_v9(
+                        core,
+                        install_activity_register(core, install_work_analysis(core)),
+                    ),
                 ),
             ),
         ),
