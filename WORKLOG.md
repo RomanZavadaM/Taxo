@@ -8,6 +8,7 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest published full checkpoint:** `v10.4-r2` → `ee6687c59d7dc1a8a38de4b7858669fddc3f647c`  
 **Latest issued fast-test revision:** Taxo `10.4-r8` / issued code head `1c0607ee733217c0d4d0bc459af4c0a175a0409f` — immutable  
+**Previous issued fast-test checkpoint:** Taxo `10.4-r7` / head `9f397a092fe828570927bc39cef7a3a467e2aff0` — immutable  
 **r8 START:** run `36346821842`, artifact `10941021984`, SHA-256 `db98be8f9d55c6b679fd12e90edf38edf75f1a02f556b691da5bb1089eb0e781`, regression `340/340 OK`  
 **r8 final administrative guard:** `16861099b4f17a6de8bfe75d4380a1177a0aa712`, run `36347567495` — success  
 **Active revision:** Taxo `10.4-r9`  
