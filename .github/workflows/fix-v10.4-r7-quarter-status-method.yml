@@ -1,0 +1,40 @@
+name: Complete Taxo 10.4-r7 quarterly registry status UI
+
+on:
+  push:
+    branches:
+      - work/v10.4-r7-document-control-registry-separation
+    paths:
+      - .github/workflows/fix-v10.4-r7-quarter-status-method.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.4-r7-document-control-registry-separation
+      - shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('v1045_features.py')
+          text=path.read_text('utf-8')
+          anchor='''        def import_personnel_registry_xlsx(self):\n'''
+          method='''        def _refresh_personnel_registry_quarter_status(self):\n            button=getattr(self,"_personnel_registry_import_button",None)\n            if not _alive(button):\n                return\n            con=core.db()\n            try:\n                status=registry.registry_quarter_status(con)\n            finally:\n                con.close()\n            if status["current"]:\n                button.configure(text="Реєстр працівників: актуально %s…" % status["quarter"])\n            else:\n                button.configure(text="Реєстр працівників: потрібне звіряння %s…" % status["quarter"])\n\n'''
+          if 'def _refresh_personnel_registry_quarter_status(self):' not in text:
+              if anchor not in text: raise SystemExit('import method anchor missing')
+              text=text.replace(anchor,method+anchor,1)
+          text=text.replace('text="Застосувати оновлення"','text="Виконати звірку"',1)
+          path.write_text(text,'utf-8')
+          PY
+          git rm .github/workflows/fix-v10.4-r7-quarter-status-method.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v1045_features.py
+          git diff --cached --check
+          git commit -m "fix: complete quarterly registry status UI"
+          git push origin HEAD:work/v10.4-r7-document-control-registry-separation
