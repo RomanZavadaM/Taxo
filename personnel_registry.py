@@ -17,6 +17,16 @@ APP_VERSION = "10.4-r5"
 SOURCE_DETAILED = "military_registry_personal"
 SOURCE_SUMMARY = "military_registry_employees"
 
+IMPORT_COMPARE = "compare"
+IMPORT_FILL_EMPTY = "fill_empty"
+IMPORT_UPDATE = "update"
+IMPORT_MODES = (IMPORT_COMPARE, IMPORT_FILL_EMPTY, IMPORT_UPDATE)
+IMPORT_MODE_LABELS = {
+    IMPORT_COMPARE: "Лише звірити",
+    IMPORT_FILL_EMPTY: "Доповнити порожні поля",
+    IMPORT_UPDATE: "Оновити з реєстру + доповнити",
+}
+
 DOCUMENT_TYPES = (
     "Паспорт громадянина України",
     "ID-картка",
@@ -439,6 +449,9 @@ def ensure_schema_on_connection(con):
         CREATE INDEX IF NOT EXISTS idx_employee_documents_employee
             ON employee_documents(employee_id,active,doc_type);
     """)
+    import_cols={row[1] for row in con.execute("PRAGMA table_info(employee_registry_imports)").fetchall()}
+    if "mode" not in import_cols:
+        con.execute("ALTER TABLE employee_registry_imports ADD COLUMN mode TEXT NOT NULL DEFAULT 'update'")
 
 
 def ensure_schema(core):
@@ -546,9 +559,60 @@ def preview_registry_import(core, path):
     con=core.db()
     try:
         plan=plan_import_rows(con,parsed)
+        matched_ids={int(row["employee_id"]) for row in plan if row.get("employee_id") is not None}
+        local_only=[]
+        for employee in con.execute("SELECT * FROM employees WHERE COALESCE(active,1)=1 ORDER BY last_name,first_name,middle_name,id").fetchall():
+            if int(employee["id"]) in matched_ids:
+                continue
+            local_only.append({
+                "employee_id":int(employee["id"]),
+                "employee_name":" ".join(x for x in (employee["last_name"],employee["first_name"],employee["middle_name"]) if x),
+                "status":"local_only",
+                "note":"Є у Taxo, але відсутній у цьому витягу. Дані не видаляються і не обнуляються.",
+            })
     finally:
         con.close()
-    return {"path":str(path),"file_sha256":sha,"parsed":parsed,"plan":plan}
+    return {"path":str(path),"file_sha256":sha,"parsed":parsed,"plan":plan,"local_only":local_only}
+
+
+def _changes_for_mode(changes, mode):
+    if mode not in IMPORT_MODES:
+        raise ValueError("Невідомий режим реєстрової звірки: %s" % mode)
+    if mode==IMPORT_COMPARE:
+        return []
+    if mode==IMPORT_FILL_EMPTY:
+        return [change for change in changes if not _text(change.get("old")) and _text(change.get("new"))]
+    return [change for change in changes if _text(change.get("new"))]
+
+
+def registry_quarter_status(con, source_kind=None, today=None):
+    """Return whether at least one successful reconciliation exists in current calendar quarter."""
+    ensure_schema_on_connection(con)
+    today=today or date.today()
+    quarter=(today.month-1)//3+1
+    first_month=(quarter-1)*3+1
+    quarter_start=date(today.year,first_month,1)
+    params=[]
+    sql="SELECT imported_at,source_kind,source_name,mode FROM employee_registry_imports"
+    if source_kind:
+        sql += " WHERE source_kind=?"
+        params.append(source_kind)
+    sql += " ORDER BY imported_at DESC,id DESC LIMIT 1"
+    row=con.execute(sql,params).fetchone()
+    last_date=None
+    if row is not None:
+        try: last_date=datetime.fromisoformat(str(row["imported_at"])).date()
+        except Exception: last_date=None
+    current=bool(last_date and last_date>=quarter_start and last_date<=today)
+    return {
+        "current":current,
+        "quarter":"Q%d %d" % (quarter,today.year),
+        "label":"Актуально" if current else "Потрібне звіряння",
+        "last_date":last_date.isoformat() if last_date else "",
+        "source_kind":row["source_kind"] if row is not None else "",
+        "source_name":row["source_name"] if row is not None else "",
+        "mode":row["mode"] if row is not None and "mode" in row.keys() else "",
+    }
 
 
 def _canonical_snapshot(item):
@@ -592,7 +656,9 @@ def _upsert_document_hint(con, employee_id, doc, source_kind, source_name, now):
         )
 
 
-def apply_registry_import(core, preview):
+def apply_registry_import(core, preview, mode=IMPORT_UPDATE):
+    if mode not in IMPORT_MODES:
+        raise ValueError("Невідомий режим реєстрової звірки: %s" % mode)
     path=preview["path"]
     current_sha=file_sha256(path)
     if current_sha!=preview["file_sha256"]:
@@ -605,12 +671,13 @@ def apply_registry_import(core, preview):
         ensure_schema_on_connection(con)
         cur=con.execute(
             """INSERT INTO employee_registry_imports(
-                   source_kind,source_name,file_sha256,imported_at,total_rows
-               ) VALUES(?,?,?,?,?)""",
-            (parsed["source_kind"],parsed["source_name"],current_sha,now,len(plan)),
+                   source_kind,source_name,file_sha256,imported_at,total_rows,mode
+               ) VALUES(?,?,?,?,?,?)""",
+            (parsed["source_kind"],parsed["source_name"],current_sha,now,len(plan),mode),
         )
         import_id=cur.lastrowid
         matched=updated=skipped=warnings=0
+        potential_changes=0
         for row_plan in plan:
             warnings += len(row_plan.get("notes") or [])
             employee_id=row_plan.get("employee_id")
@@ -619,32 +686,27 @@ def apply_registry_import(core, preview):
                 continue
             matched += 1
             item=row_plan["item"]
-            if row_plan["changes"]:
-                employee_changes=[c for c in row_plan["changes"] if c["scope"]=="employee"]
-                if employee_changes:
-                    sql="UPDATE employees SET "+", ".join(c["field"]+"=?" for c in employee_changes)+" WHERE id=?"
-                    con.execute(sql,[c["new"] for c in employee_changes]+[employee_id])
-                military_changes=[c for c in row_plan["changes"] if c["scope"]=="military"]
-                _ensure_profile(con,employee_id)
-                if military_changes:
-                    sql="UPDATE employee_military_profile SET "+", ".join(c["field"]+"=?" for c in military_changes)+", last_source_kind=?, last_source_name=?, last_verified_at=?, updated_at=? WHERE employee_id=?"
-                    con.execute(sql,[c["new"] for c in military_changes]+[
-                        parsed["source_kind"],parsed["source_name"],now,now,employee_id
-                    ])
-                else:
-                    con.execute(
-                        """UPDATE employee_military_profile SET last_source_kind=?,last_source_name=?,last_verified_at=?,updated_at=?
-                           WHERE employee_id=?""",
-                        (parsed["source_kind"],parsed["source_name"],now,now,employee_id),
-                    )
-                updated += 1
+            potential_changes += len(row_plan.get("changes") or [])
+            selected_changes=_changes_for_mode(row_plan.get("changes") or [],mode)
+            employee_changes=[c for c in selected_changes if c["scope"]=="employee"]
+            if employee_changes:
+                sql="UPDATE employees SET "+", ".join(c["field"]+"=?" for c in employee_changes)+" WHERE id=?"
+                con.execute(sql,[c["new"] for c in employee_changes]+[employee_id])
+            military_changes=[c for c in selected_changes if c["scope"]=="military"]
+            _ensure_profile(con,employee_id)
+            if military_changes:
+                sql="UPDATE employee_military_profile SET "+", ".join(c["field"]+"=?" for c in military_changes)+", last_source_kind=?, last_source_name=?, last_verified_at=?, updated_at=? WHERE employee_id=?"
+                con.execute(sql,[c["new"] for c in military_changes]+[
+                    parsed["source_kind"],parsed["source_name"],now,now,employee_id
+                ])
             else:
-                _ensure_profile(con,employee_id)
                 con.execute(
                     """UPDATE employee_military_profile SET last_source_kind=?,last_source_name=?,last_verified_at=?,updated_at=?
                        WHERE employee_id=?""",
                     (parsed["source_kind"],parsed["source_name"],now,now,employee_id),
                 )
+            if selected_changes:
+                updated += 1
             snapshot=_canonical_snapshot(item)
             fingerprint=_row_fingerprint(item)
             con.execute(
@@ -656,8 +718,10 @@ def apply_registry_import(core, preview):
                  item.get("source_row"),fingerprint,
                  json.dumps(snapshot,ensure_ascii=False,sort_keys=True),now),
             )
-            for doc in item.get("documents",[]):
-                _upsert_document_hint(con,employee_id,doc,parsed["source_kind"],parsed["source_name"],now)
+            # Compare-only must never mutate the local document register.
+            if mode!=IMPORT_COMPARE:
+                for doc in item.get("documents",[]):
+                    _upsert_document_hint(con,employee_id,doc,parsed["source_kind"],parsed["source_name"],now)
         con.execute(
             """UPDATE employee_registry_imports
                SET matched_rows=?,updated_rows=?,skipped_rows=?,warning_count=? WHERE id=?""",
@@ -665,8 +729,9 @@ def apply_registry_import(core, preview):
         )
         con.commit()
         return {"import_id":import_id,"total":len(plan),"matched":matched,"updated":updated,
-                "skipped":skipped,"warnings":warnings,"source_kind":parsed["source_kind"],
-                "source_name":parsed["source_name"]}
+                "skipped":skipped,"warnings":warnings,"potential_changes":potential_changes,
+                "local_only":len(preview.get("local_only") or []),"mode":mode,
+                "source_kind":parsed["source_kind"],"source_name":parsed["source_name"]}
     except Exception:
         con.rollback()
         raise

@@ -180,9 +180,11 @@ def install(core, base_app):
             if anchor is None:
                 return
             parent=anchor.master
-            core.ttk.Button(
+            self._personnel_registry_import_button=core.ttk.Button(
                 parent,text="Імпорт з реєстру…",command=self.import_personnel_registry_xlsx
-            ).pack(side="right",padx=(8,0))
+            )
+            self._personnel_registry_import_button.pack(side="right",padx=(8,0))
+            self._refresh_personnel_registry_quarter_status()
             core.ttk.Button(
                 parent,text="Дані та документи…",command=self.open_personnel_data_center
             ).pack(side="right",padx=(8,0))
@@ -210,6 +212,7 @@ def install(core, base_app):
             updates=sum(1 for row in plan if row["status"]=="update")
             matched=sum(1 for row in plan if row.get("employee_id") is not None)
             problem=sum(1 for row in plan if row["status"] in ("unmatched","ambiguous","conflict"))
+            local_only=list(preview.get("local_only") or [])
             core.ttk.Label(body,text="Імпорт даних працівників",style="Title.TLabel").pack(anchor="w")
             core.ttk.Label(
                 body,
@@ -220,9 +223,23 @@ def install(core, base_app):
             core.ttk.Label(
                 body,
                 text=("Taxo не створює нових працівників автоматично. РНОКПП має пріоритет; збіг лише за ПІБ показується окремо. "
-                      "Порожні поля джерела не стирають наявні дані."),
+                      "Порожні поля джерела ніколи не стирають наявні дані. Відсутність працівника/поля у витягу не видаляє його з Taxo."),
                 wraplength=1040,justify="left",
-            ).pack(anchor="w",pady=(0,10))
+            ).pack(anchor="w",pady=(0,8))
+            mode_var=core.tk.StringVar(value=registry.IMPORT_FILL_EMPTY)
+            modes=core.ttk.LabelFrame(body,text="Режим застосування державного витягу",padding=(8,5))
+            modes.pack(fill="x",pady=(0,10))
+            for value,label in (
+                (registry.IMPORT_COMPARE,"Лише звірити — нічого не змінювати в Taxo"),
+                (registry.IMPORT_FILL_EMPTY,"Доповнити — заповнити тільки порожні поля та нові відомості"),
+                (registry.IMPORT_UPDATE,"Оновити — замінити непорожні реєстрові поля та доповнити нове"),
+            ):
+                core.ttk.Radiobutton(modes,text=label,variable=mode_var,value=value).pack(anchor="w",pady=1)
+            core.ttk.Label(
+                modes,
+                text="У всіх режимах дані, яких немає у витягу, залишаються в Taxo без змін.",
+                style="Muted.TLabel",
+            ).pack(anchor="w",pady=(4,0))
             frame=core.ttk.Frame(body); frame.pack(fill="both",expand=True)
             frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
             cols=("status","employee","match","changes","notes")
@@ -242,6 +259,11 @@ def install(core, base_app):
                 tree.insert("","end",iid=str(index),values=(
                     _status_label(row["status"]),row["employee_name"],_match_label(row["match_quality"]),fields or "—",notes or "—"
                 ),tags=(row["status"],))
+            for offset,row in enumerate(local_only,start=len(plan)):
+                tree.insert("","end",iid="local-%d" % offset,values=(
+                    "Є лише в Taxo",row["employee_name"],"—","—",row["note"]
+                ),tags=("local_only",))
+            tree.tag_configure("local_only",foreground="#7A5B00")
             tree.tag_configure("update",foreground="#0B5D1E")
             tree.tag_configure("unmatched",foreground="#8A5A00")
             tree.tag_configure("ambiguous",foreground="#8A1C1C")
@@ -251,23 +273,24 @@ def install(core, base_app):
             def apply_import():
                 if not core.messagebox.askyesno(
                     "Застосувати імпорт?",
-                    "Буде оновлено %d карток працівників.\n\nНеоднозначні, конфліктні та незнайдені рядки буде пропущено. Продовжити?" % updates,
+                    "Режим: %s\nПотенційних карток зі змінами: %d.\n\nНеоднозначні, конфліктні та незнайдені рядки буде пропущено. Дані, відсутні у витягу, не видаляються. Продовжити?" % (registry.IMPORT_MODE_LABELS[mode_var.get()],updates),
                     parent=win,
                 ):
                     return
                 try:
-                    result=registry.apply_registry_import(core,preview)
+                    result=registry.apply_registry_import(core,preview,mode=mode_var.get())
                 except Exception as exc:
                     core.messagebox.showerror("Імпорт даних працівників",str(exc),parent=win); return
                 refresh=getattr(self,"_refresh_personnel_overview",None)
                 if callable(refresh): refresh()
                 core.messagebox.showinfo(
                     "Імпорт завершено",
-                    ("Джерело: %s\nРядків: %d\nЗіставлено: %d\nОновлено: %d\nПропущено: %d\nПопереджень: %d"
-                     % (_source_label(result["source_kind"]),result["total"],result["matched"],
-                        result["updated"],result["skipped"],result["warnings"])),
+                    ("Джерело: %s\nРежим: %s\nРядків: %d\nЗіставлено: %d\nЗмінено карток: %d\nЄ лише в Taxo: %d\nПропущено: %d\nПопереджень: %d"
+                     % (_source_label(result["source_kind"]),registry.IMPORT_MODE_LABELS[result["mode"]],result["total"],result["matched"],
+                        result["updated"],result["local_only"],result["skipped"],result["warnings"])),
                     parent=win,
                 )
+                self._refresh_personnel_registry_quarter_status()
                 win.destroy()
 
             core.ttk.Button(actions,text="Закрити",command=win.destroy).pack(side="right",padx=(6,0))
