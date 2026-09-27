@@ -1,0 +1,1 @@
+Issued r5 remains a test checkpoint. New registry reconciliation code belongs to r6.
