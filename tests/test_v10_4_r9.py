@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import sqlite3
 import unittest
+from datetime import date, datetime
 from pathlib import Path
 
+import military_accounting_2026 as military
 import personnel_registry as registry
 import personnel_reconciliation as rec
 
@@ -17,10 +19,13 @@ def make_db():
         last_name TEXT NOT NULL,
         first_name TEXT NOT NULL,
         middle_name TEXT DEFAULT '',
+        employment_date TEXT DEFAULT '',
+        dismissal_date TEXT DEFAULT '',
         active INTEGER NOT NULL DEFAULT 1
     )""")
     registry.ensure_schema_on_connection(con)
     rec.ensure_schema_on_connection(con)
+    military.ensure_schema_on_connection(con)
     return con
 
 
@@ -156,11 +161,11 @@ class DecisionPersistenceR9Tests(unittest.TestCase):
             self.con, self.employee_id, "military", "booking_status"
         )
         self.con.commit()
-        military = self.con.execute(
+        military_row = self.con.execute(
             "SELECT * FROM employee_military_profile WHERE employee_id=?", (self.employee_id,)
         ).fetchone()
-        self.assertEqual(military["booking_status"], "Заброньовано")
-        self.assertEqual(military["account_status"], "На обліку")
+        self.assertEqual(military_row["booking_status"], "Заброньовано")
+        self.assertEqual(military_row["account_status"], "На обліку")
 
     def test_accept_registry_rejects_empty_source(self):
         preview = preview_for(self.employee_id)
@@ -181,6 +186,100 @@ class DecisionPersistenceR9Tests(unittest.TestCase):
         self.assertEqual(rows[1]["decision"], rec.DECISION_DEFER)
 
 
+class MilitaryAccountingJournalR9Tests(unittest.TestCase):
+    def setUp(self):
+        self.con = make_db()
+
+    def tearDown(self):
+        self.con.close()
+
+    def add_employee(self, employment_date="", dismissal_date=""):
+        cur = self.con.execute(
+            "INSERT INTO employees(last_name,first_name,middle_name,employment_date,dismissal_date,active) VALUES(?,?,?,?,?,?)",
+            ("Тест", "Військовий", "Облік", employment_date, dismissal_date, 1),
+        )
+        return cur.lastrowid
+
+    def test_historical_hire_does_not_create_false_overdue_task(self):
+        self.add_employee("2020-01-15", "")
+        military.sync_recent_employment_actions(self.con)
+        self.assertEqual(len(military.list_actions(self.con)), 0)
+
+    def test_new_hire_creates_seven_day_notice_task(self):
+        employee_id = self.add_employee("2026-09-27", "")
+        military.sync_recent_employment_actions(self.con)
+        rows = military.list_actions(self.con, employee_id=employee_id)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["action_type"], military.ACTION_HIRE_NOTICE)
+        self.assertEqual(rows[0]["due_date"], "2026-10-04")
+
+    def test_new_dismissal_creates_seven_day_notice_task(self):
+        employee_id = self.add_employee("2020-01-15", "2026-09-28")
+        military.sync_recent_employment_actions(self.con)
+        rows = military.list_actions(self.con, employee_id=employee_id)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["action_type"], military.ACTION_DISMISSAL_NOTICE)
+        self.assertEqual(rows[0]["due_date"], "2026-10-05")
+
+    def test_personal_data_change_uses_five_day_action(self):
+        employee_id = self.add_employee()
+        military.add_personal_data_update_action(self.con, employee_id, date(2026, 9, 27))
+        row = military.list_actions(self.con, employee_id=employee_id)[0]
+        self.assertEqual(row["action_type"], military.ACTION_PERSONAL_DATA_UPDATE)
+        self.assertEqual(row["due_date"], "2026-10-02")
+
+    def test_completion_persists(self):
+        employee_id = self.add_employee("2026-09-27", "")
+        military.sync_recent_employment_actions(self.con)
+        row = military.list_actions(self.con, employee_id=employee_id)[0]
+        military.complete_action(self.con, row["id"], channel="Дія", reference="TEST-REF")
+        done = military.list_actions(self.con, employee_id=employee_id)[0]
+        self.assertEqual(done["status"], military.STATUS_DONE)
+        self.assertEqual(done["channel"], "Дія")
+        self.assertEqual(done["reference"], "TEST-REF")
+
+    def test_hire_document_formed_within_72_hours_is_accepted(self):
+        employee_id = self.add_employee("2026-09-30", "")
+        military.record_hire_document_check(
+            self.con, employee_id, "2026-09-30",
+            datetime(2026, 9, 30, 9, 0),
+            datetime(2026, 9, 28, 12, 0), method="Дія",
+        )
+        count = self.con.execute("SELECT COUNT(*) FROM military_hire_document_checks").fetchone()[0]
+        self.assertEqual(count, 1)
+
+    def test_hire_document_older_than_72_hours_is_rejected(self):
+        employee_id = self.add_employee("2026-09-30", "")
+        with self.assertRaises(ValueError):
+            military.record_hire_document_check(
+                self.con, employee_id, "2026-09-30",
+                datetime(2026, 9, 30, 9, 0),
+                datetime(2026, 9, 26, 12, 0), method="Дія",
+            )
+
+    def test_official_reconciliation_is_independent_of_registry_import(self):
+        employee_id = self.add_employee()
+        self.con.execute(
+            "INSERT INTO employee_registry_imports(source_kind,source_name,file_sha256,imported_at,total_rows,mode) VALUES(?,?,?,?,?,?)",
+            (registry.SOURCE_DETAILED, "quarter.xlsx", "sha", "2026-09-27T10:00:00", 1, registry.IMPORT_COMPARE),
+        )
+        status = military.annual_reconciliation_status(self.con, today=date(2026, 9, 27))
+        self.assertEqual(status["count"], 0)
+        self.assertFalse(status["has_document_reconciliation"])
+        self.assertFalse(status["has_authority_reconciliation"])
+        self.assertIsNotNone(employee_id)
+
+    def test_official_reconciliation_log_sets_annual_status_only_after_record(self):
+        military.record_official_reconciliation(
+            self.con, "2026-09-27", military.RECONCILIATION_DIIA,
+            method="Дія", authority="ТЦК", reference="SYNTHETIC",
+        )
+        status = military.annual_reconciliation_status(self.con, today=date(2026, 9, 27))
+        self.assertEqual(status["count"], 1)
+        self.assertTrue(status["has_authority_reconciliation"])
+        self.assertFalse(status["has_document_reconciliation"])
+
+
 class R9IntegrationMarkersTests(unittest.TestCase):
     def test_version_metadata_is_r9(self):
         version = (ROOT / "VERSION.txt").read_text("utf-8")
@@ -190,15 +289,27 @@ class R9IntegrationMarkersTests(unittest.TestCase):
     def test_feature_layer_is_installed_after_r8(self):
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1049_features import install as install_v1049", entry)
-        self.assertIn("App = install_v1049(", entry)
+        self.assertIn("from military_accounting_ui import install as install_military_accounting_ui", entry)
+        self.assertIn("App = install_military_accounting_ui(", entry)
         ui = (ROOT / "v1049_features.py").read_text("utf-8")
         self.assertIn('APP_VERSION = "10.4-r9"', ui)
         self.assertIn("квартальна звірка — політика Taxo", ui)
 
     def test_current_module_declares_2026_legal_marker_without_quarterly_legal_claim(self):
         source = (ROOT / "personnel_reconciliation.py").read_text("utf-8")
+        legal = (ROOT / "military_accounting_2026.py").read_text("utf-8")
         self.assertIn('LEGAL_BASIS = "Порядок №1487, редакція 27.06.2026"', source)
-        self.assertNotIn("законодавчий квартальний", source.lower())
+        self.assertIn("HIRE_DOCUMENT_MAX_AGE_HOURS = 72", legal)
+        self.assertIn("EMPLOYMENT_NOTICE_DAYS = 7", legal)
+        self.assertIn("PERSONAL_LIST_UPDATE_DAYS = 5", legal)
+        self.assertIn("ANNUAL_RECONCILIATION_MINIMUM = 1", legal)
+        self.assertNotIn("законодавчий квартальний", (source + legal).lower())
+
+    def test_quarterly_registry_and_official_journal_are_separate_in_ui(self):
+        ui = (ROOT / "military_accounting_ui.py").read_text("utf-8")
+        self.assertIn("Державний XLSX — внутрішня політика Taxo", ui)
+        self.assertIn("Офіційне військове звіряння — Порядок №1487", ui)
+        self.assertIn("не заповнюється автоматично з квартального XLSX", ui)
 
 
 if __name__ == "__main__":
