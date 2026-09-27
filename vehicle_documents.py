@@ -915,6 +915,8 @@ def open_vehicle_documents(parent, db_factory, data_root, vehicle, on_change=Non
 
 
 def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle=None):
+    # Operational control uses only local Taxo vehicle_documents.
+    # State-registry reconciliation (e.g. «Шлях») is a separate subsystem and must not alter these statuses.
     win = tk.Toplevel(parent)
     win.title("Контроль документів транспортних засобів")
     fit_window_to_screen(win, 1180, 700, 850, 500)
@@ -929,7 +931,11 @@ def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle
     ttk.Label(top, textvariable=info_var).pack(side="right")
 
     cols = ("vehicle", "type", "number", "until", "status", "copy")
-    tree = ttk.Treeview(win, columns=cols, show="headings", height=23)
+    table = ttk.Frame(win)
+    table.pack(fill="both", expand=True, padx=10, pady=6)
+    table.rowconfigure(0, weight=1)
+    table.columnconfigure(0, weight=1)
+    tree = ttk.Treeview(table, columns=cols, show="headings", height=23)
     heads = {
         "vehicle": "Автомобіль",
         "type": "Документ",
@@ -942,10 +948,6 @@ def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle
     for col in cols:
         tree.heading(col, text=heads[col])
         tree.column(col, width=widths[col], anchor="w")
-    table = ttk.Frame(win)
-    table.pack(fill="both", expand=True, padx=10, pady=6)
-    table.rowconfigure(0, weight=1)
-    table.columnconfigure(0, weight=1)
     ybar = ttk.Scrollbar(table, orient="vertical", command=tree.yview)
     xbar = ttk.Scrollbar(table, orient="horizontal", command=tree.xview)
     tree.configure(yscrollcommand=ybar.set, xscrollcommand=xbar.set)
