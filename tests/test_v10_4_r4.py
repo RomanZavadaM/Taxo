@@ -118,13 +118,13 @@ class TestTaxo104R4WaybillAndAudit(unittest.TestCase):
                 "route_start_boundary_mismatch","route_end_boundary_mismatch"
             })
 
-    def test_candidate_identity_is_r4(self):
+    def test_r4_checkpoint_identity_remains_historical(self):
         root=Path(__file__).resolve().parents[1]
-        version=(root/"VERSION.txt").read_text("utf-8")
         entry=(root/"taxo_app.py").read_text("utf-8")
-        self.assertIn("Version: 10.4-r4",version)
+        feature=(root/"v1044_features.py").read_text("utf-8")
         self.assertIn("install_v1044",entry)
-        self.assertIn("APP_VERSION = \"10.4-r4\"",(root/"v1044_features.py").read_text("utf-8"))
+        self.assertIn("APP_VERSION = \"10.4-r4\"",feature)
+        self.assertNotIn("def _waybill_schedule_rows",feature)
 
 
 if __name__=="__main__":
