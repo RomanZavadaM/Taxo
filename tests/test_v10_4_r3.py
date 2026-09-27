@@ -78,7 +78,10 @@ class TestTaxo104R3DriverScheduleSafety(unittest.TestCase):
         return con
 
     def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION,"10.4-r3")
+        # r3 is an immutable historical checkpoint, while the current runtime may
+        # legitimately advance to r4/r5/etc.  Guard the r3 marker itself instead
+        # of forcing every later revision to keep main.APP_VERSION at r3.
+        self.assertEqual(v1043_features.APP_VERSION,"10.4-r3")
         self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(start_archive_stem("10.4-r3"),"Taxo_v10_4_candidate_r3_START")
 
