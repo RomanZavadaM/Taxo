@@ -17,36 +17,40 @@ from military_accounting_ui import install as install_military_accounting_ui
 from v10410_features import install as install_v10410
 from v1051_features import install as install_v1051
 from v1052_features import install as install_v1052
+from v1053_features import install as install_v1053
 
-App = install_v1052(
+App = install_v1053(
     core,
-    install_v1051(
+    install_v1052(
         core,
-        install_v10410(
+        install_v1051(
             core,
-            install_military_accounting_ui(
+            install_v10410(
                 core,
-                install_v1049(
+                install_military_accounting_ui(
                     core,
-                    install_v1048(
+                    install_v1049(
                         core,
-                        install_v1046(
+                        install_v1048(
                             core,
-                            install_v1045(
+                            install_v1046(
                                 core,
-                                install_v1044(
+                                install_v1045(
                                     core,
-                                    install_v1043(
+                                    install_v1044(
                                         core,
-                                        install_personnel(
+                                        install_v1043(
                                             core,
-                                            install_v91(
+                                            install_personnel(
                                                 core,
-                                                install_hotfix_901(
+                                                install_v91(
                                                     core,
-                                                    install_v9(
+                                                    install_hotfix_901(
                                                         core,
-                                                        install_activity_register(core, install_work_analysis(core)),
+                                                        install_v9(
+                                                            core,
+                                                            install_activity_register(core, install_work_analysis(core)),
+                                                        ),
                                                     ),
                                                 ),
                                             ),
