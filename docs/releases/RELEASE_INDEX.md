@@ -3,8 +3,8 @@
 **Стан:** 28.09.2026  
 **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
 **Latest full checkpoint:** [Taxo 10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) — merged  
-**Latest issued fast-test revision:** **Taxo 10.5-r1** — immutable  
-**Next code revision:** **10.5-r2**.
+**Latest issued fast-test revision:** **Taxo 10.5-r2** — immutable  
+**Next code revision:** **10.5-r3**.
 
 > `v10.4-r2` лишається останнім повним multi-platform checkpoint у `main`. Ревізії після нього — швидкі START-checkpoint-и для інтенсивної розробки; вони не підміняють stable/full release без окремого рішення власника.
 
@@ -25,7 +25,8 @@
 
 | Ревізія | Issued code head | Перевірка | Статус / напрям |
 |---|---|---|---|
-| **Taxo 10.5-r1** | `d7e5a730767ebc17e6935b2d3f25208a9f151c16` | run `36355353170`, `399/399 OK`, artifact `10943696206` | **Latest fast-test; immutable** — відомість військово-транспортного обліку по власному/балансовому транспорту |
+| **Taxo 10.5-r2** | `d9e7beefa52c7774e1b4bd6711dfc5907e06de37` | run `36356444031`, `425/425 OK`, artifact `10944042965` | **Latest fast-test; immutable** — покомпонентна кольорова звірка ТЗ з «Шлях» та історія рішень |
+| Taxo 10.5-r1 | `d7e5a730767ebc17e6935b2d3f25208a9f151c16` | run `36355353170`, `399/399 OK`, artifact `10943696206` | immutable — відомість військово-транспортного обліку по власному/балансовому транспорту |
 | Taxo 10.4-r10 | `0f7944ad3f86bb6ee8ad19b40cfb2b38d924b934` | run `36351811271`, `388/388 OK`, artifact `10942183754` | immutable — військово-транспортний облік ТЗ |
 | Taxo 10.4-r9 | `c09aee3588e95682a1d990c681b10c808183b041` | run `36350115825`, `366/366 OK`, artifact `10942445098` | immutable — покомпонентна звірка працівників і військовий облік 2026 |
 | Taxo 10.4-r8 | `1c0607ee733217c0d4d0bc459af4c0a175a0409f` | run `36346821842`, `340/340 OK`, artifact `10941021984` | immutable — звірка ТЗ / «Шлях» та контрольні нагадування |
@@ -34,6 +35,7 @@
 Ревізії `10.4-r3 … r6` також залишаються історичними fast-test checkpoint-ами; їхні точні технічні записи збережені в Issue #61 та Git history. Уже виданий checkpoint не перевидається під тим самим номером.
 
 Документи:
+- [Release notes 10.5-r2](RELEASE_NOTES_v10_5_r2.md)
 - [Release notes 10.5-r1](RELEASE_NOTES_v10_5_r1.md)
 - [Release notes 10.4-r10](RELEASE_NOTES_v10_4_r10.md)
 - [Release notes 10.4-r9](RELEASE_NOTES_v10_4_r9.md)
@@ -82,7 +84,7 @@
 - кожен завершений крок = нова ревізія `r1 … r10`;
 - після `r10` — наступна minor-версія з `r1`;
 - уже виданий candidate повторно не використовується;
-- після виданого `10.5-r1` наступний кодовий крок — тільки **10.5-r2**;
+- після виданого `10.5-r2` наступний кодовий крок — тільки **10.5-r3**;
 - кожний fast-test checkpoint має окремий чистий START archive;
 - при інтенсивній розробці START є основним тестовим пакетом; Portable/Setup формуються на більш рідкісних/повних checkpoint-ах.
 
