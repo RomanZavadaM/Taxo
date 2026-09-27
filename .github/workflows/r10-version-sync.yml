@@ -1,0 +1,43 @@
+name: One-time sync Taxo r10 version
+
+on:
+  push:
+    branches:
+      - work/v10.4-r10-military-transport-vehicles
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.4-r10-military-transport-vehicles
+          fetch-depth: 0
+      - name: Sync main APP_VERSION to r10
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('main.py')
+          text = p.read_text(encoding='utf-8')
+          old = 'APP_VERSION = "10.4-r9"'
+          new = 'APP_VERSION = "10.4-r10"'
+          if new in text:
+              print('main.py already r10')
+          elif old in text:
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          else:
+              raise SystemExit('Expected r9 APP_VERSION marker not found')
+          PY
+          if git diff --quiet -- main.py; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.py
+          git commit -m "chore(r10): sync main application version"
+          git push origin HEAD:work/v10.4-r10-military-transport-vehicles
