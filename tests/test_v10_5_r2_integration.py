@@ -6,18 +6,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class Taxo105R2IntegrationTests(unittest.TestCase):
-    def test_r2_layer_is_outermost_after_r1(self):
+    def test_r2_layer_remains_in_install_chain_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1051_features import install as install_v1051", entry)
         self.assertIn("from v1052_features import install as install_v1052", entry)
-        self.assertIn("App = install_v1052(", entry)
+        self.assertIn("install_v1052(", entry)
+        self.assertIn("install_v1051(", entry)
         self.assertLess(entry.index("install_v1052("), entry.index("install_v1051("))
 
-    def test_version_metadata_is_r2(self):
-        version = (ROOT / "VERSION.txt").read_text("utf-8")
-        self.assertIn("Version: 10.5-r2", version)
-        self.assertIn("покомпонентна кольорова звірка", version)
-        self.assertIn("порожнє або відсутнє значення «Шлях» ніколи не очищає", version)
+    def test_r2_historical_metadata_remains_immutable(self):
+        notes = (ROOT / "docs/releases/RELEASE_NOTES_v10_5_r2.md").read_text("utf-8")
+        feature = (ROOT / "v1052_features.py").read_text("utf-8")
+        self.assertIn("Taxo 10.5-r2", notes)
+        self.assertIn("покомпонентна звірка ТЗ з «Шлях»", notes)
+        self.assertIn("порожнє/відсутнє поле «Шлях» ніколи не очищає Taxo", notes)
+        self.assertIn('APP_VERSION = "10.5-r2"', feature)
 
     def test_start_guard_requires_r2_runtime(self):
         workflow = (ROOT / ".github/workflows/source-test-archive.yml").read_text("utf-8")
