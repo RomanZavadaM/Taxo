@@ -90,9 +90,11 @@ jobs:
             military_transport_ui.py
             military_transport_statement.py
             military_transport_statement_ui.py
+            vehicle_reconciliation.py
             v1049_features.py
             v10410_features.py
             v1051_features.py
+            v1052_features.py
             work_regime.py
             branding.py
             branding_asset.py
