@@ -2,7 +2,8 @@
 """Taxo 10.4-r9 — official military-accounting journal for the 2026 model.
 
 Registry XLSX freshness and statutory military-accounting actions are intentionally
-separate.  A quarterly Taxo import never marks an official reconciliation as done.
+separate. A quarterly Taxo import never marks an official reconciliation as done.
+The module also avoids inventing legal deadlines from incomplete local data.
 """
 from __future__ import annotations
 
@@ -72,6 +73,12 @@ def _iso_time(value):
     return datetime.fromisoformat(text).isoformat(timespec="minutes")
 
 
+def _ensure_column(con, table, column, ddl):
+    columns = {row[1] for row in con.execute("PRAGMA table_info(%s)" % table).fetchall()}
+    if column not in columns:
+        con.execute("ALTER TABLE %s ADD COLUMN %s" % (table, ddl))
+
+
 def ensure_schema_on_connection(con):
     con.executescript("""
         CREATE TABLE IF NOT EXISTS military_accounting_actions (
@@ -79,6 +86,7 @@ def ensure_schema_on_connection(con):
             employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
             action_type TEXT NOT NULL,
             event_date TEXT NOT NULL,
+            basis_date TEXT DEFAULT '',
             due_date TEXT DEFAULT '',
             status TEXT NOT NULL DEFAULT 'open',
             completed_at TEXT DEFAULT '',
@@ -120,6 +128,8 @@ def ensure_schema_on_connection(con):
         CREATE INDEX IF NOT EXISTS idx_military_hire_document_checks_employee
             ON military_hire_document_checks(employee_id,checked_at DESC,id DESC);
     """)
+    # Safe upgrade for databases that opened an earlier r9 development snapshot.
+    _ensure_column(con, "military_accounting_actions", "basis_date", "basis_date TEXT DEFAULT ''")
 
 
 def ensure_schema(core):
@@ -131,22 +141,27 @@ def ensure_schema(core):
         con.close()
 
 
-def _insert_action(con, employee_id, action_type, event_date, due_date="", source="manual", note=""):
+def _insert_action(con, employee_id, action_type, event_date, basis_date="", due_date="", source="manual", note=""):
     now = datetime.now().isoformat(timespec="seconds")
     con.execute(
         """INSERT OR IGNORE INTO military_accounting_actions(
-               employee_id,action_type,event_date,due_date,status,note,source,created_at
-           ) VALUES(?,?,?,?,?,?,?,?)""",
-        (employee_id, action_type, _iso_day(event_date), _iso_day(due_date), STATUS_OPEN,
-         str(note or "").strip(), source, now),
+               employee_id,action_type,event_date,basis_date,due_date,status,note,source,created_at
+           ) VALUES(?,?,?,?,?,?,?,?,?)""",
+        (employee_id, action_type, _iso_day(event_date), _iso_day(basis_date), _iso_day(due_date),
+         STATUS_OPEN, str(note or "").strip(), source, now),
     )
 
 
 def sync_recent_employment_actions(con, feature_start=FEATURE_START):
-    """Create notice tasks only for personnel events on/after feature activation.
+    """Create attention tasks only for personnel events on/after feature activation.
 
     Historical hires/dismissals are deliberately not backfilled as overdue because
     Taxo cannot know whether the employer already fulfilled those duties.
+
+    The statutory seven-day period runs from the ORDER date. Taxo's existing
+    employee card stores employment/dismissal dates, which are not guaranteed to
+    equal the order date, so automatic tasks intentionally have no due_date until
+    the order date is entered with ``set_notice_order_date``.
     """
     ensure_schema_on_connection(con)
     start = feature_start if isinstance(feature_start, date) else date.fromisoformat(str(feature_start))
@@ -170,24 +185,54 @@ def sync_recent_employment_actions(con, feature_start=FEATURE_START):
             if event < start:
                 continue
             _insert_action(
-                con, row["id"], action_type, event,
-                event + timedelta(days=EMPLOYMENT_NOTICE_DAYS), source="employment_event",
+                con, row["id"], action_type, event, source="employment_event",
+                note="Вкажіть дату наказу: семиденний строк обчислюється від дня видання наказу.",
             )
     return con.total_changes - created_before
 
 
-def add_personal_data_update_action(con, employee_id, event_date, note=""):
-    event = event_date if isinstance(event_date, date) else date.fromisoformat(str(event_date)[:10])
-    _insert_action(
-        con, int(employee_id), ACTION_PERSONAL_DATA_UPDATE, event,
-        event + timedelta(days=PERSONAL_LIST_UPDATE_DAYS), source="manual_change", note=note,
+def set_notice_order_date(con, action_id, order_date):
+    """Set the legal basis date and calculate the seven-day deadline."""
+    ensure_schema_on_connection(con)
+    order = order_date if isinstance(order_date, date) else date.fromisoformat(str(order_date)[:10])
+    row = con.execute("SELECT action_type FROM military_accounting_actions WHERE id=?", (int(action_id),)).fetchone()
+    if row is None:
+        raise ValueError("Дію не знайдено.")
+    if row["action_type"] not in (ACTION_HIRE_NOTICE, ACTION_DISMISSAL_NOTICE):
+        raise ValueError("Дата наказу застосовується лише до повідомлення про прийняття/звільнення.")
+    con.execute(
+        """UPDATE military_accounting_actions
+           SET basis_date=?,due_date=?,note=''
+           WHERE id=?""",
+        (order.isoformat(), (order + timedelta(days=EMPLOYMENT_NOTICE_DAYS)).isoformat(), int(action_id)),
     )
 
 
-def add_monthly_change_report_action(con, event_date, note=""):
-    """Record a monthly reporting task explicitly; do not infer a legal event."""
-    event = event_date if isinstance(event_date, date) else date.fromisoformat(str(event_date)[:10])
-    _insert_action(con, None, ACTION_MONTHLY_CHANGE_REPORT, event, event, source="manual_monthly", note=note)
+def add_personal_data_update_action(con, employee_id, documents_submitted_date, note=""):
+    """Create the five-day action from the date relevant documents were submitted."""
+    event = documents_submitted_date if isinstance(documents_submitted_date, date) else date.fromisoformat(str(documents_submitted_date)[:10])
+    _insert_action(
+        con, int(employee_id), ACTION_PERSONAL_DATA_UPDATE, event, basis_date=event,
+        due_date=event + timedelta(days=PERSONAL_LIST_UPDATE_DAYS), source="manual_change", note=note,
+    )
+
+
+def next_monthly_report_due(today=None):
+    """Convenience date for the next 'by the 5th' reporting checkpoint."""
+    today = today or date.today()
+    if today.day <= 5:
+        return date(today.year, today.month, 5)
+    if today.month == 12:
+        return date(today.year + 1, 1, 5)
+    return date(today.year, today.month + 1, 5)
+
+
+def add_monthly_change_report_action(con, due_date=None, note=""):
+    """Record a monthly reporting task explicitly; do not infer whether changes exist."""
+    due = due_date or next_monthly_report_due()
+    due = due if isinstance(due, date) else date.fromisoformat(str(due)[:10])
+    _insert_action(con, None, ACTION_MONTHLY_CHANGE_REPORT, due, basis_date=due, due_date=due,
+                   source="manual_monthly", note=note)
 
 
 def complete_action(con, action_id, channel="", reference="", note="", completed_at=None):
@@ -228,25 +273,49 @@ def list_actions(con, status=None, employee_id=None):
     return con.execute(sql, params).fetchall()
 
 
+def hire_document_window_status(employment_date, document_formed_at, employment_at=None):
+    """Return exact/guarded status without inventing a hire time.
+
+    If an exact employment timestamp is known, the 72-hour rule is checked exactly.
+    With date-only data, a document from 0-2 calendar days before is safely within
+    the window, 4+ days before is outside, and exactly 3 calendar days before is
+    marked ``needs_exact_time`` rather than guessed.
+    """
+    employment = date.fromisoformat(_iso_day(employment_date))
+    formed = datetime.fromisoformat(_iso_time(document_formed_at))
+    if employment_at:
+        hire_time = datetime.fromisoformat(_iso_time(employment_at))
+        hours = (hire_time - formed).total_seconds() / 3600.0
+        return "ok" if 0 <= hours <= HIRE_DOCUMENT_MAX_AGE_HOURS else "outside"
+    day_delta = (employment - formed.date()).days
+    if day_delta < 0 or day_delta >= 4:
+        return "outside"
+    if day_delta == 3:
+        return "needs_exact_time"
+    return "ok"
+
+
 def record_hire_document_check(con, employee_id, employment_date, checked_at,
-                               document_formed_at="", method="", result="", note=""):
+                               document_formed_at="", employment_at="", method="", result="", note=""):
     ensure_schema_on_connection(con)
     employment = date.fromisoformat(_iso_day(employment_date))
     checked = datetime.fromisoformat(_iso_time(checked_at))
     formed_text = _iso_time(document_formed_at)
+    final_result = str(result or "").strip()
+    final_note = str(note or "").strip()
     if formed_text:
-        formed = datetime.fromisoformat(formed_text)
-        employment_end = datetime.combine(employment, datetime.max.time()).replace(microsecond=0)
-        age_hours = (employment_end - formed).total_seconds() / 3600.0
-        if age_hours < 0 or age_hours > HIRE_DOCUMENT_MAX_AGE_HOURS:
-            raise ValueError("Електронний військово-обліковий документ має бути сформований не раніше ніж за 72 години до дати прийняття.")
+        status = hire_document_window_status(employment, formed_text, employment_at=employment_at)
+        if status == "outside":
+            raise ValueError("Дата формування електронного військово-облікового документа виходить за 72-годинне правило для прийняття.")
+        if status == "needs_exact_time" and not final_note:
+            final_note = "Потрібен точний час прийняття для однозначної перевірки 72-годинної межі."
     now = datetime.now().isoformat(timespec="seconds")
     con.execute(
         """INSERT INTO military_hire_document_checks(
                employee_id,employment_date,document_formed_at,checked_at,method,result,note,created_at
            ) VALUES(?,?,?,?,?,?,?,?)""",
         (int(employee_id), employment.isoformat(), formed_text, checked.isoformat(timespec="minutes"),
-         str(method or "").strip(), str(result or "").strip(), str(note or "").strip(), now),
+         str(method or "").strip(), final_result, final_note, now),
     )
 
 
