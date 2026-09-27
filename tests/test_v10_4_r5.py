@@ -201,11 +201,9 @@ class TestTaxo104R5PersonnelRegistry(unittest.TestCase):
         self.assertIn("appointment_act",required)
         self.assertIn("notification_requisites",required)
 
-    def test_candidate_identity_and_entrypoint(self):
-        version=(ROOT/"VERSION.txt").read_text("utf-8")
+    def test_r5_checkpoint_identity_remains_historical(self):
         entry=(ROOT/"taxo_app.py").read_text("utf-8")
         feature=(ROOT/"v1045_features.py").read_text("utf-8")
-        self.assertIn("Version: 10.4-r5",version)
         self.assertIn("install_v1045",entry)
         self.assertIn('APP_VERSION = "10.4-r5"',feature)
         self.assertNotIn("Тестовий Петро Іванович",(ROOT/"personnel_registry.py").read_text("utf-8"))
