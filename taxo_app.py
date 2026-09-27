@@ -12,26 +12,30 @@ from v1044_features import install as install_v1044
 from v1045_features import install as install_v1045
 from v1046_features import install as install_v1046
 from v1048_features import install as install_v1048
+from v1049_features import install as install_v1049
 
-App = install_v1048(
+App = install_v1049(
     core,
-    install_v1046(
+    install_v1048(
         core,
-        install_v1045(
+        install_v1046(
             core,
-            install_v1044(
+            install_v1045(
                 core,
-                install_v1043(
+                install_v1044(
                     core,
-                    install_personnel(
+                    install_v1043(
                         core,
-                        install_v91(
+                        install_personnel(
                             core,
-                            install_hotfix_901(
+                            install_v91(
                                 core,
-                                install_v9(
+                                install_hotfix_901(
                                     core,
-                                    install_activity_register(core, install_work_analysis(core)),
+                                    install_v9(
+                                        core,
+                                        install_activity_register(core, install_work_analysis(core)),
+                                    ),
                                 ),
                             ),
                         ),
