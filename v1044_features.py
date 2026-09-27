@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 10.4-r4: waybill boundary consistency and visible schedule audit."""
+"""Taxo 10.4-r4: visible schedule audit and route-boundary input checks."""
 from datetime import datetime, timedelta
 
 APP_VERSION = "10.4-r4"
@@ -30,11 +30,7 @@ def _clock_minutes(value, day_offset=0):
 
 
 def _route_boundary_times(stops, start_direction="outbound"):
-    """Return printable route start/end boundary from the route-point timetable.
-
-    The first point of the starting direction supplies departure from the park;
-    the last point of the opposite direction supplies arrival back to the park.
-    """
+    """Read entered route boundary times for audit only; never alter waybill data."""
     rows=list(stops or [])
     direction=str(start_direction or "outbound").strip().lower()
     if direction not in ("outbound", "return"):
@@ -44,7 +40,6 @@ def _route_boundary_times(stops, start_direction="outbound"):
     ends=[r for r in rows if str(_value(r,"direction","")).strip()==finish]
     starts.sort(key=lambda r:int(_value(r,"stop_no",0) or 0))
     ends.sort(key=lambda r:int(_value(r,"stop_no",0) or 0))
-
     result={
         "start_time":"", "start_day_offset":0, "start_stop":"",
         "end_time":"", "end_day_offset":0, "end_stop":"",
@@ -98,11 +93,10 @@ def _segment_boundary(segments, fallback=None, start_offset=0, end_offset=0):
 
 def _boundary_mismatch_findings(segment_boundary, stop_boundary, base):
     findings=[]
-    pairs=(
+    for side,label,kind in (
         ("start","Виїзд із АТП","route_start_boundary_mismatch"),
         ("end","Заїзд в АТП","route_end_boundary_mismatch"),
-    )
-    for side,label,kind in pairs:
+    ):
         seg_time=segment_boundary.get(side+"_time","")
         stop_time=stop_boundary.get(side+"_time","")
         if not seg_time or not stop_time:
@@ -122,7 +116,7 @@ def _boundary_mismatch_findings(segment_boundary, stop_boundary, base):
             "minutes":delta,
             "message":(
                 "%s: часові частини маршруту дають %s, а таблиця точок (%s) — %s. "
-                "Лицьова і зворотна сторони шляхівки не повинні друкувати різний плановий час."
+                "Перевірте введення графіка маршруту."
                 % (label, seg_time, point, stop_time)
             ),
         })
@@ -132,18 +126,14 @@ def _boundary_mismatch_findings(segment_boundary, stop_boundary, base):
 
 def _period_bounds(year, month, work_date=None):
     if work_date:
-        if hasattr(work_date,"isoformat"):
-            day=work_date.isoformat()
-        else:
-            day=str(work_date)
+        day=work_date.isoformat() if hasattr(work_date,"isoformat") else str(work_date)
         return day, day
     start="%04d-%02d-01" % (int(year),int(month))
     if int(month)==12:
         next_month=datetime(int(year)+1,1,1)
     else:
         next_month=datetime(int(year),int(month)+1,1)
-    end=(next_month-timedelta(days=1)).strftime("%Y-%m-%d")
-    return start,end
+    return start,(next_month-timedelta(days=1)).strftime("%Y-%m-%d")
 
 
 def augment_schedule_audit(core, original, year, month, active_routes_only=True,
@@ -176,10 +166,7 @@ def augment_schedule_audit(core, original, year, month, active_routes_only=True,
                 stops=con.execute(
                     "SELECT * FROM route_stops WHERE route_id=? ORDER BY direction,stop_no",(route_id,)
                 ).fetchall()
-                seg=_segment_boundary(
-                    segs,row,
-                    _value(row,"start_day_offset",0),_value(row,"end_day_offset",0)
-                )
+                seg=_segment_boundary(segs,row,_value(row,"start_day_offset",0),_value(row,"end_day_offset",0))
                 stop=_route_boundary_times(stops,_value(row,"start_direction","outbound"))
                 driver=" ".join(x for x in (
                     str(_value(row,"last_name","") or "").strip(),
@@ -187,11 +174,10 @@ def augment_schedule_audit(core, original, year, month, active_routes_only=True,
                     str(_value(row,"middle_name","") or "").strip()) if x)
                 route_name=str(_value(row,"catalog_name","") or _value(row,"route_name","") or "").strip()
                 route_code=str(_value(row,"route_code","") or "").strip()
-                route=" / ".join(x for x in (route_code,route_name) if x)
                 base={
                     "source_kind":"worklog","source":"День водія","worklog_id":row["id"],
                     "driver_id":row["driver_id"],"route_id":route_id,"date":row["work_date"],
-                    "subject":driver,"route":route,
+                    "subject":driver,"route":" / ".join(x for x in (route_code,route_name) if x),
                 }
                 findings.extend(_boundary_mismatch_findings(seg,stop,base))
 
@@ -209,9 +195,7 @@ def augment_schedule_audit(core, original, year, month, active_routes_only=True,
                 ).fetchall()
                 if not segs or not stops:
                     continue
-                seg=_segment_boundary(
-                    segs,None,_value(route_row,"start_day_offset",0),_value(route_row,"end_day_offset",0)
-                )
+                seg=_segment_boundary(segs,None,_value(route_row,"start_day_offset",0),_value(route_row,"end_day_offset",0))
                 stop=_route_boundary_times(stops,_value(route_row,"start_direction","outbound"))
                 route=" / ".join(x for x in (
                     str(_value(route_row,"code","") or "").strip(),
@@ -225,7 +209,6 @@ def augment_schedule_audit(core, original, year, month, active_routes_only=True,
     finally:
         con.close()
 
-    # Deduplicate the added boundary checks without disturbing historical checks.
     unique=[]; seen=set()
     for item in findings:
         key=(item.get("source_kind"),item.get("worklog_id"),item.get("route_id"),
@@ -242,7 +225,6 @@ def augment_schedule_audit(core, original, year, month, active_routes_only=True,
 def install(core, base_app):
     if getattr(core,"_TAXO_1044_INSTALLED",False):
         return core.App
-
     core.APP_VERSION=APP_VERSION
     original_audit=core.collect_schedule_integrity_audit
 
@@ -258,46 +240,10 @@ def install(core, base_app):
             super().__init__(*args,**kwargs)
             self.title("Taxo %s — Працівники, графіки та шляхівки" % core.APP_VERSION)
 
-        def _waybill_schedule_rows(self,work_date):
-            rows=super()._waybill_schedule_rows(work_date)
-            if not rows:
-                return rows
-            con=core.db()
-            try:
-                for row in rows:
-                    route_id=row.get("route_id") if isinstance(row,dict) else None
-                    if not route_id:
-                        continue
-                    stops=con.execute(
-                        "SELECT * FROM route_stops WHERE route_id=? ORDER BY direction,stop_no",(route_id,)
-                    ).fetchall()
-                    boundary=_route_boundary_times(stops,row.get("start_direction","outbound"))
-                    if boundary["start_time"]:
-                        row["segment_planned_departure"]=row.get("planned_departure","")
-                        row["start_time_raw"]=boundary["start_time"]
-                        row["start_day_offset"]=boundary["start_day_offset"]
-                        row["planned_departure"]=core.waybill_time_label(
-                            row["date"],boundary["start_day_offset"],boundary["start_time"],
-                            boundary["start_day_offset"]!=0
-                        )
-                    if boundary["end_time"]:
-                        row["segment_planned_return"]=row.get("planned_return","")
-                        row["end_time_raw"]=boundary["end_time"]
-                        row["end_day_offset"]=boundary["end_day_offset"]
-                        row["end_date"]=row["date"]+timedelta(days=int(boundary["end_day_offset"] or 0))
-                        row["planned_return"]=core.waybill_time_label(
-                            row["date"],boundary["end_day_offset"],boundary["end_time"],
-                            boundary["end_day_offset"]!=0
-                        )
-            finally:
-                con.close()
-            return rows
-
         def refresh_schedule_integrity_audit(self):
             try:
                 result=super().refresh_schedule_integrity_audit()
             except Exception as exc:
-                # Never leave the audit as a silent empty window.
                 if hasattr(self,"schedule_audit_result"):
                     self.schedule_audit_result.set("⚠ Помилка виконання аудиту")
                 if hasattr(self,"schedule_audit_summary"):
@@ -310,7 +256,6 @@ def install(core, base_app):
                     ),tags=("audit-error",))
                     tree.tag_configure("audit-error",foreground="#8A1C1C")
                 return None
-
             tree=getattr(self,"schedule_audit_tree",None)
             if tree is not None and tree.winfo_exists() and not tree.get_children():
                 status=(self.schedule_audit_result.get() if hasattr(self,"schedule_audit_result") else "Перевірку завершено")
