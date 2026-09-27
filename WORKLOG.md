@@ -9,6 +9,7 @@
 **Latest published full checkpoint:** `v10.4-r2` → `ee6687c59d7dc1a8a38de4b7858669fddc3f647c`  
 **Latest issued fast-test revision:** Taxo `10.4-r8` / branch `work/v10.4-r8-shlyakh-vehicle-reconciliation`  
 **Issued r8 code head:** `1c0607ee733217c0d4d0bc459af4c0a175a0409f`  
+**Previous issued fast-test checkpoint:** Taxo `10.4-r7` / head `9f397a092fe828570927bc39cef7a3a467e2aff0` — immutable  
 **r8 START verify run:** `36346821842` — success  
 **r8 artifact:** `Taxo_v10_4_candidate_r8_START` / artifact `10941021984`  
 **r8 SHA-256:** `db98be8f9d55c6b679fd12e90edf38edf75f1a02f556b691da5bb1089eb0e781`  
