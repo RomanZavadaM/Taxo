@@ -71,34 +71,19 @@ def preview_for(employee_id, rnokpp="1234567890", booking="Заброньова�
 
 class FieldStateR9Tests(unittest.TestCase):
     def test_empty_registry_value_never_means_clear(self):
-        self.assertEqual(
-            rec.field_state("employee", "registered_address", "Локальна адреса", ""),
-            rec.STATE_UNAVAILABLE,
-        )
+        self.assertEqual(rec.field_state("employee", "registered_address", "Локальна адреса", ""), rec.STATE_UNAVAILABLE)
 
     def test_empty_local_value_is_safe_fill(self):
-        self.assertEqual(
-            rec.field_state("employee", "birth_date", "", "1990-01-02"),
-            rec.STATE_FILL,
-        )
+        self.assertEqual(rec.field_state("employee", "birth_date", "", "1990-01-02"), rec.STATE_FILL)
 
     def test_matching_value_is_green(self):
-        self.assertEqual(
-            rec.field_state("military", "booking_status", "Заброньовано", "Заброньовано"),
-            rec.STATE_MATCH,
-        )
+        self.assertEqual(rec.field_state("military", "booking_status", "Заброньовано", "Заброньовано"), rec.STATE_MATCH)
 
     def test_rnokpp_mismatch_is_critical(self):
-        self.assertEqual(
-            rec.field_state("employee", "rnokpp", "1234567890", "0987654321"),
-            rec.STATE_CRITICAL,
-        )
+        self.assertEqual(rec.field_state("employee", "rnokpp", "1234567890", "0987654321"), rec.STATE_CRITICAL)
 
     def test_descriptive_mismatch_is_difference(self):
-        self.assertEqual(
-            rec.field_state("military", "booking_status", "Не заброньовано", "Заброньовано"),
-            rec.STATE_DIFFERENCE,
-        )
+        self.assertEqual(rec.field_state("military", "booking_status", "Не заброньовано", "Заброньовано"), rec.STATE_DIFFERENCE)
 
 
 class DecisionPersistenceR9Tests(unittest.TestCase):
@@ -121,11 +106,8 @@ class DecisionPersistenceR9Tests(unittest.TestCase):
     def test_fix_registry_decision_survives_next_mismatching_extract(self):
         preview = preview_for(self.employee_id, booking="Заброньовано")
         rec.sync_preview_state(self.con, preview)
-        rec.set_decision(
-            self.con, self.employee_id, "military", "booking_status", rec.DECISION_FIX_REGISTRY
-        )
+        rec.set_decision(self.con, self.employee_id, "military", "booking_status", rec.DECISION_FIX_REGISTRY)
         self.con.commit()
-
         rec.sync_preview_state(self.con, preview)
         row = self.con.execute(
             "SELECT * FROM employee_registry_field_state WHERE employee_id=? AND scope='military' AND field_name='booking_status'",
@@ -138,11 +120,8 @@ class DecisionPersistenceR9Tests(unittest.TestCase):
     def test_fix_registry_auto_resolves_when_new_extract_matches_taxo(self):
         preview = preview_for(self.employee_id, booking="Заброньовано")
         rec.sync_preview_state(self.con, preview)
-        rec.set_decision(
-            self.con, self.employee_id, "military", "booking_status", rec.DECISION_FIX_REGISTRY
-        )
+        rec.set_decision(self.con, self.employee_id, "military", "booking_status", rec.DECISION_FIX_REGISTRY)
         self.con.commit()
-
         corrected = preview_for(self.employee_id, booking="Не заброньовано")
         rec.sync_preview_state(self.con, corrected)
         row = self.con.execute(
@@ -157,23 +136,17 @@ class DecisionPersistenceR9Tests(unittest.TestCase):
     def test_accept_registry_changes_only_selected_field(self):
         preview = preview_for(self.employee_id, booking="Заброньовано")
         rec.sync_preview_state(self.con, preview)
-        rec.accept_registry_value(
-            self.con, self.employee_id, "military", "booking_status"
-        )
+        rec.accept_registry_value(self.con, self.employee_id, "military", "booking_status")
         self.con.commit()
-        military_row = self.con.execute(
-            "SELECT * FROM employee_military_profile WHERE employee_id=?", (self.employee_id,)
-        ).fetchone()
-        self.assertEqual(military_row["booking_status"], "Заброньовано")
-        self.assertEqual(military_row["account_status"], "На обліку")
+        row = self.con.execute("SELECT * FROM employee_military_profile WHERE employee_id=?", (self.employee_id,)).fetchone()
+        self.assertEqual(row["booking_status"], "Заброньовано")
+        self.assertEqual(row["account_status"], "На обліку")
 
     def test_accept_registry_rejects_empty_source(self):
         preview = preview_for(self.employee_id)
         rec.sync_preview_state(self.con, preview)
         with self.assertRaises(ValueError):
-            rec.accept_registry_value(
-                self.con, self.employee_id, "employee", "registered_address"
-            )
+            rec.accept_registry_value(self.con, self.employee_id, "employee", "registered_address")
 
     def test_decision_history_is_append_only(self):
         preview = preview_for(self.employee_id, booking="Заброньовано")
@@ -205,27 +178,37 @@ class MilitaryAccountingJournalR9Tests(unittest.TestCase):
         military.sync_recent_employment_actions(self.con)
         self.assertEqual(len(military.list_actions(self.con)), 0)
 
-    def test_new_hire_creates_seven_day_notice_task(self):
+    def test_new_hire_waits_for_order_date_before_calculating_deadline(self):
         employee_id = self.add_employee("2026-09-27", "")
         military.sync_recent_employment_actions(self.con)
-        rows = military.list_actions(self.con, employee_id=employee_id)
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]["action_type"], military.ACTION_HIRE_NOTICE)
-        self.assertEqual(rows[0]["due_date"], "2026-10-04")
+        row = military.list_actions(self.con, employee_id=employee_id)[0]
+        self.assertEqual(row["action_type"], military.ACTION_HIRE_NOTICE)
+        self.assertEqual(row["basis_date"], "")
+        self.assertEqual(row["due_date"], "")
+        self.assertIn("дату наказу", row["note"])
 
-    def test_new_dismissal_creates_seven_day_notice_task(self):
+    def test_order_date_calculates_seven_day_notice_deadline(self):
+        employee_id = self.add_employee("2026-09-27", "")
+        military.sync_recent_employment_actions(self.con)
+        row = military.list_actions(self.con, employee_id=employee_id)[0]
+        military.set_notice_order_date(self.con, row["id"], "2026-09-26")
+        updated = military.list_actions(self.con, employee_id=employee_id)[0]
+        self.assertEqual(updated["basis_date"], "2026-09-26")
+        self.assertEqual(updated["due_date"], "2026-10-03")
+
+    def test_new_dismissal_also_waits_for_order_date(self):
         employee_id = self.add_employee("2020-01-15", "2026-09-28")
         military.sync_recent_employment_actions(self.con)
-        rows = military.list_actions(self.con, employee_id=employee_id)
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]["action_type"], military.ACTION_DISMISSAL_NOTICE)
-        self.assertEqual(rows[0]["due_date"], "2026-10-05")
+        row = military.list_actions(self.con, employee_id=employee_id)[0]
+        self.assertEqual(row["action_type"], military.ACTION_DISMISSAL_NOTICE)
+        self.assertEqual(row["due_date"], "")
 
-    def test_personal_data_change_uses_five_day_action(self):
+    def test_personal_data_change_uses_five_day_action_from_documents_date(self):
         employee_id = self.add_employee()
         military.add_personal_data_update_action(self.con, employee_id, date(2026, 9, 27))
         row = military.list_actions(self.con, employee_id=employee_id)[0]
         self.assertEqual(row["action_type"], military.ACTION_PERSONAL_DATA_UPDATE)
+        self.assertEqual(row["basis_date"], "2026-09-27")
         self.assertEqual(row["due_date"], "2026-10-02")
 
     def test_completion_persists(self):
@@ -238,22 +221,29 @@ class MilitaryAccountingJournalR9Tests(unittest.TestCase):
         self.assertEqual(done["channel"], "Дія")
         self.assertEqual(done["reference"], "TEST-REF")
 
-    def test_hire_document_formed_within_72_hours_is_accepted(self):
-        employee_id = self.add_employee("2026-09-30", "")
-        military.record_hire_document_check(
-            self.con, employee_id, "2026-09-30",
-            datetime(2026, 9, 30, 9, 0),
-            datetime(2026, 9, 28, 12, 0), method="Дія",
+    def test_hire_document_two_calendar_days_before_is_safely_within_window(self):
+        self.assertEqual(
+            military.hire_document_window_status("2026-09-30", datetime(2026, 9, 28, 12, 0)),
+            "ok",
         )
-        count = self.con.execute("SELECT COUNT(*) FROM military_hire_document_checks").fetchone()[0]
-        self.assertEqual(count, 1)
 
-    def test_hire_document_older_than_72_hours_is_rejected(self):
+    def test_hire_document_exactly_three_calendar_days_before_needs_exact_time(self):
+        self.assertEqual(
+            military.hire_document_window_status("2026-09-30", datetime(2026, 9, 27, 12, 0)),
+            "needs_exact_time",
+        )
+
+    def test_hire_document_four_days_before_is_outside(self):
+        self.assertEqual(
+            military.hire_document_window_status("2026-09-30", datetime(2026, 9, 26, 12, 0)),
+            "outside",
+        )
+
+    def test_hire_document_check_rejects_definitely_outside_window(self):
         employee_id = self.add_employee("2026-09-30", "")
         with self.assertRaises(ValueError):
             military.record_hire_document_check(
-                self.con, employee_id, "2026-09-30",
-                datetime(2026, 9, 30, 9, 0),
+                self.con, employee_id, "2026-09-30", datetime(2026, 9, 30, 9, 0),
                 datetime(2026, 9, 26, 12, 0), method="Дія",
             )
 
@@ -303,6 +293,7 @@ class R9IntegrationMarkersTests(unittest.TestCase):
         self.assertIn("EMPLOYMENT_NOTICE_DAYS = 7", legal)
         self.assertIn("PERSONAL_LIST_UPDATE_DAYS = 5", legal)
         self.assertIn("ANNUAL_RECONCILIATION_MINIMUM = 1", legal)
+        self.assertIn("семиденний строк обчислюється від дня видання наказу", legal)
         self.assertNotIn("законодавчий квартальний", (source + legal).lower())
 
     def test_quarterly_registry_and_official_journal_are_separate_in_ui(self):
