@@ -418,10 +418,18 @@ def ensure_next_reporting_action(con, today=None, feature_start=FEATURE_START):
     feature_start = _day(feature_start)
     effective = max(today, feature_start)
     deadline = next_reporting_deadline(effective)
+    existing = con.execute(
+        """SELECT id FROM vehicle_military_transport_actions
+           WHERE action_type=? AND due_date=? AND source='semiannual_schedule'
+           LIMIT 1""",
+        (ACTION_REPORT, deadline.isoformat()),
+    ).fetchone()
+    if existing:
+        return 0, deadline
     now = datetime.now().isoformat(timespec="seconds")
     before = con.total_changes
     con.execute(
-        """INSERT OR IGNORE INTO vehicle_military_transport_actions(
+        """INSERT INTO vehicle_military_transport_actions(
                vehicle_id,action_type,event_id,event_date,due_date,status,note,source,created_at
            ) VALUES(NULL,?,NULL,?,?,?,'','semiannual_schedule',?)""",
         (ACTION_REPORT, effective.isoformat(), deadline.isoformat(), ACTION_OPEN, now),
