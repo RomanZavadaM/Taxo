@@ -28,11 +28,13 @@ class Taxo104R10IntegrationTests(unittest.TestCase):
         self.assertIn("контроль страхування/реєстрації/діагностики", ui)
         self.assertIn("не автоматичне порушення", ui)
 
-    def test_worklog_marks_r10_active_and_r9_immutable(self):
+    def test_worklog_marks_r10_issued_and_rolls_to_10_5_r1(self):
         worklog = (ROOT / "WORKLOG.md").read_text("utf-8")
-        self.assertIn("Active revision:** Taxo `10.4-r10`", worklog)
-        self.assertIn("Latest issued fast-test revision:** Taxo `10.4-r9`", worklog)
-        self.assertIn("після видачі r10 наступний кодовий крок — тільки `10.5-r1`", worklog)
+        self.assertIn("Latest issued fast-test revision:** Taxo `10.4-r10`", worklog)
+        self.assertIn("0f7944ad3f86bb6ee8ad19b40cfb2b38d924b934", worklog)
+        self.assertIn("Previous issued fast-test revision:** Taxo `10.4-r9`", worklog)
+        self.assertIn("Active revision:** немає", worklog)
+        self.assertIn("Next code revision:** тільки `10.5-r1`", worklog)
 
     def test_r10_does_not_claim_unknown_is_violation(self):
         model = (ROOT / "military_transport_2026.py").read_text("utf-8")

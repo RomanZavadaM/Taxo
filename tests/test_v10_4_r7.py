@@ -11,11 +11,10 @@ ROOT=Path(__file__).resolve().parents[1]
 
 class TestTaxo104R7DocumentControlBoundary(unittest.TestCase):
     def test_r7_checkpoint_identity_remains_historical(self):
-        worklog=(ROOT/"WORKLOG.md").read_text("utf-8")
-        self.assertIn("Previous issued fast-test checkpoint:** Taxo `10.4-r7`",worklog)
-        self.assertIn("9f397a092fe828570927bc39cef7a3a467e2aff0",worklog)
-        self.assertIn("10.4-r7",worklog)
-        self.assertIn("immutable",worklog)
+        release_index=(ROOT/"docs/releases/RELEASE_INDEX.md").read_text("utf-8")
+        self.assertIn("Taxo 10.4-r7",release_index)
+        self.assertIn("9f397a092fe828570927bc39cef7a3a467e2aff0",release_index)
+        self.assertIn("immutable",release_index)
 
     def test_vehicle_control_tree_is_child_of_grid_container(self):
         source=(ROOT/"vehicle_documents.py").read_text("utf-8")
