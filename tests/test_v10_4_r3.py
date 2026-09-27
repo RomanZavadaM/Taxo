@@ -1,10 +1,17 @@
 # -*- coding: utf-8 -*-
+import inspect
 import sqlite3
+import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 
 import main
+import personnel_v91
 import v1043_features
+from release_naming import start_archive_stem, version_from_file
+
+ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo104R3DriverScheduleSafety(unittest.TestCase):
@@ -70,6 +77,11 @@ class TestTaxo104R3DriverScheduleSafety(unittest.TestCase):
         """)
         return con
 
+    def test_candidate_identity(self):
+        self.assertEqual(main.APP_VERSION,"10.4-r3")
+        self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
+        self.assertEqual(start_archive_stem("10.4-r3"),"Taxo_v10_4_candidate_r3_START")
+
     def test_bulk_8h_fill_never_rewrites_existing_schedule(self):
         con=self._db()
         driver=con.execute("SELECT * FROM drivers WHERE id=1").fetchone()
@@ -105,40 +117,42 @@ class TestTaxo104R3DriverScheduleSafety(unittest.TestCase):
         self.assertEqual(created["start_time"],"")
         con.close()
 
-    def test_duration_only_plan_is_visible_without_inventing_clock_time(self):
-        def original_day_view(*_args,**_kwargs):
-            return {
-                "explicit_worklog":True,
-                "suppressed_plan":False,
-                "day_type":"Робота",
-                "bands":[],
-                "work_minutes":480,
-                "status_label":"Робота · час не задано",
-            }
+    def test_old_p5_edrpou_setting_migrates_to_company_requisites(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path=Path(tmp)/"test.sqlite3"
+            con=sqlite3.connect(db_path)
+            con.executescript("""
+                CREATE TABLE company(id INTEGER PRIMARY KEY, name TEXT DEFAULT '');
+                INSERT INTO company(id,name) VALUES(1,'АТП');
+                CREATE TABLE app_settings(key TEXT PRIMARY KEY,value TEXT DEFAULT '');
+                INSERT INTO app_settings(key,value) VALUES('company_edrpou','12345678');
+            """)
+            con.commit(); con.close()
 
-        fake=SimpleNamespace(
-            APP_VERSION="10.4-r2",
-            driver_day_view=original_day_view,
-            _monthly_shift_cell=lambda row,segments:"Р",
-            minutes_hhmm=lambda value:f"{int(value)//60}:{int(value)%60:02d}",
-            hours_value_to_minutes=lambda value:int(round(float(value or 0)*60)),
-            tk=SimpleNamespace(TclError=Exception),
-            messagebox=SimpleNamespace(),
-            COPYRIGHT_NOTICE="copyright",
-            LICENSE_LABEL="license",
-        )
-        class Base:
-            pass
-        v1043_features.install(fake,Base)
+            def open_db():
+                db=sqlite3.connect(db_path)
+                db.row_factory=sqlite3.Row
+                return db
 
-        state=fake.driver_day_view(None,None,None)
-        self.assertEqual(state["bands"],[])
-        self.assertEqual(state["status_label"],"План 8:00 · час зміни не задано")
-        cell=fake._monthly_shift_cell(
-            {"day_type":"Робота","start_time":"","end_time":"","work_hours":8},[]
-        )
-        self.assertEqual(cell,"8:00\nбез часу")
-        self.assertEqual(fake.APP_VERSION,"10.4-r3")
+            fake=SimpleNamespace(db=open_db)
+            v1043_features._ensure_company_edrpou_schema(fake)
+
+            con=open_db()
+            columns={row[1] for row in con.execute("PRAGMA table_info(company)").fetchall()}
+            value=con.execute("SELECT edrpou FROM company WHERE id=1").fetchone()["edrpou"]
+            con.close()
+            self.assertIn("edrpou",columns)
+            self.assertEqual(value,"12345678")
+
+    def test_duration_only_plan_and_edrpou_rendering_are_wired(self):
+        source=inspect.getsource(v1043_features)
+        p5_source=inspect.getsource(personnel_v91)
+        self.assertIn("План {core.minutes_hhmm(state['work_minutes'])} · час зміни не задано",source)
+        self.assertIn('return f"{core.minutes_hhmm(minutes)}\\nбез часу"',source)
+        self.assertIn('text="ЄДРПОУ"',source)
+        self.assertIn('line = f"ЄДРПОУ: {edrpou}"',source)
+        self.assertIn('"Ідентифікаційний код ЄДРПОУ: {edrpou or \'\'}"',p5_source)
+        self.assertIn('core.get_setting("company_edrpou","")',p5_source)
 
 
 if __name__=="__main__":
