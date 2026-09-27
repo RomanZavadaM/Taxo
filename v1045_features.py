@@ -190,6 +190,20 @@ def install(core, base_app):
             ).pack(side="right",padx=(8,0))
             self._personnel_registry_actions_installed=True
 
+        def _refresh_personnel_registry_quarter_status(self):
+            button=getattr(self,"_personnel_registry_import_button",None)
+            if not _alive(button):
+                return
+            con=core.db()
+            try:
+                status=registry.registry_quarter_status(con)
+            finally:
+                con.close()
+            if status["current"]:
+                button.configure(text="Реєстр працівників: актуально %s…" % status["quarter"])
+            else:
+                button.configure(text="Реєстр працівників: потрібне звіряння %s…" % status["quarter"])
+
         def import_personnel_registry_xlsx(self):
             path=core.filedialog.askopenfilename(
                 parent=self,title="Імпорт відомостей з державного реєстру",
@@ -294,7 +308,7 @@ def install(core, base_app):
                 win.destroy()
 
             core.ttk.Button(actions,text="Закрити",command=win.destroy).pack(side="right",padx=(6,0))
-            core.ttk.Button(actions,text="Застосувати оновлення",style="Accent.TButton",command=apply_import).pack(side="right")
+            core.ttk.Button(actions,text="Виконати звірку",style="Accent.TButton",command=apply_import).pack(side="right")
             win.transient(self)
 
         def open_personnel_data_center(self):
