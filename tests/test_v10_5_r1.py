@@ -210,11 +210,13 @@ class StatementIntegrationR1Tests(unittest.TestCase):
         self.assertIn('text="Відомість (додаток 1)"', source)
         self.assertIn("Формування документа не означає, що його подано", source)
 
-    def test_feature_layer_is_outermost_after_r10(self):
+    def test_feature_layer_remains_in_chain_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1051_features import install as install_v1051", entry)
-        self.assertIn("App = install_v1051(", entry)
+        self.assertIn("install_v1051(", entry)
         self.assertIn("install_v10410(", entry)
+        layer = (ROOT / "v1051_features.py").read_text("utf-8")
+        self.assertIn('APP_VERSION = "10.5-r1"', layer)
 
 
 if __name__ == "__main__":
