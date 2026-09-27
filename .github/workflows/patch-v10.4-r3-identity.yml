@@ -1,0 +1,40 @@
+name: Patch Taxo 10.4-r3 identity
+
+on:
+  push:
+    branches:
+      - work/v10.4-r3-preserve-driver-schedules
+    paths:
+      - .release/v10.4-r3-identity-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  patch-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.4-r3-preserve-driver-schedules
+          fetch-depth: 0
+      - name: Patch main.APP_VERSION
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path("main.py")
+          text = path.read_text(encoding="utf-8")
+          old = 'APP_VERSION = "10.4-r2"'
+          new = 'APP_VERSION = "10.4-r3"'
+          if text.count(old) != 1:
+              raise SystemExit(f"Expected exactly one {old!r}, found {text.count(old)}")
+          path.write_text(text.replace(old, new, 1), encoding="utf-8")
+      - name: Commit identity and remove one-shot helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .release/v10.4-r3-identity-trigger
+          git rm .github/workflows/patch-v10.4-r3-identity.yml
+          git add main.py
+          git commit -m "chore: set Taxo 10.4-r3 identity"
+          git push origin HEAD:work/v10.4-r3-preserve-driver-schedules
