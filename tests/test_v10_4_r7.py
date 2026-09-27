@@ -11,9 +11,9 @@ ROOT=Path(__file__).resolve().parents[1]
 
 class TestTaxo104R7DocumentControlBoundary(unittest.TestCase):
     def test_r7_checkpoint_identity_remains_historical(self):
-        source=(ROOT/"v1047_features.py").read_text("utf-8")
-        self.assertIn('APP_VERSION = "10.4-r7"',source)
         worklog=(ROOT/"WORKLOG.md").read_text("utf-8")
+        self.assertIn("Previous issued fast-test checkpoint:** Taxo `10.4-r7`",worklog)
+        self.assertIn("9f397a092fe828570927bc39cef7a3a467e2aff0",worklog)
         self.assertIn("10.4-r7",worklog)
         self.assertIn("immutable",worklog)
 
