@@ -7,120 +7,110 @@
 
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest published full checkpoint:** `v10.4-r2` → `ee6687c59d7dc1a8a38de4b7858669fddc3f647c`  
-**Latest issued fast-test revision:** Taxo `10.4-r6` / branch `work/v10.4-r6-registry-reconciliation`  
-**Issued code head:** `d25cac1427911e2640db0be126c5f63410cb4e56`  
-**START run:** `36342480624` — success  
-**START artifact:** `Taxo_v10_4_candidate_r6_START` / artifact `10939860812`  
-**START SHA-256:** `e823f41492b48e7de2d08abb6c783eeffd842c47afffe53fa0160ad3e7cd9948`  
-**Regression:** `323 tests / OK`  
-**Stable `main`:** remains on the 10.4-r2 integrated line; r3–r6 are fast-test revisions and are not merged  
-**Next code revision:** only `10.4-r7`  
+**Latest issued fast-test revision:** Taxo `10.4-r6`  
+**Issued r6 head:** `d25cac1427911e2640db0be126c5f63410cb4e56`  
+**r6 START:** run `36342480624`, artifact `10939860812`, regression `323/323 OK`  
+**Active revision:** Taxo `10.4-r7`  
+**Active branch:** `work/v10.4-r7-document-control-registry-separation`  
+**Code head before final r7 gate:** `d7d5b230480ec5e0229a424c366ece84b413e539`  
+**Stable `main`:** remains on integrated 10.4-r2 line; r3–r7 are fast-test development revisions unless separately merged/released  
 **Live ledger:** Issue #61
 
-## DONE — Taxo 10.4-r3
+## IMMUTABLE HISTORY — r3..r6
 
-- «Без тахо — стандартні 8 год» більше не переписує вже сплановані маршрути/сегменти.
-- Дні з тривалістю без точного часу видимі без вигадування початку/кінця.
-- ЄДРПОУ перенесено в загальні реквізити підприємства; П-5 і кутовий штамп шляхівки використовують це поле.
-- Прибрано спадкове runtime-відображення `Taxo 9.0.1`.
+- `10.4-r3`: «Без тахо — 8 год» no longer destroys planned segments/routes; EDRPOU moved to common company requisites; runtime `9.0.1` title residue removed.
+- `10.4-r4`: schedule audit made explicit; detects route-time vs route-point boundary mismatch; waybill time is not silently rewritten.
+- `10.4-r5`: personnel registry XLSX parser, personnel/military profile basis, import history/snapshots, employee document register.
+- `10.4-r6`: Regulation №340 plan/fact separation; exact split/cross-midnight work intervals; valid `3+9` daily rest no longer generates legacy false positives; issued and immutable.
 
-## DONE — Taxo 10.4-r4
+## DOING — Taxo 10.4-r7
 
-- Аудит графіків ловить розбіжність між крайніми часовими частинами маршруту та першою/останньою точкою.
-- Аудит більше не лишає мовчазно порожню таблицю.
-- Час шляхівки не підміняється автоматично: помилка введення повинна бути видимою, а не маскуватися.
+### 1. Restore existing local vehicle-document control
 
-## DONE — Taxo 10.4-r5
+Owner clarification: current vehicle-document control was correct and must remain a separate operational subsystem.
 
-Напрям: **дані працівників + XLSX державних реєстрів + основа військового обліку та реєстру документів**.
+Implemented:
 
-- Підтримано дві надані структури XLSX Реєстру військовозобов'язаних.
-- РНОКПП — сильний ключ; ПІБ/дата народження — контрольований fallback.
-- Preview перед застосуванням; конфлікти та неоднозначності не перезаписуються мовчки.
-- Порожні реєстрові поля не стирають локальні значення.
-- Додано військово-обліковий профіль, історію імпортів/snapshot-ів, SHA-256 джерела і базовий реєстр документів працівника.
-- Реальні персональні XLSX не публікуються; тести використовують синтетичні дані.
-- Regression: `317/317 OK`; START run `36340209329`, artifact `10939050343`.
+- [x] fixed crash `cannot use geometry manager grid ... which already has slaves managed by pack` in `open_vehicle_document_control`;
+- [x] `Treeview` and scrollbars now live inside one dedicated `table` frame managed with `grid`, while the frame itself is managed with `pack`;
+- [x] business rules of `vehicle_document_summary`, `control_rows`, expiry checks and waybill document warnings are not replaced by registry data;
+- [x] local vehicle documents remain: insurance, optional additional liability insurance, diagnostics/technical inspection, registration certificate, temporary registration when required, tachograph inspection protocol, copies/history and expiry control.
 
-## DONE — Taxo 10.4-r6 fast-test checkpoint
+### 2. Hard boundary: local documents != state registries
 
-### P0: контроль №340 — план, факт і розділені/перехідні зміни
+Permanent rule recorded in `PROJECT_RULES.md` and `docs/architecture/REGISTRY_AND_LOCAL_DOCUMENTS_BOUNDARY.md`.
 
-Причина хиби підтверджена в коді:
+- [x] current local vehicle-document control uses only Taxo `vehicle_documents`;
+- [x] state registry data must not feed `vehicle_document_summary`, `control_rows` or waybill document warnings;
+- [x] personnel state extracts are for personal/military-accounting data;
+- [x] `Шлях` is for vehicle/licensing-file data known to the state;
+- [x] absence/presence in a state registry is not equivalent to absence/presence of an enterprise document.
 
-1. старий контроль брав `worklog`/маршрутні часові дані, тобто **план**, але формував попередження так, ніби це встановлений факт;
-2. усі частини одного дня стискалися в один часовий конверт «найраніший початок → найпізніший кінець»;
-3. через це нічний проміжок усередині розділеної зміни губився;
-4. короткий денний проміжок, наприклад `3:35`, помилково ставав «міжзмінним відпочинком < 9:00»;
-5. окремі `fact_work_*` поля вже існували, але старий блок відпочинку їх семантично не відокремлював від плану.
+### 3. Registry reconciliation semantics
 
-Виправлено:
+Owner decision implemented for personnel registry import and fixed as the generic model for future `Шлях` import.
 
-- [x] щоденний/щотижневий відпочинок у плановому контролі будується з **точних окремих інтервалів роботи**, без злиття розділеної зміни в суцільний конверт;
-- [x] нічний проміжок усередині розділеної/перехідної зміни більше не губиться;
-- [x] підтримано чинну модель звичайного щоденного відпочинку `3+9`;
-- [x] короткий проміжок сам по собі більше не оголошується порушенням «менше 9 годин»;
-- [x] планові попередження мають явний префікс **`ПЛАН:`**;
-- [x] у звіті є пояснення, що графік/маршрут і зворот шляхівки є планом та **не встановлюють фактичного порушення**;
-- [x] `fact_work_*` лишаються окремим фактичним шаром;
-- [x] рукописний факт шляхівки не перетворюється на цифровий факт, доки його не внесено у систему;
-- [x] додано 6 regression-тестів на ніч усередині зміни, `3:35 + 9:30`, plan/fact та заборону старого false-positive;
-- [x] історичний r5 identity-test виправлено так, щоб захищати immutable r5, але не блокувати r6;
-- [x] `VERSION.txt`, `main.APP_VERSION` і runtime extension = `10.4-r6`;
-- [x] фінальний clean gate: **323/323 tests OK**;
-- [x] START run `36342480624` — success;
-- [x] artifact `Taxo_v10_4_candidate_r6_START`, ID `10939860812`, SHA-256 `e823f41492b48e7de2d08abb6c783eeffd842c47afffe53fa0160ad3e7cd9948`.
+Three explicit modes:
 
-**Важлива межа:** r6 виправляє **планову перевірку** й не оголошує вільний проміжок фактичним відпочинком. Повний фактичний контроль №340 надалі має будуватися з тахографа, внесених `fact_work_*` меж та підтверджених фактичних документів/коригувань. Бланк підтвердження діяльності є фактичним документом; маршрут і зворот шляхівки — план.
+1. **Лише звірити** — compare and record the reconciliation snapshot; no working Taxo fields are changed.
+2. **Доповнити** — fill only empty local fields / add new registry information.
+3. **Оновити з реєстру + доповнити** — replace only fields that are actually present and non-empty in the fresh registry extract, and add new information.
 
-`10.4-r6` видана для тестування та immutable. Будь-яка наступна зміна коду — тільки `10.4-r7`.
+Invariant for every mode:
 
-## ROADMAP — реєстрова звірка
+- [x] an empty registry field never clears a Taxo field;
+- [x] a Taxo record/field absent from the extract is never deleted, archived or zeroed automatically;
+- [x] local employees absent from the current extract are shown as **«Є у Taxo, але відсутній у цьому витягу»** for analysis;
+- [x] ambiguous/conflicting matches are not overwritten automatically;
+- [x] compare-only does not mutate the local employee document register;
+- [x] source filename, SHA-256, snapshot/history and mode are retained for audit.
 
-### Загальний принцип
+### 4. Quarterly freshness
 
-Taxo зберігає власну робочу БД. Державний реєстр є зовнішнім джерелом для доповнення, актуалізації та контролю. Конфліктні значення не перезаписуються мовчки.
+- [x] base cadence = **once per calendar quarter**, not rolling 90 days;
+- [x] Q1 Jan–Mar, Q2 Apr–Jun, Q3 Jul–Sep, Q4 Oct–Dec;
+- [x] if a successful reconciliation exists in the current quarter → `Актуально`;
+- [x] first day of the next quarter → `Потрібне звіряння`;
+- [x] manual fresh import/reconciliation is allowed at any time;
+- [x] personnel page button displays current-quarter status and refreshes after import.
 
-### Періодичність
+## REGISTRY ROADMAP
 
-- планова звірка — **один раз на календарний квартал**;
-- якщо в поточному кварталі вже було успішне звіряння — стан «Актуально»;
-- після переходу в новий квартал — «Потрібне звіряння»;
-- ручне повторне звіряння дозволене будь-коли;
-- невирішені розбіжності не закриваються автоматично.
+### Personnel / military accounting
 
-### Працівники / військовий облік
+- continue aligning structured military accounting with the current 2026 legal model;
+- maintain state extracts as recurring reconciliation snapshots, not one-time imports;
+- add full field-level colour reconciliation: green=match, blue=can enrich, yellow=difference, red=critical identity/status conflict, grey=not checked/not applicable;
+- preserve the action model: accept registry / keep Taxo / needs correction in registry / defer;
+- build required military-accounting reports from structured local data, with registry extracts used as verification/enrichment sources.
 
-- модель вести за чинним Порядком №1487 у редакції 2026 року;
-- повторне XLSX = новий цикл звіряння, а не дублювання;
-- кольори: зелений — відповідає; синій — можна доповнити; жовтий — розбіжність; червоний — критичний конфлікт; сірий — не перевірено/не застосовується;
-- рішення: прийняти реєстр / залишити Taxo / виправити у реєстрі / відкласти;
-- розвивати чинну звітність і контроль актуальності військового обліку.
+### Vehicles / `Шлях`
 
-### Транспортні засоби / «Шлях»
+Real XLSX format has been received and mapped without publishing real VIN/plates.
 
-Реальний XLSX отримано й структуру підтверджено без публікації реальних VIN/держномерів.
+Next implementation:
 
-- окрема форма «Імпорт з реєстру “Шлях”»;
-- preview знайдених/нових/конфліктних ТЗ;
-- основний ключ — VIN, держномер — додатковий контрольний ключ;
-- порівняння виду ТЗ, держномера, перевізника, статусу, VIN, марки, моделі, повної маси, EURO та даних ЄКМТ;
-- «Знятий з обліку» не видаляє ТЗ з Taxo автоматично;
-- snapshot кожного імпорту, дата/джерело/SHA-256 та історія рішень;
-- кольорове Taxo ↔ «Шлях» зі зрозумілою дією: виправити Taxo або виправити реєстр.
+- parser + upload form for `Шлях` XLSX/CSV;
+- VIN as primary reconciliation key, plate as secondary control key;
+- compare kind, plate, carrier, registry status, VIN, make, model, gross mass, EURO and ECMT fields;
+- same three modes: compare / fill empty / update non-empty registry fields + fill;
+- never delete or clear Taxo vehicle data because it is absent from the extract;
+- `Знятий з обліку` is a state-registry/licensing status and never automatically deletes a Taxo vehicle;
+- show Taxo-only vehicles separately to understand what the current state extract does not confirm;
+- quarterly reminder and snapshot history exactly like personnel reconciliation.
 
-### Військово-транспортний облік
+### Military-transport accounting
 
-Окремим наступним модулем: облік ТЗ та чинна звітність за Положенням №1921, на базі вже звірених даних ТЗ і працівників/водіїв. Перед реалізацією конкретних форм/строків повторно перевіряти чинну редакцію законодавства.
+Later separate module: vehicle military-accounting data and current reporting under the applicable 2026 rules, based on structured local vehicle/personnel data. State-registry extracts remain verification/enrichment inputs, not replacements for enterprise records.
 
-## NEXT — 10.4-r7
+## NEXT
 
-1. Після ручної перевірки r6 продовжити **єдину кольорову панель реєстрової звірки**.
-2. Реалізувати квартальний статус актуальності працівників і ТЗ.
-3. Реалізувати parser/preview реального XLSX «Шлях» та snapshot-історію.
-4. Окремо розвинути **фактичний** контроль №340: тахограф + `fact_work_*` + підтверджені фактичні документи, без підміни планом.
-5. Далі — військово-транспортний облік і звітність.
+1. Run final r7 regression on the clean branch head.
+2. Build/verify a new `Taxo_v10_4_candidate_r7_START` artifact.
+3. Record exact test count, run/artifact/SHA in Issue #61 and here.
+4. After r7 is issued, do not reuse r7; next code revision = `10.4-r8`.
+5. r8 priority: real `Шлях` parser/upload + vehicle reconciliation panel unless owner reprioritizes.
 
 ## BLOCKED
 
-Немає. Реальні формати військових витягів і XLSX «Шлях» отримані; персональні/реєстрові дані не публікуються у репозиторій.
+None. Real personnel registry XLSX layouts and real `Шлях` XLSX structure are available; personal/registry data must never be published to the repository or test package.
