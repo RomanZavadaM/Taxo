@@ -1,0 +1,132 @@
+name: Apply Taxo 10.4-r7 document control fix
+
+on:
+  push:
+    branches:
+      - work/v10.4-r7-document-control-registry-separation
+    paths:
+      - .github/workflows/patch-v10.4-r7-document-control.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.4-r7-document-control-registry-separation
+          fetch-depth: 0
+      - name: Apply r7 fixes and policy boundary
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # 1) Restore operational vehicle-document control UI without changing its rules.
+          path=Path('vehicle_documents.py')
+          text=path.read_text(encoding='utf-8')
+          old='''    cols = ("vehicle", "type", "number", "until", "status", "copy")
+              tree = ttk.Treeview(win, columns=cols, show="headings", height=23)
+              heads = {
+                  "vehicle": "Автомобіль",
+                  "type": "Документ",
+                  "number": "№",
+                  "until": "Діє до",
+                  "status": "Стан",
+                  "copy": "Копія",
+              }
+              widths = {"vehicle": 260, "type": 250, "number": 130, "until": 100, "status": 150, "copy": 80}
+              for col in cols:
+                  tree.heading(col, text=heads[col])
+                  tree.column(col, width=widths[col], anchor="w")
+              table = ttk.Frame(win)
+              table.pack(fill="both", expand=True, padx=10, pady=6)
+              table.rowconfigure(0, weight=1)
+              table.columnconfigure(0, weight=1)
+          '''
+          new='''    cols = ("vehicle", "type", "number", "until", "status", "copy")
+              table = ttk.Frame(win)
+              table.pack(fill="both", expand=True, padx=10, pady=6)
+              table.rowconfigure(0, weight=1)
+              table.columnconfigure(0, weight=1)
+              tree = ttk.Treeview(table, columns=cols, show="headings", height=23)
+              heads = {
+                  "vehicle": "Автомобіль",
+                  "type": "Документ",
+                  "number": "№",
+                  "until": "Діє до",
+                  "status": "Стан",
+                  "copy": "Копія",
+              }
+              widths = {"vehicle": 260, "type": 250, "number": 130, "until": 100, "status": 150, "copy": 80}
+              for col in cols:
+                  tree.heading(col, text=heads[col])
+                  tree.column(col, width=widths[col], anchor="w")
+          '''
+          if old not in text:
+              raise SystemExit('vehicle document control layout block not found')
+          text=text.replace(old,new,1)
+          marker='def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle=None):\n'
+          replacement=marker + '    # Operational control uses only local Taxo vehicle_documents.\n    # State-registry reconciliation (e.g. «Шлях») is a separate subsystem and must not alter these statuses.\n'
+          if marker not in text:
+              raise SystemExit('vehicle document control function not found')
+          text=text.replace(marker,replacement,1)
+          path.write_text(text,encoding='utf-8')
+
+          # 2) Candidate identity.
+          path=Path('main.py')
+          text=path.read_text(encoding='utf-8')
+          if 'APP_VERSION = "10.4-r6"' not in text:
+              raise SystemExit('main r6 identity not found')
+          path.write_text(text.replace('APP_VERSION = "10.4-r6"','APP_VERSION = "10.4-r7"',1),encoding='utf-8')
+
+          Path('VERSION.txt').write_text('''Taxo / Driver Worktime
+          Version: 10.4-r7
+          Release date: 2026-09-27
+          Release type: candidate
+          Stable baseline: Taxo 10.3
+          Stable tag: v10.3
+          Stable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60
+
+          Taxo 10.4-r7 — відновлення локального контролю документів ТЗ та жорстке розділення з державною реєстровою звіркою.
+
+          Основне:
+          - виправлено падіння вікна «Контроль документів транспортних засобів» через змішування Tk geometry managers pack/grid;
+          - самі правила локального контролю документів не змінюються: страхування, діагностика/техконтроль, техпаспорт, тимчасовий реєстраційний документ, протокол тахографа та інші локальні записи Taxo;
+          - державна реєстрова звірка є окремим модулем і не впливає на статуси локальних документів;
+          - дані з Дії/державного реєстру працівників використовуються для персональних і військово-облікових даних;
+          - дані з реєстру «Шлях» використовуються для ТЗ і ліцензійної справи;
+          - реєстрова звірка показує тільки те, що відомо державі з обов'язкового обліку, і не є заміною локального документального обліку підприємства.
+
+          Нумерація:
+          - 10.4-r1..r6 вже видані та immutable;
+          - поточний кодовий крок — 10.4-r7;
+          - після видачі 10.4-r7 наступний кодовий крок — 10.4-r8.
+          ''',encoding='utf-8')
+
+          # 3) Permanent architectural rule.
+          path=Path('PROJECT_RULES.md')
+          rules=path.read_text(encoding='utf-8')
+          heading='## Державні реєстри та локальний контроль документів — жорстке розділення'
+          if heading not in rules:
+              rules += '''\n\n## Державні реєстри та локальний контроль документів — жорстке розділення\n\n- Поточний контроль документів ТЗ у Taxo є **локальним оперативним обліком підприємства** і працює тільки з записами/копіями документів у Taxo.\n- Реєстрова звірка **не змінює, не доповнює автоматично і не визначає статуси** локального контролю документів ТЗ.\n- Джерело працівників: Дія/державні облікові витяги — персональні та військово-облікові відомості, які держава веде в обов'язковому обліку.\n- Джерело ТЗ: реєстр «Шлях» — відомості про ТЗ та ліцензійну справу перевізника, які відомі державі.\n- Відсутність поля/документа в державному реєстрі **не означає** відсутність локального документа підприємства; наявність реєстрового запису **не означає** наявність його копії або чинність локального документа.\n- Реєстрова звірка має окремий UI/статус/історію рішень і не повинна вбудовуватися в `vehicle_document_summary`, `control_rows`, попередження шляхівки або інший поточний локальний контроль документів.\n'''
+          path.write_text(rules,encoding='utf-8')
+
+          # 4) Architecture note.
+          arch=Path('docs/architecture/REGISTRY_AND_LOCAL_DOCUMENTS_BOUNDARY.md')
+          arch.parent.mkdir(parents=True,exist_ok=True)
+          arch.write_text('''# Межа: державні реєстри vs локальні документи Taxo\n\nДата: 27.09.2026\n\n## Локальний контроль документів ТЗ\n\nЦе чинний механізм Taxo, який контролює документи, внесені підприємством: техпаспорт/свідоцтво про реєстрацію, тимчасові реєстраційні документи, страхування, ДЦВ (як необов'язковий тип), діагностику/техконтроль, протокол перевірки тахографа, строки дії, копії та історію. Він формує попередження для шляхівки та звіт «стан документів ТЗ на дату».\n\nЦей механізм є самостійним і не залежить від імпорту державних реєстрів.\n\n## Державна реєстрова звірка\n\nОкремий підсистемний контур:\n\n- працівники: Дія/державний реєстровий експорт — персональні та військово-облікові відомості;\n- ТЗ: «Шлях» — відомості про транспортні засоби та ліцензійну справу перевізника.\n\nРеєстр відображає лише те, що держава знає з обов'язкового обліку. Він не є повним переліком поточних документів підприємства і не замінює локальний реєстр документів Taxo.\n\n## Заборонене змішування\n\nРеєстрові поля/статуси не можна використовувати як джерело для `vehicle_document_summary`, `control_rows`, строків дії локальних документів або попереджень шляхівки. Порівняння Taxo ↔ державний реєстр показується окремо і потребує явного рішення користувача.\n''',encoding='utf-8')
+
+          # 5) Regression tests for the exact screenshot failure and the architectural boundary.
+          Path('tests/test_v10_4_r7.py').write_text('''# -*- coding: utf-8 -*-\nimport unittest\nfrom pathlib import Path\n\nROOT=Path(__file__).resolve().parents[1]\n\n\nclass TestTaxo104R7DocumentControlBoundary(unittest.TestCase):\n    def test_current_identity_is_r7(self):\n        version=(ROOT/"VERSION.txt").read_text("utf-8")\n        main=(ROOT/"main.py").read_text("utf-8")\n        self.assertIn("Version: 10.4-r7",version)\n        self.assertIn('APP_VERSION = "10.4-r7"',main)\n\n    def test_vehicle_control_tree_is_child_of_grid_container(self):\n        source=(ROOT/"vehicle_documents.py").read_text("utf-8")\n        start=source.index("def open_vehicle_document_control")\n        block=source[start:]\n        self.assertIn("table = ttk.Frame(win)",block)\n        self.assertIn("tree = ttk.Treeview(table, columns=cols",block)\n        self.assertNotIn("tree = ttk.Treeview(win, columns=cols",block)\n        self.assertLess(block.index("table = ttk.Frame(win)"), block.index("tree = ttk.Treeview(table"))\n\n    def test_operational_document_control_has_no_registry_dependency(self):\n        source=(ROOT/"vehicle_documents.py").read_text("utf-8")\n        self.assertNotIn("from personnel_registry",source)\n        self.assertNotIn("import personnel_registry",source)\n        self.assertNotIn("registry_reconciliation",source)\n        self.assertNotIn("shlyah",source.lower())\n\n    def test_boundary_is_recorded_as_permanent_rule(self):\n        rules=(ROOT/"PROJECT_RULES.md").read_text("utf-8")\n        self.assertIn("Державні реєстри та локальний контроль документів",rules)\n        self.assertIn("не визначає статуси",rules)\n        self.assertIn("vehicle_document_summary",rules)\n\n\nif __name__=="__main__":\n    unittest.main()\n''',encoding='utf-8')
+          PY
+
+          git rm .github/workflows/patch-v10.4-r7-document-control.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vehicle_documents.py main.py VERSION.txt PROJECT_RULES.md docs/architecture/REGISTRY_AND_LOCAL_DOCUMENTS_BOUNDARY.md tests/test_v10_4_r7.py
+          git diff --cached --check
+          git commit -m "fix: restore local vehicle document control in 10.4-r7"
+          git push origin HEAD:work/v10.4-r7-document-control-registry-separation
