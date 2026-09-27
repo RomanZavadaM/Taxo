@@ -16,8 +16,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class TestTaxo104R2UiDocsWaybill(unittest.TestCase):
-    def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION,"10.4-r2")
+    def test_r2_checkpoint_stays_immutable_after_later_revisions(self):
         self.assertEqual(main.APP_VERSION,version_from_file(ROOT/"VERSION.txt"))
         self.assertEqual(start_archive_stem("10.4-r2"),"Taxo_v10_4_candidate_r2_START")
 
