@@ -7,6 +7,7 @@ formal military-accounting reconciliation under Cabinet Resolution No. 1487.
 from __future__ import annotations
 
 from datetime import date
+from tkinter import simpledialog
 
 import military_accounting_2026 as military
 import personnel_registry as registry
@@ -192,16 +193,37 @@ def install(core, base_app):
                     con.close()
                 refresh()
 
+            def set_order_date():
+                sel = tree.selection()
+                if not sel:
+                    core.messagebox.showinfo("Військовий облік", "Виберіть повідомлення про прийняття/звільнення.", parent=win); return
+                value = simpledialog.askstring(
+                    "Дата наказу",
+                    "Дата наказу (YYYY-MM-DD). Саме від цієї дати рахується 7-денний строк:",
+                    initialvalue=date.today().isoformat(), parent=win,
+                )
+                if not value:
+                    return
+                con = core.db()
+                try:
+                    military.set_notice_order_date(con, int(sel[0]), value); con.commit()
+                except Exception as exc:
+                    con.rollback(); core.messagebox.showerror("Військовий облік", str(exc), parent=win); return
+                finally:
+                    con.close()
+                refresh()
+
             def add_monthly():
                 con = core.db()
                 try:
-                    military.add_monthly_change_report_action(con, date.today()); con.commit()
+                    military.add_monthly_change_report_action(con); con.commit()
                 finally:
                     con.close()
                 refresh()
 
             controls = core.ttk.Frame(body); controls.pack(fill="x", pady=(8,0))
             core.ttk.Button(controls, text="Позначити виконаною", command=complete_selected).pack(side="left", padx=(0,8))
+            core.ttk.Button(controls, text="Вказати дату наказу", command=set_order_date).pack(side="left", padx=4)
             core.ttk.Button(controls, text="Додати щомісячне повідомлення", command=add_monthly).pack(side="left", padx=4)
             core.ttk.Button(controls, text="Закрити", command=win.destroy).pack(side="right")
             refresh(); win.transient(self)
