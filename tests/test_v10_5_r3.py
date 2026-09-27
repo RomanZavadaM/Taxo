@@ -143,11 +143,12 @@ class UnifiedRegisterR3Tests(unittest.TestCase):
 
 
 class R3IntegrationTests(unittest.TestCase):
-    def test_feature_layer_is_installed_after_r2(self):
+    def test_feature_layer_remains_in_install_chain_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1053_features import install as install_v1053", entry)
-        self.assertIn("App = install_v1053(", entry)
+        self.assertIn("install_v1053(", entry)
         self.assertIn("install_v1052(", entry)
+        self.assertLess(entry.index("install_v1053("), entry.index("install_v1052("))
 
     def test_r3_module_keeps_its_historical_identity(self):
         source = (ROOT / "v1053_features.py").read_text("utf-8")
