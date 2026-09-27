@@ -1,28 +1,23 @@
 Taxo / Driver Worktime
-Version: 10.4-r2
-Release date: 2026-09-26
+Version: 10.4-r3
+Release date: 2026-09-27
 Release type: candidate
 Stable baseline: Taxo 10.3
 Stable tag: v10.3
 Stable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60
 
-Taxo 10.4-r2 — UI cleanup, vehicle document registry and waybill readability checkpoint.
+Taxo 10.4-r3 — driver schedule preservation and duration-only plan visibility.
 
 Основне:
-- прийнятий Windows 7 compatibility fix з 10.3-r10;
-- Windows x64 modern Setup + Portable;
-- Windows 7 SP1 x64 Setup + Portable;
-- macOS ARM64 + Intel x86_64 Portable;
-- START/source;
-- per-platform та combined SHA-256;
-- legal notices у source та executable packages;
-- адаптивність інтерфейсу й очищення недороблених UI-фрагментів;
-- ДЦВ страхування як необов’язковий документ; кілька активних документів одного типу; ручне архівування;
-- шляховий лист: дані +20% та кутовий штамп підприємства;
-- схема БД та робочі дані не змінюються.
+- масове «Без тахо — стандартні 8 год» заповнює тільки порожні будні;
+- існуючі маршрути, точний час, route/template identity та work_segments не перезаписуються;
+- відомі дні відсутності не перекриваються новим 8-годинним планом;
+- дні з плановою тривалістю без точного часу більше не виглядають порожніми у графіках;
+- runtime-заголовок і «Про програму» використовують актуальну версію замість спадкового 9.0.1;
+- схема БД та робочі дані не мігруються.
 
 Нумерація:
-- 10.4-r1 вже виданий та immutable;
-- тому наступний кодовий checkpoint правильно має номер 10.4-r2;
-- після виданого 10.4-r2 наступний кодовий крок — 10.4-r3;
+- 10.4-r1 і 10.4-r2 вже видані та immutable;
+- поточний новий кодовий крок — 10.4-r3;
+- після виданого 10.4-r3 наступний кодовий крок — 10.4-r4;
 - перший розряд змінюється тільки за прямим рішенням власника.
