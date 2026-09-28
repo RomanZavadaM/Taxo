@@ -1,0 +1,125 @@
+# One-time Taxo 10.6-r3 fast-test publisher.
+name: Publish Taxo 10.6-r3 source prerelease
+
+on:
+  push:
+    branches:
+      - 'work/v10.6-r3-waybill-reverse-fields'
+    paths:
+      - '.github/workflows/publish-v10.6-r3-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-source:
+    runs-on: ubuntu-latest
+    env:
+      CANDIDATE_SHA: 97e646936d14d163faf93882daf7894f5bb38ab6
+      TAG_NAME: v10.6-r3
+      ARCHIVE_NAME: Taxo_v10_6_candidate_r3_START.zip
+      ARCHIVE_STEM: Taxo_v10_6_candidate_r3_START
+    steps:
+      - name: Checkout exact verified candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CANDIDATE_SHA }}
+          fetch-depth: 0
+
+      - name: Verify exact candidate identity
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${CANDIDATE_SHA}"
+          python - <<'PY'
+          from pathlib import Path
+          from release_naming import version_from_file
+          version = version_from_file('VERSION.txt')
+          if version != '10.6-r3':
+              raise SystemExit(f'Expected 10.6-r3, got {version!r}')
+          main = Path('main.py').read_text(encoding='utf-8')
+          feature = Path('v1063_features.py').read_text(encoding='utf-8')
+          entry = Path('taxo_app.py').read_text(encoding='utf-8')
+          if 'APP_VERSION = "10.6-r3"' not in main:
+              raise SystemExit('main.APP_VERSION is not 10.6-r3')
+          if 'APP_VERSION = "10.6-r3"' not in feature:
+              raise SystemExit('v1063_features identity is not 10.6-r3')
+          if 'App = install_v1063(' not in entry:
+              raise SystemExit('v1063 is not the outer runtime layer')
+          PY
+
+      - name: Install Tk runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install regression dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run full regression suite
+        run: python -m unittest discover -s tests -v
+
+      - name: Build and verify immutable START archive
+        shell: bash
+        run: |
+          git archive --format=zip --prefix="${ARCHIVE_STEM}/" --output="${ARCHIVE_NAME}" "${CANDIDATE_SHA}"
+
+          if unzip -l "${ARCHIVE_NAME}" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included in candidate archive' >&2
+            exit 1
+          fi
+          if unzip -l "${ARCHIVE_NAME}" | grep -Eiq '/(CHECKPOINT_v8|TEST_REPORT_v8|PUBLISH_STATUS_v8|PATCH_v8)'; then
+            echo 'Legacy v8 development clutter unexpectedly included in candidate archive' >&2
+            exit 1
+          fi
+
+          required_files=(
+            START.bat requirements.txt taxo_app.py main.py workspace.py
+            vehicle_documents.py document_viewer.py release_naming.py VERSION.txt
+            v1059_features.py v10510_features.py v1061_features.py v1062_features.py v1063_features.py
+            LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md
+            PROJECT_RULES.md PROJECT_STATE.md START_HERE.md WORKLOG.md
+            docs/releases/RELEASE_NOTES_v10_6_r3.md
+          )
+          for file in "${required_files[@]}"; do
+            unzip -l "${ARCHIVE_NAME}" | grep -q "/${file}$" || { echo "Missing ${file}" >&2; exit 1; }
+          done
+
+          unzip -p "${ARCHIVE_NAME}" "*/START.bat" > /tmp/START.bat
+          python - <<'PY'
+          data = open('/tmp/START.bat', 'rb').read()
+          if not data or any(byte >= 128 for byte in data):
+              raise SystemExit('START.bat must remain non-empty ASCII')
+          if b'chcp' in data.lower():
+              raise SystemExit('START.bat must not switch code pages')
+          if b'\r\n' not in data:
+              raise SystemExit('START.bat must contain CRLF line endings')
+          PY
+          sha256sum "${ARCHIVE_NAME}" > SHA256SUMS_v10_6_r3.txt
+
+      - name: Refuse overwrite of immutable tag or release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+            echo "${TAG_NAME} tag already exists; refusing to move or overwrite it." >&2
+            exit 1
+          fi
+          if gh release view "${TAG_NAME}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "${TAG_NAME} release already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+
+      - name: Publish prerelease at exact verified source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "${TAG_NAME}" \
+            "${ARCHIVE_NAME}" \
+            SHA256SUMS_v10_6_r3.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${CANDIDATE_SHA}" \
+            --title 'Taxo 10.6-r3' \
+            --notes-file docs/releases/RELEASE_NOTES_v10_6_r3.md \
+            --prerelease
