@@ -3,9 +3,10 @@
 **Стан:** 28.09.2026  
 **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
 **Latest full checkpoint in `main`:** [Taxo 10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8) — merged  
-**Next code revision:** **10.5-r9**.
+**Latest issued fast-test:** [Taxo 10.5-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r10) — not merged to `main`  
+**Next code revision:** **10.6-r1**.
 
-> `v10.5-r8` — повний multi-platform candidate/checkpoint. Він не підміняє stable `v10.3` без окремого рішення власника про stable promotion.
+> `v10.5-r8` — останній повний multi-platform checkpoint у `main`. `v10.5-r9` і `v10.5-r10` — fast-test checkpoints. Жоден candidate не підміняє stable `v10.3` без окремого рішення власника.
 
 ## Full checkpoints
 
@@ -19,6 +20,8 @@
 
 | Ревізія | Issued source | Перевірка | Зміст |
 |---|---|---|---|
+| **10.5-r10** | `91a528ba92a56a8e1a399c8c114254f05798b5c7` | `499/499 OK`; START run `36416851443` | аудит дня більше не змішує збережений план дня з поточним шаблоном маршруту; fact не переписується |
+| 10.5-r9 | `3356ae224f47cffeb74e5b10709b808071222eae` | `493/493 OK`; release workflow `36413453352` | окрема шляхівка для роботи поза регулярним маршрутом |
 | **10.5-r8** | `846e5c5111b14a4a1f2e49203803e86c495b458f` | `483/483 OK`; release workflow `36406419955` | full checkpoint; Win7/Python 3.8 `tabId` compatibility; merged in PR #76 |
 | 10.5-r7 | `19a9f462993767a43ca3d5add8c7afabcbd39a96` | `476/476 OK`; START run `36396485974` | локальний цикл звіряння через Дію: отримання → актуалізація → зовнішня фіксація |
 | 10.5-r6 | `5f6c7643ce63bffb8069de9775194322a71f13df` | `465/465 OK` | редаговані робочі дані Дія/«Оберіг» і «Шлях» окремо від immutable snapshots |
@@ -28,14 +31,11 @@
 | 10.5-r2 | `d9e7beefa52c7774e1b4bd6711dfc5907e06de37` | `425/425 OK` | покомпонентна звірка ТЗ з «Шлях» |
 | 10.5-r1 | `d7e5a730767ebc17e6935b2d3f25208a9f151c16` | `399/399 OK` | відомість військово-транспортного обліку підприємства |
 
-Усі видані revision/checkpoint-и immutable. Після `10.5-r8` наступна кодова ревізія — тільки **10.5-r9**.
-
-## Historical identity anchors
-
-- **Taxo 10.4-r7** — issued source `9f397a092fe828570927bc39cef7a3a467e2aff0`; immutable historical checkpoint розділення державних реєстрів і локального контролю документів. Деталі збережені в Git history, release notes та Issue #61.
+Усі видані revision/checkpoint-и immutable. Після `10.5-r10` наступна кодова ревізія — тільки **10.6-r1**.
 
 ## Документи поточної лінії
 
+- [Release notes 10.5-r10](RELEASE_NOTES_v10_5_r10.md)
 - [Release notes 10.5-r8](RELEASE_NOTES_v10_5_r8.md)
 - [Release notes 10.5-r7](RELEASE_NOTES_v10_5_r7.md)
 - [Release notes 10.5-r6](RELEASE_NOTES_v10_5_r6.md)
