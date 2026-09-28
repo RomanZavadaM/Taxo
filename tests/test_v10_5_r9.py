@@ -97,10 +97,11 @@ class OffRouteWaybillR9Tests(unittest.TestCase):
 
     def test_feature_does_not_change_tachograph_or_plan_fact_sources(self):
         source = (ROOT / "v1059_features.py").read_text(encoding="utf-8")
-        self.assertNotIn("UPDATE worklog", source)
-        self.assertNotIn("accounting_mode=", source)
-        self.assertIn("плановий час", source)
-        self.assertIn("тахограф", source)
+        lower = source.lower()
+        self.assertNotIn("update worklog", lower)
+        self.assertNotIn("accounting_mode=", lower)
+        self.assertIn("плановий час", lower)
+        self.assertIn("тахограф", lower)
 
 
 class R9IntegrationTests(unittest.TestCase):
