@@ -9,18 +9,36 @@
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Latest full multi-platform checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`.
 - **Main head after r3 docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`.
-- **Latest issued fast-test:** Taxo **10.6-r7** / `v10.6-r7`.
-- **Issued r7 source/tag target:** `e3f1666bafbd82e37ac2e63b08bfed2d265bae30` — immutable by project policy.
-- **r7 regression:** `562/562 OK`.
-- **r7 clean START verify run:** `36463667268` — success.
-- **r7 prerelease publisher:** `36467902934` — success.
-- **r7 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r7
-- **r7 START asset:** `Taxo_v10_6_candidate_r7_START.zip`.
-- **r7 START Release SHA-256:** `5fe124b6865419a14f4073d9bbb54efe18a3142a1e44aa03dc1339554e2a49fd`.
-- **Next code revision:** тільки **10.6-r8**.
+- **Latest issued fast-test:** Taxo **10.6-r8** / `v10.6-r8`.
+- **Issued r8 source/tag target:** `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3` — immutable by project policy.
+- **r8 regression:** `570/570 OK`.
+- **r8 clean START verify run:** `36469618323` — success.
+- **r8 prerelease publisher:** `36469958643` — success.
+- **r8 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r8
+- **r8 START asset:** `Taxo_v10_6_candidate_r8_START.zip`.
+- **r8 START Release SHA-256:** `90e04c065a157aa1453e2aa50024ca3f4093de37db30be23ae007114531eb7ec`.
+- **Next code revision:** тільки **10.6-r9**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4`, `v10.6-r5`, `v10.6-r6` і `v10.6-r7` — окремі fast-test candidate checkpoints і не злиті у `main`.
+`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4`…`v10.6-r8` — окремі fast-test candidate checkpoints і не злиті у `main`.
+
+## Taxo 10.6-r8 — адаптивна форма документа ТЗ
+
+Причина: форма додавання/редагування документа ТЗ мала багато вертикальних рядків, fixed `wraplength=520` і нижню кнопку «Зберегти». На невисоких/масштабованих екранах нижня дія могла притискатися або обрізатися, а пояснювальний текст — виходити за фактичну ширину правої колонки.
+
+Виконано:
+
+- додано `v1068_features.py` як outer runtime layer поверх `v1067`;
+- на висоті <620 px стандартні вертикальні відступи форми ущільнюються;
+- поле «Примітка» у compact mode зменшується з 4 до 3 рядків;
+- пояснення про архівацію та поточну копію отримують динамічний `wraplength` 240…520 px;
+- при нормальній висоті початкові відступи й висота примітки відновлюються;
+- існуючий `_form()`/`save()` closure не переписується;
+- `EXPIRY_REQUIRED`, перевірка дат, `archive_current_document_slot()`, `copy_document_file()`, SQL та DB semantics не змінені;
+- повний exact-source regression: `570/570 OK`;
+- clean START verify: `36469618323` — success;
+- immutable fast-test tag/release: `v10.6-r8` → `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3`;
+- GitHub Release START SHA-256: `90e04c065a157aa1453e2aa50024ca3f4093de37db30be23ae007114531eb7ec`.
 
 ## Taxo 10.6-r7 — адаптивна панель дій картки документів ТЗ
 
@@ -158,4 +176,4 @@ Taxo — proprietary software.
 
 ## Наступний крок
 
-10.6-r7 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r8**. Stable `v10.3` не пересувати без окремого рішення власника; r7 не зливати в `main` без нової прямої команди власника.
+10.6-r8 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r9**. Stable `v10.3` не пересувати без окремого рішення власника; r8 не зливати в `main` без нової прямої команди власника.
