@@ -9,18 +9,36 @@
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Latest full multi-platform checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`.
 - **Main head after r3 docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`.
-- **Latest issued fast-test:** Taxo **10.6-r8** / `v10.6-r8`.
-- **Issued r8 source/tag target:** `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3` — immutable by project policy.
-- **r8 regression:** `570/570 OK`.
-- **r8 clean START verify run:** `36469618323` — success.
-- **r8 prerelease publisher:** `36469958643` — success.
-- **r8 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r8
-- **r8 START asset:** `Taxo_v10_6_candidate_r8_START.zip`.
-- **r8 START Release SHA-256:** `90e04c065a157aa1453e2aa50024ca3f4093de37db30be23ae007114531eb7ec`.
-- **Next code revision:** тільки **10.6-r9**.
+- **Latest issued fast-test:** Taxo **10.6-r9** / `v10.6-r9`.
+- **Issued r9 source/tag target:** `2705fb5c9105e21bfb669a2d40d4f29449e1a00b` — immutable by project policy.
+- **r9 regression:** `578/578 OK`.
+- **r9 clean START verify run:** `36472489549` — success.
+- **r9 prerelease publisher:** `36472783754` — success.
+- **r9 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r9
+- **r9 START asset:** `Taxo_v10_6_candidate_r9_START.zip`.
+- **r9 START Release SHA-256:** `37a6214bb4ba5b33569804e3efb06912549625600361cf510d52808a55a0a8c4`.
+- **Next code revision:** тільки **10.6-r10**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4`…`v10.6-r8` — окремі fast-test candidate checkpoints і не злиті у `main`.
+`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4`…`v10.6-r9` — окремі fast-test candidate checkpoints і не злиті у `main`.
+
+## Taxo 10.6-r9 — адаптивний заголовок картки документів ТЗ
+
+Причина: назва автомобіля і підсумок стану документів (`summary_var`) були розміщені зліва/справа в одному horizontal header-row. Для довгої назви або кількох проблемних документів тексти конкурували за ширину і могли обрізатися.
+
+Виконано:
+
+- додано `v1069_features.py` як outer runtime layer поверх `v1068`;
+- на достатній ширині title + summary лишаються в одному рядку;
+- при нестачі ширини header автоматично переходить у два рядки;
+- у stacked mode summary отримує динамічний `wraplength` із безпечними межами;
+- `summary_var`, його текст і розрахунок стану документів не змінені;
+- таблиця документів, horizontal/vertical scrollbars, responsive action-bar r7 і responsive form r8 збережені;
+- document schema, SQL, archive semantics, копії, строки дії та DB semantics не змінені;
+- повний exact-source regression: `578/578 OK`;
+- clean START verify: `36472489549` — success;
+- immutable fast-test tag/release: `v10.6-r9` → `2705fb5c9105e21bfb669a2d40d4f29449e1a00b`;
+- GitHub Release START SHA-256: `37a6214bb4ba5b33569804e3efb06912549625600361cf510d52808a55a0a8c4`.
 
 ## Taxo 10.6-r8 — адаптивна форма документа ТЗ
 
@@ -176,4 +194,4 @@ Taxo — proprietary software.
 
 ## Наступний крок
 
-10.6-r8 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r9**. Stable `v10.3` не пересувати без окремого рішення власника; r8 не зливати в `main` без нової прямої команди власника.
+10.6-r9 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r10**. Після видачі r10 — rollover на **10.7-r1**. Stable `v10.3` не пересувати без окремого рішення власника; r9 не зливати в `main` без нової прямої команди власника.
