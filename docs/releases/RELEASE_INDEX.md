@@ -2,46 +2,41 @@
 
 **Стан:** 28.09.2026  
 **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
-**Latest full checkpoint:** [Taxo 10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) — merged  
-**Latest issued fast-test revision:** **Taxo 10.5-r7** — immutable  
-**Next code revision:** **10.5-r8** — not started.
+**Latest full checkpoint in `main`:** [Taxo 10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8) — merged  
+**Next code revision:** **10.5-r9**.
 
-> `v10.4-r2` лишається останнім повним multi-platform checkpoint у `main`. Ревізії після нього — швидкі START-checkpoint-и для інтенсивної розробки; вони не підміняють stable/full release без окремого рішення власника.
+> `v10.5-r8` — повний multi-platform candidate/checkpoint. Він не підміняє stable `v10.3` без окремого рішення власника про stable promotion.
 
-## Поточна fast-test лінія
+## Full checkpoints
 
-### Full checkpoints
-
-| Tag | Статус | Пакети | Призначення |
+| Tag | Статус | Пакети | Основний зміст |
 |---|---|---|---|
-| [v10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) | **Latest full checkpoint; merged** | Modern Windows Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START + SHA-256 | UI remediation, vehicle docs, waybill readability, reusable Win7 PE gate |
-| [v10.4-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r1) | Previous full checkpoint; merged | Modern Windows Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START + SHA-256 | First full 10.4 checkpoint with accepted Windows 7 support |
+| [v10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8) | **Latest full checkpoint; merged via PR #76** | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Windows 7/Python 3.8 XLSX `tabId` compatibility + вся функціональність r7 |
+| [v10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) | Previous full checkpoint | Windows x64, Windows 7 SP1, macOS ARM64/Intel, START, SHA-256 | UI cleanup, документи ТЗ, ДЦВ, шляховий лист, Win7 gate |
+| [v10.4-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r1) | Historical full checkpoint | Windows x64, Windows 7 SP1, macOS ARM64/Intel, START, SHA-256 | перший повний 10.4 checkpoint із Win7 support |
 
-Документи:
-- [Release notes 10.4-r2](RELEASE_NOTES_v10_4_r2.md)
-- [Release notes 10.4-r1](RELEASE_NOTES_v10_4_r1.md)
+## Taxo 10.5 history
 
-### Fast-test START checkpoints
-
-| Ревізія | Issued code head | Перевірка | Статус / напрям |
+| Ревізія | Issued source | Перевірка | Зміст |
 |---|---|---|---|
-| **Taxo 10.5-r7** | `19a9f462993767a43ca3d5add8c7afabcbd39a96` | run `36396485974`, `476/476 OK`, artifact `10958596374` | **Latest issued fast-test; immutable** — повний локальний цикл звіряння через Дію: отримання → актуалізація → фіксація; локальна підготовка не підміняє державний факт |
-| Taxo 10.5-r6 | `5f6c7643ce63bffb8069de9775194322a71f13df` | run `36394049520`, `465/465 OK`, artifact `10957441841` | immutable — редаговані робочі дані Дія/«Оберіг» і «Шлях», copy/paste, Diia-first порядок звіряння, відомість ТЦК підприємства як основний транспортний вхід |
-| Taxo 10.5-r5 | `23064b775087c9dfc05867dc65f27e6d6d87e9b4` | run `36390554799`, `456/456 OK`, artifact `10955647596` | immutable — сумісність XLSX «Шлях» з `ChildSheet/tabId` без зміни вихідного XLSX |
-| Taxo 10.5-r4 | `117b305b048c2588e21d7908f39a3bb1071f74aa` | run `36360262795`, success, artifact `10944963733` | immutable — lossless raw snapshot державних XLSX працівників |
-| Taxo 10.5-r3 | `ca1a1288f915c3fa0eb57c82a3e91aea3b0887d1` | run `36359285033`, `440/440 OK`, artifact `10944184721` | immutable — єдиний реєстр документів працівників поверх `employee_documents` |
-| Taxo 10.5-r2 | `d9e7beefa52c7774e1b4bd6711dfc5907e06de37` | run `36356444031`, `425/425 OK`, artifact `10944042965` | immutable — покомпонентна кольорова звірка ТЗ з «Шлях» та історія рішень |
-| Taxo 10.5-r1 | `d7e5a730767ebc17e6935b2d3f25208a9f151c16` | run `36355353170`, `399/399 OK`, artifact `10943696206` | immutable — відомість військово-транспортного обліку по власному/балансовому транспорту |
-| Taxo 10.4-r10 | `0f7944ad3f86bb6ee8ad19b40cfb2b38d924b934` | run `36351811271`, `388/388 OK`, artifact `10942183754` | immutable — військово-транспортний облік ТЗ |
-| Taxo 10.4-r9 | `c09aee3588e95682a1d990c681b10c808183b041` | run `36350115825`, `366/366 OK`, artifact `10942445098` | immutable — покомпонентна звірка працівників і військовий облік 2026 |
-| Taxo 10.4-r8 | `1c0607ee733217c0d4d0bc459af4c0a175a0409f` | run `36346821842`, `340/340 OK`, artifact `10941021984` | immutable — звірка ТЗ / «Шлях» та контрольні нагадування |
-| Taxo 10.4-r7 | `9f397a092fe828570927bc39cef7a3a467e2aff0` | run `36344183395`, `329/329 OK`, artifact `10939983025` | immutable — межа державних реєстрів і локального контролю документів |
+| **10.5-r8** | `846e5c5111b14a4a1f2e49203803e86c495b458f` | `483/483 OK`; release workflow `36406419955` | full checkpoint; Win7/Python 3.8 `tabId` compatibility; merged in PR #76 |
+| 10.5-r7 | `19a9f462993767a43ca3d5add8c7afabcbd39a96` | `476/476 OK`; START run `36396485974` | локальний цикл звіряння через Дію: отримання → актуалізація → зовнішня фіксація |
+| 10.5-r6 | `5f6c7643ce63bffb8069de9775194322a71f13df` | `465/465 OK` | редаговані робочі дані Дія/«Оберіг» і «Шлях» окремо від immutable snapshots |
+| 10.5-r5 | `23064b775087c9dfc05867dc65f27e6d6d87e9b4` | `456/456 OK` | in-memory compatibility retry для XLSX «Шлях» / `ChildSheet/tabId` |
+| 10.5-r4 | `117b305b048c2588e21d7908f39a3bb1071f74aa` | success | lossless raw snapshot державних XLSX працівників |
+| 10.5-r3 | `ca1a1288f915c3fa0eb57c82a3e91aea3b0887d1` | `440/440 OK` | єдиний реєстр документів працівників |
+| 10.5-r2 | `d9e7beefa52c7774e1b4bd6711dfc5907e06de37` | `425/425 OK` | покомпонентна звірка ТЗ з «Шлях» |
+| 10.5-r1 | `d7e5a730767ebc17e6935b2d3f25208a9f151c16` | `399/399 OK` | відомість військово-транспортного обліку підприємства |
 
-**Наступний кодовий крок:** `10.5-r8` — ще не розпочатий. Уже видані `10.5-r1 … r7` не змінюються й не перевидаються під тими самими номерами.
+Усі видані revision/checkpoint-и immutable. Після `10.5-r8` наступна кодова ревізія — тільки **10.5-r9**.
 
-Ревізії `10.4-r3 … r6` також залишаються історичними fast-test checkpoint-ами; їхні точні технічні записи збережені в Issue #61 та Git history.
+## Historical identity anchors
 
-Документи:
+- **Taxo 10.4-r7** — issued source `9f397a092fe828570927bc39cef7a3a467e2aff0`; immutable historical checkpoint розділення державних реєстрів і локального контролю документів. Деталі збережені в Git history, release notes та Issue #61.
+
+## Документи поточної лінії
+
+- [Release notes 10.5-r8](RELEASE_NOTES_v10_5_r8.md)
 - [Release notes 10.5-r7](RELEASE_NOTES_v10_5_r7.md)
 - [Release notes 10.5-r6](RELEASE_NOTES_v10_5_r6.md)
 - [Release notes 10.5-r5](RELEASE_NOTES_v10_5_r5.md)
@@ -49,62 +44,30 @@
 - [Release notes 10.5-r3](RELEASE_NOTES_v10_5_r3.md)
 - [Release notes 10.5-r2](RELEASE_NOTES_v10_5_r2.md)
 - [Release notes 10.5-r1](RELEASE_NOTES_v10_5_r1.md)
-- [Release notes 10.4-r10](RELEASE_NOTES_v10_4_r10.md)
-- [Release notes 10.4-r9](RELEASE_NOTES_v10_4_r9.md)
 
-## Recent 10.3 checkpoints
-
-| Tag | Статус | Ключова зміна |
-|---|---|---|
-| [v10.3-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r10) | Published; merged; manual Win7 Portable gate accepted | Windows 7 SP1 compatibility |
-| [v10.3-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r9) | Full checkpoint; merged | Complete multi-platform packaging |
-| [v10.3-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r8) | Published; merged | macOS Aqua-safe sidebar contrast |
-| [v10.3-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r7) | Published; merged | Backup dialog + recovery protocol |
-| [v10.3-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3-r6) | Published; stable promotion source | Legal/copyright checkpoint |
-
-Документи:
-- [Release notes 10.3](RELEASE_NOTES_v10_3.md)
-- [Release notes 10.3-r10](RELEASE_NOTES_v10_3_r10.md)
-- [Release notes 10.3-r9](RELEASE_NOTES_v10_3_r9.md)
-- [Release notes 10.3-r8](RELEASE_NOTES_v10_3_r8.md)
-- [Release notes 10.3-r7](RELEASE_NOTES_v10_3_r7.md)
-- [Release notes 10.3-r6](RELEASE_NOTES_v10_3_r6.md)
+Точні технічні записи старіших fast-test revision збережені в Git history, release notes та Issue #61. Старі work/candidate branches не використовуються як нова кодова база.
 
 ## Stable line
 
 | Tag | Статус | Призначення |
 |---|---|---|
-| [v10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) | **Current stable** | Promoted from manually tested 10.3 line; immutable |
-| [v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) | Previous stable / rollback | Previous production checkpoint |
-| [v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) | Previous stable / rollback | Verified 9.1 line promotion |
+| [v10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) | **Current stable** | чинна stable-лінія до окремого рішення про promotion |
+| [v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) | Previous stable / rollback | попередній production checkpoint |
+| [v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) | Historical stable | промоція перевіреної 9.1-лінії |
 | [v9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) | Historical stable | 9.0 hotfix |
-| [v9.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0) | Historical stable | Baseline 9.x |
-
-## Earlier candidate history
-
-Історичні candidate tags/releases залишаються immutable і доступні у GitHub Releases. Ключові лінії:
-
-- `v10.2-r1 … v10.2-r10` — vehicle documents, personnel planning, attestation/timesheet corrections;
-- `v10.1-r1 … v10.1-r5` — driver-role separation, UI shell, reports/navigation fixes before stable 10.1;
-- `v9.1-r5 … v9.1-r9.8` — planning, work regimes, canonical intervals, schedule audit, START hardening, duty staff;
-- `v8.70*`, `v8.65`, `v8.64`, `v8.56` — historical 8.x checkpoints.
-
-Не використовувати старі work/candidate branches як нову кодову базу. Для відновлення контексту читати `START_HERE.md`, `PROJECT_STATE.md`, `WORKLOG.md`, цей індекс і release notes потрібного checkpoint.
 
 ## Candidate numbering rule
 
 - кожен завершений крок = нова ревізія `r1 … r10`;
 - після `r10` — наступна minor-версія з `r1`;
-- уже виданий candidate повторно не використовується;
-- після виданого `10.5-r7` наступний кодовий крок — тільки **10.5-r8**;
+- вже виданий candidate/release не пересувається і не перевидається;
 - кожний fast-test checkpoint має окремий чистий START archive;
-- при інтенсивній розробці START є основним тестовим пакетом; Portable/Setup формуються на більш рідкісних/повних checkpoint-ах.
+- при інтенсивній розробці START є основним тестовим пакетом; повні Setup/Portable збірки формуються на full checkpoints.
 
 ## Release policy
 
-1. Stable release формується тільки після manual operational gate та окремого рішення власника.
-2. Candidate full checkpoint може мати повний multi-platform package set до stable promotion.
-3. Старі tags/releases/checkpoint-и не пересуваються й не перезаписуються.
-4. БД, SQLite, скани, кеші та персональні документи не публікуються.
-5. Кодові зміни ведуться в окремій work branch через PR для merge у `main`.
-6. «Злити у main» для релізного checkpoint означає: перевірки → пакети → tag/release → PR → merge → синхронізація документації.
+1. Stable формується тільки після manual operational gate та окремого рішення власника.
+2. Full candidate checkpoint може мати повний multi-platform package set до stable promotion.
+3. БД, SQLite, скани, кеші та персональні документи не публікуються.
+4. Кодові зміни йдуть через окрему work branch і PR.
+5. «Злити у main» = перевірки → пакети → tag/release → PR → merge → синхронізація документації та Issue #61.

@@ -1,106 +1,56 @@
 # Taxo — технічний стан
 
-## Актуальний stable
+Цей файл є коротким технічним дзеркалом канонічного [PROJECT_STATE.md](../../PROJECT_STATE.md). Історичні checkpoint-и не дублюються тут: вони збережені в Git history, release notes та Issue #61.
 
-**Дата:** 22.09.2026  
+**Дата:** 28.09.2026  
 **Stable:** Taxo 10.3 / `v10.3`  
-**Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1`  
-**Verified candidate:** Taxo 10.3-r6 / `v10.3-r6`  
-**Candidate target:** `619e5995af5982cbf60f7345744789e42463498f`  
-**PR #58:** merged  
-**Manual gate:** confirmed by user  
-**Next:** `10.3-r7`
+**Latest full checkpoint in `main`:** Taxo 10.5-r8 / `v10.5-r8`  
+**Issued source:** `846e5c5111b14a4a1f2e49203803e86c495b458f`  
+**Main merge:** `eb9cb039d35419fb579ff0f5e1b9c633c95ccd86` via PR #76  
+**Release workflow:** `36406419955` — success  
+**Regression:** `483/483 OK`  
+**Next code revision:** `10.5-r9`
 
-Канонічний поточний стан: [../../PROJECT_STATE.md](../../PROJECT_STATE.md).  
-Постійні правила: [../../PROJECT_RULES.md](../../PROJECT_RULES.md).  
-Recovery entrypoint: [../../START_HERE.md](../../START_HERE.md).  
-Live ledger: Issue #61.  
-Ліцензія: [../../LICENSE.md](../../LICENSE.md).
+## Технічні інваріанти
 
-Нижче збережено історичні технічні записи попередніх checkpoint.
+- Plan != Fact.
+- Exact intervals мають пріоритет над duration-only.
+- Duration-only не створює вигаданих часових меж.
+- Historical conflicts не переписуються автоматично.
+- Employment state != driver role.
+- Державні raw snapshots не переписуються локальними робочими змінами.
+- Порожнє значення в державному джерелі не очищає локальні дані автоматично.
+- Taxo не оголошує локальну підготовку фактом державної операції.
+- Робочі БД/SQLite/скани/кеші/персональні документи не входять у release.
+- Оновлення програми не повинно вимагати повторного введення робочої бази.
 
----
+## 10.5-r8
 
-# Taxo — технічний стан 10.1
+r8 додає тільки compatibility-виправлення імпорту XLSX «Шлях» для Windows 7 / Python 3.8: коротка openpyxl-помилка `unexpected keyword argument 'tabId'` без `ChildSheet` тепер коректно розпізнається. Retry працює на in-memory копії й не змінює вихідний XLSX.
 
-**Stable published:** 21.09.2026  
-**New stable:** Taxo 10.1  
-**Previous stable / rollback:** Taxo 10.0  
-**Verified candidate:** v10.1-r5  
-**Stable tag:** `v10.1`  
-**Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`
-
-## Технічний baseline
-
-10.1 зберігає всі інваріанти 10.0 і додає перевірений UI/driver-role контур.
-
-Ключові інваріанти:
-- Plan != Fact;
-- exact intervals > duration-only;
-- duration-only не створює вигаданих часових меж;
-- overlap duration = union;
-- historical conflicts не переписуються автоматично;
-- absence overlay зберігає історичний графік;
-- П-5 не підставляє план без підтвердження;
-- технічний аудит != нормативний контроль №340;
-- employment state != driver role;
-- user DB не входить у реліз.
-
-## 10.1
-
-- новий shell: branded header + sidebar + content + status bar;
-- text-free logo + dynamic enterprise name;
-- personnel registry KPI/search/action hierarchy;
-- driver-role persistence fix;
-- Reports inside main workspace;
-- single-instance detailed personnel timesheet;
-- no duplicated full sidebar in secondary timesheet;
-- About/Help branded windows.
-
-## Candidate gate
-
-v10.1-r5:
-- source/START — 157 tests / OK;
-- Windows — 157 tests / OK + START preflight;
-- macOS ARM64 — 157 tests / OK;
-- macOS Intel x86_64 — 157 tests / OK;
-- manual Windows UI/navigation gate — accepted.
+Бізнес-логіка r7 не змінювалась.
 
 ## Release infrastructure
 
-- Windows: PyInstaller onedir + Inno Setup;
-- macOS: native Taxo.app on ARM64 and Intel;
+Повний checkpoint формує:
+
+- modern Windows x64 Setup/Portable;
+- Windows 7 SP1 x64 Setup/Portable;
+- macOS ARM64 Portable;
+- macOS Intel x86_64 Portable;
 - START/source;
-- per-platform + combined SHA-256;
-- stable publisher builds from `main`;
-- old tags/releases are immutable.
+- per-platform і combined SHA-256.
 
-Фінальний звіт: [AUDIT_v10_1_STABLE.md](AUDIT_v10_1_STABLE.md).
+Windows 7 compatibility line: CPython 3.8.10 x64 + PyInstaller 5.13.2 + `requirements-win7.txt` + `Taxo_win7.spec` + `scripts/check_win7_pe.py`.
 
+## Recovery
 
-## Stable release verification
+1. [START_HERE.md](../../START_HERE.md)
+2. [PROJECT_RULES.md](../../PROJECT_RULES.md)
+3. [PROJECT_STATE.md](../../PROJECT_STATE.md)
+4. [WORKLOG.md](../../WORKLOG.md)
+5. Issue #61
 
-- source — 162 tests / OK;
-- Windows — 162 tests / OK + START preflight, Setup + Portable published;
-- macOS ARM64 — 162 tests / OK, package published;
-- macOS Intel x86_64 — 162 tests / OK, package published;
-- START/source — published;
-- SHA-256 manifests — published;
-- GitHub Release `v10.1` — latest stable;
-- stable code/release tag `v10.1` targets `fa5bbe0a5de733af1e227847ef9584daca57676e`; `main` may contain later docs-only follow-up commits without moving the immutable release tag.
-
-Taxo 10.0 is the previous stable / rollback point.
-
-
-## Active development 10.2-r4
-
-Stable 10.1 залишається експлуатаційною базою. Активний candidate: `10.2-r4`, гілка `work/v10.2-r4-replanning`, PR #40.
-
-Обов’язкове правило розробки:
-- кожен завершений крок = нова ревізія;
-- `r1 ... r10`; після `r10` — наступна minor-версія з `r1`;
-- після виданого тестового архіву та сама ревізія більше не використовується;
-- кожен крок завершується START-архівом і прямим посиланням для ручного тестування;
-- канонічні правила: [DEVELOPMENT_RULES.md](DEVELOPMENT_RULES.md).
+Release notes: [10.5-r8](../releases/RELEASE_NOTES_v10_5_r8.md).  
+Release index: [RELEASE_INDEX.md](../releases/RELEASE_INDEX.md).
