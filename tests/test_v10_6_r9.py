@@ -29,14 +29,14 @@ class VehicleDocumentHeaderLayoutR9Tests(unittest.TestCase):
 
 
 class R9IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_10_6_r9(self):
+    def test_r9_layer_keeps_historical_identity_after_later_revision(self):
         version = (ROOT / "VERSION.txt").read_text("utf-8")
         main = (ROOT / "main.py").read_text("utf-8")
-        self.assertIn("Version: 10.6-r9", version)
-        self.assertIn('APP_VERSION = "10.6-r9"', main)
         self.assertEqual(r9.APP_VERSION, "10.6-r9")
+        self.assertRegex(version, r"Version: 10\.(?:6-r(?:9|10)|[7-9]-r\d+)")
+        self.assertRegex(main, r'APP_VERSION = "10\.(?:6-r(?:9|10)|[7-9]-r\d+)"')
 
-    def test_r9_is_outermost_and_r8_remains_in_runtime_chain(self):
+    def test_r9_is_before_any_later_outer_layer_and_r8_remains_in_runtime_chain(self):
         source = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1068_features import install as install_v1068", source)
         self.assertIn("from v1069_features import install as install_v1069", source)
