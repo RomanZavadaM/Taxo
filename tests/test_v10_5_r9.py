@@ -171,18 +171,18 @@ class OffRouteWaybillR9Tests(unittest.TestCase):
 
 
 class R9IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_r9(self):
+    def test_candidate_identity_is_r9_or_later(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
         match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
         self.assertIsNotNone(match)
-        self.assertEqual(tuple(map(int, match.groups())), (10, 5, 9))
+        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 9))
         source = (ROOT / "v1059_features.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "10.5-r9"', source)
 
-    def test_r9_is_outermost_and_r8_remains_in_chain(self):
+    def test_r9_remains_in_chain_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1059_features import install as install_v1059", entry)
-        self.assertIn("App = install_v1059(", entry)
+        self.assertIn("install_v1059(", entry)
         self.assertIn("install_v1058(", entry)
 
     def test_start_package_requires_r9_runtime(self):
