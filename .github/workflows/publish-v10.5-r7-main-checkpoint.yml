@@ -1,0 +1,324 @@
+name: Publish Taxo 10.5-r7 main checkpoint
+
+on:
+  push:
+    branches:
+      - 'release/v10.5-r7-main-checkpoint'
+    paths:
+      - '.github/workflows/publish-v10.5-r7-main-checkpoint.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ISSUED_SHA: 19a9f462993767a43ca3d5add8c7afabcbd39a96
+  VERSION_STEM: v10_5_candidate_r7
+
+jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout immutable issued source
+        uses: actions/checkout@v4
+        with:
+          ref: 19a9f462993767a43ca3d5add8c7afabcbd39a96
+          fetch-depth: 0
+      - name: Verify issued identity
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$ISSUED_SHA"
+          grep -Fxq 'Version: 10.5-r7' VERSION.txt
+          grep -Fxq 'Release type: candidate' VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.5-r7"' main.py
+      - name: Install test dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+      - name: Regression gate
+        shell: bash
+        run: |
+          python -m py_compile main.py taxo_app.py v1057_features.py diia_reconciliation.py
+          python -m unittest discover -s tests -v
+
+  build-start:
+    needs: verify-source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout immutable issued source
+        uses: actions/checkout@v4
+        with:
+          ref: 19a9f462993767a43ca3d5add8c7afabcbd39a96
+          fetch-depth: 0
+      - name: Build and verify START archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          stem='Taxo_v10_5_candidate_r7_START'
+          git archive --format=zip --prefix="${stem}/" --output="${stem}.zip" HEAD
+          if unzip -l "${stem}.zip" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly bundled in START' >&2
+            exit 1
+          fi
+          for file in START.bat requirements.txt taxo_app.py main.py VERSION.txt START_HERE.md PROJECT_RULES.md LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md v1057_features.py diia_reconciliation.py; do
+            unzip -l "${stem}.zip" | grep -q "/${file}$" || { echo "Required START file missing: ${file}" >&2; exit 1; }
+          done
+          sha256sum "${stem}.zip" > SHA256SUMS_v10_5_r7_START.txt
+      - name: Upload START artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.5-r7-START
+          path: |
+            Taxo_v10_5_candidate_r7_START.zip
+            SHA256SUMS_v10_5_r7_START.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  build-windows:
+    needs: verify-source
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout immutable issued source
+        uses: actions/checkout@v4
+        with:
+          ref: 19a9f462993767a43ca3d5add8c7afabcbd39a96
+      - name: Set up Python 3.13 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: 'x64'
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller==6.22.2
+      - name: Windows regression gate
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -v
+      - name: Build Windows portable
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo.spec
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_5_candidate_r7_Windows_x64'
+          if (!(Test-Path 'dist/Taxo_v10_5_candidate_r7_Windows_x64/Taxo.exe')) { throw 'Taxo.exe not found' }
+          $db = Get-ChildItem 'dist/Taxo_v10_5_candidate_r7_Windows_x64' -Recurse -File -Include *.db,*.sqlite,*.sqlite3
+          if ($db) { throw 'Database unexpectedly bundled' }
+          Compress-Archive -Path 'dist/Taxo_v10_5_candidate_r7_Windows_x64' -DestinationPath 'Taxo_v10_5_candidate_r7_Windows_x64_Portable.zip' -Force
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $src = Get-Content 'installer/Taxo_v10_4_r2.iss' -Raw
+          $src = $src.Replace('10.4-r2','10.5-r7').Replace('v10_4_candidate_r2','v10_5_candidate_r7')
+          $src | Set-Content -Encoding utf8 'installer/Taxo_v10_5_r7_runtime.iss'
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc 'installer/Taxo_v10_5_r7_runtime.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
+          if (!(Test-Path 'release_out/Taxo_v10_5_candidate_r7_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+          Copy-Item 'release_out/Taxo_v10_5_candidate_r7_Setup_Windows_x64.exe' .
+      - name: Windows checksums
+        shell: pwsh
+        run: |
+          $files=@('Taxo_v10_5_candidate_r7_Windows_x64_Portable.zip','Taxo_v10_5_candidate_r7_Setup_Windows_x64.exe')
+          $lines=foreach($f in $files){ "$((Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant())  $f" }
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_5_r7_Windows_x64.txt'
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.5-r7-Windows-x64
+          path: |
+            Taxo_v10_5_candidate_r7_Windows_x64_Portable.zip
+            Taxo_v10_5_candidate_r7_Setup_Windows_x64.exe
+            SHA256SUMS_v10_5_r7_Windows_x64.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  build-win7:
+    needs: verify-source
+    runs-on: windows-2022
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout immutable issued source
+        uses: actions/checkout@v4
+        with:
+          ref: 19a9f462993767a43ca3d5add8c7afabcbd39a96
+      - name: Set up CPython 3.8.10 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8.10'
+          architecture: 'x64'
+      - name: Install Windows 7 dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          python -m pip install -r requirements-win7.txt
+          python -m pip install pyinstaller==5.13.2 pefile==2023.2.7
+      - name: Windows 7 regression gate
+        shell: pwsh
+        run: |
+          python -c "import sys; assert sys.version_info[:2] == (3,8), sys.version"
+          python -m unittest discover -s tests -v
+      - name: Build Windows 7 portable
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo_win7.spec
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller Win7 failed: $LASTEXITCODE" }
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_5_candidate_r7_Windows7_x64'
+          if (!(Get-ChildItem 'dist/Taxo_v10_5_candidate_r7_Windows7_x64' -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll not found' }
+          $env:TAXO_WIN7_BUNDLE=(Resolve-Path 'dist/Taxo_v10_5_candidate_r7_Windows7_x64').Path
+          python scripts/check_win7_pe.py
+          Compress-Archive -Path 'dist/Taxo_v10_5_candidate_r7_Windows7_x64' -DestinationPath 'Taxo_v10_5_candidate_r7_Windows7_x64_Portable.zip' -Force
+      - name: Build Windows 7 installer
+        shell: pwsh
+        run: |
+          $src = Get-Content 'installer/Taxo_v10_4_r2_win7.iss' -Raw
+          $src = $src.Replace('10.4-r2','10.5-r7').Replace('v10_4_candidate_r2','v10_5_candidate_r7')
+          $src | Set-Content -Encoding utf8 'installer/Taxo_v10_5_r7_win7_runtime.iss'
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc 'installer/Taxo_v10_5_r7_win7_runtime.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup Win7 failed: $LASTEXITCODE" }
+          if (!(Test-Path 'release_out/Taxo_v10_5_candidate_r7_Setup_Windows7_x64.exe')) { throw 'Windows 7 installer not found' }
+          Copy-Item 'release_out/Taxo_v10_5_candidate_r7_Setup_Windows7_x64.exe' .
+      - name: Windows 7 checksums
+        shell: pwsh
+        run: |
+          $files=@('Taxo_v10_5_candidate_r7_Windows7_x64_Portable.zip','Taxo_v10_5_candidate_r7_Setup_Windows7_x64.exe')
+          $lines=foreach($f in $files){ "$((Get-FileHash $f -Algorithm SHA256).Hash.ToLowerInvariant())  $f" }
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_5_r7_Windows7_x64.txt'
+      - name: Upload Windows 7 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.5-r7-Windows7-x64
+          path: |
+            Taxo_v10_5_candidate_r7_Windows7_x64_Portable.zip
+            Taxo_v10_5_candidate_r7_Setup_Windows7_x64.exe
+            SHA256SUMS_v10_5_r7_Windows7_x64.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  build-macos:
+    needs: verify-source
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout immutable issued source
+        uses: actions/checkout@v4
+        with:
+          ref: 19a9f462993767a43ca3d5add8c7afabcbd39a96
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Verify runner architecture
+        shell: bash
+        run: test "$(uname -m)" = "${{ matrix.arch }}"
+      - name: Install dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-build-macos.txt
+      - name: macOS regression gate
+        shell: bash
+        run: python -m unittest discover -s tests -v
+      - name: Prepare r7 bundle metadata and build
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          src=Path('Taxo_macos_v10_4_r2.spec').read_text(encoding='utf-8')
+          src=src.replace('Taxo 10.4-r2','Taxo 10.5-r7').replace("version='10.4.2'","version='10.5.7'").replace("'CFBundleShortVersionString': '10.4'","'CFBundleShortVersionString': '10.5'").replace("'CFBundleVersion': '2'","'CFBundleVersion': '7'")
+          Path('Taxo_macos_v10_5_r7_runtime.spec').write_text(src,encoding='utf-8')
+          PY
+          python -m PyInstaller --noconfirm --clean Taxo_macos_v10_5_r7_runtime.spec
+          test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
+          file 'dist/Taxo.app/Contents/MacOS/Taxo' | grep -q "${{ matrix.arch }}"
+          codesign --verify --deep --strict 'dist/Taxo.app'
+          if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then exit 1; fi
+      - name: Package macOS build
+        shell: bash
+        run: |
+          bundle="Taxo_v10_5_candidate_r7_macOS_${{ matrix.arch }}"
+          zip="${bundle}_Portable.zip"
+          mkdir "$bundle"
+          mv dist/Taxo.app "$bundle/Taxo.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$bundle" "$zip"
+          shasum -a 256 "$zip" > "SHA256SUMS_v10_5_r7_macOS_${{ matrix.arch }}.txt"
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.5-r7-macOS-${{ matrix.arch }}
+          path: |
+            Taxo_v10_5_candidate_r7_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v10_5_r7_macOS_${{ matrix.arch }}.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs: [verify-source, build-start, build-windows, build-win7, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all checkpoint artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Taxo-v10.5-r7-*
+          path: release-upload
+          merge-multiple: true
+      - name: Verify assets and combined checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-upload
+          required=(
+            Taxo_v10_5_candidate_r7_START.zip
+            Taxo_v10_5_candidate_r7_Windows_x64_Portable.zip
+            Taxo_v10_5_candidate_r7_Setup_Windows_x64.exe
+            Taxo_v10_5_candidate_r7_Windows7_x64_Portable.zip
+            Taxo_v10_5_candidate_r7_Setup_Windows7_x64.exe
+            Taxo_v10_5_candidate_r7_macOS_arm64_Portable.zip
+            Taxo_v10_5_candidate_r7_macOS_x86_64_Portable.zip
+          )
+          for f in "${required[@]}"; do test -f "$f" || { echo "Missing release asset: $f" >&2; exit 1; }; done
+          sha256sum "${required[@]}" | sort -k2 > SHA256SUMS_v10_5_r7.txt
+          cat SHA256SUMS_v10_5_r7.txt
+      - name: Upload complete checkpoint to existing immutable tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="$(gh release view v10.5-r7 --repo "$GITHUB_REPOSITORY" --json targetCommitish --jq .targetCommitish)"
+          test "$target" = "$ISSUED_SHA" || { echo "Release target changed: $target" >&2; exit 1; }
+          gh release upload v10.5-r7 release-upload/* --repo "$GITHUB_REPOSITORY" --clobber
+          cat > /tmp/r7-release-notes.md <<'EOF'
+          Taxo 10.5-r7 — повний checkpoint у лінії 10.5.
+
+          Основне: локальний цикл щорічного звіряння персонального військового обліку через Дію; редаговані робочі дані реєстрів без зміни державних snapshot; звірка ТЗ/«Шлях» та відомість власного/балансового транспорту підприємства.
+
+          Виданий код незмінний: `19a9f462993767a43ca3d5add8c7afabcbd39a96`. Regression gate: 476/476 OK. Тег `v10.5-r7` не пересувається.
+
+          Опубліковано START, Windows x64 Setup/Portable, Windows 7 SP1 x64 Setup/Portable, macOS ARM64 та Intel Portable, а також SHA-256 manifests. Робочі БД і персональні дані в пакети не входять.
+          EOF
+          sed -i 's/^          //' /tmp/r7-release-notes.md
+          gh release edit v10.5-r7 --repo "$GITHUB_REPOSITORY" --title 'Taxo 10.5-r7 — main checkpoint' --notes-file /tmp/r7-release-notes.md
