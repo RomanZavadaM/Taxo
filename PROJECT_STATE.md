@@ -9,18 +9,35 @@
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Latest full multi-platform checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`.
 - **Main head after r3 docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`.
-- **Latest issued fast-test:** Taxo **10.6-r4** / `v10.6-r4`.
-- **Issued r4 source/tag target:** `3961bde3708a13de6352b8c30438d2b65351110c` — immutable.
-- **r4 regression:** `539/539 OK`.
-- **r4 clean START verify run:** `36447919207` — success.
-- **r4 prerelease publisher:** `36448277953` — success.
-- **r4 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r4
-- **r4 START asset:** `Taxo_v10_6_candidate_r4_START.zip`.
-- **r4 START release SHA-256:** `3bd3d8ce3e98e53532295cc4491167d5c8ac0e099ac8c749b8976534dab3f220`.
-- **Next code revision:** тільки **10.6-r5**.
+- **Latest issued fast-test:** Taxo **10.6-r5** / `v10.6-r5`.
+- **Issued r5 source/tag target:** `118d4111e183528c49e8060e8782479fa4436377` — immutable by project policy.
+- **r5 regression:** `546/546 OK`.
+- **r5 clean START verify run:** `36452858366` — success.
+- **r5 prerelease publisher:** `36461104704` — success.
+- **r5 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r5
+- **r5 START asset:** `Taxo_v10_6_candidate_r5_START.zip`.
+- **r5 START release SHA-256:** `8586e5aa6c07860ea4aeda5eaf76b409acc4719b41a9b60da991c3ca14ec27c9`.
+- **Next code revision:** тільки **10.6-r6**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4` — окремий fast-test candidate і не злитий у `main`.
+`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4` і `v10.6-r5` — окремі fast-test candidate checkpoints і не злиті у `main`.
+
+## Taxo 10.6-r5 — адаптивні фільтри звіту документів ТЗ
+
+Причина: у звіті «Стан документів транспортних засобів» дата, кнопка календаря і два довгі прапорці були складені в один горизонтальний ряд. На вузьких або масштабованих екранах крайні елементи могли виходити за видиму область.
+
+Виконано:
+
+- додано `v1065_features.py` як outer runtime layer поверх `v1064`;
+- група `дата + поле + Дата…` лишається разом;
+- прапорці «Тільки авто в експлуатації» та «Тільки проблемні / попередження» переносяться при нестачі ширини;
+- фільтр активних ТЗ лишається увімкненим за замовчуванням;
+- таблиця та обидві прокрутки не змінені;
+- SQL, правила комплектності документів і експорт PDF/Excel не змінені;
+- повний exact-source regression: `546/546 OK`;
+- clean START verify: `36452858366` — success;
+- immutable fast-test tag/release: `v10.6-r5` → `118d4111e183528c49e8060e8782479fa4436377`;
+- GitHub Release START SHA-256: `8586e5aa6c07860ea4aeda5eaf76b409acc4719b41a9b60da991c3ca14ec27c9`.
 
 ## Taxo 10.6-r4 — адаптивні дії шляхівок
 
@@ -107,4 +124,4 @@ Taxo — proprietary software.
 
 ## Наступний крок
 
-10.6-r4 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r5**. Stable `v10.3` не пересувати без окремого рішення власника; r4 не зливати в `main` без нової прямої команди власника.
+10.6-r5 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r6**. Stable `v10.3` не пересувати без окремого рішення власника; r5 не зливати в `main` без нової прямої команди власника.
