@@ -8,33 +8,43 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest full checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`  
 **Main head after docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`  
-**Latest issued fast-test:** Taxo **10.6-r5** / `v10.6-r5`  
-**Issued r5 source/tag target:** `118d4111e183528c49e8060e8782479fa4436377` — immutable by project policy  
-**Active code revision:** **10.6-r6**  
+**Latest issued fast-test:** Taxo **10.6-r6** / `v10.6-r6`  
+**Issued r6 source/tag target:** `90ab67ae00be381f8b2bc14e18f9614574e3493f` — immutable by project policy  
 **Work branch:** `work/v10.6-r6-vehicle-toolbar-responsive`  
-**Scope:** адаптивна панель команд реєстру транспортних засобів; UI-only  
 **Live ledger:** Issue #61
 
-## DOING — 10.6-r6
+## DONE — 10.6-r6
 
-- [x] pre-flight: stable/main/r5 release перевірені, відкритих PR немає;
-- [x] підтверджено UI-дефект: шість кнопок базового `build_vehicles` + довгий r1-прапорець складаються в один горизонтальний ряд;
-- [x] створено work-гілку від post-r5 docs/process head;
+Причина: у реєстрі транспортних засобів шість основних кнопок і довгий прапорець «Сховати неактивні автомобілі» могли не вміститися в один горизонтальний ряд на вузьких/масштабованих екранах.
+
+Виконано:
+
 - [x] додано outer runtime layer `v1066_features.py`;
-- [x] усі шість дій і прапорець збережені в початковому порядку;
-- [x] контроли переносяться на наступний рядок за фактичною шириною toolbar;
+- [x] усі шість основних дій і прапорець збережені в початковому порядку;
+- [x] контроли автоматично переносяться на наступний рядок відповідно до фактичної ширини toolbar;
 - [x] існуючі callback-и та `BooleanVar` фільтра не замінюються;
 - [x] «Сховати неактивні автомобілі» лишається `True` за замовчуванням;
-- [x] дані ТЗ, статуси, документи й БД не змінюються;
-- [x] додано regression contract `tests/test_v10_6_r6.py`;
-- [ ] синхронізувати `main.APP_VERSION` = `10.6-r6`;
-- [ ] отримати green full regression / clean START на exact source;
-- [ ] заморозити exact issued source і опублікувати immutable `v10.6-r6` START prerelease;
-- [ ] синхронізувати docs/state/ledger після видачі.
+- [x] дані ТЗ, статуси, документи, БД і business logic не змінені;
+- [x] `v1066` встановлено outermost поверх `v1065`;
+- [x] START packaging guard вимагає `v1066_features.py`;
+- [x] regression contract: `tests/test_v10_6_r6.py`;
+- [x] exact-source regression: **554/554 OK**;
+- [x] clean START verify run: `36462366765` — success;
+- [x] Actions artifact: `Taxo_v10_6_candidate_r6_START`, ID `10988412209`;
+- [x] prerelease publisher run: `36462529738` — success;
+- [x] tag/release `v10.6-r6` вказує точно на `90ab67ae00be381f8b2bc14e18f9614574e3493f`;
+- [x] GitHub Release asset: `Taxo_v10_6_candidate_r6_START.zip`;
+- [x] Release asset SHA-256: `7493202b3282ffba5238342136dd3a19a5cd7f663514c12eb3827451eff83e79`;
+- [x] checksum manifest: `SHA256SUMS_v10_6_r6.txt`;
+- [x] one-shot identity/publisher workflows прибрані після успішного виконання.
+
+Release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r6  
+START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r6/Taxo_v10_6_candidate_r6_START.zip
 
 ## PRESERVED
 
-- `v10.6-r5` і попередні issued fast-test не пересуваються й не переписуються;
+- `v10.6-r6` issued source/tag не пересувається й не переписується;
+- `v10.6-r5` і попередні issued fast-test також лишаються immutable;
 - `v10.6-r3` лишається latest full multi-platform checkpoint у `main`;
 - stable `v10.3` не пересувається;
 - business logic, plan/fact, шляхівки та тахографічні дані r6 не змінює;
@@ -42,7 +52,7 @@
 
 ## NEXT
 
-Синхронізувати runtime identity, пройти final regression/START verify і видати `v10.6-r6` як окремий GitHub prerelease.
+Наступна кодова ревізія — тільки **10.6-r7**. Починати її після нового pre-flight/audit. `10.6-r6` у `main` не зливати без нової прямої команди власника.
 
 ## BLOCKED
 
