@@ -16,6 +16,20 @@
 
 Це UI-only revision. Runtime layer викликає існуючий `VehicleDocumentsWindow._form()` і адаптує вже створені widgets. `save()` closure, `EXPIRY_REQUIRED`, перевірка дат, `archive_current_document_slot()`, `copy_document_file()`, SQL, архівні semantics і робочі дані не переписуються.
 
-## Перевірка
+## Перевірка і публікація
 
-Фінальні regression/START run, issued SHA, Release asset і SHA-256 будуть записані після green CI та публікації кандидата.
+- exact issued source: `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3`;
+- full regression: **570/570 OK**;
+- clean START verify run: `36469618323` — success;
+- Actions artifact: `Taxo_v10_6_candidate_r8_START`, ID `10990373762`;
+- prerelease publisher run: `36469958643` — success;
+- immutable project checkpoint: `v10.6-r8` → `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3`;
+- GitHub Release asset: `Taxo_v10_6_candidate_r8_START.zip`;
+- GitHub Release asset size: `1102820` bytes;
+- Release asset SHA-256: `90e04c065a157aa1453e2aa50024ca3f4093de37db30be23ae007114531eb7ec`;
+- checksum manifest: `SHA256SUMS_v10_6_r8.txt`.
+
+Release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r8  
+START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r8/Taxo_v10_6_candidate_r8_START.zip
+
+`v10.6-r8` не зливався у `main`; latest full checkpoint у `main` лишається `v10.6-r3`, stable — `v10.3`.
