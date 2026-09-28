@@ -5,13 +5,13 @@
 Taxo es una aplicación de escritorio para una empresa de transporte: personal y conductores, horarios, control de jornada, hojas de ruta, certificados de actividad, vehículos, control documental, informes y procesamiento selectivo de discos de tacógrafo analógicos.
 
 > **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3).  
-> **Último checkpoint completo en `main`:** [Taxo 10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8).  
+> **Último checkpoint completo en `main`:** [Taxo 10.6-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3).  
 > **Stable anterior / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1).  
-> `v10.5-r8` es un candidate/checkpoint completo y no se convierte en stable sin una decisión separada del propietario.
+> `v10.6-r3` es un candidate/checkpoint completo y no se convierte en stable sin una decisión separada del propietario.
 
-## Descargas 10.5-r8
+## Descargas 10.6-r3
 
-[Windows x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.5-r8/Taxo_v10_5_candidate_r8_Setup_Windows_x64.exe) · [Windows x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.5-r8/Taxo_v10_5_candidate_r8_Windows_x64_Portable.zip) · [Windows 7 SP1 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.5-r8/Taxo_v10_5_candidate_r8_Setup_Windows7_x64.exe) · [Windows 7 SP1 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.5-r8/Taxo_v10_5_candidate_r8_Windows7_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.5-r8/Taxo_v10_5_candidate_r8_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.5-r8/Taxo_v10_5_candidate_r8_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.5-r8/Taxo_v10_5_candidate_r8_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.5-r8/SHA256SUMS_v10_5_r8.txt)
+[Windows x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe) · [Windows x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip) · [Windows 7 SP1 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe) · [Windows 7 SP1 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/SHA256SUMS_v10_6_r3_FULL.txt)
 
 Las bases de datos de usuario, archivos SQLite, escaneos, cachés y documentos personales nunca se incluyen en los releases de GitHub.
 
@@ -22,43 +22,29 @@ Las bases de datos de usuario, archivos SQLite, escaneos, cachés y documentos p
 - hojas de horas con turnos divididos y separación explícita entre plan y real;
 - control de trabajo, conducción, pausas y descanso;
 - balances semanales separados de **60:00 de trabajo** y **56:00 de conducción**;
-- registro de actividad de 60 días con detalle por minuto;
-- registro de vehículos, historial de kilometraje y control de documentos;
-- seguro, seguro adicional de responsabilidad, inspección técnica, documentos de matriculación y protocolo de inspección del tacógrafo;
-- rutas y escenarios horarios;
+- registro de vehículos, kilometraje y control documental;
+- rutas regulares y trabajos no regulares: encargos, servicios de traslado, ciudad, región, viajes interregionales y otros servicios puntuales;
 - hojas de ruta, certificados de actividad e informes PDF/Excel;
 - discos de tacógrafo analógicos con verificación manual;
-- espacio de trabajo configurable, copias de seguridad y traslado de datos.
+- copias de seguridad y traslado de datos.
 
-## Registros y contabilidad militar en la línea 10.5
+## Checkpoint 10.6-r3
 
-La línea 10.5 añadió conciliación de vehículos con datos de “Shlyakh”, valores de trabajo editables separados de snapshots estatales inmutables, un registro unificado de documentos de empleados, importación XLSX sin pérdida, una relación empresarial de transporte militar y un flujo local Diia-first para la conciliación anual del personal.
+El checkpoint incluye la corrección de la auditoría plan/real, el filtro predeterminado de vehículos inactivos, la emisión de hojas de ruta para trabajos no regulares sin exigir un `route_id` del catálogo y una ventana «Acerca de» adaptable. En una salida no regular la tabla de ruta permanece vacía, mientras que médico, mecánico, odómetro y kilometraje real se conservan cuando existe una fuente real en Taxo. Los hechos ausentes no se inventan a partir del plan.
 
-Taxo **no sustituye una API estatal**. La preparación local no se considera un hecho oficial y la aplicación no afirma transmitir automáticamente datos a Diia, Oberih o Shlyakh.
+Notas completas: [Release notes 10.6-r3](docs/releases/RELEASE_NOTES_v10_6_r3.md).
 
-## Cambio en 10.5-r8
+## Registros estatales y contabilidad militar
 
-En Windows 7 / Python 3.8 openpyxl puede devolver para algunos XLSX de Shlyakh el error corto `unexpected keyword argument 'tabId'` sin la palabra `ChildSheet`. r8 reconoce ese caso concreto, reintenta sobre una copia en memoria y no modifica el XLSX de origen.
+Taxo admite conciliación de vehículos con “Shlyakh”, valores de trabajo editables separados de snapshots estatales inmutables, registro de documentos de empleados, importación XLSX sin pérdida, relación empresarial de transporte militar y un flujo local Diia-first para la conciliación anual del personal.
 
-Notas completas: [Release notes 10.5-r8](docs/releases/RELEASE_NOTES_v10_5_r8.md).
+Taxo **no sustituye una API estatal** ni afirma transmitir automáticamente datos a Diia, Oberih o Shlyakh.
 
-## Documentación
+## Documentación y desarrollo
 
-La documentación operativa canónica se mantiene en ucraniano:
+La documentación operativa canónica se mantiene en ucraniano. Las sesiones nuevas empiezan por `START_HERE.md`, después `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` e Issue #61. Las revisiones publicadas son inmutables. Después de `10.6-r3`, la siguiente revisión de código es **10.6-r4**.
 
-- [Índice de documentación](docs/README.md)
-- [Descripción del sistema](docs/SYSTEM_OVERVIEW.md)
-- [Inicio rápido](docs/guides/QUICK_START.md)
-- [Manual de personal](docs/guides/USER_MANUAL.md)
-- [Administración y copias de seguridad](docs/guides/ADMIN_GUIDE.md)
-- [Solución de problemas](docs/guides/TROUBLESHOOTING.md)
-- [Índice de releases](docs/releases/RELEASE_INDEX.md)
-
-## Estado de desarrollo
-
-Las nuevas sesiones deben empezar por `START_HERE.md`, después `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` e Issue #61.
-
-Cada paso completado recibe una nueva revisión `r1 … r10`; después de `r10` aumenta la versión minor y la revisión vuelve a `r1`. Las revisiones publicadas son inmutables. Después de `10.5-r8`, la siguiente revisión de código es **10.5-r9**.
+Consulte [Índice de documentación](docs/README.md) · [Descripción del sistema](docs/SYSTEM_OVERVIEW.md) · [Inicio rápido](docs/guides/QUICK_START.md) · [Índice de releases](docs/releases/RELEASE_INDEX.md).
 
 ## Derechos de autor y licencia
 
