@@ -50,7 +50,7 @@ class NonRegularWaybillR2Tests(unittest.TestCase):
         self.assertIn("міжобласна", source)
         self.assertIn("розвозка", source)
 
-    def test_nonregular_issue_reuses_r9_blank_reverse_renderer(self):
+    def test_nonregular_issue_reuses_r9_reverse_renderer(self):
         source = (ROOT / "v1062_features.py").read_text(encoding="utf-8")
         self.assertIn("return self._issue_off_route_waybill(row, route_label)", source)
         legacy = (ROOT / "v1059_features.py").read_text(encoding="utf-8")
@@ -76,20 +76,21 @@ class AboutLayoutR2Tests(unittest.TestCase):
 
 
 class R2IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_10_6_r2(self):
+    def test_candidate_identity_is_r2_or_later(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
         match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
         self.assertIsNotNone(match)
-        self.assertEqual(tuple(map(int, match.groups())), (10, 6, 2))
+        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 6, 2))
         feature = (ROOT / "v1062_features.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "10.6-r2"', feature)
 
-    def test_r2_is_outermost_and_r1_remains_in_chain(self):
+    def test_r2_remains_in_runtime_chain_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1062_features import install as install_v1062", entry)
-        self.assertIn("App = install_v1062(", entry)
-        self.assertIn("install_v1061(", entry)
-        self.assertLess(entry.index("App = install_v1062("), entry.index("install_v1061("))
+        self.assertIn("from v1063_features import install as install_v1063", entry)
+        self.assertIn("App = install_v1063(", entry)
+        self.assertIn("install_v1062(", entry)
+        self.assertLess(entry.index("App = install_v1063("), entry.index("install_v1062("))
 
     def test_start_package_requires_r2_runtime(self):
         workflow = (ROOT / ".github/workflows/source-test-archive.yml").read_text(encoding="utf-8")
