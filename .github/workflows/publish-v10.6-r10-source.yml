@@ -1,0 +1,113 @@
+name: Publish Taxo 10.6-r10 source prerelease
+
+on:
+  push:
+    branches:
+      - 'work/v10.6-r10-p5-edrpou-fix'
+    paths:
+      - '.github/workflows/publish-v10.6-r10-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Tk runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install regression dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Verify candidate identity
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from release_naming import start_archive_stem, version_from_file
+          version = version_from_file('VERSION.txt')
+          if version != '10.6-r10':
+              raise SystemExit(f'Expected 10.6-r10, got {version!r}')
+          main_text = Path('main.py').read_text(encoding='utf-8')
+          if 'APP_VERSION = "10.6-r10"' not in main_text:
+              raise SystemExit('main.APP_VERSION is not synchronized to 10.6-r10')
+          if start_archive_stem(version) != 'Taxo_v10_6_candidate_r10_START':
+              raise SystemExit('Unexpected START archive name')
+          taxo_text = Path('taxo_app.py').read_text(encoding='utf-8')
+          if 'App = install_v10610(core, App)' not in taxo_text:
+              raise SystemExit('r10 runtime is not outermost in taxo_app.py')
+          PY
+
+      - name: Run full regression suite
+        run: python -m unittest discover -s tests -v
+
+      - name: Refuse overwrite of immutable tag or release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin refs/tags/v10.6-r10 >/dev/null 2>&1; then
+            echo 'v10.6-r10 tag already exists; refusing to move or overwrite it.' >&2
+            exit 1
+          fi
+          if gh release view v10.6-r10 --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo 'v10.6-r10 release already exists; refusing to overwrite it.' >&2
+            exit 1
+          fi
+
+      - name: Build and verify immutable START archive
+        shell: bash
+        run: |
+          stem='Taxo_v10_6_candidate_r10_START'
+          archive="${stem}.zip"
+          git archive --format=zip --prefix="${stem}/" --output="${archive}" HEAD
+
+          if unzip -l "${archive}" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included in candidate archive' >&2
+            exit 1
+          fi
+          for required in START.bat VERSION.txt main.py taxo_app.py v10610_features.py LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md; do
+            unzip -l "${archive}" | grep -q "/${required}$" || {
+              echo "Required candidate file missing: ${required}" >&2
+              exit 1
+            }
+          done
+          unzip -p "${archive}" "*/START.bat" > /tmp/START.bat
+          python - <<'PY'
+          data = open('/tmp/START.bat', 'rb').read()
+          if not data or any(byte >= 128 for byte in data) or b'chcp' in data.lower() or b'\r\n' not in data:
+              raise SystemExit('START.bat compatibility verification failed')
+          PY
+          sha256sum "${archive}" > SHA256SUMS_v10_6_r10.txt
+
+      - name: Publish immutable prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create v10.6-r10 \
+            Taxo_v10_6_candidate_r10_START.zip \
+            SHA256SUMS_v10_6_r10.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title 'Taxo 10.6-r10' \
+            --prerelease \
+            --notes-file docs/releases/RELEASE_NOTES_v10.6-r10.md
+
+      - name: Verify published target and assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          target="$(git rev-list -n 1 refs/tags/v10.6-r10)"
+          test "${target}" = "${GITHUB_SHA}"
+          gh release view v10.6-r10 --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name' | grep -Fx 'Taxo_v10_6_candidate_r10_START.zip'
+          gh release view v10.6-r10 --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name' | grep -Fx 'SHA256SUMS_v10_6_r10.txt'
