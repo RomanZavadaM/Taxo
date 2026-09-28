@@ -1,12 +1,13 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 28.09.2026  
+**Дата:** 29.09.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## Поточний підтверджений стан
 
 - **Stable:** Taxo 10.3 / `v10.3` — immutable.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+- **Latest full multi-platform checkpoint:** Taxo **10.6-r10** / `v10.6-r10`.
 - **Latest integrated code checkpoint in `main`:** Taxo **10.6-r10**.
 - **Main merge:** PR #87 → `4bc63060be9911fcf20f432b5e6535b4d8cd0155`.
 - **Issued r10 tag/source:** `v10.6-r10` → `0baad010d0c0d4f29db62f26c29d512c71058928`.
@@ -14,12 +15,29 @@
 - **r10 clean START verify:** `36476665666` — success.
 - **r10 Windows PR gate:** `36479012210` — success.
 - **r10 macOS PR gate:** `36479012232` — success.
+- **r10 full package build:** `36485005797` — Windows x64, Windows 7 SP1 x64, macOS arm64, macOS x86_64 built and verified from exact issued source.
+- **r10 binary publication:** `36485643153` — success.
 - **r10 START:** `Taxo_v10_6_candidate_r10_START.zip`.
 - **r10 START SHA-256:** `1ca7d18b5775c7ddaf424d9d650d78457c7e8451b04cbc6121fcb04fba6acfd8`.
 - **Next code revision:** тільки **10.7-r1**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.6-r10` — поточний інтегрований кодовий checkpoint у `main`; це не автоматичне stable promotion.
+`v10.3` залишається stable до окремого рішення власника. `v10.6-r10` є поточним інтегрованим і повним multi-platform checkpoint, але це не автоматичне stable promotion.
+
+## Повний пакет 10.6-r10
+
+У release `v10.6-r10` опубліковано:
+
+- START/source: `Taxo_v10_6_candidate_r10_START.zip`;
+- Windows x64 Setup: `Taxo_v10_6_candidate_r10_Setup_Windows_x64.exe`;
+- Windows x64 Portable: `Taxo_v10_6_candidate_r10_Windows_x64_Portable.zip`;
+- Windows 7 SP1 x64 Setup: `Taxo_v10_6_candidate_r10_Setup_Windows7_x64.exe`;
+- Windows 7 SP1 x64 Portable: `Taxo_v10_6_candidate_r10_Windows7_x64_Portable.zip`;
+- macOS Apple Silicon: `Taxo_v10_6_candidate_r10_macOS_arm64_Portable.zip`;
+- macOS Intel: `Taxo_v10_6_candidate_r10_macOS_x86_64_Portable.zip`;
+- окремі SHA-256 manifests для платформ і загальний `SHA256SUMS_v10_6_r10_ALL.txt`.
+
+Усі executable assets зібрані з exact issued source `0baad010d0c0d4f29db62f26c29d512c71058928`; tag `v10.6-r10` не пересувався.
 
 ## Що увійшло в 10.6-r10
 
@@ -75,7 +93,7 @@
 
 ## Windows 7
 
-Окрема compatibility line зберігається: CPython 3.8.10 x64 + PyInstaller 5.13.2 + `requirements-win7.txt`, `Taxo_win7.spec` і PE compatibility gate `scripts/check_win7_pe.py`.
+Окрема compatibility line зберігається: CPython 3.8.10 x64 + PyInstaller 5.13.2 + `requirements-win7.txt`, `Taxo_win7.spec` і PE compatibility gate `scripts/check_win7_pe.py`. Для повного 10.6-r10 checkpoint PE gate пройдений успішно.
 
 ## Право та власність
 
@@ -91,4 +109,4 @@ Taxo — proprietary software.
 
 ## Наступний крок
 
-Після виданого й інтегрованого `10.6-r10` наступна кодова ревізія — тільки **10.7-r1**. Починати її з нового pre-flight/audit за `START_HERE.md`. Stable `v10.3` не пересувати без окремого рішення власника.
+Після виданого, інтегрованого і повністю упакованого `10.6-r10` наступна кодова ревізія — тільки **10.7-r1**. Починати її з нового pre-flight/audit за `START_HERE.md`. Stable `v10.3` не пересувати без окремого рішення власника.
