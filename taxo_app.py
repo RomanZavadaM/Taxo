@@ -7,19 +7,83 @@ from v9_release import install as install_v9
 from hotfix_901 import install as install_hotfix_901
 from v91_features import install as install_v91
 from personnel_v91 import install as install_personnel
+from v1043_features import install as install_v1043
+from v1044_features import install as install_v1044
+from v1045_features import install as install_v1045
+from v1046_features import install as install_v1046
+from v1048_features import install as install_v1048
+from v1049_features import install as install_v1049
+from military_accounting_ui import install as install_military_accounting_ui
+from v10410_features import install as install_v10410
+from v1051_features import install as install_v1051
+from v1052_features import install as install_v1052
+from v1053_features import install as install_v1053
+from v1054_features import install as install_v1054
+from v1055_features import install as install_v1055
+from v1056_features import install as install_v1056
+from v1057_features import install as install_v1057
+from v1058_features import install as install_v1058
 
-App = install_personnel(
+App = install_v1058(
     core,
-    install_v91(
+    install_v1057(
         core,
-        install_hotfix_901(
+        install_v1056(
             core,
-            install_v9(
+            install_v1055(
                 core,
-                install_activity_register(core, install_work_analysis(core)),
+                install_v1054(
+                    core,
+                    install_v1053(
+                        core,
+                        install_v1052(
+                            core,
+                            install_v1051(
+                                core,
+                                install_v10410(
+                                    core,
+                                    install_military_accounting_ui(
+                                        core,
+                                        install_v1049(
+                                            core,
+                                            install_v1048(
+                                                core,
+                                                install_v1046(
+                                                    core,
+                                                    install_v1045(
+                                                        core,
+                                                        install_v1044(
+                                                            core,
+                                                            install_v1043(
+                                                                core,
+                                                                install_personnel(
+                                                                    core,
+                                                                    install_v91(
+                                                                        core,
+                                                                        install_hotfix_901(
+                                                                            core,
+                                                                            install_v9(
+                                                                                core,
+                                                                                install_activity_register(core, install_work_analysis(core)),
+                                                                            ),
+                                                                        ),
+                                                                    ),
+                                                                ),
+                                                            ),
+                                                        ),
+                                                    ),
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
             ),
         ),
-    ),
+    )
 )
 
 
