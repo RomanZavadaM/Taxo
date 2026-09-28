@@ -32,7 +32,7 @@ def install(core, base_app):
     class Taxo1061App(base_app):
         def build_vehicles(self):
             # Set before super(): base build_vehicles() calls self.load_vehicles(),
-            # so the first render must already hide inactive vehicles.
+            # so the very first render already applies the requested default.
             self.vehicle_hide_inactive = core.tk.BooleanVar(value=True)
             result = super().build_vehicles()
 
@@ -41,27 +41,42 @@ def install(core, base_app):
                 try:
                     if child.winfo_class() != "TFrame":
                         continue
-                    labels = []
+                    button_labels = []
                     for widget in child.winfo_children():
                         try:
+                            if widget.winfo_class() not in {"TButton", "Button"}:
+                                continue
                             text = str(widget.cget("text") or "")
                         except core.tk.TclError:
-                            text = ""
+                            continue
                         if text:
-                            labels.append(text)
-                    if "Нове авто" in labels and "Оновити" in labels:
+                            button_labels.append(text)
+                    # The add-vehicle caption changed historically, so identify
+                    # the existing action bar by its stable Refresh action and
+                    # number of vehicle actions instead of one old caption.
+                    if "Оновити" in button_labels and len(button_labels) >= 4:
                         toolbar = child
                         break
                 except core.tk.TclError:
                     continue
 
-            if toolbar is not None:
-                core.ttk.Checkbutton(
-                    toolbar,
-                    text="Сховати неактивні автомобілі",
-                    variable=self.vehicle_hide_inactive,
-                    command=self.load_vehicles,
-                ).pack(side="right", padx=(12, 4))
+            if toolbar is None:
+                # Defensive fallback: keep the filter visible even if a later UI
+                # skin changes the action bar layout again.
+                toolbar = core.ttk.Frame(self.tab_vehicles)
+                tree = getattr(self, "vehicle_tree", None)
+                kwargs = {"fill": "x", "padx": 10, "pady": (0, 6)}
+                if tree is not None:
+                    kwargs["before"] = tree
+                toolbar.pack(**kwargs)
+
+            core.ttk.Checkbutton(
+                toolbar,
+                text="Сховати неактивні автомобілі",
+                variable=self.vehicle_hide_inactive,
+                command=self.load_vehicles,
+            ).pack(side="right", padx=(12, 4))
+            self.vehicle_hide_inactive_control = toolbar
             return result
 
         def load_vehicles(self):
