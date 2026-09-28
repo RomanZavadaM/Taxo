@@ -1,0 +1,45 @@
+name: Apply Taxo 10.6-r6 runtime identity
+
+on:
+  push:
+    branches:
+      - 'work/v10.6-r6-vehicle-toolbar-responsive'
+    paths:
+      - '.github/workflows/apply-v10.6-r6-identity.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout work branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/v10.6-r6-vehicle-toolbar-responsive
+          fetch-depth: 0
+
+      - name: Update main runtime identity
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('main.py')
+          text = path.read_text('utf-8')
+          old = 'APP_VERSION = "10.6-r5"'
+          new = 'APP_VERSION = "10.6-r6"'
+          if old not in text:
+              raise SystemExit('main.py r5 identity anchor not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Commit identity update
+        shell: bash
+        run: |
+          git config user.name 'RomanZavadaM'
+          git config user.email 'zavada.roman.m@gmail.com'
+          git add main.py
+          git diff --cached --check
+          git commit -m 'Taxo 10.6-r6: bump runtime identity'
+          git push origin HEAD:work/v10.6-r6-vehicle-toolbar-responsive
