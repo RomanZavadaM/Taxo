@@ -1,0 +1,525 @@
+name: Publish Taxo 10.4-r1 full checkpoint
+# Exact-head retry after historical candidate-line regression guard was generalized.
+
+on:
+  push:
+    branches:
+      - 'work/v10.4-r1-full-checkpoint-win7'
+    paths:
+      - '.github/workflows/publish-v10.4-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-source:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify candidate identity
+        shell: bash
+        run: |
+          grep -Fxq 'Version: 10.4-r1' VERSION.txt
+          grep -Fxq 'Release type: candidate' VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.4-r1"' main.py
+
+      - name: Install Tk runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Compile and run regression suite
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py release_naming.py document_viewer.py vehicle_documents.py
+          python -m unittest discover -s tests -v
+
+  build-windows:
+    needs: verify-source
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: 'x64'
+
+      - name: Install application and packaging dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller==6.22.2
+
+      - name: Run Windows regression suite
+        shell: pwsh
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py release_naming.py document_viewer.py vehicle_documents.py
+          python -m unittest discover -s tests -v
+
+      - name: Verify START preflight on Windows
+        shell: pwsh
+        run: |
+          $stdout = Join-Path $env:RUNNER_TEMP 'taxo-start-r9-stdout.txt'
+          $stderr = Join-Path $env:RUNNER_TEMP 'taxo-start-r9-stderr.txt'
+          $env:TAXO_START_PREFLIGHT_ONLY = '1'
+          try {
+            $process = Start-Process -FilePath $env:ComSpec -ArgumentList @('/d','/c','call START.bat') -WorkingDirectory $PWD.Path -Wait -PassThru -NoNewWindow -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          }
+          finally {
+            Remove-Item Env:TAXO_START_PREFLIGHT_ONLY -ErrorAction SilentlyContinue
+          }
+          $out = (Get-Content $stdout -Raw -Encoding ascii) + (Get-Content $stderr -Raw -Encoding ascii -ErrorAction SilentlyContinue)
+          if ($process.ExitCode -ne 0) { throw "Expected START preflight exit 0, got $($process.ExitCode)" }
+          if (!$out.Contains('START preflight OK.')) { throw 'START preflight marker missing' }
+
+      - name: Build Windows portable application
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo.spec
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_4_candidate_r1_Windows_x64'
+
+      - name: Verify Windows portable bundle
+        shell: pwsh
+        run: |
+          $bundle = 'dist/Taxo_v10_4_candidate_r1_Windows_x64'
+          if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
+          foreach ($file in @('Бланк підтвердження.docx','attestation_visual_template.pdf','LICENSE.md','COPYRIGHT.md','THIRD_PARTY_NOTICES.md')) {
+            if (!(Get-ChildItem $bundle -Recurse -File -Filter $file -ErrorAction SilentlyContinue | Select-Object -First 1)) {
+              throw "Required bundle file missing: $file"
+            }
+          }
+          $db = Get-ChildItem $bundle -Recurse -File -Include *.db,*.sqlite,*.sqlite3
+          if ($db) { throw "Database unexpectedly bundled: $($db.FullName -join ', ')" }
+
+      - name: Create Windows portable ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path 'dist/Taxo_v10_4_candidate_r1_Windows_x64' -DestinationPath 'Taxo_v10_4_candidate_r1_Windows_x64_Portable.zip' -Force
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
+          & $iscc 'installer/Taxo_v10_4_r1.iss'
+          if (!(Test-Path 'release_out/Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+
+      - name: Create Windows checksum manifest
+        shell: pwsh
+        run: |
+          $files = @(
+            'Taxo_v10_4_candidate_r1_Windows_x64_Portable.zip',
+            'release_out/Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe'
+          )
+          $lines = foreach ($file in $files) {
+            "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
+          }
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_4_r1_Windows_x64.txt'
+
+      - name: Upload Windows packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.4-r1-Windows-x64
+          path: |
+            Taxo_v10_4_candidate_r1_Windows_x64_Portable.zip
+            release_out/Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe
+            SHA256SUMS_v10_4_r1_Windows_x64.txt
+          if-no-files-found: error
+          retention-days: 30
+
+
+  build-win7:
+    needs: verify-source
+    runs-on: windows-2022
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v4
+
+      - name: Set up CPython 3.8.10 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8.10'
+          architecture: 'x64'
+
+      - name: Install Windows 7 compatibility dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          python -m pip install -r requirements-win7.txt
+          python -m pip install pyinstaller==5.13.2 pefile==2023.2.7
+
+      - name: Run Python 3.8 regression suite
+        shell: pwsh
+        run: |
+          python -c "import sys; assert sys.version_info[:2] == (3,8), sys.version"
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py release_naming.py document_viewer.py vehicle_documents.py
+          python -m unittest discover -s tests -v
+
+      - name: Build Windows 7 portable application
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo_win7.spec
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller Win7 build failed with exit code $LASTEXITCODE" }
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_4_candidate_r1_Windows7_x64'
+
+      - name: Verify Windows 7 portable bundle
+        shell: pwsh
+        run: |
+          $bundle='dist/Taxo_v10_4_candidate_r1_Windows7_x64'
+          if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
+          if (!(Get-ChildItem $bundle -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll not found' }
+          foreach ($file in @('Бланк підтвердження.docx','attestation_visual_template.pdf','LICENSE.md','COPYRIGHT.md','THIRD_PARTY_NOTICES.md')) {
+            if (!(Get-ChildItem $bundle -Recurse -File -Filter $file -ErrorAction SilentlyContinue | Select-Object -First 1)) {
+              throw "Required Win7 bundle file missing: $file"
+            }
+          }
+          $db = Get-ChildItem $bundle -Recurse -File -Include *.db,*.sqlite,*.sqlite3
+          if ($db) { throw "Database unexpectedly bundled: $($db.FullName -join ', ')" }
+
+      - name: Verify Windows 7 PE import compatibility
+        shell: pwsh
+        run: |
+          $env:TAXO_WIN7_BUNDLE = (Resolve-Path 'dist/Taxo_v10_4_candidate_r1_Windows7_x64').Path
+          @'
+          import os
+          from pathlib import Path
+          import pefile
+
+          root = Path(os.environ["TAXO_WIN7_BUNDLE"])
+          forbidden = b"api-ms-win-core-path-l1-1-0.dll"
+          checked = 0
+          offenders = []
+          for path in root.rglob("*"):
+              if path.suffix.lower() not in {".exe", ".dll", ".pyd"}:
+                  continue
+              try:
+                  pe = pefile.PE(str(path), fast_load=True)
+                  dirs = [pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"]]
+                  delay = pefile.DIRECTORY_ENTRY.get("IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT")
+                  if delay is not None:
+                      dirs.append(delay)
+                  pe.parse_data_directories(directories=dirs)
+              except Exception:
+                  continue
+              checked += 1
+              entries = list(getattr(pe, "DIRECTORY_ENTRY_IMPORT", []))
+              entries += list(getattr(pe, "DIRECTORY_ENTRY_DELAY_IMPORT", []))
+              for entry in entries:
+                  if (entry.dll or b"").lower() == forbidden:
+                      offenders.append(str(path.relative_to(root)))
+          print("PE files checked:", checked)
+          if checked == 0:
+              raise SystemExit("No PE files inspected")
+          if offenders:
+              raise SystemExit("Forbidden Win8+ path API import found: " + ", ".join(sorted(offenders)))
+          '@ | Set-Content -Encoding utf8 check_win7_pe.py
+          python check_win7_pe.py
+
+      - name: Create Windows 7 portable ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path 'dist/Taxo_v10_4_candidate_r1_Windows7_x64' -DestinationPath 'Taxo_v10_4_candidate_r1_Windows7_x64_Portable.zip' -Force
+
+      - name: Build Windows 7 installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
+          & $iscc 'installer/Taxo_v10_4_r1_win7.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup Win7 build failed with exit code $LASTEXITCODE" }
+          if (!(Test-Path 'release_out/Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe')) { throw 'Windows 7 installer not found' }
+
+      - name: Create Windows 7 checksum manifest
+        shell: pwsh
+        run: |
+          $files = @(
+            'Taxo_v10_4_candidate_r1_Windows7_x64_Portable.zip',
+            'release_out/Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe'
+          )
+          $lines = foreach ($file in $files) {
+            "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))"
+          }
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_4_r1_Windows7_x64.txt'
+
+      - name: Upload Windows 7 packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.4-r1-Windows7-x64
+          path: |
+            Taxo_v10_4_candidate_r1_Windows7_x64_Portable.zip
+            release_out/Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe
+            SHA256SUMS_v10_4_r1_Windows7_x64.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  build-macos:
+    needs: verify-source
+    name: macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Verify runner architecture
+        shell: bash
+        run: test "$(uname -m)" = "${{ matrix.arch }}"
+
+      - name: Install application and packaging dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-build-macos.txt
+
+      - name: Run macOS regression suite
+        shell: bash
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py release_naming.py document_viewer.py vehicle_documents.py
+          python -m unittest discover -s tests -v
+
+      - name: Build native Taxo.app
+        shell: bash
+        run: python -m PyInstaller --noconfirm --clean Taxo_macos_v10_4_r1.spec
+
+      - name: Verify application bundle
+        shell: bash
+        run: |
+          test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
+          for file in 'Бланк підтвердження.docx' 'attestation_visual_template.pdf' 'LICENSE.md' 'COPYRIGHT.md' 'THIRD_PARTY_NOTICES.md'; do
+            find 'dist/Taxo.app' -name "$file" -print -quit | grep -q . || { echo "Required bundle file missing: $file" >&2; exit 1; }
+          done
+          if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then
+            echo 'Database unexpectedly bundled in Taxo.app' >&2
+            exit 1
+          fi
+          file 'dist/Taxo.app/Contents/MacOS/Taxo' | grep -q "${{ matrix.arch }}"
+          codesign --verify --deep --strict 'dist/Taxo.app'
+
+      - name: Create macOS portable ZIP and checksum
+        shell: bash
+        run: |
+          bundle_dir="Taxo_v10_4_candidate_r1_macOS_${{ matrix.arch }}"
+          zip_name="${bundle_dir}_Portable.zip"
+          mkdir "${bundle_dir}"
+          mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle_dir}" "${zip_name}"
+          shasum -a 256 "${zip_name}" > "SHA256SUMS_v10_4_r1_macOS_${{ matrix.arch }}.txt"
+
+      - name: Upload macOS package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.4-r1-macOS-${{ matrix.arch }}
+          path: |
+            Taxo_v10_4_candidate_r1_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v10_4_r1_macOS_${{ matrix.arch }}.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  build-start:
+    needs: verify-source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create START archive
+        shell: bash
+        run: |
+          python - <<'PY'
+          import subprocess
+          from release_naming import start_archive_stem, version_from_file
+
+          stem = start_archive_stem(version_from_file('VERSION.txt'))
+          expected = 'Taxo_v10_4_candidate_r1_START'
+          if stem != expected:
+              raise SystemExit(f'Expected {expected}, got {stem}')
+          subprocess.check_call([
+              'git','archive','--format=zip',
+              f'--prefix={stem}/',
+              f'--output={stem}.zip',
+              'HEAD',
+          ])
+          PY
+
+      - name: Verify clean START package
+        shell: bash
+        run: |
+          archive='Taxo_v10_4_candidate_r1_START.zip'
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly bundled in START' >&2
+            exit 1
+          fi
+          required_files=(
+            START.bat requirements.txt taxo_app.py main.py workspace.py
+            vehicle_documents.py document_viewer.py 00_README_START.txt
+            release_naming.py VERSION.txt START_HERE.md PROJECT_RULES.md
+            PROJECT_STATE.md WORKLOG.md LICENSE.md COPYRIGHT.md
+            THIRD_PARTY_NOTICES.md docs/releases/RELEASE_NOTES_v10_4_r1.md
+            tests/test_v10_4_r1.py
+          )
+          for file in "${required_files[@]}"; do
+            unzip -l "$archive" | grep -q "/${file}$" || { echo "Required START file missing: ${file}" >&2; exit 1; }
+          done
+          unzip -p "$archive" '*/START.bat' > /tmp/START.bat
+          python - <<'PY'
+          data = open('/tmp/START.bat', 'rb').read()
+          if not data or any(byte >= 128 for byte in data):
+              raise SystemExit('START.bat must be non-empty ASCII')
+          if b'chcp' in data.lower():
+              raise SystemExit('START.bat must not switch code pages')
+          if b'\r\n' not in data:
+              raise SystemExit('START.bat must contain CRLF')
+          PY
+          sha256sum "$archive" > 'SHA256SUMS_v10_4_r1_START.txt'
+
+      - name: Upload START package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.4-r1-START
+          path: |
+            Taxo_v10_4_candidate_r1_START.zip
+            SHA256SUMS_v10_4_r1_START.txt
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs:
+      - verify-source
+      - build-windows
+      - build-win7
+      - build-macos
+      - build-start
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Taxo-v10.4-r1-*
+          path: release-upload
+          merge-multiple: true
+
+      - name: Verify release assets and create combined SHA-256 manifest
+        shell: bash
+        run: |
+          setup_path="$(find release-upload -type f -name 'Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe' -print -quit)"
+          test -n "$setup_path" || { echo 'Windows installer missing from downloaded artifacts' >&2; exit 1; }
+          if [ "$setup_path" != "release-upload/Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe" ]; then
+            cp "$setup_path" release-upload/Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe
+          fi
+
+          win7_setup_path="$(find release-upload -type f -name 'Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe' -print -quit)"
+          test -n "$win7_setup_path" || { echo 'Windows 7 installer missing from downloaded artifacts' >&2; exit 1; }
+          if [ "$win7_setup_path" != "release-upload/Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe" ]; then
+            cp "$win7_setup_path" release-upload/Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe
+          fi
+
+          cd release-upload
+          required=(
+            Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe
+            Taxo_v10_4_candidate_r1_Windows_x64_Portable.zip
+            Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe
+            Taxo_v10_4_candidate_r1_Windows7_x64_Portable.zip
+            Taxo_v10_4_candidate_r1_macOS_arm64_Portable.zip
+            Taxo_v10_4_candidate_r1_macOS_x86_64_Portable.zip
+            Taxo_v10_4_candidate_r1_START.zip
+          )
+          for file in "${required[@]}"; do
+            test -f "$file" || { echo "Missing release asset: $file" >&2; exit 1; }
+          done
+          sha256sum "${required[@]}" | sort -k2 > SHA256SUMS_v10_4_r1.txt
+          cat SHA256SUMS_v10_4_r1.txt
+
+      - name: Refuse overwrite of immutable revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin refs/tags/v10.4-r1 >/dev/null 2>&1; then
+            echo 'v10.4-r1 tag already exists; refusing to move or overwrite it.' >&2
+            exit 1
+          fi
+          if gh release view v10.4-r1 --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo 'v10.4-r1 release already exists; refusing to overwrite it.' >&2
+            exit 1
+          fi
+
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          files=(
+            release-upload/Taxo_v10_4_candidate_r1_Setup_Windows_x64.exe
+            release-upload/Taxo_v10_4_candidate_r1_Windows_x64_Portable.zip
+            release-upload/Taxo_v10_4_candidate_r1_Setup_Windows7_x64.exe
+            release-upload/Taxo_v10_4_candidate_r1_Windows7_x64_Portable.zip
+            release-upload/Taxo_v10_4_candidate_r1_macOS_arm64_Portable.zip
+            release-upload/Taxo_v10_4_candidate_r1_macOS_x86_64_Portable.zip
+            release-upload/Taxo_v10_4_candidate_r1_START.zip
+            release-upload/SHA256SUMS_v10_4_r1_Windows_x64.txt
+            release-upload/SHA256SUMS_v10_4_r1_Windows7_x64.txt
+            release-upload/SHA256SUMS_v10_4_r1_macOS_arm64.txt
+            release-upload/SHA256SUMS_v10_4_r1_macOS_x86_64.txt
+            release-upload/SHA256SUMS_v10_4_r1_START.txt
+            release-upload/SHA256SUMS_v10_4_r1.txt
+          )
+          for file in "${files[@]}"; do
+            test -f "$file" || { echo "Missing release file before publish: $file" >&2; exit 1; }
+          done
+
+          gh release create v10.4-r1 \
+            "${files[@]}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title 'Taxo 10.4-r1 — full checkpoint with Windows 7' \
+            --notes-file 'docs/releases/RELEASE_NOTES_v10_4_r1.md' \
+            --prerelease

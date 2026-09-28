@@ -1,0 +1,216 @@
+name: Backfill complete Taxo 9.x release assets
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'work/v9.1-monthly-dispatch-waybill-ui'
+    paths:
+      - '.github/workflows/backfill-v9-release-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ref: v9.0
+            version: '9.0'
+            stem: v9_0
+          - ref: v9.0.1
+            version: '9.0.1'
+            stem: v9_0_1
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Отримати Taxo ${{ matrix.version }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+
+      - name: Налаштувати Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: 'x64'
+
+      - name: Встановити залежності
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller==6.22.2
+
+      - name: Перевірити вихідний код
+        shell: pwsh
+        run: |
+          python -m unittest discover -s tests -v
+
+      - name: Зібрати Portable
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo.spec
+          Move-Item 'dist/Taxo' "dist/Taxo_${{ matrix.stem }}_Windows_x64"
+          $bundle = "dist/Taxo_${{ matrix.stem }}_Windows_x64"
+          if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
+          $db = Get-ChildItem $bundle -Recurse -File -Include *.db,*.sqlite,*.sqlite3
+          if ($db) { throw "Database unexpectedly bundled: $($db.FullName -join ', ')" }
+          Compress-Archive -Path $bundle -DestinationPath "Taxo_${{ matrix.stem }}_Windows_x64_Portable.zip" -Force
+
+      - name: Зібрати Setup
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          & $iscc 'installer/Taxo.iss'
+          $built = Get-ChildItem release_out -File -Filter '*.exe' | Select-Object -First 1
+          if (!$built) { throw 'Installer not found' }
+          Copy-Item $built.FullName "Taxo_${{ matrix.stem }}_Setup_Windows_x64.exe"
+
+      - name: Завантажити Windows пакети
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-${{ matrix.version }}-Windows
+          path: |
+            Taxo_${{ matrix.stem }}_Windows_x64_Portable.zip
+            Taxo_${{ matrix.stem }}_Setup_Windows_x64.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ref: v9.0
+            version: '9.0'
+            stem: v9_0
+            runner: macos-15
+            arch: arm64
+          - ref: v9.0
+            version: '9.0'
+            stem: v9_0
+            runner: macos-15-intel
+            arch: x86_64
+          - ref: v9.0.1
+            version: '9.0.1'
+            stem: v9_0_1
+            runner: macos-15
+            arch: arm64
+          - ref: v9.0.1
+            version: '9.0.1'
+            stem: v9_0_1
+            runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Отримати Taxo ${{ matrix.version }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+
+      - name: Налаштувати Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Перевірити runner
+        shell: bash
+        run: test "$(uname -m)" = "${{ matrix.arch }}"
+
+      - name: Встановити залежності
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-build-macos.txt
+
+      - name: Перевірити вихідний код
+        shell: bash
+        run: python -m unittest discover -s tests -v
+
+      - name: Зібрати macOS Portable
+        shell: bash
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo_macos.spec
+          test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
+          if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then
+            echo 'Database unexpectedly bundled' >&2
+            exit 1
+          fi
+          file 'dist/Taxo.app/Contents/MacOS/Taxo' | grep -q "${{ matrix.arch }}"
+          codesign --verify --deep --strict 'dist/Taxo.app'
+          bundle="Taxo_${{ matrix.stem }}_macOS_${{ matrix.arch }}"
+          mkdir "$bundle"
+          mv 'dist/Taxo.app' "$bundle/Taxo.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$bundle" "${bundle}_Portable.zip"
+
+      - name: Завантажити macOS пакет
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-${{ matrix.version }}-macOS-${{ matrix.arch }}
+          path: Taxo_${{ matrix.stem }}_macOS_${{ matrix.arch }}_Portable.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    needs:
+      - build-windows
+      - build-macos
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ref: v9.0
+            version: '9.0'
+            stem: v9_0
+            tag: v9.0
+          - ref: v9.0.1
+            version: '9.0.1'
+            stem: v9_0_1
+            tag: v9.0.1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Отримати точний релізний тег
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+          fetch-depth: 0
+
+      - name: Завантажити всі зібрані пакети
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Taxo-${{ matrix.version }}-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Підготувати START і SHA-256
+        shell: bash
+        run: |
+          mkdir release-upload
+          cp release-assets/* release-upload/
+          git archive --format=zip --prefix="Taxo_${{ matrix.stem }}_START/" --output="release-upload/Taxo_${{ matrix.stem }}_START.zip" HEAD
+          if unzip -l "release-upload/Taxo_${{ matrix.stem }}_START.zip" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly bundled in START' >&2
+            exit 1
+          fi
+          cd release-upload
+          sha256sum             "Taxo_${{ matrix.stem }}_Setup_Windows_x64.exe"             "Taxo_${{ matrix.stem }}_Windows_x64_Portable.zip"             "Taxo_${{ matrix.stem }}_macOS_arm64_Portable.zip"             "Taxo_${{ matrix.stem }}_macOS_x86_64_Portable.zip"             "Taxo_${{ matrix.stem }}_START.zip"             > "SHA256SUMS_${{ matrix.stem }}.txt"
+          sha256sum -c "SHA256SUMS_${{ matrix.stem }}.txt"
+
+      - name: Доповнити існуючий GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release view "${{ matrix.tag }}" >/dev/null
+          gh release upload "${{ matrix.tag }}" release-upload/* --clobber

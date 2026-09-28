@@ -1,0 +1,215 @@
+name: Build and publish Taxo 9.1 candidate r6
+
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Отримати код Taxo 9.1 r6
+        uses: actions/checkout@v4
+        with:
+          ref: v9.1-r6
+          fetch-depth: 0
+
+      - name: Налаштувати Python 3.13 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: 'x64'
+
+      - name: Встановити залежності
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pyinstaller==6.22.2
+
+      - name: Перевірити код і тести
+        shell: pwsh
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py
+          python -m unittest discover -s tests -v
+
+      - name: Зібрати Windows Portable
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo.spec
+          Move-Item 'dist/Taxo' 'dist/Taxo_v9_1_candidate_r6_Windows_x64'
+
+      - name: Перевірити Portable
+        shell: pwsh
+        run: |
+          $bundle = 'dist/Taxo_v9_1_candidate_r6_Windows_x64'
+          if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
+          if (!(Test-Path "$bundle/_internal/Бланк підтвердження.docx")) { throw 'DOCX template not found' }
+          if (!(Test-Path "$bundle/_internal/attestation_visual_template.pdf")) { throw 'PDF template not found' }
+          $db = Get-ChildItem $bundle -Recurse -File -Include *.db,*.sqlite,*.sqlite3
+          if ($db) { throw "Database unexpectedly bundled: $($db.FullName -join ', ')" }
+
+      - name: Створити Windows Portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path 'dist/Taxo_v9_1_candidate_r6_Windows_x64' -DestinationPath 'Taxo_v9_1_candidate_r6_Windows_x64_Portable.zip' -Force
+
+      - name: Зібрати Windows Setup
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          }
+          if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
+          & $iscc 'installer/Taxo.iss'
+          if (!(Test-Path 'release_out/Taxo_v9_1_candidate_r6_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+
+      - name: Завантажити Windows пакети
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v9.1-r6-Windows-x64
+          path: |
+            Taxo_v9_1_candidate_r6_Windows_x64_Portable.zip
+            release_out/Taxo_v9_1_candidate_r6_Setup_Windows_x64.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  build-macos:
+    name: Build macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - name: Отримати код Taxo 9.1 r6
+        uses: actions/checkout@v4
+        with:
+          ref: v9.1-r6
+          fetch-depth: 0
+
+      - name: Налаштувати Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Перевірити архітектуру runner
+        shell: bash
+        run: test "$(uname -m)" = "${{ matrix.arch }}"
+
+      - name: Встановити залежності
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-build-macos.txt
+
+      - name: Перевірити код і тести
+        shell: bash
+        run: |
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py waybill.py tachograph.py attestation_render.py
+          python -m unittest discover -s tests -v
+
+      - name: Зібрати і перевірити Taxo.app
+        shell: bash
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo_macos.spec
+          test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
+          find 'dist/Taxo.app' -name 'Бланк підтвердження.docx' -print -quit | grep -q .
+          find 'dist/Taxo.app' -name 'attestation_visual_template.pdf' -print -quit | grep -q .
+          if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then
+            echo 'Database unexpectedly bundled in Taxo.app' >&2
+            exit 1
+          fi
+          file 'dist/Taxo.app/Contents/MacOS/Taxo' | grep -q "${{ matrix.arch }}"
+          codesign --verify --deep --strict 'dist/Taxo.app'
+
+      - name: Створити macOS Portable ZIP
+        shell: bash
+        run: |
+          bundle_dir="Taxo_v9_1_candidate_r6_macOS_${{ matrix.arch }}"
+          mkdir "${bundle_dir}"
+          mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle_dir}" "${bundle_dir}_Portable.zip"
+
+      - name: Завантажити macOS пакет
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v9.1-r6-macOS-${{ matrix.arch }}
+          path: Taxo_v9_1_candidate_r6_macOS_${{ matrix.arch }}_Portable.zip
+          if-no-files-found: error
+          retention-days: 30
+
+  publish-release:
+    needs:
+      - build-windows
+      - build-macos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Отримати точний код 9.1 r6
+        uses: actions/checkout@v4
+        with:
+          ref: v9.1-r6
+          fetch-depth: 0
+
+      - name: Завантажити перевірені пакети
+        uses: actions/download-artifact@v4
+        with:
+          pattern: Taxo-v9.1-r6-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Підготувати START-пакет і контрольні суми
+        shell: bash
+        run: |
+          mkdir release-upload
+          find release-assets -type f -name 'Taxo_v9_1_candidate_r6_Setup_Windows_x64.exe' -exec cp '{}' release-upload/ \;
+          find release-assets -type f -name 'Taxo_v9_1_candidate_r6_Windows_x64_Portable.zip' -exec cp '{}' release-upload/ \;
+          find release-assets -type f -name 'Taxo_v9_1_candidate_r6_macOS_arm64_Portable.zip' -exec cp '{}' release-upload/ \;
+          find release-assets -type f -name 'Taxo_v9_1_candidate_r6_macOS_x86_64_Portable.zip' -exec cp '{}' release-upload/ \;
+          git archive --format=zip --prefix='Taxo_v9_1_candidate_r6_START/' --output='release-upload/Taxo_v9_1_candidate_r6_START.zip' HEAD
+          test -f 'release-upload/Taxo_v9_1_candidate_r6_Setup_Windows_x64.exe'
+          test -f 'release-upload/Taxo_v9_1_candidate_r6_Windows_x64_Portable.zip'
+          test -f 'release-upload/Taxo_v9_1_candidate_r6_macOS_arm64_Portable.zip'
+          test -f 'release-upload/Taxo_v9_1_candidate_r6_macOS_x86_64_Portable.zip'
+          test -f 'release-upload/Taxo_v9_1_candidate_r6_START.zip'
+          if unzip -l 'release-upload/Taxo_v9_1_candidate_r6_START.zip' | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly bundled in source package' >&2
+            exit 1
+          fi
+          unzip -l 'release-upload/Taxo_v9_1_candidate_r6_START.zip' | grep -q '/work_regime.py$'
+          cd release-upload
+          sha256sum             Taxo_v9_1_candidate_r6_Setup_Windows_x64.exe             Taxo_v9_1_candidate_r6_Windows_x64_Portable.zip             Taxo_v9_1_candidate_r6_macOS_arm64_Portable.zip             Taxo_v9_1_candidate_r6_macOS_x86_64_Portable.zip             Taxo_v9_1_candidate_r6_START.zip             > SHA256SUMS_v9_1_candidate_r6.txt
+          sha256sum -c SHA256SUMS_v9_1_candidate_r6.txt
+
+      - name: Опублікувати pre-release v9.1-r6
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view v9.1-r6 >/dev/null 2>&1; then
+            gh release edit v9.1-r6               --title 'Taxo 9.1 candidate r6 — режими робочого часу'               --notes-file docs/releases/RELEASE_NOTES_v9_1_candidate_r6.md               --prerelease
+          else
+            gh release create v9.1-r6               --target "$GITHUB_SHA"               --title 'Taxo 9.1 candidate r6 — режими робочого часу'               --notes-file docs/releases/RELEASE_NOTES_v9_1_candidate_r6.md               --prerelease
+          fi
+          gh release upload v9.1-r6 release-upload/* --clobber
+
+      - name: Зберегти START і manifest як workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v9.1-r6-release-manifest
+          path: |
+            release-upload/Taxo_v9_1_candidate_r6_START.zip
+            release-upload/SHA256SUMS_v9_1_candidate_r6.txt
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,116 @@
+name: Publish Taxo 10.3-r10 Windows 7 candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-win7:
+    runs-on: windows-2022
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up CPython 3.8.10 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8.10'
+          architecture: 'x64'
+      - name: Install Win7 dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          python -m pip install -r requirements-win7.txt
+          python -m pip install pyinstaller==5.13.2 pefile==2023.2.7
+      - name: Compile and test on Python 3.8
+        shell: pwsh
+        run: |
+          python -c "import sys; assert sys.version_info[:2] == (3,8), sys.version"
+          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py vehicle_documents.py document_viewer.py waybill.py tachograph.py attestation_render.py release_naming.py
+          python -m unittest discover -s tests -v
+      - name: Build Win7 Portable
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean Taxo_win7.spec
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller Win7 build failed with exit code $LASTEXITCODE" }
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_3_candidate_r10_Windows7_x64'
+          $bundle='dist/Taxo_v10_3_candidate_r10_Windows7_x64'
+          if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe missing' }
+          if (!(Get-ChildItem $bundle -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll missing' }
+
+      - name: Verify Win7 PE import compatibility
+        shell: pwsh
+        run: |
+          $env:TAXO_WIN7_BUNDLE = (Resolve-Path 'dist/Taxo_v10_3_candidate_r10_Windows7_x64').Path
+          @'
+          import os
+          from pathlib import Path
+          import pefile
+
+          root = Path(os.environ["TAXO_WIN7_BUNDLE"])
+          forbidden = b"api-ms-win-core-path-l1-1-0.dll"
+          checked = 0
+          offenders = []
+
+          for path in root.rglob("*"):
+              if path.suffix.lower() not in {".exe", ".dll", ".pyd"}:
+                  continue
+              try:
+                  pe = pefile.PE(str(path), fast_load=True)
+                  dirs = [pefile.DIRECTORY_ENTRY["IMAGE_DIRECTORY_ENTRY_IMPORT"]]
+                  delay = pefile.DIRECTORY_ENTRY.get("IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT")
+                  if delay is not None:
+                      dirs.append(delay)
+                  pe.parse_data_directories(directories=dirs)
+              except Exception:
+                  continue
+
+              checked += 1
+              entries = list(getattr(pe, "DIRECTORY_ENTRY_IMPORT", []))
+              entries += list(getattr(pe, "DIRECTORY_ENTRY_DELAY_IMPORT", []))
+              for entry in entries:
+                  if (entry.dll or b"").lower() == forbidden:
+                      offenders.append(str(path.relative_to(root)))
+
+          print("PE files checked:", checked)
+          if checked == 0:
+              raise SystemExit("No PE files were inspected")
+          if offenders:
+              raise SystemExit(
+                  "Forbidden Win8+ path API import found: " + ", ".join(sorted(offenders))
+              )
+          '@ | Set-Content -Encoding utf8 check_win7_pe.py
+          python check_win7_pe.py
+
+      - name: Create Win7 Portable ZIP
+        shell: pwsh
+        run: |
+          $bundle='dist/Taxo_v10_3_candidate_r10_Windows7_x64'
+          Compress-Archive -Path $bundle -DestinationPath 'Taxo_v10_3_candidate_r10_Windows7_x64_Portable.zip' -Force
+      - name: Build Win7 installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc 'installer/Taxo_v10_3_r10_win7.iss'
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup Win7 build failed with exit code $LASTEXITCODE" }
+          if (!(Test-Path 'release_out/Taxo_v10_3_candidate_r10_Setup_Windows7_x64.exe')) { throw 'installer missing' }
+      - name: Create START and checksums
+        shell: pwsh
+        run: |
+          git archive --format=zip --prefix='Taxo_v10_3_candidate_r10_START/' --output='Taxo_v10_3_candidate_r10_START.zip' HEAD
+          $files=@('Taxo_v10_3_candidate_r10_Windows7_x64_Portable.zip','release_out/Taxo_v10_3_candidate_r10_Setup_Windows7_x64.exe','Taxo_v10_3_candidate_r10_START.zip')
+          $lines=foreach($file in $files){ "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))" }
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_3_r10.txt'
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release view v10.3-r10 --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -eq 0) { throw 'v10.3-r10 already exists' }
+          gh release create v10.3-r10 'Taxo_v10_3_candidate_r10_Windows7_x64_Portable.zip' 'release_out/Taxo_v10_3_candidate_r10_Setup_Windows7_x64.exe' 'Taxo_v10_3_candidate_r10_START.zip' 'SHA256SUMS_v10_3_r10.txt' --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title 'Taxo 10.3-r10 — Windows 7 compatibility' --notes-file 'docs/releases/RELEASE_NOTES_v10_3_r10.md' --prerelease

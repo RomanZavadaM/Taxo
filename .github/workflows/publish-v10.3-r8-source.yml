@@ -1,0 +1,129 @@
+# Taxo 10.3-r8 macOS sidebar contrast publisher
+# Retry gate after decoupling historical r7 identity from the active candidate version.
+name: Publish Taxo 10.3-r8 source prerelease
+
+on:
+  push:
+    branches:
+      - 'work/v10.3-r8-macos-sidebar-contrast'
+    paths:
+      - '.github/workflows/publish-v10.3-r8-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Tk runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install regression dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Verify candidate identity
+        shell: bash
+        run: |
+          python - <<'PY'
+          import main
+          from release_naming import start_archive_stem, version_from_file
+          version=version_from_file('VERSION.txt')
+          if version!='10.3-r8':
+              raise SystemExit(f'Expected 10.3-r8, got {version!r}')
+          if main.APP_VERSION!=version:
+              raise SystemExit(f'APP_VERSION mismatch: {main.APP_VERSION!r} != {version!r}')
+          if start_archive_stem(version)!='Taxo_v10_3_candidate_r8_START':
+              raise SystemExit('Unexpected START archive name')
+          PY
+
+      - name: Run full regression suite
+        run: python -m unittest discover -s tests -v
+
+      - name: Refuse overwrite of immutable tag or release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin refs/tags/v10.3-r8 >/dev/null 2>&1; then
+            echo 'v10.3-r8 tag already exists; refusing to move or overwrite it.' >&2
+            exit 1
+          fi
+          if gh release view v10.3-r8 --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo 'v10.3-r8 release already exists; refusing to overwrite it.' >&2
+            exit 1
+          fi
+
+      - name: Build immutable START archive
+        shell: bash
+        run: |
+          stem='Taxo_v10_3_candidate_r8_START'
+          archive="${stem}.zip"
+          git archive --format=zip --prefix="${stem}/" --output="${archive}" HEAD
+
+          if unzip -l "${archive}" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included in candidate archive' >&2
+            exit 1
+          fi
+
+          required_files=(
+            START.bat
+            requirements.txt
+            taxo_app.py
+            main.py
+            VERSION.txt
+            START_HERE.md
+            PROJECT_RULES.md
+            PROJECT_STATE.md
+            WORKLOG.md
+            LICENSE.md
+            COPYRIGHT.md
+            THIRD_PARTY_NOTICES.md
+            docs/releases/RELEASE_NOTES_v10_3_r8.md
+            tests/test_v10_3_r8.py
+          )
+          for file in "${required_files[@]}"; do
+            unzip -l "${archive}" | grep -q "/${file}$" || { echo "Missing ${file}" >&2; exit 1; }
+          done
+
+          unzip -p "${archive}" "*/START.bat" > /tmp/START.bat
+          python - <<'PY'
+          data=open('/tmp/START.bat','rb').read()
+          if not data or any(byte>=128 for byte in data):
+              raise SystemExit('START.bat must remain non-empty ASCII')
+          if b'\r\n' not in data:
+              raise SystemExit('START.bat must contain CRLF line endings')
+          PY
+
+          sha256sum "${archive}" > SHA256SUMS_v10_3_r8.txt
+
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create v10.3-r8 \
+            Taxo_v10_3_candidate_r8_START.zip \
+            SHA256SUMS_v10_3_r8.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "${GITHUB_SHA}" \
+            --title 'Taxo 10.3-r8' \
+            --notes-file docs/releases/RELEASE_NOTES_v10_3_r8.md \
+            --prerelease
+
+      - name: Verify published assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          assets="$(gh release view v10.3-r8 --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name')"
+          grep -Fxq 'Taxo_v10_3_candidate_r8_START.zip' <<< "${assets}"
+          grep -Fxq 'SHA256SUMS_v10_3_r8.txt' <<< "${assets}"
