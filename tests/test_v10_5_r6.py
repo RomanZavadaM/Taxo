@@ -164,10 +164,10 @@ class R6IntegrationTests(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 6))
 
-    def test_r6_is_outermost_entrypoint(self):
+    def test_r6_remains_in_entrypoint_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1056_features import install as install_v1056", entry)
-        self.assertIn("App = install_v1056(", entry)
+        self.assertIn("install_v1056(", entry)
         self.assertIn("install_v1055(", entry)
 
     def test_ui_exposes_edit_and_copy_for_both_registry_domains(self):
