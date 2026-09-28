@@ -15,6 +15,19 @@
 
 Це UI-only revision. Вона не змінює document schema, archive semantics, правила строків дії, копії файлів, vehicle data, шляхівки, plan/fact або тахографічні дані.
 
-## Перевірка
+## Перевірка і публікація
 
-Фінальні regression/START run, issued SHA, release asset і SHA-256 будуть записані після green CI та публікації кандидата.
+- exact issued source: `e3f1666bafbd82e37ac2e63b08bfed2d265bae30`;
+- full regression: **562/562 OK**;
+- clean START verify run: `36463667268` — success;
+- Actions artifact: `Taxo_v10_6_candidate_r7_START`, ID `10989440117`;
+- prerelease publisher run: `36467902934` — success;
+- immutable project checkpoint: `v10.6-r7` → `e3f1666bafbd82e37ac2e63b08bfed2d265bae30`;
+- Release asset: `Taxo_v10_6_candidate_r7_START.zip`;
+- Release asset SHA-256: `5fe124b6865419a14f4073d9bbb54efe18a3142a1e44aa03dc1339554e2a49fd`;
+- checksum manifest: `SHA256SUMS_v10_6_r7.txt`.
+
+Release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r7  
+START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r7/Taxo_v10_6_candidate_r7_START.zip
+
+`v10.6-r7` не зливався у `main`; latest full checkpoint у `main` лишається `v10.6-r3`, stable — `v10.3`.
