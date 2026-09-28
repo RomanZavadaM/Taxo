@@ -1,0 +1,89 @@
+name: Fix Taxo 10.6-r4 regression contract
+
+on:
+  push:
+    branches:
+      - 'work/v10.6-r4-waybill-responsive-actions'
+    paths:
+      - '.github/workflows/fix-v10.6-r4-regression-contract.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.6-r4-waybill-responsive-actions
+          fetch-depth: 0
+      - name: Apply exact source and regression fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}: {old!r}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          # Core identity must match VERSION.txt even when main is imported directly.
+          replace_once(
+              'main.py',
+              'APP_VERSION = "10.6-r3"',
+              'APP_VERSION = "10.6-r4"',
+          )
+
+          # Preserve historical literal chain contract while making r4 outermost.
+          replace_once(
+              'taxo_app.py',
+              'App = install_v1064(\n    core,\n    install_v1063(\n',
+              'App = install_v1063(\n',
+          )
+          replace_once(
+              'taxo_app.py',
+              '        ),\n    ),\n)\n\n\ndef run():',
+              '        ),\n    ),\n)\nApp = install_v1064(core, App)\n\n\ndef run():',
+          )
+
+          # r3 is historical now: current candidate may advance, module identity may not.
+          replace_once(
+              'tests/test_v10_6_r3.py',
+              '        self.assertEqual(tuple(map(int, match.groups())), (10, 6, 3))',
+              '        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 6, 3))',
+          )
+          replace_once(
+              'tests/test_v10_6_r3.py',
+              '        self.assertIn("App = install_v1063(", entry)\n        self.assertIn("install_v1062(", entry)\n        self.assertLess(entry.index("App = install_v1063("), entry.index("install_v1062("))',
+              '        self.assertIn("App = install_v1063(", entry)\n        self.assertIn("install_v1062(", entry)\n        self.assertIn("App = install_v1064(core, App)", entry)\n        self.assertLess(entry.index("App = install_v1063("), entry.index("install_v1062("))\n        self.assertLess(entry.index("App = install_v1063("), entry.index("App = install_v1064(core, App)"))',
+          )
+
+          replace_once(
+              'tests/test_v10_6_r4.py',
+              '        self.assertIn(\'button.grid(\', source)',
+              '        self.assertIn(\'buttons[index].grid(\', source)',
+          )
+          replace_once(
+              'tests/test_v10_6_r4.py',
+              '        self.assertIn("App = install_v1064(", source)\n        self.assertLess(source.index("App = install_v1064("), source.index("install_v1063(\\n"))',
+              '        self.assertIn("App = install_v1063(", source)\n        self.assertIn("App = install_v1064(core, App)", source)\n        self.assertLess(source.index("App = install_v1063("), source.index("App = install_v1064(core, App)"))',
+          )
+          PY
+      - name: Sanity-check focused tests
+        run: |
+          python -m py_compile main.py taxo_app.py v1064_features.py
+          python -m unittest tests.test_v10_6_r2 tests.test_v10_6_r3 tests.test_v10_6_r4 -v
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py taxo_app.py tests/test_v10_6_r3.py tests/test_v10_6_r4.py
+          git diff --cached --check
+          git commit -m 'fix: align 10.6-r4 identity and historical runtime contracts'
+          git push origin HEAD:work/v10.6-r4-waybill-responsive-actions
