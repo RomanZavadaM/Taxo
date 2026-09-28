@@ -7,31 +7,38 @@
 
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest published full checkpoint:** `v10.4-r2` → `ee6687c59d7dc1a8a38de4b7858669fddc3f647c`  
-**Latest issued fast-test revision:** Taxo `10.5-r3` / issued code head `ca1a1288f915c3fa0eb57c82a3e91aea3b0887d1` — immutable  
-**Issued START r3:** run `36359285033`, artifact `10944184721`, `440/440 OK`, SHA-256 `c48fbc67a40dddfd91da8e52d0a947633e403c7ca61508f3ab2525e1ca6020ee`  
-**Active revision:** Taxo `10.5-r4`  
-**Active branch:** `work/v10.5-r4-personnel-registry-lossless-import`  
-**Base:** r3 docs/admin guard `843f9249a79ab07f82862be9290f1b95b62d4c1c`  
+**Latest issued fast-test revision:** Taxo `10.5-r4` / issued code head `117b305b048c2588e21d7908f39a3bb1071f74aa` — immutable  
+**Issued START r4:** run `36360262795`, artifact `10944963733`, workflow success, SHA-256 `1b6200bc60064f842214b5eb6813c4e6b8992c3524c0631fcc9b067b8f2026e0`  
+**Active revision:** Taxo `10.5-r5`  
+**Active branch:** `work/v10.5-r5-shlyakh-xlsx-tabid`  
+**Base:** issued r4 head `117b305b048c2588e21d7908f39a3bb1071f74aa`  
 **Live ledger:** Issue #61
 
-## DOING — Taxo 10.5-r4
+## DOING — Taxo 10.5-r5
 
-Напрям: **повне збереження полів державних XLSX працівників без втрати вихідного значення**.
+Напрям: **виправлення читання XLSX-експорту транспортних засобів з державного реєстру «Шлях»**.
 
-Перевірено на двох фактичних формах, наданих власником:
-- детальний витяг персонального військового обліку — 19 змістовних колонок; основні поля вже мапляться в Taxo;
-- зведений витяг про працівників — 11 колонок; `Примітка` зараз використовується для похідних висновків, але оригінальне значення не має власного поля;
-- у реальному зведеному витягу паспортні/ID колонки можуть містити значення, що не проходять перевірку формату (наприклад службовий placeholder). Їх не можна переносити у робочий паспорт, але не можна й втрачати як факт того, що саме містить державний витяг.
+Відтворений дефект:
+- при відкритті окремих XLSX «Шлях» openpyxl 3.1.5 падає з `ChildSheet.__init__() got an unexpected keyword argument 'tabId'`;
+- причина — атрибут `tabId` у `<sheet>` всередині `xl/workbook.xml`, якого поточний `ChildSheet` openpyxl не приймає;
+- це проблема сумісності структури XLSX, а не даних конкретного транспортного засобу.
 
-- [ ] додати видиме поле `Примітка державного витягу` до військово-облікового профілю;
-- [ ] зберігати оригінальні значення всіх колонок кожного імпортованого рядка в окремому registry snapshot, без підміни canonical-полів;
-- [ ] для валідних значень як і раніше дозволяти автоматичне доповнення/оновлення canonical-полів;
-- [ ] невалідні паспорт/ID значення зберігати у snapshot і показувати як `не перенесено через формат`, але не записувати в паспортні поля Taxo;
-- [ ] UI картки працівника має показувати оригінальну примітку реєстру та доступ до останнього raw snapshot;
-- [ ] відсутність/порожнє поле нового витягу не очищає canonical-дані;
-- [ ] synthetic regression без реальних ПІБ/РНОКПП;
-- [ ] identity `10.5-r4`, чистий START, regression green;
-- [ ] після видачі r4 — immutable, наступний кодовий крок тільки `10.5-r5`.
+Рішення r5:
+- [x] новий зовнішній compatibility layer `v1055_features.py`;
+- [x] спочатку читаємо XLSX штатно; workaround запускається тільки для точного `ChildSheet/tabId` TypeError;
+- [x] для retry створюється лише in-memory копія XLSX без `tabId`; вихідний файл користувача не змінюється;
+- [x] звичайна логіка розпізнавання колонок/рядків «Шлях» лишається тією самою;
+- [x] synthetic regression відтворює реальний збій і перевіряє успішне читання та незмінність вихідного файлу;
+- [x] identity `10.5-r5`; r5 outermost у `taxo_app.py`;
+- [x] START workflow вимагає `v1055_features.py` у пакеті;
+- [ ] повний regression suite green;
+- [ ] чистий START artifact;
+- [ ] зафіксувати issued r5 у live ledger та release notes;
+- [ ] після видачі r5 — immutable, наступний кодовий крок тільки `10.5-r6`.
+
+## DONE — Taxo 10.5-r4
+
+Lossless-імпорт двох фактичних форм державних XLSX працівників: окрема `Примітка державного витягу`, raw snapshot усіх колонок, невалідні паспорт/ID значення зберігаються як факт витягу без забруднення canonical-полів, UI доступу до оригінального snapshot. Issued head `117b305b048c2588e21d7908f39a3bb1071f74aa`; START run `36360262795`, artifact `10944963733`, SHA-256 `1b6200bc60064f842214b5eb6813c4e6b8992c3524c0631fcc9b067b8f2026e0`.
 
 ## DONE — Taxo 10.5-r3
 
@@ -47,7 +54,7 @@
 
 ## NEXT
 
-Завершити r4 як окремий fast-test START checkpoint. `10.5-r3` і старі revisions не змінювати.
+Дочекатися green CI для r5, перевірити START artifact і видати `Taxo_v10_5_candidate_r5_START`. Після видачі r5 не змінювати; наступний кодовий крок — тільки `10.5-r6`.
 
 ## BLOCKED
 
