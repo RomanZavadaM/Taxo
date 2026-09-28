@@ -43,9 +43,7 @@ class WaybillActionLayoutR4Tests(unittest.TestCase):
 
 
 class R4IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_10_6_r4(self):
-        version = (ROOT / "VERSION.txt").read_text("utf-8")
-        self.assertIn("Version: 10.6-r4", version)
+    def test_r4_layer_identity_remains_historical(self):
         self.assertEqual(r4.APP_VERSION, "10.6-r4")
 
     def test_r4_is_outermost_and_r3_remains_in_runtime_chain(self):
