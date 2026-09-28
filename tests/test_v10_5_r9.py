@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import re
+import tempfile
 import unittest
 from pathlib import Path
 
+import fitz
+import waybill
 import v1059_features as r9
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -94,6 +97,69 @@ class OffRouteWaybillR9Tests(unittest.TestCase):
         self.assertIsNone(prepared["odometer_end"])
         self.assertIsNone(prepared["distance_km"])
         self.assertEqual(prepared["planned_duty_time"], "08:00")
+
+    def test_off_route_pdf_keeps_front_schedule_and_leaves_reverse_dynamic_data_blank(self):
+        payload = {
+            "waybill_series": "ТЕСТ",
+            "waybill_no": "0099",
+            "date": "28.09.2026",
+            "work_date": "2026-09-28",
+            "driver": "Тестовий Водій",
+            "vehicle": "АА0001АА",
+            "route": "старий маршрут",
+            "start_location": "НЕ_ДРУКУВАТИ_СТАРТ",
+            "end_location": "НЕ_ДРУКУВАТИ_ФІНІШ",
+            "start_direction": "outbound",
+            "planned_departure": "06:30",
+            "planned_return": "15:10",
+            "planned_duty_time": "08:00",
+            "planned_route_time": "06:30",
+            "outbound_stops": [{"stop_name": "НЕ_ДРУКУВАТИ_ЗУПИНКА"}],
+            "return_stops": [{"stop_name": "НЕ_ДРУКУВАТИ_НАЗАД"}],
+            "doctor_1": "НЕ_ДРУКУВАТИ_ЛІКАР",
+            "mechanic_1": "НЕ_ДРУКУВАТИ_МЕХАНІК",
+            "odometer_start": 111111,
+            "odometer_end": 222222,
+            "distance_km": 333333,
+            "planned_distance_km": 444444,
+        }
+        clean = r9.prepare_off_route_front_payload(payload, "по області")
+        original_page_two = waybill._page_two
+
+        def blank_reverse(canvas, data):
+            return original_page_two(canvas, r9.prepare_blank_reverse_payload(data))
+
+        waybill._page_two = blank_reverse
+        try:
+            with tempfile.TemporaryDirectory() as folder:
+                target = Path(folder) / "off_route.pdf"
+                waybill.build_waybill_pdf(None, target, clean)
+                self.assertTrue(target.exists())
+                doc = fitz.open(target)
+                try:
+                    self.assertEqual(doc.page_count, 2)
+                    front = doc[0].get_text()
+                    reverse = doc[1].get_text()
+                    self.assertIn("по області", front)
+                    self.assertIn("06:30", front)
+                    self.assertIn("15:10", front)
+                    for forbidden in (
+                        "НЕ_ДРУКУВАТИ_СТАРТ",
+                        "НЕ_ДРУКУВАТИ_ФІНІШ",
+                        "НЕ_ДРУКУВАТИ_ЗУПИНКА",
+                        "НЕ_ДРУКУВАТИ_НАЗАД",
+                        "НЕ_ДРУКУВАТИ_ЛІКАР",
+                        "НЕ_ДРУКУВАТИ_МЕХАНІК",
+                        "111111",
+                        "222222",
+                        "333333",
+                        "444444",
+                    ):
+                        self.assertNotIn(forbidden, reverse)
+                finally:
+                    doc.close()
+        finally:
+            waybill._page_two = original_page_two
 
     def test_feature_does_not_change_tachograph_or_plan_fact_sources(self):
         source = (ROOT / "v1059_features.py").read_text(encoding="utf-8")
