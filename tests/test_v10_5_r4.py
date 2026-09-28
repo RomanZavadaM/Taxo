@@ -208,10 +208,10 @@ class LosslessApplyR4Tests(unittest.TestCase):
 
 
 class R4IntegrationTests(unittest.TestCase):
-    def test_r4_is_outermost_after_r3(self):
+    def test_r4_remains_in_install_chain_after_r3(self):
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1054_features import install as install_v1054", entry)
-        self.assertIn("App = install_v1054(", entry)
+        self.assertIn("install_v1054(", entry)
         self.assertIn("install_v1053(", entry)
 
     def test_r4_module_keeps_historical_identity(self):
