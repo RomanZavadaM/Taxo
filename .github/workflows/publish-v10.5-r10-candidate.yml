@@ -1,0 +1,103 @@
+name: Publish Taxo 10.5-r10 candidate
+
+on:
+  push:
+    branches:
+      - work/v10.5-r10-audit-plan-fact
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: 91a528ba92a56a8e1a399c8c114254f05798b5c7
+      TAG: v10.5-r10
+    steps:
+      - name: Checkout workflow branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout exact issued source
+        run: git checkout "$SOURCE_SHA"
+
+      - name: Install Tk runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install regression dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run full regression
+        run: python -m unittest discover -s tests -v
+
+      - name: Build and verify exact START archive
+        id: pack
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import subprocess
+          from release_naming import start_archive_stem, version_from_file
+
+          version = version_from_file('VERSION.txt')
+          if version != '10.5-r10':
+              raise SystemExit(f'Unexpected VERSION.txt: {version}')
+          stem = start_archive_stem(version)
+          archive = stem + '.zip'
+          subprocess.check_call([
+              'git', 'archive', '--format=zip',
+              f'--prefix={stem}/',
+              f'--output={archive}',
+              'HEAD',
+          ])
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write(f'archive={archive}\n')
+          PY
+
+          archive="${{ steps.pack.outputs.archive }}"
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included' >&2
+            exit 1
+          fi
+          for file in START.bat taxo_app.py main.py v10510_features.py VERSION.txt PROJECT_RULES.md START_HERE.md WORKLOG.md; do
+            unzip -l "$archive" | grep -q "/${file}$" || { echo "Missing ${file}" >&2; exit 1; }
+          done
+          sha256sum "$archive" > SHA256SUMS-r10.txt
+          cat SHA256SUMS-r10.txt
+
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to rewrite issued checkpoint." >&2
+            exit 1
+          fi
+          archive="${{ steps.pack.outputs.archive }}"
+          cat > /tmp/release-notes.md <<'EOF'
+          ## Taxo 10.5-r10 — аудит графіків: план дня ≠ поточний шаблон маршруту
+
+          Fast-test candidate. Stable залишається `v10.3`; latest full multi-platform checkpoint in `main` — `v10.5-r8`.
+
+          - виправлено хибні повідомлення «Виїзд із АТП не збігається / Заїзд в АТП не збігається» в аудиті конкретного дня;
+          - аудит дня більше не порівнює збережений план дня (`work_segments`) із поточною редагованою таблицею точок шаблону (`route_stops`);
+          - факт `fact_work_*` не підміняє план і не переписується;
+          - внутрішня перевірка меж актуального шаблону маршруту збережена у режимі «Шаблони маршрутів»;
+          - інші перевірки цілісності дня залишені без змін;
+          - жодних автоматичних виправлень плану або факту аудит не робить;
+          - regression: 499/499 OK.
+
+          Issued source: `91a528ba92a56a8e1a399c8c114254f05798b5c7`.
+          EOF
+          gh release create "$TAG" "$archive" SHA256SUMS-r10.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SOURCE_SHA" \
+            --title "Taxo 10.5-r10 — аудит план/факт графіків" \
+            --notes-file /tmp/release-notes.md \
+            --prerelease
