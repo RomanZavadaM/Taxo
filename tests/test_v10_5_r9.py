@@ -1,0 +1,134 @@
+# -*- coding: utf-8 -*-
+import re
+import unittest
+from pathlib import Path
+
+import v1059_features as r9
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class OffRouteWaybillR9Tests(unittest.TestCase):
+    def test_default_label_is_region_trip_and_is_editable_text(self):
+        self.assertEqual(r9.OFF_ROUTE_DEFAULT_LABEL, "по області")
+        self.assertEqual(r9.normalize_off_route_label("  міжобласна   поїздка  "), "міжобласна поїздка")
+        self.assertEqual(r9.normalize_off_route_label("по місту"), "по місту")
+        self.assertEqual(r9.normalize_off_route_label("одноразове замовлення"), "одноразове замовлення")
+
+    def test_off_route_row_uses_schedule_but_does_not_require_catalog_route(self):
+        source = {
+            "worklog_id": 17,
+            "route": "101 / Регулярний",
+            "route_id": 101,
+            "start_location": "А",
+            "end_location": "Б",
+            "start_direction": "outbound",
+            "outbound_stop_count": 12,
+            "return_stop_count": 11,
+            "planned_departure": "06:30",
+            "planned_return": "15:10",
+            "work_hours": 8.0,
+            "driving_hours": 6.5,
+            "planned_distance_km": 240,
+        }
+        prepared = r9.prepare_off_route_row(source, "по області")
+        self.assertIsNone(prepared["route_id"])
+        self.assertEqual(prepared["route"], "по області")
+        self.assertEqual(prepared["planned_departure"], "06:30")
+        self.assertEqual(prepared["planned_return"], "15:10")
+        self.assertEqual(prepared["work_hours"], 8.0)
+        self.assertEqual(prepared["driving_hours"], 6.5)
+        self.assertIsNone(prepared["planned_distance_km"])
+        self.assertEqual(source["route_id"], 101, "helper must not rewrite the source row")
+
+    def test_front_payload_keeps_schedule_times_and_removes_fake_route_points(self):
+        payload = {
+            "route": "old",
+            "start_location": "А",
+            "end_location": "Б",
+            "start_direction": "outbound",
+            "outbound_stops": [{"stop_name": "A"}],
+            "return_stops": [{"stop_name": "B"}],
+            "planned_departure": "06:30",
+            "planned_return": "15:10",
+            "planned_duty_time": "08:00",
+            "planned_route_time": "06:30",
+            "planned_distance_km": 200,
+        }
+        prepared = r9.prepare_off_route_front_payload(payload, "по місту")
+        self.assertEqual(prepared["route"], "по місту")
+        self.assertEqual(prepared["start_location"], "")
+        self.assertEqual(prepared["end_location"], "")
+        self.assertEqual(prepared["start_direction"], "")
+        self.assertEqual(prepared["outbound_stops"], [])
+        self.assertEqual(prepared["return_stops"], [])
+        self.assertEqual(prepared["planned_departure"], "06:30")
+        self.assertEqual(prepared["planned_return"], "15:10")
+        self.assertEqual(prepared["planned_duty_time"], "08:00")
+        self.assertIsNone(prepared["planned_distance_km"])
+
+    def test_reverse_side_is_not_filled_for_off_route_work(self):
+        payload = {
+            "start_direction": "outbound",
+            "outbound_stops": [{"stop_name": "A"}],
+            "return_stops": [{"stop_name": "B"}],
+            "doctor_1": "Лікар",
+            "doctor_2": "Лікар 2",
+            "mechanic_1": "Механік",
+            "mechanic_2": "Механік 2",
+            "odometer_start": 1000,
+            "odometer_end": 1120,
+            "distance_km": 120,
+            "planned_distance_km": 125,
+            "planned_duty_time": "08:00",
+        }
+        prepared = r9.prepare_blank_reverse_payload(payload)
+        self.assertEqual(prepared["start_direction"], "")
+        self.assertEqual(prepared["outbound_stops"], [])
+        self.assertEqual(prepared["return_stops"], [])
+        self.assertEqual(prepared["doctor_1"], "")
+        self.assertEqual(prepared["doctor_2"], "")
+        self.assertEqual(prepared["mechanic_1"], "")
+        self.assertEqual(prepared["mechanic_2"], "")
+        self.assertIsNone(prepared["odometer_start"])
+        self.assertIsNone(prepared["odometer_end"])
+        self.assertIsNone(prepared["distance_km"])
+        self.assertEqual(prepared["planned_duty_time"], "08:00")
+
+    def test_feature_does_not_change_tachograph_or_plan_fact_sources(self):
+        source = (ROOT / "v1059_features.py").read_text(encoding="utf-8")
+        self.assertNotIn("UPDATE worklog", source)
+        self.assertNotIn("accounting_mode=", source)
+        self.assertIn("плановий час", source)
+        self.assertIn("тахограф", source)
+
+
+class R9IntegrationTests(unittest.TestCase):
+    def test_candidate_identity_is_r9(self):
+        version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
+        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        self.assertIsNotNone(match)
+        self.assertEqual(tuple(map(int, match.groups())), (10, 5, 9))
+        source = (ROOT / "v1059_features.py").read_text(encoding="utf-8")
+        self.assertIn('APP_VERSION = "10.5-r9"', source)
+
+    def test_r9_is_outermost_and_r8_remains_in_chain(self):
+        entry = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
+        self.assertIn("from v1059_features import install as install_v1059", entry)
+        self.assertIn("App = install_v1059(", entry)
+        self.assertIn("install_v1058(", entry)
+
+    def test_start_package_requires_r9_runtime(self):
+        workflow = (ROOT / ".github/workflows/source-test-archive.yml").read_text(encoding="utf-8")
+        self.assertIn("v1059_features.py", workflow)
+
+    def test_ui_exposes_explicit_off_route_action(self):
+        source = (ROOT / "v1059_features.py").read_text(encoding="utf-8")
+        self.assertIn('text="Поза маршрутом…"', source)
+        self.assertIn("OFF_ROUTE_DEFAULT_LABEL = \"по області\"", source)
+        self.assertIn("simpledialog.askstring", source)
+        self.assertIn("route_id=NULL", source)
+
+
+if __name__ == "__main__":
+    unittest.main()
