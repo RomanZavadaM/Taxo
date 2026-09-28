@@ -1,0 +1,46 @@
+name: Sync Taxo 10.6-r3 main version
+
+on:
+  push:
+    branches:
+      - 'work/v10.6-r3-waybill-reverse-fields'
+    paths:
+      - '.github/workflows/patch-v10.6-r3-main-version.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/v10.6-r3-waybill-reverse-fields
+          fetch-depth: 0
+
+      - name: Patch main.APP_VERSION exactly once
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('main.py')
+          text = p.read_text(encoding='utf-8')
+          old = 'APP_VERSION = "10.6-r2"'
+          new = 'APP_VERSION = "10.6-r3"'
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one {old!r}, found {count}')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Commit synchronized version
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py
+          git diff --cached --quiet && { echo 'No version change to commit' >&2; exit 1; }
+          git commit -m 'chore: synchronize main APP_VERSION for Taxo 10.6-r3'
+          git push origin HEAD:work/v10.6-r3-waybill-reverse-fields
