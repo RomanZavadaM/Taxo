@@ -3,10 +3,10 @@
 **Стан:** 28.09.2026  
 **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
 **Latest full checkpoint in `main`:** [Taxo 10.6-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3) — merged via PR #84  
-**Latest issued fast-test:** [Taxo 10.6-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r7) — not merged to `main`  
-**Next code revision:** **10.6-r8**.
+**Latest issued fast-test:** [Taxo 10.6-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r8) — not merged to `main`  
+**Next code revision:** **10.6-r9**.
 
-> `v10.6-r3` — поточний повний multi-platform checkpoint у `main`. `v10.6-r4`…`v10.6-r7` — окремі fast-test checkpoints. Вони не підміняють stable `v10.3`: stable promotion відбувається тільки за окремим рішенням власника.
+> `v10.6-r3` — поточний повний multi-platform checkpoint у `main`. `v10.6-r4`…`v10.6-r8` — окремі fast-test checkpoints. Вони не підміняють stable `v10.3`: stable promotion відбувається тільки за окремим рішенням власника.
 
 ## Full checkpoints
 
@@ -21,7 +21,8 @@
 
 | Ревізія | Issued source | Перевірка | Зміст |
 |---|---|---|---|
-| **10.6-r7** | `e3f1666bafbd82e37ac2e63b08bfed2d265bae30` | `562/562 OK`; START `36463667268`; publisher `36467902934`; SHA-256 `5fe124b6865419a14f4073d9bbb54efe18a3142a1e44aa03dc1339554e2a49fd` | адаптивна панель дій картки документів ТЗ; збережені callback-и, `show_archived` і обидві прокрутки |
+| **10.6-r8** | `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3` | `570/570 OK`; START `36469618323`; publisher `36469958643`; SHA-256 `90e04c065a157aa1453e2aa50024ca3f4093de37db30be23ae007114531eb7ec` | адаптивна форма документа ТЗ: compact vertical spacing, 3-row note field і dynamic help wrap без переписування save/business logic |
+| 10.6-r7 | `e3f1666bafbd82e37ac2e63b08bfed2d265bae30` | `562/562 OK`; START `36463667268`; publisher `36467902934`; SHA-256 `5fe124b6865419a14f4073d9bbb54efe18a3142a1e44aa03dc1339554e2a49fd` | адаптивна панель дій картки документів ТЗ; збережені callback-и, `show_archived` і обидві прокрутки |
 | 10.6-r6 | `90ab67ae00be381f8b2bc14e18f9614574e3493f` | `554/554 OK`; START `36462366765`; publisher `36462529738`; SHA-256 `7493202b3282ffba5238342136dd3a19a5cd7f663514c12eb3827451eff83e79` | адаптивна панель команд реєстру ТЗ; збережено всі дії і default-on фільтр неактивних авто |
 | 10.6-r5 | `118d4111e183528c49e8060e8782479fa4436377` | `546/546 OK`; START `36452858366`; publisher `36461104704`; SHA-256 `8586e5aa6c07860ea4aeda5eaf76b409acc4719b41a9b60da991c3ca14ec27c9` | адаптивні фільтри звіту стану документів ТЗ; дата і прапорці не обрізаються на вузьких екранах |
 | 10.6-r4 | historical immutable checkpoint | fast-test release | адаптивний action bar вікна шляхівок; дев'ять команд переносяться за доступною шириною без зміни business logic |
@@ -44,7 +45,7 @@
 | 10.5-r2 | `d9e7beefa52c7774e1b4bd6711dfc5907e06de37` | `425/425 OK` | покомпонентна звірка ТЗ з «Шлях» |
 | 10.5-r1 | `d7e5a730767ebc17e6935b2d3f25208a9f151c16` | `399/399 OK` | відомість військово-транспортного обліку підприємства |
 
-Усі видані revision/checkpoint-и immutable. Після `10.6-r7` наступна кодова ревізія — тільки **10.6-r8**.
+Усі видані revision/checkpoint-и immutable. Після `10.6-r8` наступна кодова ревізія — тільки **10.6-r9**.
 
 ## Historical identity anchors
 
@@ -61,6 +62,7 @@
 
 ## Документи поточної лінії
 
+- [Release notes 10.6-r8](RELEASE_NOTES_v10.6-r8.md)
 - [Release notes 10.6-r7](RELEASE_NOTES_v10.6-r7.md)
 - [Release notes 10.6-r6](RELEASE_NOTES_v10.6-r6.md)
 - [Release notes 10.6-r5](RELEASE_NOTES_v10.6-r5.md)
