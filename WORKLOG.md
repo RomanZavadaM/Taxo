@@ -10,7 +10,8 @@
 **Main head after docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`  
 **Latest issued fast-test:** Taxo **10.6-r9** / `v10.6-r9`  
 **Issued r9 source/tag target:** `2705fb5c9105e21bfb669a2d40d4f29449e1a00b` — immutable by project policy  
-**Work branch:** `work/v10.6-r9-vehicle-doc-header-responsive`  
+**Canonical fast-test branch:** `work/v10.6-r9-vehicle-doc-header-responsive`  
+**Maintenance branch:** `maintenance/v10.6-r9-hygiene`  
 **Live ledger:** Issue #61
 
 ## DONE — 10.6-r9
@@ -36,10 +37,24 @@
 - [x] GitHub Release asset: `Taxo_v10_6_candidate_r9_START.zip`;
 - [x] Release asset SHA-256: `37a6214bb4ba5b33569804e3efb06912549625600361cf510d52808a55a0a8c4`;
 - [x] checksum manifest: `SHA256SUMS_v10_6_r9.txt`;
-- [x] one-shot identity/publisher workflows прибрані після успішного виконання.
+- [x] one-shot identity/publisher workflows r9 прибрані після успішного виконання.
 
 Release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r9  
 START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r9/Taxo_v10_6_candidate_r9_START.zip
+
+## MAINTENANCE — post-r9 hygiene
+
+Після серії fast-test ревізій проведено окремий repository hygiene audit без зміни runtime/version.
+
+- [x] підтверджено, що r9 release/START/verify успішні, а не зламані;
+- [x] канонічною r9-гілкою зафіксовано `work/v10.6-r9-vehicle-doc-header-responsive`;
+- [x] дубль `work/v10.6-r9-vehicle-document-header-responsive` позначено як тупиковий/superseded; не використовувати як базу і не merge;
+- [x] створено `docs/maintenance/AUDIT_HYGIENE_2026-09-28.md`;
+- [x] з active candidate tree вилучено історичні one-shot publish/build workflows для вже виданих v8.70/v9.x/v10.0–v10.4-r2 checkpoint-ів;
+- [x] загальні regression/package gates та `source-test-archive.yml` збережені;
+- [x] immutable tags/releases і issued source не пересувались.
+
+Це maintenance-only cleanup. Нову кодову ревізію не витрачено.
 
 ## PRESERVED
 
@@ -47,12 +62,12 @@ START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r9/Taxo_v10_
 - `v10.6-r8` і попередні issued fast-test також лишаються immutable;
 - `v10.6-r3` лишається latest full multi-platform checkpoint у `main`;
 - stable `v10.3` не пересувається;
-- document status calculation, архівування, копії, plan/fact, шляхівки та тахографічні дані r9 не змінює;
+- document status calculation, архівування, копії, plan/fact, шляхівки та тахографічні дані maintenance не змінює;
 - робочі БД, скани, кеші та персональні файли не входять у release.
 
 ## NEXT
 
-Наступна кодова ревізія — тільки **10.6-r10**. Починати її після нового pre-flight/audit. Після видачі r10 наступна ревізія за загальним правилом — **10.7-r1**. `10.6-r9` у `main` не зливати без нової прямої команди власника.
+Після завершення maintenance PR наступна кодова ревізія — тільки **10.6-r10**. Починати її від очищеного canonical post-r9 state після нового pre-flight/audit. Після видачі r10 наступна ревізія — **10.7-r1**. `10.6-r9` у `main` не зливати без нової прямої команди власника.
 
 ## BLOCKED
 
