@@ -32,7 +32,7 @@
 
 ## Historical identity anchors
 
-- **Taxo 10.4-r7** — immutable historical checkpoint розділення державних реєстрів і локального контролю документів. Деталі збережені в Git history, release notes та Issue #61.
+- **Taxo 10.4-r7** — issued source `9f397a092fe828570927bc39cef7a3a467e2aff0`; immutable historical checkpoint розділення державних реєстрів і локального контролю документів. Деталі збережені в Git history, release notes та Issue #61.
 
 ## Документи поточної лінії
 
