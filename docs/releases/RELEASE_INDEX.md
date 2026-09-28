@@ -3,8 +3,8 @@
 **Стан:** 28.09.2026  
 **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
 **Latest full checkpoint:** [Taxo 10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) — merged  
-**Latest issued fast-test revision:** **Taxo 10.5-r6** — immutable  
-**Next code revision:** **10.5-r7** — not started.
+**Latest issued fast-test revision:** **Taxo 10.5-r7** — immutable  
+**Next code revision:** **10.5-r8** — not started.
 
 > `v10.4-r2` лишається останнім повним multi-platform checkpoint у `main`. Ревізії після нього — швидкі START-checkpoint-и для інтенсивної розробки; вони не підміняють stable/full release без окремого рішення власника.
 
@@ -25,7 +25,8 @@
 
 | Ревізія | Issued code head | Перевірка | Статус / напрям |
 |---|---|---|---|
-| **Taxo 10.5-r6** | `5f6c7643ce63bffb8069de9775194322a71f13df` | run `36394049520`, `465/465 OK`, artifact `10957441841` | **Latest issued fast-test; immutable** — редаговані робочі дані Дія/«Оберіг» і «Шлях», copy/paste, актуальний Diia-first порядок звіряння, відомість ТЦК підприємства як основний транспортний вхід |
+| **Taxo 10.5-r7** | `19a9f462993767a43ca3d5add8c7afabcbd39a96` | run `36396485974`, `476/476 OK`, artifact `10958596374` | **Latest issued fast-test; immutable** — повний локальний цикл звіряння через Дію: отримання → актуалізація → фіксація; локальна підготовка не підміняє державний факт |
+| Taxo 10.5-r6 | `5f6c7643ce63bffb8069de9775194322a71f13df` | run `36394049520`, `465/465 OK`, artifact `10957441841` | immutable — редаговані робочі дані Дія/«Оберіг» і «Шлях», copy/paste, Diia-first порядок звіряння, відомість ТЦК підприємства як основний транспортний вхід |
 | Taxo 10.5-r5 | `23064b775087c9dfc05867dc65f27e6d6d87e9b4` | run `36390554799`, `456/456 OK`, artifact `10955647596` | immutable — сумісність XLSX «Шлях» з `ChildSheet/tabId` без зміни вихідного XLSX |
 | Taxo 10.5-r4 | `117b305b048c2588e21d7908f39a3bb1071f74aa` | run `36360262795`, success, artifact `10944963733` | immutable — lossless raw snapshot державних XLSX працівників |
 | Taxo 10.5-r3 | `ca1a1288f915c3fa0eb57c82a3e91aea3b0887d1` | run `36359285033`, `440/440 OK`, artifact `10944184721` | immutable — єдиний реєстр документів працівників поверх `employee_documents` |
@@ -36,11 +37,12 @@
 | Taxo 10.4-r8 | `1c0607ee733217c0d4d0bc459af4c0a175a0409f` | run `36346821842`, `340/340 OK`, artifact `10941021984` | immutable — звірка ТЗ / «Шлях» та контрольні нагадування |
 | Taxo 10.4-r7 | `9f397a092fe828570927bc39cef7a3a467e2aff0` | run `36344183395`, `329/329 OK`, artifact `10939983025` | immutable — межа державних реєстрів і локального контролю документів |
 
-**Наступний кодовий крок:** `10.5-r7` — ще не розпочатий. Уже видані `10.5-r1 … r6` не змінюються й не перевидаються під тими самими номерами.
+**Наступний кодовий крок:** `10.5-r8` — ще не розпочатий. Уже видані `10.5-r1 … r7` не змінюються й не перевидаються під тими самими номерами.
 
 Ревізії `10.4-r3 … r6` також залишаються історичними fast-test checkpoint-ами; їхні точні технічні записи збережені в Issue #61 та Git history.
 
 Документи:
+- [Release notes 10.5-r7](RELEASE_NOTES_v10_5_r7.md)
 - [Release notes 10.5-r6](RELEASE_NOTES_v10_5_r6.md)
 - [Release notes 10.5-r5](RELEASE_NOTES_v10_5_r5.md)
 - [Release notes 10.5-r4](RELEASE_NOTES_v10_5_r4.md)
@@ -94,7 +96,7 @@
 - кожен завершений крок = нова ревізія `r1 … r10`;
 - після `r10` — наступна minor-версія з `r1`;
 - уже виданий candidate повторно не використовується;
-- після виданого `10.5-r6` наступний кодовий крок — тільки **10.5-r7**;
+- після виданого `10.5-r7` наступний кодовий крок — тільки **10.5-r8**;
 - кожний fast-test checkpoint має окремий чистий START archive;
 - при інтенсивній розробці START є основним тестовим пакетом; Portable/Setup формуються на більш рідкісних/повних checkpoint-ах.
 
