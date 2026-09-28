@@ -9,18 +9,35 @@
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Latest full multi-platform checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`.
 - **Main head after r3 docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`.
-- **Latest issued fast-test:** Taxo **10.6-r5** / `v10.6-r5`.
-- **Issued r5 source/tag target:** `118d4111e183528c49e8060e8782479fa4436377` — immutable by project policy.
-- **r5 regression:** `546/546 OK`.
-- **r5 clean START verify run:** `36452858366` — success.
-- **r5 prerelease publisher:** `36461104704` — success.
-- **r5 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r5
-- **r5 START asset:** `Taxo_v10_6_candidate_r5_START.zip`.
-- **r5 START release SHA-256:** `8586e5aa6c07860ea4aeda5eaf76b409acc4719b41a9b60da991c3ca14ec27c9`.
-- **Next code revision:** тільки **10.6-r6**.
+- **Latest issued fast-test:** Taxo **10.6-r6** / `v10.6-r6`.
+- **Issued r6 source/tag target:** `90ab67ae00be381f8b2bc14e18f9614574e3493f` — immutable by project policy.
+- **r6 regression:** `554/554 OK`.
+- **r6 clean START verify run:** `36462366765` — success.
+- **r6 prerelease publisher:** `36462529738` — success.
+- **r6 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r6
+- **r6 START asset:** `Taxo_v10_6_candidate_r6_START.zip`.
+- **r6 START Release SHA-256:** `7493202b3282ffba5238342136dd3a19a5cd7f663514c12eb3827451eff83e79`.
+- **Next code revision:** тільки **10.6-r7**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4` і `v10.6-r5` — окремі fast-test candidate checkpoints і не злиті у `main`.
+`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4`, `v10.6-r5` і `v10.6-r6` — окремі fast-test candidate checkpoints і не злиті у `main`.
+
+## Taxo 10.6-r6 — адаптивна панель команд реєстру ТЗ
+
+Причина: у реєстрі транспортних засобів шість основних кнопок і довгий прапорець «Сховати неактивні автомобілі» могли не вміститися в один горизонтальний ряд на вузьких/масштабованих екранах.
+
+Виконано:
+
+- додано `v1066_features.py` як outer runtime layer поверх `v1065`;
+- збережено дії «Нове авто», «Редагувати», «Документи», «Контроль документів», «Вивести з експлуатації», «Оновити» та прапорець приховування неактивних ТЗ;
+- існуючі контроли автоматично переносяться на наступний рядок відповідно до фактичної ширини toolbar;
+- callback-и та `BooleanVar` фільтра не замінюються;
+- «Сховати неактивні автомобілі» лишається увімкненим за замовчуванням;
+- дані ТЗ, статуси, документи й БД не змінені;
+- повний exact-source regression: `554/554 OK`;
+- clean START verify: `36462366765` — success;
+- immutable fast-test tag/release: `v10.6-r6` → `90ab67ae00be381f8b2bc14e18f9614574e3493f`;
+- GitHub Release START SHA-256: `7493202b3282ffba5238342136dd3a19a5cd7f663514c12eb3827451eff83e79`.
 
 ## Taxo 10.6-r5 — адаптивні фільтри звіту документів ТЗ
 
@@ -124,4 +141,4 @@ Taxo — proprietary software.
 
 ## Наступний крок
 
-10.6-r5 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r6**. Stable `v10.3` не пересувати без окремого рішення власника; r5 не зливати в `main` без нової прямої команди власника.
+10.6-r6 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r7**. Stable `v10.3` не пересувати без окремого рішення власника; r6 не зливати в `main` без нової прямої команди власника.
