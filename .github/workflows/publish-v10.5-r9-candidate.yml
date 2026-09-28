@@ -1,0 +1,93 @@
+name: Publish Taxo 10.5-r9 candidate
+
+on:
+  push:
+    branches:
+      - work/v10.5-r9-off-route-waybill
+    paths:
+      - .github/workflows/publish-v10.5-r9-candidate.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      ISSUED_SHA: 3356ae224f47cffeb74e5b10709b808071222eae
+      TAG: v10.5-r9
+      ARCHIVE: Taxo_v10_5_candidate_r9_START.zip
+    steps:
+      - name: Checkout exact verified source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.ISSUED_SHA }}
+          fetch-depth: 0
+
+      - name: Verify identity and build exact START archive
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$ISSUED_SHA"
+          python - <<'PY'
+          import subprocess
+          from release_naming import start_archive_stem, version_from_file
+
+          version = version_from_file('VERSION.txt')
+          if version != '10.5-r9':
+              raise SystemExit(f'Unexpected version: {version}')
+          stem = start_archive_stem(version)
+          if stem != 'Taxo_v10_5_candidate_r9_START':
+              raise SystemExit(f'Unexpected archive stem: {stem}')
+          subprocess.check_call([
+              'git', 'archive', '--format=zip',
+              f'--prefix={stem}/',
+              '--output=Taxo_v10_5_candidate_r9_START.zip',
+              'HEAD',
+          ])
+          PY
+
+          if unzip -l "$ARCHIVE" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included in START archive' >&2
+            exit 1
+          fi
+          for file in START.bat requirements.txt taxo_app.py main.py waybill.py v1059_features.py VERSION.txt PROJECT_RULES.md START_HERE.md; do
+            unzip -l "$ARCHIVE" | grep -q "/${file}$" || { echo "Missing ${file}" >&2; exit 1; }
+          done
+          sha256sum "$ARCHIVE" > SHA256SUMS-r9.txt
+          cat SHA256SUMS-r9.txt
+
+      - name: Publish immutable candidate checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cat > /tmp/release-notes.md <<'EOF'
+          ## Taxo 10.5-r9 — шляхівка для роботи поза регулярним маршрутом
+
+          Fast-test candidate. Stable залишається `v10.3`; latest full multi-platform checkpoint in `main` — `v10.5-r8`.
+
+          - додано окрему дію **«Поза маршрутом…»** у вікні випуску шляхових листів;
+          - шляхівка видається без створення фіктивного регулярного маршруту;
+          - плановий час роботи береться з чинного графіка водія;
+          - тахографічний/fact-облік не змінюється;
+          - поле «Маршрут / замовник» типово **«по області»**, але редагується перед видачею;
+          - можна вказати «по місту», міжобласну поїздку, одноразове замовлення тощо;
+          - зворотний бік для такого випадку не заповнюється динамічними маршрутними даними;
+          - повторний друк зберігає введений позамаршрутний опис;
+          - regression: **493/493 OK**, включно з PDF smoke-test позамаршрутної шляхівки.
+
+          Issued source: `3356ae224f47cffeb74e5b10709b808071222eae`.
+          EOF
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to rewrite issued revision." >&2
+            exit 1
+          fi
+          gh release create "$TAG" \
+            "$ARCHIVE" \
+            SHA256SUMS-r9.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$ISSUED_SHA" \
+            --title "Taxo 10.5-r9 — шляхівка поза маршрутом" \
+            --notes-file /tmp/release-notes.md \
+            --prerelease
