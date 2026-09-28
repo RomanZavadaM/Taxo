@@ -114,6 +114,7 @@ jobs:
             v1065_features.py
             v1066_features.py
             v1067_features.py
+            v1068_features.py
             work_regime.py
             branding.py
             branding_asset.py
