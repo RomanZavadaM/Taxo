@@ -6,6 +6,7 @@
 ## Поточний інтегрований стан
 
 - **Stable:** Taxo 10.3 / `v10.3` — immutable.
+- **Stable tag target (historical identity):** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Previous stable / rollback:** Taxo 10.1 / `v10.1`.
 - **Latest full multi-platform checkpoint in `main`:** Taxo **10.5-r8** / `v10.5-r8`.
 - **Issued source/tag target:** `846e5c5111b14a4a1f2e49203803e86c495b458f`.
