@@ -104,11 +104,15 @@ class ScheduleAuditDomainR10Tests(unittest.TestCase):
 
 
 class R10IntegrationTests(unittest.TestCase):
-    def test_r10_is_outermost_runtime_layer(self):
+    def test_r10_remains_in_runtime_chain_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v10510_features import install as install_v10510", entry)
-        self.assertIn("App = install_v10510(", entry)
+        self.assertIn("install_v10510(", entry)
         self.assertIn("install_v1059(", entry)
+        # 10.5-r10 is immutable historical behavior; a newer outer layer may
+        # legitimately wrap it after the 10.5-r10 -> 10.6-r1 rollover.
+        if "install_v1061(" in entry:
+            self.assertLess(entry.index("install_v1061("), entry.index("install_v10510("))
 
     def test_fix_documents_why_day_and_live_template_are_not_comparable(self):
         source = (ROOT / "v10510_features.py").read_text(encoding="utf-8")
