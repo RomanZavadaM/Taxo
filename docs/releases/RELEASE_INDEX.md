@@ -30,6 +30,10 @@
 
 Усі видані revision/checkpoint-и immutable. Після `10.5-r8` наступна кодова ревізія — тільки **10.5-r9**.
 
+## Historical identity anchors
+
+- **Taxo 10.4-r7** — immutable historical checkpoint розділення державних реєстрів і локального контролю документів. Деталі збережені в Git history, release notes та Issue #61.
+
 ## Документи поточної лінії
 
 - [Release notes 10.5-r8](RELEASE_NOTES_v10_5_r8.md)
