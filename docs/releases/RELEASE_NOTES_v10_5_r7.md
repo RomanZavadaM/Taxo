@@ -1,7 +1,8 @@
 # Taxo 10.5-r7 — цикл звіряння персонального військового обліку через Дію
 
 **Дата:** 28.09.2026  
-**Тип:** candidate / fast-test START
+**Тип:** candidate / fast-test START  
+**Статус:** issued / immutable
 
 ## Мета
 
@@ -73,4 +74,14 @@ Taxo при цьому прямо повідомляє: програма не в
 - використання лише офіційних URL `diia.gov.ua/services/...`;
 - outermost r7 layer та наявність r7 runtime у START guard.
 
-Точні дані фінального regression run і START artifact додаються після green CI. Після видачі `10.5-r7` ревізія стає immutable; наступний кодовий крок — тільки `10.5-r8`.
+Фінальна перевірка виданого code checkpoint:
+- issued code head: `19a9f462993767a43ca3d5add8c7afabcbd39a96`;
+- regression: **476/476 OK**;
+- GitHub Actions run: `36396485974` — success;
+- START artifact: `10958596374` / `Taxo_v10_5_candidate_r7_START`;
+- archive: `Taxo_v10_5_candidate_r7_START.zip`;
+- size: `942091` bytes;
+- SHA-256: `62bd734c82db132557376d5e6b01c37a84b5b358e32a0eedc7e1a4afd7f2c295`;
+- START guard підтвердив наявність r7 runtime і відсутність DB/SQLite/cache/development clutter.
+
+`10.5-r7` видано і є immutable. Наступний кодовий крок — тільки `10.5-r8`. `main` цим fast-test checkpoint не змінювався.
