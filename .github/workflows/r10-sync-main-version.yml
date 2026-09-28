@@ -1,0 +1,44 @@
+name: One-shot sync Taxo 10.6-r10 main version
+
+on:
+  push:
+    branches:
+      - 'work/v10.6-r10-p5-edrpou-fix'
+    paths:
+      - '.github/workflows/r10-sync-main-version.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.6-r10-p5-edrpou-fix
+          fetch-depth: 0
+      - name: Update main.APP_VERSION exactly once
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('main.py')
+          text = path.read_text(encoding='utf-8')
+          old = 'APP_VERSION = "10.6-r9"'
+          new = 'APP_VERSION = "10.6-r10"'
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one {old!r}, found {count}')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+          grep -n 'APP_VERSION = "10.6-r10"' main.py
+      - name: Commit synchronized identity
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py
+          git commit -m 'chore: sync main APP_VERSION to 10.6-r10'
+          git push origin HEAD:work/v10.6-r10-p5-edrpou-fix
