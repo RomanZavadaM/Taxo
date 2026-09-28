@@ -57,7 +57,7 @@ class ShlyakhTabIdCompatibilityR5Tests(unittest.TestCase):
             inject_sheet_tabid(path)
             with self.assertRaises(TypeError) as cm:
                 load_workbook(filename=str(path), read_only=True, data_only=True)
-            self.assertIn("ChildSheet", str(cm.exception))
+            self.assertIn("unexpected keyword argument", str(cm.exception))
             self.assertIn("tabId", str(cm.exception))
 
     def test_taxo_reads_tabid_export_without_modifying_source(self):
@@ -95,6 +95,9 @@ class ShlyakhTabIdCompatibilityR5Tests(unittest.TestCase):
         self.assertFalse(v1055_features._is_childsheet_tabid_error(TypeError("other failure")))
         self.assertTrue(v1055_features._is_childsheet_tabid_error(
             TypeError("ChildSheet.__init__() got an unexpected keyword argument 'tabId'")
+        ))
+        self.assertTrue(v1055_features._is_childsheet_tabid_error(
+            TypeError("__init__() got an unexpected keyword argument 'tabId'")
         ))
 
 

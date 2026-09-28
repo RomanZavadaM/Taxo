@@ -21,7 +21,7 @@ APP_VERSION = "10.5-r5"
 
 def _is_childsheet_tabid_error(exc):
     text = str(exc)
-    return isinstance(exc, TypeError) and "ChildSheet" in text and "tabId" in text
+    return isinstance(exc, TypeError) and "unexpected keyword argument" in text and "tabId" in text
 
 
 def _xlsx_without_sheet_tabid(path):
