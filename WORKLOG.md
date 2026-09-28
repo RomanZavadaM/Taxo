@@ -15,7 +15,7 @@
 **r3 Release START SHA-256:** `ea97909e7ae8a895730172aef4f6cabf61c18c227adce12cdaec803dfe8c490c`  
 **r3 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3  
 **Next code revision:** **10.6-r4**  
-**Tracking:** Issue #83; live ledger #61
+**Tracking:** Issue #83 — completed; live ledger #61
 
 ## DONE — 10.6-r3
 
@@ -32,7 +32,8 @@
 - [x] Чистий START package перевірено у run `36434131185`.
 - [x] Опубліковано immutable prerelease `v10.6-r3` на exact source `97e646936d14d163faf93882daf7894f5bb38ab6`.
 - [x] Release START asset: `Taxo_v10_6_candidate_r3_START.zip`; SHA-256 `ea97909e7ae8a895730172aef4f6cabf61c18c227adce12cdaec803dfe8c490c`.
-- [x] Release notes оформлено; state/index/ledger синхронізуються post-issuance docs commits без пересування tag/release.
+- [x] Release notes, `PROJECT_STATE.md`, `RELEASE_INDEX.md` і live ledger синхронізовано post-issuance docs commits без пересування tag/release.
+- [x] Issue #83 закрито як completed.
 
 ## AUDIT — поля шляхівки
 
