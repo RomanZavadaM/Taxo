@@ -42,6 +42,7 @@ jobs:
           python - <<'PY'
           import os
           import subprocess
+          from pathlib import Path
           from release_naming import start_archive_stem, version_from_file
 
           version = version_from_file('VERSION.txt')
@@ -55,11 +56,12 @@ jobs:
               f'--output={archive}',
               'HEAD',
           ])
+          Path('/tmp/r10-archive-name').write_text(archive, encoding='utf-8')
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
               out.write(f'archive={archive}\n')
           PY
 
-          archive="${{ steps.pack.outputs.archive }}"
+          archive="$(cat /tmp/r10-archive-name)"
           if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
             echo 'Database or cache unexpectedly included' >&2
             exit 1
