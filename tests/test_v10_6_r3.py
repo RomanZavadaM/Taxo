@@ -154,7 +154,7 @@ class R3IntegrationTests(unittest.TestCase):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
         match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
         self.assertIsNotNone(match)
-        self.assertEqual(tuple(map(int, match.groups())), (10, 6, 3))
+        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 6, 3))
         feature = (ROOT / "v1063_features.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "10.6-r3"', feature)
 
@@ -163,7 +163,9 @@ class R3IntegrationTests(unittest.TestCase):
         self.assertIn("from v1063_features import install as install_v1063", entry)
         self.assertIn("App = install_v1063(", entry)
         self.assertIn("install_v1062(", entry)
+        self.assertIn("App = install_v1064(core, App)", entry)
         self.assertLess(entry.index("App = install_v1063("), entry.index("install_v1062("))
+        self.assertLess(entry.index("App = install_v1063("), entry.index("App = install_v1064(core, App)"))
 
     def test_start_package_requires_r3_runtime(self):
         workflow = (ROOT / ".github/workflows/source-test-archive.yml").read_text(encoding="utf-8")

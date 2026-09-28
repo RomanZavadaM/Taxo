@@ -52,8 +52,9 @@ class R4IntegrationTests(unittest.TestCase):
         source = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1064_features import install as install_v1064", source)
         self.assertIn("from v1063_features import install as install_v1063", source)
-        self.assertIn("App = install_v1064(", source)
-        self.assertLess(source.index("App = install_v1064("), source.index("install_v1063(\n"))
+        self.assertIn("App = install_v1063(", source)
+        self.assertIn("App = install_v1064(core, App)", source)
+        self.assertLess(source.index("App = install_v1063("), source.index("App = install_v1064(core, App)"))
 
     def test_start_package_requires_r4_runtime(self):
         workflow = (ROOT / ".github/workflows/source-test-archive.yml").read_text("utf-8")
@@ -62,7 +63,7 @@ class R4IntegrationTests(unittest.TestCase):
     def test_runtime_reflows_existing_buttons_without_reparenting(self):
         source = (ROOT / "v1064_features.py").read_text("utf-8")
         self.assertIn('button.pack_forget()', source)
-        self.assertIn('button.grid(', source)
+        self.assertIn('buttons[index].grid(', source)
         self.assertIn('frame.bind("<Configure>"', source)
         self.assertIn('win.bind("<Configure>"', source)
         self.assertIn('wraplength=max(360, width - 40)', source)
