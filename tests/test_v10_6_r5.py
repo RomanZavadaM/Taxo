@@ -23,14 +23,10 @@ class VehicleDocumentReportLayoutR5Tests(unittest.TestCase):
 
 
 class R5IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_10_6_r5(self):
-        version = (ROOT / "VERSION.txt").read_text("utf-8")
-        main = (ROOT / "main.py").read_text("utf-8")
-        self.assertIn("Version: 10.6-r5", version)
-        self.assertIn('APP_VERSION = "10.6-r5"', main)
+    def test_r5_layer_identity_remains_historical(self):
         self.assertEqual(r5.APP_VERSION, "10.6-r5")
 
-    def test_r5_is_outermost_and_r4_remains_in_runtime_chain(self):
+    def test_r5_is_installed_after_r4(self):
         source = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1064_features import install as install_v1064", source)
         self.assertIn("from v1065_features import install as install_v1065", source)
