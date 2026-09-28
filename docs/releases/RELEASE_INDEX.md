@@ -33,6 +33,10 @@
 
 Усі видані revision/checkpoint-и immutable. Після `10.5-r10` наступна кодова ревізія — тільки **10.6-r1**.
 
+## Historical identity anchors
+
+- **Taxo 10.4-r7** — historical issued source `9f397a092fe828570927bc39cef7a3a467e2aff0`; межа між локальним контролем документів ТЗ та державними реєстрами. Цей checkpoint не використовується як нова база, але його ідентичність зберігається для regression/history.
+
 ## Документи поточної лінії
 
 - [Release notes 10.5-r10](RELEASE_NOTES_v10_5_r10.md)
