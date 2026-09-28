@@ -71,6 +71,14 @@ jobs:
               'self.assertEqual(tuple(map(int, match.groups())), (10, 5, 9))',
               'self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 9))'
           )
+          text = text.replace(
+              'def test_r9_is_outermost_and_r8_remains_in_chain(self):',
+              'def test_r9_remains_in_chain_after_later_revisions(self):'
+          )
+          text = text.replace(
+              'self.assertIn("App = install_v1059(", entry)',
+              'self.assertIn("install_v1059(", entry)'
+          )
           r9test.write_text(text, encoding='utf-8')
 
           workflow = Path('.github/workflows/source-test-archive.yml')
