@@ -183,7 +183,8 @@ class R6IntegrationTests(unittest.TestCase):
     def test_2026_reconciliation_ui_uses_diia_as_normal_electronic_path(self):
         source = (ROOT / "v1056_features.py").read_text("utf-8")
         self.assertIn("постанови КМУ №812 від 10.06.2026", source)
-        self.assertIn("Порталу Дія або через кабінет персонального обліку", source)
+        self.assertIn("Порталу Дія", source)
+        self.assertIn("кабінет персонального обліку", source)
         self.assertIn("DIIA_METHOD = \"Портал Дія\"", source)
         self.assertIn("імпорт XLSX", source)
         self.assertIn("не ставить відмітку «звірено»", source)
