@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import tempfile
 import unittest
 import zipfile
@@ -98,14 +99,17 @@ class ShlyakhTabIdCompatibilityR5Tests(unittest.TestCase):
 
 
 class R5IdentityTests(unittest.TestCase):
-    def test_candidate_identity_is_r5(self):
+    def test_r5_module_keeps_historical_identity_while_current_version_advances(self):
         self.assertEqual(v1055_features.APP_VERSION, "10.5-r5")
-        self.assertIn("Version: 10.5-r5", (ROOT / "VERSION.txt").read_text(encoding="utf-8"))
+        version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
+        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        self.assertIsNotNone(match)
+        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 5))
 
-    def test_r5_layer_is_outermost_entrypoint(self):
+    def test_r5_layer_remains_in_entrypoint_after_later_revisions(self):
         text = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1055_features import install as install_v1055", text)
-        self.assertIn("App = install_v1055(", text)
+        self.assertIn("install_v1055(", text)
 
 
 if __name__ == "__main__":
