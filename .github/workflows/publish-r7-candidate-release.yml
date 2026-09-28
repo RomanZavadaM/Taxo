@@ -1,0 +1,43 @@
+name: Publish Taxo 10.5-r7 candidate release
+
+on:
+  push:
+    branches:
+      - work/v10.5-r7-diia-reconciliation-cycle
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build exact issued START archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          issued_sha="19a9f462993767a43ca3d5add8c7afabcbd39a96"
+          stem="Taxo_v10_5_candidate_r7_START"
+          git archive --format=zip --prefix="${stem}/" --output="${stem}.zip" "${issued_sha}"
+          sha256sum "${stem}.zip" | tee SHA256SUMS-r7.txt
+      - name: Publish prerelease on GitHub
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v10.5-r7"
+          target="19a9f462993767a43ca3d5add8c7afabcbd39a96"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" Taxo_v10_5_candidate_r7_START.zip SHA256SUMS-r7.txt --clobber
+          else
+            gh release create "$tag" \
+              --target "$target" \
+              --prerelease \
+              --title "Taxo 10.5-r7 candidate" \
+              --notes "Fast-test START checkpoint 10.5-r7. Цикл звіряння персонального військового обліку через Дію: отримання → актуалізація → фіксація. Issued code head: $target. Regression: 476/476 OK. Stable/main не змінюються цим prerelease." \
+              Taxo_v10_5_candidate_r7_START.zip SHA256SUMS-r7.txt
+          fi
