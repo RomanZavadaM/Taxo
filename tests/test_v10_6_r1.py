@@ -28,6 +28,12 @@ class VehicleRegistryFilterR1Tests(unittest.TestCase):
         self.assertIn('tree.set(item, "active")', source)
         self.assertIn("tree.delete(item)", source)
 
+    def test_filter_placement_does_not_depend_on_old_add_vehicle_caption(self):
+        source = (ROOT / "v1061_features.py").read_text(encoding="utf-8")
+        self.assertIn('"Оновити" in button_labels', source)
+        self.assertIn("len(button_labels) >= 4", source)
+        self.assertIn("Defensive fallback", source)
+
     def test_filter_does_not_mutate_vehicle_database(self):
         source = (ROOT / "v1061_features.py").read_text(encoding="utf-8").lower()
         self.assertNotIn("update vehicles", source)
