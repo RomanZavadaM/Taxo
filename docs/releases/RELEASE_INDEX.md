@@ -3,10 +3,10 @@
 **Стан:** 28.09.2026  
 **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
 **Latest full checkpoint in `main`:** [Taxo 10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8) — merged  
-**Latest issued fast-test:** [Taxo 10.5-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r10) — not merged to `main`  
-**Next code revision:** **10.6-r1**.
+**Latest issued fast-test:** [Taxo 10.6-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r1) — not merged to `main`  
+**Next code revision:** **10.6-r2**.
 
-> `v10.5-r8` — останній повний multi-platform checkpoint у `main`. `v10.5-r9` і `v10.5-r10` — fast-test checkpoints. Жоден candidate не підміняє stable `v10.3` без окремого рішення власника.
+> `v10.5-r8` — останній повний multi-platform checkpoint у `main`. `v10.5-r9`, `v10.5-r10` і `v10.6-r1` — fast-test checkpoints. Жоден candidate не підміняє stable `v10.3` без окремого рішення власника.
 
 ## Full checkpoints
 
@@ -15,6 +15,12 @@
 | [v10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8) | **Latest full checkpoint; merged via PR #76** | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, SHA-256 | Windows 7/Python 3.8 XLSX `tabId` compatibility + вся функціональність r7 |
 | [v10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) | Previous full checkpoint | Windows x64, Windows 7 SP1, macOS ARM64/Intel, START, SHA-256 | UI cleanup, документи ТЗ, ДЦВ, шляховий лист, Win7 gate |
 | [v10.4-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r1) | Historical full checkpoint | Windows x64, Windows 7 SP1, macOS ARM64/Intel, START, SHA-256 | перший повний 10.4 checkpoint із Win7 support |
+
+## Taxo 10.6 history
+
+| Ревізія | Issued source | Перевірка | Зміст |
+|---|---|---|---|
+| **10.6-r1** | `e4823947d3c5d28af54fd4337bdaf0daf02b4201` | `507/507 OK`; START run `36420768488`; publisher `36420943804` | у реєстрі документів ТЗ неактивні автомобілі приховані за замовчуванням; прапорець дозволяє показати весь парк; дані не змінюються |
 
 ## Taxo 10.5 history
 
@@ -31,7 +37,7 @@
 | 10.5-r2 | `d9e7beefa52c7774e1b4bd6711dfc5907e06de37` | `425/425 OK` | покомпонентна звірка ТЗ з «Шлях» |
 | 10.5-r1 | `d7e5a730767ebc17e6935b2d3f25208a9f151c16` | `399/399 OK` | відомість військово-транспортного обліку підприємства |
 
-Усі видані revision/checkpoint-и immutable. Після `10.5-r10` наступна кодова ревізія — тільки **10.6-r1**.
+Усі видані revision/checkpoint-и immutable. Після `10.6-r1` наступна кодова ревізія — тільки **10.6-r2**.
 
 ## Historical identity anchors
 
@@ -39,6 +45,7 @@
 
 ## Документи поточної лінії
 
+- [Release notes 10.6-r1](RELEASE_NOTES_v10_6_r1.md)
 - [Release notes 10.5-r10](RELEASE_NOTES_v10_5_r10.md)
 - [Release notes 10.5-r8](RELEASE_NOTES_v10_5_r8.md)
 - [Release notes 10.5-r7](RELEASE_NOTES_v10_5_r7.md)
