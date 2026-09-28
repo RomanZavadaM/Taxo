@@ -8,35 +8,46 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest full checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`  
 **Main head after docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`  
-**Latest issued fast-test:** Taxo **10.6-r7** / `v10.6-r7`  
-**Issued r7 source/tag target:** `e3f1666bafbd82e37ac2e63b08bfed2d265bae30` — immutable by project policy  
-**Active code revision:** **10.6-r8**  
+**Latest issued fast-test:** Taxo **10.6-r8** / `v10.6-r8`  
+**Issued r8 source/tag target:** `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3` — immutable by project policy  
 **Work branch:** `work/v10.6-r8-vehicle-document-form-responsive`  
-**Scope:** адаптивна форма додавання/редагування документа ТЗ; UI-only  
 **Live ledger:** Issue #61
 
-## DOING — 10.6-r8
+## DONE — 10.6-r8
 
-- [x] pre-flight: stable/main/r7 release перевірені, відкритих PR немає;
-- [x] підтверджено UI-дефект у `VehicleDocumentsWindow._form`: багато вертикальних рядків, fixed `wraplength=520`, нижня кнопка «Зберегти»;
-- [x] створено work-гілку від post-r7 docs head `f3a80ceb3f6120786572768467400bc84b4ec8f6`;
+Причина: форма додавання/редагування документа ТЗ мала багато вертикальних рядків, fixed `wraplength=520` і нижню кнопку «Зберегти». На невисоких/масштабованих екранах нижня дія могла притискатися або обрізатися, а пояснювальний текст — виходити за фактичну ширину правої колонки.
+
+Виконано:
+
 - [x] додано outer runtime layer `v1068_features.py`;
 - [x] на висоті <620 px стандартні вертикальні відступи форми ущільнюються;
-- [x] поле «Примітка» на невисокому вікні зменшується з 4 до 3 рядків;
+- [x] поле «Примітка» у compact mode зменшується з 4 до 3 рядків;
 - [x] пояснення про архівацію та поточну копію отримують динамічний `wraplength` 240…520 px;
+- [x] при нормальній висоті початкові відступи й висота примітки відновлюються;
+- [x] вікно лишається resizeable;
 - [x] існуючий `_form()` і його `save()` closure не переписуються;
-- [x] валідація строків, архівація, копії документів, SQL і DB semantics не змінюються;
+- [x] `EXPIRY_REQUIRED`, перевірка дат, `archive_current_document_slot()`, `copy_document_file()`, SQL і DB semantics не змінені;
 - [x] `v1068` встановлено outermost поверх `v1067`;
 - [x] START packaging guard вимагає `v1068_features.py`;
 - [x] regression contract: `tests/test_v10_6_r8.py`;
-- [x] `main.APP_VERSION` синхронізовано як `10.6-r8`, one-shot updater прибрано;
-- [ ] отримати green full regression / clean START на exact source;
-- [ ] опублікувати immutable `v10.6-r8` START prerelease;
-- [ ] синхронізувати docs/state/ledger після видачі.
+- [x] історичний r7 regression виправлено: r7 identity перевіряється як historical layer, а не як вічно поточна версія;
+- [x] exact-source regression: **570/570 OK**;
+- [x] clean START verify run: `36469618323` — success;
+- [x] Actions artifact: `Taxo_v10_6_candidate_r8_START`, ID `10990373762`;
+- [x] prerelease publisher run: `36469958643` — success;
+- [x] tag/release `v10.6-r8` вказує точно на `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3`;
+- [x] GitHub Release asset: `Taxo_v10_6_candidate_r8_START.zip`;
+- [x] Release asset SHA-256: `90e04c065a157aa1453e2aa50024ca3f4093de37db30be23ae007114531eb7ec`;
+- [x] checksum manifest: `SHA256SUMS_v10_6_r8.txt`;
+- [x] one-shot identity/publisher workflows прибрані після успішного виконання.
+
+Release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r8  
+START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r8/Taxo_v10_6_candidate_r8_START.zip
 
 ## PRESERVED
 
-- `v10.6-r7` і попередні issued fast-test не пересуваються й не переписуються;
+- `v10.6-r8` issued source/tag не пересувається й не переписується;
+- `v10.6-r7` і попередні issued fast-test також лишаються immutable;
 - `v10.6-r3` лишається latest full multi-platform checkpoint у `main`;
 - stable `v10.3` не пересувається;
 - document save/business logic, plan/fact, шляхівки та тахографічні дані r8 не змінює;
@@ -44,7 +55,7 @@
 
 ## NEXT
 
-Пройти final regression/START verify на точному r8 source, заморозити issued SHA і видати `v10.6-r8` як окремий GitHub prerelease.
+Наступна кодова ревізія — тільки **10.6-r9**. Починати її після нового pre-flight/audit. `10.6-r8` у `main` не зливати без нової прямої команди власника.
 
 ## BLOCKED
 
