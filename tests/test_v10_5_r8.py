@@ -34,12 +34,14 @@ class R8IntegrationTests(unittest.TestCase):
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 8))
         main = (ROOT / "main.py").read_text(encoding="utf-8")
-        self.assertIn('APP_VERSION = "10.5-r8"', main)
+        main_match = re.search(r'APP_VERSION\s*=\s*"(\d+)\.(\d+)-r(\d+)"', main)
+        self.assertIsNotNone(main_match)
+        self.assertGreaterEqual(tuple(map(int, main_match.groups())), (10, 5, 8))
 
-    def test_r8_is_outermost_entrypoint_and_r7_remains_in_chain(self):
+    def test_r8_remains_in_entrypoint_chain_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1058_features import install as install_v1058", entry)
-        self.assertIn("App = install_v1058(", entry)
+        self.assertIn("install_v1058(", entry)
         self.assertIn("install_v1057(", entry)
 
     def test_source_package_requires_r8_runtime(self):
