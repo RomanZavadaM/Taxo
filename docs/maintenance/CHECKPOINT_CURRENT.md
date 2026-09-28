@@ -1,126 +1,49 @@
 # Taxo — поточна контрольна точка
 
-**Дата:** 25.09.2026  
+**Дата:** 28.09.2026  
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
-**Stable target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1`  
-**Latest full checkpoint:** `v10.4-r1`  
-**Checkpoint target:** `4970ee3497c9340c1c5f414d7a193071092ce70c`  
-**PR #71:** merged  
-**Main merge:** `afa74f8a31937bc72904fc77aa0c650f37e48b58`  
-**Full publisher:** `36113236225` — success  
-**PR gates:** Windows `36113238834`; macOS ARM64/Intel `36113238841` — success  
-**Windows 7 gate:** 10.3-r10 Portable launched successfully on real Windows 7 x64  
+**Latest full checkpoint in `main`:** Taxo 10.5-r8 / `v10.5-r8`  
+**Issued source:** `846e5c5111b14a4a1f2e49203803e86c495b458f`  
+**PR #76:** merged  
+**Main merge:** `eb9cb039d35419fb579ff0f5e1b9c633c95ccd86`  
+**Full publisher:** `36406419955` — success  
+**Regression:** `483/483 OK`  
 **Packages:** modern Windows Setup/Portable + Windows 7 SP1 Setup/Portable + macOS ARM64/Intel + START + SHA-256  
-**Release assets:** 7 primary packages + 6 checksum manifests  
-**Next code revision:** `10.4-r2`  
-**Recovery:** `START_HERE.md` + `WORKLOG.md` + Issue #61
+**Next code revision:** `10.5-r9`  
+**Recovery:** `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61
 
-Правовласник оригінальних матеріалів Taxo: **Roman Zavada (Роман Завада)**.  
-Канонічний стан: [../../PROJECT_STATE.md](../../PROJECT_STATE.md).  
-Канонічні правила: [../../PROJECT_RULES.md](../../PROJECT_RULES.md).
+Release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8
 
-Нижче збережено історичні checkpoint-записи.
+## Gate result
 
----
+Повний checkpoint пройшов:
 
-# Taxo — поточна контрольна точка
+- source regression: **483/483 OK**;
+- modern Windows package build: success;
+- Windows 7 compatibility line / Python 3.8: success;
+- macOS ARM64: success;
+- macOS Intel x86_64: success;
+- START package: success;
+- release publication: success;
+- PR #76 merge into `main`: success.
 
-**Stable:** Taxo 10.1 · 21.09.2026  
-**Previous stable / rollback:** Taxo 10.0  
-**Verified candidate:** `v10.1-r5`  
-**Stable tag:** `v10.1`  
-**Stable target:** `fa5bbe0a5de733af1e227847ef9584daca57676e`  
-**Verified candidate target:** `146d00916cb953efbcf7d3b167b7f5547d67f0b0`  
-**PR #34:** merged  
-**Latest completed candidate:** `10.2-r7` · PR #45 merged · prerelease published  
-**Accepted candidate target:** `b5aa0f3c213988fe51c2a98414b4acd3db70e710`  
-**Main merge:** `e272c8794b8df17dd3ec2e64a811c707158c94a0`  
-**Next code revision:** `10.2-r8` — not started
+## Основна зміна r8
 
-## Gate
-
-Manual Windows gate — **accepted**.
-
-Candidate automation:
-- source/START — **157 tests / OK**;
-- Windows — **157 tests / OK** + START preflight;
-- macOS ARM64 — **157 tests / OK**;
-- macOS Intel x86_64 — **157 tests / OK**.
-
-## Stable result
-
-Версію переведено з `10.1-r5` у **10.1 stable**. PR #34 злитий у `main`; stable publisher завершився успішно.
-
-- source verify — **162 tests / OK**;
-- Windows — **162 tests / OK** + START preflight; Setup + Portable published;
-- macOS ARM64 — **162 tests / OK**; package published;
-- macOS Intel x86_64 — **162 tests / OK**; package published;
-- START/source — published;
-- per-platform + combined SHA-256 — published;
-- GitHub Release `v10.1` — latest stable.
+Виправлено вузьку сумісність XLSX «Шлях» на Windows 7 / Python 3.8: openpyxl може повертати короткий `TypeError` `unexpected keyword argument 'tabId'` без `ChildSheet`. Compatibility retry виконується тільки для цього фактичного випадку та не змінює вихідний XLSX.
 
 ## Політика
 
-- `v10.0` та `v10.1-r1` … `v10.1-r5` — immutable;
-- `v10.1` створено stable publisher з commit у `main` і тепер є immutable stable;
-- БД/скани/персональні файли у release не входять.
+- `v10.3` лишається stable до окремого рішення власника;
+- `v10.5-r8` — повний candidate/checkpoint і immutable після видачі;
+- r8 не перевидається і не пересувається;
+- наступна кодова зміна — тільки `10.5-r9`;
+- робочі БД, скани, кеші та персональні документи не входять у release;
+- plan/fact, державні snapshots і робочі редаговані дані лишаються розділеними.
 
+Канонічний стан: [../../PROJECT_STATE.md](../../PROJECT_STATE.md).  
+Канонічні правила: [../../PROJECT_RULES.md](../../PROJECT_RULES.md).  
+Release notes: [../releases/RELEASE_NOTES_v10_5_r8.md](../releases/RELEASE_NOTES_v10_5_r8.md).  
+Release index: [../releases/RELEASE_INDEX.md](../releases/RELEASE_INDEX.md).
 
-## Поточний candidate workflow
-
-- Кожен завершений крок = нова ревізія.
-- `r1 ... r10`; після `r10` — наступна minor-версія з `r1`.
-- r4 завершено, опубліковано й злитo в `main`; наступна кодова зміна буде тільки r5.
-- Кожен крок завершується прямим посиланням на START-архів без вкладеного ZIP.
-
-
-## 10.2-r4 завершено
-
-- accepted candidate: `51f84f90c76afde2701a3d26f37e54de279ed2d2`;
-- main merge: `71e63f300401eadb7b1f02f376ebd022c9373e7d`;
-- GitHub prerelease: `v10.2-r4`;
-- START/source gate: success;
-- Windows gate: success;
-- macOS gate: success;
-- наступний кодовий крок: `10.2-r5`.
-
-
-## 10.2-r5 у роботі
-
-- прибирається автозапуск historical `Publish Taxo 10.1 stable` від push у `main`;
-- stable `v10.1` не змінюється;
-- regression gate перевіряє manual-only trigger;
-- після r5 наступна ревізія — r6.
-
-
-## 10.2-r6 — candidate ready for manual UI test
-
-- secondary-window UI consistency;
-- 12 великих службових/звітних вікон переходять на approved branding;
-- schema/data/business logic unchanged;
-- regression gate: 201 tests / OK на source, Windows, macOS ARM64 та Intel;
-- Windows START preflight: OK;
-- після виданого r6 наступний крок — тільки 10.2-r7.
-
-
-## 10.2-r7 завершено
-
-- approved secondary-window UI збережено;
-- r6 не переписувався;
-- опубліковано правильний пакет `Taxo_v10_2_candidate_r7_START.zip`;
-- Windows і macOS PR-gates пройшли успішно;
-- PR #45 merged;
-- candidate target: `b5aa0f3c213988fe51c2a98414b4acd3db70e710`;
-- main merge: `e272c8794b8df17dd3ec2e64a811c707158c94a0`;
-- наступний кодовий revision — `10.2-r8`.
-
-
-## Перед 10.2-r8
-
-10.2-r7 закрито без додаткових функціональних змін. Для наступної ревізії зафіксовано окремий аудит планування:
-- графік водіїв;
-- загальне планування персоналу;
-- зміни персоналу випуску (лікар / механік / диспетчер).
-
-Мета майбутнього етапу — зробити навігацію та межі цих механізмів зрозумілими, не змішуючи план/факт і не змінюючи історичні дані без окремого рішення. До початку цього аудиту `10.2-r8` не вважається розпочатим.
+Правовласник: **Roman Zavada (Роман Завада)**. Copyright © 2026 Roman Zavada. All rights reserved.
