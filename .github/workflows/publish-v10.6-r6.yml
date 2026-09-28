@@ -1,0 +1,140 @@
+name: Publish Taxo 10.6-r6 prerelease
+
+on:
+  push:
+    branches:
+      - 'work/v10.6-r6-vehicle-toolbar-responsive'
+    paths:
+      - '.github/workflows/publish-v10.6-r6.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      TAXO_SOURCE_SHA: '90ab67ae00be381f8b2bc14e18f9614574e3493f'
+      TAG: 'v10.6-r6'
+      STEM: 'Taxo_v10_6_candidate_r6_START'
+    steps:
+      - name: Checkout exact issued source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAXO_SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Verify candidate identity and tag absence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "$TAXO_SOURCE_SHA"
+          grep -Fxq 'Version: 10.6-r6' VERSION.txt
+          grep -Fxq 'Release type: candidate' VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.6-r6"' main.py
+          grep -Fxq 'APP_VERSION = "10.6-r6"' v1066_features.py
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Refusing to reuse existing tag $TAG" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Refusing to reuse existing release $TAG" >&2
+            exit 1
+          fi
+
+      - name: Install Tk and regression dependencies
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+          python -m pip install -r requirements.txt
+
+      - name: Run full regression suite on exact source
+        run: python -m unittest discover -s tests -v
+
+      - name: Create and verify clean START archive
+        shell: bash
+        run: |
+          archive="${STEM}.zip"
+          git archive --format=zip --prefix="${STEM}/" --output="$archive" "$TAXO_SOURCE_SHA"
+
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included in source archive' >&2
+            exit 1
+          fi
+          if unzip -l "$archive" | grep -Eiq '/(CHECKPOINT_v8|TEST_REPORT_v8|PUBLISH_STATUS_v8|PATCH_v8)'; then
+            echo 'Legacy v8 development clutter unexpectedly included in START archive' >&2
+            exit 1
+          fi
+
+          required=(
+            START.bat requirements.txt taxo_app.py main.py workspace.py
+            vehicle_documents.py document_viewer.py 00_README_START.txt release_naming.py
+            v1061_features.py v1062_features.py v1063_features.py v1064_features.py v1065_features.py v1066_features.py
+            LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md PROJECT_RULES.md PROJECT_STATE.md START_HERE.md WORKLOG.md
+          )
+          for file in "${required[@]}"; do
+            unzip -l "$archive" | grep -q "/${file}$" || { echo "Required file missing: $file" >&2; exit 1; }
+          done
+
+          unzip -p "$archive" "*/START.bat" > /tmp/START.bat
+          python - <<'PY'
+          data = open('/tmp/START.bat', 'rb').read()
+          if not data:
+              raise SystemExit('START.bat is empty')
+          if any(byte >= 128 for byte in data):
+              raise SystemExit('START.bat must remain ASCII-only')
+          if b'chcp' in data.lower():
+              raise SystemExit('START.bat must not switch code pages')
+          if b'\r\n' not in data:
+              raise SystemExit('START.bat must contain CRLF')
+          PY
+
+          sha256sum "$archive" > SHA256SUMS_v10_6_r6.txt
+          cat SHA256SUMS_v10_6_r6.txt
+
+      - name: Create immutable candidate tag
+        shell: bash
+        run: |
+          git tag "$TAG" "$TAXO_SOURCE_SHA"
+          git push origin "refs/tags/$TAG"
+
+      - name: Publish GitHub prerelease assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cat > /tmp/release-notes.md <<'EOF'
+          ## Taxo 10.6-r6 — адаптивна панель команд реєстру ТЗ
+
+          Fast-test candidate поверх issued `v10.6-r5`; latest full checkpoint у `main` — `v10.6-r3`.
+
+          - шість основних кнопок реєстру ТЗ і прапорець приховування неактивних автомобілів адаптуються до ширини;
+          - всі існуючі дії, callback-и та порядок контролів збережені;
+          - «Сховати неактивні автомобілі» лишається увімкненим за замовчуванням;
+          - vehicle DB/status/documents/business logic не змінені;
+          - повний regression suite на exact issued source: 554/554 OK.
+
+          Stable `v10.3` і full checkpoint `v10.6-r3` не пересуваються.
+          EOF
+
+          gh release create "$TAG" \
+            "${STEM}.zip" \
+            SHA256SUMS_v10_6_r6.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$TAXO_SOURCE_SHA" \
+            --title 'Taxo 10.6-r6' \
+            --notes-file /tmp/release-notes.md \
+            --prerelease
+
+      - name: Verify release target and assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          test "$(git rev-list -n1 "$TAG")" = "$TAXO_SOURCE_SHA"
+          assets="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          grep -Fxq "${STEM}.zip" <<<"$assets"
+          grep -Fxq 'SHA256SUMS_v10_6_r6.txt' <<<"$assets"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json url,targetCommitish,isPrerelease,assets
