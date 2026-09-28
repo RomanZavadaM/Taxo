@@ -56,7 +56,9 @@ def _row_dict(row):
 
 def ensure_personnel_schema(con):
     # r4 adds registry_note and raw snapshot storage on top of the base schema.
-    personnel_lossless.ensure_schema_on_connection(con)
+    # Install is idempotent and keeps one canonical personnel working model.
+    personnel_lossless.install(personnel)
+    personnel.ensure_schema_on_connection(con)
 
 
 def employee_working_data(con, employee_id):
