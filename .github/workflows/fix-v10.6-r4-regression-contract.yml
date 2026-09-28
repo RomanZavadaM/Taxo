@@ -18,6 +18,8 @@ jobs:
         with:
           ref: work/v10.6-r4-waybill-responsive-actions
           fetch-depth: 0
+      - name: Install focused-test dependencies
+        run: python -m pip install -r requirements.txt
       - name: Apply exact source and regression fixes
         shell: bash
         run: |
@@ -32,14 +34,12 @@ jobs:
                   raise SystemExit(f'{path}: expected exactly one match, found {count}: {old!r}')
               p.write_text(text.replace(old, new, 1), encoding='utf-8')
 
-          # Core identity must match VERSION.txt even when main is imported directly.
           replace_once(
               'main.py',
               'APP_VERSION = "10.6-r3"',
               'APP_VERSION = "10.6-r4"',
           )
 
-          # r3 is historical now: current candidate may advance, module identity may not.
           replace_once(
               'tests/test_v10_6_r3.py',
               '        self.assertEqual(tuple(map(int, match.groups())), (10, 6, 3))',
