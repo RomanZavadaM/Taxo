@@ -1,123 +1,73 @@
 # Taxo — стан продукту
 
-## Актуальний стан на 25.09.2026
-
-- **Stable:** Taxo 10.3 (`v10.3`) — immutable stable/rollback checkpoint; target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Previous stable / rollback:** Taxo 10.1 (`v10.1`).
-- **Latest full checkpoint:** Taxo 10.4-r1 / `v10.4-r1` → `4970ee3497c9340c1c5f414d7a193071092ce70c`; PR #71 merged → `afa74f8a31937bc72904fc77aa0c650f37e48b58`.
-- **Windows 7 compatibility:** 10.3-r10 Portable manually launched successfully on real Windows 7 x64; compatibility code merged via PR #70.
-- **Packages:** modern Windows x64 Setup/Portable; Windows 7 SP1 x64 Setup/Portable; macOS ARM64/Intel Portable; START/source.
-- **Automated verification:** full publisher `36113236225`, Windows PR gate `36113238834`, macOS PR gate `36113238841` — success.
-- **Checksums/legal:** per-platform + combined SHA-256; legal notices included.
-- **Release contents:** 7 primary packages + 6 checksum manifests.
-- **Business/data scope:** no new business logic relative to accepted r10; schema and user data unchanged.
-- **Правовласник:** Roman Zavada (Роман Завада).
-- **Ліцензія:** proprietary / all rights reserved.
-- **Recovery protocol:** `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61.
-
-Документи: [LICENSE.md](../LICENSE.md) · [COPYRIGHT.md](../COPYRIGHT.md) · [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
-
-Після вже виданого 10.4-r1 наступна кодова зміна — тільки **`10.4-r2`**.
-
----
-
-# Taxo — стан продукту
+**Актуально:** 28.09.2026
 
 ## Поточний статус
 
-**Taxo 10.1 — stable promotion approved 21.09.2026.**
+- **Stable:** Taxo 10.3 / `v10.3` — immutable.
+- **Previous stable / rollback:** Taxo 10.1 / `v10.1`.
+- **Latest full checkpoint in `main`:** Taxo 10.5-r8 / `v10.5-r8`.
+- **Issued source:** `846e5c5111b14a4a1f2e49203803e86c495b458f`.
+- **PR #76:** merged.
+- **Main merge:** `eb9cb039d35419fb579ff0f5e1b9c633c95ccd86`.
+- **Full release workflow:** `36406419955` — success.
+- **Regression:** `483/483 OK`.
+- **Packages:** Windows x64 Setup/Portable, Windows 7 SP1 x64 Setup/Portable, macOS ARM64/Intel Portable, START/source, SHA-256 manifests.
+- **Next code revision:** `10.5-r9`.
 
-Попередня stable / rollback — **Taxo 10.0**. Перевірений кандидат перед stable — **v10.1-r5**.
+Release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8
 
-## Що входить у 10.1
+`v10.5-r8` — повний candidate/checkpoint, але stable лишається `v10.3` до окремого рішення власника.
 
-- новий application shell із затвердженим text-free логотипом;
-- динамічна назва підприємства;
-- реєстр працівників із KPI, пошуком і впорядкованими діями;
-- коректне розділення працевлаштування та ролі «Водій»;
-- завершена роль водія не відновлюється після restart;
-- «Звіти» відкриваються в основному workspace;
-- детальний табель single-instance без дубльованого application sidebar;
-- PDF/Excel, П-5, місячний баланс, контроль та папка звітів;
-- оформлені «Про програму» і F1-довідка;
-- весь функціонал stable 10.0: графіки, точні інтервали, шляхівки, тахограф, підтвердження діяльності, резервування.
+## Функціональний стан
 
-## Перевірка
+Taxo — настільна система для одного автотранспортного підприємства. Поточна інтегрована лінія охоплює:
 
-v10.1-r5:
-- source/START — 157 tests / OK;
-- Windows — 157 tests / OK + START preflight;
-- macOS ARM64 — 157 tests / OK;
-- macOS Intel x86_64 — 157 tests / OK;
-- ручний Windows UI/navigation gate — підтверджено.
+- працівників, водіїв, ролі та історію;
+- графіки водіїв і планування персоналу;
+- табель робочого часу, план/факт, поділені зміни;
+- маршрути, шляхові листи, пробіг;
+- бланки підтвердження діяльності з ревізіями;
+- транспортні засоби та документи ТЗ;
+- страхування, ДЦВ, техконтроль, техпаспорти, тимчасову реєстрацію, протоколи тахографа;
+- аналогові тахокарти, інтервали та протоколи;
+- PDF/Excel звіти;
+- резервування і переносиме робоче сховище;
+- звірку ТЗ з «Шлях»;
+- робочі редаговані registry-значення окремо від immutable державних snapshots;
+- єдиний реєстр документів працівників;
+- військово-транспортну відомість підприємства;
+- локальний Diia-first цикл щорічного персонального військового звіряння без імітації державного API.
 
-Stable publisher повторно перевіряє source і формує всі пакети вже з `Version: 10.1`.
+## 10.5-r8
 
-## Пакети
+r8 — вузьке compatibility-виправлення для Windows 7 / Python 3.8. Деякі XLSX «Шлях» можуть викликати openpyxl `TypeError` з `unexpected keyword argument 'tabId'` без `ChildSheet`. r8 розпізнає цей фактичний варіант, виконує in-memory retry, не змінює вихідний XLSX і не маскує сторонні помилки.
 
-GitHub Release `v10.1` міститиме:
-- Windows x64 Setup;
-- Windows x64 Portable;
-- macOS ARM64 Portable;
-- macOS Intel x86_64 Portable;
-- START/source;
-- per-platform і combined SHA-256.
+Бізнес-логіка r7 при цьому не змінювалась.
 
 ## Дані й сумісність
 
-- 10.1 використовує наявне робоче сховище;
-- схема БД не змінюється;
-- повторно вводити дані не потрібно;
-- робочі БД, скани, кеші та персональні документи не публікуються;
-- перед оновленням рекомендована резервна копія.
+- робочі БД, SQLite, скани, кеші та персональні документи не входять до release;
+- програма й робочі дані розділені;
+- оновлення не повинно вимагати повторного введення робочої бази;
+- raw snapshots державних витягів не переписуються локальними змінами;
+- порожні державні значення не очищають локальні дані автоматично;
+- план не оголошується фактом без явного підтвердження;
+- для Windows 7 full checkpoint використовується окрема CPython 3.8.10 / PyInstaller 5.13.2 compatibility line.
 
-## Релізна політика
+## Recovery / джерело істини
 
-- після успішного publisher `main` + `v10.1` = stable source of truth;
-- `v10.0` = previous stable / rollback;
-- `v10.1-r1` … `v10.1-r5` = historical immutable candidates;
-- старі tags/releases не пересуваються.
+`START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61.
 
-Документи:
-- [Release notes 10.1](releases/RELEASE_NOTES_v10_1.md)
-- [Фінальний аудит 10.1](maintenance/AUDIT_v10_1_STABLE.md)
+Додатково:
 - [Індекс релізів](releases/RELEASE_INDEX.md)
+- [Release notes 10.5-r8](releases/RELEASE_NOTES_v10_5_r8.md)
+- [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
 
+## Право та власність
 
-## Завершений candidate 10.2-r4
+**Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.**
 
-Stable 10.1 не змінюється. Candidate 10.2-r4 прийнятий, PR #40 злитий у `main`, prerelease `v10.2-r4` опублікований.
+Taxo — proprietary software. Публічна видимість репозиторію не створює open-source ліцензії.
 
-Політика розробки:
-- кожен завершений крок піднімає ревізію;
-- `r1 ... r10`, після `r10` — наступна minor-версія з `r1`;
-- кожен крок завершується готовим START-архівом із прямим посиланням для ручного тестування;
-- уже видані ревізії не перевикористовуються.
-
-Джерело правила: [maintenance/DEVELOPMENT_RULES.md](maintenance/DEVELOPMENT_RULES.md).
-
-Наступний кодовий крок — `10.2-r5`.
-
-
-## Активний candidate 10.2-r5
-
-Інфраструктурне виправлення: historical publisher stable 10.1 більше не запускається автоматично при нових merge у `main`. Це прибирає хибні failure-повідомлення GitHub Actions; функціонал Taxo та immutable stable `v10.1` не змінюються.
-
-Після завершення r5 наступний кодовий крок — `10.2-r6`.
-
-
-## Active candidate 10.2-r6
-
-UI consistency checkpoint: великі secondary windows оформлюються у стилі stable 10.1 з text-free logo та динамічною назвою підприємства. Бізнес-логіка, БД та моделі розрахунку не змінюються.
-
-
-## Active candidate 10.2-r7
-
-Packaging correction після r6: UI-зміни secondary windows збережені, але тестовий START archive тепер має канонічну назву 10.2-r7. Historical r6 не переписується.
-
-
-## Completed candidate 10.2-r7
-
-`10.2-r7` опублікований і злитий у `main`. Він завершує secondary-window UI checkpoint та виправлення START-пакування. Stable release `v10.1` лишається незмінним.
-
-Наступний кодовий крок — `10.2-r8`, ще не розпочатий. Перед ним зафіксовано окремий аудит трьох пов'язаних областей: графік водіїв, загальне планування персоналу та зміни персоналу випуску (лікар / механік / диспетчер). Це **не є частиною 10.2-r7**.
+Документи: [LICENSE.md](../LICENSE.md) · [COPYRIGHT.md](../COPYRIGHT.md) · [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
