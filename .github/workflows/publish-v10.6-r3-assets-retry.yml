@@ -1,0 +1,124 @@
+name: Publish Taxo 10.6-r3 checkpoint assets retry
+
+on:
+  push:
+    branches:
+      - 'work/v10.6-r3-waybill-reverse-fields'
+    paths:
+      - '.github/workflows/publish-v10.6-r3-assets-retry.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      TAXO_SOURCE_SHA: '97e646936d14d163faf93882daf7894f5bb38ab6'
+      SOURCE_RUN_ID: '36439848549'
+    steps:
+      - name: Checkout branch metadata and tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify immutable r3 tag and START asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          test "$(git rev-list -n1 v10.6-r3)" = "$TAXO_SOURCE_SHA"
+          mkdir -p release-upload/artifacts
+          gh release download v10.6-r3 --repo "$GITHUB_REPOSITORY" --dir release-upload --pattern 'Taxo_v10_6_candidate_r3_START.zip'
+          echo 'ea97909e7ae8a895730172aef4f6cabf61c18c227adce12cdaec803dfe8c490c  release-upload/Taxo_v10_6_candidate_r3_START.zip' | sha256sum -c -
+
+      - name: Download already verified executable artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          cd release-upload/artifacts
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name 'Taxo-v10.6-r3-Windows-x64'
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name 'Taxo-v10.6-r3-Windows7-x64'
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name 'Taxo-v10.6-r3-macOS-arm64'
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name 'Taxo-v10.6-r3-macOS-x86_64'
+
+      - name: Normalize and verify complete package set
+        shell: bash
+        run: |
+          find release-upload/artifacts -type f -print
+          files=(
+            Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe
+            Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip
+            Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe
+            Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip
+            Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip
+            Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip
+            SHA256SUMS_v10_6_r3_Windows_x64.txt
+            SHA256SUMS_v10_6_r3_Windows7_x64.txt
+            SHA256SUMS_v10_6_r3_macOS_arm64.txt
+            SHA256SUMS_v10_6_r3_macOS_x86_64.txt
+          )
+          for file in "${files[@]}"; do
+            src="$(find release-upload/artifacts -type f -name "$file" -print -quit)"
+            test -n "$src" || { echo "Missing verified artifact file: $file" >&2; exit 1; }
+            cp "$src" "release-upload/$file"
+          done
+          cd release-upload
+          required=(
+            Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe
+            Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip
+            Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe
+            Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip
+            Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip
+            Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip
+            Taxo_v10_6_candidate_r3_START.zip
+          )
+          sha256sum "${required[@]}" | sort -k2 > SHA256SUMS_v10_6_r3_FULL.txt
+          cat SHA256SUMS_v10_6_r3_FULL.txt
+
+      - name: Refuse overwrite of existing checkpoint assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          existing="$(gh release view v10.6-r3 --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          new_assets=(
+            Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe
+            Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip
+            Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe
+            Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip
+            Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip
+            Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip
+            SHA256SUMS_v10_6_r3_Windows_x64.txt
+            SHA256SUMS_v10_6_r3_Windows7_x64.txt
+            SHA256SUMS_v10_6_r3_macOS_arm64.txt
+            SHA256SUMS_v10_6_r3_macOS_x86_64.txt
+            SHA256SUMS_v10_6_r3_FULL.txt
+          )
+          for file in "${new_assets[@]}"; do
+            if grep -Fxq "$file" <<<"$existing"; then
+              echo "Refusing to overwrite existing release asset: $file" >&2
+              exit 1
+            fi
+          done
+
+      - name: Upload full checkpoint assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release upload v10.6-r3 \
+            release-upload/Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe \
+            release-upload/Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip \
+            release-upload/Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe \
+            release-upload/Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip \
+            release-upload/Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip \
+            release-upload/Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip \
+            release-upload/SHA256SUMS_v10_6_r3_Windows_x64.txt \
+            release-upload/SHA256SUMS_v10_6_r3_Windows7_x64.txt \
+            release-upload/SHA256SUMS_v10_6_r3_macOS_arm64.txt \
+            release-upload/SHA256SUMS_v10_6_r3_macOS_x86_64.txt \
+            release-upload/SHA256SUMS_v10_6_r3_FULL.txt \
+            --repo "$GITHUB_REPOSITORY"
