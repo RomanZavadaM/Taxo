@@ -6,52 +6,59 @@
 ## CURRENT
 
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
-**Latest full checkpoint in `main`:** Taxo **10.5-r8** / `v10.5-r8`  
-**Latest issued fast-test:** Taxo **10.6-r3** / `v10.6-r3`  
-**Issued r3 source/tag target:** `97e646936d14d163faf93882daf7894f5bb38ab6`  
-**r3 regression:** `530/530 OK`  
-**r3 START verify run:** `36434131185` — success  
-**r3 publisher run:** `36434348730` — success  
-**r3 Release START SHA-256:** `ea97909e7ae8a895730172aef4f6cabf61c18c227adce12cdaec803dfe8c490c`  
-**r3 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3  
+**Latest full checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`  
+**Main merge:** PR #84 → `0151fea9a2a27bf8e970ca71ef9786a2d750d0ab`  
+**Issued source/tag target:** `97e646936d14d163faf93882daf7894f5bb38ab6`  
+**Regression:** `530/530 OK`  
+**START verify:** `36434131185` — success  
+**Full asset publisher:** `36440880324` — success  
+**Final Windows gate:** `36441149032` — success  
+**Final macOS gate:** `36441148816` — success  
+**Release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3  
 **Next code revision:** **10.6-r4**  
-**Tracking:** Issue #83 — completed; live ledger #61
+**Live ledger:** Issue #61
 
-## DONE — 10.6-r3
+## DONE — 10.6-r3 main checkpoint
 
-- [x] Відтворити причину: historical r9 sanitizer очищав `doctor_*`, `mechanic_*`, `odometer_*` та `distance_km` разом із route-only полями.
-- [x] Не змінювати immutable r9 helper; додати зовнішній runtime layer `v1063_features.py`.
-- [x] Для нерегулярної шляхівки очищати тільки `start_direction`, `outbound_stops`, `return_stops`.
-- [x] Зберегти лікаря I/II, механіка I/II, спідометр і фактичний пробіг, якщо вони реально є в payload.
-- [x] Провести аудит решти автоматично заповнюваних полів шляхівки.
-- [x] Зафіксувати, що `schedule_code` не має канонічного джерела і не повинен вигадуватися.
-- [x] Залишити ДАІ/лінійний контроль/причину заїзду та підписні факти ручними.
-- [x] Додати PDF regression: операційні поля друкуються, фіктивні маршрутні точки — ні.
-- [x] Синхронізувати `main.APP_VERSION`, `VERSION.txt`, runtime chain і START guard як 10.6-r3.
-- [x] Повний regression: `530/530 OK`.
-- [x] Чистий START package перевірено у run `36434131185`.
-- [x] Опубліковано immutable prerelease `v10.6-r3` на exact source `97e646936d14d163faf93882daf7894f5bb38ab6`.
-- [x] Release START asset: `Taxo_v10_6_candidate_r3_START.zip`; SHA-256 `ea97909e7ae8a895730172aef4f6cabf61c18c227adce12cdaec803dfe8c490c`.
-- [x] Release notes, `PROJECT_STATE.md`, `RELEASE_INDEX.md` і live ledger синхронізовано post-issuance docs commits без пересування tag/release.
-- [x] Issue #83 закрито як completed.
+- [x] Fast-test r3: нерегулярна шляхівка очищає лише regular-route таблиці/напрямок.
+- [x] Лікар I/II, механік I/II, спідометр і фактичний пробіг зберігаються, якщо реально є в payload.
+- [x] Поля без фактичного джерела не вигадуються; `schedule_code` навмисно порожній.
+- [x] Успадковано нерегулярні виїзди: замовлення, розвозки, місто, область, міжобласні та інші разові роботи.
+- [x] Успадковано plan/fact audit correction і default-on фільтр неактивних ТЗ.
+- [x] Успадковано адаптивне вікно «Про програму».
+- [x] Regression: `530/530 OK`.
+- [x] START asset виданий і перевірений; SHA-256 `ea97909e7ae8a895730172aef4f6cabf61c18c227adce12cdaec803dfe8c490c`.
+- [x] Повні пакети з exact issued source `97e646936d14d163faf93882daf7894f5bb38ab6` зібрані: Windows x64, Windows 7 SP1, macOS ARM64, macOS Intel.
+- [x] Win7 PE compatibility gate пройдено.
+- [x] Перший publisher run `36439848549`: усі build jobs success; publish-only step зупинився через вкладений `release_out/` шлях інсталятора в Actions artifact.
+- [x] Publisher retry `36440880324` нормалізував шлях і успішно додав executable assets та platform/full checksums до існуючого `v10.6-r3` без пересування tag/START.
+- [x] One-shot publisher workflows видалені з work-гілки до merge.
+- [x] Фінальні PR gates на head `737bc5a855be8e81f8ba403a16df06d336692a3a`: Windows і macOS success.
+- [x] PR #84 merged у `main`: `0151fea9a2a27bf8e970ca71ef9786a2d750d0ab`.
+- [x] Документація й README синхронізуються окремим docs-only closeout без зміни runtime/revision.
 
-## AUDIT — поля шляхівки
+## RELEASE ASSETS — v10.6-r3
 
-Автоматичні дані, які мають джерело у Taxo, передаються в PDF: реквізити підприємства, номер/серія, дата, маршрут/замовник, автобус, водій/табельний №, планові часові межі, тривалість роботи/керування, лікарі, механіки, спідометр/пробіг та маршрутні таблиці для регулярного маршруту.
-
-Виявлена одна свідомо незаповнена автоматична графа: **«Графік» / `schedule_code`**. У поточній моделі немає канонічного коду графіка, тому r3 не підставляє вигадане значення.
-
-Ручні/фактичні поля без джерела — ДАІ/служба руху, лінійний контроль, причина заїзду, підписи та подібні фактичні відмітки — залишаються порожніми до фактичного внесення.
+- `Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe`
+- `Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip`
+- `Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe`
+- `Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip`
+- `Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip`
+- `Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip`
+- `Taxo_v10_6_candidate_r3_START.zip`
+- platform SHA-256 manifests
+- `SHA256SUMS_v10_6_r3_FULL.txt`
 
 ## PRESERVED
 
-- `10.6-r2`: нерегулярні замовлення/розвозки/міські/обласні/міжобласні поїздки, вибір автобуса під час видачі, route/stops validation тільки для реального регулярного маршруту.
-- `10.6-r1`: фільтр неактивних ТЗ.
+- Stable `v10.3` не пересунуто.
+- `v10.6-r3` tag target лишається exact issued source `97e646936d14d163faf93882daf7894f5bb38ab6`.
 - plan/fact і тахографічна межа не змінюються.
+- робочі БД, скани, кеші та персональні файли не входять у release.
 
 ## NEXT
 
-`10.6-r3` виданий та immutable. Наступна кодова зміна — тільки **10.6-r4** у новій work-гілці. У `main` r3 не зливати без окремої команди власника.
+Наступна кодова робота починається тільки як **10.6-r4** у новій work-гілці після наступного завдання власника.
 
 ## BLOCKED
 
