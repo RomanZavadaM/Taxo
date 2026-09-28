@@ -34,14 +34,10 @@ class VehicleDocumentFormLayoutR8Tests(unittest.TestCase):
 
 
 class R8IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_10_6_r8(self):
-        version = (ROOT / "VERSION.txt").read_text("utf-8")
-        main = (ROOT / "main.py").read_text("utf-8")
-        self.assertIn("Version: 10.6-r8", version)
-        self.assertIn('APP_VERSION = "10.6-r8"', main)
+    def test_r8_layer_identity_remains_historical(self):
         self.assertEqual(r8.APP_VERSION, "10.6-r8")
 
-    def test_r8_is_outermost_and_r7_remains_in_runtime_chain(self):
+    def test_r8_is_installed_after_r7_and_remains_in_runtime_chain(self):
         source = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1067_features import install as install_v1067", source)
         self.assertIn("from v1068_features import install as install_v1068", source)
