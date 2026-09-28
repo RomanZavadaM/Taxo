@@ -40,14 +40,10 @@ class VehicleDocumentActionLayoutR7Tests(unittest.TestCase):
 
 
 class R7IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_10_6_r7(self):
-        version = (ROOT / "VERSION.txt").read_text("utf-8")
-        main = (ROOT / "main.py").read_text("utf-8")
-        self.assertIn("Version: 10.6-r7", version)
-        self.assertIn('APP_VERSION = "10.6-r7"', main)
+    def test_r7_layer_identity_remains_historical(self):
         self.assertEqual(r7.APP_VERSION, "10.6-r7")
 
-    def test_r7_is_outermost_and_r6_remains_in_runtime_chain(self):
+    def test_r7_is_installed_after_r6_and_remains_in_runtime_chain(self):
         source = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1066_features import install as install_v1066", source)
         self.assertIn("from v1067_features import install as install_v1067", source)
