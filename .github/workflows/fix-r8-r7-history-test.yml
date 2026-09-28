@@ -1,0 +1,38 @@
+name: Fix r8 historical r7 chain test
+
+on:
+  push:
+    branches:
+      - 'work/v10.5-r8-win7-tabid-compat'
+    paths:
+      - '.github/workflows/fix-r8-r7-history-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Make r7 historical assertion revision-safe
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('tests/test_v10_5_r7.py')
+          text = p.read_text(encoding='utf-8')
+          old = '        self.assertIn("App = install_v1057(", entry)'
+          new = '        self.assertIn("install_v1057(", entry)'
+          if old not in text:
+              raise SystemExit('r7 assertion anchor not found')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+          git config user.name 'RomanZavadaM'
+          git config user.email 'zavada.roman.m@gmail.com'
+          git add tests/test_v10_5_r7.py
+          git commit -m 'test(10.5-r8): keep r7 chain assertion historical'
+          git push origin HEAD:work/v10.5-r8-win7-tabid-compat
