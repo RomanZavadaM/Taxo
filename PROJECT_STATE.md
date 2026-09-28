@@ -8,22 +8,124 @@
 - **Stable:** Taxo 10.3 / `v10.3` — immutable.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Latest full multi-platform checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`.
-- **Main merge:** PR #84 → `0151fea9a2a27bf8e970ca71ef9786a2d750d0ab`.
-- **Issued r3 source/tag target:** `97e646936d14d163faf93882daf7894f5bb38ab6` — immutable.
-- **Regression:** `530/530 OK`.
-- **START verify run:** `36434131185` — success.
-- **Original START publisher:** `36434348730` — success.
-- **Full multi-platform package gate:** build run `36439848549`; all source/Windows/Win7/macOS build jobs success; initial publish-only normalization step failed without invalidating builds.
-- **Full asset publisher retry:** `36440880324` — success.
-- **Final PR gates:** Windows `36441149032` — success; macOS `36441148816` — success.
-- **Release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3
-- **Release START SHA-256:** `ea97909e7ae8a895730172aef4f6cabf61c18c227adce12cdaec803dfe8c490c`.
-- **Next code revision:** тільки **10.6-r4**.
+- **Main head after r3 docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`.
+- **Latest issued fast-test:** Taxo **10.6-r9** / `v10.6-r9`.
+- **Issued r9 source/tag target:** `2705fb5c9105e21bfb669a2d40d4f29449e1a00b` — immutable by project policy.
+- **r9 regression:** `578/578 OK`.
+- **r9 clean START verify run:** `36472489549` — success.
+- **r9 prerelease publisher:** `36472783754` — success.
+- **r9 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r9
+- **r9 START asset:** `Taxo_v10_6_candidate_r9_START.zip`.
+- **r9 START Release SHA-256:** `37a6214bb4ba5b33569804e3efb06912549625600361cf510d52808a55a0a8c4`.
+- **Next code revision:** тільки **10.6-r10**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є повним multi-platform checkpoint у `main`, але не stable promotion.
+`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4`…`v10.6-r9` — окремі fast-test candidate checkpoints і не злиті у `main`.
 
-## Що інтегровано після 10.5-r8
+## Taxo 10.6-r9 — адаптивний заголовок картки документів ТЗ
+
+Причина: назва автомобіля і підсумок стану документів (`summary_var`) були розміщені зліва/справа в одному horizontal header-row. Для довгої назви або кількох проблемних документів тексти конкурували за ширину і могли обрізатися.
+
+Виконано:
+
+- додано `v1069_features.py` як outer runtime layer поверх `v1068`;
+- на достатній ширині title + summary лишаються в одному рядку;
+- при нестачі ширини header автоматично переходить у два рядки;
+- у stacked mode summary отримує динамічний `wraplength` із безпечними межами;
+- `summary_var`, його текст і розрахунок стану документів не змінені;
+- таблиця документів, horizontal/vertical scrollbars, responsive action-bar r7 і responsive form r8 збережені;
+- document schema, SQL, archive semantics, копії, строки дії та DB semantics не змінені;
+- повний exact-source regression: `578/578 OK`;
+- clean START verify: `36472489549` — success;
+- immutable fast-test tag/release: `v10.6-r9` → `2705fb5c9105e21bfb669a2d40d4f29449e1a00b`;
+- GitHub Release START SHA-256: `37a6214bb4ba5b33569804e3efb06912549625600361cf510d52808a55a0a8c4`.
+
+## Taxo 10.6-r8 — адаптивна форма документа ТЗ
+
+Причина: форма додавання/редагування документа ТЗ мала багато вертикальних рядків, fixed `wraplength=520` і нижню кнопку «Зберегти». На невисоких/масштабованих екранах нижня дія могла притискатися або обрізатися, а пояснювальний текст — виходити за фактичну ширину правої колонки.
+
+Виконано:
+
+- додано `v1068_features.py` як outer runtime layer поверх `v1067`;
+- на висоті <620 px стандартні вертикальні відступи форми ущільнюються;
+- поле «Примітка» у compact mode зменшується з 4 до 3 рядків;
+- пояснення про архівацію та поточну копію отримують динамічний `wraplength` 240…520 px;
+- при нормальній висоті початкові відступи й висота примітки відновлюються;
+- існуючий `_form()`/`save()` closure не переписується;
+- `EXPIRY_REQUIRED`, перевірка дат, `archive_current_document_slot()`, `copy_document_file()`, SQL та DB semantics не змінені;
+- повний exact-source regression: `570/570 OK`;
+- clean START verify: `36469618323` — success;
+- immutable fast-test tag/release: `v10.6-r8` → `09f0e6e6cf3809b6d0efc6c9cdad7937a44d78d3`;
+- GitHub Release START SHA-256: `90e04c065a157aa1453e2aa50024ca3f4093de37db30be23ae007114531eb7ec`.
+
+## Taxo 10.6-r7 — адаптивна панель дій картки документів ТЗ
+
+Причина: у картці документів конкретного транспортного засобу п'ять дій документа та прапорець «Показувати архів» були складені в один горизонтальний ряд і могли обрізатися на вузьких/масштабованих екранах.
+
+Виконано:
+
+- додано `v1067_features.py` як outer runtime layer поверх `v1066`;
+- action-bar переведено у responsive `grid` у тому самому контейнері;
+- збережено «Додати документ», «Редагувати», «Архівувати», «Відкрити копію», «Оновити» та «Показувати архів»;
+- callback-и, порядок і `show_archived` не замінюються;
+- таблиця документів і її горизонтальна/вертикальна прокрутка не змінені;
+- document schema, archive semantics, копії, строки дії, vehicle data та business logic не змінені;
+- повний exact-source regression: `562/562 OK`;
+- clean START verify: `36463667268` — success;
+- immutable fast-test tag/release: `v10.6-r7` → `e3f1666bafbd82e37ac2e63b08bfed2d265bae30`;
+- GitHub Release START SHA-256: `5fe124b6865419a14f4073d9bbb54efe18a3142a1e44aa03dc1339554e2a49fd`.
+
+## Taxo 10.6-r6 — адаптивна панель команд реєстру ТЗ
+
+Причина: у реєстрі транспортних засобів шість основних кнопок і довгий прапорець «Сховати неактивні автомобілі» могли не вміститися в один горизонтальний ряд на вузьких/масштабованих екранах.
+
+Виконано:
+
+- додано `v1066_features.py` як outer runtime layer поверх `v1065`;
+- збережено дії «Нове авто», «Редагувати», «Документи», «Контроль документів», «Вивести з експлуатації», «Оновити» та прапорець приховування неактивних ТЗ;
+- існуючі контроли автоматично переносяться на наступний рядок відповідно до фактичної ширини toolbar;
+- callback-и та `BooleanVar` фільтра не замінюються;
+- «Сховати неактивні автомобілі» лишається увімкненим за замовчуванням;
+- дані ТЗ, статуси, документи й БД не змінені;
+- повний exact-source regression: `554/554 OK`;
+- clean START verify: `36462366765` — success;
+- immutable fast-test tag/release: `v10.6-r6` → `90ab67ae00be381f8b2bc14e18f9614574e3493f`;
+- GitHub Release START SHA-256: `7493202b3282ffba5238342136dd3a19a5cd7f663514c12eb3827451eff83e79`.
+
+## Taxo 10.6-r5 — адаптивні фільтри звіту документів ТЗ
+
+Причина: у звіті «Стан документів транспортних засобів» дата, кнопка календаря і два довгі прапорці були складені в один горизонтальний ряд. На вузьких або масштабованих екранах крайні елементи могли виходити за видиму область.
+
+Виконано:
+
+- додано `v1065_features.py` як outer runtime layer поверх `v1064`;
+- група `дата + поле + Дата…` лишається разом;
+- прапорці «Тільки авто в експлуатації» та «Тільки проблемні / попередження» переносяться при нестачі ширини;
+- фільтр активних ТЗ лишається увімкненим за замовчуванням;
+- таблиця та обидві прокрутки не змінені;
+- SQL, правила комплектності документів і експорт PDF/Excel не змінені;
+- повний exact-source regression: `546/546 OK`;
+- clean START verify: `36452858366` — success;
+- immutable fast-test tag/release: `v10.6-r5` → `118d4111e183528c49e8060e8782479fa4436377`;
+- GitHub Release START SHA-256: `8586e5aa6c07860ea4aeda5eaf76b409acc4719b41a9b60da991c3ca14ec27c9`.
+
+## Taxo 10.6-r4 — адаптивні дії шляхівок
+
+Причина: у базовому вікні «Шляхівки» дев'ять команд були розташовані одним горизонтальним рядком при мінімальній ширині вікна 850 px. На вузьких/масштабованих екранах крайні дії могли виходити за видиму область; пояснювальний текст мав фіксований `wraplength=1050`.
+
+Виконано:
+
+- додано `v1064_features.py` як outer runtime layer поверх існуючого chain до `v1063`;
+- ті самі дев'ять кнопок і callback-и збережені, без дублювання бізнес-дій;
+- action bar автоматично переносить кнопки у кілька `grid`-рядків за фактичною доступною шириною;
+- reflow виконується при зміні ширини вікна;
+- пояснювальний текст отримує адаптивний `wraplength`;
+- таблиця шляхівок і її вертикальна/горизонтальна прокрутка не змінені;
+- `main.APP_VERSION`, `VERSION.txt` і r4 runtime identity синхронізовані;
+- історичні regression-контракти r2/r3 збережені без вимоги назавжди тримати поточну версію рівною r3;
+- r4 не змінює БД, PDF renderer/payload, plan/fact, route validation, лікаря/механіка, спідометр або пробіг.
+
+## Що інтегровано у full main checkpoint 10.6-r3
 
 ### 10.5-r9 / 10.6-r2 — шляхівки поза регулярним маршрутом
 
@@ -61,18 +163,7 @@
 
 ## Повний пакет 10.6-r3
 
-Release містить:
-
-- Windows x64 Setup;
-- Windows x64 Portable;
-- Windows 7 SP1 x64 Setup;
-- Windows 7 SP1 x64 Portable;
-- macOS ARM64 Portable;
-- macOS Intel x86_64 Portable;
-- START/source;
-- platform SHA-256 manifests і `SHA256SUMS_v10_6_r3_FULL.txt`.
-
-Tag `v10.6-r3` не пересувався: усі executable-пакети зібрані з exact issued source `97e646936d14d163faf93882daf7894f5bb38ab6`.
+Release містить Windows x64 Setup/Portable, Windows 7 SP1 x64 Setup/Portable, macOS ARM64/Intel Portable, START/source та SHA-256 manifests. Tag `v10.6-r3` не пересувався: executable-пакети зібрані з exact issued source `97e646936d14d163faf93882daf7894f5bb38ab6`.
 
 ## Постійні межі даних
 
@@ -103,4 +194,4 @@ Taxo — proprietary software.
 
 ## Наступний крок
 
-10.6-r3 повністю інтегрований у `main` і виданий для всіх підтримуваних систем. Наступна кодова зміна — тільки **10.6-r4** у новій work-гілці. Stable `v10.3` не пересувати без окремого рішення власника.
+10.6-r9 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r10**. Після видачі r10 — rollover на **10.7-r1**. Stable `v10.3` не пересувати без окремого рішення власника; r9 не зливати в `main` без нової прямої команди власника.

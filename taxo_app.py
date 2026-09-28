@@ -28,6 +28,13 @@ from v10510_features import install as install_v10510
 from v1061_features import install as install_v1061
 from v1062_features import install as install_v1062
 from v1063_features import install as install_v1063
+from v1064_features import install as install_v1064
+from v1065_features import install as install_v1065
+from v1066_features import install as install_v1066
+from v1067_features import install as install_v1067
+from v1068_features import install as install_v1068
+from v1069_features import install as install_v1069
+from v10610_features import install as install_v10610
 
 App = install_v1063(
     core,
@@ -105,6 +112,13 @@ App = install_v1063(
         ),
     )
 )
+App = install_v1064(core, App)
+App = install_v1065(core, App)
+App = install_v1066(core, App)
+App = install_v1067(core, App)
+App = install_v1068(core, App)
+App = install_v1069(core, App)
+App = install_v10610(core, App)
 
 
 def run():
