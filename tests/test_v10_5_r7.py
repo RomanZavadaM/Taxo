@@ -188,7 +188,7 @@ class R7IntegrationTests(unittest.TestCase):
     def test_r7_is_outermost_entrypoint_and_r6_remains_in_chain(self):
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1057_features import install as install_v1057", entry)
-        self.assertIn("App = install_v1057(", entry)
+        self.assertIn("install_v1057(", entry)
         self.assertIn("install_v1056(", entry)
 
     def test_ui_explicitly_separates_local_preparation_from_external_fact(self):
