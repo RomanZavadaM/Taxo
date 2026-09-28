@@ -42,20 +42,22 @@ class VehicleRegistryFilterR1Tests(unittest.TestCase):
 
 
 class R1IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_10_6_r1(self):
+    def test_current_version_is_r1_or_later_in_10_6_line(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
         match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
         self.assertIsNotNone(match)
-        self.assertEqual(tuple(map(int, match.groups())), (10, 6, 1))
+        major, minor, revision = map(int, match.groups())
+        self.assertEqual((major, minor), (10, 6))
+        self.assertGreaterEqual(revision, 1)
         feature = (ROOT / "v1061_features.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "10.6-r1"', feature)
 
-    def test_r1_is_outermost_and_r10_remains_in_chain(self):
+    def test_r1_remains_in_runtime_chain_after_later_revisions(self):
         entry = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1061_features import install as install_v1061", entry)
-        self.assertIn("App = install_v1061(", entry)
+        self.assertIn("install_v1061(", entry)
         self.assertIn("install_v10510(", entry)
-        self.assertLess(entry.index("App = install_v1061("), entry.index("install_v10510("))
+        self.assertLess(entry.index("install_v1061("), entry.index("install_v10510("))
 
     def test_start_package_requires_r1_runtime(self):
         workflow = (ROOT / ".github/workflows/source-test-archive.yml").read_text(encoding="utf-8")
