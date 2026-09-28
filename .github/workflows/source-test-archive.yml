@@ -93,6 +93,7 @@ jobs:
             vehicle_reconciliation.py
             employee_document_register.py
             personnel_registry_lossless.py
+            registry_working_data.py
             v1049_features.py
             v10410_features.py
             v1051_features.py
@@ -100,6 +101,7 @@ jobs:
             v1053_features.py
             v1054_features.py
             v1055_features.py
+            v1056_features.py
             work_regime.py
             branding.py
             branding_asset.py
