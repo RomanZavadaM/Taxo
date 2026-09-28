@@ -8,22 +8,37 @@
 - **Stable:** Taxo 10.3 / `v10.3` — immutable.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Latest full multi-platform checkpoint in `main`:** Taxo **10.6-r3** / `v10.6-r3`.
-- **Main merge:** PR #84 → `0151fea9a2a27bf8e970ca71ef9786a2d750d0ab`.
-- **Issued r3 source/tag target:** `97e646936d14d163faf93882daf7894f5bb38ab6` — immutable.
-- **Regression:** `530/530 OK`.
-- **START verify run:** `36434131185` — success.
-- **Original START publisher:** `36434348730` — success.
-- **Full multi-platform package gate:** build run `36439848549`; all source/Windows/Win7/macOS build jobs success; initial publish-only normalization step failed without invalidating builds.
-- **Full asset publisher retry:** `36440880324` — success.
-- **Final PR gates:** Windows `36441149032` — success; macOS `36441148816` — success.
-- **Release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3
-- **Release START SHA-256:** `ea97909e7ae8a895730172aef4f6cabf61c18c227adce12cdaec803dfe8c490c`.
-- **Next code revision:** тільки **10.6-r4**.
+- **Main head after r3 docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`.
+- **Latest issued fast-test:** Taxo **10.6-r4** / `v10.6-r4`.
+- **Issued r4 source/tag target:** `3961bde3708a13de6352b8c30438d2b65351110c` — immutable.
+- **r4 regression:** `539/539 OK`.
+- **r4 clean START verify run:** `36447919207` — success.
+- **r4 prerelease publisher:** `36448277953` — success.
+- **r4 release:** https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r4
+- **r4 START asset:** `Taxo_v10_6_candidate_r4_START.zip`.
+- **r4 START release SHA-256:** `3bd3d8ce3e98e53532295cc4491167d5c8ac0e099ac8c749b8976534dab3f220`.
+- **Next code revision:** тільки **10.6-r5**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є повним multi-platform checkpoint у `main`, але не stable promotion.
+`v10.3` залишається stable до окремого рішення власника. `v10.6-r3` є останнім повним multi-platform checkpoint у `main`; `v10.6-r4` — окремий fast-test candidate і не злитий у `main`.
 
-## Що інтегровано після 10.5-r8
+## Taxo 10.6-r4 — адаптивні дії шляхівок
+
+Причина: у базовому вікні «Шляхівки» дев'ять команд були розташовані одним горизонтальним рядком при мінімальній ширині вікна 850 px. На вузьких/масштабованих екранах крайні дії могли виходити за видиму область; пояснювальний текст мав фіксований `wraplength=1050`.
+
+Виконано:
+
+- додано `v1064_features.py` як outer runtime layer поверх існуючого chain до `v1063`;
+- ті самі дев'ять кнопок і callback-и збережені, без дублювання бізнес-дій;
+- action bar автоматично переносить кнопки у кілька `grid`-рядків за фактичною доступною шириною;
+- reflow виконується при зміні ширини вікна;
+- пояснювальний текст отримує адаптивний `wraplength`;
+- таблиця шляхівок і її вертикальна/горизонтальна прокрутка не змінені;
+- `main.APP_VERSION`, `VERSION.txt` і r4 runtime identity синхронізовані;
+- історичні regression-контракти r2/r3 збережені без вимоги назавжди тримати поточну версію рівною r3;
+- r4 не змінює БД, PDF renderer/payload, plan/fact, route validation, лікаря/механіка, спідометр або пробіг.
+
+## Що інтегровано у full main checkpoint 10.6-r3
 
 ### 10.5-r9 / 10.6-r2 — шляхівки поза регулярним маршрутом
 
@@ -61,18 +76,7 @@
 
 ## Повний пакет 10.6-r3
 
-Release містить:
-
-- Windows x64 Setup;
-- Windows x64 Portable;
-- Windows 7 SP1 x64 Setup;
-- Windows 7 SP1 x64 Portable;
-- macOS ARM64 Portable;
-- macOS Intel x86_64 Portable;
-- START/source;
-- platform SHA-256 manifests і `SHA256SUMS_v10_6_r3_FULL.txt`.
-
-Tag `v10.6-r3` не пересувався: усі executable-пакети зібрані з exact issued source `97e646936d14d163faf93882daf7894f5bb38ab6`.
+Release містить Windows x64 Setup/Portable, Windows 7 SP1 x64 Setup/Portable, macOS ARM64/Intel Portable, START/source та SHA-256 manifests. Tag `v10.6-r3` не пересувався: executable-пакети зібрані з exact issued source `97e646936d14d163faf93882daf7894f5bb38ab6`.
 
 ## Постійні межі даних
 
@@ -103,4 +107,4 @@ Taxo — proprietary software.
 
 ## Наступний крок
 
-10.6-r3 повністю інтегрований у `main` і виданий для всіх підтримуваних систем. Наступна кодова зміна — тільки **10.6-r4** у новій work-гілці. Stable `v10.3` не пересувати без окремого рішення власника.
+10.6-r4 виданий як окремий immutable fast-test checkpoint і **не** злитий у `main`. Наступна кодова зміна — тільки **10.6-r5**. Stable `v10.3` не пересувати без окремого рішення власника; r4 не зливати в `main` без нової прямої команди власника.
