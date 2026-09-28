@@ -37,6 +37,10 @@
 | [v10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8) | historical | Windows x64/Win7, macOS ARM64/Intel, START, SHA-256 |
 | [v10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) | historical | Windows x64/Win7, macOS ARM64/Intel, START, SHA-256 |
 
+## Historical identity anchors
+
+- **Taxo 10.4-r7** — historical issued source `9f397a092fe828570927bc39cef7a3a467e2aff0`; межа між локальним контролем документів ТЗ та державними реєстрами. Checkpoint **immutable** і не використовується як нова база, але його точна ідентичність зберігається для regression/history.
+
 ## Stable line
 
 | Tag | Статус |
