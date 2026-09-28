@@ -10,47 +10,39 @@
 **Main head after docs closeout:** `01c8c90d90f1be4641796f6aedcbd7c4ad7d9da4`  
 **Latest issued fast-test:** Taxo **10.6-r5** / `v10.6-r5`  
 **Issued r5 source/tag target:** `118d4111e183528c49e8060e8782479fa4436377` — immutable by project policy  
-**Work branch:** `work/v10.6-r5-vehicle-doc-report-responsive`  
+**Active code revision:** **10.6-r6**  
+**Work branch:** `work/v10.6-r6-vehicle-toolbar-responsive`  
+**Scope:** адаптивна панель команд реєстру транспортних засобів; UI-only  
 **Live ledger:** Issue #61
 
-## DONE — 10.6-r5
+## DOING — 10.6-r6
 
-Причина: у звіті «Стан документів транспортних засобів» дата, кнопка календаря і два довгі прапорці були складені в один горизонтальний ряд. На вузьких або масштабованих екранах крайні елементи могли виходити за видиму область.
-
-Виконано:
-
-- [x] додано outer runtime layer `v1065_features.py`;
-- [x] група `дата + поле + Дата…` не розривається;
-- [x] прапорці «Тільки авто в експлуатації» та «Тільки проблемні / попередження» переносяться на наступний рядок при нестачі ширини;
-- [x] «Тільки авто в експлуатації» лишається `True` за замовчуванням;
-- [x] таблиця, вертикальна й горизонтальна прокрутка не змінені;
-- [x] SQL, правила документів і експорт PDF/Excel не змінені;
-- [x] `v1065` встановлено outermost поверх `v1064`;
-- [x] START packaging guard вимагає `v1065_features.py`;
-- [x] regression contract: `tests/test_v10_6_r5.py`;
-- [x] exact-source regression: **546/546 OK**;
-- [x] clean START verify run: `36452858366` — success;
-- [x] Actions artifact: `Taxo_v10_6_candidate_r5_START`, ID `10984119034`;
-- [x] prerelease publisher run: `36461104704` — success;
-- [x] tag/release `v10.6-r5` вказує точно на `118d4111e183528c49e8060e8782479fa4436377`;
-- [x] GitHub Release asset: `Taxo_v10_6_candidate_r5_START.zip`;
-- [x] Release asset SHA-256: `8586e5aa6c07860ea4aeda5eaf76b409acc4719b41a9b60da991c3ca14ec27c9`;
-- [x] checksum manifest: `SHA256SUMS_v10_6_r5.txt`.
-
-Release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r5  
-START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r5/Taxo_v10_6_candidate_r5_START.zip
+- [x] pre-flight: stable/main/r5 release перевірені, відкритих PR немає;
+- [x] підтверджено UI-дефект: шість кнопок базового `build_vehicles` + довгий r1-прапорець складаються в один горизонтальний ряд;
+- [x] створено work-гілку від post-r5 docs/process head;
+- [x] додано outer runtime layer `v1066_features.py`;
+- [x] усі шість дій і прапорець збережені в початковому порядку;
+- [x] контроли переносяться на наступний рядок за фактичною шириною toolbar;
+- [x] існуючі callback-и та `BooleanVar` фільтра не замінюються;
+- [x] «Сховати неактивні автомобілі» лишається `True` за замовчуванням;
+- [x] дані ТЗ, статуси, документи й БД не змінюються;
+- [x] додано regression contract `tests/test_v10_6_r6.py`;
+- [ ] синхронізувати `main.APP_VERSION` = `10.6-r6`;
+- [ ] отримати green full regression / clean START на exact source;
+- [ ] заморозити exact issued source і опублікувати immutable `v10.6-r6` START prerelease;
+- [ ] синхронізувати docs/state/ledger після видачі.
 
 ## PRESERVED
 
-- `v10.6-r5` issued source/tag не пересувається й не переписується;
-- `v10.6-r4` також лишається immutable fast-test;
+- `v10.6-r5` і попередні issued fast-test не пересуваються й не переписуються;
 - `v10.6-r3` лишається latest full multi-platform checkpoint у `main`;
 - stable `v10.3` не пересувається;
+- business logic, plan/fact, шляхівки та тахографічні дані r6 не змінює;
 - робочі БД, скани, кеші та персональні файли не входять у release.
 
 ## NEXT
 
-Наступна кодова ревізія — тільки **10.6-r6**. Починати її після нового pre-flight/audit. `10.6-r5` у `main` не зливати без нової прямої команди власника.
+Синхронізувати runtime identity, пройти final regression/START verify і видати `v10.6-r6` як окремий GitHub prerelease.
 
 ## BLOCKED
 
