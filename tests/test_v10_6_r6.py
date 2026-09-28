@@ -41,14 +41,10 @@ class VehicleToolbarLayoutR6Tests(unittest.TestCase):
 
 
 class R6IntegrationTests(unittest.TestCase):
-    def test_candidate_identity_is_10_6_r6(self):
-        version = (ROOT / "VERSION.txt").read_text("utf-8")
-        main = (ROOT / "main.py").read_text("utf-8")
-        self.assertIn("Version: 10.6-r6", version)
-        self.assertIn('APP_VERSION = "10.6-r6"', main)
+    def test_r6_layer_identity_remains_historical(self):
         self.assertEqual(r6.APP_VERSION, "10.6-r6")
 
-    def test_r6_is_outermost_and_r5_remains_in_runtime_chain(self):
+    def test_r6_is_installed_after_r5(self):
         source = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v1065_features import install as install_v1065", source)
         self.assertIn("from v1066_features import install as install_v1066", source)
