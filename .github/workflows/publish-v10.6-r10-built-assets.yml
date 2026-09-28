@@ -1,0 +1,106 @@
+name: Publish completed Taxo 10.6-r10 binary artifacts
+
+on:
+  push:
+    branches:
+      - 'ops/v10.6-r10-full-builds'
+    paths:
+      - '.github/workflows/publish-v10.6-r10-built-assets.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: '36485005797'
+      START_SHA256: '1ca7d18b5775c7ddaf424d9d650d78457c7e8451b04cbc6121fcb04fba6acfd8'
+    steps:
+      - name: Download verified platform artifacts from full build run
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+          pattern: Taxo-v10.6-r10-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Normalize artifact paths and verify checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          find . -maxdepth 3 -type f -print
+          for exe in release_out/Taxo_v10_6_candidate_r10_Setup_Windows_x64.exe release_out/Taxo_v10_6_candidate_r10_Setup_Windows7_x64.exe; do
+            test -s "$exe"
+            cp "$exe" .
+          done
+          required=(
+            Taxo_v10_6_candidate_r10_Windows_x64_Portable.zip
+            Taxo_v10_6_candidate_r10_Setup_Windows_x64.exe
+            SHA256SUMS_v10_6_r10_Windows_x64.txt
+            Taxo_v10_6_candidate_r10_Windows7_x64_Portable.zip
+            Taxo_v10_6_candidate_r10_Setup_Windows7_x64.exe
+            SHA256SUMS_v10_6_r10_Windows7_x64.txt
+            Taxo_v10_6_candidate_r10_macOS_arm64_Portable.zip
+            SHA256SUMS_v10_6_r10_macOS_arm64.txt
+            Taxo_v10_6_candidate_r10_macOS_x86_64_Portable.zip
+            SHA256SUMS_v10_6_r10_macOS_x86_64.txt
+          )
+          for f in "${required[@]}"; do test -s "$f" || { echo "Missing $f" >&2; exit 1; }; done
+          sha256sum -c SHA256SUMS_v10_6_r10_Windows_x64.txt
+          sha256sum -c SHA256SUMS_v10_6_r10_Windows7_x64.txt
+          sha256sum -c SHA256SUMS_v10_6_r10_macOS_arm64.txt
+          sha256sum -c SHA256SUMS_v10_6_r10_macOS_x86_64.txt
+          {
+            sha256sum Taxo_v10_6_candidate_r10_Windows_x64_Portable.zip Taxo_v10_6_candidate_r10_Setup_Windows_x64.exe
+            sha256sum Taxo_v10_6_candidate_r10_Windows7_x64_Portable.zip Taxo_v10_6_candidate_r10_Setup_Windows7_x64.exe
+            sha256sum Taxo_v10_6_candidate_r10_macOS_arm64_Portable.zip Taxo_v10_6_candidate_r10_macOS_x86_64_Portable.zip
+            printf '%s  %s\n' "$START_SHA256" 'Taxo_v10_6_candidate_r10_START.zip'
+          } > SHA256SUMS_v10_6_r10_ALL.txt
+
+      - name: Verify immutable tag and publish binary assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          target=$(gh api repos/${{ github.repository }}/git/ref/tags/v10.6-r10 --jq '.object.sha')
+          test "$target" = '0baad010d0c0d4f29db62f26c29d512c71058928'
+          cd release-assets
+          gh release upload v10.6-r10 \
+            Taxo_v10_6_candidate_r10_Windows_x64_Portable.zip \
+            Taxo_v10_6_candidate_r10_Setup_Windows_x64.exe \
+            SHA256SUMS_v10_6_r10_Windows_x64.txt \
+            Taxo_v10_6_candidate_r10_Windows7_x64_Portable.zip \
+            Taxo_v10_6_candidate_r10_Setup_Windows7_x64.exe \
+            SHA256SUMS_v10_6_r10_Windows7_x64.txt \
+            Taxo_v10_6_candidate_r10_macOS_arm64_Portable.zip \
+            SHA256SUMS_v10_6_r10_macOS_arm64.txt \
+            Taxo_v10_6_candidate_r10_macOS_x86_64_Portable.zip \
+            SHA256SUMS_v10_6_r10_macOS_x86_64.txt \
+            SHA256SUMS_v10_6_r10_ALL.txt \
+            --repo "${{ github.repository }}"
+
+      - name: Verify complete release package set
+        shell: bash
+        run: |
+          set -euo pipefail
+          names=$(gh release view v10.6-r10 --repo "${{ github.repository }}" --json assets --jq '.assets[].name')
+          required=(
+            Taxo_v10_6_candidate_r10_START.zip
+            Taxo_v10_6_candidate_r10_Windows_x64_Portable.zip
+            Taxo_v10_6_candidate_r10_Setup_Windows_x64.exe
+            Taxo_v10_6_candidate_r10_Windows7_x64_Portable.zip
+            Taxo_v10_6_candidate_r10_Setup_Windows7_x64.exe
+            Taxo_v10_6_candidate_r10_macOS_arm64_Portable.zip
+            Taxo_v10_6_candidate_r10_macOS_x86_64_Portable.zip
+            SHA256SUMS_v10_6_r10_Windows_x64.txt
+            SHA256SUMS_v10_6_r10_Windows7_x64.txt
+            SHA256SUMS_v10_6_r10_macOS_arm64.txt
+            SHA256SUMS_v10_6_r10_macOS_x86_64.txt
+            SHA256SUMS_v10_6_r10_ALL.txt
+          )
+          for f in "${required[@]}"; do grep -Fxq "$f" <<< "$names" || { echo "Release asset missing: $f" >&2; exit 1; }; done
