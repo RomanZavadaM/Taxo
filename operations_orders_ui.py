@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo 10.7-r2 — UI розділу «Експлуатація»."""
+"""Taxo 10.7-r4 — UI розділу «Експлуатація»."""
 from __future__ import annotations
 
 from datetime import date
@@ -24,9 +24,7 @@ def _employee_maps(con):
 def open_operations_center(app, core):
     existing = getattr(app, "_operations_center_window", None)
     if _alive(existing):
-        existing.lift()
-        existing.focus_force()
-        return existing
+        existing.lift(); existing.focus_force(); return existing
 
     ops.ensure_schema(core)
     win = core.tk.Toplevel(app)
@@ -38,247 +36,204 @@ def open_operations_center(app, core):
         win.geometry("1260x780")
     win.title("Taxo / %s — Експлуатація" % app._company_name_value())
 
-    body = core.ttk.Frame(win, padding=12)
-    body.pack(fill="both", expand=True)
+    body = core.ttk.Frame(win, padding=12); body.pack(fill="both", expand=True)
     core.ttk.Label(body, text="Експлуатація", style="HeroTitle.TLabel").pack(anchor="w")
     core.ttk.Label(
         body,
-        text=(
-            "Накази, закріплення водіїв за транспортними засобами та відповідальні особи. "
-            "Цей розділ є основою для подальших модулів ТО, ремонтів та інших експлуатаційних документів."
-        ),
+        text=("Накази, закріплення водіїв за транспортними засобами та відповідальні особи. "
+              "Цей розділ є основою для подальших модулів ТО, ремонтів та інших експлуатаційних документів."),
         style="Muted.TLabel", wraplength=1180, justify="left",
     ).pack(anchor="w", pady=(2, 8))
 
-    book = core.ttk.Notebook(body)
-    book.pack(fill="both", expand=True)
-    orders_tab = core.ttk.Frame(book)
-    assignments_tab = core.ttk.Frame(book)
-    settings_tab = core.ttk.Frame(book)
-    maintenance_tab = core.ttk.Frame(book)
-    book.add(orders_tab, text="Накази")
-    book.add(assignments_tab, text="Закріплення водіїв")
-    book.add(settings_tab, text="Відповідальні")
-    book.add(maintenance_tab, text="ТО / ремонти")
+    book = core.ttk.Notebook(body); book.pack(fill="both", expand=True)
+    orders_tab = core.ttk.Frame(book); assignments_tab = core.ttk.Frame(book)
+    settings_tab = core.ttk.Frame(book); maintenance_tab = core.ttk.Frame(book)
+    book.add(orders_tab, text="Накази"); book.add(assignments_tab, text="Закріплення водіїв")
+    book.add(settings_tab, text="Відповідальні"); book.add(maintenance_tab, text="ТО / ремонти")
 
-    # ------------------------------------------------------------------
-    # Settings / responsible persons
-    # ------------------------------------------------------------------
-    settings_box = core.ttk.Frame(settings_tab, padding=14)
-    settings_box.pack(fill="both", expand=True)
-    settings_box.columnconfigure(1, weight=1)
+    # Settings
+    settings_box = core.ttk.Frame(settings_tab, padding=14); settings_box.pack(fill="both", expand=True); settings_box.columnconfigure(1, weight=1)
     con = core.db()
     try:
-        cfg = ops.settings(con)
-        employees, emp_by_label, emp_by_id = _employee_maps(con)
+        cfg = ops.settings(con); employees, emp_by_label, emp_by_id = _employee_maps(con)
     finally:
         con.close()
     employee_labels = [row["label"] for row in employees]
     operations_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["operations_responsible_employee_id"], "") if cfg else "")
     military_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["military_transport_responsible_employee_id"], "") if cfg else "")
     place_var = core.tk.StringVar(value=(cfg["order_place"] if cfg else "") or "")
-    for row, (label, var) in enumerate((
-        ("Відповідальний за експлуатацію", operations_resp_var),
-        ("Відповідальний за військово-транспортний обов'язок", military_resp_var),
-    )):
-        core.ttk.Label(settings_box, text=label).grid(row=row, column=0, sticky="w", padx=(0, 10), pady=7)
-        core.ttk.Combobox(settings_box, textvariable=var, values=employee_labels, state="readonly").grid(
-            row=row, column=1, sticky="ew", pady=7
-        )
-    core.ttk.Label(settings_box, text="Місце складання наказів").grid(row=2, column=0, sticky="w", padx=(0,10), pady=7)
-    core.ttk.Entry(settings_box, textvariable=place_var).grid(row=2, column=1, sticky="ew", pady=7)
-    core.ttk.Label(
-        settings_box,
-        text=(
-            "Відомість ТЦК перед друком затверджується відповідальним у Taxo. "
-            "Службові позначки про джерело імпорту у затверджену форму не друкуються."
-        ),
-        style="Muted.TLabel", wraplength=900, justify="left",
-    ).grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 12))
+    for row, (label, var) in enumerate((("Відповідальний за експлуатацію", operations_resp_var),
+                                        ("Відповідальний за військово-транспортний обов'язок", military_resp_var))):
+        core.ttk.Label(settings_box, text=label).grid(row=row, column=0, sticky="w", padx=(0,10), pady=7)
+        core.ttk.Combobox(settings_box, textvariable=var, values=employee_labels, state="readonly").grid(row=row, column=1, sticky="ew", pady=7)
+    core.ttk.Label(settings_box, text="Місце складання наказів").grid(row=2,column=0,sticky="w",padx=(0,10),pady=7)
+    core.ttk.Entry(settings_box, textvariable=place_var).grid(row=2,column=1,sticky="ew",pady=7)
+    core.ttk.Label(settings_box, text=("Відомість ТЦК перед друком затверджується відповідальним у Taxo. "
+                                      "Службові позначки про джерело імпорту у затверджену форму не друкуються."),
+                   style="Muted.TLabel", wraplength=900, justify="left").grid(row=3,column=0,columnspan=2,sticky="w",pady=(8,12))
 
     def save_settings():
         con2 = core.db()
         try:
-            ops.save_settings(
-                con2,
-                operations_responsible_employee_id=emp_by_label.get(operations_resp_var.get()),
-                military_transport_responsible_employee_id=emp_by_label.get(military_resp_var.get()),
-                order_place=place_var.get(),
-            )
-            con2.commit()
+            ops.save_settings(con2, operations_responsible_employee_id=emp_by_label.get(operations_resp_var.get()),
+                              military_transport_responsible_employee_id=emp_by_label.get(military_resp_var.get()),
+                              order_place=place_var.get()); con2.commit()
         except Exception as exc:
-            con2.rollback()
-            core.messagebox.showerror("Експлуатація", str(exc), parent=win)
-            return
+            con2.rollback(); core.messagebox.showerror("Експлуатація", str(exc), parent=win); return
         finally:
             con2.close()
         core.messagebox.showinfo("Експлуатація", "Відповідальних збережено.", parent=win)
+    core.ttk.Button(settings_box,text="Зберегти",style="Accent.TButton",command=save_settings).grid(row=4,column=1,sticky="e")
 
-    core.ttk.Button(settings_box, text="Зберегти", style="Accent.TButton", command=save_settings).grid(
-        row=4, column=1, sticky="e"
-    )
-
-    # ------------------------------------------------------------------
     # Orders register
-    # ------------------------------------------------------------------
-    order_top = core.ttk.Frame(orders_tab, padding=(10,10,10,4))
-    order_top.pack(fill="x")
-    order_frame = core.ttk.Frame(orders_tab)
-    order_frame.pack(fill="both", expand=True, padx=10, pady=(0,10))
-    order_frame.rowconfigure(0, weight=1)
-    order_frame.columnconfigure(0, weight=1)
-    cols = ("date","no","type","subject","status","control")
-    order_tree = core.ttk.Treeview(order_frame, columns=cols, show="headings", selectmode="browse")
-    for key, label, width in (
-        ("date","Дата",105),("no","№",70),("type","Група",230),
-        ("subject","Тема",360),("status","Стан",120),("control","Контроль",220),
-    ):
-        order_tree.heading(key, text=label)
-        order_tree.column(key, width=width, anchor="w")
-    sy = core.ttk.Scrollbar(order_frame, orient="vertical", command=order_tree.yview)
-    sx = core.ttk.Scrollbar(order_frame, orient="horizontal", command=order_tree.xview)
-    order_tree.configure(yscrollcommand=sy.set, xscrollcommand=sx.set)
-    order_tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
-    order_cache = {}
+    order_top = core.ttk.Frame(orders_tab,padding=(10,10,10,4)); order_top.pack(fill="x")
+    order_hint = core.ttk.Label(orders_tab, text="Створіть наказ → заповніть реквізити → для наказу про закріплення додайте ТЗ / водія.",
+                                style="Muted.TLabel")
+    order_hint.pack(anchor="w", padx=12, pady=(0,4))
+    order_frame = core.ttk.Frame(orders_tab); order_frame.pack(fill="both",expand=True,padx=10,pady=(0,10)); order_frame.rowconfigure(0,weight=1); order_frame.columnconfigure(0,weight=1)
+    cols=("date","no","type","subject","status","paper","control")
+    order_tree=core.ttk.Treeview(order_frame,columns=cols,show="headings",selectmode="browse")
+    for key,label,width in (("date","Дата",100),("no","№",75),("type","Група",220),("subject","Тема",340),
+                            ("status","Стан",110),("paper","Паперовий оригінал",140),("control","Контроль",210)):
+        order_tree.heading(key,text=label); order_tree.column(key,width=width,anchor="w")
+    sy=core.ttk.Scrollbar(order_frame,orient="vertical",command=order_tree.yview); sx=core.ttk.Scrollbar(order_frame,orient="horizontal",command=order_tree.xview)
+    order_tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set); order_tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
+    order_cache={}
 
     def refresh_orders(select_id=None):
-        for iid in order_tree.get_children():
-            order_tree.delete(iid)
-        order_cache.clear()
-        con2 = core.db()
-        try:
-            rows = ops.list_orders(con2)
-        finally:
-            con2.close()
+        for iid in order_tree.get_children(): order_tree.delete(iid)
+        order_cache.clear(); con2=core.db()
+        try: rows=ops.list_orders(con2)
+        finally: con2.close()
         for row in rows:
-            oid = int(row["id"])
-            order_cache[oid] = row
-            control = " ".join(str(row[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(row[k] or "").strip())
-            order_tree.insert("","end",iid=str(oid),values=(
-                ops.display_day(row["order_date"]), row["order_no"],
-                ops.ORDER_TYPE_LABELS.get(row["order_type"], row["order_type"]),
-                row["subject"], ops.ORDER_STATUS_LABELS.get(row["status"],row["status"]), control or "—",
-            ), tags=(row["status"],))
-        order_tree.tag_configure(ops.ORDER_APPROVED, foreground="#0B5D1E")
-        order_tree.tag_configure(ops.ORDER_CANCELLED, foreground="#777777")
+            oid=int(row["id"]); order_cache[oid]=row
+            control=" ".join(str(row[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(row[k] or "").strip())
+            paper="підписано" if int(row["paper_original_signed"] or 0) else "—"
+            order_tree.insert("","end",iid=str(oid),values=(ops.display_day(row["order_date"]),row["order_no"],
+                ops.ORDER_TYPE_LABELS.get(row["order_type"],row["order_type"]),row["subject"],
+                ops.ORDER_STATUS_LABELS.get(row["status"],row["status"]),paper,control or "—"),tags=(row["status"],))
+        order_tree.tag_configure(ops.ORDER_APPROVED,foreground="#0B5D1E"); order_tree.tag_configure(ops.ORDER_CANCELLED,foreground="#777777")
+        if rows: order_hint.pack_forget()
+        elif not order_hint.winfo_manager(): order_hint.pack(anchor="w",padx=12,pady=(0,4),before=order_frame)
         if select_id and str(select_id) in order_tree.get_children():
             order_tree.selection_set(str(select_id)); order_tree.focus(str(select_id)); order_tree.see(str(select_id))
         refresh_assignments()
 
-    def selected_order():
-        sel = order_tree.selection()
+    def selected_order(quiet=False):
+        sel=order_tree.selection()
         if not sel:
-            core.messagebox.showinfo("Накази", "Виберіть наказ.", parent=win)
+            if not quiet: core.messagebox.showinfo("Накази","Виберіть наказ.",parent=win)
             return None
         return order_cache.get(int(sel[0]))
 
-    type_labels = list(ops.ORDER_TYPE_LABELS.values())
-    type_by_label = {label:key for key,label in ops.ORDER_TYPE_LABELS.items()}
+    type_labels=list(ops.ORDER_TYPE_LABELS.values()); type_by_label={label:key for key,label in ops.ORDER_TYPE_LABELS.items()}
 
-    def new_order():
-        dialog = core.tk.Toplevel(win)
-        dialog.title("Новий наказ")
-        try: core.configure_toplevel(dialog,title="Новий наказ",minsize=(760,520))
+    def order_dialog(existing=None, force_type=None):
+        dialog=core.tk.Toplevel(win); dialog.title("Редагувати наказ" if existing else "Створити наказ")
+        try: core.configure_toplevel(dialog,title=dialog.title(),minsize=(760,540))
         except Exception: pass
-        frm = core.ttk.Frame(dialog,padding=14); frm.pack(fill="both",expand=True); frm.columnconfigure(1,weight=1)
-        type_var = core.tk.StringVar(value=ops.ORDER_TYPE_LABELS[ops.TYPE_VEHICLE_ASSIGNMENT])
-        no_var = core.tk.StringVar(value="")
-        date_var = core.tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
-        place_local = core.tk.StringVar(value=place_var.get())
-        subject_var = core.tk.StringVar(value=ops.DEFAULT_SUBJECTS[ops.TYPE_VEHICLE_ASSIGNMENT])
-        control_var = core.tk.StringVar(value=operations_resp_var.get())
+        frm=core.ttk.Frame(dialog,padding=14); frm.pack(fill="both",expand=True); frm.columnconfigure(1,weight=1); frm.rowconfigure(7,weight=1)
+        initial_type=force_type or (existing["order_type"] if existing else ops.TYPE_VEHICLE_ASSIGNMENT)
+        type_var=core.tk.StringVar(value=ops.ORDER_TYPE_LABELS.get(initial_type,ops.ORDER_TYPE_LABELS[ops.TYPE_GENERIC]))
+        no_var=core.tk.StringVar(value=str(existing["order_no"] if existing else ""))
+        date_var=core.tk.StringVar(value=ops.display_day(existing["order_date"]) if existing else date.today().strftime("%d.%m.%Y"))
+        place_local=core.tk.StringVar(value=str(existing["place"] if existing else place_var.get()))
+        subject_var=core.tk.StringVar(value=str(existing["subject"] if existing else ops.DEFAULT_SUBJECTS.get(initial_type,"")))
+        control_var=core.tk.StringVar(value=emp_by_id.get(existing["control_employee_id"],"") if existing else operations_resp_var.get())
         core.ttk.Label(frm,text="Тип наказу").grid(row=0,column=0,sticky="w",pady=5)
-        type_box = core.ttk.Combobox(frm,textvariable=type_var,values=type_labels,state="readonly")
-        type_box.grid(row=0,column=1,sticky="ew",pady=5)
+        type_box=core.ttk.Combobox(frm,textvariable=type_var,values=type_labels,state="disabled" if force_type else "readonly"); type_box.grid(row=0,column=1,sticky="ew",pady=5)
         for r,(label,var) in enumerate((("Номер",no_var),("Дата",date_var),("Місце",place_local),("Тема",subject_var),("Контроль",control_var)),start=1):
             core.ttk.Label(frm,text=label).grid(row=r,column=0,sticky="nw",padx=(0,8),pady=5)
-            if label=="Контроль":
-                widget=core.ttk.Combobox(frm,textvariable=var,values=employee_labels,state="readonly")
-            else:
-                widget=core.ttk.Entry(frm,textvariable=var)
+            widget=core.ttk.Combobox(frm,textvariable=var,values=employee_labels,state="readonly") if label=="Контроль" else core.ttk.Entry(frm,textvariable=var)
             widget.grid(row=r,column=1,sticky="ew",pady=5)
         core.ttk.Label(frm,text="Підстава / вступ").grid(row=6,column=0,sticky="nw",pady=5)
-        preamble = core.tk.Text(frm,height=4,wrap="word"); preamble.grid(row=6,column=1,sticky="nsew",pady=5)
-        preamble.insert("1.0",ops.DEFAULT_PREAMBLES[ops.TYPE_VEHICLE_ASSIGNMENT])
-        core.ttk.Label(frm,text="Текст пунктів (для довільного наказу)").grid(row=7,column=0,sticky="nw",pady=5)
-        body_text = core.tk.Text(frm,height=7,wrap="word"); body_text.grid(row=7,column=1,sticky="nsew",pady=5)
-        frm.rowconfigure(7,weight=1)
-
+        preamble=core.tk.Text(frm,height=4,wrap="word"); preamble.grid(row=6,column=1,sticky="nsew",pady=5)
+        preamble.insert("1.0",str(existing["preamble"] if existing else ops.DEFAULT_PREAMBLES.get(initial_type,"")))
+        core.ttk.Label(frm,text="Текст пунктів").grid(row=7,column=0,sticky="nw",pady=5)
+        body_text=core.tk.Text(frm,height=7,wrap="word"); body_text.grid(row=7,column=1,sticky="nsew",pady=5)
+        body_text.insert("1.0",str(existing["body_text"] if existing else ""))
+        if existing and int(existing["paper_original_signed"] or 0):
+            core.ttk.Label(frm,text="Увага: паперовий оригінал позначено як підписаний. Після змін звірте його і, за потреби, передрукуйте.",
+                           style="Muted.TLabel",wraplength=620,justify="left").grid(row=8,column=0,columnspan=2,sticky="w",pady=(4,2))
         def sync_type(_event=None):
-            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
-            subject_var.set(ops.DEFAULT_SUBJECTS.get(key,""))
-            preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
+            if existing: return
+            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC); subject_var.set(ops.DEFAULT_SUBJECTS.get(key,"")); preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
         type_box.bind("<<ComboboxSelected>>",sync_type)
-
-        def save_new():
-            order_type = type_by_label.get(type_var.get(), ops.TYPE_GENERIC)
-            con3=core.db()
+        def save():
+            order_type=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC); con3=core.db()
             try:
-                oid=ops.create_order(
-                    con3, order_type=order_type,
-                    order_no=no_var.get(), order_date=date_var.get(), place=place_local.get(),
-                    subject=subject_var.get(), preamble=preamble.get("1.0","end-1c"),
-                    body_text=body_text.get("1.0","end-1c"), control_employee_id=emp_by_label.get(control_var.get()),
-                )
+                if existing:
+                    ops.update_order(con3,existing["id"],order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
+                                     subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
+                                     control_employee_id=emp_by_label.get(control_var.get()),history_note="Редагування через інтерфейс")
+                    oid=int(existing["id"])
+                else:
+                    oid=ops.create_order(con3,order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
+                                         subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
+                                         control_employee_id=emp_by_label.get(control_var.get()))
                 con3.commit()
             except Exception as exc:
                 con3.rollback(); core.messagebox.showerror("Наказ",str(exc),parent=dialog); return
             finally: con3.close()
             dialog.destroy(); refresh_orders(oid)
-            if order_type == ops.TYPE_VEHICLE_ASSIGNMENT:
-                book.select(assignments_tab)
-        buttons=core.ttk.Frame(frm); buttons.grid(row=8,column=0,columnspan=2,sticky="ew",pady=(10,0))
-        core.ttk.Button(buttons,text="Скасувати",command=dialog.destroy).pack(side="right")
-        core.ttk.Button(buttons,text="Створити",style="Accent.TButton",command=save_new).pack(side="right",padx=(0,6))
-        dialog.transient(win)
+            if order_type==ops.TYPE_VEHICLE_ASSIGNMENT: book.select(assignments_tab)
+        bar=core.ttk.Frame(frm); bar.grid(row=9,column=0,columnspan=2,sticky="ew",pady=(10,0))
+        core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")
+        core.ttk.Button(bar,text="Зберегти" if existing else "Створити",style="Accent.TButton",command=save).pack(side="right",padx=(0,6)); dialog.transient(win)
 
-    def approve_selected():
+    def new_order(): order_dialog()
+    def edit_order():
+        row=selected_order();
+        if row is not None: order_dialog(row)
+    def create_assignment_order(): order_dialog(force_type=ops.TYPE_VEHICLE_ASSIGNMENT)
+
+    def mark_paper_signed():
         row=selected_order()
         if row is None: return
-        if row["status"]==ops.ORDER_APPROVED:
-            core.messagebox.showinfo("Накази","Наказ уже затверджено.",parent=win); return
+        signed=not bool(int(row["paper_original_signed"] or 0)); con2=core.db()
+        try: ops.set_paper_original_signed(con2,row["id"],signed,history_note="Зміна позначки паперового оригіналу через UI"); con2.commit()
+        except Exception as exc: con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
+        finally: con2.close()
+        refresh_orders(row["id"])
+
+    def approve_selected():
+        row=selected_order();
+        if row is None:return
+        if row["status"]==ops.ORDER_APPROVED: core.messagebox.showinfo("Накази","Наказ уже затверджено.",parent=win); return
         if not core.messagebox.askyesno("Затвердити наказ?","Після затвердження закріплення почне діяти як структурований факт Taxo.",parent=win): return
         con2=core.db()
-        try:
-            ops.approve_order(con2,row["id"]); con2.commit()
-        except Exception as exc:
-            con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
+        try: ops.approve_order(con2,row["id"]); con2.commit()
+        except Exception as exc: con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
         finally: con2.close()
         refresh_orders(row["id"])
 
     def export_selected():
-        row=selected_order()
-        if row is None: return
+        row=selected_order();
+        if row is None:return
         con2=core.db()
         try:
-            assignments=ops.order_assignments(con2,row["id"])
-            company_row=con2.execute("SELECT * FROM company WHERE id=1").fetchone()
-            company={key:company_row[key] for key in company_row.keys()} if company_row else {}
-            control=ops.employee_name(con2,row["control_employee_id"])
+            assignments=ops.order_assignments(con2,row["id"]); company_row=con2.execute("SELECT * FROM company WHERE id=1").fetchone(); company={key:company_row[key] for key in company_row.keys()} if company_row else {}; control=ops.employee_name(con2,row["control_employee_id"])
         finally: con2.close()
-        out=core.OUTPUT_DIR / ("Наказ_%s_%s.pdf" % (str(row["order_no"]).replace("/","-"),row["order_date"]))
-        font=next((p for p in core.report_font_candidates() if core.Path(p).exists()),None)
-        try:
-            ops.export_order_pdf(out,row,assignments,company,control,font_path=font)
-        except Exception as exc:
-            core.messagebox.showerror("Наказ PDF",str(exc),parent=win); return
-        core.messagebox.showinfo("Наказ PDF","Сформовано:\n%s" % out,parent=win)
+        out=core.OUTPUT_DIR/("Наказ_%s_%s.pdf"%(str(row["order_no"]).replace("/","-"),row["order_date"])); font=next((p for p in core.report_font_candidates() if core.Path(p).exists()),None)
+        try: ops.export_order_pdf(out,row,assignments,company,control,font_path=font)
+        except Exception as exc: core.messagebox.showerror("Наказ PDF",str(exc),parent=win); return
+        core.messagebox.showinfo("Наказ PDF","Сформовано:\n%s"%out,parent=win)
         try: core.open_external(out)
         except Exception: pass
 
-    core.ttk.Button(order_top,text="Новий наказ",style="Accent.TButton",command=new_order).pack(side="left")
+    core.ttk.Button(order_top,text="Створити наказ",style="Accent.TButton",command=new_order).pack(side="left")
+    core.ttk.Button(order_top,text="Редагувати наказ",command=edit_order).pack(side="left",padx=6)
     core.ttk.Button(order_top,text="Затвердити",command=approve_selected).pack(side="left",padx=6)
+    core.ttk.Button(order_top,text="Паперовий оригінал",command=mark_paper_signed).pack(side="left",padx=6)
     core.ttk.Button(order_top,text="Сформувати PDF",command=export_selected).pack(side="left",padx=6)
 
-    # ------------------------------------------------------------------
-    # Vehicle/driver assignment tab
-    # ------------------------------------------------------------------
-    at = core.ttk.Frame(assignments_tab,padding=(10,10,10,4)); at.pack(fill="x")
-    selected_order_var=core.tk.StringVar(value="Виберіть наказ про закріплення у вкладці «Накази».")
+    # Assignments
+    at=core.ttk.Frame(assignments_tab,padding=(10,10,10,4)); at.pack(fill="x")
+    selected_order_var=core.tk.StringVar(value="Виберіть наказ про закріплення або створіть новий.")
     core.ttk.Label(at,textvariable=selected_order_var,style="Subtitle.TLabel").pack(side="left")
+    core.ttk.Button(at,text="Створити наказ про закріплення",style="Accent.TButton",command=create_assignment_order).pack(side="right")
     aframe=core.ttk.Frame(assignments_tab); aframe.pack(fill="both",expand=True,padx=10,pady=(0,10)); aframe.rowconfigure(0,weight=1); aframe.columnconfigure(0,weight=1)
-    acols=("seq","vehicle","plate","driver","from","until")
-    atree=core.ttk.Treeview(aframe,columns=acols,show="headings",selectmode="browse")
+    acols=("seq","vehicle","plate","driver","from","until"); atree=core.ttk.Treeview(aframe,columns=acols,show="headings",selectmode="browse")
     for key,label,width in (("seq","№",50),("vehicle","ТЗ",260),("plate","Держ. номер",120),("driver","Водій",300),("from","З",100),("until","До",100)):
         atree.heading(key,text=label); atree.column(key,width=width,anchor="w")
     asy=core.ttk.Scrollbar(aframe,orient="vertical",command=atree.yview); asx=core.ttk.Scrollbar(aframe,orient="horizontal",command=atree.xview)
@@ -286,94 +241,67 @@ def open_operations_center(app, core):
     assignment_cache={}
 
     def current_assignment_order():
-        sel = order_tree.selection()
-        if not sel:
-            return None
-        row = order_cache.get(int(sel[0]))
-        if row is None or row["order_type"] != ops.TYPE_VEHICLE_ASSIGNMENT:
-            return None
-        return row
-
+        row=selected_order(quiet=True)
+        return row if row is not None and row["order_type"]==ops.TYPE_VEHICLE_ASSIGNMENT else None
     def refresh_assignments():
         for iid in atree.get_children(): atree.delete(iid)
-        assignment_cache.clear()
-        row=current_assignment_order()
-        if row is None:
-            selected_order_var.set("Виберіть наказ про закріплення у вкладці «Накази».")
-            return
-        selected_order_var.set("Наказ №%s від %s — %s" % (row["order_no"],ops.display_day(row["order_date"]),ops.ORDER_STATUS_LABELS.get(row["status"],row["status"])))
+        assignment_cache.clear(); row=current_assignment_order()
+        if row is None: selected_order_var.set("Виберіть наказ про закріплення або створіть новий."); return
+        selected_order_var.set("Наказ №%s від %s — %s"%(row["order_no"],ops.display_day(row["order_date"]),ops.ORDER_STATUS_LABELS.get(row["status"],row["status"])))
         con2=core.db()
         try: items=ops.order_assignments(con2,row["id"])
         finally: con2.close()
         for item in items:
-            aid=int(item["id"]); assignment_cache[aid]=item
-            driver=" ".join(str(item[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(item[k] or "").strip())
+            aid=int(item["id"]); assignment_cache[aid]=item; driver=" ".join(str(item[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(item[k] or "").strip())
             atree.insert("","end",iid=str(aid),values=(item["sequence_no"],item["make_model"] or item["vehicle_name"],item["plate"],driver,ops.display_day(item["valid_from"]),ops.display_day(item["valid_until"])))
-
     order_tree.bind("<<TreeviewSelect>>",lambda _e:refresh_assignments(),add="+")
 
-    def add_assignment():
+    def assignment_dialog(existing=None):
         order=current_assignment_order()
-        if order is None:
-            core.messagebox.showinfo("Закріплення","Спочатку виберіть наказ типу «Закріплення транспортних засобів за водіями».",parent=win); return
-        if order["status"]!=ops.ORDER_DRAFT:
-            core.messagebox.showinfo("Закріплення","Змінювати склад затвердженого наказу не можна. Створіть новий наказ/зміну.",parent=win); return
+        if order is None: core.messagebox.showinfo("Закріплення","Спочатку виберіть або створіть наказ про закріплення.",parent=win); return
+        if int(order["paper_original_signed"] or 0):
+            if not core.messagebox.askyesno("Паперовий оригінал підписано","Зміни будуть записані в історію. Після редагування звірте та, за потреби, передрукуйте паперовий примірник. Продовжити?",parent=win): return
         con2=core.db()
-        try:
-            vehicles=ops.list_vehicle_choices(con2,active_only=False); emps=ops.list_employee_choices(con2,active_only=True)
+        try: vehicles=ops.list_vehicle_choices(con2,active_only=False); emps=ops.list_employee_choices(con2,active_only=True)
         finally: con2.close()
-        dlg=core.tk.Toplevel(win); dlg.title("Додати закріплення")
-        frm=core.ttk.Frame(dlg,padding=14); frm.pack(fill="both",expand=True); frm.columnconfigure(1,weight=1)
-        vlabels=[x["label"] for x in vehicles]; elabels=[x["label"] for x in emps]
-        vmap={x["label"]:x["id"] for x in vehicles}; emap={x["label"]:x["id"] for x in emps}
-        vv=core.tk.StringVar(); ev=core.tk.StringVar(); fv=core.tk.StringVar(value=ops.display_day(order["order_date"])); uv=core.tk.StringVar(value="")
+        vlabels=[x["label"] for x in vehicles]; elabels=[x["label"] for x in emps]; vmap={x["label"]:x["id"] for x in vehicles}; emap={x["label"]:x["id"] for x in emps}; vid_to_label={x["id"]:x["label"] for x in vehicles}; eid_to_label={x["id"]:x["label"] for x in emps}
+        dlg=core.tk.Toplevel(win); dlg.title("Редагувати закріплення" if existing else "Додати закріплення"); frm=core.ttk.Frame(dlg,padding=14); frm.pack(fill="both",expand=True); frm.columnconfigure(1,weight=1)
+        vv=core.tk.StringVar(value=vid_to_label.get(existing["vehicle_id"],"") if existing else ""); ev=core.tk.StringVar(value=eid_to_label.get(existing["employee_id"],"") if existing else ""); fv=core.tk.StringVar(value=ops.display_day(existing["valid_from"]) if existing else ops.display_day(order["order_date"])); uv=core.tk.StringVar(value=ops.display_day(existing["valid_until"]) if existing else "")
         for r,(label,var,values) in enumerate((("Транспортний засіб",vv,vlabels),("Водій",ev,elabels),("Діє з",fv,None),("Діє до (необов'язково)",uv,None))):
-            core.ttk.Label(frm,text=label).grid(row=r,column=0,sticky="w",padx=(0,8),pady=6)
-            widget=core.ttk.Combobox(frm,textvariable=var,values=values,state="readonly") if values is not None else core.ttk.Entry(frm,textvariable=var)
-            widget.grid(row=r,column=1,sticky="ew",pady=6)
+            core.ttk.Label(frm,text=label).grid(row=r,column=0,sticky="w",padx=(0,8),pady=6); widget=core.ttk.Combobox(frm,textvariable=var,values=values,state="readonly") if values is not None else core.ttk.Entry(frm,textvariable=var); widget.grid(row=r,column=1,sticky="ew",pady=6)
         def save_assignment():
-            if vv.get() not in vmap or ev.get() not in emap:
-                core.messagebox.showerror("Закріплення","Виберіть ТЗ і водія.",parent=dlg); return
+            if vv.get() not in vmap or ev.get() not in emap: core.messagebox.showerror("Закріплення","Виберіть ТЗ і водія.",parent=dlg); return
             con3=core.db()
             try:
-                ops.add_vehicle_assignment(con3,order["id"],vmap[vv.get()],emap[ev.get()],valid_from=fv.get(),valid_until=uv.get()); con3.commit()
-            except Exception as exc:
-                con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
+                if existing: ops.update_vehicle_assignment(con3,existing["id"],vehicle_id=vmap[vv.get()],employee_id=emap[ev.get()],valid_from=fv.get(),valid_until=uv.get(),history_note="Редагування через інтерфейс")
+                else: ops.add_vehicle_assignment(con3,order["id"],vmap[vv.get()],emap[ev.get()],valid_from=fv.get(),valid_until=uv.get())
+                con3.commit()
+            except Exception as exc: con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
             finally: con3.close()
             dlg.destroy(); refresh_assignments()
-        bar=core.ttk.Frame(frm); bar.grid(row=4,column=0,columnspan=2,sticky="ew",pady=(10,0))
-        core.ttk.Button(bar,text="Скасувати",command=dlg.destroy).pack(side="right")
-        core.ttk.Button(bar,text="Додати",style="Accent.TButton",command=save_assignment).pack(side="right",padx=(0,6))
-        dlg.transient(win)
-
-    def remove_assignment():
-        order=current_assignment_order()
-        if order is None or order["status"]!=ops.ORDER_DRAFT:
-            return
+        bar=core.ttk.Frame(frm); bar.grid(row=4,column=0,columnspan=2,sticky="ew",pady=(10,0)); core.ttk.Button(bar,text="Скасувати",command=dlg.destroy).pack(side="right"); core.ttk.Button(bar,text="Зберегти" if existing else "Додати",style="Accent.TButton",command=save_assignment).pack(side="right",padx=(0,6)); dlg.transient(win)
+    def add_assignment(): assignment_dialog()
+    def edit_assignment():
         sel=atree.selection()
-        if not sel: return
+        if not sel: core.messagebox.showinfo("Закріплення","Виберіть рядок ТЗ / водія.",parent=win); return
+        assignment_dialog(assignment_cache.get(int(sel[0])))
+    def remove_assignment():
+        order=current_assignment_order(); sel=atree.selection()
+        if order is None or not sel:return
+        if int(order["paper_original_signed"] or 0) and not core.messagebox.askyesno("Паперовий оригінал підписано","Видалення буде записане в історію. Продовжити?",parent=win): return
         con2=core.db()
-        try: ops.delete_vehicle_assignment(con2,int(sel[0])); con2.commit()
+        try: ops.delete_vehicle_assignment(con2,int(sel[0]),history_note="Видалення через інтерфейс"); con2.commit()
+        except Exception as exc: con2.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=win); return
         finally: con2.close()
         refresh_assignments()
-
     abar=core.ttk.Frame(assignments_tab,padding=(10,0,10,10)); abar.pack(fill="x")
     core.ttk.Button(abar,text="Додати ТЗ / водія",style="Accent.TButton",command=add_assignment).pack(side="left")
+    core.ttk.Button(abar,text="Редагувати",command=edit_assignment).pack(side="left",padx=6)
     core.ttk.Button(abar,text="Прибрати",command=remove_assignment).pack(side="left",padx=6)
 
-    # ------------------------------------------------------------------
-    # Future maintenance container
-    # ------------------------------------------------------------------
     mbody=core.ttk.Frame(maintenance_tab,padding=18); mbody.pack(fill="both",expand=True)
     core.ttk.Label(mbody,text="ТО / ремонти",style="Title.TLabel").pack(anchor="w")
-    core.ttk.Label(
-        mbody,
-        text=(
-            "Розділ зарезервовано у контурі «Експлуатація». Після додавання ваших форм по ТО, ремонтам та іншим експлуатаційним документам "
-            "вони будуть зведені сюди без створення окремих розрізнених вікон."
-        ),
-        wraplength=900,justify="left",
-    ).pack(anchor="w",pady=(5,0))
+    core.ttk.Label(mbody,text=("Розділ зарезервовано у контурі «Експлуатація». Після додавання ваших форм по ТО, ремонтам та іншим експлуатаційним документам "
+                               "вони будуть зведені сюди без створення окремих розрізнених вікон."),wraplength=900,justify="left").pack(anchor="w",pady=(5,0))
 
-    refresh_orders()
-    return win
+    refresh_orders(); return win
