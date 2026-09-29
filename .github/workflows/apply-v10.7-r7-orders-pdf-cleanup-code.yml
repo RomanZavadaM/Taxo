@@ -1,0 +1,66 @@
+name: Apply Taxo 10.7-r7 code changes
+
+on:
+  push:
+    branches:
+      - 'work/v10.7-r7-orders-pdf-cleanup'
+    paths:
+      - '.github/workflows/apply-v10.7-r7-orders-pdf-cleanup-code.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply code and docs
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('operations_orders.py'); s=p.read_text(encoding='utf-8')
+          if 'from xml.sax.saxutils import escape' not in s:
+              s=s.replace('from pathlib import Path\n','from pathlib import Path\nfrom xml.sax.saxutils import escape\n')
+          s=s.replace('TYPE_SAFETY_TRAINING = "safety_training"\nTYPE_GENERIC = "generic"','''TYPE_SAFETY_TRAINING = "safety_training"\nTYPE_ROAD_SAFETY = "road_safety"\nTYPE_TECHNICAL_CONTROL = "technical_control"\nTYPE_MAINTENANCE_REPAIR = "maintenance_repair"\nTYPE_ACCIDENT_COMMISSION = "accident_commission"\nTYPE_OCCUPATIONAL_SAFETY = "occupational_safety"\nTYPE_FIRE_SAFETY = "fire_safety"\nTYPE_GENERIC = "generic"''')
+          s=s.replace('    TYPE_SAFETY_TRAINING: "Охорона праці / пожежна безпека",\n    TYPE_GENERIC: "Інший наказ з експлуатації",','''    TYPE_SAFETY_TRAINING: "Навчання / перевірка знань з безпеки",\n    TYPE_ROAD_SAFETY: "Безпека дорожнього руху",\n    TYPE_TECHNICAL_CONTROL: "Технічний стан / передрейсовий контроль",\n    TYPE_MAINTENANCE_REPAIR: "ТО / ремонти / технічні огляди",\n    TYPE_ACCIDENT_COMMISSION: "ДТП / комісія / службове розслідування",\n    TYPE_OCCUPATIONAL_SAFETY: "Охорона праці",\n    TYPE_FIRE_SAFETY: "Пожежна безпека",\n    TYPE_GENERIC: "Інший наказ з експлуатації",''')
+          s=s.replace('    TYPE_SAFETY_TRAINING: "Про проведення занять та перевірку знань з охорони праці",\n    TYPE_GENERIC: "",','''    TYPE_SAFETY_TRAINING: "Про проведення навчання та перевірку знань",\n    TYPE_ROAD_SAFETY: "Про організацію роботи з безпеки дорожнього руху",\n    TYPE_TECHNICAL_CONTROL: "Про організацію контролю технічного стану транспортних засобів",\n    TYPE_MAINTENANCE_REPAIR: "Про організацію технічного обслуговування та ремонту транспортних засобів",\n    TYPE_ACCIDENT_COMMISSION: "Про створення комісії та розгляд дорожньо-транспортної пригоди",\n    TYPE_OCCUPATIONAL_SAFETY: "Про організацію роботи з охорони праці",\n    TYPE_FIRE_SAFETY: "Про організацію пожежної безпеки",\n    TYPE_GENERIC: "",''')
+          s=s.replace('    TYPE_SAFETY_TRAINING: "З метою організації навчання та перевірки знань працівників підприємства —",\n    TYPE_GENERIC: "",','''    TYPE_SAFETY_TRAINING: "З метою організації навчання та перевірки знань працівників підприємства —",\n    TYPE_ROAD_SAFETY: "З метою організації системної роботи з безпеки дорожнього руху на підприємстві —",\n    TYPE_TECHNICAL_CONTROL: "З метою забезпечення належного технічного стану та контролю транспортних засобів перед виїздом —",\n    TYPE_MAINTENANCE_REPAIR: "З метою планування та обліку технічного обслуговування, ремонту і технічних оглядів транспортних засобів —",\n    TYPE_ACCIDENT_COMMISSION: "З метою документування обставин дорожньо-транспортної пригоди та визначення необхідних заходів —",\n    TYPE_OCCUPATIONAL_SAFETY: "З метою організації роботи з охорони праці, навчання та інструктажів працівників —",\n    TYPE_FIRE_SAFETY: "З метою організації пожежної безпеки та виконання протипожежних заходів —",\n    TYPE_GENERIC: "",''')
+          if 'def _ptext(value):' not in s:
+              s=s.replace('def _json_value(value):\n','def _ptext(value):\n    """Plain text safe for ReportLab Paragraph markup."""\n    return escape(str(value or ""))\n\n\ndef _json_value(value):\n')
+          s=s.replace('from reportlab.lib.enums import TA_CENTER, TA_LEFT','from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT')
+          s=s.replace('center = ParagraphStyle("OrderCenter", parent=normal, alignment=TA_CENTER)\n','center = ParagraphStyle("OrderCenter", parent=normal, alignment=TA_CENTER)\n    right = ParagraphStyle("OrderRight", parent=normal, alignment=TA_RIGHT)\n')
+          s=s.replace('Paragraph("по %s" % company_name, center)','Paragraph("по %s" % _ptext(company_name), center)')
+          old='''    meta = Table([[display_day(order["order_date"]), "<b>№ %s</b>" % str(order["order_no"] or ""),\n                   str(order["place"] or "")]], colWidths=[55*mm, 55*mm, 55*mm])'''
+          new='''    meta = Table([[\n        Paragraph(_ptext(display_day(order["order_date"])), normal),\n        Paragraph("<b>№ %s</b>" % _ptext(order["order_no"]), center),\n        Paragraph(_ptext(order["place"]), right),\n    ]], colWidths=[55*mm, 55*mm, 55*mm])'''
+          if old in s: s=s.replace(old,new)
+          if 'Paragraph("<b>№ %s</b>" % _ptext(order["order_no"]), center)' not in s: raise SystemExit('r7 meta fix missing')
+          s=s.replace('Paragraph("<b>%s</b>" % subject, normal)','Paragraph("<b>%s</b>" % _ptext(subject), normal)')
+          s=s.replace('Paragraph(preamble, normal)','Paragraph(_ptext(preamble), normal)')
+          s=s.replace('Paragraph(paragraph, normal)','Paragraph(_ptext(paragraph), normal)')
+          s=s.replace('% control, normal))','% _ptext(control), normal))')
+          p.write_text(s,encoding='utf-8')
+
+          Path('v1077_features.py').write_text('''# -*- coding: utf-8 -*-\n"""Taxo 10.7-r7 — operations order PDF cleanup identity layer."""\nfrom __future__ import annotations\nAPP_VERSION = "10.7-r7"\ndef install(core, base_app):\n    if getattr(core, "_TAXO_V1077_INSTALLED", False): return base_app\n    core.APP_VERSION = APP_VERSION\n    core._TAXO_V1077_INSTALLED = True\n    return base_app\n''',encoding='utf-8')
+          app=Path('taxo_app.py'); t=app.read_text(encoding='utf-8')
+          if 'from v1077_features import install as install_v1077' not in t: t=t.replace('from v1076_features import install as install_v1076\n','from v1076_features import install as install_v1076\nfrom v1077_features import install as install_v1077\n')
+          if 'App = install_v1077(core, App)' not in t: t=t.replace('App = install_v1076(core, App)\n','App = install_v1076(core, App)\nApp = install_v1077(core, App)\n')
+          app.write_text(t,encoding='utf-8')
+          main=Path('main.py'); m=main.read_text(encoding='utf-8'); m,n=re.subn(r'APP_VERSION\s*=\s*"10\.7-r6"','APP_VERSION = "10.7-r7"',m,count=1)
+          if n!=1: raise SystemExit(f'main version replacements={n}')
+          main.write_text(m,encoding='utf-8')
+          Path('VERSION.txt').write_text('''Taxo / Driver Worktime\nVersion: 10.7-r7\nRelease date: 2026-09-29\nRelease type: candidate / work\nStable baseline: Taxo 10.3\nStable tag: v10.3\nStable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60\n\nTaxo 10.7-r7 — підчищення PDF наказів та розширення реєстру експлуатаційних наказів.\n\nСТАН: IN PROGRESS до повного regression / START / Windows / macOS verify.\n''',encoding='utf-8')
+          Path('docs/maintenance/AUDIT_10.7-r7_ORDERS_PDF_AND_OPERATIONS_BACKLOG.md').write_text('''# Taxo 10.7-r7 — PDF наказів та backlog експлуатаційних наказів\n\nПідтверджено: номер наказу передавався у звичайну клітинку Table як `<b>№ ...</b>`, тому теги друкувалися буквально. r7 переводить дату/номер/місце на Paragraph і екранує довільний текст з БД перед Paragraph.\n\nГрупи наказів, які зберігаємо в архітектурі за матеріалами реальної практики АТП: закріплення ТЗ; зберігання; робочий час; місця відпочинку; стажування; навчання; БДР; технічний контроль; ТО/ремонти/огляди; ДТП/комісії; охорона праці; пожежна безпека; інші експлуатаційні накази. Це предметна класифікація, не твердження про чинну обов'язковість кожної форми.\n''',encoding='utf-8')
+          Path('docs/releases/RELEASE_NOTES_v10.7-r7.md').write_text('''# Taxo 10.7-r7 — candidate release notes\n\n- виправлено буквальні `<b>...</b>` у номері PDF наказу;\n- текст з БД екранується перед ReportLab Paragraph;\n- реєстр типів наказів доповнено БДР, технічним контролем, ТО/ремонтами, ДТП/комісіями, охороною праці та пожежною безпекою;\n- існуючі типи закріплення, зберігання, робочого часу, відпочинку та стажування збережені.\n''',encoding='utf-8')
+          Path('tests/test_v10_7_r7.py').write_text('''import unittest\nfrom pathlib import Path\nimport operations_orders as ops\nROOT=Path(__file__).resolve().parents[1]\nclass Taxo107R7Tests(unittest.TestCase):\n    def test_paragraph_text_is_escaped(self): self.assertEqual(ops._ptext('<b>A & B</b>'),'&lt;b&gt;A &amp; B&lt;/b&gt;')\n    def test_operations_order_groups_are_present(self):\n        required={ops.TYPE_ROAD_SAFETY,ops.TYPE_TECHNICAL_CONTROL,ops.TYPE_MAINTENANCE_REPAIR,ops.TYPE_ACCIDENT_COMMISSION,ops.TYPE_OCCUPATIONAL_SAFETY,ops.TYPE_FIRE_SAFETY}\n        self.assertTrue(required.issubset(set(ops.ORDER_TYPE_LABELS)))\n        for key in required: self.assertTrue(ops.DEFAULT_SUBJECTS[key]); self.assertTrue(ops.DEFAULT_PREAMBLES[key])\n    def test_order_number_uses_paragraph(self):\n        source=(ROOT/'operations_orders.py').read_text(encoding='utf-8')\n        self.assertIn('Paragraph("<b>№ %s</b>" % _ptext(order["order_no"]), center)',source)\n        self.assertNotIn('"<b>№ %s</b>" % str(order["order_no"] or "")',source)\n    def test_r7_identity(self):\n        self.assertIn('Version: 10.7-r7',(ROOT/'VERSION.txt').read_text(encoding='utf-8'))\n        self.assertIn('App = install_v1077(core, App)',(ROOT/'taxo_app.py').read_text(encoding='utf-8'))\nif __name__=='__main__': unittest.main()\n''',encoding='utf-8')
+          PY
+          git config user.name 'RomanZavadaM'
+          git config user.email 'zavada.roman.m@gmail.com'
+          git add operations_orders.py v1077_features.py taxo_app.py main.py VERSION.txt tests/test_v10_7_r7.py docs/maintenance/AUDIT_10.7-r7_ORDERS_PDF_AND_OPERATIONS_BACKLOG.md docs/releases/RELEASE_NOTES_v10.7-r7.md
+          git commit -m 'Taxo 10.7-r7: clean order PDFs and expand operations order types'
+          git push
