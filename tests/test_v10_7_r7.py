@@ -13,6 +13,6 @@ class Taxo107R7Tests(unittest.TestCase):
         self.assertIn('Paragraph("<b>№ %s</b>" % _ptext(order["order_no"]), center)',source)
         self.assertNotIn('"<b>№ %s</b>" % str(order["order_no"] or "")',source)
     def test_r7_identity(self):
-        self.assertIn('Version: 10.7-r7',(ROOT/'VERSION.txt').read_text(encoding='utf-8'))
+        self.assertIn('APP_VERSION = "10.7-r7"',(ROOT/'v1077_features.py').read_text(encoding='utf-8'))
         self.assertIn('App = install_v1077(core, App)',(ROOT/'taxo_app.py').read_text(encoding='utf-8'))
 if __name__=='__main__': unittest.main()

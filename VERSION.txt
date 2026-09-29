@@ -1,11 +1,17 @@
 Taxo / Driver Worktime
-Version: 10.7-r7
+Version: 10.7-r8
 Release date: 2026-09-29
 Release type: candidate / work
 Stable baseline: Taxo 10.3
 Stable tag: v10.3
 Stable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60
 
-Taxo 10.7-r7 — підчищення PDF наказів та розширення реєстру експлуатаційних наказів.
+Taxo 10.7-r8 — групування та каталог наказів з експлуатації.
 
-СТАН: IN PROGRESS до повного regression / START / Windows / macOS verify.
+СТАН: IN PROGRESS до regression / START / platform gates.
+
+Основне:
+- усі типи експлуатаційних наказів розкладені по предметних групах;
+- у реєстрі наказів доданий фільтр за групою та окрема колонка групи;
+- замість порожньої вкладки ТО/ремонтів створено каталог усіх типів наказів з швидким створенням документа;
+- r7 лишається immutable checkpoint.
