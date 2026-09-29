@@ -11,8 +11,8 @@
 **Main:** `109d3c64f2a54a29c5b88eb190a934f0a890245d`  
 **Latest issued fast-test:** **10.7-r3** / `v10.7-r3` → `a51e336a31192fa7b82cb3bfe6db6c112dc70eae`  
 **Active code branch:** `work/v10.7-r4-operations-legal-structure`  
-**Active r4 code checkpoint:** `4029e487509f3e83947de3143856a374733726c4`  
-**Historical r3 PR:** #92 — closed intentionally after immutable fast-test issuance  
+**Active r4 code checkpoint:** `deca49cb614ffab148093ab61fe4a513a21efe1e`  
+**Active PR:** #93 — draft, base `work/v10.7-r3-order-appendices`, не зливати у `main` без окремої команди власника  
 **Current code revision:** **10.7-r4 — IN PROGRESS, not released**  
 **Knowledge branch:** `knowledge/vehicle-operations`  
 **Live ledger:** Issue #61
@@ -37,14 +37,31 @@
 - міграції r2/r3 → r4 зроблено additive через `PRAGMA table_info` без видалення даних;
 - старі БД отримують нові поля `paper_original_signed`, `paper_original_signed_at`, `vehicle_driver_assignments.updated_at` без зміни існуючих записів.
 
-Ще НЕ зроблено на цьому checkpoint:
+### REAL CODE CHECKPOINT 2 — UI + appendix history
 
-1. UI-редактор існуючого наказу (`operations_orders_ui.py`).
-2. UI-попередження при зміні вже підписаного паперового примірника.
-3. UI-редагування рядка закріплення ТЗ/водія.
-4. Прямий UX `Створити наказ про закріплення`.
-5. Переведення додатків r3 на модель «редагування дозволене незалежно від статусу» + history log.
-6. Regression tests r4, Windows/macOS gates, clean START verify, immutable `v10.7-r4` і тестовий START-архів.
+Після checkpoint 1 завершено робочий UI у `operations_orders_ui.py`:
+
+- існуючий наказ відкривається на редагування через `ops.update_order(...)`, а не через прямий SQL;
+- для позначеного підписаного паперового оригіналу UI показує попередження про необхідність звірки/повторного друку після виправлення;
+- у реєстрі видно стан паперового оригіналу;
+- закріплення ТЗ/водія має створення, редагування і видалення;
+- редагування закріплення викликає `ops.update_vehicle_assignment(...)` та пишеться в історію;
+- перед зміною закріплення вже підписаного наказу показується окреме попередження;
+- є прямий UX `Створити наказ про закріплення`;
+- додатки r3 переведено на r4-модель: дозволено корекцію після внутрішнього затвердження, а create/update/delete записуються в `operations_change_log` через `v1074_appendix_history.py`;
+- `taxo_app.py` встановлює appendix-history layer окремим зовнішнім шаром;
+- `main.APP_VERSION`, `VERSION.txt`, `operations_orders.APP_VERSION` синхронізовані на `10.7-r4`;
+- додано regression `tests/test_v10_7_r4.py`.
+
+### CI defect і виправлення
+
+Перший повний regression після додавання appendix-history: **621/622 OK**, 1 error. Причина: ізольований тест `test_approved_appendix_can_be_corrected_and_history_is_preserved` ще натрапляв на старий r3 `_require_draft(...)`.
+
+Виправлено у `v1074_appendix_history.py`: r4 layer самостійно замінює r3 guard на перевірку існування наказу, тому затверджений/скасований внутрішній статус не є технічним lock для корекції робочого запису. Паперовий оригінал і журнал змін зберігають простежуваність.
+
+Додатково виявлено зайвий зовнішній UI patch `v1074_features.py`, який дублював кнопки/діалоги поверх уже повного `operations_orders_ui.py` і містив старий raw SQL update. У checkpoint `deca49cb614ffab148093ab61fe4a513a21efe1e` цей шар навмисно спрощено до runtime identity only. Єдиним UI джерелом для `Експлуатація` лишається `operations_orders_ui.py`.
+
+На head `deca49cb614ffab148093ab61fe4a513a21efe1e` запущено exact-head source/START regression. До immutable `v10.7-r4` переходити лише після зелених source, Windows і macOS gates та clean START verify.
 
 ### Паралельний зовнішній аудит
 
@@ -125,10 +142,11 @@ Exact issued source: `a51e336a31192fa7b82cb3bfe6db6c112dc70eae`.
 
 ## NEXT
 
-1. Продовжити r4 з `4029e487509f3e83947de3143856a374733726c4`: UI редагування наказу + warning для паперового оригіналу.
-2. Далі UI редагування закріплення, додатки, тести й release fast-test.
-3. Форми ТО/ремонтів не вигадувати: використовувати реальні джерела з бази знань і окремо перевіряти чинну нормативну базу.
-4. Candidate line 10.7 не зливати у `main` без окремої команди власника.
+1. Дочекатися exact-head source/START regression для r4 після видалення дублюючого UI layer.
+2. Якщо зелено — перевірити Windows/macOS PR gates на тому самому head, clean START verify, потім сформувати immutable fast-test `v10.7-r4` і тестовий START-архів.
+3. Після r4 перейти до зовнішнього аудиту E2/E3/E4, починаючи зі звільнених працівників у минулих звітах та подвійного плану.
+4. Форми ТО/ремонтів не вигадувати: використовувати реальні джерела з бази знань і окремо перевіряти чинну нормативну базу.
+5. Candidate line 10.7 не зливати у `main` без окремої команди власника.
 
 ## PRESERVED
 
