@@ -17,9 +17,21 @@ def _row_dict(row):
         return dict(row)
 
 
+def _require_existing_order(con, order_id):
+    row = ops.get_order(con, order_id)
+    if row is None:
+        raise ValueError("Наказ не знайдено.")
+    return row
+
+
 def install(core, base_app):
     if getattr(core, "_TAXO_1074_APPENDIX_HISTORY_INSTALLED", False):
         return base_app
+
+    # r4 policy is self-contained here: internal approval/cancellation does not
+    # hard-lock a clerical correction.  Paper signatures remain outside this
+    # internal status and Taxo preserves the edit trail instead.
+    r3._require_draft = _require_existing_order
 
     original_save = r3.save_appendix
     original_delete = r3.delete_appendix
