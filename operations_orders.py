@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Taxo 10.7-r2 — експлуатація, накази та закріплення водіїв.
+"""Taxo 10.7-r4 — експлуатація, накази та закріплення водіїв.
 
-Модуль зберігає наказ як структурований факт. Друкований PDF є представленням,
-а не єдиним джерелом даних. Це дозволяє повторно використовувати чинне
-закріплення водія у відомостях та інших документах на конкретну дату.
+Наказ і пов'язані з ним дані зберігаються як структуровані записи. Друкований
+PDF є представленням даних, а не єдиним джерелом. Внутрішній статус
+«Затверджено» не блокує виправлення: паперовий оригінал залишається юридично
+значущим примірником, а Taxo веде історію змін і попереджає про необхідність
+звірити/перевидати друкований документ після редагування.
 """
 from __future__ import annotations
 
@@ -12,7 +14,7 @@ import json
 from datetime import date, datetime
 from pathlib import Path
 
-APP_VERSION = "10.7-r2"
+APP_VERSION = "10.7-r4"
 
 ORDER_DRAFT = "draft"
 ORDER_APPROVED = "approved"
@@ -86,6 +88,26 @@ def display_day(value):
         return text
 
 
+def _json_value(value):
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
+
+
+def _write_history(con, entity_type, entity_id, action, before=None, after=None, note=""):
+    con.execute(
+        """INSERT INTO operations_change_log(
+               entity_type,entity_id,action,before_json,after_json,note,changed_at
+           ) VALUES(?,?,?,?,?,?,?)""",
+        (
+            str(entity_type), int(entity_id), str(action),
+            json.dumps(before or {}, ensure_ascii=False, sort_keys=True, default=_json_value),
+            json.dumps(after or {}, ensure_ascii=False, sort_keys=True, default=_json_value),
+            str(note or "").strip(), datetime.now().isoformat(timespec="seconds"),
+        ),
+    )
+
+
 def ensure_schema_on_connection(con):
     con.executescript("""
         CREATE TABLE IF NOT EXISTS operations_settings (
@@ -110,6 +132,8 @@ def ensure_schema_on_connection(con):
             approved_at TEXT DEFAULT '',
             cancelled_at TEXT DEFAULT '',
             note TEXT DEFAULT '',
+            paper_original_signed INTEGER NOT NULL DEFAULT 0,
+            paper_original_signed_at TEXT DEFAULT '',
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             UNIQUE(order_no, order_date)
@@ -127,6 +151,7 @@ def ensure_schema_on_connection(con):
             sequence_no INTEGER NOT NULL DEFAULT 1,
             note TEXT DEFAULT '',
             created_at TEXT NOT NULL,
+            updated_at TEXT DEFAULT '',
             UNIQUE(order_id, vehicle_id, employee_id, valid_from)
         );
         CREATE INDEX IF NOT EXISTS idx_vehicle_driver_assignments_active
@@ -140,12 +165,31 @@ def ensure_schema_on_connection(con):
             approved_at TEXT NOT NULL,
             note TEXT DEFAULT ''
         );
+
+        CREATE TABLE IF NOT EXISTS operations_change_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            action TEXT NOT NULL,
+            before_json TEXT NOT NULL DEFAULT '{}',
+            after_json TEXT NOT NULL DEFAULT '{}',
+            note TEXT DEFAULT '',
+            changed_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_operations_change_log_entity
+            ON operations_change_log(entity_type,entity_id,id DESC);
     """)
+    # Safe additive migrations for databases created by r2/r3.
+    cols = {row[1] for row in con.execute("PRAGMA table_info(operations_orders)").fetchall()}
+    if "paper_original_signed" not in cols:
+        con.execute("ALTER TABLE operations_orders ADD COLUMN paper_original_signed INTEGER NOT NULL DEFAULT 0")
+    if "paper_original_signed_at" not in cols:
+        con.execute("ALTER TABLE operations_orders ADD COLUMN paper_original_signed_at TEXT DEFAULT ''")
+    acols = {row[1] for row in con.execute("PRAGMA table_info(vehicle_driver_assignments)").fetchall()}
+    if "updated_at" not in acols:
+        con.execute("ALTER TABLE vehicle_driver_assignments ADD COLUMN updated_at TEXT DEFAULT ''")
     now = datetime.now().isoformat(timespec="seconds")
-    con.execute(
-        "INSERT OR IGNORE INTO operations_settings(id,updated_at) VALUES(1,?)",
-        (now,),
-    )
+    con.execute("INSERT OR IGNORE INTO operations_settings(id,updated_at) VALUES(1,?)", (now,))
 
 
 def ensure_schema(core):
@@ -159,8 +203,7 @@ def ensure_schema(core):
 
 def settings(con):
     ensure_schema_on_connection(con)
-    row = con.execute("SELECT * FROM operations_settings WHERE id=1").fetchone()
-    return row
+    return con.execute("SELECT * FROM operations_settings WHERE id=1").fetchone()
 
 
 def save_settings(con, *, operations_responsible_employee_id=None,
@@ -185,12 +228,11 @@ def employee_name(con, employee_id):
     if not employee_id:
         return ""
     row = con.execute(
-        "SELECT last_name,first_name,middle_name FROM employees WHERE id=?",
-        (int(employee_id),),
+        "SELECT last_name,first_name,middle_name FROM employees WHERE id=?", (int(employee_id),)
     ).fetchone()
     if row is None:
         return ""
-    return " ".join(str(row[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(row[k] or "").strip())
+    return " ".join(str(row[k] or "").strip() for k in ("last_name", "first_name", "middle_name") if str(row[k] or "").strip())
 
 
 def list_employee_choices(con, active_only=True):
@@ -200,7 +242,7 @@ def list_employee_choices(con, active_only=True):
     sql += " ORDER BY last_name,first_name,middle_name,id"
     result = []
     for row in con.execute(sql).fetchall():
-        name = " ".join(str(row[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(row[k] or "").strip())
+        name = " ".join(str(row[k] or "").strip() for k in ("last_name", "first_name", "middle_name") if str(row[k] or "").strip())
         position = str(row["position"] or "").strip()
         result.append({"id": int(row["id"]), "name": name, "position": position,
                        "label": name + ((" — " + position) if position else "")})
@@ -245,7 +287,65 @@ def create_order(con, *, order_type, order_no, order_date, place="", subject="",
             ORDER_DRAFT, str(note or "").strip(), now, now,
         ),
     )
-    return int(cur.lastrowid)
+    oid = int(cur.lastrowid)
+    _write_history(con, "order", oid, "create", after=dict(get_order(con, oid)))
+    return oid
+
+
+def update_order(con, order_id, *, order_type=None, order_no=None, order_date=None,
+                 place=None, subject=None, preamble=None, body_text=None,
+                 control_employee_id=None, note=None, history_note=""):
+    ensure_schema_on_connection(con)
+    row = get_order(con, order_id)
+    if row is None:
+        raise ValueError("Наказ не знайдено.")
+    before = dict(row)
+    new_type = str(order_type if order_type is not None else row["order_type"])
+    if new_type not in ORDER_TYPE_LABELS:
+        raise ValueError("Невідомий тип наказу.")
+    number = str(order_no if order_no is not None else row["order_no"]).strip()
+    if not number:
+        raise ValueError("Вкажіть номер наказу.")
+    day = _day(order_date if order_date is not None else row["order_date"])
+    values = (
+        new_type, number, day,
+        str(place if place is not None else row["place"] or "").strip(),
+        str(subject if subject is not None else row["subject"] or "").strip(),
+        str(preamble if preamble is not None else row["preamble"] or "").strip(),
+        str(body_text if body_text is not None else row["body_text"] or "").strip(),
+        int(control_employee_id) if control_employee_id else None,
+        str(note if note is not None else row["note"] or "").strip(),
+        datetime.now().isoformat(timespec="seconds"), int(order_id),
+    )
+    con.execute(
+        """UPDATE operations_orders
+              SET order_type=?,order_no=?,order_date=?,place=?,subject=?,preamble=?,body_text=?,
+                  control_employee_id=?,note=?,updated_at=?
+            WHERE id=?""", values,
+    )
+    after = dict(get_order(con, order_id))
+    if before != after:
+        _write_history(con, "order", order_id, "update", before=before, after=after, note=history_note)
+    return after
+
+
+def set_paper_original_signed(con, order_id, signed=True, *, signed_at=None, history_note=""):
+    ensure_schema_on_connection(con)
+    row = get_order(con, order_id)
+    if row is None:
+        raise ValueError("Наказ не знайдено.")
+    before = dict(row)
+    when = ""
+    if signed:
+        when = str(signed_at or datetime.now().isoformat(timespec="seconds"))
+    con.execute(
+        "UPDATE operations_orders SET paper_original_signed=?,paper_original_signed_at=?,updated_at=? WHERE id=?",
+        (1 if signed else 0, when, datetime.now().isoformat(timespec="seconds"), int(order_id)),
+    )
+    after = dict(get_order(con, order_id))
+    _write_history(con, "order", order_id, "paper_signed" if signed else "paper_unmarked",
+                   before=before, after=after, note=history_note)
+    return after
 
 
 def list_orders(con, limit=1000):
@@ -254,8 +354,7 @@ def list_orders(con, limit=1000):
         """SELECT o.*,e.last_name,e.first_name,e.middle_name
              FROM operations_orders o
              LEFT JOIN employees e ON e.id=o.control_employee_id
-            ORDER BY o.order_date DESC,o.id DESC LIMIT ?""",
-        (int(limit),),
+            ORDER BY o.order_date DESC,o.id DESC LIMIT ?""", (int(limit),)
     ).fetchall()
 
 
@@ -285,16 +384,61 @@ def add_vehicle_assignment(con, order_id, vehicle_id, employee_id, *, valid_from
     now = datetime.now().isoformat(timespec="seconds")
     cur = con.execute(
         """INSERT INTO vehicle_driver_assignments(
-               order_id,vehicle_id,employee_id,valid_from,valid_until,sequence_no,note,created_at
-           ) VALUES(?,?,?,?,?,?,?,?)""",
+               order_id,vehicle_id,employee_id,valid_from,valid_until,sequence_no,note,created_at,updated_at
+           ) VALUES(?,?,?,?,?,?,?,?,?)""",
         (int(order_id), int(vehicle_id), int(employee_id), start, end,
-         int(sequence_no), str(note or "").strip(), now),
+         int(sequence_no), str(note or "").strip(), now, now),
     )
-    return int(cur.lastrowid)
+    aid = int(cur.lastrowid)
+    _write_history(con, "assignment", aid, "create", after=dict(get_vehicle_assignment(con, aid)))
+    return aid
 
 
-def delete_vehicle_assignment(con, assignment_id):
+def get_vehicle_assignment(con, assignment_id):
+    ensure_schema_on_connection(con)
+    return con.execute("SELECT * FROM vehicle_driver_assignments WHERE id=?", (int(assignment_id),)).fetchone()
+
+
+def update_vehicle_assignment(con, assignment_id, *, vehicle_id=None, employee_id=None,
+                              valid_from=None, valid_until=None, sequence_no=None, note=None,
+                              history_note=""):
+    ensure_schema_on_connection(con)
+    row = get_vehicle_assignment(con, assignment_id)
+    if row is None:
+        raise ValueError("Закріплення не знайдено.")
+    before = dict(row)
+    start = _day(valid_from if valid_from is not None else row["valid_from"])
+    raw_end = row["valid_until"] if valid_until is None else valid_until
+    end = _day(raw_end) if str(raw_end or "").strip() else ""
+    if end and end < start:
+        raise ValueError("Дата завершення не може бути раніше дати початку.")
+    con.execute(
+        """UPDATE vehicle_driver_assignments
+              SET vehicle_id=?,employee_id=?,valid_from=?,valid_until=?,sequence_no=?,note=?,updated_at=?
+            WHERE id=?""",
+        (
+            int(vehicle_id if vehicle_id is not None else row["vehicle_id"]),
+            int(employee_id if employee_id is not None else row["employee_id"]),
+            start, end,
+            int(sequence_no if sequence_no is not None else row["sequence_no"]),
+            str(note if note is not None else row["note"] or "").strip(),
+            datetime.now().isoformat(timespec="seconds"), int(assignment_id),
+        ),
+    )
+    after = dict(get_vehicle_assignment(con, assignment_id))
+    if before != after:
+        _write_history(con, "assignment", assignment_id, "update", before=before, after=after, note=history_note)
+    return after
+
+
+def delete_vehicle_assignment(con, assignment_id, *, history_note=""):
+    ensure_schema_on_connection(con)
+    row = get_vehicle_assignment(con, assignment_id)
+    if row is None:
+        return
+    before = dict(row)
     con.execute("DELETE FROM vehicle_driver_assignments WHERE id=?", (int(assignment_id),))
+    _write_history(con, "assignment", assignment_id, "delete", before=before, note=history_note)
 
 
 def order_assignments(con, order_id):
@@ -306,8 +450,7 @@ def order_assignments(con, order_id):
              JOIN vehicles v ON v.id=a.vehicle_id
              JOIN employees e ON e.id=a.employee_id
             WHERE a.order_id=?
-            ORDER BY a.sequence_no,a.id""",
-        (int(order_id),),
+            ORDER BY a.sequence_no,a.id""", (int(order_id),)
     ).fetchall()
 
 
@@ -326,8 +469,7 @@ def active_driver_assignments(con, vehicle_id, on_date=None):
             WHERE a.vehicle_id=?
               AND a.valid_from<=?
               AND (COALESCE(a.valid_until,'')='' OR a.valid_until>=?)
-            ORDER BY a.sequence_no,a.id""",
-        (int(vehicle_id), day, day),
+            ORDER BY a.sequence_no,a.id""", (int(vehicle_id), day, day)
     ).fetchall()
 
 
@@ -336,22 +478,51 @@ def approve_order(con, order_id):
     row = get_order(con, order_id)
     if row is None:
         raise ValueError("Наказ не знайдено.")
-    if row["order_type"] == TYPE_VEHICLE_ASSIGNMENT:
-        if not order_assignments(con, order_id):
-            raise ValueError("До наказу про закріплення не додано жодного ТЗ/водія.")
+    if row["order_type"] == TYPE_VEHICLE_ASSIGNMENT and not order_assignments(con, order_id):
+        raise ValueError("До наказу про закріплення не додано жодного ТЗ/водія.")
+    before = dict(row)
     now = datetime.now().isoformat(timespec="seconds")
     con.execute(
         "UPDATE operations_orders SET status=?,approved_at=?,updated_at=? WHERE id=?",
         (ORDER_APPROVED, now, now, int(order_id)),
     )
+    _write_history(con, "order", order_id, "approve", before=before, after=dict(get_order(con, order_id)))
 
 
 def cancel_order(con, order_id):
+    ensure_schema_on_connection(con)
+    row = get_order(con, order_id)
+    if row is None:
+        raise ValueError("Наказ не знайдено.")
+    before = dict(row)
     now = datetime.now().isoformat(timespec="seconds")
     con.execute(
         "UPDATE operations_orders SET status=?,cancelled_at=?,updated_at=? WHERE id=?",
         (ORDER_CANCELLED, now, now, int(order_id)),
     )
+    _write_history(con, "order", order_id, "cancel", before=before, after=dict(get_order(con, order_id)))
+
+
+def order_history(con, order_id, limit=500):
+    ensure_schema_on_connection(con)
+    order_id = int(order_id)
+    assignment_ids = [int(r[0]) for r in con.execute(
+        "SELECT id FROM vehicle_driver_assignments WHERE order_id=?", (order_id,)
+    ).fetchall()]
+    if assignment_ids:
+        marks = ",".join("?" for _ in assignment_ids)
+        sql = (
+            "SELECT * FROM operations_change_log WHERE "
+            "(entity_type='order' AND entity_id=?) OR "
+            f"(entity_type='assignment' AND entity_id IN ({marks})) "
+            "ORDER BY id DESC LIMIT ?"
+        )
+        return con.execute(sql, [order_id] + assignment_ids + [int(limit)]).fetchall()
+    return con.execute(
+        """SELECT * FROM operations_change_log
+            WHERE entity_type='order' AND entity_id=?
+            ORDER BY id DESC LIMIT ?""", (order_id, int(limit))
+    ).fetchall()
 
 
 def statement_fingerprint(report_date, company, rows):
@@ -394,8 +565,7 @@ def military_statement_approval(con, report_date):
         """SELECT a.*,e.last_name,e.first_name,e.middle_name,e.position
              FROM military_statement_approvals a
              LEFT JOIN employees e ON e.id=a.responsible_employee_id
-            WHERE a.report_date=?""",
-        (_day(report_date),),
+            WHERE a.report_date=?""", (_day(report_date),)
     ).fetchone()
 
 
@@ -409,9 +579,7 @@ def military_statement_is_approved(con, report_date, company, rows):
 
 def _font_path(preferred=None):
     candidates = [
-        str(preferred or ""),
-        r"C:\Windows\Fonts\times.ttf",
-        r"C:\Windows\Fonts\arial.ttf",
+        str(preferred or ""), r"C:\Windows\Fonts\times.ttf", r"C:\Windows\Fonts\arial.ttf",
         "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
         "/System/Library/Fonts/Supplemental/Arial.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf",
@@ -451,8 +619,7 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
     title = ParagraphStyle("OrderTitle", parent=center, fontSize=15, leading=18, spaceAfter=2)
     bold_center = ParagraphStyle("OrderBoldCenter", parent=center, fontSize=12.5, leading=15)
 
-    doc = SimpleDocTemplate(str(path), pagesize=A4,
-                            leftMargin=20*mm, rightMargin=18*mm,
+    doc = SimpleDocTemplate(str(path), pagesize=A4, leftMargin=20*mm, rightMargin=18*mm,
                             topMargin=17*mm, bottomMargin=17*mm)
     company = company or {}
     company_name = str(company.get("name") or "").strip() or "Підприємство"
@@ -463,14 +630,11 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
         Paragraph("по %s" % company_name, center),
         Spacer(1, 7*mm),
     ]
-    meta = Table([
-        [display_day(order["order_date"]), "<b>№ %s</b>" % str(order["order_no"] or ""), str(order["place"] or "")],
-    ], colWidths=[55*mm, 55*mm, 55*mm])
+    meta = Table([[display_day(order["order_date"]), "<b>№ %s</b>" % str(order["order_no"] or ""),
+                   str(order["place"] or "")]], colWidths=[55*mm, 55*mm, 55*mm])
     meta.setStyle(TableStyle([
-        ("FONTNAME", (0,0), (-1,-1), font_name),
-        ("FONTSIZE", (0,0), (-1,-1), 11.5),
-        ("ALIGN", (0,0), (0,0), "LEFT"),
-        ("ALIGN", (1,0), (1,0), "CENTER"),
+        ("FONTNAME", (0,0), (-1,-1), font_name), ("FONTSIZE", (0,0), (-1,-1), 11.5),
+        ("ALIGN", (0,0), (0,0), "LEFT"), ("ALIGN", (1,0), (1,0), "CENTER"),
         ("ALIGN", (2,0), (2,0), "RIGHT"),
     ]))
     story += [meta, Spacer(1, 8*mm)]
@@ -490,19 +654,15 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
         ))
         data = [["№", "Транспортний засіб", "Держ. номер", "Водій"]]
         for idx, item in enumerate(assignments, 1):
-            name = " ".join(str(item[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(item[k] or "").strip())
+            name = " ".join(str(item[k] or "").strip() for k in ("last_name", "first_name", "middle_name") if str(item[k] or "").strip())
             vehicle = str(item["make_model"] or item["vehicle_name"] or "").strip()
             data.append([idx, vehicle, str(item["plate"] or "").strip(), name])
         table = Table(data, colWidths=[10*mm, 52*mm, 38*mm, 65*mm], repeatRows=1)
         table.setStyle(TableStyle([
-            ("FONTNAME", (0,0), (-1,-1), font_name),
-            ("FONTSIZE", (0,0), (-1,-1), 10.5),
-            ("GRID", (0,0), (-1,-1), 0.45, colors.black),
-            ("ALIGN", (0,0), (-1,0), "CENTER"),
-            ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-            ("LEFTPADDING", (0,0), (-1,-1), 3),
-            ("RIGHTPADDING", (0,0), (-1,-1), 3),
-            ("TOPPADDING", (0,0), (-1,-1), 3),
+            ("FONTNAME", (0,0), (-1,-1), font_name), ("FONTSIZE", (0,0), (-1,-1), 10.5),
+            ("GRID", (0,0), (-1,-1), 0.45, colors.black), ("ALIGN", (0,0), (-1,0), "CENTER"),
+            ("VALIGN", (0,0), (-1,-1), "MIDDLE"), ("LEFTPADDING", (0,0), (-1,-1), 3),
+            ("RIGHTPADDING", (0,0), (-1,-1), 3), ("TOPPADDING", (0,0), (-1,-1), 3),
             ("BOTTOMPADDING", (0,0), (-1,-1), 3),
         ]))
         story += [Spacer(1, 3*mm), table, Spacer(1, 5*mm)]
@@ -512,8 +672,7 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
     else:
         body = str(order["body_text"] or "").strip()
         if body:
-            paragraphs = [p.strip() for p in body.split("\n") if p.strip()]
-            for paragraph in paragraphs:
+            for paragraph in [p.strip() for p in body.split("\n") if p.strip()]:
                 story.append(Paragraph(paragraph, normal))
                 story.append(Spacer(1, 2*mm))
         control = str(control_name or "").strip()
@@ -523,10 +682,8 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
     story += [Spacer(1, 15*mm)]
     signature = Table([[signer_position, "________________", signer_name]], colWidths=[60*mm, 45*mm, 55*mm])
     signature.setStyle(TableStyle([
-        ("FONTNAME", (0,0), (-1,-1), font_name),
-        ("FONTSIZE", (0,0), (-1,-1), 11.5),
-        ("ALIGN", (0,0), (0,0), "LEFT"),
-        ("ALIGN", (1,0), (1,0), "CENTER"),
+        ("FONTNAME", (0,0), (-1,-1), font_name), ("FONTSIZE", (0,0), (-1,-1), 11.5),
+        ("ALIGN", (0,0), (0,0), "LEFT"), ("ALIGN", (1,0), (1,0), "CENTER"),
         ("ALIGN", (2,0), (2,0), "RIGHT"),
     ]))
     story.append(signature)
