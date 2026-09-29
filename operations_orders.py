@@ -13,6 +13,7 @@ import hashlib
 import json
 from datetime import date, datetime
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 APP_VERSION = "10.7-r4"
 
@@ -31,6 +32,12 @@ TYPE_WORKTIME = "summarized_worktime"
 TYPE_REST_PLACES = "driver_rest_places"
 TYPE_DRIVER_TRAINING = "driver_training"
 TYPE_SAFETY_TRAINING = "safety_training"
+TYPE_ROAD_SAFETY = "road_safety"
+TYPE_TECHNICAL_CONTROL = "technical_control"
+TYPE_MAINTENANCE_REPAIR = "maintenance_repair"
+TYPE_ACCIDENT_COMMISSION = "accident_commission"
+TYPE_OCCUPATIONAL_SAFETY = "occupational_safety"
+TYPE_FIRE_SAFETY = "fire_safety"
 TYPE_GENERIC = "generic"
 
 ORDER_TYPE_LABELS = {
@@ -39,7 +46,13 @@ ORDER_TYPE_LABELS = {
     TYPE_WORKTIME: "Організація / підсумований облік робочого часу",
     TYPE_REST_PLACES: "Місця відпочинку водіїв",
     TYPE_DRIVER_TRAINING: "Спеціальна підготовка / стажування водіїв",
-    TYPE_SAFETY_TRAINING: "Охорона праці / пожежна безпека",
+    TYPE_SAFETY_TRAINING: "Навчання / перевірка знань з безпеки",
+    TYPE_ROAD_SAFETY: "Безпека дорожнього руху",
+    TYPE_TECHNICAL_CONTROL: "Технічний стан / передрейсовий контроль",
+    TYPE_MAINTENANCE_REPAIR: "ТО / ремонти / технічні огляди",
+    TYPE_ACCIDENT_COMMISSION: "ДТП / комісія / службове розслідування",
+    TYPE_OCCUPATIONAL_SAFETY: "Охорона праці",
+    TYPE_FIRE_SAFETY: "Пожежна безпека",
     TYPE_GENERIC: "Інший наказ з експлуатації",
 }
 
@@ -49,7 +62,13 @@ DEFAULT_SUBJECTS = {
     TYPE_WORKTIME: "Про організацію обліку робочого часу",
     TYPE_REST_PLACES: "Про встановлення місць для відпочинку водіїв та зберігання автобусів",
     TYPE_DRIVER_TRAINING: "Про спеціальну підготовку та стажування водіїв",
-    TYPE_SAFETY_TRAINING: "Про проведення занять та перевірку знань з охорони праці",
+    TYPE_SAFETY_TRAINING: "Про проведення навчання та перевірку знань",
+    TYPE_ROAD_SAFETY: "Про організацію роботи з безпеки дорожнього руху",
+    TYPE_TECHNICAL_CONTROL: "Про організацію контролю технічного стану транспортних засобів",
+    TYPE_MAINTENANCE_REPAIR: "Про організацію технічного обслуговування та ремонту транспортних засобів",
+    TYPE_ACCIDENT_COMMISSION: "Про створення комісії та розгляд дорожньо-транспортної пригоди",
+    TYPE_OCCUPATIONAL_SAFETY: "Про організацію роботи з охорони праці",
+    TYPE_FIRE_SAFETY: "Про організацію пожежної безпеки",
     TYPE_GENERIC: "",
 }
 
@@ -60,6 +79,12 @@ DEFAULT_PREAMBLES = {
     TYPE_REST_PLACES: "З метою організації відпочинку водіїв та зберігання автобусів під час виконання маршрутів —",
     TYPE_DRIVER_TRAINING: "З метою забезпечення належної підготовки та стажування водіїв підприємства —",
     TYPE_SAFETY_TRAINING: "З метою організації навчання та перевірки знань працівників підприємства —",
+    TYPE_ROAD_SAFETY: "З метою організації системної роботи з безпеки дорожнього руху на підприємстві —",
+    TYPE_TECHNICAL_CONTROL: "З метою забезпечення належного технічного стану та контролю транспортних засобів перед виїздом —",
+    TYPE_MAINTENANCE_REPAIR: "З метою планування та обліку технічного обслуговування, ремонту і технічних оглядів транспортних засобів —",
+    TYPE_ACCIDENT_COMMISSION: "З метою документування обставин дорожньо-транспортної пригоди та визначення необхідних заходів —",
+    TYPE_OCCUPATIONAL_SAFETY: "З метою організації роботи з охорони праці, навчання та інструктажів працівників —",
+    TYPE_FIRE_SAFETY: "З метою організації пожежної безпеки та виконання протипожежних заходів —",
     TYPE_GENERIC: "",
 }
 
@@ -86,6 +111,11 @@ def display_day(value):
         return date.fromisoformat(text[:10]).strftime("%d.%m.%Y")
     except Exception:
         return text
+
+
+def _ptext(value):
+    """Plain text safe for ReportLab Paragraph markup."""
+    return escape(str(value or ""))
 
 
 def _json_value(value):
@@ -593,7 +623,7 @@ def _font_path(preferred=None):
 def export_order_pdf(path, order, assignments=(), company=None, control_name="", font_path=None):
     """Друк наказу у стилі наданих підприємством зразків."""
     from reportlab.lib import colors
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import mm
@@ -616,6 +646,7 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
     normal = ParagraphStyle("OrderNormal", parent=styles["Normal"], fontName=font_name,
                             fontSize=11.5, leading=15, alignment=TA_LEFT)
     center = ParagraphStyle("OrderCenter", parent=normal, alignment=TA_CENTER)
+    right = ParagraphStyle("OrderRight", parent=normal, alignment=TA_RIGHT)
     title = ParagraphStyle("OrderTitle", parent=center, fontSize=15, leading=18, spaceAfter=2)
     bold_center = ParagraphStyle("OrderBoldCenter", parent=center, fontSize=12.5, leading=15)
 
@@ -627,11 +658,14 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
     signer_name = str(company.get("signer_name") or "").strip()
     story = [
         Paragraph("<b>Н А К А З</b>", title),
-        Paragraph("по %s" % company_name, center),
+        Paragraph("по %s" % _ptext(company_name), center),
         Spacer(1, 7*mm),
     ]
-    meta = Table([[display_day(order["order_date"]), "<b>№ %s</b>" % str(order["order_no"] or ""),
-                   str(order["place"] or "")]], colWidths=[55*mm, 55*mm, 55*mm])
+    meta = Table([[
+        Paragraph(_ptext(display_day(order["order_date"])), normal),
+        Paragraph("<b>№ %s</b>" % _ptext(order["order_no"]), center),
+        Paragraph(_ptext(order["place"]), right),
+    ]], colWidths=[55*mm, 55*mm, 55*mm])
     meta.setStyle(TableStyle([
         ("FONTNAME", (0,0), (-1,-1), font_name), ("FONTSIZE", (0,0), (-1,-1), 11.5),
         ("ALIGN", (0,0), (0,0), "LEFT"), ("ALIGN", (1,0), (1,0), "CENTER"),
@@ -640,10 +674,10 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
     story += [meta, Spacer(1, 8*mm)]
     subject = str(order["subject"] or "").strip()
     if subject:
-        story += [Paragraph("<b>%s</b>" % subject, normal), Spacer(1, 5*mm)]
+        story += [Paragraph("<b>%s</b>" % _ptext(subject), normal), Spacer(1, 5*mm)]
     preamble = str(order["preamble"] or "").strip()
     if preamble:
-        story += [Paragraph(preamble, normal), Spacer(1, 6*mm)]
+        story += [Paragraph(_ptext(preamble), normal), Spacer(1, 6*mm)]
     story += [Paragraph("<b>Н А К А З У Ю:</b>", bold_center), Spacer(1, 5*mm)]
 
     if str(order["order_type"]) == TYPE_VEHICLE_ASSIGNMENT:
@@ -668,16 +702,16 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
         story += [Spacer(1, 3*mm), table, Spacer(1, 5*mm)]
         control = str(control_name or "").strip()
         if control:
-            story.append(Paragraph("2. Контроль за виконанням даного наказу покласти на %s." % control, normal))
+            story.append(Paragraph("2. Контроль за виконанням даного наказу покласти на %s." % _ptext(control), normal))
     else:
         body = str(order["body_text"] or "").strip()
         if body:
             for paragraph in [p.strip() for p in body.split("\n") if p.strip()]:
-                story.append(Paragraph(paragraph, normal))
+                story.append(Paragraph(_ptext(paragraph), normal))
                 story.append(Spacer(1, 2*mm))
         control = str(control_name or "").strip()
         if control:
-            story.append(Paragraph("Контроль за виконанням даного наказу покласти на %s." % control, normal))
+            story.append(Paragraph("Контроль за виконанням даного наказу покласти на %s." % _ptext(control), normal))
 
     story += [Spacer(1, 15*mm)]
     signature = Table([[signer_position, "________________", signer_name]], colWidths=[60*mm, 45*mm, 55*mm])
