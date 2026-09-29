@@ -10,9 +10,9 @@
 **Latest integrated code checkpoint in `main`:** Taxo **10.6-r10**  
 **Main:** `109d3c64f2a54a29c5b88eb190a934f0a890245d`  
 **Latest issued fast-test:** **10.7-r4** / `v10.7-r4` → `a214eccc95a00d229f28e52865a5ec37b6f61bba`  
-**Active branch after issuance:** `work/v10.7-r4-operations-legal-structure` — docs/closeout only  
-**PR:** #93 — draft; candidate line не зливати у `main` без окремої команди власника  
-**Next code revision:** **10.7-r5**  
+**Active code branch:** `work/v10.7-r5-historical-personnel-reports`  
+**Base checkpoint:** issued `v10.7-r4`; r5 не зливати у `main` без окремої команди власника  
+**Current code revision:** **10.7-r5 — IN PROGRESS**  
 **Knowledge branch:** `knowledge/vehicle-operations`  
 **Live ledger:** Issue #61
 
@@ -116,7 +116,18 @@ Tag / prerelease: **`v10.7-r4`** — не рухати і не перевида�
 - immutable `v10.6-r10`;
 - stable `v10.3` remains unchanged.
 
-## NEXT — 10.7-r5
+## IN PROGRESS — 10.7-r5
+
+Підтверджено E2: історичні кадрові звіти при `active_only=True` спочатку застосовували `employees.active=1`, а вже потім `employee_employed_on(...)`. Через це звільнений сьогодні працівник зникав зі звіту за місяць, коли він ще працював.
+
+Рішення r5: report-only compatibility layer `v1075_features.py` прибирає storage-level current-active prefilter для тижневого балансу, аудиту табеля та П-5; період визначається датами `employment_date` / `dismissal_date`. Current-active UI selector не патчиться.
+
+## NEXT
+
+1. Пройти full regression + clean START verify для r5.
+2. Перевірити Windows/macOS gates на exact head.
+3. Після зелених gate видати immutable fast-test `v10.7-r5` і прямий START archive.
+4. Далі перейти до E3 — можливий подвійний план `водій + зміна персоналу`; потім E4 — `purge_old()` / backup.
 
 Перший блок після r4 — продовження перевірки зовнішнього аудиту як **гіпотез**, а не автоматичної істини:
 
