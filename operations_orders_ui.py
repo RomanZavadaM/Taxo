@@ -211,10 +211,11 @@ def open_operations_center(app, core):
         type_box.bind("<<ComboboxSelected>>",sync_type)
 
         def save_new():
+            order_type = type_by_label.get(type_var.get(), ops.TYPE_GENERIC)
             con3=core.db()
             try:
                 oid=ops.create_order(
-                    con3, order_type=type_by_label.get(type_var.get(),ops.TYPE_GENERIC),
+                    con3, order_type=order_type,
                     order_no=no_var.get(), order_date=date_var.get(), place=place_local.get(),
                     subject=subject_var.get(), preamble=preamble.get("1.0","end-1c"),
                     body_text=body_text.get("1.0","end-1c"), control_employee_id=emp_by_label.get(control_var.get()),
@@ -224,7 +225,7 @@ def open_operations_center(app, core):
                 con3.rollback(); core.messagebox.showerror("Наказ",str(exc),parent=dialog); return
             finally: con3.close()
             dialog.destroy(); refresh_orders(oid)
-            if type_by_label.get(type_var.get())==ops.TYPE_VEHICLE_ASSIGNMENT:
+            if order_type == ops.TYPE_VEHICLE_ASSIGNMENT:
                 book.select(assignments_tab)
         buttons=core.ttk.Frame(frm); buttons.grid(row=8,column=0,columnspan=2,sticky="ew",pady=(10,0))
         core.ttk.Button(buttons,text="Скасувати",command=dialog.destroy).pack(side="right")
@@ -285,8 +286,11 @@ def open_operations_center(app, core):
     assignment_cache={}
 
     def current_assignment_order():
-        row=selected_order()
-        if row is None or row["order_type"]!=ops.TYPE_VEHICLE_ASSIGNMENT:
+        sel = order_tree.selection()
+        if not sel:
+            return None
+        row = order_cache.get(int(sel[0]))
+        if row is None or row["order_type"] != ops.TYPE_VEHICLE_ASSIGNMENT:
             return None
         return row
 

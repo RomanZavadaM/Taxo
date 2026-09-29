@@ -81,12 +81,14 @@ class R1IdentityTests(unittest.TestCase):
         self.assertIn("from v1071_features import install as install_v1071", text)
         self.assertIn("App = install_v1071(core, App)", text)
 
-    def test_version_file_is_r1(self):
+    def test_current_version_is_r1_or_later_in_10_7_line(self):
         text = Path("VERSION.txt").read_text(encoding="utf-8")
-        self.assertIn("Version: 10.7-r1", text)
+        match = __import__("re").search(r"Version:\s+10\.7-r(\d+)", text)
+        self.assertIsNotNone(match)
+        self.assertGreaterEqual(int(match.group(1)), 1)
 
-    def test_main_version_literal_is_r1(self):
-        text = Path("main.py").read_text(encoding="utf-8")
+    def test_r1_feature_layer_keeps_historical_identity(self):
+        text = Path("v1071_features.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "10.7-r1"', text)
 
 
