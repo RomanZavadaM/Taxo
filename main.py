@@ -86,7 +86,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.7-r5"
+APP_VERSION = "10.7-r6"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -1845,9 +1845,11 @@ def init_db():
         "attestations":("file_path","pdf_path","jpg_page1_path","jpg_page2_path"),
         "attestation_audit":("file_path","pdf_path","jpg_page1_path","jpg_page2_path"),
     })
-    purge_old()
-    # Після міграції одразу робимо резервну копію старої бази в новому сховищі.
+    # Спочатку зберігаємо узгоджену копію поточного стану, і лише потім
+    # застосовуємо 48-місячний retention. Так дані, що саме цього запуску
+    # переходять за межу зберігання, не зникають до резервної копії.
     auto_backup_database()
+    purge_old()
     return migrated, old_db
 
 
