@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import re
 import unittest
 from pathlib import Path
 
@@ -21,6 +22,14 @@ class RetentionBackupOrderR6Tests(unittest.TestCase):
                     calls.append((node.lineno, node.func.id))
         return [name for _line, name in sorted(calls)]
 
+    @staticmethod
+    def _current_10_7_revision():
+        text = Path("VERSION.txt").read_text(encoding="utf-8")
+        match = re.search(r"Version:\s*10\.7-r(\d+)", text)
+        if not match:
+            raise AssertionError("Current VERSION.txt is not in the Taxo 10.7-rN line")
+        return int(match.group(1))
+
     def test_backup_precedes_retention_purge(self):
         calls = self._init_db_call_order()
         self.assertIn("auto_backup_database", calls)
@@ -33,7 +42,7 @@ class RetentionBackupOrderR6Tests(unittest.TestCase):
         self.assertIn('DELETE FROM worklog WHERE work_date < ?', text)
         self.assertIn('DELETE FROM employee_time_entries WHERE work_date < ?', text)
 
-    def test_r6_runtime_layer_is_outermost(self):
+    def test_r6_runtime_layer_remains_in_chain_after_later_revisions(self):
         text = Path("taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1076_features import install as install_v1076", text)
         self.assertIn("App = install_v1076(core, App)", text)
@@ -42,9 +51,12 @@ class RetentionBackupOrderR6Tests(unittest.TestCase):
             text.index("App = install_v1075(core, App)"),
         )
 
-    def test_current_identity_is_r6(self):
-        self.assertIn("Version: 10.7-r6", Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn('APP_VERSION = "10.7-r6"', Path("main.py").read_text(encoding="utf-8"))
+    def test_r6_historical_identity_is_preserved_while_current_may_advance(self):
+        self.assertGreaterEqual(self._current_10_7_revision(), 6)
+        historical = Path("v1076_features.py").read_text(encoding="utf-8")
+        self.assertIn('APP_VERSION = "10.7-r6"', historical)
+        notes = Path("docs/releases/RELEASE_NOTES_v10.7-r6.md").read_text(encoding="utf-8")
+        self.assertIn("10.7-r6", notes)
 
 
 if __name__ == "__main__":

@@ -1,23 +1,11 @@
 Taxo / Driver Worktime
-Version: 10.7-r6
+Version: 10.7-r7
 Release date: 2026-09-29
 Release type: candidate / work
 Stable baseline: Taxo 10.3
 Stable tag: v10.3
 Stable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60
 
-Taxo 10.7-r6 — безпечний порядок retention / backup.
+Taxo 10.7-r7 — підчищення PDF наказів та розширення реєстру експлуатаційних наказів.
 
 СТАН: IN PROGRESS до повного regression / START / Windows / macOS verify.
-
-Підтверджений дефект E4:
-- init_db() викликав purge_old() до auto_backup_database();
-- дані, що саме цього запуску виходили за 48-місячну межу, могли бути видалені до створення автоматичної копії.
-
-Виправлення:
-- auto_backup_database() виконується перед purge_old();
-- retention 48 місяців і склад очищуваних таблиць не змінюються.
-
-E3 перевірено окремо: загальний writer-баг подвійного плану не підтверджено; точні overlap-и водій/інша зміна вже блокуються.
-
-Issued v10.7-r5 не змінювати. Наступний код після фактичної видачі r6 — 10.7-r7.
