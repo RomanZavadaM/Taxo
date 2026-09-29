@@ -1,0 +1,75 @@
+name: Close out Taxo 10.7-r4 worklog
+
+on:
+  push:
+    branches:
+      - work/v10.7-r4-operations-legal-structure
+    paths:
+      - '.github/workflows/closeout-v10.7-r4-worklog.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  closeout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.7-r4-operations-legal-structure
+          fetch-depth: 0
+      - name: Synchronize WORKLOG with issued immutable r4
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('WORKLOG.md')
+          text = p.read_text(encoding='utf-8')
+          text = text.replace(
+              '**Latest issued fast-test:** **10.7-r3** / `v10.7-r3` → `a51e336a31192fa7b82cb3bfe6db6c112dc70eae`',
+              '**Latest issued fast-test:** **10.7-r4** / `v10.7-r4` → `a214eccc95a00d229f28e52865a5ec37b6f61bba`'
+          )
+          text = text.replace(
+              '**Active r4 code checkpoint:** `deca49cb614ffab148093ab61fe4a513a21efe1e`',
+              '**Issued r4 source:** `a214eccc95a00d229f28e52865a5ec37b6f61bba` — immutable tag source'
+          )
+          text = text.replace(
+              '**Current code revision:** **10.7-r4 — IN PROGRESS, not released**',
+              '**Current code revision:** **10.7-r4 — ISSUED FAST-TEST; next code revision 10.7-r5**'
+          )
+          text = text.replace('## IN PROGRESS — 10.7-r4', '## DONE — 10.7-r4', 1)
+          old = 'На head `deca49cb614ffab148093ab61fe4a513a21efe1e` запущено exact-head source/START regression. До immutable `v10.7-r4` переходити лише після зелених source, Windows і macOS gates та clean START verify.'
+          new = '''Immutable fast-test `v10.7-r4` видано з exact source `a214eccc95a00d229f28e52865a5ec37b6f61bba`.
+
+- full regression + clean START run `36594472548`: success, **622/622 OK**;
+- publisher run `36594472671`: success;
+- Windows PR gate `36594481605`: success;
+- macOS PR gate `36594481622`: success (ARM64 + Intel workflow);
+- release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.7-r4
+- START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.7-r4/Taxo_v10_7_candidate_r4_START.zip
+- START SHA-256: `0301eb76d23585dc42f245fdf309947cd52ed7ecff76bd720b5c32caaea78cc7`;
+- tag/source `v10.7-r4` не рухати і не перевидавати.
+
+Після видачі r4 код цієї ревізії заморожений. Будь-яка наступна зміна коду = **10.7-r5**.'''
+          if old not in text:
+              raise SystemExit('Expected pre-release checkpoint paragraph not found')
+          text = text.replace(old, new, 1)
+          old_next = '''1. Дочекатися exact-head source/START regression для r4 після видалення дублюючого UI layer.
+2. Якщо зелено — перевірити Windows/macOS PR gates на тому самому head, clean START verify, потім сформувати immutable fast-test `v10.7-r4` і тестовий START-архів.
+3. Після r4 перейти до зовнішнього аудиту E2/E3/E4, починаючи зі звільнених працівників у минулих звітах та подвійного плану.
+4. Форми ТО/ремонтів не вигадувати: використовувати реальні джерела з бази знань і окремо перевіряти чинну нормативну базу.
+5. Candidate line 10.7 не зливати у `main` без окремої команди власника.'''
+          new_next = '''1. Наступний кодовий крок — **10.7-r5**; r4 не змінювати після immutable issuance.
+2. Продовжити зовнішній аудит E2/E3/E4: спочатку звільнені працівники у минулих звітах, потім подвійний план `водій + зміна персоналу`, далі `purge_old()` перед backup.
+3. Форми ТО/ремонтів не вигадувати: використовувати реальні джерела з бази знань і окремо перевіряти чинну нормативну базу.
+4. Candidate line 10.7 не зливати у `main` без окремої команди власника.'''
+          if old_next in text:
+              text = text.replace(old_next, new_next, 1)
+          p.write_text(text, encoding='utf-8')
+      - name: Commit WORKLOG closeout
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add WORKLOG.md
+          git commit -m 'docs: record immutable Taxo 10.7-r4 fast-test'
+          git push origin HEAD:work/v10.7-r4-operations-legal-structure
