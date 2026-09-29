@@ -19,8 +19,9 @@ jobs:
           ref: work/v10.7-r4-operations-legal-structure
           fetch-depth: 0
       - name: Synchronize WORKLOG with issued immutable r4
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
           p = Path('WORKLOG.md')
           text = p.read_text(encoding='utf-8')
@@ -65,6 +66,7 @@ jobs:
           if old_next in text:
               text = text.replace(old_next, new_next, 1)
           p.write_text(text, encoding='utf-8')
+          PY
       - name: Commit WORKLOG closeout
         shell: bash
         run: |
