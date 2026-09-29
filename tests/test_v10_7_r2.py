@@ -112,11 +112,14 @@ class OperationsSchemaTests(unittest.TestCase):
 
 
 class R2IntegrationTests(unittest.TestCase):
-    def test_version_file_is_r2(self):
+    def test_current_version_is_r2_or_later_in_10_7_line(self):
         text = Path('VERSION.txt').read_text(encoding='utf-8')
-        self.assertIn('Version: 10.7-r2', text)
+        version_line = next(line for line in text.splitlines() if line.startswith('Version: '))
+        version = version_line.split(':', 1)[1].strip()
+        self.assertTrue(version.startswith('10.7-r'))
+        self.assertGreaterEqual(int(version.rsplit('r', 1)[1]), 2)
 
-    def test_taxo_app_installs_r2_outermost(self):
+    def test_taxo_app_keeps_r2_in_runtime_chain(self):
         text = Path('taxo_app.py').read_text(encoding='utf-8')
         self.assertIn('from v1072_features import install as install_v1072', text)
         self.assertIn('App = install_v1072(core, App)', text)
