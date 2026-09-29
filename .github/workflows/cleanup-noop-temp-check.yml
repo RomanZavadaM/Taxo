@@ -1,0 +1,26 @@
+name: Cleanup accidental temporary branch
+
+on:
+  push:
+    branches:
+      - 'work/v10.7-r2-operations-orders'
+    paths:
+      - '.github/workflows/cleanup-noop-temp-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Delete temporary branch if it exists
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --heads origin refs/heads/noop-temp-check >/dev/null 2>&1; then
+            git push origin --delete noop-temp-check
+          else
+            echo 'noop-temp-check already absent'
+          fi
