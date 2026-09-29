@@ -38,6 +38,7 @@ from v10610_features import install as install_v10610
 from v1071_features import install as install_v1071
 from v1072_features import install as install_v1072
 from v1073_features import install as install_v1073
+from v1074_features import install as install_v1074
 
 App = install_v1063(
     core,
@@ -125,6 +126,7 @@ App = install_v10610(core, App)
 App = install_v1071(core, App)
 App = install_v1072(core, App)
 App = install_v1073(core, App)
+App = install_v1074(core, App)
 
 
 def run():
