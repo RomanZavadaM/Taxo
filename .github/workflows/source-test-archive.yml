@@ -124,6 +124,7 @@ jobs:
             v1073_features.py
             v1074_features.py
             v1074_appendix_history.py
+            v1075_features.py
             work_regime.py
             branding.py
             branding_asset.py
