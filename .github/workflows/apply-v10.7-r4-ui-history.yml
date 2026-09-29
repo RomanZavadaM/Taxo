@@ -1,0 +1,81 @@
+name: Apply Taxo 10.7-r4 UI history fix
+
+on:
+  push:
+    branches:
+      - work/v10.7-r4-operations-legal-structure
+    paths:
+      - '.github/workflows/apply-v10.7-r4-ui-history.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.7-r4-operations-legal-structure
+          fetch-depth: 0
+      - name: Route order edit UI through audited model API
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('v1074_features.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''        now = datetime.now().isoformat(timespec="seconds")
+          con2 = core.db()
+          try:
+              con2.execute(
+                  """UPDATE operations_orders
+                        SET order_type=?,order_no=?,order_date=?,place=?,subject=?,preamble=?,body_text=?,
+                            control_employee_id=?,updated_at=?
+                      WHERE id=?""",
+                  (
+                      order_type, number, day, str(place_var.get() or "").strip(),
+                      str(subject_var.get() or "").strip(),
+                      preamble.get("1.0", "end-1c").strip(), body.get("1.0", "end-1c").strip(),
+                      emp_by_label.get(control_var.get()), now, int(order_id),
+                  ),
+              )
+              con2.commit()
+          except Exception as exc:
+'''
+          new = '''        con2 = core.db()
+          try:
+              ops.update_order(
+                  con2,
+                  int(order_id),
+                  order_type=order_type,
+                  order_no=number,
+                  order_date=day,
+                  place=str(place_var.get() or "").strip(),
+                  subject=str(subject_var.get() or "").strip(),
+                  preamble=preamble.get("1.0", "end-1c").strip(),
+                  body_text=body.get("1.0", "end-1c").strip(),
+                  control_employee_id=emp_by_label.get(control_var.get()),
+                  history_note="Редагування наказу через інтерфейс «Експлуатація»",
+              )
+              con2.commit()
+          except Exception as exc:
+'''
+          if new in text:
+              print('UI already routes through ops.update_order')
+          elif old in text:
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+              print('Patched UI order editor to audited model API')
+          else:
+              raise SystemExit('Expected raw SQL UI update block not found')
+      - name: Commit fix when needed
+        shell: bash
+        run: |
+          if git diff --quiet -- v1074_features.py; then
+            echo 'No commit needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add v1074_features.py
+          git commit -m 'fix: log order edits made through operations UI'
+          git push origin HEAD:work/v10.7-r4-operations-legal-structure
