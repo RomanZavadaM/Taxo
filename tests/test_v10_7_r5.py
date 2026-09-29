@@ -80,12 +80,14 @@ class HistoricalPersonnelScopeTests(unittest.TestCase):
         self.assertIn("App = install_v1075(core, App)", text)
 
     def test_r5_identity_is_historical_while_current_version_may_advance(self):
-        current = Path("VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s*10\.7-r(\d+)", current)
-        self.assertIsNotNone(match)
-        self.assertGreaterEqual(int(match.group(1)), 5)
+        release = Path("docs/releases/RELEASE_NOTES_v10.7-r5.md").read_text(encoding="utf-8")
+        self.assertIn("Taxo 10.7-r5", release)
         self.assertIn('APP_VERSION = "10.7-r5"', Path("v1075_features.py").read_text(encoding="utf-8"))
-        self.assertIn("v10.7-r5", Path("docs/releases/RELEASE_NOTES_v10.7-r5.md").read_text(encoding="utf-8"))
+
+        current = Path("VERSION.txt").read_text(encoding="utf-8")
+        m = re.search(r"Version:\s*10\.7-r(\d+)", current)
+        self.assertIsNotNone(m)
+        self.assertGreaterEqual(int(m.group(1)), 5)
 
 
 if __name__ == "__main__":
