@@ -1,0 +1,76 @@
+name: Publish Taxo 10.7-r3 source
+
+on:
+  push:
+    branches:
+      - 'work/v10.7-r3-order-appendices'
+    paths:
+      - '.github/workflows/publish-v10.7-r3-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: a51e336a31192fa7b82cb3bfe6db6c112dc70eae
+      TAG: v10.7-r3
+      ARCHIVE: Taxo_v10_7_candidate_r3_START.zip
+      CHECKSUM: SHA256SUMS_v10_7_r3.txt
+    steps:
+      - name: Checkout exact issued source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+          fetch-depth: 0
+
+      - name: Install Tk runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Verify exact source regression
+        run: python -m unittest discover -s tests -v
+
+      - name: Build immutable START archive
+        shell: bash
+        run: |
+          stem="Taxo_v10_7_candidate_r3_START"
+          git archive --format=zip --prefix="${stem}/" --output="$ARCHIVE" "$SOURCE_SHA"
+          unzip -l "$ARCHIVE" | grep -q "/v1073_features.py$"
+          if unzip -l "$ARCHIVE" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database or cache unexpectedly included in release archive' >&2
+            exit 1
+          fi
+          sha256sum "$ARCHIVE" | tee "$CHECKSUM"
+
+      - name: Create immutable tag
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists; refusing to move or reuse it." >&2
+            exit 1
+          fi
+          git config user.name 'RomanZavadaM'
+          git config user.email 'zavada.roman.m@gmail.com'
+          git tag -a "$TAG" "$SOURCE_SHA" -m "Taxo 10.7-r3"
+          git push origin "$TAG"
+
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$TAG" \
+            "$ARCHIVE" \
+            "$CHECKSUM" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Taxo 10.7-r3 — додатки до експлуатаційних наказів" \
+            --notes-file docs/releases/RELEASE_NOTES_v10.7-r3.md \
+            --prerelease \
+            --verify-tag
