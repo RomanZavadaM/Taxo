@@ -9,152 +9,132 @@
 **Latest full multi-platform checkpoint:** Taxo **10.6-r10** / `v10.6-r10`  
 **Latest integrated code checkpoint in `main`:** Taxo **10.6-r10**  
 **Main:** `109d3c64f2a54a29c5b88eb190a934f0a890245d`  
-**Latest issued fast-test:** **10.7-r3** / `v10.7-r3` → `a51e336a31192fa7b82cb3bfe6db6c112dc70eae`  
-**Active code branch:** `work/v10.7-r4-operations-legal-structure`  
-**Active r4 code checkpoint:** `deca49cb614ffab148093ab61fe4a513a21efe1e`  
-**Active PR:** #93 — draft, base `work/v10.7-r3-order-appendices`, не зливати у `main` без окремої команди власника  
-**Current code revision:** **10.7-r4 — IN PROGRESS, not released**  
+**Latest issued fast-test:** **10.7-r4** / `v10.7-r4` → `a214eccc95a00d229f28e52865a5ec37b6f61bba`  
+**Active branch after issuance:** `work/v10.7-r4-operations-legal-structure` — docs/closeout only  
+**PR:** #93 — draft; candidate line не зливати у `main` без окремої команди власника  
+**Next code revision:** **10.7-r5**  
 **Knowledge branch:** `knowledge/vehicle-operations`  
 **Live ledger:** Issue #61
 
-## IN PROGRESS — 10.7-r4
+## DONE — 10.7-r4
 
-Тема: **виправлення робочого процесу наказів у «Експлуатації» + коректна модель редагування + протоколювання змін**.
+Тема: **редагування наказів у «Експлуатації», коректна модель виправлень і повна історія змін**.
 
-### REAL CODE CHECKPOINT 1 — `4029e487509f3e83947de3143856a374733726c4`
+### Реалізовано
 
-Фактично реалізовано в `operations_orders.py`:
-
-- модуль переведено на `APP_VERSION = 10.7-r4`;
-- додано `update_order(...)`: реквізити й текст наказу можна виправляти після створення;
-- внутрішній статус `Затверджено` більше не використовується як технічне блокування редагування на рівні моделі;
-- додано ознаку `paper_original_signed` + дату підписання паперового оригіналу;
-- додано таблицю `operations_change_log` для історії змін;
-- створення, редагування, затвердження, скасування та позначка паперового підпису наказу пишуться в change log;
-- додано `update_vehicle_assignment(...)`: рядок ТЗ/водій можна редагувати;
-- додавання / редагування / видалення закріплення пишеться в change log;
-- додано `order_history(...)`;
-- міграції r2/r3 → r4 зроблено additive через `PRAGMA table_info` без видалення даних;
-- старі БД отримують нові поля `paper_original_signed`, `paper_original_signed_at`, `vehicle_driver_assignments.updated_at` без зміни існуючих записів.
-
-### REAL CODE CHECKPOINT 2 — UI + appendix history
-
-Після checkpoint 1 завершено робочий UI у `operations_orders_ui.py`:
-
-- існуючий наказ відкривається на редагування через `ops.update_order(...)`, а не через прямий SQL;
-- для позначеного підписаного паперового оригіналу UI показує попередження про необхідність звірки/повторного друку після виправлення;
+- `operations_orders.py` переведено на `APP_VERSION = 10.7-r4`;
+- `update_order(...)` дозволяє коригувати реквізити й текст наказу після створення;
+- внутрішній стан `Чернетка / Затверджено / Скасовано` не використовується як технічний lock робочого запису;
+- додано `paper_original_signed` і `paper_original_signed_at`;
+- додано append-only `operations_change_log`;
+- create/update/approve/cancel/paper-original зміни наказу пишуться в історію;
+- `update_vehicle_assignment(...)` та add/update/delete закріплення ТЗ/водія протоколюються;
+- `order_history(...)` повертає історію наказу і пов'язаних змін;
+- міграція r2/r3 → r4 additive, без видалення існуючих записів;
+- `operations_orders_ui.py` є єдиним робочим UI для «Експлуатації»;
+- редагування наказу в UI йде через `ops.update_order(...)`, а не прямий SQL;
+- для вже позначеного підписаного паперового оригіналу показується попередження про звірку/повторний друк після зміни;
 - у реєстрі видно стан паперового оригіналу;
 - закріплення ТЗ/водія має створення, редагування і видалення;
-- редагування закріплення викликає `ops.update_vehicle_assignment(...)` та пишеться в історію;
-- перед зміною закріплення вже підписаного наказу показується окреме попередження;
-- є прямий UX `Створити наказ про закріплення`;
-- додатки r3 переведено на r4-модель: дозволено корекцію після внутрішнього затвердження, а create/update/delete записуються в `operations_change_log` через `v1074_appendix_history.py`;
-- `taxo_app.py` встановлює appendix-history layer окремим зовнішнім шаром;
+- є прямий сценарій `Створити наказ про закріплення`;
+- додатки r3 можна коригувати після внутрішнього затвердження; create/update/delete додатка пишуться в `operations_change_log` через `v1074_appendix_history.py`;
+- дублюючий зовнішній UI patch прибрано; `v1074_features.py` лишено тонким runtime identity layer;
 - `main.APP_VERSION`, `VERSION.txt`, `operations_orders.APP_VERSION` синхронізовані на `10.7-r4`;
-- додано regression `tests/test_v10_7_r4.py`.
+- START guard вимагає `v1074_features.py` і `v1074_appendix_history.py`;
+- release notes: `docs/releases/RELEASE_NOTES_v10.7-r4.md`.
 
-### CI defect і виправлення
+### Виявлений regression і виправлення
 
-Перший повний regression після додавання appendix-history: **621/622 OK**, 1 error. Причина: ізольований тест `test_approved_appendix_can_be_corrected_and_history_is_preserved` ще натрапляв на старий r3 `_require_draft(...)`.
+Перший regression після додавання history для додатків дав **621/622 OK**: ізольований r4-тест усе ще натрапляв на r3 `_require_draft(...)`. Це виправлено: r4-layer самостійно замінює старий guard на перевірку існування наказу, тож корекція затвердженого додатка працює і протоколюється.
 
-Виправлено у `v1074_appendix_history.py`: r4 layer самостійно замінює r3 guard на перевірку існування наказу, тому затверджений/скасований внутрішній статус не є технічним lock для корекції робочого запису. Паперовий оригінал і журнал змін зберігають простежуваність.
+Окремо виявлено, що ранній `v1074_features.py` дублював UI поверх повного `operations_orders_ui.py` і містив raw SQL update. Дублювання видалене до issuance; історія змін більше не обходиться через цей шлях.
 
-Додатково виявлено зайвий зовнішній UI patch `v1074_features.py`, який дублював кнопки/діалоги поверх уже повного `operations_orders_ui.py` і містив старий raw SQL update. У checkpoint `deca49cb614ffab148093ab61fe4a513a21efe1e` цей шар навмисно спрощено до runtime identity only. Єдиним UI джерелом для `Експлуатація` лишається `operations_orders_ui.py`.
+### Immutable fast-test
 
-На head `deca49cb614ffab148093ab61fe4a513a21efe1e` запущено exact-head source/START regression. До immutable `v10.7-r4` переходити лише після зелених source, Windows і macOS gates та clean START verify.
+Exact issued source: **`a214eccc95a00d229f28e52865a5ec37b6f61bba`**.  
+Tag / prerelease: **`v10.7-r4`** — не рухати і не перевидавати.
 
-### Паралельний зовнішній аудит
+- full regression + clean START run `36594472548`: **success**, **622/622 OK**;
+- publisher run `36594472671`: **success**;
+- Windows gate `36594481605`: **success**;
+- macOS gate `36594481622`: **success**;
+- release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.7-r4
+- START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.7-r4/Taxo_v10_7_candidate_r4_START.zip
+- START SHA-256: **`0301eb76d23585dc42f245fdf309947cd52ed7ecff76bd720b5c32caaea78cc7`**;
+- checksum asset: `SHA256SUMS_v10_7_r4.txt`.
 
-Зовнішній огляд Anthropic від 29.09.2026 прийнятий як джерело гіпотез, не як автоматична істина. Після r4 окремо перевірити щонайменше E2/E3/E4: звільнені працівники у минулих звітах, подвійний план `водій + зміна персоналу`, `purge_old()` до резервної копії.
-
-### Паралельна база знань
-
-Окремо від коду ведеться `knowledge/vehicle-operations` — структурована база знань з реальних документів АТП, без публікації персональних сканів у кодовий репозиторій. Google Drive використовується як сховище вихідних матеріалів і класифікованих джерел; GitHub knowledge branch — для узагальнених вимог, карт процесів, нормативного реєстру та вимог до Taxo.
-
-## DONE — 10.7-r1
-
-Тема: безпечне повторне розпізнавання аналогових тахографічних шайб.
-
-- manual intervals preserved on re-recognition;
-- new-disc-only auto-recognition after import;
-- no hidden recognition on row selection;
-- midnight circular/timeline cases fixed;
-- regression 598/598 OK;
-- START, Windows and macOS gates green;
-- immutable fast-test `v10.7-r1` issued from `1a124bc8218aada5ab4b66f74376b02c7dc62481`.
-
-## DONE — 10.7-r2
-
-Тема: **«Експлуатація», накази, закріплення водіїв і контроль відомості ТЦК**.
-
-Підстава: надані власником зразки наказів підприємства 2023 року та уточнення, що реквізити після підтвердженого імпорту з файлів Дії / державного реєстру є робочими даними Taxo, а затверджена форма для подання не повинна містити службових позначок про джерело.
-
-Реалізовано:
-
-- новий розділ `Експлуатація` у головній навігації;
-- вкладки `Накази`, `Закріплення водіїв`, `Відповідальні`, резерв `ТО / ремонти`;
-- структурований реєстр наказів зі станами `Чернетка / Затверджено / Скасовано`;
-- PDF наказу за структурою наданих зразків;
-- лише затверджене закріплення стає структурованим фактом;
-- відповідальний за військово-транспортний обов'язок задається в `Експлуатація`;
-- відомість ТЦК має внутрішнє затвердження з fingerprint даних;
-- службові написи про Дію/реєстр/дату імпорту у форму для подання не друкуються;
-- масове `Підтягнути всі реквізити з останнього імпорту` замість підтвердження кожного реквізиту окремо;
-- immutable raw snapshot імпорту зберігається;
-- exact-head regression + clean START verify: **607/607 OK**;
-- Windows/macOS gates green;
-- immutable `v10.7-r2` issued from `346d21aacaf6c40563b6c9430f466f14dafd3543`.
+Після цього issuance **код r4 заморожений**. Будь-яка наступна зміна коду = **10.7-r5**.
 
 ## DONE — 10.7-r3
 
 Тема: **структуровані додатки до експлуатаційних наказів**.
 
-Підстава: у наданих зразках є накази з окремими додатками / тематиками, а r2 підтримував тільки основний текст наказу та спеціальну таблицю закріплення.
+- `operations_order_appendices` з номером, назвою, змістом, приміткою і порядком;
+- вкладка `Додатки до наказів`;
+- PDF наказу друкує кожен додаток окремою сторінкою;
+- exact source `a51e336a31192fa7b82cb3bfe6db6c112dc70eae`;
+- regression **613/613 OK**;
+- Windows/macOS gates green;
+- immutable `v10.7-r3`;
+- START SHA-256 `48a6736c13b5626cfe21a4fa548e5971e00b5694f2649fa0f14b66dce9994727`.
 
-Реалізовано:
+## DONE — 10.7-r2
 
-- таблиця `operations_order_appendices` з номером, назвою, змістом, приміткою і прив'язкою до наказу;
-- додатки мають стабільний порядок;
-- створення / редагування / видалення дозволене лише для наказу у стані `Чернетка`;
-- затверджений або скасований наказ разом з додатками не переписується;
-- у `Експлуатація` додано вкладку `Додатки до наказів`;
-- PDF наказу друкує кожен додаток окремою сторінкою з посиланням на дату і номер наказу;
-- `main.APP_VERSION`, `VERSION.txt`, `taxo_app.py` синхронізовані на `10.7-r3`;
-- START guard включає `v1073_features.py`;
-- historical r2 test не заморожує поточний `VERSION.txt` на r2;
-- release notes: `docs/releases/RELEASE_NOTES_v10.7-r3.md`.
+Тема: **«Експлуатація», накази, закріплення водіїв і контроль відомості ТЦК**.
 
-### Verify / issue
+- новий розділ `Експлуатація`;
+- структурований реєстр наказів;
+- закріплення ТЗ/водіїв як структурований факт;
+- відповідальні особи;
+- внутрішнє затвердження відомості ТЦК з fingerprint;
+- підтягування реквізитів з останнього підтвердженого імпорту без друку службової provenance у форму для подання;
+- immutable raw import snapshot;
+- exact source `346d21aacaf6c40563b6c9430f466f14dafd3543`;
+- regression **607/607 OK**;
+- Windows/macOS green;
+- immutable `v10.7-r2`.
 
-Exact issued source: `a51e336a31192fa7b82cb3bfe6db6c112dc70eae`.
+## DONE — 10.7-r1
 
-- exact-head source / START run `36544036092`: **613/613 OK**, clean START verify success;
-- Windows PR gate `36544155945`: success;
-- macOS PR gate `36544155999`: arm64 + x86_64 success;
-- publisher run `36544340755`: success;
-- immutable tag / prerelease: `v10.7-r3`;
-- START asset: `Taxo_v10_7_candidate_r3_START.zip`;
-- SHA-256: `48a6736c13b5626cfe21a4fa548e5971e00b5694f2649fa0f14b66dce9994727`;
-- direct START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.7-r3/Taxo_v10_7_candidate_r3_START.zip
-- release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.7-r3
+Тема: **безпечне повторне розпізнавання аналогових тахографічних шайб**.
 
-Одноразові maintenance/publisher workflows після виконання прибрані. Branch head після release-closeout може бути новішим за issued tag; **tag не рухати і не перевидавати**.
+- manual intervals preserved on re-recognition;
+- recognize only newly imported discs;
+- no hidden recognition on selection;
+- midnight circular/timeline cases fixed;
+- exact source `1a124bc8218aada5ab4b66f74376b02c7dc62481`;
+- regression **598/598 OK**;
+- START, Windows, macOS green;
+- immutable `v10.7-r1`.
 
-## NEXT
+## PREVIOUS FULL CHECKPOINT — 10.6-r10
 
-1. Дочекатися exact-head source/START regression для r4 після видалення дублюючого UI layer.
-2. Якщо зелено — перевірити Windows/macOS PR gates на тому самому head, clean START verify, потім сформувати immutable fast-test `v10.7-r4` і тестовий START-архів.
-3. Після r4 перейти до зовнішнього аудиту E2/E3/E4, починаючи зі звільнених працівників у минулих звітах та подвійного плану.
-4. Форми ТО/ремонтів не вигадувати: використовувати реальні джерела з бази знань і окремо перевіряти чинну нормативну базу.
-5. Candidate line 10.7 не зливати у `main` без окремої команди власника.
+- exact source `0baad010d0c0d4f29db62f26c29d512c71058928`;
+- P-5 EDRPOU positional/keyword duplicate fixed;
+- 588/588 OK;
+- full Windows x64, Windows 7 SP1 x64, macOS ARM64, macOS Intel package set;
+- immutable `v10.6-r10`;
+- stable `v10.3` remains unchanged.
+
+## NEXT — 10.7-r5
+
+Перший блок після r4 — продовження перевірки зовнішнього аудиту як **гіпотез**, а не автоматичної істини:
+
+1. E2 — чи правильно історичні звіти включають працівників, які на дату звіту ще працювали, але зараз звільнені.
+2. E3 — чи може один день отримати подвійний план через `водій + зміна персоналу`; знайти реальний writer/source конфлікту до виправлення.
+3. E4 — перевірити порядок `purge_old()` / backup і виключити сценарій, де дані видаляються до резервного копіювання.
+4. Після цього повернутися до решти аудиту: межі тижня/режимів, activity register plan/fact, waybill та інші підтверджені дефекти.
+
+Форми ТО/ремонтів не вигадувати: спиратися на реальні матеріали в `knowledge/vehicle-operations` і, якщо потрібні нормативні твердження, перевіряти чинне авторитетне джерело.
 
 ## PRESERVED
 
 - stable `v10.3` не пересувається;
-- `v10.6-r10`, `v10.7-r1`, `v10.7-r2`, `v10.7-r3` та інші historical tags/releases immutable;
-- plan/fact, табель, графіки й основний worklog цим кроком не переписуються;
-- службова історія джерел імпорту зберігається всередині Taxo, але не друкується у затверджених формах для подання;
-- робочі БД, персональні документи, скани і кеші не публікуються.
+- `v10.6-r10`, `v10.7-r1`, `v10.7-r2`, `v10.7-r3`, `v10.7-r4` та інші issued tags immutable;
+- candidate line 10.7 не зливати у `main` без окремої команди власника;
+- plan/fact, табель, графіки й основний worklog не переписуються побічно;
+- паперовий підпис не перетворює електронний запис на незмінний: виправлення дозволене з історією і попередженням про звірку паперового примірника;
+- робочі БД, персональні документи, скани та кеші не публікуються.
 
 ## BLOCKED
 
