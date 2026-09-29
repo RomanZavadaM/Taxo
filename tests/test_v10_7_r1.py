@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sqlite3
 import unittest
+from pathlib import Path
 
 import v1071_features as r1
 
@@ -76,16 +77,16 @@ class ManualIntervalPreservationTests(unittest.TestCase):
 
 class R1IdentityTests(unittest.TestCase):
     def test_taxo_app_installs_r1_outermost(self):
-        text = open("taxo_app.py", "r", encoding="utf-8").read()
+        text = Path("taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1071_features import install as install_v1071", text)
         self.assertIn("App = install_v1071(core, App)", text)
 
     def test_version_file_is_r1(self):
-        text = open("VERSION.txt", "r", encoding="utf-8").read()
+        text = Path("VERSION.txt").read_text(encoding="utf-8")
         self.assertIn("Version: 10.7-r1", text)
 
     def test_main_version_literal_is_r1(self):
-        text = open("main.py", "r", encoding="utf-8").read()
+        text = Path("main.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "10.7-r1"', text)
 
 
