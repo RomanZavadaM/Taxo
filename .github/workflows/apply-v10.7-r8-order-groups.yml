@@ -1,0 +1,112 @@
+name: Apply Taxo 10.7-r8 order groups
+
+on:
+  push:
+    branches:
+      - 'work/v10.7-r8-operations-order-groups'
+    paths:
+      - '.github/workflows/apply-v10.7-r8-order-groups.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply r8 changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('operations_orders.py')
+          s = p.read_text(encoding='utf-8')
+          marker = '\nDEFAULT_SUBJECTS = {\n'
+          block = '''\nORDER_GROUP_DRIVERS = "drivers"\nORDER_GROUP_VEHICLES = "vehicles"\nORDER_GROUP_SAFETY = "safety"\nORDER_GROUP_OTHER = "other"\n\nORDER_GROUP_LABELS = {\n    ORDER_GROUP_DRIVERS: "Водії та організація роботи",\n    ORDER_GROUP_VEHICLES: "Транспорт і технічна експлуатація",\n    ORDER_GROUP_SAFETY: "Безпека та розслідування",\n    ORDER_GROUP_OTHER: "Інші накази",\n}\n\nORDER_TYPE_GROUP = {\n    TYPE_VEHICLE_ASSIGNMENT: ORDER_GROUP_DRIVERS,\n    TYPE_WORKTIME: ORDER_GROUP_DRIVERS,\n    TYPE_REST_PLACES: ORDER_GROUP_DRIVERS,\n    TYPE_DRIVER_TRAINING: ORDER_GROUP_DRIVERS,\n    TYPE_STORAGE: ORDER_GROUP_VEHICLES,\n    TYPE_TECHNICAL_CONTROL: ORDER_GROUP_VEHICLES,\n    TYPE_MAINTENANCE_REPAIR: ORDER_GROUP_VEHICLES,\n    TYPE_ROAD_SAFETY: ORDER_GROUP_SAFETY,\n    TYPE_SAFETY_TRAINING: ORDER_GROUP_SAFETY,\n    TYPE_ACCIDENT_COMMISSION: ORDER_GROUP_SAFETY,\n    TYPE_OCCUPATIONAL_SAFETY: ORDER_GROUP_SAFETY,\n    TYPE_FIRE_SAFETY: ORDER_GROUP_SAFETY,\n    TYPE_GENERIC: ORDER_GROUP_OTHER,\n}\n\nORDER_GROUP_TYPES = {\n    group: tuple(order_type for order_type in ORDER_TYPE_LABELS if ORDER_TYPE_GROUP.get(order_type) == group)\n    for group in ORDER_GROUP_LABELS\n}\n'''
+          if 'ORDER_GROUP_LABELS = {' not in s:
+              if marker not in s:
+                  raise SystemExit('DEFAULT_SUBJECTS marker missing')
+              s = s.replace(marker, block + marker, 1)
+          p.write_text(s, encoding='utf-8')
+
+          ui = Path('operations_orders_ui.py')
+          u = ui.read_text(encoding='utf-8')
+          u = u.replace('book.add(settings_tab, text="Відповідальні"); book.add(maintenance_tab, text="ТО / ремонти")',
+                        'book.add(settings_tab, text="Відповідальні"); book.add(maintenance_tab, text="Каталог наказів")')
+
+          old_cols = '''    cols=("date","no","type","subject","status","paper","control")\n    order_tree=core.ttk.Treeview(order_frame,columns=cols,show="headings",selectmode="browse")\n    for key,label,width in (("date","Дата",100),("no","№",75),("type","Група",220),("subject","Тема",340),\n                            ("status","Стан",110),("paper","Паперовий оригінал",140),("control","Контроль",210)):\n'''
+          new_cols = '''    cols=("date","no","group","type","subject","status","paper","control")\n    order_tree=core.ttk.Treeview(order_frame,columns=cols,show="headings",selectmode="browse")\n    for key,label,width in (("date","Дата",100),("no","№",75),("group","Група",220),("type","Тип наказу",250),("subject","Тема",340),\n                            ("status","Стан",110),("paper","Паперовий оригінал",140),("control","Контроль",210)):\n'''
+          if old_cols not in u:
+              raise SystemExit('order columns block missing')
+          u = u.replace(old_cols, new_cols, 1)
+
+          anchor = '    order_cache={}\n\n    def refresh_orders(select_id=None):\n'
+          insert = '''    order_cache={}\n    group_filter_var=core.tk.StringVar(value="Усі групи")\n    group_filter_labels=["Усі групи"]+list(ops.ORDER_GROUP_LABELS.values())\n    group_filter_by_label={label:key for key,label in ops.ORDER_GROUP_LABELS.items()}\n    core.ttk.Label(order_top,text="Група:").pack(side="right",padx=(8,4))\n    group_filter_box=core.ttk.Combobox(order_top,textvariable=group_filter_var,values=group_filter_labels,state="readonly",width=31)\n    group_filter_box.pack(side="right")\n\n    def refresh_orders(select_id=None):\n'''
+          if anchor not in u:
+              raise SystemExit('order_cache anchor missing')
+          u = u.replace(anchor, insert, 1)
+
+          old_rows = '        try: rows=ops.list_orders(con2)\n        finally: con2.close()\n        for row in rows:\n'
+          new_rows = '''        try: rows=ops.list_orders(con2)\n        finally: con2.close()\n        selected_group=group_filter_by_label.get(group_filter_var.get())\n        if selected_group:\n            rows=[row for row in rows if ops.ORDER_TYPE_GROUP.get(str(row["order_type"]),ops.ORDER_GROUP_OTHER)==selected_group]\n        for row in rows:\n'''
+          if old_rows not in u:
+              raise SystemExit('refresh rows anchor missing')
+          u = u.replace(old_rows, new_rows, 1)
+
+          old_insert = '''            order_tree.insert("","end",iid=str(oid),values=(ops.display_day(row["order_date"]),row["order_no"],\n                ops.ORDER_TYPE_LABELS.get(row["order_type"],row["order_type"]),row["subject"],\n                ops.ORDER_STATUS_LABELS.get(row["status"],row["status"]),paper,control or "—"),tags=(row["status"],))\n'''
+          new_insert = '''            order_type=str(row["order_type"])\n            group_key=ops.ORDER_TYPE_GROUP.get(order_type,ops.ORDER_GROUP_OTHER)\n            order_tree.insert("","end",iid=str(oid),values=(ops.display_day(row["order_date"]),row["order_no"],\n                ops.ORDER_GROUP_LABELS.get(group_key,group_key),ops.ORDER_TYPE_LABELS.get(order_type,order_type),row["subject"],\n                ops.ORDER_STATUS_LABELS.get(row["status"],row["status"]),paper,control or "—"),tags=(row["status"],))\n'''
+          if old_insert not in u:
+              raise SystemExit('tree insert anchor missing')
+          u = u.replace(old_insert, new_insert, 1)
+
+          bind_anchor = '    def selected_order(quiet=False):\n'
+          if 'group_filter_box.bind("<<ComboboxSelected>>"' not in u:
+              u = u.replace(bind_anchor, '    group_filter_box.bind("<<ComboboxSelected>>",lambda _e:refresh_orders())\n\n' + bind_anchor, 1)
+
+          old_m = '''    mbody=core.ttk.Frame(maintenance_tab,padding=18); mbody.pack(fill="both",expand=True)\n    core.ttk.Label(mbody,text="ТО / ремонти",style="Title.TLabel").pack(anchor="w")\n    core.ttk.Label(mbody,text=("Розділ зарезервовано у контурі «Експлуатація». Після додавання ваших форм по ТО, ремонтам та іншим експлуатаційним документам "\n                               "вони будуть зведені сюди без створення окремих розрізнених вікон."),wraplength=900,justify="left").pack(anchor="w",pady=(5,0))\n\n    refresh_orders(); return win\n'''
+          new_m = '''    mbody=core.ttk.Frame(maintenance_tab,padding=14); mbody.pack(fill="both",expand=True)\n    core.ttk.Label(mbody,text="Каталог наказів з експлуатації",style="Title.TLabel").pack(anchor="w")\n    core.ttk.Label(mbody,text=("Єдиний каталог типів наказів. Тут зведені накази по водіях, транспорту, технічній експлуатації, БДР, охороні праці, пожежній безпеці та ДТП. "\n                               "Виберіть тип і створіть наказ; усі створені документи залишаються в загальному реєстрі «Накази»."),\n                   style="Muted.TLabel",wraplength=1040,justify="left").pack(anchor="w",pady=(4,10))\n    catalog_frame=core.ttk.Frame(mbody); catalog_frame.pack(fill="both",expand=True); catalog_frame.rowconfigure(0,weight=1); catalog_frame.columnconfigure(0,weight=1)\n    catalog_tree=core.ttk.Treeview(catalog_frame,columns=("group","type","subject"),show="headings",selectmode="browse")\n    for key,label,width in (("group","Група",250),("type","Тип наказу",320),("subject","Типова тема",430)):\n        catalog_tree.heading(key,text=label); catalog_tree.column(key,width=width,anchor="w")\n    csy=core.ttk.Scrollbar(catalog_frame,orient="vertical",command=catalog_tree.yview)\n    csx=core.ttk.Scrollbar(catalog_frame,orient="horizontal",command=catalog_tree.xview)\n    catalog_tree.configure(yscrollcommand=csy.set,xscrollcommand=csx.set)\n    catalog_tree.grid(row=0,column=0,sticky="nsew"); csy.grid(row=0,column=1,sticky="ns"); csx.grid(row=1,column=0,sticky="ew")\n    catalog_type_by_iid={}\n    catalog_index=0\n    for group_key,group_label in ops.ORDER_GROUP_LABELS.items():\n        for order_type in ops.ORDER_GROUP_TYPES.get(group_key,()):\n            catalog_index+=1; iid=str(catalog_index); catalog_type_by_iid[iid]=order_type\n            catalog_tree.insert("","end",iid=iid,values=(group_label,ops.ORDER_TYPE_LABELS[order_type],ops.DEFAULT_SUBJECTS.get(order_type,"") or "—"))\n    def create_from_catalog():\n        sel=catalog_tree.selection()\n        if not sel:\n            core.messagebox.showinfo("Каталог наказів","Виберіть тип наказу.",parent=win); return\n        order_type=catalog_type_by_iid.get(sel[0])\n        if order_type: order_dialog(force_type=order_type)\n    cbar=core.ttk.Frame(mbody); cbar.pack(fill="x",pady=(8,0))\n    core.ttk.Button(cbar,text="Створити наказ за вибраним типом",style="Accent.TButton",command=create_from_catalog).pack(side="left")\n    catalog_tree.bind("<Double-1>",lambda _e:create_from_catalog())\n\n    refresh_orders(); return win\n'''
+          if old_m not in u:
+              raise SystemExit('maintenance placeholder block missing')
+          u = u.replace(old_m, new_m, 1)
+          ui.write_text(u, encoding='utf-8')
+
+          # Historical r7 test must not freeze current VERSION forever.
+          t7 = Path('tests/test_v10_7_r7.py')
+          x = t7.read_text(encoding='utf-8')
+          x = x.replace("        self.assertIn('Version: 10.7-r7',(ROOT/'VERSION.txt').read_text(encoding='utf-8'))\n        self.assertIn('App = install_v1077(core, App)',(ROOT/'taxo_app.py').read_text(encoding='utf-8'))",
+                        "        self.assertIn('APP_VERSION = \"10.7-r7\"',(ROOT/'v1077_features.py').read_text(encoding='utf-8'))\n        self.assertIn('App = install_v1077(core, App)',(ROOT/'taxo_app.py').read_text(encoding='utf-8'))")
+          t7.write_text(x,encoding='utf-8')
+
+          Path('v1078_features.py').write_text('''# -*- coding: utf-8 -*-\n"""Taxo 10.7-r8 — grouped operations-order catalog identity layer."""\nfrom __future__ import annotations\n\nAPP_VERSION = "10.7-r8"\n\ndef install(core, base_app):\n    if getattr(core, "_TAXO_V1078_INSTALLED", False):\n        return base_app\n    core.APP_VERSION = APP_VERSION\n    core._TAXO_V1078_INSTALLED = True\n    return base_app\n''', encoding='utf-8')
+
+          app = Path('taxo_app.py')
+          a = app.read_text(encoding='utf-8')
+          if 'from v1078_features import install as install_v1078' not in a:
+              a = a.replace('from v1077_features import install as install_v1077\n', 'from v1077_features import install as install_v1077\nfrom v1078_features import install as install_v1078\n')
+          if 'App = install_v1078(core, App)' not in a:
+              a = a.replace('App = install_v1077(core, App)\n', 'App = install_v1077(core, App)\nApp = install_v1078(core, App)\n')
+          app.write_text(a,encoding='utf-8')
+
+          main = Path('main.py')
+          m = main.read_text(encoding='utf-8')
+          m2,n = re.subn(r'APP_VERSION\s*=\s*"10\.7-r7"','APP_VERSION = "10.7-r8"',m,count=1)
+          if n != 1: raise SystemExit(f'Expected main version r7 once, got {n}')
+          main.write_text(m2,encoding='utf-8')
+
+          Path('VERSION.txt').write_text('''Taxo / Driver Worktime\nVersion: 10.7-r8\nRelease date: 2026-09-29\nRelease type: candidate / work\nStable baseline: Taxo 10.3\nStable tag: v10.3\nStable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60\n\nTaxo 10.7-r8 — групування та каталог наказів з експлуатації.\n\nСТАН: IN PROGRESS до regression / START / platform gates.\n\nОсновне:\n- усі типи експлуатаційних наказів розкладені по предметних групах;\n- у реєстрі наказів доданий фільтр за групою та окрема колонка групи;\n- замість порожньої вкладки ТО/ремонтів створено каталог усіх типів наказів з швидким створенням документа;\n- r7 лишається immutable checkpoint.\n''',encoding='utf-8')
+
+          Path('docs/maintenance/AUDIT_10.7-r8_OPERATIONS_ORDER_GROUPS.md').write_text('''# Taxo 10.7-r8 — структура наказів з експлуатації\n\n## Мета\nПрибрати плоский список і не втратити накази, які стосуються реальної експлуатації АТП.\n\n## Групи\n1. **Водії та організація роботи** — закріплення ТЗ, робочий час, місця відпочинку, підготовка/стажування.\n2. **Транспорт і технічна експлуатація** — зберігання ТЗ, технічний контроль, ТО/ремонти/техогляди.\n3. **Безпека та розслідування** — БДР, навчання/перевірка знань, ДТП/комісії, охорона праці, пожежна безпека.\n4. **Інші накази** — універсальний тип без нав'язаної нормативної підстави.\n\nКласифікація використовується для навігації та пошуку, а не як твердження про юридичну обов'язковість конкретного наказу.\n''',encoding='utf-8')
+          Path('docs/releases/RELEASE_NOTES_v10.7-r8.md').write_text('''# Taxo 10.7-r8 — candidate release notes\n\n- реєстр наказів отримав предметні групи та фільтр за групою;\n- тип наказу і група відображаються окремими колонками;\n- вкладка-заглушка «ТО / ремонти» замінена повним каталогом експлуатаційних наказів;\n- з каталогу можна одразу створити вибраний тип наказу;\n- збережені всі типи, додані в r7: БДР, технічний контроль, ТО/ремонти, ДТП/комісії, охорона праці, пожежна безпека та попередні типи.\n''',encoding='utf-8')
+
+          Path('tests/test_v10_7_r8.py').write_text('''import unittest\nfrom pathlib import Path\nimport operations_orders as ops\nROOT=Path(__file__).resolve().parents[1]\n\nclass Taxo107R8Tests(unittest.TestCase):\n    def test_every_order_type_has_exact_group(self):\n        self.assertEqual(set(ops.ORDER_TYPE_LABELS),set(ops.ORDER_TYPE_GROUP))\n        flattened=[]\n        for group in ops.ORDER_GROUP_LABELS:\n            flattened.extend(ops.ORDER_GROUP_TYPES[group])\n        self.assertEqual(set(flattened),set(ops.ORDER_TYPE_LABELS))\n        self.assertEqual(len(flattened),len(set(flattened)))\n\n    def test_core_operations_groups_exist(self):\n        self.assertIn(ops.TYPE_VEHICLE_ASSIGNMENT,ops.ORDER_GROUP_TYPES[ops.ORDER_GROUP_DRIVERS])\n        self.assertIn(ops.TYPE_MAINTENANCE_REPAIR,ops.ORDER_GROUP_TYPES[ops.ORDER_GROUP_VEHICLES])\n        self.assertIn(ops.TYPE_ROAD_SAFETY,ops.ORDER_GROUP_TYPES[ops.ORDER_GROUP_SAFETY])\n        self.assertIn(ops.TYPE_FIRE_SAFETY,ops.ORDER_GROUP_TYPES[ops.ORDER_GROUP_SAFETY])\n\n    def test_ui_has_group_filter_and_catalog(self):\n        text=(ROOT/'operations_orders_ui.py').read_text(encoding='utf-8')\n        self.assertIn('group_filter_var',text)\n        self.assertIn('Каталог наказів',text)\n        self.assertIn('Створити наказ за вибраним типом',text)\n        self.assertNotIn('Розділ зарезервовано у контурі «Експлуатація»',text)\n\n    def test_r8_identity(self):\n        self.assertIn('Version: 10.7-r8',(ROOT/'VERSION.txt').read_text(encoding='utf-8'))\n        self.assertIn('APP_VERSION = "10.7-r8"',(ROOT/'v1078_features.py').read_text(encoding='utf-8'))\n        entry=(ROOT/'taxo_app.py').read_text(encoding='utf-8')\n        self.assertIn('App = install_v1078(core, App)',entry)\n        self.assertGreater(entry.index('App = install_v1078(core, App)'),entry.index('App = install_v1077(core, App)'))\n\nif __name__=='__main__': unittest.main()\n''',encoding='utf-8')
+          PY
+
+          git config user.name 'RomanZavadaM'
+          git config user.email 'zavada.roman.m@gmail.com'
+          git add operations_orders.py operations_orders_ui.py tests/test_v10_7_r7.py tests/test_v10_7_r8.py v1078_features.py taxo_app.py main.py VERSION.txt docs/maintenance/AUDIT_10.7-r8_OPERATIONS_ORDER_GROUPS.md docs/releases/RELEASE_NOTES_v10.7-r8.md
+          git commit -m 'Taxo 10.7-r8: group operations orders and add catalog'
+          git push
