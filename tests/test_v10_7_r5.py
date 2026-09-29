@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import re
 import unittest
 from datetime import date
 from pathlib import Path
-from unittest import mock
 
 import main as core
 import personnel_v91 as personnel
@@ -74,14 +74,18 @@ class HistoricalPersonnelScopeTests(unittest.TestCase):
             else:
                 core._TAXO_V1075_INSTALLED = old_flag
 
-    def test_runtime_entrypoint_contains_r5_outer_layer(self):
+    def test_runtime_entrypoint_contains_r5_layer(self):
         text = Path("taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1075_features import install as install_v1075", text)
         self.assertIn("App = install_v1075(core, App)", text)
 
-    def test_current_identity_is_r5(self):
-        self.assertIn("Version: 10.7-r5", Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn('APP_VERSION = "10.7-r5"', Path("main.py").read_text(encoding="utf-8"))
+    def test_r5_identity_is_historical_while_current_version_may_advance(self):
+        current = Path("VERSION.txt").read_text(encoding="utf-8")
+        match = re.search(r"Version:\s*10\.7-r(\d+)", current)
+        self.assertIsNotNone(match)
+        self.assertGreaterEqual(int(match.group(1)), 5)
+        self.assertIn('APP_VERSION = "10.7-r5"', Path("v1075_features.py").read_text(encoding="utf-8"))
+        self.assertIn("v10.7-r5", Path("docs/releases/RELEASE_NOTES_v10.7-r5.md").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
