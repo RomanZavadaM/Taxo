@@ -95,6 +95,8 @@ jobs:
             personnel_registry_lossless.py
             registry_working_data.py
             diia_reconciliation.py
+            operations_orders.py
+            operations_orders_ui.py
             v1049_features.py
             v10410_features.py
             v1051_features.py
@@ -118,6 +120,7 @@ jobs:
             v1069_features.py
             v10610_features.py
             v1071_features.py
+            v1072_features.py
             work_regime.py
             branding.py
             branding_asset.py
