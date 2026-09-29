@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import sqlite3
 import tempfile
 import unittest
@@ -158,16 +159,29 @@ class OperationsEditingR4Tests(unittest.TestCase):
 
 
 class R4IdentityTests(unittest.TestCase):
+    def _current_version_tuple(self):
+        text = Path("VERSION.txt").read_text(encoding="utf-8")
+        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", text)
+        self.assertIsNotNone(match)
+        return tuple(int(value) for value in match.groups())
+
     def test_operations_core_identifies_r4(self):
         self.assertEqual(ops.APP_VERSION, "10.7-r4")
 
-    def test_version_file_is_r4(self):
-        text = Path("VERSION.txt").read_text(encoding="utf-8")
-        self.assertIn("Version: 10.7-r4", text)
+    def test_current_version_is_r4_or_later_in_10_7_line(self):
+        major, minor, revision = self._current_version_tuple()
+        self.assertEqual((major, minor), (10, 7))
+        self.assertGreaterEqual(revision, 4)
+        notes = Path("docs/releases/RELEASE_NOTES_v10.7-r4.md").read_text(encoding="utf-8")
+        self.assertIn("10.7-r4", notes)
 
-    def test_main_identity_is_r4(self):
+    def test_current_main_is_r4_or_later_in_10_7_line(self):
         import main
-        self.assertEqual(main.APP_VERSION, "10.7-r4")
+        match = re.fullmatch(r"(\d+)\.(\d+)-r(\d+)", main.APP_VERSION)
+        self.assertIsNotNone(match)
+        major, minor, revision = (int(value) for value in match.groups())
+        self.assertEqual((major, minor), (10, 7))
+        self.assertGreaterEqual(revision, 4)
 
     def test_taxo_app_installs_appendix_history_layer(self):
         text = Path("taxo_app.py").read_text(encoding="utf-8")
