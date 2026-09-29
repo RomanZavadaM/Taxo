@@ -19,44 +19,19 @@ jobs:
           ref: work/v10.7-r5-historical-personnel-reports
           fetch-depth: 0
 
-      - name: Apply r5 identity, runtime layer and START guard
+      - name: Apply r5 core identity and worklog
         shell: python
         run: |
           from pathlib import Path
 
           main = Path('main.py')
           text = main.read_text(encoding='utf-8')
-          old = 'APP_VERSION = "10.7-r4"'
-          if old not in text and 'APP_VERSION = "10.7-r5"' not in text:
-              raise SystemExit('main.py expected identity not found')
-          if old in text:
+          if 'APP_VERSION = "10.7-r5"' not in text:
+              old = 'APP_VERSION = "10.7-r4"'
+              if old not in text:
+                  raise SystemExit('main.py r4 identity not found')
               text = text.replace(old, 'APP_VERSION = "10.7-r5"', 1)
           main.write_text(text, encoding='utf-8')
-
-          entry = Path('taxo_app.py')
-          text = entry.read_text(encoding='utf-8')
-          marker = 'from v1074_appendix_history import install as install_v1074_appendix_history\n'
-          if 'from v1075_features import install as install_v1075' not in text:
-              if marker not in text:
-                  raise SystemExit('taxo_app.py r4 import marker not found')
-              text = text.replace(marker, marker + 'from v1075_features import install as install_v1075\n', 1)
-          layer = 'App = install_v1074_appendix_history(core, App)\n'
-          if 'App = install_v1075(core, App)' not in text:
-              if layer not in text:
-                  raise SystemExit('taxo_app.py r4 layer marker not found')
-              text = text.replace(layer, layer + 'App = install_v1075(core, App)\n', 1)
-          entry.write_text(text, encoding='utf-8')
-
-          Path('VERSION.txt').write_text('''Taxo / Driver Worktime\nVersion: 10.7-r5\nRelease date: 2026-09-29\nRelease type: candidate / work\nStable baseline: Taxo 10.3\nStable tag: v10.3\nStable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60\n\nTaxo 10.7-r5 — історичні кадрові звіти за датою працевлаштування.\n\nСТАН: IN PROGRESS до повного regression / START / Windows / macOS verify.\n\nПідтверджений дефект E2:\n- поточний прапорець employees.active відсікав уже звільненого працівника до перевірки його дат прийняття/звільнення;\n- через це старий П-5, аудит табеля або тижневий баланс могли втрачати працівника, який у звітному періоді ще працював.\n\nВиправлення:\n- report collectors завантажують активні та неактивні кадрові записи;\n- належність до звітного періоду визначає employee_employed_on(...) за employment_date / dismissal_date;\n- поточні UI-списки активних працівників не змінюються.\n\nIssued v10.7-r4 не змінювати. Наступний код після фактичної видачі r5 — 10.7-r6.\n''', encoding='utf-8')
-
-          wf = Path('.github/workflows/source-test-archive.yml')
-          text = wf.read_text(encoding='utf-8')
-          required = '            v1074_appendix_history.py\n'
-          if '            v1075_features.py\n' not in text:
-              if required not in text:
-                  raise SystemExit('START guard r4 marker not found')
-              text = text.replace(required, required + '            v1075_features.py\n', 1)
-          wf.write_text(text, encoding='utf-8')
 
           worklog = Path('WORKLOG.md')
           text = worklog.read_text(encoding='utf-8')
@@ -77,11 +52,11 @@ jobs:
               text = text.replace(next_heading, '''## IN PROGRESS — 10.7-r5\n\nПідтверджено E2: історичні кадрові звіти при `active_only=True` спочатку застосовували `employees.active=1`, а вже потім `employee_employed_on(...)`. Через це звільнений сьогодні працівник зникав зі звіту за місяць, коли він ще працював.\n\nРішення r5: report-only compatibility layer `v1075_features.py` прибирає storage-level current-active prefilter для тижневого балансу, аудиту табеля та П-5; період визначається датами `employment_date` / `dismissal_date`. Current-active UI selector не патчиться.\n\n## NEXT\n\n1. Пройти full regression + clean START verify для r5.\n2. Перевірити Windows/macOS gates на exact head.\n3. Після зелених gate видати immutable fast-test `v10.7-r5` і прямий START archive.\n4. Далі перейти до E3 — можливий подвійний план `водій + зміна персоналу`; потім E4 — `purge_old()` / backup.\n''', 1)
           worklog.write_text(text, encoding='utf-8')
 
-      - name: Commit r5 application
+      - name: Commit r5 core identity
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add main.py taxo_app.py VERSION.txt WORKLOG.md .github/workflows/source-test-archive.yml
-          git commit -m 'Taxo 10.7-r5: fix historical personnel report scope'
+          git add main.py WORKLOG.md
+          git commit -m 'Taxo 10.7-r5: synchronize core identity and worklog'
           git push origin HEAD:work/v10.7-r5-historical-personnel-reports
