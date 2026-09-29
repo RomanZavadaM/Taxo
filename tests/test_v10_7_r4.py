@@ -5,6 +5,12 @@ import unittest
 from pathlib import Path
 
 import operations_orders as ops
+import v1073_features as r3
+import v1074_appendix_history as r4_appendix
+
+
+class _Core:
+    pass
 
 
 class OperationsEditingR4Tests(unittest.TestCase):
@@ -21,6 +27,7 @@ class OperationsEditingR4Tests(unittest.TestCase):
         self.con.execute("INSERT INTO vehicles(id,name,plate,make_model,active) VALUES(1,'Bus 1','AA0001AA','MAN',1)")
         self.con.execute("INSERT INTO vehicles(id,name,plate,make_model,active) VALUES(2,'Bus 2','AA0002AA','Mercedes',1)")
         ops.ensure_schema_on_connection(self.con)
+        r3.ensure_appendix_schema_on_connection(self.con)
 
     def tearDown(self):
         self.con.close()
@@ -122,6 +129,33 @@ class OperationsEditingR4Tests(unittest.TestCase):
         finally:
             con.close()
 
+    def test_approved_appendix_can_be_corrected_and_history_is_preserved(self):
+        oid = self._order()
+        aid = r3.save_appendix(self.con, oid, title="Додаток 1", content="Початковий текст")
+        ops.add_vehicle_assignment(self.con, oid, 1, 1, valid_from="29.09.2026")
+        ops.approve_order(self.con, oid)
+        self.con.commit()
+
+        core = _Core()
+        core._TAXO_1074_APPENDIX_HISTORY_INSTALLED = False
+        r4_appendix.install(core, object)
+        r3.save_appendix(
+            self.con,
+            oid,
+            appendix_id=aid,
+            title="Додаток 1",
+            content="Виправлений текст після затвердження",
+        )
+        self.con.commit()
+
+        row = self.con.execute("SELECT content FROM operations_order_appendices WHERE id=?", (aid,)).fetchone()
+        self.assertEqual(row["content"], "Виправлений текст після затвердження")
+        history = self.con.execute(
+            "SELECT action FROM operations_change_log WHERE entity_type='appendix' AND entity_id=? ORDER BY id",
+            (aid,),
+        ).fetchall()
+        self.assertIn("update", [item["action"] for item in history])
+
 
 class R4IdentityTests(unittest.TestCase):
     def test_operations_core_identifies_r4(self):
@@ -130,6 +164,15 @@ class R4IdentityTests(unittest.TestCase):
     def test_version_file_is_r4(self):
         text = Path("VERSION.txt").read_text(encoding="utf-8")
         self.assertIn("Version: 10.7-r4", text)
+
+    def test_main_identity_is_r4(self):
+        import main
+        self.assertEqual(main.APP_VERSION, "10.7-r4")
+
+    def test_taxo_app_installs_appendix_history_layer(self):
+        text = Path("taxo_app.py").read_text(encoding="utf-8")
+        self.assertIn("from v1074_appendix_history import install as install_v1074_appendix_history", text)
+        self.assertIn("App = install_v1074_appendix_history(core, App)", text)
 
 
 if __name__ == "__main__":
