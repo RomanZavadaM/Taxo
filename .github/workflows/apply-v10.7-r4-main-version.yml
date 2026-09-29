@@ -1,0 +1,47 @@
+name: Apply Taxo 10.7-r4 main identity
+
+on:
+  push:
+    branches:
+      - work/v10.7-r4-operations-legal-structure
+    paths:
+      - '.github/workflows/apply-v10.7-r4-main-version.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.7-r4-operations-legal-structure
+          fetch-depth: 0
+      - name: Synchronize main.APP_VERSION
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('main.py')
+          text = path.read_text(encoding='utf-8')
+          old = 'APP_VERSION = "10.7-r3"'
+          new = 'APP_VERSION = "10.7-r4"'
+          if new in text:
+              print('main.APP_VERSION already synchronized')
+          elif old in text:
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+              print('main.APP_VERSION synchronized to 10.7-r4')
+          else:
+              raise SystemExit('Expected APP_VERSION marker not found')
+      - name: Commit synchronization when needed
+        shell: bash
+        run: |
+          if git diff --quiet -- main.py; then
+            echo 'No commit needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py
+          git commit -m 'fix: synchronize main identity for 10.7-r4'
+          git push origin HEAD:work/v10.7-r4-operations-legal-structure

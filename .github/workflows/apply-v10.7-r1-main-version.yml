@@ -1,0 +1,45 @@
+name: Apply Taxo 10.7-r1 main version literal
+
+on:
+  push:
+    branches:
+      - 'work/v10.7-r1-tachograph-safety'
+    paths:
+      - '.github/workflows/apply-v10.7-r1-main-version.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/v10.7-r1-tachograph-safety
+          fetch-depth: 0
+
+      - name: Update exact main.APP_VERSION literal
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('main.py')
+          text = p.read_text(encoding='utf-8')
+          old = 'APP_VERSION = "10.6-r10"'
+          new = 'APP_VERSION = "10.7-r1"'
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected exactly one old APP_VERSION literal, found {text.count(old)}')
+          p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
+      - name: Commit version identity
+        shell: bash
+        run: |
+          git config user.name 'RomanZavadaM'
+          git config user.email 'zavada.roman.m@gmail.com'
+          git add main.py
+          git diff --cached --check
+          git commit -m 'chore: set main APP_VERSION to 10.7-r1'
+          git push origin HEAD:work/v10.7-r1-tachograph-safety

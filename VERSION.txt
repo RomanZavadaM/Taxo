@@ -1,21 +1,23 @@
 Taxo / Driver Worktime
-Version: 10.6-r10
-Release date: 2026-09-28
-Release type: candidate
+Version: 10.7-r6
+Release date: 2026-09-29
+Release type: candidate / work
 Stable baseline: Taxo 10.3
 Stable tag: v10.3
 Stable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60
 
-Taxo 10.6-r10 — виправлення експорту офіційного табеля П-5.
+Taxo 10.7-r6 — безпечний порядок retention / backup.
 
-Основне:
-- усунено `TypeError: export_p5_pdf() got multiple values for argument 'edrpou'`;
-- ЄДРПОУ нормалізується незалежно від того, переданий він позиційно чи як keyword;
-- той самий захист застосовано до П-5 Excel;
-- явно переданий ЄДРПОУ зберігається, а порожній отримує fallback з реквізитів підприємства;
-- розрахунок табеля, plan/fact, БД та інші звіти не змінені.
+СТАН: IN PROGRESS до повного regression / START / Windows / macOS verify.
 
-Нумерація:
-- 10.6-r9 вже виданий як immutable fast-test;
-- поточний кодовий крок — 10.6-r10;
-- після видачі 10.6-r10 наступний кодовий крок — 10.7-r1.
+Підтверджений дефект E4:
+- init_db() викликав purge_old() до auto_backup_database();
+- дані, що саме цього запуску виходили за 48-місячну межу, могли бути видалені до створення автоматичної копії.
+
+Виправлення:
+- auto_backup_database() виконується перед purge_old();
+- retention 48 місяців і склад очищуваних таблиць не змінюються.
+
+E3 перевірено окремо: загальний writer-баг подвійного плану не підтверджено; точні overlap-и водій/інша зміна вже блокуються.
+
+Issued v10.7-r5 не змінювати. Наступний код після фактичної видачі r6 — 10.7-r7.

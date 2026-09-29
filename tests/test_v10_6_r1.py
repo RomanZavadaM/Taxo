@@ -42,13 +42,12 @@ class VehicleRegistryFilterR1Tests(unittest.TestCase):
 
 
 class R1IntegrationTests(unittest.TestCase):
-    def test_current_version_is_r1_or_later_in_10_6_line(self):
+    def test_current_version_is_not_before_historical_10_6_r1(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
         match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
         self.assertIsNotNone(match)
         major, minor, revision = map(int, match.groups())
-        self.assertEqual((major, minor), (10, 6))
-        self.assertGreaterEqual(revision, 1)
+        self.assertGreaterEqual((major, minor, revision), (10, 6, 1))
         feature = (ROOT / "v1061_features.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "10.6-r1"', feature)
 

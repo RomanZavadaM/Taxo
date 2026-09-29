@@ -1,0 +1,64 @@
+name: Apply Taxo 10.7-r6 retention backup order
+
+on:
+  push:
+    branches:
+      - work/v10.7-r6-retention-backup-order
+    paths:
+      - '.github/workflows/apply-v10.7-r6-retention-order.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.7-r6-retention-backup-order
+          fetch-depth: 0
+
+      - name: Apply r6 retention order and identity
+        shell: python
+        run: |
+          from pathlib import Path
+
+          main = Path('main.py')
+          text = main.read_text(encoding='utf-8')
+          if 'APP_VERSION = "10.7-r5"' in text:
+              text = text.replace('APP_VERSION = "10.7-r5"', 'APP_VERSION = "10.7-r6"', 1)
+          elif 'APP_VERSION = "10.7-r6"' not in text:
+              raise SystemExit('Expected r5/r6 main identity not found')
+          old = '''    purge_old()\n    # Після міграції одразу робимо резервну копію старої бази в новому сховищі.\n    auto_backup_database()\n    return migrated, old_db\n'''
+          new = '''    # Спочатку зберігаємо узгоджену копію поточного стану, і лише потім\n    # застосовуємо 48-місячний retention. Так дані, що саме цього запуску\n    # переходять за межу зберігання, не зникають до резервної копії.\n    auto_backup_database()\n    purge_old()\n    return migrated, old_db\n'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit('Expected init_db purge/backup block not found')
+          main.write_text(text, encoding='utf-8')
+
+          entry = Path('taxo_app.py')
+          text = entry.read_text(encoding='utf-8')
+          marker = 'from v1075_features import install as install_v1075\n'
+          if 'from v1076_features import install as install_v1076' not in text:
+              if marker not in text:
+                  raise SystemExit('r5 import marker not found')
+              text = text.replace(marker, marker + 'from v1076_features import install as install_v1076\n', 1)
+          layer = 'App = install_v1075(core, App)\n'
+          if 'App = install_v1076(core, App)' not in text:
+              if layer not in text:
+                  raise SystemExit('r5 runtime marker not found')
+              text = text.replace(layer, layer + 'App = install_v1076(core, App)\n', 1)
+          entry.write_text(text, encoding='utf-8')
+
+          Path('VERSION.txt').write_text('''Taxo / Driver Worktime\nVersion: 10.7-r6\nRelease date: 2026-09-29\nRelease type: candidate / work\nStable baseline: Taxo 10.3\nStable tag: v10.3\nStable target: 7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60\n\nTaxo 10.7-r6 — безпечний порядок retention / backup.\n\nСТАН: IN PROGRESS до повного regression / START / Windows / macOS verify.\n\nПідтверджений дефект E4:\n- init_db() викликав purge_old() до auto_backup_database();\n- дані, що саме цього запуску виходили за 48-місячну межу, могли бути видалені до створення автоматичної копії.\n\nВиправлення:\n- auto_backup_database() виконується перед purge_old();\n- retention 48 місяців і склад очищуваних таблиць не змінюються.\n\nE3 перевірено окремо: загальний writer-баг подвійного плану не підтверджено; точні overlap-и водій/інша зміна вже блокуються.\n\nIssued v10.7-r5 не змінювати. Наступний код після фактичної видачі r6 — 10.7-r7.\n''', encoding='utf-8')
+
+      - name: Commit r6 application
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py taxo_app.py VERSION.txt
+          git commit -m 'Taxo 10.7-r6: backup before retention purge'
+          git push origin HEAD:work/v10.7-r6-retention-backup-order

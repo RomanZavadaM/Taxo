@@ -97,11 +97,15 @@ class P5ExporterPatchTests(unittest.TestCase):
 
 
 class R10IdentityTests(unittest.TestCase):
-    def test_version_file_is_r10(self):
-        text = pathlib.Path("VERSION.txt").read_text(encoding="utf-8")
-        self.assertIn("Version: 10.6-r10", text)
+    def test_r10_historical_release_identity_is_preserved(self):
+        notes = pathlib.Path("docs/releases/RELEASE_NOTES_v10.6-r10.md").read_text(
+            encoding="utf-8"
+        )
+        feature = pathlib.Path("v10610_features.py").read_text(encoding="utf-8")
+        self.assertIn("10.6-r10", notes)
+        self.assertIn('APP_VERSION = "10.6-r10"', feature)
 
-    def test_taxo_app_installs_r10_outermost(self):
+    def test_taxo_app_keeps_r10_in_runtime_chain(self):
         text = pathlib.Path("taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v10610_features import install as install_v10610", text)
         self.assertIn("App = install_v10610(core, App)", text)
