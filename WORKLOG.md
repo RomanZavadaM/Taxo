@@ -13,7 +13,7 @@
 **Active branch / PR:** `work/v10.8-r3-tck-statement-fix` / PR #105 — документаційне завершення issued r3; код r3 заморожений  
 **Next code revision:** **10.8-r4**  
 **Knowledge branch:** `knowledge/vehicle-operations`  
-**Live ledger:** Issue #61; якщо запис через connector недоступний — recovery дублюється у WORKLOG та PR
+**Live ledger:** Issue #61; recovery дублюється у WORKLOG та PR
 
 ## ISSUED — 10.8-r3
 
@@ -44,7 +44,7 @@ Tag / prerelease: **`v10.8-r3`** — не рухати і не перевида�
 - issued START asset: `Taxo_v10_8_candidate_r3_START.zip`;
 - START SHA-256: **`aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`**;
 - Windows exact-issued gate `36737147803` — success;
-- macOS exact-issued gate `36737147699` — queued на момент цього запису; не трактувати як failure;
+- macOS exact-issued gate `36737147699` — success;
 - release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.8-r3
 - START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.8-r3/Taxo_v10_8_candidate_r3_START.zip
 - PR #105: https://github.com/RomanZavadaM/Taxo/pull/105
