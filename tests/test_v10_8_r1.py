@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import unittest
 from pathlib import Path
 
@@ -8,6 +9,13 @@ import v1064_features as waybill_ui
 import v10710_features as document_center
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _version_tuple(text):
+    match = re.search(r"(\d+)\.(\d+)-r(\d+)", text)
+    if not match:
+        raise AssertionError("Taxo version not found: %r" % text)
+    return tuple(int(part) for part in match.groups())
 
 
 class VehicleFunctionalityGuardTests(unittest.TestCase):
@@ -68,9 +76,11 @@ class VehicleFunctionalityGuardTests(unittest.TestCase):
         self.assertIn("self._shlyakh_button.pack", registry)
         self.assertIn("control.pack_forget()", legacy_layout)
         self.assertIn("controls[index].grid(", legacy_layout)
-        # 10.8-r1 must remain the outer repair layer.
+        # 10.8-r1 must remain before every newer UI contract layer.
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertLess(entry.index("App = install_v10710(core, App)"), entry.index("App = install_v1081(core, App)"))
+        if "App = install_v1082(core, App)" in entry:
+            self.assertLess(entry.index("App = install_v1081(core, App)"), entry.index("App = install_v1082(core, App)"))
 
 
 class PreservedInterfaceSurfaceTests(unittest.TestCase):
@@ -108,9 +118,11 @@ class PreservedInterfaceSurfaceTests(unittest.TestCase):
         self.assertIn("v10710_features.py", workflow)
         self.assertIn("v1081_features.py", workflow)
 
-    def test_current_version_identity(self):
+    def test_r1_version_identity_remains_historical(self):
         self.assertEqual(r1.APP_VERSION, "10.8-r1")
-        self.assertIn("10.8-r1", (ROOT / "VERSION.txt").read_text("utf-8"))
+        self.assertIn('APP_VERSION = "10.8-r1"', (ROOT / "v1081_features.py").read_text("utf-8"))
+        current = (ROOT / "VERSION.txt").read_text("utf-8")
+        self.assertGreaterEqual(_version_tuple(current), (10, 8, 1))
 
 
 class ContractHelperTests(unittest.TestCase):
