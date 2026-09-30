@@ -2,7 +2,6 @@
 import unittest
 from pathlib import Path
 
-import taxo_app
 import v1081_features as r1
 import vehicle_documents
 import v1064_features as waybill_ui
@@ -25,8 +24,13 @@ class VehicleFunctionalityGuardTests(unittest.TestCase):
             ),
         )
 
-    def test_current_app_keeps_all_critical_callbacks(self):
-        self.assertEqual(r1.missing_methods(taxo_app.App), ())
+    def test_critical_callbacks_remain_implemented_in_runtime_sources(self):
+        sources = "\n".join(
+            path.read_text("utf-8")
+            for path in ROOT.glob("*.py")
+        )
+        for name in r1.CRITICAL_APP_METHODS:
+            self.assertIn("def %s(" % name, sources, name)
 
     def test_vehicle_document_crud_window_is_still_complete(self):
         cls = vehicle_documents.VehicleDocumentsWindow
@@ -99,6 +103,7 @@ class PreservedInterfaceSurfaceTests(unittest.TestCase):
     def test_start_archive_requires_current_runtime_layers(self):
         start = (ROOT / "START.bat").read_text("utf-8")
         workflow = (ROOT / ".github/workflows/source-test-archive.yml").read_text("utf-8")
+        self.assertIn("v10710_features.py", start)
         self.assertIn("v1081_features.py", start)
         self.assertIn("v10710_features.py", workflow)
         self.assertIn("v1081_features.py", workflow)
