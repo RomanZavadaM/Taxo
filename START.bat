@@ -12,7 +12,7 @@ if not exist "taxo_app.py" goto :package_incomplete
 if not exist "main.py" goto :package_incomplete
 if not exist "workspace.py" goto :package_incomplete
 if not exist "vehicle_documents.py" goto :package_incomplete
-if not exist "v10710_features.py" goto :package_incomplete
+if not exist "v1081_features.py" goto :package_incomplete
 
 py -3.13 -c "import sys" >nul 2>&1
 if errorlevel 1 goto :python_missing
@@ -37,7 +37,7 @@ echo.
 echo Extract the ZIP completely before running START.bat.
 echo Use Windows "Extract all" or 7-Zip "Extract to...".
 echo Then open the extracted Taxo folder and run START.bat there.
-echo Required files: requirements.txt, taxo_app.py, main.py, workspace.py, vehicle_documents.py, v10710_features.py
+echo Required files: requirements.txt, taxo_app.py, main.py, workspace.py, vehicle_documents.py, v1081_features.py
 pause
 exit /b 2
 
