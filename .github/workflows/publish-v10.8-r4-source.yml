@@ -1,0 +1,84 @@
+name: Publish Taxo 10.8-r4 source prerelease
+
+on:
+  push:
+    branches:
+      - work/v10.8-r4-stoir-maintenance
+    paths:
+      - '.github/workflows/publish-v10.8-r4-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact issued source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify candidate identity and unused immutable tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          grep -Fxq 'Version: 10.8-r4' VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.8-r4"' main.py
+          grep -Fxq 'APP_VERSION = "10.8-r4"' v1084_features.py
+          if git ls-remote --exit-code --tags origin refs/tags/v10.8-r4 >/dev/null 2>&1; then
+            echo 'Tag v10.8-r4 already exists; refusing to move/reuse it.' >&2
+            exit 1
+          fi
+
+      - name: Install Tk/Xvfb and regression dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install -r requirements.txt
+
+      - name: Run exact-source regression suite
+        run: |
+          python -m py_compile main.py taxo_app.py vehicle_maintenance.py vehicle_maintenance_ui.py v1084_features.py
+          xvfb-run -a python -m unittest discover -s tests -v
+
+      - name: Build and verify START archive
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          stem='Taxo_v10_8_candidate_r4_START'
+          archive="${stem}.zip"
+          git archive --format=zip --prefix="${stem}/" --output="$archive" HEAD
+          for f in START.bat requirements.txt taxo_app.py main.py vehicle_documents.py vehicle_maintenance.py vehicle_maintenance_ui.py v1084_features.py; do
+            unzip -l "$archive" | grep -q "/${f}$" || { echo "Missing ${f}" >&2; exit 1; }
+          done
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly included' >&2
+            exit 1
+          fi
+          sha256sum "$archive" > SHA256SUMS_v10_8_r4.txt
+          sha=$(sha256sum "$archive" | awk '{print $1}')
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Create immutable tag and prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag v10.8-r4 "${GITHUB_SHA}"
+          git push origin refs/tags/v10.8-r4
+          gh release create v10.8-r4 \
+            "${{ steps.pack.outputs.archive }}" SHA256SUMS_v10_8_r4.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title 'Taxo 10.8-r4' \
+            --prerelease \
+            --notes-file docs/releases/RELEASE_NOTES_v10.8-r4.md
+          target=$(gh api repos/${GITHUB_REPOSITORY}/git/ref/tags/v10.8-r4 --jq '.object.sha')
+          test "$target" = "${GITHUB_SHA}"
+          printf 'Issued source: %s\nSTART SHA-256: %s\n' "${GITHUB_SHA}" '${{ steps.pack.outputs.sha }}'
