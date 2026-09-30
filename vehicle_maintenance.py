@@ -161,8 +161,9 @@ def save_profile(con, vehicle_id, *, profile_kind, to1_interval_km=None, to2_int
 
 
 def latest_odometer(con, vehicle_id):
+    """Останній фактичний одометр без залежності від необов'язкових legacy-колонок."""
     return con.execute(
-        """SELECT reading_km,reading_at,source_type,worklog_id
+        """SELECT reading_km,reading_at,source_type
            FROM vehicle_odometer_readings
            WHERE vehicle_id=? AND reading_km IS NOT NULL
            ORDER BY CASE WHEN COALESCE(reading_at,'')='' THEN 1 ELSE 0 END, reading_at DESC,id DESC LIMIT 1""",
