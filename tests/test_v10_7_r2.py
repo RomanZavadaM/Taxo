@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import sqlite3
 import tempfile
 import unittest
@@ -55,9 +56,7 @@ class OperationsSchemaTests(unittest.TestCase):
 
     def test_assignment_becomes_operational_only_after_order_approval(self):
         order_id = self._order()
-        ops.add_vehicle_assignment(
-            self.con, order_id, 10, 1, valid_from='18.05.2023'
-        )
+        ops.add_vehicle_assignment(self.con, order_id, 10, 1, valid_from='18.05.2023')
         self.assertEqual(ops.active_driver_assignments(self.con, 10, '2023-05-18'), [])
         ops.approve_order(self.con, order_id)
         rows = ops.active_driver_assignments(self.con, 10, '2023-05-18')
@@ -67,9 +66,7 @@ class OperationsSchemaTests(unittest.TestCase):
 
     def test_assignment_honours_validity_window(self):
         order_id = self._order()
-        ops.add_vehicle_assignment(
-            self.con, order_id, 10, 1, valid_from='18.05.2023', valid_until='31.05.2023'
-        )
+        ops.add_vehicle_assignment(self.con, order_id, 10, 1, valid_from='18.05.2023', valid_until='31.05.2023')
         ops.approve_order(self.con, order_id)
         self.assertEqual(len(ops.active_driver_assignments(self.con, 10, '2023-05-31')), 1)
         self.assertEqual(len(ops.active_driver_assignments(self.con, 10, '2023-06-01')), 0)
@@ -87,12 +84,7 @@ class OperationsSchemaTests(unittest.TestCase):
         self.assertIsNotNone(approval)
 
     def test_operations_settings_store_both_responsible_roles(self):
-        ops.save_settings(
-            self.con,
-            operations_responsible_employee_id=2,
-            military_transport_responsible_employee_id=2,
-            order_place='с. Муроване',
-        )
+        ops.save_settings(self.con, operations_responsible_employee_id=2, military_transport_responsible_employee_id=2, order_place='с. Муроване')
         row = ops.settings(self.con)
         self.assertEqual(row['operations_responsible_employee_id'], 2)
         self.assertEqual(row['military_transport_responsible_employee_id'], 2)
@@ -112,12 +104,11 @@ class OperationsSchemaTests(unittest.TestCase):
 
 
 class R2IntegrationTests(unittest.TestCase):
-    def test_current_version_is_r2_or_later_in_10_7_line(self):
+    def test_current_version_is_not_before_historical_r2(self):
         text = Path('VERSION.txt').read_text(encoding='utf-8')
-        version_line = next(line for line in text.splitlines() if line.startswith('Version: '))
-        version = version_line.split(':', 1)[1].strip()
-        self.assertTrue(version.startswith('10.7-r'))
-        self.assertGreaterEqual(int(version.rsplit('r', 1)[1]), 2)
+        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", text)
+        self.assertIsNotNone(match)
+        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 7, 2))
 
     def test_taxo_app_keeps_r2_in_runtime_chain(self):
         text = Path('taxo_app.py').read_text(encoding='utf-8')
