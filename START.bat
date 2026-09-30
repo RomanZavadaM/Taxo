@@ -15,7 +15,10 @@ if not exist "vehicle_documents.py" goto :package_incomplete
 if not exist "v10710_features.py" goto :package_incomplete
 if not exist "v1081_features.py" goto :package_incomplete
 if not exist "v1082_features.py" goto :package_incomplete
-if not exist "v1083_features.py" goto :package_incomplete
+if not exist "v1083_features.py, v1084_features.py, vehicle_maintenance.py, vehicle_maintenance_ui.py" goto :package_incomplete
+if not exist "v1084_features.py" goto :package_incomplete
+if not exist "vehicle_maintenance.py" goto :package_incomplete
+if not exist "vehicle_maintenance_ui.py" goto :package_incomplete
 
 py -3.13 -c "import sys" >nul 2>&1
 if errorlevel 1 goto :python_missing
