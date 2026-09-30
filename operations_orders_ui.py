@@ -164,14 +164,25 @@ def open_operations_center(app, core):
         preamble.insert("1.0",str(existing["preamble"] if existing else ops.DEFAULT_PREAMBLES.get(initial_type,"")))
         core.ttk.Label(frm,text="Текст пунктів").grid(row=7,column=0,sticky="nw",pady=5)
         body_text=core.tk.Text(frm,height=7,wrap="word"); body_text.grid(row=7,column=1,sticky="nsew",pady=5)
-        body_text.insert("1.0",str(existing["body_text"] if existing else ""))
+        body_text.insert("1.0",str(existing["body_text"] if existing else ops.DEFAULT_BODY_TEMPLATES.get(initial_type,"")))
         if existing and int(existing["paper_original_signed"] or 0):
             core.ttk.Label(frm,text="Увага: паперовий оригінал позначено як підписаний. Після змін звірте його і, за потреби, передрукуйте.",
                            style="Muted.TLabel",wraplength=620,justify="left").grid(row=8,column=0,columnspan=2,sticky="w",pady=(4,2))
         def sync_type(_event=None):
             if existing: return
-            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC); subject_var.set(ops.DEFAULT_SUBJECTS.get(key,"")); preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
+            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
+            subject_var.set(ops.DEFAULT_SUBJECTS.get(key,""))
+            preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
+            body_text.delete("1.0","end"); body_text.insert("1.0",ops.DEFAULT_BODY_TEMPLATES.get(key,""))
         type_box.bind("<<ComboboxSelected>>",sync_type)
+        def apply_template():
+            key=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
+            template=ops.DEFAULT_BODY_TEMPLATES.get(key,"")
+            if not template:
+                core.messagebox.showinfo("Типовий текст","Для цього типу наказу типовий текст не задано.",parent=dialog); return
+            current=body_text.get("1.0","end-1c").strip()
+            if current and current != template and not core.messagebox.askyesno("Замінити текст?","Поточний текст пунктів буде замінено типовою заготовкою. Продовжити?",parent=dialog): return
+            body_text.delete("1.0","end"); body_text.insert("1.0",template)
         def save():
             order_type=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC); con3=core.db()
             try:
@@ -192,6 +203,7 @@ def open_operations_center(app, core):
             if order_type==ops.TYPE_VEHICLE_ASSIGNMENT: book.select(assignments_tab)
         bar=core.ttk.Frame(frm); bar.grid(row=9,column=0,columnspan=2,sticky="ew",pady=(10,0))
         core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")
+        core.ttk.Button(bar,text="Типовий текст",command=apply_template).pack(side="left")
         core.ttk.Button(bar,text="Зберегти" if existing else "Створити",style="Accent.TButton",command=save).pack(side="right",padx=(0,6)); dialog.transient(win)
 
     def new_order(): order_dialog()
