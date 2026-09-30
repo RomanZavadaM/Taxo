@@ -11,10 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class MainModularizationR6Tests(unittest.TestCase):
-    def test_current_identity_is_r6(self):
-        version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
-        self.assertIn("10.8-r6", version)
-        self.assertEqual(main.APP_VERSION, "10.8-r6")
+    def test_r6_identity_is_historical_anchor(self):
+        notes = (ROOT / "docs/releases/RELEASE_NOTES_v10.8-r6.md").read_text(encoding="utf-8")
+        self.assertIn("10.8-r6", notes)
+        self.assertGreaterEqual(tuple(int(part) for part in main.APP_VERSION.replace("10.8-r", "").split(".")), (6,))
 
     def test_output_helpers_are_no_longer_implemented_in_main(self):
         source = (ROOT / "main.py").read_text(encoding="utf-8")
@@ -39,7 +39,7 @@ class MainModularizationR6Tests(unittest.TestCase):
         self.assertIs(main._is_file_access_error, output_files.is_file_access_error)
         self.assertIs(main._friendly_file_error, output_files.friendly_file_error)
 
-    def test_start_guard_requires_current_runtime_modules(self):
+    def test_start_guard_requires_r6_runtime_modules(self):
         start = (ROOT / "START.bat").read_text(encoding="ascii")
         self.assertIn('if not exist "output_files.py" goto :package_incomplete', start)
         self.assertIn('if not exist "v1085_features.py" goto :package_incomplete', start)
