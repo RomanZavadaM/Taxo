@@ -28,7 +28,13 @@
 - актуальних runtime-шарів у START-пакеті;
 - архітектурного захисту від повторного конфлікту `pack/grid` у транспортній панелі.
 
-Повна regression suite для pre-release head пройшла успішно: **664/664**.
+Повна regression suite перед фінальною перевіркою candidate head пройшла успішно: **664/664**.
+
+## Документування
+
+- аудит причин і захисту: `docs/maintenance/AUDIT_10.8-r1_INTERFACE_FUNCTIONALITY.md`;
+- поточний стан 10.8-r1 записано у `WORKLOG.md`;
+- runtime identity синхронізовано у `main.py`, `VERSION.txt`, `taxo_app.py` і START guard.
 
 ## Межі
 
@@ -38,5 +44,3 @@
 - stable `v10.3` не змінюється;
 - кандидат `10.7-r10` лишається незмінним історичним checkpoint;
 - після видачі `10.8-r1` наступна зміна коду повинна бути `10.8-r2`.
-
-Детальний аудит: `docs/maintenance/AUDIT_10.8-r1_INTERFACE_FUNCTIONALITY.md`.
