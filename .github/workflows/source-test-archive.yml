@@ -75,6 +75,7 @@ jobs:
             requirements.txt
             taxo_app.py
             main.py
+            feature_layers.py
             output_files.py
             workspace.py
             vehicle_documents.py
