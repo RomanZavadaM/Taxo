@@ -5,16 +5,31 @@
 
 ## CURRENT
 
+**Оновлено:** 30.09.2026  
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest full multi-platform checkpoint:** Taxo **10.6-r10** / `v10.6-r10`  
-**Latest integrated code checkpoint in `main`:** Taxo **10.6-r10**  
-**Main:** `109d3c64f2a54a29c5b88eb190a934f0a890245d`  
-**Latest issued fast-test:** **10.7-r5** / `v10.7-r5` → `ed223e8af88216167b7db4d70413608d66bea9af`  
-**Active branch after issuance:** `work/v10.7-r5-historical-personnel-reports` — docs/closeout only  
-**PR:** #94 — draft; candidate line не зливати у `main` без окремої команди власника  
-**Next code revision:** **10.7-r6**  
+**Latest issued fast-test:** **10.7-r10** / `v10.7-r10` → `78acf4bf1c4d74c0e6797cb3bd6d60ba10fc6a1a`  
+**Active candidate:** **10.8-r1** — відновлення та контрактне тестування функцій інтерфейсу  
+**Active branch:** `work/v10.8-r1-interface-functionality-guard`  
+**Active PR:** буде відкрито після green exact-head gate; не зливати у `main` без окремої команди власника  
+**Next code revision after issuance:** **10.8-r2**  
 **Knowledge branch:** `knowledge/vehicle-operations`  
 **Live ledger:** Issue #61
+
+## ACTIVE — 10.8-r1
+
+Тема: **збереження функціональності інтерфейсу та повернення дій документів ТЗ**.
+
+- підтверджено, що предметний функціонал документів ТЗ не видалений;
+- знайдено реальну UI-регресію: історичний responsive layer змішував `grid` з уже наявним `pack` у спільному контейнері, після чого базові кнопки лишалися прихованими;
+- додано окрему адаптивну панель «Картка транспортного засобу»;
+- повернуто видимі входи «Нове авто», «Редагувати», «Документи ТЗ», «Контроль документів», «Вивести з експлуатації», «Оновити» та фільтр неактивних авто;
+- реєстр «Шлях», ТЦК та інші нові дії збережені;
+- додано functionality-contract тести для транспортної панелі, документів ТЗ, шляхових листів, Центру документів, sidebar та START package;
+- історичні 10.7 identity tests переведено у режим regression anchors, щоб законний rollover 10.7-r10 → 10.8-r1 не ламав suite;
+- pre-release regression: **664/664 OK**;
+- аудит: `docs/maintenance/AUDIT_10.8-r1_INTERFACE_FUNCTIONALITY.md`;
+- release notes: `docs/releases/RELEASE_NOTES_v10.8-r1.md`.
 
 ## DONE — 10.7-r5
 
