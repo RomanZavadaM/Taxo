@@ -85,9 +85,9 @@ class HistoricalPersonnelScopeTests(unittest.TestCase):
         self.assertIn('APP_VERSION = "10.7-r5"', Path("v1075_features.py").read_text(encoding="utf-8"))
 
         current = Path("VERSION.txt").read_text(encoding="utf-8")
-        m = re.search(r"Version:\s*10\.7-r(\d+)", current)
+        m = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", current)
         self.assertIsNotNone(m)
-        self.assertGreaterEqual(int(m.group(1)), 5)
+        self.assertGreaterEqual(tuple(map(int, m.groups())), (10, 7, 5))
 
 
 if __name__ == "__main__":
