@@ -34,7 +34,7 @@ class VehicleFunctionalityGuardTests(unittest.TestCase):
 
     def test_vehicle_document_crud_window_is_still_complete(self):
         cls = vehicle_documents.VehicleDocumentsWindow
-        for method in ("_add", "_edit", "_archive", "_open_copy", "_refresh"):
+        for method in ("add_document", "edit_document", "archive_document", "open_copy", "load"):
             self.assertTrue(callable(getattr(cls, method, None)), method)
         source = (ROOT / "vehicle_documents.py").read_text("utf-8")
         for label in (
