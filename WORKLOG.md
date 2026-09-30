@@ -11,7 +11,7 @@
 **Issued fast-test:** **10.8-r5** — `v10.8-r5`, exact source `fc9be91a892ae8be14b04c27b386da120061ec38`; PR #108 лишається draft/unmerged  
 **Active code revision:** **10.8-r6** — контрольована декомпозиція oversized `main.py`  
 **Active branch:** `work/v10.8-r6-main-modularization`  
-**Active PR:** ще не створений на момент цього запису  
+**Active PR:** #109 — draft/open, base `work/v10.8-r5-stoir-forecast-repair-requests`  
 **Live ledger:** Issue #61
 
 ## COMPLETED CHECKPOINT — 10.8-r5
@@ -43,11 +43,23 @@
 - з великого `main.py` винесено нейтральні file-output helpers: системне відкриття, report-font candidates, file-access classification, читабельне ім'я копії, locked-file dialog, friendly error, writer-loop;
 - у `main.py` лишено тонкий compatibility-wrapper `write_output_file()`, щоб не переписувати всі старі call sites одним кроком;
 - `main.APP_VERSION` і `VERSION.txt` піднято до `10.8-r6`;
-- додано `tests/test_v10_8_r6.py` з guards на identity, modularization boundary та file-output semantics;
+- додано `tests/test_v10_8_r6.py` з guards на identity, modularization boundary, file-output semantics і START runtime guard;
 - одноразовий workflow безпечно переписав тільки цільові top-level functions через AST і після успішної перевірки сам видалився;
 - apply run `36771268183` — success;
 - refactor commit після one-shot workflow: `e8c765f9d4372801374b2c9ae42ad0f8d1bef027`;
-- додано `docs/maintenance/AUDIT_MAIN_MODULARIZATION_v10.8-r6.md` з планом поступової декомпозиції.
+- додано `docs/maintenance/AUDIT_MAIN_MODULARIZATION_v10.8-r6.md` з планом поступової декомпозиції;
+- `START.bat` і source-package verification тепер явно вимагають `output_files.py` та `v1085_features.py`.
+
+### Pre-issuance gates
+
+На exact-head `964b6b8ac7ffc0136f410d1057c092c41fee31a2`:
+
+- source package run `36771835142` — success;
+- full regression **701/701 OK**;
+- Windows PR gate `36771841318` — success;
+- macOS PR gate `36771841396` — success, arm64 + x86_64;
+- сформовано clean START source artifact `Taxo_v10_8_candidate_r6_START` без nested ZIP і без DB/cache;
+- release notes `docs/releases/RELEASE_NOTES_v10.8-r6.md` підготовлено.
 
 ### Не змінювалося
 
@@ -62,10 +74,10 @@
 
 ## DOING
 
-1. Створити draft PR r6 поверх r5.
-2. Запустити exact-head повний regression/source package і Windows/macOS gates.
-3. Якщо все green — сформувати новий START fast-test `Taxo_v10_8_candidate_r6_START.zip` і зафіксувати SHA/tag/release.
+1. Видати immutable fast-test `v10.8-r6` через exact-source publisher.
+2. Зафіксувати exact issued SHA, START SHA-256, release і direct download у Issue #61 та PR #109.
+3. PR #109 лишити draft/unmerged до окремої команди власника.
 
 ## NEXT
 
-Після видачі r6 подальшу декомпозицію робити тільки новою ревізією. Наступний безпечний кандидат — backup/migration helpers або attestation query helpers; не змішувати кілька великих доменів в одну ревізію.
+Після видачі r6 подальшу декомпозицію робити тільки новою ревізією **10.8-r7**. Наступний безпечний кандидат — backup/migration helpers або attestation query helpers; не змішувати кілька великих доменів в одну ревізію.
