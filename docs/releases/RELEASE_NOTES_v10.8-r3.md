@@ -1,10 +1,10 @@
-# Taxo 10.8-r3 — candidate release notes
+# Taxo 10.8-r3 — release checkpoint notes
 
 ## Відомість ТЦК: виправлення дати
 
 Виправлено помилку формування відомості ТЦК, яка виникала при звичайній для Taxo даті у форматі **ДД.ММ.РРРР** (`30.09.2026`).
 
-Раніше внутрішній код очікував лише ISO-формат `YYYY-MM-DD` і викликав `date.fromisoformat()` без нормалізації. Тепер модуль приймає обидва формати та переводить дату у внутрішній ISO-формат перед запитами до БД.
+Раніше внутрішній код очікував лише ISO-формат `YYYY-MM-DD` і викликав `date.fromisoformat()` без нормалізації. Тепер модуль приймає `ДД.ММ.РРРР`, ISO, `date` та `datetime` і переводить дату у внутрішній ISO-формат перед запитами до БД.
 
 Додано regression tests для:
 
@@ -29,7 +29,28 @@
 
 Реквізити зберігаються у вже наявній таблиці `vehicle_military_transport_statement_data`; нова паралельна сутність не створюється.
 
-Додано regression test, який записує реквізити у картку ТЗ, читає їх назад і формує рядок відомості на дату `30.09.2026`.
+## Інтеграція та повний checkpoint
+
+- PR #105 merged у `main`;
+- main merge commit: `db444a37ead421c8083558cfcf81ee97adc241f6`;
+- immutable issued source/tag: `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`;
+- full package workflow `36741933852` — success;
+- stable `v10.3` не змінювався.
+
+Повний пакет release `v10.8-r3` містить:
+
+- START/source;
+- Windows x64 Portable + Setup;
+- Windows 7 SP1 x64 Portable + Setup;
+- macOS Apple Silicon arm64 Portable;
+- macOS Intel x86_64 Portable;
+- окремі SHA-256 manifests;
+- загальний `SHA256SUMS_v10_8_r3_ALL.txt`.
+
+Windows 7 пакет перевірено на compatibility line CPython 3.8.10 + PyInstaller 5.13.2 та PE compatibility gate. Усі executable assets зібрані з exact issued source `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`; тег не пересувався.
+
+START: `Taxo_v10_8_candidate_r3_START.zip`  
+SHA-256: `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`
 
 ## Межі ревізії
 
@@ -37,5 +58,5 @@
 - імпортовані й підтверджені дані реєстрів залишаються робочими даними Taxo;
 - правила документів ТЗ, plan/fact, наказів і шляхових листів не змінюються;
 - stable `v10.3` не змінюється;
-- `v10.8-r2` залишається immutable історичним fast-test;
-- після видачі `v10.8-r3` наступна зміна коду — `10.8-r4`.
+- старі issued checkpoints залишаються immutable;
+- після `v10.8-r3` наступна зміна коду — тільки `10.8-r4`.
