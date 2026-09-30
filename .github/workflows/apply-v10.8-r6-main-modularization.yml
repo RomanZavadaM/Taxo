@@ -19,6 +19,11 @@ jobs:
           ref: work/v10.8-r6-main-modularization
           fetch-depth: 0
 
+      - name: Install Tk for main import smoke
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk
+
       - name: Extract helpers from main and bump r6 identity
         shell: bash
         run: |
