@@ -83,6 +83,7 @@ from output_files import (
     friendly_file_error as _friendly_file_error,
     write_output_file as _write_output_file,
 )
+import backup_migration as backup_store
 from vehicle_documents import (
     ensure_vehicle_documents_schema,
     open_vehicle_document_control,
@@ -95,7 +96,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.8-r8"
+APP_VERSION = "10.8-r9"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -245,160 +246,35 @@ def _append_error_log(context, exc, tb=None):
 # ---------------------------------------------------------------------------
 
 def find_legacy_database():
-    """Знаходить стару локальну БД першого запуску для одноразової міграції."""
-    candidates = [
-        APP_DIR / "driver_worktime.sqlite3",
-        APP_DIR.parent / "driver_worktime.sqlite3",
-    ]
-    # Найчастіші сусідні папки попередніх версій. Не чіпаємо інші дані.
-    for base in (APP_DIR.parent, APP_DIR.parent / "blank"):
-        for name in ("driver_worktime_app_v2", "driver_worktime_app_v3", "driver_worktime_app_v4", "driver_worktime_app"):
-            candidates.append(base / name / "driver_worktime.sqlite3")
-    seen=set()
-    for p in candidates:
-        p=p.resolve()
-        if p in seen:
-            continue
-        seen.add(p)
-        if p.exists() and p.resolve() != DB_PATH.resolve():
-            return p
-    return None
+    """Compatibility wrapper; implementation lives in backup_migration.py."""
+    return backup_store.find_legacy_database(APP_DIR, DB_PATH)
 
 
 def migrate_legacy_database():
-    """Одноразово копіює існуючу БД у постійний каталог."""
-    if DB_PATH.exists():
-        return False, None
-    old = find_legacy_database()
-    if not old:
-        return False, None
-    tmp = DB_PATH.with_suffix(".sqlite3.migrating")
-    shutil.copy2(old, tmp)
-    tmp.replace(DB_PATH)
-    return True, old
+    """Compatibility wrapper for one-time legacy DB migration."""
+    return backup_store.migrate_legacy_database(APP_DIR, DB_PATH)
 
 
 def backup_database(label="auto"):
-    """Створює узгоджену SQLite-копію та зберігає останні 30 резервних копій."""
-    if not DB_PATH.exists():
-        return None
-    stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    target = BACKUP_DIR / f"driver_worktime_{label}_{stamp}.sqlite3"
-    src_con = sqlite3.connect(str(DB_PATH),timeout=30)
-    dst_con = sqlite3.connect(str(target),timeout=30)
-    try:
-        src_con.execute("PRAGMA busy_timeout=30000")
-        src_con.backup(dst_con)
-        dst_con.commit()
-    finally:
-        dst_con.close()
-        src_con.close()
-    backups = sorted(BACKUP_DIR.glob("driver_worktime_*.sqlite3"), key=lambda p: p.stat().st_mtime, reverse=True)
-    for old in backups[30:]:
-        try:
-            old.unlink()
-        except OSError:
-            pass
-    return target
+    """Compatibility wrapper for the historical SQLite backup contract."""
+    return backup_store.backup_database(DB_PATH, BACKUP_DIR, label)
 
 
 def auto_backup_database():
-    """Не частіше одного разу на добу при запуску."""
-    if not DB_PATH.exists():
-        return None
-    recent = [p for p in BACKUP_DIR.glob("driver_worktime_auto_*.sqlite3") if (datetime.now().timestamp() - p.stat().st_mtime) < 86400]
-    if recent:
-        return recent[0]
-    return backup_database("auto")
+    """Compatibility wrapper for the once-per-day startup backup."""
+    return backup_store.auto_backup_database(DB_PATH, BACKUP_DIR)
 
 
 def validate_database_file(path):
-    """Перевіряє, що файл є справною та сумісною БД Taxo."""
-    path=Path(path)
-    if not path.exists() or not path.is_file():
-        return False, "Файл не знайдено."
-
-    con=None
-    try:
-        con=sqlite3.connect(str(path),timeout=30)
-        con.execute("PRAGMA query_only=ON")
-        con.execute("PRAGMA busy_timeout=30000")
-        quick=con.execute("PRAGMA quick_check").fetchone()
-        if not quick or str(quick[0]).lower()!="ok":
-            return False, f"SQLite quick_check: {quick[0] if quick else 'невідомий результат'}"
-
-        tables={
-            r[0] for r in con.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
-        }
-        required={"drivers","worklog","company"}
-        missing=sorted(required-tables)
-        if missing:
-            return False, "Не схожа на базу Taxo. Відсутні таблиці: " + ", ".join(missing)
-
-        driver_count=con.execute("SELECT COUNT(*) FROM drivers").fetchone()[0]
-        work_count=con.execute("SELECT COUNT(*) FROM worklog").fetchone()[0]
-        return True, f"База справна. Водіїв: {driver_count}; записів табеля: {work_count}."
-    except Exception as e:
-        return False, str(e)
-    finally:
-        if con is not None:
-            con.close()
+    """Compatibility wrapper for Taxo database validation."""
+    return backup_store.validate_database_file(path)
 
 
 def restore_database_from_file(source_path):
-    """Атомарно відновлює основну БД із вибраної резервної копії."""
-    source=Path(source_path)
-    ok,details=validate_database_file(source)
-    if not ok:
-        raise ValueError(f"Обрана резервна копія не пройшла перевірку:\n{details}")
-
-    safety_backup=backup_database("before_restore") if DB_PATH.exists() else None
-    temp_target=DB_PATH.with_suffix(".sqlite3.restore_tmp")
-
-    try:
-        if temp_target.exists():
-            temp_target.unlink()
-
-        src_con=sqlite3.connect(str(source),timeout=30)
-        dst_con=sqlite3.connect(str(temp_target),timeout=30)
-        try:
-            src_con.execute("PRAGMA query_only=ON")
-            src_con.execute("PRAGMA busy_timeout=30000")
-            src_con.backup(dst_con)
-            dst_con.commit()
-        finally:
-            dst_con.close()
-            src_con.close()
-
-        ok2,details2=validate_database_file(temp_target)
-        if not ok2:
-            raise ValueError(f"Копія після перенесення не пройшла перевірку:\n{details2}")
-
-        os.replace(temp_target,DB_PATH)
-        init_db()
-
-        final_ok,final_details=validate_database_file(DB_PATH)
-        if not final_ok:
-            raise ValueError(f"Відновлена база не пройшла фінальну перевірку:\n{final_details}")
-
-        return safety_backup, final_details
-
-    except Exception:
-        try:
-            if temp_target.exists():
-                temp_target.unlink()
-        except OSError:
-            pass
-
-        if safety_backup and Path(safety_backup).exists():
-            try:
-                shutil.copy2(safety_backup,DB_PATH)
-                init_db()
-            except Exception:
-                pass
-        raise
+    """Compatibility wrapper for atomic restore with safety backup."""
+    return backup_store.restore_database_from_file(
+        source_path, DB_PATH, BACKUP_DIR, init_db
+    )
 
 ACTIVITIES = {
     14: "Тимчасова непрацездатність",
