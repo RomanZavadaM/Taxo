@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 import vehicle_maintenance as maint
+import v1084_features
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -96,15 +97,17 @@ class R4IntegrationTests(unittest.TestCase):
         self.assertIn('"inspection": "Протокол ОТК / перевірки технічного стану"',text)
         self.assertIn('"inspection"',text)
 
-    def test_runtime_installs_r4_outermost(self):
+    def test_runtime_keeps_r4_layer_before_newer_layers(self):
         text=(ROOT/'taxo_app.py').read_text('utf-8')
         self.assertIn('from v1084_features import install as install_v1084',text)
         self.assertIn('App = install_v1084(core, App)',text)
         self.assertLess(text.index('App = install_v1083(core, App)'),text.index('App = install_v1084(core, App)'))
+        if 'App = install_v1085(core, App)' in text:
+            self.assertLess(text.index('App = install_v1084(core, App)'),text.index('App = install_v1085(core, App)'))
 
-    def test_current_version_is_r4(self):
-        self.assertIn('10.8-r4',(ROOT/'VERSION.txt').read_text('utf-8'))
-        self.assertIn('APP_VERSION = "10.8-r4"',(ROOT/'main.py').read_text('utf-8'))
+    def test_r4_version_identity_is_historical_anchor(self):
+        self.assertEqual(v1084_features.APP_VERSION, '10.8-r4')
+        self.assertIn('APP_VERSION = "10.8-r4"',(ROOT/'v1084_features.py').read_text('utf-8'))
 
     def test_stoir_is_separate_workspace_with_four_tabs(self):
         text=(ROOT/'vehicle_maintenance_ui.py').read_text('utf-8')
