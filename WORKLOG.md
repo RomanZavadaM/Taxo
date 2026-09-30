@@ -7,58 +7,43 @@
 
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest full multi-platform checkpoint:** Taxo **10.8-r3** / `v10.8-r3`  
-**Latest integrated code checkpoint:** **10.8-r3** — PR #105 merged to `main`  
-**Main merge:** `db444a37ead421c8083558cfcf81ee97adc241f6`  
+**Latest integrated code checkpoint:** **10.8-r3** — `main` `50db4b0de4d37260c2031aa96317fef61d93ea90`  
 **Issued source/tag:** `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`  
-**Issued START:** `Taxo_v10_8_candidate_r3_START.zip` · SHA-256 `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`  
-**Full package run:** `36741933852` — success  
-**Next code revision:** **10.8-r4**  
+**Active code revision:** **10.8-r4** — СТОІР / пробіг / ТО / ОТК  
+**Active branch:** `work/v10.8-r4-stoir-maintenance`  
 **Live ledger:** Issue #61
 
-## DONE — 10.8-r3
+## ACTIVE — 10.8-r4
 
-Тема: **відомість ТЦК — дата та реквізити транспортного засобу**.
+Тема: **окремий центр СТОІР без перевантаження існуючого розділу «Експлуатація»**.
 
 ### Реалізовано
 
-- виправлено падіння відомості ТЦК на звичайній для Taxo даті `ДД.ММ.РРРР`;
-- підтримуються `ДД.ММ.РРРР`, ISO, `date`, `datetime`;
-- додано «Реквізити ТЦК» у картці ТЗ;
-- реквізити необов'язкові для звичайної картки;
-- використано існуючу `vehicle_military_transport_statement_data`;
-- додано regression-тести для дати та round-trip реквізитів;
-- exact issued source/tag заморожено й не пересувалось.
+- створено `vehicle_maintenance.py` з профілями ТО, подіями ТО/ремонту та розрахунком наступного ТО від фактичного одометра;
+- джерело поточного пробігу — існуючий `vehicle_odometer_readings` зі шляхових листів, без паралельного «поточного пробігу»;
+- базові профілі: легковий/автобус 5 000/20 000 км; вантажний/автобус на вантажній базі 4 000/16 000 км; передбачено індивідуальний профіль виробника;
+- якщо останнє ТО невідоме, наступний пробіг ТО не вигадується;
+- створено окремий UI `vehicle_maintenance_ui.py` з вкладками «Огляд», «Пробіг / одометр», «ТО і ремонти», «Технічний контроль (ОТК)»;
+- у sidebar додано окремий вхід «СТОІР» поряд з «Експлуатація», а не нові вкладки в центр наказів;
+- користувацьку назву `inspection` змінено на «Протокол ОТК / перевірки технічного стану», ключ БД не змінюється;
+- копія протоколу ОТК лишається в «Документи ТЗ», СТОІР лише читає його чинність;
+- START та source-package guard вимагають `v1084_features.py`, `vehicle_maintenance.py`, `vehicle_maintenance_ui.py`;
+- додано `tests/test_v10_8_r4.py` і нормативний аудит `docs/maintenance/AUDIT_10.8-r4_STOIR_OTK.md`.
 
-### Інтеграція
+### Regression / recovery
+
+- перший повний прогін показав, що функціональні r4-тести проходять, але історичний r3 identity test блокував законний перехід на r4;
+- r3 regression відновлено до точного функціонального контракту виданого `v10.8-r3`, а його identity переведено в historical-anchor режим;
+- невдалий one-shot package guard більше не є частиною branch head; актуальний package guard застосований і самовидалений;
+- наступна дія: exact-head regression → draft PR → Windows/macOS gates → fast-test `v10.8-r4` лише після green.
+
+## DONE — 10.8-r3
 
 - PR #105 merged у `main`;
-- merge commit: `db444a37ead421c8083558cfcf81ee97adc241f6`;
+- full package run `36741933852` — success;
+- Windows x64, Windows 7 x64, macOS arm64/x86_64, START і checksums опубліковані;
 - stable `v10.3` не змінювався.
-
-### Повний multi-platform checkpoint
-
-Run `36741933852` завершився **success** по всіх jobs:
-
-- exact-source verify/regression;
-- Windows x64 Portable + Setup;
-- Windows 7 SP1 x64 Portable + Setup;
-- Windows 7 Python 3.8 + PE compatibility gate;
-- macOS arm64 Portable;
-- macOS x86_64 Portable;
-- platform SHA-256 manifests;
-- загальний `SHA256SUMS_v10_8_r3_ALL.txt`;
-- фінальна перевірка повного набору release assets.
-
-Усі binary assets зібрано з exact issued source `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`.
-
-## CLEANUP
-
-- актуальний стан зведено у `PROJECT_STATE.md`, `WORKLOG.md` та release index;
-- службовий full-package workflow лишено на окремій `ops/v10.8-r3-full-package`, а не в `main`;
-- історичні workflows/regression anchors не видалялись;
-- старі issued tags/releases не змінювались;
-- робочі БД, скани, кеші та персональні дані не публікувались.
 
 ## NEXT
 
-Наступна кодова ревізія — **10.8-r4**. Перед кодовими змінами виконати pre-flight за `START_HERE.md` і взяти наступну підтверджену помилку/недоробку з аудиту, не повертаючись до замороженого r3.
+Після видачі `10.8-r4` будь-яка нова кодова зміна — тільки **10.8-r5**. Майбутні шини/АКБ/агрегати та UI-аудит планування персоналу не змішувати в r4.
