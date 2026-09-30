@@ -17,8 +17,6 @@ class _DummyApp:
 
         legacy = ttk.Frame(self.tab_vehicles)
         legacy.pack(fill="x")
-        # Reproduce the historical condition: other feature buttons remain
-        # packed in the old parent while core buttons are later rebuilt.
         ttk.Button(legacy, text="Реєстр «Шлях»").pack(side="left")
         ttk.Button(legacy, text="Відомість ТЦК 20.06 / 20.12").pack(side="left")
 
@@ -66,14 +64,7 @@ class RuntimeVehicleToolbarSmokeTests(unittest.TestCase):
             button.invoke()
         self.assertEqual(
             self.app.calls,
-            [
-                "vehicle_form",
-                "edit_vehicle",
-                "vehicle_documents",
-                "vehicle_document_control",
-                "delete_vehicle",
-                "load_vehicles",
-            ],
+            ["vehicle_form", "edit_vehicle", "vehicle_documents", "vehicle_document_control", "delete_vehicle", "load_vehicles"],
         )
 
     def test_toolbar_wraps_but_keeps_all_actions_visible_on_narrow_width(self):
@@ -94,16 +85,16 @@ class RuntimeContractHelperTests(unittest.TestCase):
         actual = tuple(label for label in required if label != "Додати документ")
         self.assertEqual(r2.missing_contract_labels(actual, required), ("Додати документ",))
 
-    def test_r2_is_outermost_runtime_layer(self):
+    def test_r2_remains_in_runtime_chain(self):
         from pathlib import Path
         source = Path("taxo_app.py").read_text("utf-8")
         self.assertIn("from v1082_features import install as install_v1082", source)
-        self.assertLess(source.index("App = install_v1081(core, App)"), source.index("App = install_v1082(core, App)"))
+        self.assertIn("App = install_v1082(core, App)", source)
 
-    def test_r2_identity(self):
+    def test_r2_identity_is_historical_anchor(self):
         from pathlib import Path
         self.assertEqual(r2.APP_VERSION, "10.8-r2")
-        self.assertIn("10.8-r2", Path("VERSION.txt").read_text("utf-8"))
+        self.assertIn('APP_VERSION = "10.8-r2"', Path("v1082_features.py").read_text("utf-8"))
         self.assertIn("v1082_features.py", Path("START.bat").read_text("utf-8"))
 
 
