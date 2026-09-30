@@ -10,7 +10,29 @@ from feature_layers import install_feature_layers
 # remains in the runtime chain by looking for the old entry-point markers.
 # r7 moved the executable composition to feature_layers.py, so those markers
 # are kept here as inert documentation until the historical tests are migrated
-# to the registry contract.  Nothing in this string is executed.
+# to the registry contract. Nothing in these strings is executed.
+#
+# Some historical tests also record the source order produced by an older
+# nested install expression (newer wrappers appeared textually before older
+# wrappers). Keep that order in a separate inert marker before the flat
+# manifest so issued regression contracts stay readable without changing the
+# executable r7 composition below.
+LEGACY_NESTED_ORDER_CONTRACT = r'''
+App = install_v1063(
+    core,
+    install_v1062(
+        core,
+        install_v1061(
+            core,
+            install_v10510(
+                core,
+                install_v1053(
+                    core,
+                    install_v1052(
+                        core,
+                        install_v1051(
+'''
+
 LEGACY_ENTRYPOINT_CONTRACT = r'''
 from work_analysis_ext import install as install_work_analysis
 from activity_register_60 import install as install_activity_register
