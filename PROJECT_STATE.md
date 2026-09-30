@@ -1,99 +1,80 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 29.09.2026  
+**Дата:** 30.09.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## Поточний підтверджений стан
 
 - **Stable:** Taxo 10.3 / `v10.3` — immutable.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Latest full multi-platform checkpoint:** Taxo **10.6-r10** / `v10.6-r10`.
-- **Latest integrated code checkpoint in `main`:** Taxo **10.6-r10**.
-- **Main merge:** PR #87 → `4bc63060be9911fcf20f432b5e6535b4d8cd0155`.
-- **Issued r10 tag/source:** `v10.6-r10` → `0baad010d0c0d4f29db62f26c29d512c71058928`.
-- **r10 regression:** `588/588 OK`.
-- **r10 clean START verify:** `36476665666` — success.
-- **r10 Windows PR gate:** `36479012210` — success.
-- **r10 macOS PR gate:** `36479012232` — success.
-- **r10 full package build:** `36485005797` — Windows x64, Windows 7 SP1 x64, macOS arm64, macOS x86_64 built and verified from exact issued source.
-- **r10 binary publication:** `36485643153` — success.
-- **r10 START:** `Taxo_v10_6_candidate_r10_START.zip`.
-- **r10 START SHA-256:** `1ca7d18b5775c7ddaf424d9d650d78457c7e8451b04cbc6121fcb04fba6acfd8`.
-- **Next code revision:** тільки **10.7-r1**.
+- **Latest full multi-platform checkpoint:** Taxo **10.8-r3** / `v10.8-r3`.
+- **Latest integrated code checkpoint in `main`:** Taxo **10.8-r3**.
+- **Main merge:** PR #105 → `db444a37ead421c8083558cfcf81ee97adc241f6`.
+- **Issued tag/source:** `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd` — не пересувати.
+- **START:** `Taxo_v10_8_candidate_r3_START.zip`.
+- **START SHA-256:** `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`.
+- **Full package workflow:** `36741933852` — success.
+- **Windows x64:** Portable + Setup — success.
+- **Windows 7 SP1 x64:** Portable + Setup, Python 3.8 compatibility + PE gate — success.
+- **macOS:** Apple Silicon arm64 + Intel x86_64 Portable — success.
+- **Checksums:** platform manifests + `SHA256SUMS_v10_8_r3_ALL.txt` — published and verified.
+- **Next code revision:** тільки **10.8-r4**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.6-r10` є поточним інтегрованим і повним multi-platform checkpoint, але це не автоматичне stable promotion.
+`v10.3` залишається stable до окремого рішення власника. `v10.8-r3` є інтегрованим повним multi-platform checkpoint, але не автоматичною stable promotion.
 
-## Повний пакет 10.6-r10
+## Що увійшло в 10.8-r3
 
-У release `v10.6-r10` опубліковано:
+### Відомість ТЦК — виправлення дати
 
-- START/source: `Taxo_v10_6_candidate_r10_START.zip`;
-- Windows x64 Setup: `Taxo_v10_6_candidate_r10_Setup_Windows_x64.exe`;
-- Windows x64 Portable: `Taxo_v10_6_candidate_r10_Windows_x64_Portable.zip`;
-- Windows 7 SP1 x64 Setup: `Taxo_v10_6_candidate_r10_Setup_Windows7_x64.exe`;
-- Windows 7 SP1 x64 Portable: `Taxo_v10_6_candidate_r10_Windows7_x64_Portable.zip`;
-- macOS Apple Silicon: `Taxo_v10_6_candidate_r10_macOS_arm64_Portable.zip`;
-- macOS Intel: `Taxo_v10_6_candidate_r10_macOS_x86_64_Portable.zip`;
-- окремі SHA-256 manifests для платформ і загальний `SHA256SUMS_v10_6_r10_ALL.txt`.
+Виправлено production-збій при даті Taxo формату `ДД.ММ.РРРР`, зокрема `30.09.2026`.
 
-Усі executable assets зібрані з exact issued source `0baad010d0c0d4f29db62f26c29d512c71058928`; tag `v10.6-r10` не пересувався.
+- підтримуються `ДД.ММ.РРРР`, ISO `YYYY-MM-DD`, `date` і `datetime`;
+- дата нормалізується до внутрішнього ISO-формату перед запитами до БД;
+- додано regression-тести на коректні й помилкові дати.
 
-## Що увійшло в 10.6-r10
+### Реквізити ТЦК у картці транспортного засобу
 
-### П-5: PDF/XLSX
+До картки ТЗ додано необов'язкові реквізити для військово-транспортної відомості:
 
-Виправлено реальний збій:
+- належність до власного / балансового парку;
+- тип ТЗ;
+- технічний стан;
+- залишкова / балансова вартість;
+- примітка.
 
-`TypeError: export_p5_pdf() got multiple values for argument 'edrpou'`.
+Дані зберігаються у вже наявній `vehicle_military_transport_statement_data`; паралельна модель не створюється. Звичайна картка автомобіля не вимагає обов'язкового заповнення цих полів.
 
-Причина: historical compatibility-layer обробляв лише keyword `edrpou`, а актуальний Reports UI передавав ЄДРПОУ позиційно. Через це wrapper додавав дубльований аргумент.
+## Повний пакет 10.8-r3
 
-Рішення:
+У release `v10.8-r3` опубліковано і перевірено:
 
-- positional і keyword ЄДРПОУ нормалізуються до одного значення;
-- явно передане значення має пріоритет;
-- порожнє значення отримує fallback з реквізитів підприємства;
-- виправлення застосоване до PDF та XLSX П-5;
-- historical `v1043_features.py` не переписано;
-- додано окремі regression cases.
+- `Taxo_v10_8_candidate_r3_START.zip`;
+- `Taxo_v10_8_candidate_r3_Windows_x64_Portable.zip`;
+- `Taxo_v10_8_candidate_r3_Setup_Windows_x64.exe`;
+- `Taxo_v10_8_candidate_r3_Windows7_x64_Portable.zip`;
+- `Taxo_v10_8_candidate_r3_Setup_Windows7_x64.exe`;
+- `Taxo_v10_8_candidate_r3_macOS_arm64_Portable.zip`;
+- `Taxo_v10_8_candidate_r3_macOS_x86_64_Portable.zip`;
+- окремі SHA-256 manifests для платформ;
+- `SHA256SUMS_v10_8_r3_ALL.txt`.
 
-### Інтерфейс 10.6-r4…r9
+Усі executable assets зібрані з exact issued source `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`; tag `v10.8-r3` не пересувався.
 
-До інтегрованого стану також входять попередні перевірені UI-виправлення 10.6:
-
-- адаптивні дії вікна шляхівок;
-- адаптивні фільтри звіту документів ТЗ;
-- адаптивна панель команд реєстру ТЗ;
-- адаптивна панель дій картки документів ТЗ;
-- компактна форма документа ТЗ для невисоких екранів;
-- адаптивний header картки документів ТЗ.
-
-Ці шари змінюють layout/доступність контролів, а не business rules чи схему БД.
-
-## Основні функціональні межі, які залишаються чинними
+## Чинні функціональні інваріанти
 
 - plan і fact зберігаються окремо;
-- фактичні межі роботи не переписують план автоматично;
-- Бланки підтвердження діяльності є фактичними документами та не повинні вигадувати відпочинок;
-- роль водія відокремлена від факту працевлаштування;
-- державні XLSX/CSV використовуються для звірки/доповнення, а не як заміна робочої БД;
-- порожнє значення в держреєстрі не видаляє локальне значення автоматично;
-- локальне редагування в Taxo не означає зміну даних у Дії, «Оберіг» або «Шлях»;
-- шляхівка без регулярного маршруту підтримується без вигадування route schedule;
-- лікар/механік, одометр і фактичний пробіг не очищаються разом із маршрутними полями нерегулярної шляхівки;
-- неактивні ТЗ приховані за замовчуванням у реєстрі документів, але дані не видаляються.
-
-## Дані та оновлення
-
-- робочі БД, SQLite, скани, кеші та персональні документи не публікуються;
-- оновлення програми не повинно стирати або підміняти робочі дані;
-- історичні release/checkpoint-и immutable;
-- старі work/tmp branches не використовуються як кодова база для нової роботи.
+- факт не підміняється планом без явного підтвердження користувача там, де така підстановка дозволена;
+- Бланки підтвердження діяльності є фактичними документами;
+- ручний/некласифікований час не перетворюється автоматично на роботу чи відпочинок;
+- роль водія має датовані періоди і не дорівнює факту працевлаштування;
+- робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
+- історичні tag/release checkpoints immutable;
+- старі work/tmp branches не використовуються як джерело коду для нової розробки.
 
 ## Windows 7
 
-Окрема compatibility line зберігається: CPython 3.8.10 x64 + PyInstaller 5.13.2 + `requirements-win7.txt`, `Taxo_win7.spec` і PE compatibility gate `scripts/check_win7_pe.py`. Для повного 10.6-r10 checkpoint PE gate пройдений успішно.
+Compatibility line зберігається: CPython 3.8.10 x64 + PyInstaller 5.13.2 + `requirements-win7.txt`, `Taxo_win7.spec` і `scripts/check_win7_pe.py`. Для `10.8-r3` regression та PE compatibility gate пройдені успішно.
 
 ## Право та власність
 
@@ -109,4 +90,4 @@ Taxo — proprietary software.
 
 ## Наступний крок
 
-Після виданого, інтегрованого і повністю упакованого `10.6-r10` наступна кодова ревізія — тільки **10.7-r1**. Починати її з нового pre-flight/audit за `START_HERE.md`. Stable `v10.3` не пересувати без окремого рішення власника.
+Після повністю інтегрованого й упакованого `10.8-r3` наступна кодова ревізія — тільки **10.8-r4**. Починати її з нового pre-flight за `START_HERE.md`; stable `v10.3` не пересувати без окремого рішення власника.
