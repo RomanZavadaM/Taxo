@@ -1,0 +1,64 @@
+name: Apply Taxo 10.8-r9 backup extraction
+
+on:
+  push:
+    branches:
+      - work/v10.8-r9-backup-migration-infrastructure
+    paths:
+      - '.github/workflows/apply-v10.8-r9-backup-extraction.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: work/v10.8-r9-backup-migration-infrastructure
+          fetch-depth: 0
+
+      - name: Extract main wrappers and synchronize identity
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('main.py')
+          source = path.read_text(encoding='utf-8')
+
+          old_version = 'APP_VERSION = "10.8-r8"'
+          if source.count(old_version) != 1:
+              raise SystemExit('Expected exactly one r8 APP_VERSION marker')
+          source = source.replace(old_version, 'APP_VERSION = "10.8-r9"', 1)
+
+          import_anchor = 'from vehicle_documents import (\n'
+          backup_import = 'import backup_migration as backup_store\n'
+          if backup_import not in source:
+              pos = source.index(import_anchor)
+              source = source[:pos] + backup_import + source[pos:]
+
+          start = source.index('def find_legacy_database():\n')
+          end = source.index('\nACTIVITIES = {', start)
+          wrappers = '''def find_legacy_database():\n    """Compatibility wrapper; implementation lives in backup_migration.py."""\n    return backup_store.find_legacy_database(APP_DIR, DB_PATH)\n\n\ndef migrate_legacy_database():\n    """Compatibility wrapper for one-time legacy DB migration."""\n    return backup_store.migrate_legacy_database(APP_DIR, DB_PATH)\n\n\ndef backup_database(label="auto"):\n    """Compatibility wrapper for the historical SQLite backup contract."""\n    return backup_store.backup_database(DB_PATH, BACKUP_DIR, label)\n\n\ndef auto_backup_database():\n    """Compatibility wrapper for the once-per-day startup backup."""\n    return backup_store.auto_backup_database(DB_PATH, BACKUP_DIR)\n\n\ndef validate_database_file(path):\n    """Compatibility wrapper for Taxo database validation."""\n    return backup_store.validate_database_file(path)\n\n\ndef restore_database_from_file(source_path):\n    """Compatibility wrapper for atomic restore with safety backup."""\n    return backup_store.restore_database_from_file(\n        source_path, DB_PATH, BACKUP_DIR, init_db\n    )\n\n'''
+          source = source[:start] + wrappers + source[end + 1:]
+          path.write_text(source, encoding='utf-8')
+          PY
+
+          grep -Fxq 'Version: 10.8-r9' VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.8-r9"' main.py
+          grep -Fq 'import backup_migration as backup_store' main.py
+          grep -Fq 'return backup_store.backup_database(DB_PATH, BACKUP_DIR, label)' main.py
+          git rm .github/workflows/apply-v10.8-r9-backup-extraction.yml
+
+      - name: Commit extraction
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add main.py
+          git commit -m 'refactor: route backup and migration through dedicated infrastructure'
+          git push origin HEAD:work/v10.8-r9-backup-migration-infrastructure
