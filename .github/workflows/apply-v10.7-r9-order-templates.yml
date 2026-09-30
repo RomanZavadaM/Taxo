@@ -19,75 +19,57 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply integration patches
+      - name: Harden template switching without overwriting custom text
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          def replace_once(path, old, new):
-              p = Path(path)
-              text = p.read_text(encoding='utf-8')
-              if old not in text:
-                  raise SystemExit(f'Expected text not found in {path}: {old!r}')
-              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+          p=Path('operations_orders_ui.py')
+          text=p.read_text(encoding='utf-8')
+          old='''        def sync_type(_event=None):
+            if existing: return
+            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
+            subject_var.set(ops.DEFAULT_SUBJECTS.get(key,""))
+            preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
+            body_text.delete("1.0","end"); body_text.insert("1.0",ops.DEFAULT_BODY_TEMPLATES.get(key,""))
+        type_box.bind("<<ComboboxSelected>>",sync_type)
+'''
+          new='''        current_template_type=[initial_type]
+        def sync_type(_event=None):
+            if existing: return
+            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
+            previous_key=current_template_type[0]
+            current_body=body_text.get("1.0","end-1c").strip()
+            previous_template=ops.DEFAULT_BODY_TEMPLATES.get(previous_key,"").strip()
+            if current_body and current_body != previous_template:
+                if not core.messagebox.askyesno("Змінити тип наказу?","Ви вже відредагували текст пунктів. Зміна типу замінить його типовою заготовкою. Продовжити?",parent=dialog):
+                    type_var.set(ops.ORDER_TYPE_LABELS.get(previous_key,ops.ORDER_TYPE_LABELS[ops.TYPE_GENERIC])); return
+            current_template_type[0]=key
+            subject_var.set(ops.DEFAULT_SUBJECTS.get(key,""))
+            preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
+            body_text.delete("1.0","end"); body_text.insert("1.0",ops.DEFAULT_BODY_TEMPLATES.get(key,""))
+        type_box.bind("<<ComboboxSelected>>",sync_type)
+'''
+          if old not in text:
+              raise SystemExit('current r9 sync_type block not found')
+          p.write_text(text.replace(old,new,1),encoding='utf-8')
 
-          replace_once('main.py', 'APP_VERSION = "10.7-r8"', 'APP_VERSION = "10.7-r9"')
-
-          replace_once(
-              'taxo_app.py',
-              'from v1078_features import install as install_v1078\n',
-              'from v1078_features import install as install_v1078\nfrom v1079_features import install as install_v1079\n',
-          )
-          replace_once(
-              'taxo_app.py',
-              'App = install_v1078(core, App)\n',
-              'App = install_v1078(core, App)\nApp = install_v1079(core, App)\n',
-          )
-
-          replace_once(
-              'operations_orders_ui.py',
-              'body_text.insert("1.0",str(existing["body_text"] if existing else ""))',
-              'body_text.insert("1.0",str(existing["body_text"] if existing else ops.DEFAULT_BODY_TEMPLATES.get(initial_type,"")))',
-          )
-          replace_once(
-              'operations_orders_ui.py',
-              '            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC); subject_var.set(ops.DEFAULT_SUBJECTS.get(key,"")); preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))\n',
-              '            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)\n'
-              '            subject_var.set(ops.DEFAULT_SUBJECTS.get(key,""))\n'
-              '            preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))\n'
-              '            body_text.delete("1.0","end"); body_text.insert("1.0",ops.DEFAULT_BODY_TEMPLATES.get(key,""))\n',
-          )
-          replace_once(
-              'operations_orders_ui.py',
-              '        type_box.bind("<<ComboboxSelected>>",sync_type)\n        def save():\n',
-              '        type_box.bind("<<ComboboxSelected>>",sync_type)\n'
-              '        def apply_template():\n'
-              '            key=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC)\n'
-              '            template=ops.DEFAULT_BODY_TEMPLATES.get(key,"")\n'
-              '            if not template:\n'
-              '                core.messagebox.showinfo("Типовий текст","Для цього типу наказу типовий текст не задано.",parent=dialog); return\n'
-              '            current=body_text.get("1.0","end-1c").strip()\n'
-              '            if current and current != template and not core.messagebox.askyesno("Замінити текст?","Поточний текст пунктів буде замінено типовою заготовкою. Продовжити?",parent=dialog): return\n'
-              '            body_text.delete("1.0","end"); body_text.insert("1.0",template)\n'
-              '        def save():\n',
-          )
-          replace_once(
-              'operations_orders_ui.py',
-              '        core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")\n',
-              '        core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")\n'
-              '        core.ttk.Button(bar,text="Типовий текст",command=apply_template).pack(side="left")\n',
-          )
-
-          Path('VERSION.txt').write_text('10.7-r9\n', encoding='utf-8')
+          v=Path('VERSION.txt')
+          if v.read_text(encoding='utf-8').strip() != 'Version: 10.7-r9':
+              v.write_text('Version: 10.7-r9\n',encoding='utf-8')
           PY
 
-      - name: Commit patched files
+      - name: Commit UX hardening
         shell: bash
         run: |
           git config user.name "RomanZavadaM"
           git config user.email "zavada.roman.m@gmail.com"
-          git add main.py taxo_app.py operations_orders_ui.py VERSION.txt
+          git add operations_orders_ui.py VERSION.txt
           git diff --cached --check
-          git commit -m "feat: integrate Taxo 10.7-r9 order templates"
+          if git diff --cached --quiet; then
+            echo "No patch required"
+            exit 0
+          fi
+          git commit -m "fix: protect custom order text when switching type"
           git push origin HEAD:work/v10.7-r9-order-templates
