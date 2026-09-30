@@ -1,21 +1,34 @@
 import inspect
+import re
 import unittest
 from pathlib import Path
 
 import v10710_features as feature
 
 
-class Taxo107R10Tests(unittest.TestCase):
-    def test_version_identity(self):
-        self.assertEqual(feature.APP_VERSION, "10.7-r10")
-        root = Path(__file__).resolve().parents[1]
-        self.assertIn("Version: 10.7-r10", (root / "VERSION.txt").read_text("utf-8"))
-        self.assertIn('APP_VERSION = "10.7-r10"', (root / "main.py").read_text("utf-8"))
+ROOT = Path(__file__).resolve().parents[1]
 
-    def test_runtime_layer_is_outermost(self):
-        source = (Path(__file__).resolve().parents[1] / "taxo_app.py").read_text("utf-8")
+
+def _version_tuple(text):
+    match = re.search(r"(\d+)\.(\d+)-r(\d+)", text)
+    if not match:
+        raise AssertionError("Taxo version not found: %r" % text)
+    return tuple(int(part) for part in match.groups())
+
+
+class Taxo107R10Tests(unittest.TestCase):
+    def test_version_identity_remains_historical(self):
+        self.assertEqual(feature.APP_VERSION, "10.7-r10")
+        current = (ROOT / "VERSION.txt").read_text("utf-8")
+        self.assertGreaterEqual(_version_tuple(current), (10, 7, 10))
+        self.assertIn('APP_VERSION = "10.7-r10"', (ROOT / "v10710_features.py").read_text("utf-8"))
+
+    def test_runtime_layer_remains_before_newer_layers(self):
+        source = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertIn("from v10710_features import install as install_v10710", source)
         self.assertGreater(source.index("App = install_v10710(core, App)"), source.index("App = install_v1079(core, App)"))
+        if "App = install_v1081(core, App)" in source:
+            self.assertLess(source.index("App = install_v10710(core, App)"), source.index("App = install_v1081(core, App)"))
 
     def test_document_center_groups_are_explicit(self):
         groups = dict(feature.DOCUMENT_CENTER_GROUPS)
@@ -38,8 +51,8 @@ class Taxo107R10Tests(unittest.TestCase):
         self.assertNotIn("DELETE FROM", source)
         self.assertNotIn("UPDATE OPERATIONS_", source)
 
-    def test_start_guard_requires_r10_runtime(self):
-        start = (Path(__file__).resolve().parents[1] / "START.bat").read_text("ascii")
+    def test_start_guard_keeps_r10_runtime(self):
+        start = (ROOT / "START.bat").read_text("ascii")
         self.assertIn("v10710_features.py", start)
 
     def test_tab_selector_finds_exact_title(self):
