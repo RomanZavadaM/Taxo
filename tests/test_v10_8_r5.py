@@ -12,7 +12,7 @@ class StoIRR5Tests(unittest.TestCase):
         self.con.row_factory = sqlite3.Row
         self.con.executescript(
             "CREATE TABLE vehicles (id INTEGER PRIMARY KEY, name TEXT, plate TEXT, make_model TEXT, active INTEGER DEFAULT 1);"
-            "CREATE TABLE vehicle_odometer_readings (id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER NOT NULL, reading_km INTEGER, reading_at TEXT, source_type TEXT, worklog_id INTEGER, notes TEXT DEFAULT '');"
+            "CREATE TABLE vehicle_odometer_readings (id INTEGER PRIMARY KEY AUTOINCREMENT, vehicle_id INTEGER NOT NULL, reading_km INTEGER, reading_at TEXT, source_type TEXT, notes TEXT DEFAULT '');"
             "INSERT INTO vehicles(id,name,plate,make_model,active) VALUES(1,'Bus','BC0001AA','Test Bus',1);"
         )
         maint.ensure_schema_on_connection(self.con)
@@ -25,6 +25,17 @@ class StoIRR5Tests(unittest.TestCase):
         self.assertIsNone(plan["average_daily_km"])
         self.assertEqual(plan["to1"]["status"], "unknown")
         self.assertIsNone(plan["to1"]["forecast_date"])
+
+    def test_legacy_odometer_schema_without_worklog_id_is_supported(self):
+        columns = {row[1] for row in self.con.execute("PRAGMA table_info(vehicle_odometer_readings)")}
+        self.assertNotIn("worklog_id", columns)
+        self.con.execute(
+            "INSERT INTO vehicle_odometer_readings(vehicle_id,reading_km,reading_at,source_type) VALUES(1,123456,'2026-09-30T18:00:00','waybill_end')"
+        )
+        self.con.commit()
+        row = maint.latest_odometer(self.con, 1)
+        self.assertEqual(row["reading_km"], 123456)
+        self.assertEqual(maint.vehicle_plan(self.con, 1)["current_odometer_km"], 123456)
 
     def test_average_and_due_date(self):
         start = date.today() - timedelta(days=20)
