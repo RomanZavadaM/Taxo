@@ -80,15 +80,6 @@ jobs:
           )
 
           Path('VERSION.txt').write_text('10.7-r9\n', encoding='utf-8')
-
-          p = Path('.github/workflows/source-test-archive.yml')
-          text = p.read_text(encoding='utf-8')
-          marker = '            v1078_features.py\n'
-          if '            v1079_features.py\n' not in text:
-              if marker not in text:
-                  raise SystemExit('v1078 START marker not found')
-              text = text.replace(marker, marker + '            v1079_features.py\n', 1)
-              p.write_text(text, encoding='utf-8')
           PY
 
       - name: Commit patched files
@@ -96,7 +87,7 @@ jobs:
         run: |
           git config user.name "RomanZavadaM"
           git config user.email "zavada.roman.m@gmail.com"
-          git add main.py taxo_app.py operations_orders_ui.py VERSION.txt .github/workflows/source-test-archive.yml
+          git add main.py taxo_app.py operations_orders_ui.py VERSION.txt
           git diff --cached --check
           git commit -m "feat: integrate Taxo 10.7-r9 order templates"
           git push origin HEAD:work/v10.7-r9-order-templates
