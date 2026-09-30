@@ -23,12 +23,12 @@ class RetentionBackupOrderR6Tests(unittest.TestCase):
         return [name for _line, name in sorted(calls)]
 
     @staticmethod
-    def _current_10_7_revision():
+    def _current_version_tuple():
         text = Path("VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s*10\.7-r(\d+)", text)
+        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", text)
         if not match:
-            raise AssertionError("Current VERSION.txt is not in the Taxo 10.7-rN line")
-        return int(match.group(1))
+            raise AssertionError("Current VERSION.txt has no Taxo candidate version")
+        return tuple(map(int, match.groups()))
 
     def test_backup_precedes_retention_purge(self):
         calls = self._init_db_call_order()
@@ -52,7 +52,7 @@ class RetentionBackupOrderR6Tests(unittest.TestCase):
         )
 
     def test_r6_historical_identity_is_preserved_while_current_may_advance(self):
-        self.assertGreaterEqual(self._current_10_7_revision(), 6)
+        self.assertGreaterEqual(self._current_version_tuple(), (10, 7, 6))
         historical = Path("v1076_features.py").read_text(encoding="utf-8")
         self.assertIn('APP_VERSION = "10.7-r6"', historical)
         notes = Path("docs/releases/RELEASE_NOTES_v10.7-r6.md").read_text(encoding="utf-8")

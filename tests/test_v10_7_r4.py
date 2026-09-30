@@ -170,8 +170,7 @@ class R4IdentityTests(unittest.TestCase):
 
     def test_current_version_is_r4_or_later_in_10_7_line(self):
         major, minor, revision = self._current_version_tuple()
-        self.assertEqual((major, minor), (10, 7))
-        self.assertGreaterEqual(revision, 4)
+        self.assertGreaterEqual((major, minor, revision), (10, 7, 4))
         notes = Path("docs/releases/RELEASE_NOTES_v10.7-r4.md").read_text(encoding="utf-8")
         self.assertIn("10.7-r4", notes)
 
@@ -180,8 +179,7 @@ class R4IdentityTests(unittest.TestCase):
         match = re.fullmatch(r"(\d+)\.(\d+)-r(\d+)", main.APP_VERSION)
         self.assertIsNotNone(match)
         major, minor, revision = (int(value) for value in match.groups())
-        self.assertEqual((major, minor), (10, 7))
-        self.assertGreaterEqual(revision, 4)
+        self.assertGreaterEqual((major, minor, revision), (10, 7, 4))
 
     def test_taxo_app_installs_appendix_history_layer(self):
         text = Path("taxo_app.py").read_text(encoding="utf-8")

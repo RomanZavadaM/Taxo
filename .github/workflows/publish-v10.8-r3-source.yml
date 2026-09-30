@@ -1,0 +1,97 @@
+name: Publish Taxo 10.8-r3 source prerelease
+
+on:
+  push:
+    branches:
+      - work/v10.8-r3-tck-statement-fix
+    paths:
+      - .github/workflows/publish-v10.8-r3-source.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify candidate identity
+        shell: bash
+        run: |
+          grep -Fxq 'Version: 10.8-r3' VERSION.txt
+          grep -Fq 'APP_VERSION = "10.8-r3"' main.py
+          grep -Fq 'APP_VERSION = "10.8-r3"' v1083_features.py
+          grep -Fq 'App = install_v1083(core, App)' taxo_app.py
+          grep -Fq 'v1083_features.py' START.bat
+
+      - name: Install Tk/Xvfb runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+
+      - name: Install regression dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Run full regression suite with virtual display
+        run: xvfb-run -a python -m unittest discover -s tests -v
+
+      - name: Build immutable START archive
+        id: pack
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          import os
+          import subprocess
+
+          stem = 'Taxo_v10_8_candidate_r3_START'
+          archive = stem + '.zip'
+          subprocess.check_call([
+              'git', 'archive', '--format=zip',
+              f'--prefix={stem}/',
+              f'--output={archive}',
+              'HEAD',
+          ])
+          digest = hashlib.sha256(Path(archive).read_bytes()).hexdigest()
+          checksum = 'SHA256SUMS_v10_8_r3.txt'
+          Path(checksum).write_text(f'{digest}  {archive}\n', encoding='utf-8')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              out.write(f'archive={archive}\n')
+              out.write(f'checksum={checksum}\n')
+              out.write(f'sha256={digest}\n')
+          print(digest)
+          PY
+
+      - name: Refuse overwrite of immutable tag or release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --tags origin refs/tags/v10.8-r3 >/dev/null 2>&1; then
+            echo 'Immutable tag v10.8-r3 already exists; refusing overwrite.' >&2
+            exit 1
+          fi
+          if gh release view v10.8-r3 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'Release v10.8-r3 already exists; refusing overwrite.' >&2
+            exit 1
+          fi
+
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create v10.8-r3 \
+            "${{ steps.pack.outputs.archive }}" \
+            "${{ steps.pack.outputs.checksum }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title 'Taxo 10.8-r3' \
+            --notes-file docs/releases/RELEASE_NOTES_v10.8-r3.md \
+            --prerelease
+          echo "START_SHA256=${{ steps.pack.outputs.sha256 }}"

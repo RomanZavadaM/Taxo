@@ -26,8 +26,8 @@ class Taxo107R8Tests(unittest.TestCase):
         self.assertNotIn('Розділ зарезервовано у контурі «Експлуатація»',text)
 
     def test_r8_identity(self):
-        self.assertIn('Version: 10.7-r8',(ROOT/'VERSION.txt').read_text(encoding='utf-8'))
         self.assertIn('APP_VERSION = "10.7-r8"',(ROOT/'v1078_features.py').read_text(encoding='utf-8'))
+        self.assertIn('Taxo 10.7-r8',(ROOT/'docs/releases/RELEASE_NOTES_v10.7-r8.md').read_text(encoding='utf-8'))
         entry=(ROOT/'taxo_app.py').read_text(encoding='utf-8')
         self.assertIn('App = install_v1078(core, App)',entry)
         self.assertGreater(entry.index('App = install_v1078(core, App)'),entry.index('App = install_v1077(core, App)'))

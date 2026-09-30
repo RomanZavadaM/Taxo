@@ -1,0 +1,14 @@
+name: Apply Taxo 10.7-r9 order templates
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  archived-helper:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Historical one-shot helper
+        run: echo "Taxo 10.7-r9 integration was already applied; this workflow is retained as a read-only development anchor."
