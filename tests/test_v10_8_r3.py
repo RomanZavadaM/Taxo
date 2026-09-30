@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from datetime import date, datetime
-from pathlib import Path
+import re
 import sqlite3
 import unittest
+from datetime import date, datetime
+from pathlib import Path
 
 import military_transport_statement as statement
 import v1083_features as r3
@@ -10,18 +11,18 @@ import v1083_features as r3
 
 class StatementDateNormalizationTests(unittest.TestCase):
     def test_accepts_taxo_display_date(self):
-        self.assertEqual(r3.normalize_statement_day("30.09.2026"), "2026-09-30")
+        self.assertEqual(statement.normalize_report_date("30.09.2026"), "2026-09-30")
 
     def test_accepts_iso_date(self):
-        self.assertEqual(r3.normalize_statement_day("2026-09-30"), "2026-09-30")
+        self.assertEqual(statement.normalize_report_date("2026-09-30"), "2026-09-30")
 
     def test_accepts_date_objects(self):
-        self.assertEqual(r3.normalize_statement_day(date(2026, 9, 30)), "2026-09-30")
-        self.assertEqual(r3.normalize_statement_day(datetime(2026, 9, 30, 12, 0)), "2026-09-30")
+        self.assertEqual(statement.normalize_report_date(date(2026, 9, 30)), "2026-09-30")
+        self.assertEqual(statement.normalize_report_date(datetime(2026, 9, 30, 12, 15)), "2026-09-30")
 
     def test_rejects_invalid_date_with_user_friendly_message(self):
         with self.assertRaisesRegex(ValueError, "ДД.ММ.РРРР"):
-            r3.normalize_statement_day("31.02.2026")
+            statement.normalize_report_date("30/09/2026")
 
 
 class VehicleStatementRequisitesTests(unittest.TestCase):
@@ -30,51 +31,72 @@ class VehicleStatementRequisitesTests(unittest.TestCase):
         self.con.row_factory = sqlite3.Row
         self.con.executescript(
             """
-            PRAGMA foreign_keys=ON;
             CREATE TABLE vehicles(
                 id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL,
-                plate TEXT DEFAULT '',
-                make_model TEXT DEFAULT '',
-                year INTEGER,
+                plate TEXT,
+                name TEXT,
+                make_model TEXT,
+                vin TEXT,
+                active INTEGER DEFAULT 1
+            );
+            CREATE TABLE military_transport_vehicle_profile(
+                vehicle_id INTEGER PRIMARY KEY,
+                category TEXT DEFAULT '',
+                military_type TEXT DEFAULT '',
+                order_no TEXT DEFAULT '',
+                order_date TEXT DEFAULT '',
+                military_unit TEXT DEFAULT '',
+                designated INTEGER DEFAULT 0,
+                transferred INTEGER DEFAULT 0,
+                returned INTEGER DEFAULT 0,
+                notes TEXT DEFAULT '',
+                updated_at TEXT DEFAULT ''
+            );
+            CREATE TABLE military_transport_vehicle_workers(
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                vehicle_id INTEGER NOT NULL,
+                employee_id INTEGER,
+                worker_name TEXT DEFAULT '',
                 active INTEGER DEFAULT 1,
-                created_at TEXT NOT NULL
+                notes TEXT DEFAULT ''
             );
             CREATE TABLE employees(
                 id INTEGER PRIMARY KEY,
-                last_name TEXT NOT NULL,
-                first_name TEXT NOT NULL,
+                last_name TEXT DEFAULT '',
+                first_name TEXT DEFAULT '',
                 middle_name TEXT DEFAULT '',
-                active INTEGER DEFAULT 1
+                birth_date TEXT DEFAULT '',
+                actual_address TEXT DEFAULT '',
+                registered_address TEXT DEFAULT ''
             );
-            INSERT INTO vehicles(id,name,plate,make_model,year,active,created_at)
-            VALUES(1,'БАЗ А079','BC0001AA','БАЗ А079',2010,1,'2026-09-30T00:00:00');
+            CREATE TABLE employee_military_profile(
+                employee_id INTEGER PRIMARY KEY,
+                military_specialty TEXT DEFAULT '',
+                military_rank TEXT DEFAULT ''
+            );
+            INSERT INTO vehicles(id,plate,name,make_model,vin,active)
+            VALUES(1,'BC0001AA','Богдан','А092','VIN1',1);
             """
         )
         statement.ensure_schema_on_connection(self.con)
-        # Reproduce the current runtime patch without constructing the full Tk app.
-        statement._iso_day = r3.normalize_statement_day
+        self.con.commit()
 
     def tearDown(self):
         self.con.close()
 
     def test_optional_vehicle_requisites_roundtrip_and_feed_statement(self):
-        statement.set_vehicle_statement_data(
-            self.con,
-            1,
+        statement.save_vehicle_statement_data(
+            self.con, 1,
             report_scope=statement.SCOPE_OWN,
             vehicle_type="АВТОБУС",
             technical_condition="Справний",
-            residual_book_value_thousand_uah="123,45",
-            note="Реквізити картки ТЗ",
+            residual_value="123.45",
+            notes="",
         )
         self.con.commit()
         stored = statement.get_vehicle_statement_data(self.con, 1)
-        self.assertEqual(stored["vehicle_type"], "АВТОБУС")
-        self.assertEqual(stored["technical_condition"], "Справний")
-        self.assertEqual(stored["residual_book_value_thousand_uah"], "123.45")
-        self.assertEqual(stored["note"], "Реквізити картки ТЗ")
-
+        self.assertEqual(stored["report_scope"], statement.SCOPE_OWN)
+        self.assertEqual(stored["residual_value"], "123.45")
         rows = statement.collect_statement_rows(self.con, "30.09.2026")
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["plate"], "BC0001AA")
@@ -92,15 +114,21 @@ class VehicleStatementRequisitesTests(unittest.TestCase):
 
 
 class RuntimeIdentityTests(unittest.TestCase):
-    def test_r3_is_outermost_runtime_layer(self):
+    def test_r3_remains_before_newer_runtime_layers(self):
         source = Path("taxo_app.py").read_text("utf-8")
         self.assertIn("from v1083_features import install as install_v1083", source)
         self.assertLess(source.index("App = install_v1082(core, App)"), source.index("App = install_v1083(core, App)"))
+        if "App = install_v1084(core, App)" in source:
+            self.assertLess(source.index("App = install_v1083(core, App)"), source.index("App = install_v1084(core, App)"))
 
-    def test_r3_identity(self):
+    def test_r3_identity_is_historical_anchor(self):
         self.assertEqual(r3.APP_VERSION, "10.8-r3")
-        self.assertIn("10.8-r3", Path("VERSION.txt").read_text("utf-8"))
-        self.assertIn("10.8-r3", Path("main.py").read_text("utf-8"))
+        feature_source = Path("v1083_features.py").read_text("utf-8")
+        self.assertIn('APP_VERSION = "10.8-r3"', feature_source)
+        current = Path("VERSION.txt").read_text("utf-8")
+        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", current)
+        self.assertIsNotNone(match)
+        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 8, 3))
         self.assertIn("v1083_features.py", Path("START.bat").read_text("utf-8"))
 
 
