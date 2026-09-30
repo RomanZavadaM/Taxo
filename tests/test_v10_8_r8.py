@@ -27,11 +27,20 @@ class ApplicationContextR8Tests(unittest.TestCase):
             root = Path(td)
             (root / "Data").mkdir()
             services = application_context.WorkspaceServices(lambda: root)
-            with services.connect_main_db() as con:
+
+            con = services.connect_main_db()
+            try:
                 con.execute("CREATE TABLE sample(value TEXT)")
                 con.execute("INSERT INTO sample(value) VALUES ('ok')")
-            with sqlite3.connect(services.main_db_path) as con:
-                self.assertEqual(con.execute("SELECT value FROM sample").fetchone()[0], "ok")
+                con.commit()
+            finally:
+                con.close()
+
+            check = sqlite3.connect(services.main_db_path)
+            try:
+                self.assertEqual(check.execute("SELECT value FROM sample").fetchone()[0], "ok")
+            finally:
+                check.close()
 
     def test_builder_exposes_infrastructure_without_business_rules(self):
         fake_core = SimpleNamespace(
