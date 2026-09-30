@@ -1,75 +1,14 @@
 name: Apply Taxo 10.7-r9 order templates
 
 on:
-  push:
-    branches:
-      - work/v10.7-r9-order-templates
-    paths:
-      - '.github/workflows/apply-v10.7-r9-order-templates.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply:
+  archived-helper:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Harden template switching without overwriting custom text
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          p=Path('operations_orders_ui.py')
-          text=p.read_text(encoding='utf-8')
-          old='''        def sync_type(_event=None):
-            if existing: return
-            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
-            subject_var.set(ops.DEFAULT_SUBJECTS.get(key,""))
-            preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
-            body_text.delete("1.0","end"); body_text.insert("1.0",ops.DEFAULT_BODY_TEMPLATES.get(key,""))
-        type_box.bind("<<ComboboxSelected>>",sync_type)
-'''
-          new='''        current_template_type=[initial_type]
-        def sync_type(_event=None):
-            if existing: return
-            key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
-            previous_key=current_template_type[0]
-            current_body=body_text.get("1.0","end-1c").strip()
-            previous_template=ops.DEFAULT_BODY_TEMPLATES.get(previous_key,"").strip()
-            if current_body and current_body != previous_template:
-                if not core.messagebox.askyesno("Змінити тип наказу?","Ви вже відредагували текст пунктів. Зміна типу замінить його типовою заготовкою. Продовжити?",parent=dialog):
-                    type_var.set(ops.ORDER_TYPE_LABELS.get(previous_key,ops.ORDER_TYPE_LABELS[ops.TYPE_GENERIC])); return
-            current_template_type[0]=key
-            subject_var.set(ops.DEFAULT_SUBJECTS.get(key,""))
-            preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
-            body_text.delete("1.0","end"); body_text.insert("1.0",ops.DEFAULT_BODY_TEMPLATES.get(key,""))
-        type_box.bind("<<ComboboxSelected>>",sync_type)
-'''
-          if old not in text:
-              raise SystemExit('current r9 sync_type block not found')
-          p.write_text(text.replace(old,new,1),encoding='utf-8')
-
-          v=Path('VERSION.txt')
-          if v.read_text(encoding='utf-8').strip() != 'Version: 10.7-r9':
-              v.write_text('Version: 10.7-r9\n',encoding='utf-8')
-          PY
-
-      - name: Commit UX hardening
-        shell: bash
-        run: |
-          git config user.name "RomanZavadaM"
-          git config user.email "zavada.roman.m@gmail.com"
-          git add operations_orders_ui.py VERSION.txt
-          git diff --cached --check
-          if git diff --cached --quiet; then
-            echo "No patch required"
-            exit 0
-          fi
-          git commit -m "fix: protect custom order text when switching type"
-          git push origin HEAD:work/v10.7-r9-order-templates
+      - name: Historical one-shot helper
+        run: echo "Taxo 10.7-r9 integration was already applied; this workflow is retained as a read-only development anchor."
