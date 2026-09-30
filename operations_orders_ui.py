@@ -49,7 +49,7 @@ def open_operations_center(app, core):
     orders_tab = core.ttk.Frame(book); assignments_tab = core.ttk.Frame(book)
     settings_tab = core.ttk.Frame(book); maintenance_tab = core.ttk.Frame(book)
     book.add(orders_tab, text="Накази"); book.add(assignments_tab, text="Закріплення водіїв")
-    book.add(settings_tab, text="Відповідальні"); book.add(maintenance_tab, text="ТО / ремонти")
+    book.add(settings_tab, text="Відповідальні"); book.add(maintenance_tab, text="Каталог наказів")
 
     # Settings
     settings_box = core.ttk.Frame(settings_tab, padding=14); settings_box.pack(fill="both", expand=True); settings_box.columnconfigure(1, weight=1)
@@ -91,26 +91,37 @@ def open_operations_center(app, core):
                                 style="Muted.TLabel")
     order_hint.pack(anchor="w", padx=12, pady=(0,4))
     order_frame = core.ttk.Frame(orders_tab); order_frame.pack(fill="both",expand=True,padx=10,pady=(0,10)); order_frame.rowconfigure(0,weight=1); order_frame.columnconfigure(0,weight=1)
-    cols=("date","no","type","subject","status","paper","control")
+    cols=("date","no","group","type","subject","status","paper","control")
     order_tree=core.ttk.Treeview(order_frame,columns=cols,show="headings",selectmode="browse")
-    for key,label,width in (("date","Дата",100),("no","№",75),("type","Група",220),("subject","Тема",340),
+    for key,label,width in (("date","Дата",100),("no","№",75),("group","Група",220),("type","Тип наказу",250),("subject","Тема",340),
                             ("status","Стан",110),("paper","Паперовий оригінал",140),("control","Контроль",210)):
         order_tree.heading(key,text=label); order_tree.column(key,width=width,anchor="w")
     sy=core.ttk.Scrollbar(order_frame,orient="vertical",command=order_tree.yview); sx=core.ttk.Scrollbar(order_frame,orient="horizontal",command=order_tree.xview)
     order_tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set); order_tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
     order_cache={}
+    group_filter_var=core.tk.StringVar(value="Усі групи")
+    group_filter_labels=["Усі групи"]+list(ops.ORDER_GROUP_LABELS.values())
+    group_filter_by_label={label:key for key,label in ops.ORDER_GROUP_LABELS.items()}
+    core.ttk.Label(order_top,text="Група:").pack(side="right",padx=(8,4))
+    group_filter_box=core.ttk.Combobox(order_top,textvariable=group_filter_var,values=group_filter_labels,state="readonly",width=31)
+    group_filter_box.pack(side="right")
 
     def refresh_orders(select_id=None):
         for iid in order_tree.get_children(): order_tree.delete(iid)
         order_cache.clear(); con2=core.db()
         try: rows=ops.list_orders(con2)
         finally: con2.close()
+        selected_group=group_filter_by_label.get(group_filter_var.get())
+        if selected_group:
+            rows=[row for row in rows if ops.ORDER_TYPE_GROUP.get(str(row["order_type"]),ops.ORDER_GROUP_OTHER)==selected_group]
         for row in rows:
             oid=int(row["id"]); order_cache[oid]=row
             control=" ".join(str(row[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(row[k] or "").strip())
             paper="підписано" if int(row["paper_original_signed"] or 0) else "—"
+            order_type=str(row["order_type"])
+            group_key=ops.ORDER_TYPE_GROUP.get(order_type,ops.ORDER_GROUP_OTHER)
             order_tree.insert("","end",iid=str(oid),values=(ops.display_day(row["order_date"]),row["order_no"],
-                ops.ORDER_TYPE_LABELS.get(row["order_type"],row["order_type"]),row["subject"],
+                ops.ORDER_GROUP_LABELS.get(group_key,group_key),ops.ORDER_TYPE_LABELS.get(order_type,order_type),row["subject"],
                 ops.ORDER_STATUS_LABELS.get(row["status"],row["status"]),paper,control or "—"),tags=(row["status"],))
         order_tree.tag_configure(ops.ORDER_APPROVED,foreground="#0B5D1E"); order_tree.tag_configure(ops.ORDER_CANCELLED,foreground="#777777")
         if rows: order_hint.pack_forget()
@@ -118,6 +129,8 @@ def open_operations_center(app, core):
         if select_id and str(select_id) in order_tree.get_children():
             order_tree.selection_set(str(select_id)); order_tree.focus(str(select_id)); order_tree.see(str(select_id))
         refresh_assignments()
+
+    group_filter_box.bind("<<ComboboxSelected>>",lambda _e:refresh_orders())
 
     def selected_order(quiet=False):
         sel=order_tree.selection()
@@ -299,9 +312,33 @@ def open_operations_center(app, core):
     core.ttk.Button(abar,text="Редагувати",command=edit_assignment).pack(side="left",padx=6)
     core.ttk.Button(abar,text="Прибрати",command=remove_assignment).pack(side="left",padx=6)
 
-    mbody=core.ttk.Frame(maintenance_tab,padding=18); mbody.pack(fill="both",expand=True)
-    core.ttk.Label(mbody,text="ТО / ремонти",style="Title.TLabel").pack(anchor="w")
-    core.ttk.Label(mbody,text=("Розділ зарезервовано у контурі «Експлуатація». Після додавання ваших форм по ТО, ремонтам та іншим експлуатаційним документам "
-                               "вони будуть зведені сюди без створення окремих розрізнених вікон."),wraplength=900,justify="left").pack(anchor="w",pady=(5,0))
+    mbody=core.ttk.Frame(maintenance_tab,padding=14); mbody.pack(fill="both",expand=True)
+    core.ttk.Label(mbody,text="Каталог наказів з експлуатації",style="Title.TLabel").pack(anchor="w")
+    core.ttk.Label(mbody,text=("Єдиний каталог типів наказів. Тут зведені накази по водіях, транспорту, технічній експлуатації, БДР, охороні праці, пожежній безпеці та ДТП. "
+                               "Виберіть тип і створіть наказ; усі створені документи залишаються в загальному реєстрі «Накази»."),
+                   style="Muted.TLabel",wraplength=1040,justify="left").pack(anchor="w",pady=(4,10))
+    catalog_frame=core.ttk.Frame(mbody); catalog_frame.pack(fill="both",expand=True); catalog_frame.rowconfigure(0,weight=1); catalog_frame.columnconfigure(0,weight=1)
+    catalog_tree=core.ttk.Treeview(catalog_frame,columns=("group","type","subject"),show="headings",selectmode="browse")
+    for key,label,width in (("group","Група",250),("type","Тип наказу",320),("subject","Типова тема",430)):
+        catalog_tree.heading(key,text=label); catalog_tree.column(key,width=width,anchor="w")
+    csy=core.ttk.Scrollbar(catalog_frame,orient="vertical",command=catalog_tree.yview)
+    csx=core.ttk.Scrollbar(catalog_frame,orient="horizontal",command=catalog_tree.xview)
+    catalog_tree.configure(yscrollcommand=csy.set,xscrollcommand=csx.set)
+    catalog_tree.grid(row=0,column=0,sticky="nsew"); csy.grid(row=0,column=1,sticky="ns"); csx.grid(row=1,column=0,sticky="ew")
+    catalog_type_by_iid={}
+    catalog_index=0
+    for group_key,group_label in ops.ORDER_GROUP_LABELS.items():
+        for order_type in ops.ORDER_GROUP_TYPES.get(group_key,()):
+            catalog_index+=1; iid=str(catalog_index); catalog_type_by_iid[iid]=order_type
+            catalog_tree.insert("","end",iid=iid,values=(group_label,ops.ORDER_TYPE_LABELS[order_type],ops.DEFAULT_SUBJECTS.get(order_type,"") or "—"))
+    def create_from_catalog():
+        sel=catalog_tree.selection()
+        if not sel:
+            core.messagebox.showinfo("Каталог наказів","Виберіть тип наказу.",parent=win); return
+        order_type=catalog_type_by_iid.get(sel[0])
+        if order_type: order_dialog(force_type=order_type)
+    cbar=core.ttk.Frame(mbody); cbar.pack(fill="x",pady=(8,0))
+    core.ttk.Button(cbar,text="Створити наказ за вибраним типом",style="Accent.TButton",command=create_from_catalog).pack(side="left")
+    catalog_tree.bind("<Double-1>",lambda _e:create_from_catalog())
 
     refresh_orders(); return win
