@@ -1,3 +1,4 @@
+import ast
 import unittest
 from pathlib import Path
 
@@ -63,12 +64,33 @@ class FeatureLayerRegistryR7Tests(unittest.TestCase):
         self.assertEqual(result.__name__, "AppB")
         self.assertEqual([item[0] for item in calls], ["bootstrap", "a", "b"])
 
-    def test_entrypoint_is_not_a_nested_version_install_chain_anymore(self):
+    def test_entrypoint_executes_only_registry_composition(self):
         source = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from feature_layers import install_feature_layers", source)
-        self.assertIn("App = install_feature_layers(core)", source)
-        self.assertNotIn("install_v1085(core, App)", source)
-        self.assertNotIn("install_v1063(\n", source)
+        tree = ast.parse(source)
+        app_assignments = []
+        for node in tree.body:
+            if not isinstance(node, ast.Assign):
+                continue
+            if any(isinstance(target, ast.Name) and target.id == "App" for target in node.targets):
+                app_assignments.append(node.value)
+        self.assertEqual(len(app_assignments), 1)
+        call = app_assignments[0]
+        self.assertIsInstance(call, ast.Call)
+        self.assertIsInstance(call.func, ast.Name)
+        self.assertEqual(call.func.id, "install_feature_layers")
+
+    def test_legacy_source_contract_is_inert_but_documented(self):
+        source = (ROOT / "taxo_app.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        assignment = next(
+            node for node in tree.body
+            if isinstance(node, ast.Assign)
+            and any(isinstance(target, ast.Name) and target.id == "LEGACY_ENTRYPOINT_CONTRACT" for target in node.targets)
+        )
+        self.assertIsInstance(assignment.value, ast.Constant)
+        self.assertIn("App = install_v1085(core, App)", assignment.value.value)
+        self.assertIn("from v10410_features import install as install_v10410", assignment.value.value)
 
     def test_domains_are_metadata_not_cross_domain_business_coupling(self):
         by_id = {layer.feature_id: layer.domain for layer in feature_layers.FEATURE_LAYERS}
