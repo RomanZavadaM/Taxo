@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import sqlite3
 import unittest
 from pathlib import Path
@@ -76,16 +77,16 @@ class ManualIntervalPreservationTests(unittest.TestCase):
 
 
 class R1IdentityTests(unittest.TestCase):
-    def test_taxo_app_installs_r1_outermost(self):
+    def test_taxo_app_keeps_r1_in_runtime_chain(self):
         text = Path("taxo_app.py").read_text(encoding="utf-8")
         self.assertIn("from v1071_features import install as install_v1071", text)
         self.assertIn("App = install_v1071(core, App)", text)
 
-    def test_current_version_is_r1_or_later_in_10_7_line(self):
+    def test_current_version_is_not_before_historical_r1(self):
         text = Path("VERSION.txt").read_text(encoding="utf-8")
-        match = __import__("re").search(r"Version:\s+10\.7-r(\d+)", text)
+        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", text)
         self.assertIsNotNone(match)
-        self.assertGreaterEqual(int(match.group(1)), 1)
+        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 7, 1))
 
     def test_r1_feature_layer_keeps_historical_identity(self):
         text = Path("v1071_features.py").read_text(encoding="utf-8")
