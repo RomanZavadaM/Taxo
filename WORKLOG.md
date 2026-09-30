@@ -8,45 +8,64 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest full multi-platform checkpoint:** Taxo **10.8-r3** / `v10.8-r3`  
 **Latest integrated code checkpoint:** **10.8-r3** — `main` `50db4b0de4d37260c2031aa96317fef61d93ea90`  
-**Issued fast-test:** **10.8-r4** — immutable source `c68c8a18d5f3a7c236bb3c58b96fc15a8ba7bd08`; PR #107 лишається draft/unmerged  
-**Active code revision:** **10.8-r5** — прогноз ТО / заявки на несправності / compact registry UX  
-**Active branch:** `work/v10.8-r5-stoir-forecast-repair-requests`  
-**Active PR:** #108 (draft), base = `work/v10.8-r4-stoir-maintenance`  
+**Issued fast-test:** **10.8-r5** — `v10.8-r5`, exact source `fc9be91a892ae8be14b04c27b386da120061ec38`; PR #108 лишається draft/unmerged  
+**Active code revision:** **10.8-r6** — контрольована декомпозиція oversized `main.py`  
+**Active branch:** `work/v10.8-r6-main-modularization`  
+**Active PR:** ще не створений на момент цього запису  
 **Live ledger:** Issue #61
 
-## ACTIVE — 10.8-r5
+## COMPLETED CHECKPOINT — 10.8-r5
 
-Тема: **розвиток окремого центру СТОІР після фундаменту r4; прогноз ТО, заявки на несправності та виправлення реєстрового UI**.
+- immutable tag/release `v10.8-r5`;
+- exact source `fc9be91a892ae8be14b04c27b386da120061ec38`;
+- exact-source regression **695/695 OK**;
+- START `Taxo_v10_8_candidate_r5_START.zip`;
+- START SHA-256 `834a5a57d5f97e3afd7b84c0c96e361a8ef4f32c7a88110684a5cddda400576c`;
+- Windows gate success;
+- macOS arm64 + x86_64 gates success;
+- виправлено `no such column: worklog_id` на історичних робочих БД;
+- PR #108 не злитий у `main` без команди власника.
+
+## ACTIVE — 10.8-r6
+
+Тема: **зменшення архітектурного ризику великого `main.py` без великого переписування програми**.
+
+### Pre-flight / причина
+
+- `main.py` фактично перевищує 15 000 рядків;
+- сам розмір не є runtime-помилкою, але файл одночасно тримає запуск, UI, file-output, частину DB/report сценаріїв і тому підвищує ризик регресій;
+- r6 почато від exact immutable r5 source `fc9be91a892ae8be14b04c27b386da120061ec38`;
+- правило r6: тільки малий compatibility-preserving refactor, без зміни бізнес-даних і без масового переписування.
 
 ### Реалізовано
 
-- додано прогноз ТО-1/ТО-2 за фактичним середнім пробігом за останні 60 днів;
-- без достатньої історії одометра прогнозована дата не вигадується;
-- створено `vehicle_repair_requests` зі статусами `open/in_progress/closed`, пріоритетами та полями виконавця/результату;
-- у центр СТОІР додано вкладку «Заявки на несправності»;
-- додано зведення по активних ТЗ: одометр, середній км/день, ТО-1, ТО-2, відкриті заявки;
-- таблиці СТОІР переведено на компактний Treeview зі скролами; дії над заявкою виконуються над вибраним рядком, без кнопок у кожному рядку;
-- у `v1085_features.py` базова висота рядка Treeview зафіксована 26 px як захист від роздутого UI зі скріншотів користувача;
-- виправлено реальну помилку зі скріншота `no such column: worklog_id`: `latest_odometer()` більше не вимагає необов'язкову колонку `worklog_id` від історичних робочих баз;
-- regression r5 тепер навмисно перевіряє `vehicle_odometer_readings` без `worklog_id`;
-- r4 identity-test переведено в historical-anchor режим, щоб виданий r4 не блокував наступні ревізії;
-- `main.APP_VERSION`, `VERSION.txt` та `v1085_features.APP_VERSION` синхронізовані на `10.8-r5`;
-- одноразовий workflow для безпечної точкової зміни великого `main.py` виконав заміну одного version marker і сам видалився з branch head.
+- створено `output_files.py`;
+- з великого `main.py` винесено нейтральні file-output helpers: системне відкриття, report-font candidates, file-access classification, читабельне ім'я копії, locked-file dialog, friendly error, writer-loop;
+- у `main.py` лишено тонкий compatibility-wrapper `write_output_file()`, щоб не переписувати всі старі call sites одним кроком;
+- `main.APP_VERSION` і `VERSION.txt` піднято до `10.8-r6`;
+- додано `tests/test_v10_8_r6.py` з guards на identity, modularization boundary та file-output semantics;
+- одноразовий workflow безпечно переписав тільки цільові top-level functions через AST і після успішної перевірки сам видалився;
+- apply run `36771268183` — success;
+- refactor commit після one-shot workflow: `e8c765f9d4372801374b2c9ae42ad0f8d1bef027`;
+- додано `docs/maintenance/AUDIT_MAIN_MODULARIZATION_v10.8-r6.md` з планом поступової декомпозиції.
 
-### Verify / recovery
+### Не змінювалося
 
-- перший r5 regression: нові функціональні тести пройшли, але виявили 20 identity failures через `main.APP_VERSION=10.8-r4` при `VERSION.txt=10.8-r5`;
-- exact причина підтверджена на macOS arm64 у run `36767809692`;
-- version marker виправлено без переписування великого `main.py`; commit, створений one-shot workflow: `05c76f7db50b545fb0d6ed0e09ee59bac9953f17`;
-- PR #108 залишається draft і навмисно базується на exact r4 branch;
-- bot-authored exact-head PR checks отримали `action_required` без jobs, тому цей WORKLOG commit створює новий owner-authored head для штатного повторного Windows/macOS gate.
+- схема робочої БД;
+- plan/fact;
+- Бланки;
+- роль водія;
+- СТОІР;
+- vehicle documents;
+- формат робочого сховища;
+- дані користувача.
 
 ## DOING
 
-1. Перевірити exact-head Windows/macOS gates після owner-authored documentation commit.
-2. Перевірити контрольні UI-вікна реєстру ТЗ/документів на compact-row acceptance criteria зі скріншотів.
-3. Після green сформувати fast-test START archive для 10.8-r5 та записати SHA/asset у цей файл і Issue #61.
+1. Створити draft PR r6 поверх r5.
+2. Запустити exact-head повний regression/source package і Windows/macOS gates.
+3. Якщо все green — сформувати новий START fast-test `Taxo_v10_8_candidate_r6_START.zip` і зафіксувати SHA/tag/release.
 
 ## NEXT
 
-Після видачі r5 будь-яка нова кодова зміна — тільки **10.8-r6**. Шини/АКБ/агрегати та аудит планування персоналу не змішувати в r5.
+Після видачі r6 подальшу декомпозицію робити тільки новою ревізією. Наступний безпечний кандидат — backup/migration helpers або attestation query helpers; не змішувати кілька великих доменів в одну ревізію.
