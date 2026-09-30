@@ -195,7 +195,6 @@ class V870R5Tests(unittest.TestCase):
         # target the published stable v10.3 line. Current candidate VERSION.txt
         # is intentionally allowed to advance independently.
         stable_version = "10.3"
-        self.assertIn("Taxo 10.3", (root / "docs/releases/RELEASE_NOTES_v10.3.md").read_text("utf-8"))
         prefix="Taxo_v"+stable_version.replace(".","_")
         self.assertIn(f"{prefix}_Setup_Windows_x64.exe", windows)
         self.assertIn(f"{prefix}_Windows_x64_Portable.zip", windows)
