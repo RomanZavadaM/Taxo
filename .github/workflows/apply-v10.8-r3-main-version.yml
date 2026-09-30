@@ -1,0 +1,44 @@
+name: Apply Taxo 10.8-r3 main identity once
+
+on:
+  push:
+    branches:
+      - work/v10.8-r3-tck-statement-fix
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.8-r3-tck-statement-fix
+          fetch-depth: 0
+      - name: Sync main.APP_VERSION and remove one-shot workflow
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          path = Path('main.py')
+          text = path.read_text(encoding='utf-8')
+          text, count = re.subn(
+              r'^APP_VERSION = "[^"]+"$',
+              'APP_VERSION = "10.8-r3"',
+              text,
+              count=1,
+              flags=re.MULTILINE,
+          )
+          if count != 1:
+              raise SystemExit('Expected one APP_VERSION assignment')
+          path.write_text(text, encoding='utf-8')
+          PY
+          git rm .github/workflows/apply-v10.8-r3-main-version.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add main.py
+          git commit -m "chore: sync Taxo 10.8-r3 identity"
+          git push origin HEAD:work/v10.8-r3-tck-statement-fix
