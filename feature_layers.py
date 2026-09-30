@@ -2,9 +2,13 @@
 """Ordered Taxo runtime feature-layer registry.
 
 The project historically accumulated versioned ``install()`` wrappers directly
-inside ``taxo_app.py``.  Keeping the order in one registry makes future modules
+inside ``taxo_app.py``. Keeping the order in one registry makes future modules
 additive: a new feature is one descriptor instead of another nested expression
 or another entry-point rewrite.
+
+Issued legacy layers keep their original installer signatures. New layers can
+opt in to the explicit r8 application-services context, allowing future code to
+avoid importing the historical ``main`` namespace just to reach infrastructure.
 
 This module intentionally preserves the existing import and install order.
 It does not change business rules, database schema or user data.
@@ -74,6 +78,7 @@ class FeatureLayer:
     installer: Installer
     bootstrap: bool = False
     domain: str = "core"
+    uses_services: bool = False
 
 
 FEATURE_LAYERS: Tuple[FeatureLayer, ...] = (
@@ -150,18 +155,33 @@ def feature_layer_ids(layers: Sequence[FeatureLayer] = FEATURE_LAYERS) -> Tuple[
     return tuple(layer.feature_id for layer in layers)
 
 
-def install_feature_layers(core, layers: Sequence[FeatureLayer] = FEATURE_LAYERS):
-    """Build the current App class by applying every registered layer in order."""
+def install_feature_layers(core, layers: Sequence[FeatureLayer] = FEATURE_LAYERS, services=None):
+    """Build the current App class by applying every registered layer in order.
+
+    Legacy layers keep the historical signatures ``install(core)`` and
+    ``install(core, App)``. A future layer may set ``uses_services=True`` and
+    receive the explicit application services as the final argument.
+    """
 
     validate_feature_layers(layers)
     app_cls: Optional[type] = None
     for layer in layers:
+        if layer.uses_services and services is None:
+            raise RuntimeError(f"Feature {layer.feature_id} requires application services")
         if layer.bootstrap:
-            app_cls = layer.installer(core)
+            app_cls = layer.installer(core, services) if layer.uses_services else layer.installer(core)
         else:
             if app_cls is None:
                 raise RuntimeError(f"Feature {layer.feature_id} has no base App class")
-            app_cls = layer.installer(core, app_cls)
+            app_cls = (
+                layer.installer(core, app_cls, services)
+                if layer.uses_services
+                else layer.installer(core, app_cls)
+            )
         if app_cls is None:
             raise RuntimeError(f"Feature {layer.feature_id} returned no App class")
+    if app_cls is not None and services is not None:
+        # New code can access infrastructure through self.services without
+        # importing main. Existing feature classes remain untouched.
+        app_cls.services = services
     return app_cls
