@@ -1,6 +1,6 @@
 # WORKLOG — Taxo
 
-**Оновлено:** 29.09.2026  
+**Оновлено:** 30.09.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## CURRENT
@@ -8,28 +8,48 @@
 **Оновлено:** 30.09.2026  
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest full multi-platform checkpoint:** Taxo **10.6-r10** / `v10.6-r10`  
-**Latest issued fast-test:** **10.7-r10** / `v10.7-r10` → `78acf4bf1c4d74c0e6797cb3bd6d60ba10fc6a1a`  
-**Active candidate:** **10.8-r1** — відновлення та контрактне тестування функцій інтерфейсу  
-**Active branch:** `work/v10.8-r1-interface-functionality-guard`  
-**Active PR:** буде відкрито після green exact-head gate; не зливати у `main` без окремої команди власника  
-**Next code revision after issuance:** **10.8-r2**  
+**Latest issued fast-test:** **10.8-r3** / `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`  
+**Issued START:** `Taxo_v10_8_candidate_r3_START.zip` · SHA-256 `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`  
+**Active branch / PR:** `work/v10.8-r3-tck-statement-fix` / PR #105 — документаційне завершення issued r3; код r3 заморожений  
+**Next code revision:** **10.8-r4**  
 **Knowledge branch:** `knowledge/vehicle-operations`  
-**Live ledger:** Issue #61
+**Live ledger:** Issue #61; якщо запис через connector недоступний — recovery дублюється у WORKLOG та PR
 
-## ACTIVE — 10.8-r1
+## ISSUED — 10.8-r3
 
-Тема: **збереження функціональності інтерфейсу та повернення дій документів ТЗ**.
+Тема: **виправлення відомості ТЦК та необов'язкові реквізити ТЦК у картці транспортного засобу**.
 
-- підтверджено, що предметний функціонал документів ТЗ не видалений;
-- знайдено реальну UI-регресію: історичний responsive layer змішував `grid` з уже наявним `pack` у спільному контейнері, після чого базові кнопки лишалися прихованими;
-- додано окрему адаптивну панель «Картка транспортного засобу»;
-- повернуто видимі входи «Нове авто», «Редагувати», «Документи ТЗ», «Контроль документів», «Вивести з експлуатації», «Оновити» та фільтр неактивних авто;
-- реєстр «Шлях», ТЦК та інші нові дії збережені;
-- додано functionality-contract тести для транспортної панелі, документів ТЗ, шляхових листів, Центру документів, sidebar та START package;
-- історичні 10.7 identity tests переведено у режим regression anchors, щоб законний rollover 10.7-r10 → 10.8-r1 не ламав suite;
-- pre-release regression: **664/664 OK**;
-- аудит: `docs/maintenance/AUDIT_10.8-r1_INTERFACE_FUNCTIONALITY.md`;
-- release notes: `docs/releases/RELEASE_NOTES_v10.8-r1.md`.
+Підтверджений користувачем production defect із `Taxo_errors(3).log`: дата відомості з UI передавалась як `30.09.2026`, тоді як старий `military_transport_statement._iso_day()` викликав `date.fromisoformat()` і очікував `YYYY-MM-DD`.
+
+### Реалізовано
+
+- `v1083_features.py` нормалізує `ДД.ММ.РРРР`, ISO, `date` та `datetime` у внутрішній `YYYY-MM-DD`;
+- `30.09.2026` більше не проходить напряму в `date.fromisoformat()`;
+- до стабільної панелі картки ТЗ додано **«Реквізити ТЦК»**;
+- реквізити: належність до власного/балансового парку, тип ТЗ, технічний стан, залишкова/балансова вартість у тис. грн, примітка;
+- реквізити необов'язкові для звичайної картки ТЗ;
+- дані зберігаються у вже наявній `vehicle_military_transport_statement_data`, без дублювання сутностей;
+- офіційна форма не отримує додаткових службових реквізитів про джерело даних;
+- додано regression-тести на точний формат `30.09.2026`, помилкові дати та round-trip реквізитів ТЗ у рядок відомості;
+- `main.APP_VERSION`, `VERSION.txt`, `taxo_app.py`, `START.bat` і START package guard синхронізовані на 10.8-r3;
+- release notes: `docs/releases/RELEASE_NOTES_v10.8-r3.md`.
+
+### Verify / immutable fast-test
+
+Exact issued source: **`d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`**.  
+Tag / prerelease: **`v10.8-r3`** — не рухати і не перевидавати.
+
+- exact functional/source head `ba469191321bf18b6a36c6a85718fa02002381dd`: source/START run `36736687719` — success;
+- publisher run `36737140249` — success;
+- issued START asset: `Taxo_v10_8_candidate_r3_START.zip`;
+- START SHA-256: **`aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`**;
+- Windows exact-issued gate `36737147803` — success;
+- macOS exact-issued gate `36737147699` — queued на момент цього запису; не трактувати як failure;
+- release: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.8-r3
+- START: https://github.com/RomanZavadaM/Taxo/releases/download/v10.8-r3/Taxo_v10_8_candidate_r3_START.zip
+- PR #105: https://github.com/RomanZavadaM/Taxo/pull/105
+
+Після issuance код r3 заморожений. Будь-яка наступна зміна коду = **10.8-r4**.
 
 ## DONE — 10.7-r5
 
@@ -78,80 +98,13 @@ Tag / prerelease: **`v10.7-r5`** — не рухати і не перевида�
 - append-only `operations_change_log`;
 - add/update/delete закріплень і додатків протоколюються;
 - є прямий сценарій `Створити наказ про закріплення`;
-- дублюючий raw-SQL UI patch прибрано;
-- exact source `a214eccc95a00d229f28e52865a5ec37b6f61bba`;
-- regression **622/622 OK**;
-- Windows/macOS green;
-- immutable `v10.7-r4`;
-- START SHA-256 `0301eb76d23585dc42f245fdf309947cd52ed7ecff76bd720b5c32caaea78cc7`.
+- GUI-редактор наказу використовує `ops.update_order(...)`, а не прямий `UPDATE`;
+- для додатків виправлено історичне блокування редагування після затвердження;
+- full regression: **622/622 OK**;
+- Windows/macOS gates — success;
+- immutable source/tag: `a214eccc95a00d229f28e52865a5ec37b6f61bba` / `v10.7-r4`;
+- START SHA-256: `0301eb76d23585dc42f245fdf309947cd52ed7ecff76bd720b5c32caaea78cc7`.
 
-## DONE — 10.7-r3
+## RECOVERY RULE
 
-Тема: **структуровані додатки до експлуатаційних наказів**.
-
-- `operations_order_appendices` з номером, назвою, змістом, приміткою і порядком;
-- вкладка `Додатки до наказів`;
-- PDF наказу друкує кожен додаток окремою сторінкою;
-- exact source `a51e336a31192fa7b82cb3bfe6db6c112dc70eae`;
-- regression **613/613 OK**;
-- Windows/macOS gates green;
-- immutable `v10.7-r3`;
-- START SHA-256 `48a6736c13b5626cfe21a4fa548e5971e00b5694f2649fa0f14b66dce9994727`.
-
-## DONE — 10.7-r2
-
-Тема: **«Експлуатація», накази, закріплення водіїв і контроль відомості ТЦК**.
-
-- новий розділ `Експлуатація`;
-- структурований реєстр наказів;
-- закріплення ТЗ/водіїв як структурований факт;
-- відповідальні особи;
-- внутрішнє затвердження відомості ТЦК з fingerprint;
-- підтягування реквізитів з останнього підтвердженого імпорту без друку службової provenance у форму для подання;
-- immutable raw import snapshot;
-- exact source `346d21aacaf6c40563b6c9430f466f14dafd3543`;
-- regression **607/607 OK**;
-- Windows/macOS green;
-- immutable `v10.7-r2`.
-
-## DONE — 10.7-r1
-
-Тема: **безпечне повторне розпізнавання аналогових тахографічних шайб**.
-
-- manual intervals preserved on re-recognition;
-- recognize only newly imported discs;
-- no hidden recognition on selection;
-- midnight circular/timeline cases fixed;
-- exact source `1a124bc8218aada5ab4b66f74376b02c7dc62481`;
-- regression **598/598 OK**;
-- START, Windows, macOS green;
-- immutable `v10.7-r1`.
-
-## PREVIOUS FULL CHECKPOINT — 10.6-r10
-
-- exact source `0baad010d0c0d4f29db62f26c29d512c71058928`;
-- P-5 EDRPOU positional/keyword duplicate fixed;
-- 588/588 OK;
-- full Windows x64, Windows 7 SP1 x64, macOS ARM64, macOS Intel package set;
-- immutable `v10.6-r10`;
-- stable `v10.3` remains unchanged.
-
-## NEXT — 10.7-r6
-
-1. E3 — перевірити, чи може один день отримати подвійний план через `водій + зміна персоналу`; спочатку знайти реальний writer/source конфлікту, не виправляти навмання.
-2. E4 — перевірити порядок `purge_old()` / backup і виключити сценарій, де дані видаляються до резервного копіювання.
-3. Далі повернутися до решти аудиту: межі тижня/режимів, activity register plan/fact, waybill та інші підтверджені дефекти.
-4. Форми ТО/ремонтів не вигадувати: спиратися на `knowledge/vehicle-operations` і, якщо потрібні нормативні твердження, перевіряти чинне авторитетне джерело.
-
-## PRESERVED
-
-- stable `v10.3` не пересувається;
-- `v10.6-r10`, `v10.7-r1`…`v10.7-r5` та інші issued tags immutable;
-- candidate line 10.7 не зливати у `main` без окремої команди власника;
-- plan/fact, табель, графіки й основний worklog не переписуються побічно;
-- паперовий підпис не перетворює електронний запис на незмінний: виправлення дозволене з історією і попередженням про звірку паперового примірника;
-- робочі БД, персональні документи, скани та кеші не публікуються.
-
-## BLOCKED
-
-Немає.
+Перед продовженням: `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → цей `WORKLOG.md` → actual GitHub / PR / CI → Issue #61. Видані теги не рухати; наступну кодову зміну після `v10.8-r3` починати тільки як **10.8-r4**.
