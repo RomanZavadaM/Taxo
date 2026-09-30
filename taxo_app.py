@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Taxo application entry point. Current version is owned by main.APP_VERSION."""
 import main as core
+from application_context import build_application_services
 from feature_layers import install_feature_layers
 
 
@@ -131,7 +132,8 @@ App = install_v1085(core, App)
 '''
 
 
-App = install_feature_layers(core)
+SERVICES = build_application_services(core)
+App = install_feature_layers(core, services=SERVICES)
 
 
 def run():
