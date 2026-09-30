@@ -39,6 +39,14 @@ class MainModularizationR6Tests(unittest.TestCase):
         self.assertIs(main._is_file_access_error, output_files.is_file_access_error)
         self.assertIs(main._friendly_file_error, output_files.friendly_file_error)
 
+    def test_start_guard_requires_current_runtime_modules(self):
+        start = (ROOT / "START.bat").read_text(encoding="ascii")
+        self.assertIn('if not exist "output_files.py" goto :package_incomplete', start)
+        self.assertIn('if not exist "v1085_features.py" goto :package_incomplete', start)
+        workflow = (ROOT / ".github/workflows/source-test-archive.yml").read_text(encoding="utf-8")
+        self.assertIn("output_files.py", workflow)
+        self.assertIn("v1085_features.py", workflow)
+
     def test_unique_copy_name_stays_human_readable(self):
         with tempfile.TemporaryDirectory() as td:
             target = Path(td) / "report.pdf"
