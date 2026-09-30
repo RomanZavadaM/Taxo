@@ -6,34 +6,59 @@
 ## CURRENT
 
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
-**Latest full multi-platform checkpoint:** Taxo **10.6-r10** / `v10.6-r10`  
-**Latest issued fast-test:** **10.8-r3** / `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`  
+**Latest full multi-platform checkpoint:** Taxo **10.8-r3** / `v10.8-r3`  
+**Latest integrated code checkpoint:** **10.8-r3** — PR #105 merged to `main`  
+**Main merge:** `db444a37ead421c8083558cfcf81ee97adc241f6`  
+**Issued source/tag:** `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`  
 **Issued START:** `Taxo_v10_8_candidate_r3_START.zip` · SHA-256 `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`  
-**Active integration:** PR #105 → `main`; власник прямо наказав повний checkpoint («зливай в main»)  
+**Full package run:** `36741933852` — success  
 **Next code revision:** **10.8-r4**  
 **Live ledger:** Issue #61
 
-## 10.8-r3 — READY FOR MAIN
+## DONE — 10.8-r3
 
-- виправлено падіння відомості ТЦК на даті `ДД.ММ.РРРР`;
+Тема: **відомість ТЦК — дата та реквізити транспортного засобу**.
+
+### Реалізовано
+
+- виправлено падіння відомості ТЦК на звичайній для Taxo даті `ДД.ММ.РРРР`;
 - підтримуються `ДД.ММ.РРРР`, ISO, `date`, `datetime`;
 - додано «Реквізити ТЦК» у картці ТЗ;
 - реквізити необов'язкові для звичайної картки;
 - використано існуючу `vehicle_military_transport_statement_data`;
-- regression/source START gate пройдено;
-- Windows exact-issued gate — success;
-- macOS exact-issued gate — success;
-- `v10.8-r3` видано, тег/джерело не рухати;
-- код r3 заморожений; після merge тільки документаційне/релізне завершення без зміни коду.
+- додано regression-тести для дати та round-trip реквізитів;
+- exact issued source/tag заморожено й не пересувалось.
 
-## DOING
+### Інтеграція
 
-1. Merge PR #105 у `main`.
-2. Перевірити main CI.
-3. Доповнити release `v10.8-r3` повними Windows/macOS пакетами з exact issued source `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`.
-4. Оновити `PROJECT_STATE.md`, release index і Issue #61.
-5. Підчистити лише явно службові/одноразові елементи, не видаляючи історичні regression anchors.
+- PR #105 merged у `main`;
+- merge commit: `db444a37ead421c8083558cfcf81ee97adc241f6`;
+- stable `v10.3` не змінювався.
+
+### Повний multi-platform checkpoint
+
+Run `36741933852` завершився **success** по всіх jobs:
+
+- exact-source verify/regression;
+- Windows x64 Portable + Setup;
+- Windows 7 SP1 x64 Portable + Setup;
+- Windows 7 Python 3.8 + PE compatibility gate;
+- macOS arm64 Portable;
+- macOS x86_64 Portable;
+- platform SHA-256 manifests;
+- загальний `SHA256SUMS_v10_8_r3_ALL.txt`;
+- фінальна перевірка повного набору release assets.
+
+Усі binary assets зібрано з exact issued source `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`.
+
+## CLEANUP
+
+- актуальний стан зведено у `PROJECT_STATE.md`, `WORKLOG.md` та release index;
+- службовий full-package workflow лишено на окремій `ops/v10.8-r3-full-package`, а не в `main`;
+- історичні workflows/regression anchors не видалялись;
+- старі issued tags/releases не змінювались;
+- робочі БД, скани, кеші та персональні дані не публікувались.
 
 ## NEXT
 
-Після повного checkpoint 10.8-r3 наступна кодова ревізія — **10.8-r4**.
+Наступна кодова ревізія — **10.8-r4**. Перед кодовими змінами виконати pre-flight за `START_HERE.md` і взяти наступну підтверджену помилку/недоробку з аудиту, не повертаючись до замороженого r3.
