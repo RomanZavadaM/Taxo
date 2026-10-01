@@ -1,3 +1,4 @@
+import re
 import sqlite3
 import tempfile
 import unittest
@@ -8,6 +9,14 @@ import main
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def version_key(value: str):
+    match = re.fullmatch(r"(\d+)\.(\d+)-r(\d+)(?:\.(\d+))?", value)
+    if not match:
+        raise AssertionError(f"unexpected version format: {value}")
+    major, minor, revision, subrevision = match.groups()
+    return int(major), int(minor), int(revision), int(subrevision or 0)
 
 
 def make_taxo_db(path: Path, marker="original"):
@@ -27,7 +36,7 @@ class BackupMigrationR9Tests(unittest.TestCase):
     def test_r9_identity_is_historical_anchor(self):
         notes = (ROOT / "docs/releases/RELEASE_NOTES_v10.8-r9.md").read_text(encoding="utf-8")
         self.assertIn("10.8-r9", notes)
-        self.assertGreaterEqual(tuple(int(part) for part in main.APP_VERSION.replace("10.8-r", "").split(".")), (9,))
+        self.assertGreaterEqual(version_key(main.APP_VERSION), (10, 8, 9, 0))
 
     def test_main_keeps_compatibility_wrappers_only(self):
         source = (ROOT / "main.py").read_text(encoding="utf-8")
