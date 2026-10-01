@@ -84,6 +84,7 @@ from output_files import (
     write_output_file as _write_output_file,
 )
 import backup_migration as backup_store
+from database_runtime import connect_database as _connect_database
 from vehicle_documents import (
     ensure_vehicle_documents_schema,
     open_vehicle_document_control,
@@ -96,7 +97,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.8-r9"
+APP_VERSION = "10.8-r10"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -336,16 +337,8 @@ def current_transport_profile():
 
 
 def db():
-    con = sqlite3.connect(DB_PATH,timeout=30)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys=ON")
-    con.execute("PRAGMA busy_timeout=30000")
-    # WAL не є безпечним вибором для мережевих файлових систем. Звичайний
-    # rollback journal разом із блокуванням всього сховища підтримує почергову
-    # роботу встановлених копій Taxo.
-    con.execute("PRAGMA journal_mode=DELETE")
-    con.execute("PRAGMA synchronous=FULL")
-    return con
+    """Compatibility wrapper; SQLite policy lives in database_runtime.py."""
+    return _connect_database(DB_PATH)
 
 
 def _driver_role_mode(driver):
