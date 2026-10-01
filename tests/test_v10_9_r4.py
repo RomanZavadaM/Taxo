@@ -36,7 +36,7 @@ class WorkRestComplianceR4Tests(unittest.TestCase):
             intervals.append((cursor, cursor + timedelta(hours=18)))
             cursor += timedelta(hours=24)
         report = rest_compliance_report(
-            intervals, dt(1), dt(10), date(2026, 9, 1), date(2026, 9, 9), hhmm
+            intervals, dt(1, 6), dt(8, 6), date(2026, 9, 1), date(2026, 9, 8), hhmm
         )
         joined = "\n".join(report["warnings"])
         self.assertIn("немає жодного кваліфікованого", joined)
