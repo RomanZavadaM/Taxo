@@ -1,45 +1,52 @@
 # Індекс релізів Taxo
 
-**Стан:** 30.09.2026  
+**Стан:** 01.10.2026  
 **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
-**Latest full multi-platform checkpoint:** [Taxo 10.8-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.8-r3)  
-**Latest integrated code checkpoint in `main`:** Taxo **10.8-r3** — merged via PR #105  
-**Next code revision:** **10.8-r4**.
+**Latest full multi-platform checkpoint:** [Taxo 10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1)  
+**Latest integrated code checkpoint in `main`:** Taxo **10.9-r1** — merged via PR #118  
+**Next code revision:** **10.9-r2**.
 
-> `v10.3` лишається stable до окремого рішення власника. `v10.8-r3` — поточний інтегрований і повний multi-platform checkpoint; це не автоматичне stable promotion.
+> `v10.3` лишається stable до окремого рішення власника. `v10.9-r1` — актуальний інтегрований full multi-platform checkpoint; це не автоматичне stable promotion.
 
 ## Поточний checkpoint
 
 | Ревізія | Main / issued source | Перевірка | Пакети / зміст |
 |---|---|---|---|
-| **10.8-r3** | main merge `db444a37ead421c8083558cfcf81ee97adc241f6`; tag source `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd` | publisher `36737140249`; full package `36741933852` — success | Windows x64 Setup/Portable, Windows 7 SP1 x64 Setup/Portable + PE gate, macOS ARM64/Intel, START, platform/full SHA-256; ТЦК date fix + optional vehicle requisites |
+| **10.9-r1** | main merge `843a38243dd4eeeb02b40f8de59cc630ef4dce09`; tag source `b0eebbf88b22fbd7761544640d9804416a328acb` | exact-source regression **730/730 OK**; full package `36857771398` — success | Windows x64 Setup/Portable, Windows 7 SP1 x64 Setup/Portable + PE gate, macOS ARM64/Intel, START, platform/full SHA-256; data-access foundation + cumulative 10.8-r4…r10 integration |
 
-START: `Taxo_v10_8_candidate_r3_START.zip`  
-SHA-256: `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`
+START: `Taxo_v10_9_candidate_r1_START.zip`  
+SHA-256: `0c819f9f3e4b31f58e6b86e2b4f1d72086901c0bd2a26a499e4c17f6de9c1766`
 
-## Taxo 10.8 history
+## Taxo 10.9 history
 
 | Ревізія | Issued source | Статус | Зміст |
 |---|---|---|---|
-| **10.8-r3** | `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd` | **full multi-platform checkpoint; PR #105 merged** | виправлення дати відомості ТЦК; реквізити ТЦК у картці ТЗ |
-| 10.8-r2 | immutable issued checkpoint | fast-test | runtime Tk/ttk UI smoke tests під Xvfb; контроль видимості та invoke критичних дій |
-| 10.8-r1 | immutable issued checkpoint | fast-test | functionality-contract guard інтерфейсу та повернення видимих дій документів ТЗ |
+| **10.9-r1** | `b0eebbf88b22fbd7761544640d9804416a328acb` | **full multi-platform checkpoint; PR #118 merged** | `data_access.py`, transaction boundary, `ApplicationServices.data`, єдина workspace-aware infrastructure path |
+
+## Taxo 10.8 history після r3
+
+| Ревізія | Статус | Зміст |
+|---|---|---|
+| 10.8-r10 | immutable historical checkpoint | `database_runtime.py`, SQLite connection policy |
+| 10.8-r9 | immutable historical checkpoint | `backup_migration.py`, backup/restore/legacy migration mechanics |
+| 10.8-r8 | immutable historical checkpoint | `application_context.py`, application/infrastructure services |
+| 10.8-r7 | immutable historical checkpoint | ordered feature-layer registry |
+| 10.8-r6 | immutable historical checkpoint | `output_files.py`, перший slice декомпозиції `main.py` |
+| 10.8-r5 | immutable historical checkpoint | прогноз ТО, заявки на ремонт, compact STOIR summary |
+| 10.8-r4 | immutable historical checkpoint | базовий СТОІР / ТО ТЗ |
+| 10.8-r3 | full historical checkpoint | ТЦК date fix + optional vehicle requisites |
+| 10.8-r2 | fast-test | runtime Tk/ttk UI smoke tests |
+| 10.8-r1 | fast-test | functionality-contract guard інтерфейсу |
 
 ## Останні повні multi-platform checkpoints
 
 | Tag | Статус | Пакети |
 |---|---|---|
-| [v10.8-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.8-r3) | **Latest full multi-platform checkpoint** | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, platform/full SHA-256 |
-| [v10.6-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r10) | previous full checkpoint | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, platform/full SHA-256 |
+| [v10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) | **Latest full multi-platform checkpoint** | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, platform/full SHA-256 |
+| [v10.8-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.8-r3) | previous full checkpoint | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, platform/full SHA-256 |
+| [v10.6-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r10) | historical | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, platform/full SHA-256 |
 | [v10.6-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3) | historical | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, SHA-256 |
 | [v10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8) | historical | Windows x64/Win7, macOS ARM64/Intel, START, SHA-256 |
-| [v10.4-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.4-r2) | historical | Windows x64/Win7, macOS ARM64/Intel, START, SHA-256 |
-
-## Historical identity anchors
-
-- **Taxo 10.6-r10** — issued source `0baad010d0c0d4f29db62f26c29d512c71058928`; попередній повний інтегрований checkpoint.
-- **Taxo 10.4-r7** — historical issued source `9f397a092fe828570927bc39cef7a3a467e2aff0`; межа між локальним контролем документів ТЗ та державними реєстрами.
-- Історичні anchors зберігаються для regression/history і не використовуються як нова кодова база.
 
 ## Stable line
 
@@ -52,10 +59,14 @@ SHA-256: `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`
 
 ## Документи поточної лінії
 
-- [Release notes 10.8-r3](RELEASE_NOTES_v10.8-r3.md)
-- [Release notes 10.8-r2](RELEASE_NOTES_v10.8-r2.md)
-- [Release notes 10.8-r1](RELEASE_NOTES_v10.8-r1.md)
-- [Release notes 10.6-r10](RELEASE_NOTES_v10.6-r10.md)
+- [Release notes 10.9-r1](RELEASE_NOTES_v10.9-r1.md)
+- [Release notes 10.8-r10](RELEASE_NOTES_v10.8-r10.md)
+- [Release notes 10.8-r9](RELEASE_NOTES_v10.8-r9.md)
+- [Release notes 10.8-r8](RELEASE_NOTES_v10.8-r8.md)
+- [Release notes 10.8-r7](RELEASE_NOTES_v10.8-r7.md)
+- [Release notes 10.8-r6](RELEASE_NOTES_v10.8-r6.md)
+- [Release notes 10.8-r5](RELEASE_NOTES_v10.8-r5.md)
+- [Release notes 10.8-r4](RELEASE_NOTES_v10.8-r4.md)
 
 Точна історія старіших revisions збережена в Git history, release notes та Issue #61. Старі work/candidate branches не використовуються як нова кодова база.
 
@@ -67,3 +78,4 @@ SHA-256: `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`
 4. БД, SQLite, скани, кеші та персональні документи не публікуються.
 5. Кодові зміни йдуть через окрему work branch і PR.
 6. «Злити у main» = перевірки → інтеграція → синхронізація документації → повні пакети/checksums, якщо не вказано інше.
+7. Після завершеного `10.9-r1` наступна кодова зміна — `10.9-r2`; issued revision не використовується повторно.
