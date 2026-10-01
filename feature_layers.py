@@ -68,6 +68,7 @@ from v1084_features import install as install_v1084
 from v1085_features import install as install_v1085
 from waybill_integrity import install as install_waybill_integrity
 from vehicle_document_validity import install as install_vehicle_document_validity
+from work_rest_compliance import install as install_work_rest_compliance
 
 Installer = Callable[..., type]
 
@@ -136,6 +137,7 @@ FEATURE_LAYERS: Tuple[FeatureLayer, ...] = (
     FeatureLayer("v1085-stoir", install_v1085, domain="maintenance"),
     FeatureLayer("v1092-waybill-integrity", install_waybill_integrity, domain="waybills"),
     FeatureLayer("v1093-vehicle-document-validity", install_vehicle_document_validity, domain="vehicles"),
+    FeatureLayer("v1094-work-rest-compliance", install_work_rest_compliance, domain="worktime"),
 )
 
 
