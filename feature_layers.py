@@ -70,6 +70,7 @@ from waybill_integrity import install as install_waybill_integrity
 from vehicle_document_validity import install as install_vehicle_document_validity
 from work_rest_compliance import install as install_work_rest_compliance
 from v1096_personnel_balance import install as install_v1096_personnel_balance
+from v1097_stoir_odometer import install as install_v1097_stoir_odometer
 
 Installer = Callable[..., type]
 
@@ -140,6 +141,7 @@ FEATURE_LAYERS: Tuple[FeatureLayer, ...] = (
     FeatureLayer("v1093-vehicle-document-validity", install_vehicle_document_validity, domain="vehicles"),
     FeatureLayer("v1094-work-rest-compliance", install_work_rest_compliance, domain="worktime"),
     FeatureLayer("v1096-personnel-balance", install_v1096_personnel_balance, domain="personnel"),
+    FeatureLayer("v1097-stoir-odometer", install_v1097_stoir_odometer, domain="maintenance"),
 )
 
 
