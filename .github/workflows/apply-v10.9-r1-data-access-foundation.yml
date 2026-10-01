@@ -48,11 +48,15 @@ jobs:
 
           wf = Path('.github/workflows/source-test-archive.yml')
           text = wf.read_text(encoding='utf-8')
-          if '  data_access.py\n' not in text:
-              marker = '  database_runtime.py\n'
-              if marker not in text:
-                  raise SystemExit('database_runtime package marker not found')
-              text = text.replace(marker, marker + '  data_access.py\n', 1)
+          marker = '            output_files.py\n'
+          if marker not in text:
+              raise SystemExit('output_files package marker not found')
+          additions = []
+          for name in ('backup_migration.py', 'database_runtime.py', 'data_access.py'):
+              if f'            {name}\n' not in text:
+                  additions.append(f'            {name}\n')
+          if additions:
+              text = text.replace(marker, marker + ''.join(additions), 1)
           wf.write_text(text, encoding='utf-8')
           PY
 
@@ -65,6 +69,7 @@ jobs:
       - name: Remove one-shot workflow
         shell: bash
         run: |
+          git pull --ff-only origin work/v10.9-r1-data-access-foundation
           git rm .github/workflows/apply-v10.9-r1-data-access-foundation.yml
           git commit -m 'chore: remove 10.9-r1 one-shot workflow'
           git push origin HEAD:work/v10.9-r1-data-access-foundation
