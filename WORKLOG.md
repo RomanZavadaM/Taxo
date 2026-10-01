@@ -1,6 +1,6 @@
 # WORKLOG — Taxo
 
-**Оновлено:** 30.09.2026  
+**Оновлено:** 01.10.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## CURRENT
@@ -8,65 +8,70 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest full multi-platform checkpoint:** Taxo **10.8-r3** / `v10.8-r3`  
 **Latest integrated code checkpoint:** **10.8-r3** — `main` `50db4b0de4d37260c2031aa96317fef61d93ea90`  
-**Latest issued fast-test:** **10.8-r7** — `v10.8-r7`, exact source `2786860d6ca36147745ffeca4b17746642381c53`; PR #110 draft/unmerged  
-**Active code revision:** **10.8-r8** — explicit application-services context for future expansion  
-**Active branch:** `work/v10.8-r8-application-context`  
-**Active PR:** to be opened against the r7 branch after the r8 slice is assembled  
+**Latest issued fast-test:** **10.8-r8** — `v10.8-r8`, exact source `60cfcc6784be151ee7141a81fea0a67ad74e75f6`; PR #111 draft/unmerged  
+**Issued r8 START:** `Taxo_v10_8_candidate_r8_START.zip` · SHA-256 `f87527d4de273d92cf8e6434b54da3ade6faa65c7795a75ed41422a3ea2f473c`  
+**Active code revision:** **10.8-r9**  
+**Active branch:** `work/v10.8-r9-backup-migration-infrastructure`  
+**Active PR:** ще не відкритий  
 **Live ledger:** Issue #61
 
-## COMPLETED CHECKPOINT — 10.8-r7
+## COMPLETED CHECKPOINT — 10.8-r8
 
-- immutable tag/prerelease `v10.8-r7`;
-- exact source `2786860d6ca36147745ffeca4b17746642381c53`;
-- publisher `36774146660` — success;
-- exact-source regression **707/707 OK**;
-- source/START package `36774146335` — success;
-- Windows exact-head gate `36774150994` — success;
-- macOS exact-head gate `36774150873` — arm64 + x86_64 success;
-- START `Taxo_v10_8_candidate_r7_START.zip`;
-- START SHA-256 `cd54d2ff0ab663445778c1e12c00beebaf40acde1c1834fb6de03d2195156e70`;
-- direct START: `https://github.com/RomanZavadaM/Taxo/releases/download/v10.8-r7/Taxo_v10_8_candidate_r7_START.zip`;
-- runtime feature composition moved to ordered `feature_layers.py` registry;
-- architecture direction fixed: new large capabilities should be domain/service/repository/UI modules with narrow installers;
-- PR #110 remains draft and is not merged without owner command.
+Тема: **explicit application-services boundary для подальшого масштабування Taxo**.
 
-## ACTIVE — 10.8-r8
+- immutable tag/prerelease `v10.8-r8`;
+- exact source `60cfcc6784be151ee7141a81fea0a67ad74e75f6`;
+- publisher run `36775504122` — success;
+- exact-source regression **713/713 OK**;
+- source/START package run `36775504209` — success;
+- Windows gate `36775510309` — success;
+- macOS gate `36775510038` — arm64 + x86_64 success;
+- START `Taxo_v10_8_candidate_r8_START.zip`;
+- START SHA-256 `f87527d4de273d92cf8e6434b54da3ade6faa65c7795a75ed41422a3ea2f473c`;
+- `application_context.py` дає новим modules explicit infrastructure services;
+- legacy installers збережені;
+- PR #111 лишається draft/unmerged і не зливається без окремої команди власника.
 
-Тема: **дати новим модулям вузьку explicit infrastructure boundary, щоб ріст Taxo не створював нові залежності від глобального `main`.**
+## ACTIVE — 10.8-r9
+
+Тема: **винести backup / restore / legacy migration mechanics з великого `main.py` у вузький infrastructure module без зміни user-data semantics.**
 
 ### Base / pre-flight
 
-- r8 starts only from immutable r7 source `2786860d6ca36147745ffeca4b17746642381c53`;
-- branch `work/v10.8-r8-application-context`;
-- `VERSION.txt` and `main.APP_VERSION` synchronized to `10.8-r8`;
-- DB schema, workspace format and user data are unchanged.
+- r9 почато тільки від exact issued r8 source `60cfcc6784be151ee7141a81fea0a67ad74e75f6`;
+- branch `work/v10.8-r9-backup-migration-infrastructure`;
+- `VERSION.txt` і `main.APP_VERSION` = `10.8-r9`;
+- `main` не змінювався і лишається на integrated `10.8-r3`;
+- stable `v10.3` не змінюється.
 
 ### Implemented
 
-- new `application_context.py` with `WorkspaceServices`, `OutputServices`, `ApplicationServices`;
-- workspace root/path lookup is dynamic, not cached, so a switched workspace cannot leave future modules pointed at the old DB;
-- `WorkspaceServices.connect_main_db()` provides fresh connections to the current workspace DB;
-- output infrastructure is exposed through a narrow contract instead of requiring new modules to import `main`;
-- `FeatureLayer` gained opt-in `uses_services=True` metadata;
-- legacy installers keep their historical signatures; future context-aware layers can receive `services` explicitly;
-- composed `App` exposes the same context as `App.services` for new UI/domain adapters;
-- `taxo_app.py` builds one `SERVICES` context and passes it into `install_feature_layers`;
-- `START.bat` and source package verification require `application_context.py`;
-- `tests/test_v10_8_r8.py` covers workspace switching, DB connection, legacy/context-aware installer compatibility, fail-fast behavior and runtime wiring;
-- `docs/maintenance/AUDIT_APPLICATION_CONTEXT_v10.8-r8.md` records the infrastructure/business boundary;
-- `docs/releases/RELEASE_NOTES_v10.8-r8.md` prepared.
+- додано `backup_migration.py`;
+- винесено пошук legacy БД і one-time migration;
+- винесено SQLite backup і 24-hour auto-backup guard;
+- винесено validation резервної Taxo БД;
+- винесено atomic restore через temporary DB;
+- збережено safety backup перед restore і best-effort rollback при помилці;
+- `main.py` лишає compatibility wrappers зі старими public names;
+- infrastructure module не імпортує Tkinter/UI і не містить domain rules;
+- `START.bat` вимагає `backup_migration.py`;
+- `tests/test_v10_8_r9.py` покриває identity, wrappers, backup consistency, restore safety, no-overwrite legacy migration і UI boundary;
+- `docs/maintenance/AUDIT_BACKUP_MIGRATION_INFRASTRUCTURE_v10.8-r9.md` додано;
+- `docs/releases/RELEASE_NOTES_v10.8-r9.md` додано.
 
-### Architecture rule recorded
+### Verify already green
 
-`ApplicationServices` is infrastructure only, **not** a service locator for business rules. Plan/fact, timesheet, Attestations, STOIR, personnel, military accounting and other domain logic must remain in explicit domain/service modules. New large features should consume shared infrastructure through the context and expose their own narrow domain APIs.
+- source/START run `36776021724` на head `367c24ee87610ad44c97b9e42dd3eb47b1116a4d` — success;
+- regression, START creation, clean-package verification — success;
+- після docs commits потрібен новий exact-head verify/PR CI перед issuance.
 
 ## DOING
 
-1. Open draft r8 PR against immutable r7 branch.
-2. Run exact-head source regression / START package and Windows + macOS gates.
-3. Fix only r8 architecture regressions without broadening scope.
-4. Publish immutable `v10.8-r8` START fast-test after all gates are green.
+1. Відкрити draft PR r9 проти immutable r8 branch.
+2. Додати immutable source publisher `v10.8-r9` з exact-head regression і START verification.
+3. Дочекатися нового exact-head source, Windows та macOS gates.
+4. Якщо gates green — видати immutable `v10.8-r9` START fast-test і записати SHA/source у Issue #61 та PR.
 
 ## NEXT
 
-After r8 is issued/frozen, continue only as **10.8-r9**. Preferred next architecture slice: extract backup/migration orchestration from `main.py` onto the explicit workspace/application-services boundary without changing backup format, restore semantics or user data. Do not merge r8 into `main` without an explicit owner command.
+Після issuance r9 будь-яка кодова зміна — тільки **10.8-r10**. Наступний architecture slice визначити після r9 за принципом: infrastructure не змішувати з domain rules; нові великі можливості будувати як окремі domain/service/repository/UI modules із вузькою точкою підключення. Не зливати r9 чи попередні draft PR у `main` без прямої команди власника.
