@@ -12,7 +12,7 @@
 **Issued r8 START:** `Taxo_v10_8_candidate_r8_START.zip` · SHA-256 `f87527d4de273d92cf8e6434b54da3ade6faa65c7795a75ed41422a3ea2f473c`  
 **Active code revision:** **10.8-r9**  
 **Active branch:** `work/v10.8-r9-backup-migration-infrastructure`  
-**Active PR:** ще не відкритий  
+**Active PR:** #112 — draft, base exact r8 branch  
 **Live ledger:** Issue #61
 
 ## COMPLETED CHECKPOINT — 10.8-r8
@@ -40,6 +40,7 @@
 
 - r9 почато тільки від exact issued r8 source `60cfcc6784be151ee7141a81fea0a67ad74e75f6`;
 - branch `work/v10.8-r9-backup-migration-infrastructure`;
+- draft PR #112, base `work/v10.8-r8-application-context`;
 - `VERSION.txt` і `main.APP_VERSION` = `10.8-r9`;
 - `main` не змінювався і лишається на integrated `10.8-r3`;
 - stable `v10.3` не змінюється.
@@ -63,14 +64,13 @@
 
 - source/START run `36776021724` на head `367c24ee87610ad44c97b9e42dd3eb47b1116a4d` — success;
 - regression, START creation, clean-package verification — success;
-- після docs commits потрібен новий exact-head verify/PR CI перед issuance.
+- після docs/PR commits потрібен новий exact-head verify/PR CI перед issuance.
 
 ## DOING
 
-1. Відкрити draft PR r9 проти immutable r8 branch.
-2. Додати immutable source publisher `v10.8-r9` з exact-head regression і START verification.
-3. Дочекатися нового exact-head source, Windows та macOS gates.
-4. Якщо gates green — видати immutable `v10.8-r9` START fast-test і записати SHA/source у Issue #61 та PR.
+1. Додати immutable source publisher `v10.8-r9` з exact-head regression і START verification.
+2. Дочекатися нового exact-head source, Windows та macOS gates PR #112.
+3. Якщо gates green — видати immutable `v10.8-r9` START fast-test і записати SHA/source у Issue #61 та PR.
 
 ## NEXT
 
