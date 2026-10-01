@@ -1,4 +1,5 @@
 import ast
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,11 +11,19 @@ import output_files
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def version_key(value: str):
+    match = re.fullmatch(r"(\d+)\.(\d+)-r(\d+)(?:\.(\d+))?", value)
+    if not match:
+        raise AssertionError(f"unexpected version format: {value}")
+    major, minor, revision, subrevision = match.groups()
+    return int(major), int(minor), int(revision), int(subrevision or 0)
+
+
 class MainModularizationR6Tests(unittest.TestCase):
     def test_r6_identity_is_historical_anchor(self):
         notes = (ROOT / "docs/releases/RELEASE_NOTES_v10.8-r6.md").read_text(encoding="utf-8")
         self.assertIn("10.8-r6", notes)
-        self.assertGreaterEqual(tuple(int(part) for part in main.APP_VERSION.replace("10.8-r", "").split(".")), (6,))
+        self.assertGreaterEqual(version_key(main.APP_VERSION), (10, 8, 6, 0))
 
     def test_output_helpers_are_no_longer_implemented_in_main(self):
         source = (ROOT / "main.py").read_text(encoding="utf-8")
