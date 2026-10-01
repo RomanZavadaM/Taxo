@@ -60,9 +60,18 @@
 - одноразовий workflow для безпечного точкового patch великого `main.py` виконався успішно і самовидалився;
 - PR #113 створено draft/open; у `main` нічого не зливалося.
 
+### Regression fixes before issuance
+
+Перший r10 source gate коректно зловив дві не-бізнесові проблеми. Обидві виправлені в незамороженій r10 до issuance:
+
+- історичний `tests/test_v10_8_r9.py` більше не вимагає, щоб поточна версія назавжди дорівнювала r9; r9 лишився historical anchor, як попередні slices;
+- `START.bat` повернуто до Windows **CRLF** без втрати нового `database_runtime.py` package guard; це зберігає старий START hardening contract.
+
+Після цих виправлень запускаються нові exact-head source/Windows/macOS gates; старі невдалі/проміжні runs не є issuance evidence.
+
 ## DOING
 
-1. Дочекатися exact-head source/Windows/macOS PR gates для #113.
+1. Дочекатися нових exact-head source/Windows/macOS PR gates для #113.
 2. Виправити тільки фактичні regression/packaging проблеми, якщо gates їх покажуть.
 3. Додати immutable r10 publisher і видати fast-test тільки після повного green exact-head verify.
 4. Після issuance записати exact source, run IDs, START SHA та direct link у Issue #61 і PR #113.
