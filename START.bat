@@ -21,6 +21,7 @@ if not exist "vehicle_document_validity.py" goto :package_incomplete
 if not exist "work_rest_compliance.py" goto :package_incomplete
 if not exist "v1096_personnel_balance.py" goto :package_incomplete
 if not exist "v1097_stoir_odometer.py" goto :package_incomplete
+if not exist "v1098_orders_immutability.py" goto :package_incomplete
 if not exist "workspace.py" goto :package_incomplete
 if not exist "vehicle_documents.py" goto :package_incomplete
 if not exist "v10710_features.py" goto :package_incomplete
