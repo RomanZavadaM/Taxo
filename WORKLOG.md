@@ -8,65 +8,44 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest integrated code checkpoint:** **10.9-r1**  
 **Latest full multi-platform checkpoint:** **10.9-r1 / `v10.9-r1`**  
-**Code merge:** PR #118 → main merge `843a38243dd4eeeb02b40f8de59cc630ef4dce09`  
-**Documentation closeout:** PR #119 merged  
-**Immutable issued source:** `b0eebbf88b22fbd7761544640d9804416a328acb`  
-**START:** `Taxo_v10_9_candidate_r1_START.zip` · SHA-256 `0c819f9f3e4b31f58e6b86e2b4f1d72086901c0bd2a26a499e4c17f6de9c1766`  
-**Regression:** **730/730 OK**  
-**Full-package run:** `36857771398` — success  
-**Open PRs after closeout:** none  
-**Next code revision:** **10.9-r2**  
+**Current active slice:** **10.9-r2 — waybill integrity**  
+**Base main:** `8f18a7ccf1588556f6f3d7dca81943f87d817935`  
+**Branch:** `work/v10.9-r2-waybill-integrity`  
+**Stable remains:** `v10.3`  
 **Live ledger:** Issue #61
 
-## DONE — 10.8-r4 → 10.9-r1 cumulative integration
+## DONE — 10.9-r1 closeout
 
-За прямою командою власника кумулятивний PR #118 ретаргетовано на `main`, переведено з draft у ready і успішно злито.
+10.9-r1 повністю інтегрований і заморожений. Immutable issued source: `b0eebbf88b22fbd7761544640d9804416a328acb`; exact-source regression 730/730 OK; full-package run `36857771398` success. `main` після фінального state-sync: `8f18a7ccf1588556f6f3d7dca81943f87d817935`.
 
-У main інтегровано весь послідовний ланцюг після 10.8-r3:
+## EXTERNAL AUDIT — accepted backlog
 
-- 10.8-r4 — базовий СТОІР і контроль ТО;
-- 10.8-r5 — прогноз ТО, заявки на ремонт, компактне fleet summary;
-- 10.8-r6 — винесення neutral file-output helpers у `output_files.py`;
-- 10.8-r7 — централізований `feature_layers.py` registry;
-- 10.8-r8 — `application_context.py` та explicit infrastructure services;
-- 10.8-r9 — `backup_migration.py`;
-- 10.8-r10 — `database_runtime.py` і єдина SQLite connection policy;
-- 10.9-r1 — `data_access.py`, transaction boundary та `ApplicationServices.data`.
+Дві частини суміжного аудиту перевірені по актуальному runtime. Прийнятий backlog зафіксований у `docs/maintenance/AUDIT_EXTERNAL_REVIEW_2026-10-01.md`.
 
-Схема БД, plan/fact, фактичність Бланків, кадрова семантика й historical immutable checkpoints не переписувалися цим архітектурним ланцюгом.
+Черга після r2: документи ТЗ (`valid_from`/весь рейс) → робочий час/відпочинок → тахограф/60-денний реєстр → персонал/П-5 → СТОІР → накази → schema/versioning/connection/error-handling cleanup.
 
-## DONE — full package 10.9-r1
+Для критичних бізнес-правил новий стандарт — поведінкові тести на реальній тимчасовій SQLite-БД; source-string guards не вважаються достатньою перевіркою бізнес-поведінки.
 
-Existing immutable tag/source `v10.9-r1` не рухався. Full-package workflow використав exact source `b0eebbf88b22fbd7761544640d9804416a328acb`.
+## DOING — 10.9-r2
 
-Run `36857771398` — success:
+Ціль: **видана шляхівка та її номер є незнищуваною історією**.
 
-- exact-source verify — success;
-- Windows x64 regression/build/portable/setup — success;
-- Windows 7 SP1 x64 Python 3.8 regression, PyInstaller build, PE gate, portable/setup — success;
-- macOS arm64 — success;
-- macOS x86_64 — success;
-- final release-asset verification — success;
-- загальний `SHA256SUMS_v10_9_r1_ALL.txt` сформовано.
+Уже зроблено:
 
-Release `v10.9-r1` містить START, Windows x64, Windows 7 SP1 x64, macOS arm64/x86_64 та platform/full SHA-256 manifests.
-
-## DONE — cleanup
-
-Після кумулятивної інтеграції закрито старі open PR, які більше не мають самостійного шляху злиття: #108, #109, #110, #111, #112, #113, а також старі тупикові #103, #94, #93, #91. #107 був закритий після кумулятивної інтеграції. Після documentation closeout open PR не залишилося.
-
-#103 мав post-issuance хвіст, що розійшовся з канонічною лінією; immutable issued checkpoint збережено, але сам тупиковий PR закрито і його head не використовується як кодова база.
-
-Історичні branch refs, tags і releases зберігаються як історія. Для нової роботи вони не є джерелом коду: старт тільки від актуального `main`.
-
-## DONE — documentation closeout
-
-PR #119 синхронізував `PROJECT_STATE.md`, `WORKLOG.md`, `docs/releases/RELEASE_INDEX.md` і `docs/releases/MAIN_CHECKPOINT_v10.9-r1.md`. Historical regression anchors збережені; документаційний CI після виправлення пройшов успішно.
-
-## DOING
-
-Немає активного code slice. `10.9-r1` заморожений і повністю закритий як інтегрований checkpoint.
+- `waybill_integrity.py` — окремий доменно-інфраструктурний safeguard module;
+- startup retention більше не видаляє `worklog`, якщо на нього посилається `waybills`;
+- `waybill_number_history` накопичує всі історично використані серія+номер з `waybill_events` і поточного `waybills`;
+- DB triggers забороняють повторне використання історичного номера після анулювання/перевидачі;
+- DB triggers забороняють фізичне видалення driver/worklog, якщо існує видана шляхівка;
+- модуль підключений останнім feature layer `v1092-waybill-integrity`;
+- runtime identity і `VERSION.txt` переведені на `10.9-r2`;
+- `START.bat` і source archive guard вимагають `waybill_integrity.py`;
+- додано поведінкові SQLite-тести `tests/test_v10_9_r2.py`;
+- one-shot identity workflow успішно виконався і самовидалився (`9c23a7faf41644558e837918bb41b8f44e44d044`).
 
 ## NEXT
 
-Перший наступний code slice — **10.9-r2**, від актуального `main`. Продовжувати модульну архітектуру малими завершеними кроками: нові великі можливості підключати через чіткі межі `domain → service → repository/data access → infrastructure`, не повертаючи предметні залежності у глобальний `main.py`.
+1. Дочекатися актуального source regression на поточному head і виправити можливі регресії.
+2. Відкрити draft PR 10.9-r2 від `main`, запустити Windows/macOS gates.
+3. Додати release notes/audit r2 та exact issuance workflow лише після зелених поведінкових/регресійних тестів.
+4. Не зливати в `main` без окремої прямої команди власника.
