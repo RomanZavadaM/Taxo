@@ -16,11 +16,17 @@ from v91_features import PATTERN_2_2, PATTERN_CUSTOM, pattern_dates
 
 
 class PersonnelBalanceR6Tests(unittest.TestCase):
-    def test_r6_identity_and_runtime_registration(self):
+    def test_r6_identity_and_runtime_registration_is_historical(self):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(FEATURE_VERSION, "10.9-r6")
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8").strip(), "Version: 10.9-r6")
-        self.assertEqual(feature_layer_ids()[-1], "v1096-personnel-balance")
+        version = (root / "VERSION.txt").read_text("utf-8").strip()
+        self.assertRegex(version, r"^Version: 10\.9-r(?:[6-9]|10)$")
+        ids = feature_layer_ids()
+        self.assertIn("v1096-personnel-balance", ids)
+        self.assertGreaterEqual(ids.index("v1096-personnel-balance"), 0)
+        current = version.removeprefix("Version: ")
+        main = (root / "main.py").read_text("utf-8")
+        self.assertIn(f'APP_VERSION = "{current}"', main)
 
     def test_start_package_requires_r6_runtime(self):
         root = Path(__file__).resolve().parents[1]
