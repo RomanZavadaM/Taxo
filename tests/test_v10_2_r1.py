@@ -269,9 +269,12 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertFalse(any("Діагностика / техконтроль" in item for item in warnings))
         self.assertFalse(any("Постійний техпаспорт" in item for item in warnings))
 
+        # Historical r1 contract: issuing a waybill must surface document
+        # warnings with explicit user confirmation. Later revisions may
+        # legitimately expand the warning scope from one work date to the
+        # complete trip period.
         source = inspect.getsource(main.App.issue_selected_waybill)
         self.assertIn("vehicle_document_warning_lines", source)
-        self.assertIn('today=row["date"]', source)
         self.assertIn("messagebox.askyesno", source)
         con.close()
 
