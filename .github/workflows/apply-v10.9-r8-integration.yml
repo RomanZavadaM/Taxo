@@ -1,4 +1,4 @@
-name: Apply Taxo 10.9-r8 integration
+name: Sync Taxo 10.9-r8 canonical state
 
 on:
   push:
@@ -11,61 +11,82 @@ permissions:
   contents: write
 
 jobs:
-  apply:
+  sync-state:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: work/v10.9-r8-orders-immutability
-      - name: Apply r8 runtime identity and registration
+      - name: Sync PROJECT_STATE through issued r7 and active r8
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
 
-          version = Path('VERSION.txt')
-          text = version.read_text(encoding='utf-8')
-          if 'Version: 10.9-r7' not in text:
-              raise SystemExit('Expected r7 VERSION baseline')
-          version.write_text(text.replace('Version: 10.9-r7', 'Version: 10.9-r8', 1), encoding='utf-8')
+          p = Path('PROJECT_STATE.md')
+          text = p.read_text(encoding='utf-8')
+          text = re.sub(
+              r'- \*\*Latest issued fast-test:\*\*.*',
+              '- **Latest issued fast-test:** **10.9-r7 / `v10.9-r7`** → `88fcfb20e8632178b095a99ef9b09c86701a072e` — immutable.',
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r'- \*\*10\.9-r6 START:\*\*.*',
+              '- **10.9-r7 START:** `Taxo_v10_9_candidate_r7_START.zip`, SHA-256 `8d35d2e8af76af1a90e9a6600b5d637d80fb80a28cb4d2331e85f9a336e88222`.',
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r'- \*\*10\.9-r6 exact-source regression:\*\*.*',
+              '- **10.9-r7 exact-source regression:** **769/769 OK**; publisher `36916515063`, source `36916227610`, Windows `36916259871`, macOS `36916259785` — success.',
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r'- \*\*Active development:\*\*.*',
+              '- **Active development:** **10.9-r8 — накази / незмінність і закріплення**.',
+              text,
+              count=1,
+          )
+          text = re.sub(
+              r'- \*\*Active branch:\*\*.*',
+              '- **Active branch:** `work/v10.9-r8-orders-immutability`, based on frozen r7 source; unmerged.',
+              text,
+              count=1,
+          )
+          text = text.replace('`v10.9-r2` … `v10.9-r6` є виданими stacked fast-test ревізіями', '`v10.9-r2` … `v10.9-r7` є виданими stacked fast-test ревізіями')
+          text = text.replace('## Issued stacked fast-test line 10.9-r2 … r6', '## Issued stacked fast-test line 10.9-r2 … r7')
+          r6_bullet = '- `v10.9-r6` — персонал/баланс/П-5: вихідний не зменшує норму як неявка, історичний employment-aware mapping, тести 2/2 і 3/3.\n'
+          if '- `v10.9-r7` —' not in text:
+              text = text.replace(r6_bullet, r6_bullet + '- `v10.9-r7` — СТОІР: надійна хронологія одометра, fallback `work_date`, newest-fact forecast anchor і outlier guard.\n')
+          replacement = '''## Active slice — 10.9-r8
 
-          main = Path('main.py')
-          text = main.read_text(encoding='utf-8')
-          if text.count('APP_VERSION = "10.9-r7"') != 1:
-              raise SystemExit('Expected exactly one r7 APP_VERSION')
-          main.write_text(text.replace('APP_VERSION = "10.9-r7"', 'APP_VERSION = "10.9-r8"', 1), encoding='utf-8')
+Мета r8: зробити юридично/операційно значущі накази незмінними після затвердження/підпису та прибрати неоднозначність закріплень водія за ТЗ.
 
-          feature = Path('feature_layers.py')
-          text = feature.read_text(encoding='utf-8')
-          import_marker = 'from v1097_stoir_odometer import install as install_v1097_stoir_odometer\n'
-          layer_marker = '    FeatureLayer("v1097-stoir-odometer", install_v1097_stoir_odometer, domain="maintenance"),\n'
-          if 'install_v1098_orders_immutability' not in text:
-              if text.count(import_marker) != 1 or text.count(layer_marker) != 1:
-                  raise SystemExit('Unable to locate r7 feature registry anchors')
-              text = text.replace(import_marker, import_marker + 'from v1098_orders_immutability import install as install_v1098_orders_immutability\n', 1)
-              text = text.replace(layer_marker, layer_marker + '    FeatureLayer("v1098-orders-immutability", install_v1098_orders_immutability, domain="operations"),\n', 1)
-              feature.write_text(text, encoding='utf-8')
-
-          start = Path('START.bat')
-          data = start.read_bytes()
-          guard = b'if not exist "v1097_stoir_odometer.py" goto :package_incomplete\r\n'
-          addition = guard + b'if not exist "v1098_orders_immutability.py" goto :package_incomplete\r\n'
-          if b'v1098_orders_immutability.py' not in data:
-              if data.count(guard) != 1:
-                  raise SystemExit('Unable to locate r7 START guard with CRLF')
-              start.write_bytes(data.replace(guard, addition, 1))
+- approved/signed наказ не редагується як чернетка;
+- cancelled наказ не можна повторно затвердити;
+- непереданий `control_employee_id` не очищає відповідального;
+- assignments під approved/signed наказом незмінні;
+- конфліктні одночасні закріплення одного водія за різними ТЗ блокують approval;
+- одне однозначне попереднє закріплення завершується новим наказом окремим фактом, без переписування старого наказу;
+- runtime layer: `v1098_orders_immutability.py`;
+- behavioral tests: `tests/test_v10_9_r8.py`;
+- audit: `docs/maintenance/AUDIT_OPERATIONS_ORDERS_v10.9-r8.md`.
+'''
+          text, count = re.subn(r'## Active slice — 10\.9-r7\n.*?(?=\n## )', replacement.rstrip() + '\n', text, count=1, flags=re.S)
+          if count != 1:
+              raise SystemExit('Unable to replace active r7 slice in PROJECT_STATE.md')
+          p.write_text(text, encoding='utf-8')
           PY
-          grep -Fxq 'Version: 10.9-r8' VERSION.txt
-          grep -Fxq 'APP_VERSION = "10.9-r8"' main.py
-          grep -Fq 'v1098-orders-immutability' feature_layers.py
-          grep -Fq 'v1098_orders_immutability.py' START.bat
-      - name: Commit integration
+      - name: Commit state sync
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'Taxo CI'
           git config user.email 'actions@users.noreply.github.com'
-          git add VERSION.txt main.py feature_layers.py START.bat
+          git add PROJECT_STATE.md
           git diff --cached --quiet && exit 0
-          git commit -m 'feat: integrate 10.9-r8 immutable orders safety'
+          git commit -m 'docs: sync state through issued r7 and active r8'
           git push origin HEAD:work/v10.9-r8-orders-immutability
