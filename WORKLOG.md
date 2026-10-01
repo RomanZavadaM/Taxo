@@ -6,76 +6,63 @@
 ## CURRENT
 
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
-**Latest full multi-platform checkpoint:** Taxo **10.8-r3** / `v10.8-r3`  
-**Latest integrated code checkpoint:** **10.8-r3** — `main` `50db4b0de4d37260c2031aa96317fef61d93ea90`  
-**Latest issued fast-test:** **10.8-r9** — `v10.8-r9`, exact source `d8d29c79b82b53a0ad07df18dbbe19cf5f5d00c1`; PR #112 draft/unmerged  
-**Issued r9 START:** `Taxo_v10_8_candidate_r9_START.zip` · SHA-256 `f1d37e4111ff780f46dc3736bdec093ee31e95ba896437d9902b87967113b0ac`  
-**Active code revision:** **10.8-r10**  
-**Active branch:** `work/v10.8-r10-database-runtime-infrastructure`  
-**Active PR:** #113 — draft, base exact r9 branch  
+**Latest integrated code checkpoint:** **10.9-r1**  
+**Latest full multi-platform checkpoint:** **10.9-r1 / `v10.9-r1`**  
+**Code merge:** PR #118 → main merge `843a38243dd4eeeb02b40f8de59cc630ef4dce09`  
+**Immutable issued source:** `b0eebbf88b22fbd7761544640d9804416a328acb`  
+**START:** `Taxo_v10_9_candidate_r1_START.zip` · SHA-256 `0c819f9f3e4b31f58e6b86e2b4f1d72086901c0bd2a26a499e4c17f6de9c1766`  
+**Regression:** **730/730 OK**  
+**Full-package run:** `36857771398` — success  
+**Next code revision:** **10.9-r2**  
 **Live ledger:** Issue #61
 
-## COMPLETED CHECKPOINT — 10.8-r9
+## DONE — 10.8-r4 → 10.9-r1 cumulative integration
 
-Тема: **backup / restore / legacy migration infrastructure boundary**.
+За прямою командою власника кумулятивний PR #118 ретаргетовано на `main`, переведено з draft у ready і успішно злито.
 
-- immutable tag/prerelease `v10.8-r9`;
-- exact source `d8d29c79b82b53a0ad07df18dbbe19cf5f5d00c1`;
-- publisher run `36823663607` — success;
-- source package run `36823663413` — success;
-- exact-source regression **719/719 OK**;
-- Windows gate `36823668396` — success;
-- macOS gate `36823668394` — success;
-- START `Taxo_v10_8_candidate_r9_START.zip`;
-- START SHA-256 `f1d37e4111ff780f46dc3736bdec093ee31e95ba896437d9902b87967113b0ac`;
-- низькорівневі backup/restore/legacy migration mechanics винесені у `backup_migration.py`;
-- `main.py` зберігає compatibility wrappers;
-- PR #112 лишається draft/unmerged;
-- r9 заморожений: будь-яка наступна кодова зміна — r10.
+У main інтегровано весь послідовний ланцюг після 10.8-r3:
 
-## ACTIVE — 10.8-r10
+- 10.8-r4 — базовий СТОІР і контроль ТО;
+- 10.8-r5 — прогноз ТО, заявки на ремонт, компактне fleet summary;
+- 10.8-r6 — винесення neutral file-output helpers у `output_files.py`;
+- 10.8-r7 — централізований `feature_layers.py` registry;
+- 10.8-r8 — `application_context.py` та explicit infrastructure services;
+- 10.8-r9 — `backup_migration.py`;
+- 10.8-r10 — `database_runtime.py` і єдина SQLite connection policy;
+- 10.9-r1 — `data_access.py`, transaction boundary та `ApplicationServices.data`.
 
-Тема: **винести SQLite connection policy з великого `main.py` у вузький `database_runtime.py` без зміни DB/workspace/domain/UI semantics.**
+Схема БД, plan/fact, фактичність Бланків, кадрова семантика й historical immutable checkpoints не переписувалися цим архітектурним ланцюгом.
 
-### Base / pre-flight
+## DONE — full package 10.9-r1
 
-- r10 почато від exact issued r9 source `d8d29c79b82b53a0ad07df18dbbe19cf5f5d00c1`;
-- branch `work/v10.8-r10-database-runtime-infrastructure`;
-- draft PR #113, base `work/v10.8-r9-backup-migration-infrastructure`;
-- `VERSION.txt` і `main.APP_VERSION` = `10.8-r10`;
-- `main` не змінювався і лишається на integrated `10.8-r3`;
-- stable `v10.3` не змінюється.
+Existing immutable tag/source `v10.9-r1` не рухався. Full-package workflow використав exact source `b0eebbf88b22fbd7761544640d9804416a328acb`.
 
-### Implemented
+Run `36857771398` — success:
 
-- додано `database_runtime.py`;
-- `connect_database(path)` володіє тільки низькорівневою SQLite connection policy;
-- збережено timeout 30 с, `sqlite3.Row`, `foreign_keys=ON`, `busy_timeout=30000`, `journal_mode=DELETE`, `synchronous=FULL`;
-- `main.db()` лишився compatibility wrapper і передає актуальний `DB_PATH`, тому runtime workspace switching не кешує старий шлях;
-- `sqlite3` import у `main.py` не видалявся, бо він ще потрібний іншим exception paths;
-- `START.bat` вимагає `database_runtime.py`;
-- додано `tests/test_v10_8_r10.py`;
-- додано `docs/maintenance/AUDIT_DATABASE_RUNTIME_INFRASTRUCTURE_v10.8-r10.md`;
-- додано `docs/releases/RELEASE_NOTES_v10.8-r10.md`;
-- одноразовий workflow для безпечного точкового patch великого `main.py` виконався успішно і самовидалився;
-- PR #113 створено draft/open; у `main` нічого не зливалося.
+- exact-source verify — success;
+- Windows x64 regression/build/portable/setup — success;
+- Windows 7 SP1 x64 Python 3.8 regression, PyInstaller build, PE gate, portable/setup — success;
+- macOS arm64 — success;
+- macOS x86_64 — success;
+- final release-asset verification — success;
+- загальний `SHA256SUMS_v10_9_r1_ALL.txt` сформовано.
 
-### Regression fixes before issuance
+Release `v10.9-r1` містить START, Windows x64, Windows 7 SP1 x64, macOS arm64/x86_64 та platform/full SHA-256 manifests.
 
-Перший r10 source gate коректно зловив дві не-бізнесові проблеми. Обидві виправлені в незамороженій r10 до issuance:
+## DONE — cleanup
 
-- історичний `tests/test_v10_8_r9.py` більше не вимагає, щоб поточна версія назавжди дорівнювала r9; r9 лишився historical anchor, як попередні slices;
-- `START.bat` повернуто до Windows **CRLF** без втрати нового `database_runtime.py` package guard; це зберігає старий START hardening contract.
+Після кумулятивної інтеграції закрито старі open PR, які більше не мають самостійного шляху злиття: #108, #109, #110, #111, #112, #113, а також старі тупикові #103, #94, #93, #91. Після cleanup open PR не залишалося до створення цього documentation-closeout PR.
 
-Після цих виправлень запускаються нові exact-head source/Windows/macOS gates; старі невдалі/проміжні runs не є issuance evidence.
+#103 мав post-issuance хвіст, що розійшовся з канонічною лінією; immutable issued checkpoint збережено, але сам тупиковий PR закрито і його head не використовується як кодова база.
+
+Історичні branch refs, tags і releases не видаляються як історія. Для нової роботи вони не є джерелом коду: старт тільки від актуального `main`.
 
 ## DOING
 
-1. Дочекатися нових exact-head source/Windows/macOS PR gates для #113.
-2. Виправити тільки фактичні regression/packaging проблеми, якщо gates їх покажуть.
-3. Додати immutable r10 publisher і видати fast-test тільки після повного green exact-head verify.
-4. Після issuance записати exact source, run IDs, START SHA та direct link у Issue #61 і PR #113.
+1. Завершити documentation closeout PR для 10.9-r1.
+2. Після merge документації звірити `main`, `PROJECT_STATE.md`, `WORKLOG.md`, release index та Issue #61.
+3. Не змінювати код під уже виданим `10.9-r1`.
 
 ## NEXT
 
-Після issuance `10.8-r10` будь-яка кодова зміна — **10.9-r1**. Наступний architecture slice визначати окремо і не змішувати infrastructure extraction з domain/UI remodel. Не зливати #113, #112 чи попередні draft PR у `main` без прямої команди власника.
+Перший наступний code slice — **10.9-r2**, від актуального `main`. Продовжувати модульну архітектуру малими завершеними кроками: нові великі можливості підключати через чіткі межі `domain → service → repository/data access → infrastructure`, не повертаючи предметні залежності у глобальний `main.py`.

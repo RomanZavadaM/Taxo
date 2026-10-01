@@ -5,65 +5,67 @@
 
 ## Поточний підтверджений стан
 
-- **Stable:** Taxo 10.3 / `v10.3` — immutable.
+- **Stable:** Taxo 10.3 / `v10.3` — immutable; stable promotion не змінювався.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Latest full multi-platform checkpoint:** Taxo **10.8-r3** / `v10.8-r3`.
-- **Latest integrated code checkpoint in `main`:** Taxo **10.8-r3**.
-- **Current `main`:** `50db4b0de4d37260c2031aa96317fef61d93ea90`.
-- **Main merge for r3:** PR #105 → `db444a37ead421c8083558cfcf81ee97adc241f6`.
-- **Issued r3 tag/source:** `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd` — не пересувати.
-- **Latest issued fast-test:** Taxo **10.8-r9** / `v10.8-r9`.
-- **r9 exact source:** `d8d29c79b82b53a0ad07df18dbbe19cf5f5d00c1`.
-- **r9 START:** `Taxo_v10_8_candidate_r9_START.zip`.
-- **r9 START SHA-256:** `f1d37e4111ff780f46dc3736bdec093ee31e95ba896437d9902b87967113b0ac`.
-- **r9 regression:** 719/719 OK.
-- **r9 Windows/macOS gates:** success.
-- **Active code revision:** **10.8-r10**.
-- **Active branch:** `work/v10.8-r10-database-runtime-infrastructure`.
-- **Active draft PR:** #113, base `work/v10.8-r9-backup-migration-infrastructure`.
+- **Latest integrated code checkpoint:** Taxo **10.9-r1**.
+- **Latest full multi-platform checkpoint:** Taxo **10.9-r1** / `v10.9-r1`.
+- **Main integration:** PR #118 merged у `main`.
+- **Main merge commit:** `843a38243dd4eeeb02b40f8de59cc630ef4dce09`.
+- **Immutable issued source/tag:** `v10.9-r1` → `b0eebbf88b22fbd7761544640d9804416a328acb` — не пересувати.
+- **START:** `Taxo_v10_9_candidate_r1_START.zip`.
+- **START SHA-256:** `0c819f9f3e4b31f58e6b86e2b4f1d72086901c0bd2a26a499e4c17f6de9c1766`.
+- **Exact-source regression:** **730/730 OK**.
+- **Full-package run:** `36857771398` — success.
+- **Published packages:** Windows x64 Setup/Portable; Windows 7 SP1 x64 Setup/Portable + PE compatibility gate; macOS arm64/x86_64 Portable; START; platform/full SHA-256 manifests.
+- **Open PRs after cleanup:** none before documentation closeout PR.
+- **Next code revision:** **10.9-r2**.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `10.8-r4`…`10.8-r9` — послідовні fast-test/architecture slices, які не інтегруються у `main` без прямої команди власника.
+`v10.3` лишається stable до окремого рішення власника. `v10.9-r1` є актуальним інтегрованим повним checkpoint для тестування і розвитку, але не є автоматичним stable promotion.
 
-## Повний multi-platform checkpoint 10.8-r3
+## Що інтегровано від 10.8-r4 до 10.9-r1
 
-У `v10.8-r3` опубліковано й перевірено START, Windows x64 Portable+Setup, Windows 7 SP1 x64 Portable+Setup, macOS arm64+x86_64 Portable та checksums. Windows 7 line зберігається на CPython 3.8.10 x64 + PyInstaller 5.13.2 з PE compatibility gate.
+### СТОІР
 
-## Видані fast-test checkpoints після r3
+- модуль технічного обслуговування й ремонту ТЗ;
+- профілі ТО та фактичний одометр;
+- прогноз ТО-1/ТО-2 за наявною історією пробігу;
+- заявки на несправності/ремонт і зведення по автопарку;
+- компактний UI зі скролами та діями над вибраним рядком.
 
-Послідовність r4→r9 ведеться як chained draft PRs без злиття у `main`. Уже видані revisions immutable; наступна зміна не робиться під уже виданим номером.
+### Архітектурне розвантаження
 
-Останній виданий checkpoint — `10.8-r9`:
+Великий `main.py` поступово розвантажується без масового переписування бізнес-логіки:
 
-- PR #112 draft/open;
-- exact source `d8d29c79b82b53a0ad07df18dbbe19cf5f5d00c1`;
-- tag/prerelease `v10.8-r9`;
-- publisher `36823663607` — success;
-- source package `36823663413` — success;
-- Windows gate `36823668396` — success;
-- macOS gate `36823668394` — success;
-- regression 719/719 OK;
-- `backup_migration.py` із low-level backup/restore/legacy migration mechanics;
-- `main.py` зберігає compatibility wrappers;
-- r9 заморожений.
+- `output_files.py` — нейтральна file-output інфраструктура;
+- `feature_layers.py` — централізований ordered registry runtime layers;
+- `application_context.py` — explicit application/infrastructure services;
+- `backup_migration.py` — backup/restore/legacy migration mechanics;
+- `database_runtime.py` — єдина SQLite connection policy;
+- `data_access.py` — доменно-нейтральний data-access/transaction boundary для нових модулів.
 
-## Active 10.8-r10
+Нові великі можливості слід будувати в напрямку `domain → service → repository/data access → infrastructure`, а UI залишати зовнішнім шаром. `ApplicationServices` не є service locator для бізнес-правил.
 
-Мета r10 — ще один малий infrastructure slice: винесення SQLite connection policy з `main.py` у `database_runtime.py`.
+## Full checkpoint 10.9-r1
 
-Реалізовано:
+Full-package run `36857771398` перевірив exact immutable source та успішно сформував повний комплект:
 
-- `database_runtime.connect_database(path)`;
-- збережено чинні timeout/row factory/PRAGMA налаштування;
-- `main.db()` лишено compatibility wrapper;
-- поточний `DB_PATH` передається при кожному відкритті, тому workspace switching не змінює semantics;
-- `START.bat` вимагає новий модуль;
-- додано `tests/test_v10_8_r10.py`;
-- додано audit і release notes;
-- PR #113 створено draft/open;
-- `main` не змінювався.
+- Windows x64 Portable;
+- Windows x64 Setup;
+- Windows 7 SP1 x64 Portable;
+- Windows 7 SP1 x64 Setup;
+- macOS arm64 Portable;
+- macOS x86_64 Portable;
+- START/source;
+- окремі platform SHA-256 і загальний `SHA256SUMS_v10_9_r1_ALL.txt`.
 
-Перед issuance r10 обов'язкові exact-head regression, START package verification, Windows/macOS gates, immutable tag/prerelease та запис exact source/SHA у Issue #61 і PR #113. Після issuance r10 наступна кодова зміна — **10.9-r1**.
+Windows 7 line зберігається на CPython 3.8.10 x64 + PyInstaller 5.13.2 з PE compatibility gate. БД, SQLite, кеші, скани та персональні документи в release не включаються.
+
+## Cleanup після інтеграції
+
+Кумулятивний PR #118 замінив потребу в окремому злитті старих stacked PR. Закриті як проміжні/тупикові хвости: #108–#113, #103, #94, #93, #91; #107 був закритий після кумулятивної інтеграції. Їхні immutable tags/releases і Git history зберігаються як історичні checkpoints, але ці PR/гілки не використовуються як кодова база нової розробки.
+
+Remote branch refs можуть залишатися як історичні refs, але не є джерелом актуального коду. Нова робота починається тільки від поточного `main`.
 
 ## Чинні функціональні інваріанти
 
@@ -75,7 +77,7 @@
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - історичні tag/release checkpoints immutable;
 - старі work/tmp branches не використовуються як джерело коду для нової розробки;
-- кожен виданий revision не перевидається; після r10 наступний revision — r1 наступної minor version.
+- виданий revision не перевидається; після `10.9-r1` наступна кодова зміна — `10.9-r2`.
 
 ## Право та власність
 
@@ -89,4 +91,4 @@ Taxo — proprietary software.
 
 `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → live GitHub state → Issue #61.
 
-При суперечності документації з live GitHub перемагає фактичний GitHub state; документи синхронізуються у поточній незамороженій ревізії.
+При суперечності документації з live GitHub перемагає фактичний GitHub state. Нову кодову роботу починати від актуального `main`, а не від historical work/candidate/tmp branches.
