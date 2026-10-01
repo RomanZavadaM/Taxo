@@ -1,0 +1,71 @@
+name: Apply Taxo 10.9-r7 integration
+
+on:
+  push:
+    branches:
+      - work/v10.9-r7-stoir-odometer-safety
+    paths:
+      - '.github/workflows/apply-v10.9-r7-integration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.9-r7-stoir-odometer-safety
+      - name: Apply r7 runtime identity and registration
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          version = Path('VERSION.txt')
+          text = version.read_text(encoding='utf-8')
+          if 'Version: 10.9-r6' not in text:
+              raise SystemExit('Expected r6 VERSION baseline')
+          version.write_text(text.replace('Version: 10.9-r6', 'Version: 10.9-r7', 1), encoding='utf-8')
+
+          main = Path('main.py')
+          text = main.read_text(encoding='utf-8')
+          if text.count('APP_VERSION = "10.9-r6"') != 1:
+              raise SystemExit('Expected exactly one r6 APP_VERSION')
+          main.write_text(text.replace('APP_VERSION = "10.9-r6"', 'APP_VERSION = "10.9-r7"', 1), encoding='utf-8')
+
+          feature = Path('feature_layers.py')
+          text = feature.read_text(encoding='utf-8')
+          import_marker = 'from v1096_personnel_balance import install as install_v1096_personnel_balance\n'
+          layer_marker = '    FeatureLayer("v1096-personnel-balance", install_v1096_personnel_balance, domain="personnel"),\n'
+          if 'install_v1097_stoir_odometer' not in text:
+              if text.count(import_marker) != 1 or text.count(layer_marker) != 1:
+                  raise SystemExit('Unable to locate r6 feature registry anchors')
+              text = text.replace(import_marker, import_marker + 'from v1097_stoir_odometer import install as install_v1097_stoir_odometer\n', 1)
+              text = text.replace(layer_marker, layer_marker + '    FeatureLayer("v1097-stoir-odometer", install_v1097_stoir_odometer, domain="maintenance"),\n', 1)
+              feature.write_text(text, encoding='utf-8')
+
+          start = Path('START.bat')
+          data = start.read_bytes()
+          guard = b'if not exist "v1096_personnel_balance.py" goto :package_incomplete\r\n'
+          addition = guard + b'if not exist "v1097_stoir_odometer.py" goto :package_incomplete\r\n'
+          if b'v1097_stoir_odometer.py' not in data:
+              if data.count(guard) != 1:
+                  raise SystemExit('Unable to locate r6 START guard with CRLF')
+              start.write_bytes(data.replace(guard, addition, 1))
+          PY
+          grep -Fxq 'Version: 10.9-r7' VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.9-r7"' main.py
+          grep -Fq 'v1097-stoir-odometer' feature_layers.py
+          grep -Fq 'v1097_stoir_odometer.py' START.bat
+      - name: Commit integration to r7 branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Taxo CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add VERSION.txt main.py feature_layers.py START.bat
+          git diff --cached --quiet && exit 0
+          git commit -m 'feat: integrate 10.9-r7 STOIR odometer safety'
+          git push origin HEAD:work/v10.9-r7-stoir-odometer-safety
