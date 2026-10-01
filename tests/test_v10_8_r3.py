@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import date, datetime
 from pathlib import Path
+import re
 import sqlite3
 import unittest
 
@@ -52,7 +53,6 @@ class VehicleStatementRequisitesTests(unittest.TestCase):
             """
         )
         statement.ensure_schema_on_connection(self.con)
-        # Reproduce the current runtime patch without constructing the full Tk app.
         statement._iso_day = r3.normalize_statement_day
 
     def tearDown(self):
@@ -92,15 +92,20 @@ class VehicleStatementRequisitesTests(unittest.TestCase):
 
 
 class RuntimeIdentityTests(unittest.TestCase):
-    def test_r3_is_outermost_runtime_layer(self):
+    def test_r3_remains_before_newer_runtime_layers(self):
         source = Path("taxo_app.py").read_text("utf-8")
         self.assertIn("from v1083_features import install as install_v1083", source)
         self.assertLess(source.index("App = install_v1082(core, App)"), source.index("App = install_v1083(core, App)"))
+        if "App = install_v1084(core, App)" in source:
+            self.assertLess(source.index("App = install_v1083(core, App)"), source.index("App = install_v1084(core, App)"))
 
-    def test_r3_identity(self):
+    def test_r3_identity_is_historical_anchor(self):
         self.assertEqual(r3.APP_VERSION, "10.8-r3")
-        self.assertIn("10.8-r3", Path("VERSION.txt").read_text("utf-8"))
-        self.assertIn("10.8-r3", Path("main.py").read_text("utf-8"))
+        self.assertIn('APP_VERSION = "10.8-r3"', Path("v1083_features.py").read_text("utf-8"))
+        current = Path("VERSION.txt").read_text("utf-8")
+        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", current)
+        self.assertIsNotNone(match)
+        self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 8, 3))
         self.assertIn("v1083_features.py", Path("START.bat").read_text("utf-8"))
 
 

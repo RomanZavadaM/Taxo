@@ -20,7 +20,7 @@ from workspace import paths_for, resolved_path, stored_path
 DOCUMENT_TYPES = {
     "insurance": "Страховка",
     "additional_liability_insurance": "ДЦВ страхування",
-    "inspection": "Діагностика / техконтроль",
+    "inspection": "Протокол ОТК / перевірки технічного стану",
     "temporary_registration": "Тимчасовий реєстраційний документ",
     "registration_certificate": "Постійний техпаспорт / свідоцтво про реєстрацію",
     "tachograph_inspection_protocol": "Протокол перевірки тахографа",

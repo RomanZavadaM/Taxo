@@ -74,6 +74,17 @@ except ImportError:
     build_waybill_pdf = None
 
 from document_viewer import open_document
+from output_files import (
+    open_external,
+    report_font_candidates,
+    is_file_access_error as _is_file_access_error,
+    next_output_copy_path as _next_output_copy_path,
+    ask_locked_file_action as _ask_locked_file_action,
+    friendly_file_error as _friendly_file_error,
+    write_output_file as _write_output_file,
+)
+import backup_migration as backup_store
+from database_runtime import connect_database as _connect_database
 from vehicle_documents import (
     ensure_vehicle_documents_schema,
     open_vehicle_document_control,
@@ -86,7 +97,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.8-r3"
+APP_VERSION = "10.9-r1"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -111,6 +122,18 @@ TEMPLATE_PATH = APP_DIR / "Бланк підтвердження.docx"
 ATT_VISUAL_TEMPLATE_PATH = APP_DIR / "attestation_visual_template.pdf"
 
 ACTIVE_WORKSPACE_LOCK = None
+
+def write_output_file(writer, target_path, parent=None, kind="файл", error_title="Помилка файла"):
+    """Compatibility wrapper; implementation lives in output_files.py."""
+    return _write_output_file(
+        writer,
+        target_path,
+        parent=parent,
+        kind=kind,
+        error_title=error_title,
+        append_error_log=_append_error_log,
+    )
+
 
 
 def configure_runtime_workspace(root):
@@ -199,35 +222,6 @@ def real_data_path(value):
     return resolved_path(value,DATA_ROOT)
 
 
-def open_external(path):
-    """Open a file or directory with the platform's default application."""
-    target = str(path)
-    if os.name == "nt":
-        os.startfile(target)
-    elif sys.platform == "darwin":
-        subprocess.Popen(["open", target])
-    else:
-        subprocess.Popen(["xdg-open", target])
-
-
-def report_font_candidates():
-    """System fonts suitable for Ukrainian text in generated PDF reports."""
-    candidates = [
-        r"C:\Windows\Fonts\arial.ttf",
-        r"C:\Windows\Fonts\calibri.ttf",
-    ]
-    if sys.platform == "darwin":
-        candidates.extend([
-            str(Path.home() / "Library/Fonts/Arial.ttf"),
-            "/Library/Fonts/Arial.ttf",
-            "/Library/Fonts/Arial Unicode.ttf",
-            "/System/Library/Fonts/Supplemental/Arial.ttf",
-            "/System/Library/Fonts/Supplemental/Times New Roman.ttf",
-        ])
-    candidates.append("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-    return candidates
-
-
 def _append_error_log(context, exc, tb=None):
     """Записує технічні подробиці локально, не засмічуючи діалог користувача traceback-ом."""
     try:
@@ -252,301 +246,36 @@ def _append_error_log(context, exc, tb=None):
 # повторити, створити копію з новою назвою або скасувати операцію.
 # ---------------------------------------------------------------------------
 
-def _is_file_access_error(exc, path=None):
-    """Повертає True для типових помилок блокування/доступу до файла."""
-    if isinstance(exc, PermissionError):
-        return True
-    if not isinstance(exc, OSError):
-        return False
-    if getattr(exc, "winerror", None) in (5, 32, 33):
-        return True
-    if getattr(exc, "errno", None) in (1, 13, 16):
-        return True
-    return False
-
-
-def _next_output_copy_path(path):
-    """Підбирає вільну назву поруч із зайнятим файлом."""
-    path=Path(path)
-    stamp=datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    candidate=path.with_name(f"{path.stem}_{stamp}{path.suffix}")
-    if not candidate.exists():
-        return candidate
-    for n in range(2,1000):
-        candidate=path.with_name(f"{path.stem}_{stamp}_{n}{path.suffix}")
-        if not candidate.exists():
-            return candidate
-    raise RuntimeError("Не вдалося підібрати вільну назву вихідного файла.")
-
-
-def _ask_locked_file_action(parent, path, kind="файл"):
-    """Модальний діалог: retry / copy / cancel."""
-    result={"value":"cancel"}
-    win=tk.Toplevel(parent) if parent is not None else tk.Toplevel()
-    win.title("Файл використовується іншою програмою")
-    win.resizable(False,False)
-    if parent is not None:
-        try:
-            win.transient(parent)
-        except Exception:
-            pass
-    body=ttk.Frame(win,padding=16)
-    body.pack(fill="both",expand=True)
-    ttk.Label(
-        body,
-        text=f"Не вдалося перезаписати {kind}:",
-        font=("TkDefaultFont",10,"bold")
-    ).pack(anchor="w")
-    ttk.Label(
-        body,
-        text=str(path),
-        wraplength=620,
-        justify="left"
-    ).pack(anchor="w",pady=(6,10))
-    ttk.Label(
-        body,
-        text=(
-            "Найчастіше це означає, що файл зараз відкритий у PDF-переглядачі, "
-            "Excel або іншій програмі. Закрийте його і натисніть «Повторити».\n\n"
-            "Якщо не хочете закривати відкритий файл, Taxo може створити нову копію "
-            "поруч із ним з унікальною назвою."
-        ),
-        wraplength=620,
-        justify="left"
-    ).pack(anchor="w")
-
-    buttons=ttk.Frame(body)
-    buttons.pack(fill="x",pady=(16,0))
-
-    def choose(value):
-        result["value"]=value
-        win.destroy()
-
-    ttk.Button(buttons,text="Скасувати",command=lambda:choose("cancel")).pack(side="right",padx=(6,0))
-    ttk.Button(buttons,text="Створити копію",command=lambda:choose("copy")).pack(side="right",padx=6)
-    ttk.Button(buttons,text="Повторити",command=lambda:choose("retry")).pack(side="right")
-    win.protocol("WM_DELETE_WINDOW",lambda:choose("cancel"))
-    try:
-        win.grab_set()
-        win.update_idletasks()
-        if parent is not None:
-            x=parent.winfo_rootx()+max(0,(parent.winfo_width()-win.winfo_reqwidth())//2)
-            y=parent.winfo_rooty()+max(0,(parent.winfo_height()-win.winfo_reqheight())//2)
-            win.geometry(f"+{x}+{y}")
-    except Exception:
-        pass
-    win.wait_window()
-    return result["value"]
-
-
-def _friendly_file_error(exc, path, kind="файл"):
-    path=Path(path)
-    if isinstance(exc, FileNotFoundError):
-        return f"Не знайдено файл або папку для створення {kind}:\n{path}"
-    if isinstance(exc, IsADirectoryError):
-        return f"Замість файла вибрано папку:\n{path}"
-    if isinstance(exc, OSError) and getattr(exc, "errno", None)==28:
-        return f"Недостатньо вільного місця для створення {kind}:\n{path}"
-    if _is_file_access_error(exc,path):
-        return (
-            f"Немає доступу до {kind}:\n{path}\n\n"
-            "Перевірте права доступу до папки або закрийте програму, яка використовує файл."
-        )
-    return f"Не вдалося створити {kind}:\n{path}\n\n{type(exc).__name__}: {exc}"
-
-
-def write_output_file(writer, target_path, parent=None, kind="файл", error_title="Помилка файла"):
-    """Виконує writer(path) з нормальною обробкою блокування файла.
-
-    Повертає фактичний Path. Якщо користувач скасував операцію — None.
-    Інші помилки показуються один раз у зрозумілому вигляді і теж повертають None.
-    """
-    current=Path(target_path)
-    while True:
-        try:
-            current.parent.mkdir(parents=True,exist_ok=True)
-            writer(current)
-            return current
-        except Exception as exc:
-            # Відкритий існуючий файл — найтиповіший випадок на Windows.
-            # Якщо файла ще немає, PermissionError швидше означає права на папку,
-            # тому не пропонуємо безглуздо створювати копію в тій самій папці.
-            locked_existing=(current.exists() and _is_file_access_error(exc,current))
-            if locked_existing:
-                action=_ask_locked_file_action(parent,current,kind)
-                if action=="retry":
-                    continue
-                if action=="copy":
-                    current=_next_output_copy_path(current)
-                    continue
-                return None
-            log_path=_append_error_log(f"Створення {kind}: {current}",exc)
-            msg=_friendly_file_error(exc,current,kind)
-            if log_path is not None:
-                msg += f"\n\nТехнічні подробиці записано у:\n{log_path}"
-            messagebox.showerror(
-                error_title,
-                msg,
-                parent=parent
-            )
-            return None
-
-
 def find_legacy_database():
-    """Знаходить стару локальну БД першого запуску для одноразової міграції."""
-    candidates = [
-        APP_DIR / "driver_worktime.sqlite3",
-        APP_DIR.parent / "driver_worktime.sqlite3",
-    ]
-    # Найчастіші сусідні папки попередніх версій. Не чіпаємо інші дані.
-    for base in (APP_DIR.parent, APP_DIR.parent / "blank"):
-        for name in ("driver_worktime_app_v2", "driver_worktime_app_v3", "driver_worktime_app_v4", "driver_worktime_app"):
-            candidates.append(base / name / "driver_worktime.sqlite3")
-    seen=set()
-    for p in candidates:
-        p=p.resolve()
-        if p in seen:
-            continue
-        seen.add(p)
-        if p.exists() and p.resolve() != DB_PATH.resolve():
-            return p
-    return None
+    """Compatibility wrapper; implementation lives in backup_migration.py."""
+    return backup_store.find_legacy_database(APP_DIR, DB_PATH)
 
 
 def migrate_legacy_database():
-    """Одноразово копіює існуючу БД у постійний каталог."""
-    if DB_PATH.exists():
-        return False, None
-    old = find_legacy_database()
-    if not old:
-        return False, None
-    tmp = DB_PATH.with_suffix(".sqlite3.migrating")
-    shutil.copy2(old, tmp)
-    tmp.replace(DB_PATH)
-    return True, old
+    """Compatibility wrapper for one-time legacy DB migration."""
+    return backup_store.migrate_legacy_database(APP_DIR, DB_PATH)
 
 
 def backup_database(label="auto"):
-    """Створює узгоджену SQLite-копію та зберігає останні 30 резервних копій."""
-    if not DB_PATH.exists():
-        return None
-    stamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    target = BACKUP_DIR / f"driver_worktime_{label}_{stamp}.sqlite3"
-    src_con = sqlite3.connect(str(DB_PATH),timeout=30)
-    dst_con = sqlite3.connect(str(target),timeout=30)
-    try:
-        src_con.execute("PRAGMA busy_timeout=30000")
-        src_con.backup(dst_con)
-        dst_con.commit()
-    finally:
-        dst_con.close()
-        src_con.close()
-    backups = sorted(BACKUP_DIR.glob("driver_worktime_*.sqlite3"), key=lambda p: p.stat().st_mtime, reverse=True)
-    for old in backups[30:]:
-        try:
-            old.unlink()
-        except OSError:
-            pass
-    return target
+    """Compatibility wrapper for the historical SQLite backup contract."""
+    return backup_store.backup_database(DB_PATH, BACKUP_DIR, label)
 
 
 def auto_backup_database():
-    """Не частіше одного разу на добу при запуску."""
-    if not DB_PATH.exists():
-        return None
-    recent = [p for p in BACKUP_DIR.glob("driver_worktime_auto_*.sqlite3") if (datetime.now().timestamp() - p.stat().st_mtime) < 86400]
-    if recent:
-        return recent[0]
-    return backup_database("auto")
+    """Compatibility wrapper for the once-per-day startup backup."""
+    return backup_store.auto_backup_database(DB_PATH, BACKUP_DIR)
 
 
 def validate_database_file(path):
-    """Перевіряє, що файл є справною та сумісною БД Taxo."""
-    path=Path(path)
-    if not path.exists() or not path.is_file():
-        return False, "Файл не знайдено."
-
-    con=None
-    try:
-        con=sqlite3.connect(str(path),timeout=30)
-        con.execute("PRAGMA query_only=ON")
-        con.execute("PRAGMA busy_timeout=30000")
-        quick=con.execute("PRAGMA quick_check").fetchone()
-        if not quick or str(quick[0]).lower()!="ok":
-            return False, f"SQLite quick_check: {quick[0] if quick else 'невідомий результат'}"
-
-        tables={
-            r[0] for r in con.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
-        }
-        required={"drivers","worklog","company"}
-        missing=sorted(required-tables)
-        if missing:
-            return False, "Не схожа на базу Taxo. Відсутні таблиці: " + ", ".join(missing)
-
-        driver_count=con.execute("SELECT COUNT(*) FROM drivers").fetchone()[0]
-        work_count=con.execute("SELECT COUNT(*) FROM worklog").fetchone()[0]
-        return True, f"База справна. Водіїв: {driver_count}; записів табеля: {work_count}."
-    except Exception as e:
-        return False, str(e)
-    finally:
-        if con is not None:
-            con.close()
+    """Compatibility wrapper for Taxo database validation."""
+    return backup_store.validate_database_file(path)
 
 
 def restore_database_from_file(source_path):
-    """Атомарно відновлює основну БД із вибраної резервної копії."""
-    source=Path(source_path)
-    ok,details=validate_database_file(source)
-    if not ok:
-        raise ValueError(f"Обрана резервна копія не пройшла перевірку:\n{details}")
-
-    safety_backup=backup_database("before_restore") if DB_PATH.exists() else None
-    temp_target=DB_PATH.with_suffix(".sqlite3.restore_tmp")
-
-    try:
-        if temp_target.exists():
-            temp_target.unlink()
-
-        src_con=sqlite3.connect(str(source),timeout=30)
-        dst_con=sqlite3.connect(str(temp_target),timeout=30)
-        try:
-            src_con.execute("PRAGMA query_only=ON")
-            src_con.execute("PRAGMA busy_timeout=30000")
-            src_con.backup(dst_con)
-            dst_con.commit()
-        finally:
-            dst_con.close()
-            src_con.close()
-
-        ok2,details2=validate_database_file(temp_target)
-        if not ok2:
-            raise ValueError(f"Копія після перенесення не пройшла перевірку:\n{details2}")
-
-        os.replace(temp_target,DB_PATH)
-        init_db()
-
-        final_ok,final_details=validate_database_file(DB_PATH)
-        if not final_ok:
-            raise ValueError(f"Відновлена база не пройшла фінальну перевірку:\n{final_details}")
-
-        return safety_backup, final_details
-
-    except Exception:
-        try:
-            if temp_target.exists():
-                temp_target.unlink()
-        except OSError:
-            pass
-
-        if safety_backup and Path(safety_backup).exists():
-            try:
-                shutil.copy2(safety_backup,DB_PATH)
-                init_db()
-            except Exception:
-                pass
-        raise
+    """Compatibility wrapper for atomic restore with safety backup."""
+    return backup_store.restore_database_from_file(
+        source_path, DB_PATH, BACKUP_DIR, init_db
+    )
 
 ACTIVITIES = {
     14: "Тимчасова непрацездатність",
@@ -608,16 +337,8 @@ def current_transport_profile():
 
 
 def db():
-    con = sqlite3.connect(DB_PATH,timeout=30)
-    con.row_factory = sqlite3.Row
-    con.execute("PRAGMA foreign_keys=ON")
-    con.execute("PRAGMA busy_timeout=30000")
-    # WAL не є безпечним вибором для мережевих файлових систем. Звичайний
-    # rollback journal разом із блокуванням всього сховища підтримує почергову
-    # роботу встановлених копій Taxo.
-    con.execute("PRAGMA journal_mode=DELETE")
-    con.execute("PRAGMA synchronous=FULL")
-    return con
+    """Compatibility wrapper; SQLite policy lives in database_runtime.py."""
+    return _connect_database(DB_PATH)
 
 
 def _driver_role_mode(driver):

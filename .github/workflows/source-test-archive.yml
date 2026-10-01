@@ -75,8 +75,16 @@ jobs:
             requirements.txt
             taxo_app.py
             main.py
+            application_context.py
+            feature_layers.py
+            output_files.py
+            backup_migration.py
+            database_runtime.py
+            data_access.py
             workspace.py
             vehicle_documents.py
+            vehicle_maintenance.py
+            vehicle_maintenance_ui.py
             document_viewer.py
             00_README_START.txt
             release_naming.py
@@ -133,6 +141,8 @@ jobs:
             v1081_features.py
             v1082_features.py
             v1083_features.py
+            v1084_features.py
+            v1085_features.py
             work_regime.py
             branding.py
             branding_asset.py
