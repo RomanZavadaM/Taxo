@@ -1,0 +1,175 @@
+name: Apply Taxo 10.9-r5 tachograph activity safety
+
+on:
+  push:
+    branches:
+      - work/v10.9-r5-tachograph-activity-safety
+    paths:
+      - .github/workflows/apply-v10.9-r5-activity-safety.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.9-r5-tachograph-activity-safety
+          fetch-depth: 0
+      - name: Apply r5 source changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('activity_register_60.py')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('"""Taxo v8.70 r11 — 60-day minute-by-minute driver activity register.', '"""Taxo 10.9-r5 — 60-day minute-by-minute driver activity register.', 1)
+          old = '''                assign_span(
+                    grid, begin, finish, _tacho_activity(row["activity"]), source,
+                    100 if manual else 80,
+                    row["note"] or "", vlabel,
+                )'''
+          new = '''                # An automatic recognition is only a candidate. It may fill an
+                # otherwise weak day-type/background area, but it must never overwrite
+                # an attestation, planned/factual work interval or confirmed driving.
+                # Manual operator confirmation remains the strongest source.
+                assign_span(
+                    grid, begin, finish, _tacho_activity(row["activity"]), source,
+                    100 if manual else 40,
+                    row["note"] or "", vlabel,
+                )'''
+          if old not in s:
+              raise SystemExit('tachograph priority anchor not found')
+          s = s.replace(old, new, 1)
+
+          old = '''        if first is not None:
+            for minute in range(MINUTES_PER_DAY):
+                if cells[minute] is not None:
+                    continue
+                if first <= minute <= last:
+                    cells[minute] = _cell(
+                        "Перерва", "Розраховано з меж активності", 10,
+                        "Проміжок між зафіксованими активностями",
+                    )
+                else:
+                    cells[minute] = _cell(
+                        "Відпочинок", "Розраховано поза межами активності", 10,
+                        "Поза першою/останньою зафіксованою активністю дня",
+                    )
+
+        for minute in range(MINUTES_PER_DAY):
+            if cells[minute] is None:
+                cells[minute] = _cell("Невизначено", "Немає достатніх даних", 0)'''
+          new = '''        # Missing minutes are never promoted to legal rest/break merely because
+        # they are located inside or outside an observed activity envelope. That
+        # inference can hide missing tachograph/work data. Only an explicit source
+        # (including an explicit tachograph rest mark above) may classify rest.
+        for minute in range(MINUTES_PER_DAY):
+            if cells[minute] is not None:
+                continue
+            inside = first is not None and first <= minute <= last
+            cells[minute] = _cell(
+                "Невизначено",
+                "Немає достатніх даних",
+                0,
+                "Проміжок між зафіксованими активностями" if inside
+                else "Поза зафіксованими активностями; відпочинок не припускається автоматично",
+            )'''
+          if old not in s:
+              raise SystemExit('classification anchor not found')
+          s = s.replace(old, new, 1)
+          s = s.replace('    - uncovered minutes inside an observed work envelope become a calculated break;\n    - uncovered minutes outside an observed work envelope become calculated rest;\n', '    - uncovered minutes remain undefined even inside/outside an observed envelope;\n    - only explicit source data may classify rest or a break;\n', 1)
+          p.write_text(s, encoding='utf-8')
+
+          main = Path('main.py').read_text(encoding='utf-8')
+          if 'APP_VERSION = "10.9-r4"' not in main:
+              raise SystemExit('main version anchor not found')
+          Path('main.py').write_text(main.replace('APP_VERSION = "10.9-r4"', 'APP_VERSION = "10.9-r5"', 1), encoding='utf-8')
+          Path('VERSION.txt').write_text('Version: 10.9-r5\n', encoding='utf-8')
+
+          tests = r'''# -*- coding: utf-8 -*-
+import unittest
+from datetime import date, datetime, time, timedelta
+from pathlib import Path
+
+import activity_register_60 as register
+
+
+class ActivityRegisterSafetyR5Tests(unittest.TestCase):
+    def test_missing_minutes_are_not_inferred_as_rest_or_break(self):
+        day = date(2026, 10, 1)
+        grid = register.new_grid(day, day)
+        register.assign_span(
+            grid,
+            datetime.combine(day, time(8, 0)),
+            datetime.combine(day, time(9, 0)),
+            "Керування", "confirmed", 70,
+        )
+        register.assign_span(
+            grid,
+            datetime.combine(day, time(10, 0)),
+            datetime.combine(day, time(11, 0)),
+            "Інша робота", "confirmed", 65,
+        )
+        register.classify_and_fill(grid)
+        self.assertEqual(grid[day][9 * 60 + 30]["activity"], "Невизначено")
+        self.assertEqual(grid[day][7 * 60]["activity"], "Невизначено")
+        self.assertEqual(grid[day][12 * 60]["activity"], "Невизначено")
+
+    def test_explicit_tachograph_rest_is_still_classified(self):
+        day = date(2026, 10, 1)
+        grid = register.new_grid(day, day)
+        register.assign_span(grid, datetime.combine(day,time(8)), datetime.combine(day,time(9)), "Керування", "manual", 100)
+        register.assign_span(grid, datetime.combine(day,time(9)), datetime.combine(day,time(9,30)), register.RAW_REST, "manual", 100)
+        register.assign_span(grid, datetime.combine(day,time(9,30)), datetime.combine(day,time(10)), "Керування", "manual", 100)
+        register.assign_span(grid, datetime.combine(day,time(18)), datetime.combine(day,time(19)), register.RAW_REST, "manual", 100)
+        register.classify_and_fill(grid)
+        self.assertEqual(grid[day][9 * 60 + 10]["activity"], "Перерва")
+        self.assertEqual(grid[day][18 * 60 + 10]["activity"], "Відпочинок")
+
+    def test_auto_candidate_priority_cannot_replace_confirmed_work(self):
+        day = date(2026, 10, 1)
+        grid = register.new_grid(day, day)
+        register.assign_minute(grid[day], 500, "Інша робота", "Факт роботи", 65)
+        register.assign_minute(grid[day], 500, "Керування", "ТАХО — авто-кандидат", 40)
+        self.assertEqual(grid[day][500]["activity"], "Інша робота")
+        self.assertEqual(grid[day][500]["source"], "Факт роботи")
+
+    def test_manual_tachograph_can_replace_lower_priority_source(self):
+        day = date(2026, 10, 1)
+        grid = register.new_grid(day, day)
+        register.assign_minute(grid[day], 500, "Інша робота", "Факт роботи", 65)
+        register.assign_minute(grid[day], 500, "Керування", "ТАХО — підтверджено вручну", 100)
+        self.assertEqual(grid[day][500]["activity"], "Керування")
+
+    def test_source_contains_safe_auto_priority(self):
+        source = Path(register.__file__).read_text(encoding='utf-8')
+        self.assertIn('100 if manual else 40', source)
+        self.assertNotIn('100 if manual else 80', source)
+        self.assertIn('відпочинок не припускається автоматично', source)
+
+    def test_r5_identity(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual((root/'VERSION.txt').read_text('utf-8').strip(), 'Version: 10.9-r5')
+        self.assertIn('APP_VERSION = "10.9-r5"', (root/'main.py').read_text('utf-8'))
+
+
+if __name__ == '__main__':
+    unittest.main()
+'''
+          Path('tests/test_v10_9_r5.py').write_text(tests, encoding='utf-8')
+
+          audit = '''# AUDIT — тахограф і 60-денний реєстр діяльності, Taxo 10.9-r5\n\n## Підтверджений ризик\n\n60-денний реєстр декларував, що відсутні дані мають лишатися `Невизначено`, але фактичний алгоритм автоматично перетворював незаповнені хвилини між активностями на `Перерва`, а хвилини поза першою/останньою активністю — на `Відпочинок`. Це могло створювати юридично значущий «відпочинок» без джерела.\n\nДругий ризик: автоматичний кандидат розпізнавання тахошайби мав пріоритет 80 і міг перекрити табельні/фактичні інтервали з пріоритетом 60–70, хоча сам модуль називає автоматичне розпізнавання лише кандидатом для перевірки людиною.\n\n## Виправлено\n\n- відсутні хвилини тепер завжди `Невизначено`;\n- положення хвилини всередині/поза observed envelope використовується тільки для пояснювальної примітки, не для присвоєння відпочинку;\n- явний відпочинок тахографа зберігається: всередині активної зміни він класифікується як `Перерва`, поза нею — як `Відпочинок`;\n- автоматичний TАХО-кандидат має пріоритет 40: він не може перекрити бланк підтвердження (50), план/факт роботи (60/65) або межі керування (70);\n- вручну підтверджений TАХО-інтервал лишається найсильнішим джерелом з пріоритетом 100.\n\n## Інваріант\n\nПрограма не має права домислювати юридичний відпочинок із самого факту відсутності запису. `Невизначено` є коректнішим і безпечнішим результатом, доки немає явного джерела.\n'''
+          Path('docs/maintenance/AUDIT_TACHOGRAPH_ACTIVITY_SAFETY_v10.9-r5.md').write_text(audit, encoding='utf-8')
+
+          notes = '''# Taxo 10.9-r5 — тахограф / 60-денний реєстр\n\nFast-test ревізія поверх immutable `v10.9-r4`. Stable `v10.3` не змінюється.\n\n- реєстр більше не перетворює відсутні дані на відпочинок або перерву;\n- невідомі хвилини показуються як `Невизначено`;\n- явні позначки відпочинку з тахографа лишаються явним джерелом;\n- непідтверджений авто-кандидат тахографа більше не перекриває підтверджені/табельні джерела;\n- ручне підтвердження оператора лишається найвищим пріоритетом.\n\nЗлиття в `main` — тільки за окремою командою власника.\n'''
+          Path('docs/releases/RELEASE_NOTES_v10.9-r5.md').write_text(notes, encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add activity_register_60.py main.py VERSION.txt tests/test_v10_9_r5.py docs/maintenance/AUDIT_TACHOGRAPH_ACTIVITY_SAFETY_v10.9-r5.md docs/releases/RELEASE_NOTES_v10.9-r5.md
+          git commit -m 'Harden tachograph activity evidence in 10.9-r5'
+          git push origin HEAD:work/v10.9-r5-tachograph-activity-safety
