@@ -156,6 +156,7 @@ def _install_monthly_balance_overlay(core):
 
 def install(core, base_app):
     """Install additive r6 safety behaviour without schema changes."""
+    core.APP_VERSION = FEATURE_VERSION
     original = personnel._employee_absence_adjustment_minutes
     personnel._employee_absence_adjustment_minutes = _safe_absence_adjustment(core, original)
     _install_monthly_balance_overlay(core)
