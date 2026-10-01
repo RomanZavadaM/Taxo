@@ -66,6 +66,7 @@ from v1082_features import install as install_v1082
 from v1083_features import install as install_v1083
 from v1084_features import install as install_v1084
 from v1085_features import install as install_v1085
+from waybill_integrity import install as install_waybill_integrity
 
 Installer = Callable[..., type]
 
@@ -132,6 +133,7 @@ FEATURE_LAYERS: Tuple[FeatureLayer, ...] = (
     FeatureLayer("v1083", install_v1083),
     FeatureLayer("v1084-stoir", install_v1084, domain="maintenance"),
     FeatureLayer("v1085-stoir", install_v1085, domain="maintenance"),
+    FeatureLayer("v1092-waybill-integrity", install_waybill_integrity, domain="waybills"),
 )
 
 
