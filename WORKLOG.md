@@ -9,10 +9,12 @@
 **Latest integrated code checkpoint:** **10.9-r1**  
 **Latest full multi-platform checkpoint:** **10.9-r1 / `v10.9-r1`**  
 **Code merge:** PR #118 → main merge `843a38243dd4eeeb02b40f8de59cc630ef4dce09`  
+**Documentation closeout:** PR #119 merged  
 **Immutable issued source:** `b0eebbf88b22fbd7761544640d9804416a328acb`  
 **START:** `Taxo_v10_9_candidate_r1_START.zip` · SHA-256 `0c819f9f3e4b31f58e6b86e2b4f1d72086901c0bd2a26a499e4c17f6de9c1766`  
 **Regression:** **730/730 OK**  
 **Full-package run:** `36857771398` — success  
+**Open PRs after closeout:** none  
 **Next code revision:** **10.9-r2**  
 **Live ledger:** Issue #61
 
@@ -51,17 +53,19 @@ Release `v10.9-r1` містить START, Windows x64, Windows 7 SP1 x64, macOS a
 
 ## DONE — cleanup
 
-Після кумулятивної інтеграції закрито старі open PR, які більше не мають самостійного шляху злиття: #108, #109, #110, #111, #112, #113, а також старі тупикові #103, #94, #93, #91. Після cleanup open PR не залишалося до створення цього documentation-closeout PR.
+Після кумулятивної інтеграції закрито старі open PR, які більше не мають самостійного шляху злиття: #108, #109, #110, #111, #112, #113, а також старі тупикові #103, #94, #93, #91. #107 був закритий після кумулятивної інтеграції. Після documentation closeout open PR не залишилося.
 
 #103 мав post-issuance хвіст, що розійшовся з канонічною лінією; immutable issued checkpoint збережено, але сам тупиковий PR закрито і його head не використовується як кодова база.
 
-Історичні branch refs, tags і releases не видаляються як історія. Для нової роботи вони не є джерелом коду: старт тільки від актуального `main`.
+Історичні branch refs, tags і releases зберігаються як історія. Для нової роботи вони не є джерелом коду: старт тільки від актуального `main`.
+
+## DONE — documentation closeout
+
+PR #119 синхронізував `PROJECT_STATE.md`, `WORKLOG.md`, `docs/releases/RELEASE_INDEX.md` і `docs/releases/MAIN_CHECKPOINT_v10.9-r1.md`. Historical regression anchors збережені; документаційний CI після виправлення пройшов успішно.
 
 ## DOING
 
-1. Завершити documentation closeout PR для 10.9-r1.
-2. Після merge документації звірити `main`, `PROJECT_STATE.md`, `WORKLOG.md`, release index та Issue #61.
-3. Не змінювати код під уже виданим `10.9-r1`.
+Немає активного code slice. `10.9-r1` заморожений і повністю закритий як інтегрований checkpoint.
 
 ## NEXT
 

@@ -10,14 +10,15 @@
 - **Latest integrated code checkpoint:** Taxo **10.9-r1**.
 - **Latest full multi-platform checkpoint:** Taxo **10.9-r1** / `v10.9-r1`.
 - **Main integration:** PR #118 merged у `main`.
-- **Main merge commit:** `843a38243dd4eeeb02b40f8de59cc630ef4dce09`.
+- **Code merge commit:** `843a38243dd4eeeb02b40f8de59cc630ef4dce09`.
+- **Documentation closeout:** PR #119 merged.
 - **Immutable issued source/tag:** `v10.9-r1` → `b0eebbf88b22fbd7761544640d9804416a328acb` — не пересувати.
 - **START:** `Taxo_v10_9_candidate_r1_START.zip`.
 - **START SHA-256:** `0c819f9f3e4b31f58e6b86e2b4f1d72086901c0bd2a26a499e4c17f6de9c1766`.
 - **Exact-source regression:** **730/730 OK**.
 - **Full-package run:** `36857771398` — success.
 - **Published packages:** Windows x64 Setup/Portable; Windows 7 SP1 x64 Setup/Portable + PE compatibility gate; macOS arm64/x86_64 Portable; START; platform/full SHA-256 manifests.
-- **Open PRs after cleanup:** none before documentation closeout PR.
+- **Open PRs after closeout:** none.
 - **Next code revision:** **10.9-r2**.
 - **Live ledger:** Issue #61.
 
@@ -63,7 +64,9 @@ Windows 7 line зберігається на CPython 3.8.10 x64 + PyInstaller 5.
 
 ## Cleanup після інтеграції
 
-Кумулятивний PR #118 замінив потребу в окремому злитті старих stacked PR. Закриті як проміжні/тупикові хвости: #108–#113, #103, #94, #93, #91; #107 був закритий після кумулятивної інтеграції. Їхні immutable tags/releases і Git history зберігаються як історичні checkpoints, але ці PR/гілки не використовуються як кодова база нової розробки.
+Кумулятивний PR #118 замінив потребу в окремому злитті старих stacked PR. Закриті як проміжні/тупикові хвости: #108–#113, #103, #94, #93, #91; #107 був закритий після кумулятивної інтеграції. Після документаційного closeout відкритих PR немає.
+
+#103 мав post-issuance хвіст, що розійшовся з канонічною лінією; immutable issued checkpoint збережено, але сам тупиковий PR закрито і його head не використовується як кодова база.
 
 Remote branch refs можуть залишатися як історичні refs, але не є джерелом актуального коду. Нова робота починається тільки від поточного `main`.
 
