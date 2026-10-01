@@ -87,6 +87,7 @@ jobs:
             v1096_personnel_balance.py
             v1097_stoir_odometer.py
             v1098_orders_immutability.py
+            v1099_schema_compatibility.py
             workspace.py
             vehicle_documents.py
             vehicle_maintenance.py
