@@ -8,41 +8,52 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest integrated code checkpoint:** **10.9-r1**  
 **Latest full multi-platform checkpoint:** **10.9-r1 / `v10.9-r1`**  
-**Latest issued fast-test:** **10.9-r4 / `v10.9-r4`**  
-**Current active slice:** **10.9-r5 — tachograph / 60-day activity safety**  
+**Latest issued fast-test:** **10.9-r6 / `v10.9-r6`**  
+**Current active slice:** **10.9-r7 — СТОІР / одометр і прогноз ТО**  
 **Integrated main baseline:** `8f18a7ccf1588556f6f3d7dca81943f87d817935`  
-**Active branch:** `work/v10.9-r5-tachograph-activity-safety`  
-**Base:** immutable `v10.9-r4` → `c0e833ab81d91ed390e7917ed61bf5e2c5e86f21`  
+**Active branch:** `work/v10.9-r7-stoir-odometer-safety`  
+**Base:** immutable `v10.9-r6` → `531723c1b7e9cb9c3d0258d085819381981de14c`  
 **Stable remains:** `v10.3`  
 **Live ledger:** Issue #61
 
-## DONE — 10.9-r4 immutable issuance
+## DONE — 10.9-r6 immutable issuance
 
-10.9-r4 закрив підтверджені ризики контролю робочого часу та відпочинку: boundary gaps, відсутність кваліфікованого відпочинку, overlap як помилка даних, збереження 3+9, six-24h і консервативний двотижневий контроль. Immutable issued source: `c0e833ab81d91ed390e7917ed61bf5e2c5e86f21`; exact-source regression **748/748 OK**; publisher `36905246236`, START/source `36905246054`, Windows `36905253501`, macOS `36905253483` — success.
+10.9-r6 закрив перевірені ризики персоналу, місячного балансу та П-5:
 
-START: `Taxo_v10_9_candidate_r4_START.zip`; SHA-256 `c12bc995367f63c5e6d9a7af6aa283f5b220847dab08d6cd813f31a65788b3ab`.
+- планові `Вихідний` / `Відпочинок` не зменшують норму як відпустка або лікарняний;
+- історичні неявки накладаються за датою працевлаштування без lossy `{driver_id: employee_id}` mapping;
+- поточний `active` не використовується як критерій історичної неявки;
+- поведінка режимів 2/2 і довільного 3/3 покрита тестами;
+- r6 підключений окремим runtime layer без зміни схеми БД.
 
-10.9-r4 заморожена. PR #123 лишається draft/unmerged до окремої прямої команди власника.
+Immutable issued source: `531723c1b7e9cb9c3d0258d085819381981de14c`.
+Exact-source regression: **761/761 OK**.
+Gates: START/source `36914019199`, Windows `36914025872`, macOS `36914025948`, publisher `36914902396` — success.
 
-## DOING — 10.9-r5
+Release: `v10.9-r6` / https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r6  
+START: `Taxo_v10_9_candidate_r6_START.zip`  
+SHA-256: `fc003b71347a65e3ee5fa998392e254903f19af6e899a2cec9d3ef2155da9882`.
 
-Ціль: **не дозволяти 60-денному реєстру або автоматичному розпізнаванню тахографа створювати юридично значущі факти без явного джерела**.
+PR #125 лишається draft/unmerged. `main` не змінено.
 
-Зроблено:
+## DOING — 10.9-r7
 
-- `activity_register_60.py` більше не перетворює незаповнені хвилини між активностями на `Перерва`;
-- незаповнені хвилини поза активною частиною дня більше не стають автоматично `Відпочинок`;
-- усі такі хвилини лишаються `Невизначено` з пояснювальною приміткою;
-- явний тахографічний відпочинок продовжує класифікуватися як перерва всередині зміни або відпочинок поза нею;
-- авто-кандидат тахографа знижено до пріоритету 40, щоб він не перекривав бланки/план/факт/межі керування;
-- ручне підтвердження оператора лишається пріоритетом 100;
-- `main.APP_VERSION` / `VERSION.txt` = `10.9-r5`;
-- додані поведінкові тести, аудит і release notes.
+Ціль: **зробити показники одометра й прогноз СТОІР достовірними без вигаданих дат або ігнорування новішого факту**.
+
+Перед зміною коду перевірити на актуальному runtime кожен пункт зовнішнього аудиту:
+
+1. `work_date` як fallback-дата показника, якщо `reading_at` порожній;
+2. `latest_odometer` повинен бачити новіший фактичний показник зі шляхівки;
+3. `average_daily_mileage` має використовувати валідні точки з fallback-датою;
+4. прогноз має відштовхуватись від дати останньої надійної точки, а не сліпо від `date.today()`;
+5. середній пробіг треба захистити від одиничних очевидних викидів;
+6. окремо перевірити чинне бізнес-правило щодо ТО-2 і циклу ТО-1; не змінювати його без підтвердженої необхідності.
 
 ## NEXT
 
-1. Прогнати exact-head regression/START.
-2. Відкрити draft PR r5 поверх frozen r4; підтвердити Windows/macOS gates.
-3. Після зелених gates видати immutable `v10.9-r5` START+checksum.
-4. Зафіксувати exact SHA/run IDs/checksum в Issue #61 і PR; r5 заморозити.
-5. Не зливати в `main` без прямої команди власника.
+1. Провести кодовий аудит СТОІР і зафіксувати, які з шести ризиків реально підтверджуються.
+2. Реалізувати тільки підтверджені виправлення в окремому r7 layer/domain helper з поведінковими тестами на SQLite.
+3. Підняти machine identity до `10.9-r7`, оновити аудит/release notes/START guards.
+4. Прогнати exact-head regression/START + Windows/macOS gates.
+5. Видати immutable `v10.9-r7` START+checksum, зафіксувати в PR та Issue #61.
+6. Не зливати в `main` без прямої команди власника.
