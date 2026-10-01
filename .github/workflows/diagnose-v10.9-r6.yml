@@ -7,7 +7,7 @@ on:
     paths:
       - '.github/workflows/diagnose-v10.9-r6.yml'
       - 'v1096_personnel_balance.py'
-      - 'tests/test_v10_9_r6.py'
+      - 'tests/**'
       - 'feature_layers.py'
       - 'VERSION.txt'
 
@@ -21,8 +21,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install runtime dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y python3-tk xvfb
-          python -m pip install -r requirements.txt
-      - name: Run only r6 regression
-        run: xvfb-run -a python -m unittest tests.test_v10_9_r6 -v
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get install -y -qq python3-tk xvfb >/dev/null
+          python -m pip install -q -r requirements.txt
+      - name: Run full regression and print only failure tail
+        shell: bash
+        run: |
+          set +e
+          xvfb-run -a python -m unittest discover -s tests > /tmp/r6-full.log 2>&1
+          rc=$?
+          tail -n 140 /tmp/r6-full.log
+          exit "$rc"
