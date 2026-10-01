@@ -83,6 +83,7 @@ jobs:
             data_access.py
             waybill_integrity.py
             vehicle_document_validity.py
+            work_rest_compliance.py
             workspace.py
             vehicle_documents.py
             vehicle_maintenance.py
