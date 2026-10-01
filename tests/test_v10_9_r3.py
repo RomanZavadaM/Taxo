@@ -75,11 +75,15 @@ class VehicleDocumentValidityR3Tests(unittest.TestCase):
         self.assertIn("vehicle_document_warning_lines_for_period", source)
         self.assertIn('con,row["vehicle_id"],row["date"],row["end_date"]', source)
 
-    def test_r3_is_outermost_and_r2_is_preserved(self):
+    def test_r3_layer_is_preserved_before_later_revisions(self):
         ids = feature_layers.feature_layer_ids()
         self.assertIn("v1092-waybill-integrity", ids)
-        self.assertEqual(ids[-1], "v1093-vehicle-document-validity")
-        self.assertEqual((ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(), "Version: 10.9-r3")
+        self.assertIn("v1093-vehicle-document-validity", ids)
+        self.assertLess(ids.index("v1092-waybill-integrity"), ids.index("v1093-vehicle-document-validity"))
+        if "v1094-work-rest-compliance" in ids:
+            self.assertLess(ids.index("v1093-vehicle-document-validity"), ids.index("v1094-work-rest-compliance"))
+        version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+        self.assertRegex(version, r"^Version: 10\.9-r(?:[3-9]|10)$")
 
 
 if __name__ == "__main__":
