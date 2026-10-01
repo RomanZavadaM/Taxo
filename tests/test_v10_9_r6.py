@@ -2,8 +2,10 @@
 import sqlite3
 import unittest
 from datetime import date
+from pathlib import Path
 
 import personnel_v91 as personnel
+from feature_layers import feature_layer_ids
 from v1096_personnel_balance import (
     FEATURE_VERSION,
     dated_absence_rows,
@@ -14,8 +16,11 @@ from v91_features import PATTERN_2_2, PATTERN_CUSTOM, pattern_dates
 
 
 class PersonnelBalanceR6Tests(unittest.TestCase):
-    def test_r6_identity(self):
+    def test_r6_identity_and_runtime_registration(self):
+        root = Path(__file__).resolve().parents[1]
         self.assertEqual(FEATURE_VERSION, "10.9-r6")
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8").strip(), "Version: 10.9-r6")
+        self.assertEqual(feature_layer_ids()[-1], "v1096-personnel-balance")
 
     def test_weekend_and_rest_do_not_reduce_norm(self):
         self.assertIn("Вихідний", personnel.NONWORK_OVERRIDE_TYPES)
