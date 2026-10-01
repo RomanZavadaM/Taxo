@@ -22,6 +22,13 @@ class PersonnelBalanceR6Tests(unittest.TestCase):
         self.assertEqual((root / "VERSION.txt").read_text("utf-8").strip(), "Version: 10.9-r6")
         self.assertEqual(feature_layer_ids()[-1], "v1096-personnel-balance")
 
+    def test_start_package_requires_r6_runtime(self):
+        root = Path(__file__).resolve().parents[1]
+        start = (root / "START.bat").read_text("ascii")
+        workflow = (root / ".github" / "workflows" / "source-test-archive.yml").read_text("utf-8")
+        self.assertIn("v1096_personnel_balance.py", start)
+        self.assertIn("v1096_personnel_balance.py", workflow)
+
     def test_weekend_and_rest_do_not_reduce_norm(self):
         self.assertIn("Вихідний", personnel.NONWORK_OVERRIDE_TYPES)
         self.assertIn("Відпочинок", personnel.NONWORK_OVERRIDE_TYPES)
@@ -60,8 +67,6 @@ class PersonnelBalanceR6Tests(unittest.TestCase):
             );
             """
         )
-        # Deliberately emulate legacy/repaired data where one logical driver has
-        # two employment rows. The old {driver_id: employee_id} collapse loses one.
         con.execute("INSERT INTO employees VALUES(1,77,'2026-01-01','2026-03-31',0)")
         con.execute("INSERT INTO employees VALUES(2,77,'2026-06-01','',1)")
         con.execute("INSERT INTO employee_time_entries VALUES(1,1,'2026-02-10','Лікарняний')")
@@ -72,27 +77,11 @@ class PersonnelBalanceR6Tests(unittest.TestCase):
 
     def test_two_on_two_cycle_remains_anchored(self):
         rows = pattern_dates(date(2026, 10, 1), date(2026, 10, 10), PATTERN_2_2)
-        self.assertEqual(
-            rows,
-            [
-                date(2026, 10, 1), date(2026, 10, 2),
-                date(2026, 10, 5), date(2026, 10, 6),
-                date(2026, 10, 9), date(2026, 10, 10),
-            ],
-        )
+        self.assertEqual(rows, [date(2026,10,1),date(2026,10,2),date(2026,10,5),date(2026,10,6),date(2026,10,9),date(2026,10,10)])
 
     def test_custom_three_on_three_off_cycle(self):
-        rows = pattern_dates(
-            date(2026, 10, 1), date(2026, 10, 12), PATTERN_CUSTOM,
-            work_days=3, rest_days=3,
-        )
-        self.assertEqual(
-            rows,
-            [
-                date(2026, 10, 1), date(2026, 10, 2), date(2026, 10, 3),
-                date(2026, 10, 7), date(2026, 10, 8), date(2026, 10, 9),
-            ],
-        )
+        rows = pattern_dates(date(2026,10,1), date(2026,10,12), PATTERN_CUSTOM, work_days=3, rest_days=3)
+        self.assertEqual(rows, [date(2026,10,1),date(2026,10,2),date(2026,10,3),date(2026,10,7),date(2026,10,8),date(2026,10,9)])
 
 
 if __name__ == "__main__":
