@@ -50,10 +50,23 @@ class OrdersImmutabilityR8Tests(unittest.TestCase):
         self.con.close()
 
     def order(self, number, *, kind=ops.TYPE_GENERIC, controller=2):
-        return ops.create_order(
-            self.con, kind, number, "2026-10-01",
-            subject="Тест", control_employee_id=controller,
+        # Do not use ops.create_order() here: historical feature-layer tests
+        # intentionally monkey-patch that public name during full-suite import.
+        # The fixture is inserted directly, while every r8 behaviour below is
+        # exercised through the real r8 domain functions.
+        cur = self.con.execute(
+            """INSERT INTO operations_orders(
+                   order_type,order_no,order_date,place,subject,preamble,body_text,
+                   control_employee_id,status,approved_at,cancelled_at,note,
+                   paper_original_signed,paper_original_signed_at,created_at,updated_at
+               ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                kind, str(number), "2026-10-01", "", "Тест", "", "",
+                controller, ops.ORDER_DRAFT, "", "", "", 0, "",
+                "2026-10-01T09:00:00", "2026-10-01T09:00:00",
+            ),
         )
+        return int(cur.lastrowid)
 
     def assignment_order(self, number):
         return self.order(number, kind=ops.TYPE_VEHICLE_ASSIGNMENT)
