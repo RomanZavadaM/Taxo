@@ -21,10 +21,13 @@ jobs:
       - name: Apply source transformation
         run: python .github/scripts/apply_v10_9_r3.py
 
-      - name: Install dependencies and run focused tests
+      - name: Install Tk/Xvfb and run focused tests
+        shell: bash
         run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
           python -m pip install -r requirements.txt
-          python -m unittest tests.test_v10_9_r3 -v
+          xvfb-run -a python -m unittest tests.test_v10_9_r3 -v
 
       - name: Commit r3 implementation
         shell: bash
