@@ -11,11 +11,12 @@ service locator for business rules.
 """
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict
 
+from data_access import DataAccess
+from database_runtime import connect_database
 from workspace import paths_for
 
 
@@ -46,9 +47,9 @@ class WorkspaceServices:
     def backup_dir(self) -> Path:
         return self.paths()["backups"]
 
-    def connect_main_db(self, **kwargs):
-        """Create a fresh SQLite connection to the currently selected workspace."""
-        return sqlite3.connect(self.main_db_path, **kwargs)
+    def connect_main_db(self):
+        """Create a fresh policy-compliant connection to the selected workspace."""
+        return connect_database(self.main_db_path)
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,7 @@ class ApplicationServices:
 
     workspace: WorkspaceServices
     output: OutputServices
+    data: DataAccess
     version_provider: Callable[[], str]
 
     @property
@@ -74,18 +76,20 @@ class ApplicationServices:
 
 
 def build_application_services(core) -> ApplicationServices:
-    """Bridge legacy ``main`` infrastructure into the narrow r8 contract.
+    """Bridge legacy ``main`` infrastructure into the narrow service contract.
 
     Only this compatibility factory knows the old module namespace. Consumers
     receive ``ApplicationServices`` and therefore do not need to import main.
     """
 
+    workspace = WorkspaceServices(lambda: Path(core.DATA_ROOT))
     return ApplicationServices(
-        workspace=WorkspaceServices(lambda: Path(core.DATA_ROOT)),
+        workspace=workspace,
         output=OutputServices(
             write_file=core.write_output_file,
             open_external=core.open_external,
             report_font_candidates=core.report_font_candidates,
         ),
+        data=DataAccess(workspace.connect_main_db),
         version_provider=lambda: core.APP_VERSION,
     )
