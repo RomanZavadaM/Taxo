@@ -49,10 +49,15 @@ class ActivityRegisterSafetyR5Tests(unittest.TestCase):
         self.assertNotIn("100 if manual else 80", source)
         self.assertIn("відпочинок не припускається автоматично", source)
 
-    def test_r5_identity(self):
+    def test_r5_identity_is_historical_after_rollover(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8").strip(), "Version: 10.9-r5")
-        self.assertIn('APP_VERSION = "10.9-r5"', (root / "main.py").read_text("utf-8"))
+        notes = root / "docs" / "releases" / "RELEASE_NOTES_v10.9-r5.md"
+        audit = root / "docs" / "maintenance" / "AUDIT_TACHOGRAPH_ACTIVITY_SAFETY_v10.9-r5.md"
+        self.assertTrue(notes.is_file())
+        self.assertTrue(audit.is_file())
+        self.assertIn("10.9-r5", notes.read_text("utf-8"))
+        current = (root / "VERSION.txt").read_text("utf-8").strip()
+        self.assertRegex(current, r"^Version: 10\.9-r(?:[6-9]|10)$")
 
 
 if __name__ == "__main__":
