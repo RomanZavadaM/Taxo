@@ -78,6 +78,9 @@ jobs:
             application_context.py
             feature_layers.py
             output_files.py
+            backup_migration.py
+            database_runtime.py
+            data_access.py
             workspace.py
             vehicle_documents.py
             vehicle_maintenance.py
