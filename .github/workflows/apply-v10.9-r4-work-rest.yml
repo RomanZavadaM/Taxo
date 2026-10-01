@@ -1,0 +1,516 @@
+name: Apply Taxo 10.9-r4 work/rest compliance
+
+on:
+  push:
+    branches:
+      - work/v10.9-r4-work-rest-compliance
+    paths:
+      - .github/workflows/apply-v10.9-r4-work-rest.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/v10.9-r4-work-rest-compliance
+          fetch-depth: 0
+      - name: Apply r4 slice
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          module = r'''# -*- coding: utf-8 -*-
+"""Taxo 10.9-r4 — stronger PLAN work/rest compliance analysis.
+
+This module closes edge cases left by the historical 10.4-r6 rest timeline:
+analysis-window boundaries are part of the control, overlapping duties are
+reported instead of silently merged, absence of any qualifying rest is visible,
+and a conservative two-consecutive-week weekly-rest check is added.
+
+The runtime adapter deliberately reads the same PLAN work intervals as r6.
+It never promotes route/waybill plan to FACT and never rewrites user data.
+"""
+from __future__ import annotations
+
+from datetime import datetime, time, timedelta
+
+from v1046_features import classify_rest_gaps, merge_intervals
+
+APP_VERSION = "10.9-r4"
+
+
+def _minutes(delta):
+    return max(0, int(round(delta.total_seconds() / 60.0)))
+
+
+def detect_overlaps(intervals):
+    """Return real overlaps from raw duty intervals before any union/merge."""
+    ordered = sorted(
+        (start, end) for start, end in intervals
+        if start is not None and end is not None and end > start
+    )
+    overlaps = []
+    if not ordered:
+        return overlaps
+    active_start, active_end = ordered[0]
+    for start, end in ordered[1:]:
+        if start < active_end:
+            overlaps.append({
+                "start": start,
+                "end": min(active_end, end),
+                "left_start": active_start,
+                "left_end": active_end,
+                "right_start": start,
+                "right_end": end,
+                "minutes": _minutes(min(active_end, end) - start),
+            })
+            if end > active_end:
+                active_end = end
+            continue
+        active_start, active_end = start, end
+    return overlaps
+
+
+def bounded_free_gaps(intervals, control_start, control_end):
+    """Free-time gaps including both analysis-window edges."""
+    if control_end <= control_start:
+        raise ValueError("control_end must be after control_start")
+    clipped = []
+    for start, end in intervals:
+        if start is None or end is None or end <= start:
+            continue
+        start = max(start, control_start)
+        end = min(end, control_end)
+        if end > start:
+            clipped.append((start, end))
+    merged = merge_intervals(clipped)
+    if not merged:
+        return [{
+            "start": control_start,
+            "end": control_end,
+            "minutes": _minutes(control_end - control_start),
+            "next_date": control_end.date(),
+            "boundary": "both",
+        }]
+    gaps = []
+    if merged[0][0] > control_start:
+        gaps.append({
+            "start": control_start,
+            "end": merged[0][0],
+            "minutes": _minutes(merged[0][0] - control_start),
+            "next_date": merged[0][0].date(),
+            "boundary": "start",
+        })
+    for left, right in zip(merged, merged[1:]):
+        if right[0] > left[1]:
+            gaps.append({
+                "start": left[1],
+                "end": right[0],
+                "minutes": _minutes(right[0] - left[1]),
+                "next_date": right[0].date(),
+                "boundary": "internal",
+            })
+    if merged[-1][1] < control_end:
+        gaps.append({
+            "start": merged[-1][1],
+            "end": control_end,
+            "minutes": _minutes(control_end - merged[-1][1]),
+            "next_date": control_end.date(),
+            "boundary": "end",
+        })
+    return gaps
+
+
+def _week_key(day):
+    iso = day.isocalendar()
+    return int(iso[0]), int(iso[1])
+
+
+def _week_start(day):
+    return day - timedelta(days=day.weekday())
+
+
+def fortnight_weekly_rest_warnings(weekly, display_start, display_end, hhmm):
+    """Conservative two-consecutive-week check.
+
+    Each two-week block must contain at least two qualifying weekly-rest
+    periods, and at least one of them must be regular (>=45h). This mirrors the
+    project compliance model without inventing compensation facts.
+    """
+    by_week = {}
+    for event in weekly:
+        key = _week_key(event["end"].date())
+        by_week.setdefault(key, []).append(event)
+
+    warnings = []
+    first = _week_start(display_start) - timedelta(days=7)
+    last = _week_start(display_end)
+    cursor = first
+    while cursor <= last:
+        next_week = cursor + timedelta(days=7)
+        pair_end = cursor + timedelta(days=13)
+        if pair_end < display_start or cursor > display_end:
+            cursor = next_week
+            continue
+        keys = (_week_key(cursor), _week_key(next_week))
+        events = [ev for key in keys for ev in by_week.get(key, [])]
+        if len(events) < 2:
+            warnings.append(
+                "ПЛАН: у двотижневому періоді %s–%s знайдено лише %d "
+                "кваліфікованих щотижневих відпочинків; потрібно перевірити правило двох тижнів."
+                % (cursor.strftime("%d.%m.%Y"), pair_end.strftime("%d.%m.%Y"), len(events))
+            )
+        elif not any(int(ev["minutes"]) >= 45 * 60 for ev in events):
+            warnings.append(
+                "ПЛАН: у двотижневому періоді %s–%s є два щотижневі відпочинки, "
+                "але жоден не досягає 45:00; перевірити регулярний щотижневий відпочинок і компенсацію."
+                % (cursor.strftime("%d.%m.%Y"), pair_end.strftime("%d.%m.%Y"))
+            )
+        cursor = next_week
+    return warnings
+
+
+def rest_compliance_report(intervals, control_start, control_end, display_start, display_end, hhmm):
+    """Analyze PLAN duty intervals without hiding boundary or overlap defects."""
+    raw = [
+        (start, end) for start, end in intervals
+        if start is not None and end is not None and end > start
+    ]
+    overlaps = detect_overlaps(raw)
+    gaps = bounded_free_gaps(raw, control_start, control_end)
+    daily, weekly = classify_rest_gaps(gaps)
+    events = sorted([*daily, *weekly], key=lambda item: item["end"])
+    warnings = []
+    info = []
+
+    for overlap in overlaps:
+        if overlap["end"].date() >= display_start and overlap["start"].date() <= display_end:
+            warnings.append(
+                "ПЛАН: перекриття робочих інтервалів %s–%s (%s). Це помилка даних, "
+                "інтервали не можна тихо зливати для контролю відпочинку."
+                % (
+                    overlap["start"].strftime("%d.%m.%Y %H:%M"),
+                    overlap["end"].strftime("%d.%m.%Y %H:%M"),
+                    hhmm(overlap["minutes"]),
+                )
+            )
+
+    # Visible no-rest failure: the old algorithm could return no rest events and
+    # therefore no warning at all. A work span >24h with no >=9h qualifying gap
+    # is always suspicious and requires operator review.
+    if raw and not events:
+        work_start = min(start for start, _ in raw)
+        work_end = max(end for _, end in raw)
+        if work_end - work_start > timedelta(hours=24):
+            warnings.append(
+                "ПЛАН: у контрольному вікні немає жодного кваліфікованого щоденного або "
+                "щотижневого відпочинку >=9:00 при роботі довше 24 годин; перевірити графік."
+            )
+
+    # 24-hour daily-rest rule including window edges because boundary gaps are
+    # now part of the event set. Reduced >=9h and split 3+9 are both qualifying.
+    for left, right in zip(events, events[1:]):
+        anchor = left["end"]
+        next_start = right.get("qualifying_start") or right.get("second_start") or right["start"]
+        if next_start > anchor + timedelta(hours=15):
+            if (anchor.date() <= display_end and next_start.date() >= display_start):
+                warnings.append(
+                    "ПЛАН: після завершення кваліфікованого відпочинку %s наступний "
+                    "період >=9:00 починається лише %s; перевірити 24-годинне правило."
+                    % (anchor.strftime("%d.%m.%Y %H:%M"), next_start.strftime("%d.%m.%Y %H:%M"))
+                )
+
+    # No more than three reduced daily rests between weekly rests.
+    reduced_since_weekly = 0
+    for event in events:
+        if event["kind"].startswith("weekly_"):
+            reduced_since_weekly = 0
+        elif event["kind"] == "daily_reduced":
+            reduced_since_weekly += 1
+            if display_start <= event["next_date"] <= display_end and reduced_since_weekly > 3:
+                warnings.append(
+                    "ПЛАН: перед %s це %d-й скорочений щоденний відпочинок між "
+                    "щотижневими періодами (>3)."
+                    % (event["next_date"].strftime("%d.%m.%Y"), reduced_since_weekly)
+                )
+
+    # Weekly rest must start no later than after six 24-hour periods. Check both
+    # internal weekly rests and uncovered edges of the control window.
+    weekly_sorted = sorted(weekly, key=lambda item: item["start"])
+    if raw and not weekly_sorted:
+        active_start = min(start for start, _ in raw)
+        active_end = max(end for _, end in raw)
+        if active_end - active_start > timedelta(days=6):
+            warnings.append(
+                "ПЛАН: у контрольному вікні немає кваліфікованого щотижневого "
+                "відпочинку >=24:00 при робочому періоді довше шести 24-годинних періодів."
+            )
+    for left, right in zip(weekly_sorted, weekly_sorted[1:]):
+        span = right["start"] - left["end"]
+        if span > timedelta(days=6) and right["start"].date() >= display_start and left["end"].date() <= display_end:
+            warnings.append(
+                "ПЛАН: між завершенням щотижневого відпочинку %s і початком наступного %s "
+                "минуло %s — більше шести 24-годинних періодів."
+                % (left["end"].strftime("%d.%m %H:%M"), right["start"].strftime("%d.%m %H:%M"), hhmm(_minutes(span)))
+            )
+
+    warnings.extend(fortnight_weekly_rest_warnings(weekly_sorted, display_start, display_end, hhmm))
+
+    for event in daily:
+        if event.get("split") and display_start <= event["next_date"] <= display_end:
+            info.append(
+                "ПЛАН: перед %s звичайний щоденний відпочинок %s + %s (модель 3+9)."
+                % (
+                    event["next_date"].strftime("%d.%m.%Y"),
+                    hhmm(event["first_minutes"]),
+                    hhmm(event["second_minutes"]),
+                )
+            )
+    for event in weekly_sorted:
+        if event["kind"] == "weekly_reduced" and event["end"].date() >= display_start and event["start"].date() <= display_end:
+            info.append(
+                "ПЛАН: щотижневий відпочинок %s–%s = %s, скорочений; компенсацію "
+                "потрібно контролювати окремо за фактичними даними."
+                % (event["start"].strftime("%d.%m %H:%M"), event["end"].strftime("%d.%m %H:%M"), hhmm(event["minutes"]))
+            )
+
+    return {
+        "daily_rests": [ev for ev in daily if display_start <= ev["next_date"] <= display_end],
+        "weekly_rests": [ev for ev in weekly_sorted if ev["end"].date() >= display_start and ev["start"].date() <= display_end],
+        "warnings": warnings,
+        "info": info,
+        "gaps": gaps,
+        "overlaps": overlaps,
+        "control_basis": "plan",
+    }
+
+
+def _rest_message(text):
+    value = str(text or "")
+    tokens = (
+        "щоденн", "щотижнев", "24-годин", "24 год", "шести 24", "3+9",
+        "двотижнев", "кваліфікованого відпочинку", "перекриття робочих інтервалів",
+    )
+    return value.startswith("ПЛАН:") and any(token in value for token in tokens)
+
+
+def install(core, base_app):
+    if getattr(core, "_TAXO_1094_INSTALLED", False):
+        return base_app
+    core.APP_VERSION = APP_VERSION
+
+    class Taxo1094App(base_app):
+        def calculate_work_analysis(self):
+            data = super().calculate_work_analysis()
+            if data is None or not getattr(self, "driver_id", None):
+                return data
+
+            year = int(self.year_var.get())
+            month = int(self.month_var.get())
+            display_start = datetime(year, month, 1).date()
+            display_end = core.month_dates(year, month)[-1]
+            query_start = display_start - timedelta(days=45)
+            query_end = display_end + timedelta(days=14)
+
+            con = core.db()
+            try:
+                rows = con.execute(
+                    "SELECT * FROM worklog WHERE driver_id=? AND work_date BETWEEN ? AND ? ORDER BY work_date",
+                    (self.driver_id, query_start.isoformat(), query_end.isoformat()),
+                ).fetchall()
+                seg_map = self._analysis_segments_map(con, rows)
+            finally:
+                con.close()
+
+            intervals = []
+            for row in rows:
+                intervals.extend(core._worklog_work_intervals(row, seg_map.get(row["id"], [])))
+
+            control_start = datetime.combine(query_start, time.min)
+            control_end = datetime.combine(query_end + timedelta(days=1), time.min)
+            report = rest_compliance_report(
+                intervals, control_start, control_end, display_start, display_end, core.minutes_hhmm
+            )
+
+            data["warnings"] = [item for item in data.get("warnings", []) if not _rest_message(item)]
+            data["info"] = [item for item in data.get("info", []) if not _rest_message(item)]
+            for item in report["warnings"]:
+                if item not in data["warnings"]:
+                    data["warnings"].append(item)
+            for item in report["info"]:
+                if item not in data["info"]:
+                    data["info"].append(item)
+            data["daily_rests"] = report["daily_rests"]
+            data["weekly_rests"] = report["weekly_rests"]
+            data["rest_overlaps"] = report["overlaps"]
+            data["control_basis"] = "plan"
+            return data
+
+    core._TAXO_1094_INSTALLED = True
+    core.App = Taxo1094App
+    return Taxo1094App
+'''
+          Path('work_rest_compliance.py').write_text(module, encoding='utf-8')
+
+          tests = r'''# -*- coding: utf-8 -*-
+import unittest
+from datetime import date, datetime, timedelta
+from pathlib import Path
+
+from work_rest_compliance import (
+    bounded_free_gaps,
+    detect_overlaps,
+    fortnight_weekly_rest_warnings,
+    rest_compliance_report,
+)
+
+
+def dt(day, hour=0, minute=0):
+    return datetime(2026, 9, day, hour, minute)
+
+
+def hhmm(minutes):
+    value = int(round(minutes or 0))
+    h, m = divmod(abs(value), 60)
+    return ("-" if value < 0 else "") + f"{h}:{m:02d}"
+
+
+class WorkRestComplianceR4Tests(unittest.TestCase):
+    def test_boundary_gaps_are_not_discarded(self):
+        gaps = bounded_free_gaps([(dt(2, 8), dt(2, 18))], dt(1), dt(4))
+        self.assertEqual(gaps[0]["boundary"], "start")
+        self.assertEqual(gaps[-1]["boundary"], "end")
+        self.assertEqual(gaps[0]["minutes"], 32 * 60)
+        self.assertEqual(gaps[-1]["minutes"], 30 * 60)
+
+    def test_no_qualified_rest_is_visible(self):
+        intervals = []
+        cursor = dt(1, 6)
+        for _ in range(7):
+            intervals.append((cursor, cursor + timedelta(hours=18)))
+            cursor += timedelta(hours=24)
+        report = rest_compliance_report(
+            intervals, dt(1), dt(10), date(2026, 9, 1), date(2026, 9, 9), hhmm
+        )
+        joined = "\n".join(report["warnings"])
+        self.assertIn("немає жодного кваліфікованого", joined)
+        self.assertIn("немає кваліфікованого щотижневого", joined)
+
+    def test_overlap_is_error_not_silently_merged(self):
+        overlaps = detect_overlaps([(dt(3, 8), dt(3, 14)), (dt(3, 13), dt(3, 18))])
+        self.assertEqual(len(overlaps), 1)
+        self.assertEqual(overlaps[0]["minutes"], 60)
+        report = rest_compliance_report(
+            [(dt(3, 8), dt(3, 14)), (dt(3, 13), dt(3, 18))],
+            dt(2), dt(5), date(2026, 9, 1), date(2026, 9, 30), hhmm,
+        )
+        self.assertTrue(any("помилка даних" in item for item in report["warnings"]))
+
+    def test_valid_split_3_plus_9_remains_accepted(self):
+        intervals = [
+            (dt(3, 6), dt(3, 10)),
+            (dt(3, 13, 35), dt(3, 20)),
+            (dt(4, 5, 30), dt(4, 8)),
+        ]
+        report = rest_compliance_report(
+            intervals, dt(2), dt(6), date(2026, 9, 1), date(2026, 9, 30), hhmm
+        )
+        self.assertTrue(any("3+9" in item for item in report["info"]))
+        self.assertFalse(any("менше 9:00" in item for item in report["warnings"]))
+
+    def test_two_reduced_weekly_rests_trigger_fortnight_warning(self):
+        weekly = [
+            {"start": dt(1), "end": dt(2), "minutes": 24 * 60, "kind": "weekly_reduced"},
+            {"start": dt(8), "end": dt(9), "minutes": 24 * 60, "kind": "weekly_reduced"},
+        ]
+        warnings = fortnight_weekly_rest_warnings(
+            weekly, date(2026, 9, 1), date(2026, 9, 14), hhmm
+        )
+        self.assertTrue(any("жоден не досягає 45:00" in item for item in warnings))
+
+    def test_plan_fact_boundary_is_explicit(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "work_rest_compliance.py").read_text("utf-8")
+        self.assertIn('"control_basis": "plan"', source)
+        self.assertIn("_worklog_work_intervals", source)
+        self.assertNotIn("fact_work_start", source)
+        self.assertNotIn("fact_work_end", source)
+
+    def test_r4_runtime_layer_and_identity(self):
+        root = Path(__file__).resolve().parents[1]
+        feature = (root / "feature_layers.py").read_text("utf-8")
+        main = (root / "main.py").read_text("utf-8")
+        version = (root / "VERSION.txt").read_text("utf-8")
+        self.assertIn("v1094-work-rest-compliance", feature)
+        self.assertIn('APP_VERSION = "10.9-r4"', main)
+        self.assertEqual(version.strip(), "Version: 10.9-r4")
+
+
+if __name__ == "__main__":
+    unittest.main()
+'''
+          Path('tests/test_v10_9_r4.py').write_text(tests, encoding='utf-8')
+
+          main = Path('main.py').read_text(encoding='utf-8')
+          main = main.replace('APP_VERSION = "10.9-r3"', 'APP_VERSION = "10.9-r4"', 1)
+          Path('main.py').write_text(main, encoding='utf-8')
+          Path('VERSION.txt').write_text('Version: 10.9-r4\n', encoding='utf-8')
+
+          fl = Path('feature_layers.py').read_text(encoding='utf-8')
+          fl = fl.replace(
+              'from vehicle_document_validity import install as install_vehicle_document_validity\n',
+              'from vehicle_document_validity import install as install_vehicle_document_validity\nfrom work_rest_compliance import install as install_work_rest_compliance\n',
+              1,
+          )
+          fl = fl.replace(
+              '    FeatureLayer("v1093-vehicle-document-validity", install_vehicle_document_validity, domain="vehicles"),\n',
+              '    FeatureLayer("v1093-vehicle-document-validity", install_vehicle_document_validity, domain="vehicles"),\n    FeatureLayer("v1094-work-rest-compliance", install_work_rest_compliance, domain="worktime"),\n',
+              1,
+          )
+          Path('feature_layers.py').write_text(fl, encoding='utf-8')
+
+          start_path = Path('START.bat')
+          raw = start_path.read_bytes()
+          text = raw.decode('ascii')
+          text = text.replace(
+              'if not exist "vehicle_document_validity.py" goto :package_incomplete\r\n',
+              'if not exist "vehicle_document_validity.py" goto :package_incomplete\r\nif not exist "work_rest_compliance.py" goto :package_incomplete\r\n',
+              1,
+          )
+          text = text.replace(
+              'data_access.py, waybill_integrity.py, workspace.py',
+              'data_access.py, waybill_integrity.py, vehicle_document_validity.py, work_rest_compliance.py, workspace.py',
+              1,
+          )
+          start_path.write_bytes(text.encode('ascii'))
+
+          workflow_path = Path('.github/workflows/source-test-archive.yml')
+          sw = workflow_path.read_text(encoding='utf-8')
+          sw = sw.replace(
+              '            vehicle_document_validity.py\n',
+              '            vehicle_document_validity.py\n            work_rest_compliance.py\n',
+              1,
+          )
+          workflow_path.write_text(sw, encoding='utf-8')
+
+          audit = '''# AUDIT — робочий час і відпочинок, Taxo 10.9-r4\n\n## Мета\n\nЗакрити підтверджені ризики зовнішнього аудиту без змішування PLAN і FACT.\n\n## Реалізовано\n\n- межі контрольного вікна входять у аналіз вільного часу;\n- відсутність будь-якого кваліфікованого відпочинку більше не дає порожній «успішний» результат;\n- перекриття робочих інтервалів показується як помилка даних, а не тихо поглинається union/merge;\n- збережено законну модель розділеного щоденного відпочинку 3+9;\n- контрольовано ліміт скорочених щоденних відпочинків між щотижневими;\n- контрольовано інтервал шести 24-годинних періодів між щотижневими відпочинками;\n- додано консервативний контроль двох послідовних тижнів: два кваліфіковані щотижневі відпочинки, щонайменше один регулярний 45:00;\n- runtime продовжує аналізувати лише планові `_worklog_work_intervals`; fact-поля не читаються і не переписуються.\n\n## Межа відповідальності\n\nЦе **ПЛАНОВА ПЕРЕВІРКА**. Вона не встановлює фактичного порушення. Факт має походити з фактичних полів, тахографа та підтверджених фактичних документів.\n\n## Тести\n\nДодані поведінкові сценарії для boundary gaps, повної відсутності кваліфікованого відпочинку, overlap, 3+9, двох скорочених щотижневих відпочинків і PLAN/FACT boundary.\n'''
+          Path('docs/maintenance/AUDIT_WORK_REST_COMPLIANCE_v10.9-r4.md').write_text(audit, encoding='utf-8')
+
+          notes = '''# Taxo 10.9-r4 — робочий час та відпочинок\n\nFast-test ревізія, stacked поверх immutable `v10.9-r3`. Stable `v10.3` не змінюється.\n\n- контроль відпочинку тепер охоплює краї контрольного вікна;\n- якщо кваліфікованого щоденного/щотижневого відпочинку немає, це явно потрапляє в попередження;\n- перекриття змін позначається як помилка даних;\n- збережена модель 3+9;\n- додано двотижневий контроль щотижневого відпочинку;\n- PLAN і FACT залишаються розділеними.\n\nЗлиття в `main` — тільки за окремою командою власника.\n'''
+          Path('docs/releases/RELEASE_NOTES_v10.9-r4.md').write_text(notes, encoding='utf-8')
+
+          worklog = '''# WORKLOG — Taxo\n\n**Оновлено:** 01.10.2026  \n**Repository:** `RomanZavadaM/Taxo`\n\n## CURRENT\n\n**Stable:** Taxo 10.3 / `v10.3` — immutable  \n**Latest integrated code checkpoint:** **10.9-r1**  \n**Latest full multi-platform checkpoint:** **10.9-r1 / `v10.9-r1`**  \n**Latest issued fast-test:** **10.9-r3 / `v10.9-r3`**  \n**Current active slice:** **10.9-r4 — work/rest compliance**  \n**Integrated main baseline:** `8f18a7ccf1588556f6f3d7dca81943f87d817935`  \n**Active branch:** `work/v10.9-r4-work-rest-compliance`  \n**Base:** immutable `v10.9-r3` → `df4cecf08595ef90dbf9216505aa8634d354ccf5`  \n**Live ledger:** Issue #61\n\n## DONE — 10.9-r3 immutable issuance\n\nExact source `df4cecf08595ef90dbf9216505aa8634d354ccf5`; regression **741/741 OK**; publisher `36876067099`, START/source `36876067003`, Windows `36876072197`, macOS `36876072373` — success. START `Taxo_v10_9_candidate_r3_START.zip`, SHA-256 `5acdaf869d32d46414f7f76d971c4af21c3c6dcd89f3b7c4ef491aaaaf7d707b`. r3 frozen; PR #122 draft/unmerged.\n\n## DOING — 10.9-r4\n\nМета: закрити підтверджені ризики контролю робочого часу та відпочинку з аудиту, не змішуючи PLAN і FACT.\n\nРеалізовано в code slice:\n- boundary gaps на початку/кінці контрольного вікна;\n- явне попередження, коли кваліфікованого відпочинку немає;\n- overlap змін = помилка даних, не тихий merge;\n- збережена модель 3+9;\n- six-24h weekly rule;\n- conservative two-week weekly-rest rule;\n- поведінкові тести;\n- runtime layer `v1094-work-rest-compliance`;\n- START/source guards.\n\n## NEXT\n\n1. Прогнати повний regression/START на exact r4 head.\n2. Відкрити draft PR r4 поверх frozen r3 та перевірити Windows/macOS gates.\n3. Після зелених gates видати immutable `v10.9-r4` START+checksum.\n4. Зафіксувати issuance в Issue #61/PR; r4 заморозити.\n5. Не зливати в `main` без прямої команди власника.\n'''
+          Path('WORKLOG.md').write_text(worklog, encoding='utf-8')
+
+          Path('.github/workflows/apply-v10.9-r4-work-rest.yml').unlink()
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Implement 10.9-r4 work and rest compliance"
+          git push origin HEAD:work/v10.9-r4-work-rest-compliance
