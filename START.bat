@@ -17,6 +17,7 @@ if not exist "backup_migration.py" goto :package_incomplete
 if not exist "database_runtime.py" goto :package_incomplete
 if not exist "data_access.py" goto :package_incomplete
 if not exist "waybill_integrity.py" goto :package_incomplete
+if not exist "vehicle_document_validity.py" goto :package_incomplete
 if not exist "workspace.py" goto :package_incomplete
 if not exist "vehicle_documents.py" goto :package_incomplete
 if not exist "v10710_features.py" goto :package_incomplete
