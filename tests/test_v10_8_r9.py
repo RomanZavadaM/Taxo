@@ -24,10 +24,10 @@ def make_taxo_db(path: Path, marker="original"):
 
 
 class BackupMigrationR9Tests(unittest.TestCase):
-    def test_current_identity_is_r9(self):
-        version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
-        self.assertEqual(version, "Version: 10.8-r9")
-        self.assertEqual(main.APP_VERSION, "10.8-r9")
+    def test_r9_identity_is_historical_anchor(self):
+        notes = (ROOT / "docs/releases/RELEASE_NOTES_v10.8-r9.md").read_text(encoding="utf-8")
+        self.assertIn("10.8-r9", notes)
+        self.assertGreaterEqual(tuple(int(part) for part in main.APP_VERSION.replace("10.8-r", "").split(".")), (9,))
 
     def test_main_keeps_compatibility_wrappers_only(self):
         source = (ROOT / "main.py").read_text(encoding="utf-8")
