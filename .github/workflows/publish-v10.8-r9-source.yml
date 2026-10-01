@@ -1,0 +1,93 @@
+name: Publish Taxo 10.8-r9 source prerelease
+
+on:
+  push:
+    branches:
+      - work/v10.8-r9-backup-migration-infrastructure
+    paths:
+      - '.github/workflows/publish-v10.8-r9-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: '1'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact issued source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify candidate identity and unused immutable tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          grep -Fxq 'Version: 10.8-r9' VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.8-r9"' main.py
+          test -f application_context.py
+          test -f feature_layers.py
+          test -f output_files.py
+          test -f backup_migration.py
+          test -f vehicle_maintenance.py
+          test -f vehicle_maintenance_ui.py
+          test -f v1085_features.py
+          test -f docs/maintenance/AUDIT_BACKUP_MIGRATION_INFRASTRUCTURE_v10.8-r9.md
+          test -f docs/releases/RELEASE_NOTES_v10.8-r9.md
+          grep -Fq 'if not exist "backup_migration.py" goto :package_incomplete' START.bat
+          if git ls-remote --exit-code --tags origin refs/tags/v10.8-r9 >/dev/null 2>&1; then
+            echo 'Tag v10.8-r9 already exists; refusing to move/reuse it.' >&2
+            exit 1
+          fi
+
+      - name: Install Tk/Xvfb and regression dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install -r requirements.txt
+
+      - name: Run exact-source regression suite
+        run: |
+          python -m py_compile main.py taxo_app.py application_context.py feature_layers.py output_files.py backup_migration.py vehicle_maintenance.py vehicle_maintenance_ui.py v1084_features.py v1085_features.py
+          xvfb-run -a python -m unittest discover -s tests -v
+
+      - name: Build and verify START archive
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          stem='Taxo_v10_8_candidate_r9_START'
+          archive="${stem}.zip"
+          git archive --format=zip --prefix="${stem}/" --output="$archive" HEAD
+          for f in START.bat requirements.txt taxo_app.py main.py application_context.py feature_layers.py output_files.py backup_migration.py workspace.py vehicle_documents.py vehicle_maintenance.py vehicle_maintenance_ui.py v1084_features.py v1085_features.py LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md; do
+            unzip -l "$archive" | grep -q "/${f}$" || { echo "Missing ${f}" >&2; exit 1; }
+          done
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly included' >&2
+            exit 1
+          fi
+          sha256sum "$archive" > SHA256SUMS_v10_8_r9.txt
+          sha=$(sha256sum "$archive" | awk '{print $1}')
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Create immutable tag and prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag v10.8-r9 "${GITHUB_SHA}"
+          git push origin refs/tags/v10.8-r9
+          gh release create v10.8-r9 \
+            "${{ steps.pack.outputs.archive }}" SHA256SUMS_v10_8_r9.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title 'Taxo 10.8-r9' \
+            --prerelease \
+            --notes-file docs/releases/RELEASE_NOTES_v10.8-r9.md
+          target=$(gh api repos/${GITHUB_REPOSITORY}/git/ref/tags/v10.8-r9 --jq '.object.sha')
+          test "$target" = "${GITHUB_SHA}"
+          printf 'Issued source: %s\nSTART SHA-256: %s\n' "${GITHUB_SHA}" '${{ steps.pack.outputs.sha }}'
