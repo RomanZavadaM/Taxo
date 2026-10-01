@@ -24,10 +24,8 @@ jobs:
           python -c "from pathlib import Path; p=Path('main.py'); s=p.read_text(encoding='utf-8'); s=s.replace('APP_VERSION = \"10.9-r3\"','APP_VERSION = \"10.9-r4\"',1); p.write_text(s,encoding='utf-8')"
           python -c "from pathlib import Path; p=Path('feature_layers.py'); s=p.read_text(encoding='utf-8'); s=s.replace('from vehicle_document_validity import install as install_vehicle_document_validity\\n','from vehicle_document_validity import install as install_vehicle_document_validity\\nfrom work_rest_compliance import install as install_work_rest_compliance\\n',1); s=s.replace('    FeatureLayer(\"v1093-vehicle-document-validity\", install_vehicle_document_validity, domain=\"vehicles\"),\\n','    FeatureLayer(\"v1093-vehicle-document-validity\", install_vehicle_document_validity, domain=\"vehicles\"),\\n    FeatureLayer(\"v1094-work-rest-compliance\", install_work_rest_compliance, domain=\"worktime\"),\\n',1); p.write_text(s,encoding='utf-8')"
           python -c "from pathlib import Path; p=Path('START.bat'); s=p.read_bytes().decode('ascii'); s=s.replace('if not exist \"vehicle_document_validity.py\" goto :package_incomplete\\r\\n','if not exist \"vehicle_document_validity.py\" goto :package_incomplete\\r\\nif not exist \"work_rest_compliance.py\" goto :package_incomplete\\r\\n',1); s=s.replace('data_access.py, waybill_integrity.py, workspace.py','data_access.py, waybill_integrity.py, vehicle_document_validity.py, work_rest_compliance.py, workspace.py',1); p.write_bytes(s.encode('ascii'))"
-          python -c "from pathlib import Path; p=Path('.github/workflows/source-test-archive.yml'); s=p.read_text(encoding='utf-8'); s=s.replace('            vehicle_document_validity.py\\n','            vehicle_document_validity.py\\n            work_rest_compliance.py\\n',1); p.write_text(s,encoding='utf-8')"
-          rm .github/workflows/apply-v10.9-r4-runtime-wiring.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add main.py feature_layers.py START.bat
           git commit -m 'Wire 10.9-r4 work/rest compliance runtime'
           git push origin HEAD:work/v10.9-r4-work-rest-compliance
