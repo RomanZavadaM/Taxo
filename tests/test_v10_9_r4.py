@@ -82,14 +82,15 @@ class WorkRestComplianceR4Tests(unittest.TestCase):
         self.assertNotIn("fact_work_start", source)
         self.assertNotIn("fact_work_end", source)
 
-    def test_r4_runtime_layer_and_identity(self):
+    def test_r4_runtime_layer_is_preserved_before_later_revisions(self):
         root = Path(__file__).resolve().parents[1]
         feature = (root / "feature_layers.py").read_text("utf-8")
         main = (root / "main.py").read_text("utf-8")
-        version = (root / "VERSION.txt").read_text("utf-8")
+        version = (root / "VERSION.txt").read_text("utf-8").strip()
         self.assertIn("v1094-work-rest-compliance", feature)
-        self.assertIn('APP_VERSION = "10.9-r4"', main)
-        self.assertEqual(version.strip(), "Version: 10.9-r4")
+        self.assertRegex(version, r"^Version: 10\.9-r(?:[4-9]|10)$")
+        current = version.removeprefix("Version: ")
+        self.assertIn(f'APP_VERSION = "{current}"', main)
 
 
 if __name__ == "__main__":
