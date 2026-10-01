@@ -1,6 +1,6 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 30.09.2026  
+**Дата:** 01.10.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## Поточний підтверджений стан
@@ -9,57 +9,61 @@
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Latest full multi-platform checkpoint:** Taxo **10.8-r3** / `v10.8-r3`.
 - **Latest integrated code checkpoint in `main`:** Taxo **10.8-r3**.
-- **Main merge:** PR #105 → `db444a37ead421c8083558cfcf81ee97adc241f6`.
-- **Issued tag/source:** `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd` — не пересувати.
-- **START:** `Taxo_v10_8_candidate_r3_START.zip`.
-- **START SHA-256:** `aa75661658194425f7dc95c353516a6f1c44f98040989f72d402985e2f023d00`.
-- **Full package workflow:** `36741933852` — success.
-- **Windows x64:** Portable + Setup — success.
-- **Windows 7 SP1 x64:** Portable + Setup, Python 3.8 compatibility + PE gate — success.
-- **macOS:** Apple Silicon arm64 + Intel x86_64 Portable — success.
-- **Checksums:** platform manifests + `SHA256SUMS_v10_8_r3_ALL.txt` — published and verified.
-- **Next code revision:** тільки **10.8-r4**.
+- **Current `main`:** `50db4b0de4d37260c2031aa96317fef61d93ea90`.
+- **Main merge for r3:** PR #105 → `db444a37ead421c8083558cfcf81ee97adc241f6`.
+- **Issued r3 tag/source:** `v10.8-r3` → `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd` — не пересувати.
+- **Latest issued fast-test:** Taxo **10.8-r9** / `v10.8-r9`.
+- **r9 exact source:** `d8d29c79b82b53a0ad07df18dbbe19cf5f5d00c1`.
+- **r9 START:** `Taxo_v10_8_candidate_r9_START.zip`.
+- **r9 START SHA-256:** `f1d37e4111ff780f46dc3736bdec093ee31e95ba896437d9902b87967113b0ac`.
+- **r9 regression:** 719/719 OK.
+- **r9 Windows/macOS gates:** success.
+- **Active code revision:** **10.8-r10**.
+- **Active branch:** `work/v10.8-r10-database-runtime-infrastructure`.
+- **Active draft PR:** #113, base `work/v10.8-r9-backup-migration-infrastructure`.
 - **Live ledger:** Issue #61.
 
-`v10.3` залишається stable до окремого рішення власника. `v10.8-r3` є інтегрованим повним multi-platform checkpoint, але не автоматичною stable promotion.
+`v10.3` залишається stable до окремого рішення власника. `10.8-r4`…`10.8-r9` — послідовні fast-test/architecture slices, які не інтегруються у `main` без прямої команди власника.
 
-## Що увійшло в 10.8-r3
+## Повний multi-platform checkpoint 10.8-r3
 
-### Відомість ТЦК — виправлення дати
+У `v10.8-r3` опубліковано й перевірено START, Windows x64 Portable+Setup, Windows 7 SP1 x64 Portable+Setup, macOS arm64+x86_64 Portable та checksums. Windows 7 line зберігається на CPython 3.8.10 x64 + PyInstaller 5.13.2 з PE compatibility gate.
 
-Виправлено production-збій при даті Taxo формату `ДД.ММ.РРРР`, зокрема `30.09.2026`.
+## Видані fast-test checkpoints після r3
 
-- підтримуються `ДД.ММ.РРРР`, ISO `YYYY-MM-DD`, `date` і `datetime`;
-- дата нормалізується до внутрішнього ISO-формату перед запитами до БД;
-- додано regression-тести на коректні й помилкові дати.
+Послідовність r4→r9 ведеться як chained draft PRs без злиття у `main`. Уже видані revisions immutable; наступна зміна не робиться під уже виданим номером.
 
-### Реквізити ТЦК у картці транспортного засобу
+Останній виданий checkpoint — `10.8-r9`:
 
-До картки ТЗ додано необов'язкові реквізити для військово-транспортної відомості:
+- PR #112 draft/open;
+- exact source `d8d29c79b82b53a0ad07df18dbbe19cf5f5d00c1`;
+- tag/prerelease `v10.8-r9`;
+- publisher `36823663607` — success;
+- source package `36823663413` — success;
+- Windows gate `36823668396` — success;
+- macOS gate `36823668394` — success;
+- regression 719/719 OK;
+- `backup_migration.py` із low-level backup/restore/legacy migration mechanics;
+- `main.py` зберігає compatibility wrappers;
+- r9 заморожений.
 
-- належність до власного / балансового парку;
-- тип ТЗ;
-- технічний стан;
-- залишкова / балансова вартість;
-- примітка.
+## Active 10.8-r10
 
-Дані зберігаються у вже наявній `vehicle_military_transport_statement_data`; паралельна модель не створюється. Звичайна картка автомобіля не вимагає обов'язкового заповнення цих полів.
+Мета r10 — ще один малий infrastructure slice: винесення SQLite connection policy з `main.py` у `database_runtime.py`.
 
-## Повний пакет 10.8-r3
+Реалізовано:
 
-У release `v10.8-r3` опубліковано і перевірено:
+- `database_runtime.connect_database(path)`;
+- збережено чинні timeout/row factory/PRAGMA налаштування;
+- `main.db()` лишено compatibility wrapper;
+- поточний `DB_PATH` передається при кожному відкритті, тому workspace switching не змінює semantics;
+- `START.bat` вимагає новий модуль;
+- додано `tests/test_v10_8_r10.py`;
+- додано audit і release notes;
+- PR #113 створено draft/open;
+- `main` не змінювався.
 
-- `Taxo_v10_8_candidate_r3_START.zip`;
-- `Taxo_v10_8_candidate_r3_Windows_x64_Portable.zip`;
-- `Taxo_v10_8_candidate_r3_Setup_Windows_x64.exe`;
-- `Taxo_v10_8_candidate_r3_Windows7_x64_Portable.zip`;
-- `Taxo_v10_8_candidate_r3_Setup_Windows7_x64.exe`;
-- `Taxo_v10_8_candidate_r3_macOS_arm64_Portable.zip`;
-- `Taxo_v10_8_candidate_r3_macOS_x86_64_Portable.zip`;
-- окремі SHA-256 manifests для платформ;
-- `SHA256SUMS_v10_8_r3_ALL.txt`.
-
-Усі executable assets зібрані з exact issued source `d8ec901b9b80f74b5b85cd1bda202dd58c86a7bd`; tag `v10.8-r3` не пересувався.
+Перед issuance r10 обов'язкові exact-head regression, START package verification, Windows/macOS gates, immutable tag/prerelease та запис exact source/SHA у Issue #61 і PR #113. Після issuance r10 наступна кодова зміна — **10.9-r1**.
 
 ## Чинні функціональні інваріанти
 
@@ -70,11 +74,8 @@
 - роль водія має датовані періоди і не дорівнює факту працевлаштування;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - історичні tag/release checkpoints immutable;
-- старі work/tmp branches не використовуються як джерело коду для нової розробки.
-
-## Windows 7
-
-Compatibility line зберігається: CPython 3.8.10 x64 + PyInstaller 5.13.2 + `requirements-win7.txt`, `Taxo_win7.spec` і `scripts/check_win7_pe.py`. Для `10.8-r3` regression та PE compatibility gate пройдені успішно.
+- старі work/tmp branches не використовуються як джерело коду для нової розробки;
+- кожен виданий revision не перевидається; після r10 наступний revision — r1 наступної minor version.
 
 ## Право та власність
 
@@ -86,8 +87,6 @@ Taxo — proprietary software.
 
 ## Джерело істини при новій сесії
 
-`START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61.
+`START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → live GitHub state → Issue #61.
 
-## Наступний крок
-
-Після повністю інтегрованого й упакованого `10.8-r3` наступна кодова ревізія — тільки **10.8-r4**. Починати її з нового pre-flight за `START_HERE.md`; stable `v10.3` не пересувати без окремого рішення власника.
+При суперечності документації з live GitHub перемагає фактичний GitHub state; документи синхронізуються у поточній незамороженій ревізії.
