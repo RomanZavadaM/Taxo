@@ -42,7 +42,7 @@ SHA-256: `0c819f9f3e4b31f58e6b86e2b4f1d72086901c0bd2a26a499e4c17f6de9c1766`
 
 Ці checkpoints лишаються в індексі як regression/history anchors і не є джерелом нової розробки:
 
-- **Taxo 10.4-r7** — historical issued checkpoint; межа між локальним контролем документів ТЗ та державним реєстровим звірянням.
+- **Taxo 10.4-r7** — immutable historical issued checkpoint, source `9f397a092fe828570927bc39cef7a3a467e2aff0`; межа між локальним контролем документів ТЗ та державним реєстровим звірянням.
 - **Taxo 10.6-r10** — historical full multi-platform checkpoint.
 - **Taxo 10.8-r3** — попередній повний інтегрований checkpoint перед ланцюгом 10.8-r4…10.9-r1.
 
