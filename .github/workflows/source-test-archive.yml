@@ -81,6 +81,7 @@ jobs:
             backup_migration.py
             database_runtime.py
             data_access.py
+            waybill_integrity.py
             workspace.py
             vehicle_documents.py
             vehicle_maintenance.py
