@@ -84,6 +84,7 @@ jobs:
             waybill_integrity.py
             vehicle_document_validity.py
             work_rest_compliance.py
+            v1096_personnel_balance.py
             workspace.py
             vehicle_documents.py
             vehicle_maintenance.py
