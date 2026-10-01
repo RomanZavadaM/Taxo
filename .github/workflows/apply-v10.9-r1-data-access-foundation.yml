@@ -1,0 +1,70 @@
+name: Apply Taxo 10.9-r1 data-access foundation
+
+on:
+  push:
+    branches:
+      - work/v10.9-r1-data-access-foundation
+    paths:
+      - '.github/workflows/apply-v10.9-r1-data-access-foundation.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch version and package guards
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          version = Path('VERSION.txt')
+          version.write_text('Version: 10.9-r1\n', encoding='utf-8')
+
+          main = Path('main.py')
+          text = main.read_text(encoding='utf-8')
+          old = 'APP_VERSION = "10.8-r10"'
+          if old not in text:
+              raise SystemExit('expected r10 APP_VERSION not found')
+          main.write_text(text.replace(old, 'APP_VERSION = "10.9-r1"', 1), encoding='utf-8')
+
+          start = Path('START.bat')
+          data = start.read_bytes()
+          newline = b'\r\n' if b'\r\n' in data else b'\n'
+          marker = b'if not exist "database_runtime.py" goto :package_incomplete'
+          addition = b'if not exist "data_access.py" goto :package_incomplete'
+          if addition not in data:
+              if marker not in data:
+                  raise SystemExit('database_runtime START guard not found')
+              data = data.replace(marker + newline, marker + newline + addition + newline, 1)
+          if newline == b'\r\n':
+              data = data.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
+          start.write_bytes(data)
+
+          wf = Path('.github/workflows/source-test-archive.yml')
+          text = wf.read_text(encoding='utf-8')
+          if '  data_access.py\n' not in text:
+              marker = '  database_runtime.py\n'
+              if marker not in text:
+                  raise SystemExit('database_runtime package marker not found')
+              text = text.replace(marker, marker + '  data_access.py\n', 1)
+          wf.write_text(text, encoding='utf-8')
+          PY
+
+          python -m py_compile main.py application_context.py database_runtime.py data_access.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add VERSION.txt main.py START.bat .github/workflows/source-test-archive.yml
+          git commit -m 'feat: activate Taxo 10.9-r1 data-access foundation'
+          git push origin HEAD:work/v10.9-r1-data-access-foundation
+      - name: Remove one-shot workflow
+        shell: bash
+        run: |
+          git rm .github/workflows/apply-v10.9-r1-data-access-foundation.yml
+          git commit -m 'chore: remove 10.9-r1 one-shot workflow'
+          git push origin HEAD:work/v10.9-r1-data-access-foundation
