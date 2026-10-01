@@ -51,19 +51,20 @@ PR #126 лишається draft/unmerged. `main` не змінено.
 Технічно:
 
 - additive runtime layer `v1098_orders_immutability.py`;
+- runtime wrappers делегують через зафіксовані original-callable references і не рекурсують через уже patched public names;
 - additive table `vehicle_driver_assignment_endings`;
-- `tests/test_v10_9_r8.py` — поведінкові SQLite-сценарії;
+- `tests/test_v10_9_r8.py` — поведінкові SQLite-сценарії, fixture ізольований від історичних monkey-patches повного regression suite;
 - machine identity = `10.9-r8`;
 - feature layer `v1098-orders-immutability` у domain `operations`;
 - START/source package guards вимагають r8 runtime;
 - аудит: `docs/maintenance/AUDIT_OPERATIONS_ORDERS_v10.9-r8.md`;
-- release notes: `docs/releases/RELEASE_NOTES_v10.9-r8.md`.
+- release notes: `docs/releases/RELEASE_NOTES_v10.9-r8.md`;
+- тимчасовий integration workflow видалено до фінального checkpoint.
 
 ## NEXT
 
-1. Прибрати тимчасовий integration workflow.
-2. Відкрити draft PR r8 поверх frozen r7.
-3. Прогнати exact-head source/START + Windows/macOS gates.
-4. Якщо gates зелені — видати immutable `v10.9-r8` START+checksum.
-5. Зафіксувати SHA/run IDs/checksum у PR та Issue #61.
-6. Не зливати в `main` без прямої команди власника.
+1. Заморозити фінальний r8 head і відкрити draft PR поверх frozen r7.
+2. Прогнати exact-head source/START + Windows/macOS gates.
+3. Якщо gates зелені — видати immutable `v10.9-r8` START+checksum.
+4. Зафіксувати SHA/run IDs/checksum у PR та Issue #61.
+5. Не зливати в `main` без прямої команди власника.
