@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import inspect
+import re
 import sqlite3
 import tempfile
 import unittest
@@ -9,11 +10,22 @@ import database_runtime
 import main
 
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def version_key(value: str):
+    match = re.fullmatch(r"(\d+)\.(\d+)-r(\d+)(?:\.(\d+))?", value)
+    if not match:
+        raise AssertionError(f"unexpected version format: {value}")
+    major, minor, revision, subrevision = match.groups()
+    return int(major), int(minor), int(revision), int(subrevision or 0)
+
+
 class DatabaseRuntimeR10Tests(unittest.TestCase):
-    def test_current_identity_is_r10(self):
-        self.assertEqual(main.APP_VERSION, "10.8-r10")
-        version_text = Path("VERSION.txt").read_text(encoding="utf-8")
-        self.assertIn("Version: 10.8-r10", version_text)
+    def test_r10_identity_is_historical_anchor(self):
+        notes = (ROOT / "docs/releases/RELEASE_NOTES_v10.8-r10.md").read_text(encoding="utf-8")
+        self.assertIn("10.8-r10", notes)
+        self.assertGreaterEqual(version_key(main.APP_VERSION), (10, 8, 10, 0))
 
     def test_infrastructure_module_has_no_tk_dependency(self):
         source = Path("database_runtime.py").read_text(encoding="utf-8")
