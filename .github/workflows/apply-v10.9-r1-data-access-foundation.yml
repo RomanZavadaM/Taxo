@@ -17,14 +17,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Patch version and package guards
+      - name: Patch version and START guard
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          version = Path('VERSION.txt')
-          version.write_text('Version: 10.9-r1\n', encoding='utf-8')
+          Path('VERSION.txt').write_text('Version: 10.9-r1\n', encoding='utf-8')
 
           main = Path('main.py')
           text = main.read_text(encoding='utf-8')
@@ -45,25 +44,12 @@ jobs:
           if newline == b'\r\n':
               data = data.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n')
           start.write_bytes(data)
-
-          wf = Path('.github/workflows/source-test-archive.yml')
-          text = wf.read_text(encoding='utf-8')
-          marker = '            output_files.py\n'
-          if marker not in text:
-              raise SystemExit('output_files package marker not found')
-          additions = []
-          for name in ('backup_migration.py', 'database_runtime.py', 'data_access.py'):
-              if f'            {name}\n' not in text:
-                  additions.append(f'            {name}\n')
-          if additions:
-              text = text.replace(marker, marker + ''.join(additions), 1)
-          wf.write_text(text, encoding='utf-8')
           PY
 
           python -m py_compile main.py application_context.py database_runtime.py data_access.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add VERSION.txt main.py START.bat .github/workflows/source-test-archive.yml
+          git add VERSION.txt main.py START.bat
           git commit -m 'feat: activate Taxo 10.9-r1 data-access foundation'
           git push origin HEAD:work/v10.9-r1-data-access-foundation
       - name: Remove one-shot workflow
