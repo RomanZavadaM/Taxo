@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Taxo 10.9-r8: immutable approved/signed orders and safe assignments.
 
-The layer is additive: historical 10.7 order code stays untouched.  It adds an
+The layer is additive: historical 10.7 order code stays untouched. It adds an
 operational termination fact for superseded driver assignments instead of
 rewriting rows that belong to an already approved order.
 """
@@ -14,11 +14,17 @@ import operations_orders as ops
 FEATURE_VERSION = "10.9-r8"
 _UNSET = object()
 
+# Runtime patching must never call back through an already patched public name.
+_ORIGINAL_ENSURE_SCHEMA = ops.ensure_schema_on_connection
+_ORIGINAL_SET_PAPER_SIGNED = ops.set_paper_original_signed
+_ORIGINAL_ADD_ASSIGNMENT = ops.add_vehicle_assignment
+_ORIGINAL_UPDATE_ASSIGNMENT = ops.update_vehicle_assignment
+_ORIGINAL_DELETE_ASSIGNMENT = ops.delete_vehicle_assignment
 _ORIGINAL_ACTIVE_ASSIGNMENTS = ops.active_driver_assignments
 
 
 def ensure_schema_on_connection(con):
-    ops.ensure_schema_on_connection(con)
+    _ORIGINAL_ENSURE_SCHEMA(con)
     con.executescript(
         """
         CREATE TABLE IF NOT EXISTS vehicle_driver_assignment_endings (
@@ -60,7 +66,7 @@ def _require_order_mutable(con, order_id):
 def update_order(con, order_id, *, order_type=_UNSET, order_no=_UNSET, order_date=_UNSET,
                  place=_UNSET, subject=_UNSET, preamble=_UNSET, body_text=_UNSET,
                  control_employee_id=_UNSET, note=_UNSET, history_note=""):
-    """Update draft order while preserving omitted control_employee_id.
+    """Update a draft while preserving an omitted control_employee_id.
 
     Explicit ``control_employee_id=None`` still means the user intentionally
     clears the field; merely omitting it preserves the existing controller.
@@ -107,13 +113,15 @@ def set_paper_original_signed(con, order_id, signed=True, *, signed_at=None, his
         raise ValueError("Позначку про підписаний паперовий оригінал не можна знімати. Оформіть новий наказ про зміну.")
     if str(row["status"] or "") == ops.ORDER_CANCELLED:
         raise ValueError("Скасований наказ не можна позначати як підписаний.")
-    return ops.set_paper_original_signed(con, order_id, signed=signed, signed_at=signed_at, history_note=history_note)
+    return _ORIGINAL_SET_PAPER_SIGNED(
+        con, order_id, signed=signed, signed_at=signed_at, history_note=history_note
+    )
 
 
 def add_vehicle_assignment(con, order_id, vehicle_id, employee_id, *, valid_from,
                            valid_until="", sequence_no=None, note=""):
     _require_order_mutable(con, order_id)
-    return ops.add_vehicle_assignment(
+    return _ORIGINAL_ADD_ASSIGNMENT(
         con, order_id, vehicle_id, employee_id, valid_from=valid_from,
         valid_until=valid_until, sequence_no=sequence_no, note=note,
     )
@@ -125,7 +133,7 @@ def update_vehicle_assignment(con, assignment_id, **kwargs):
     if row is None:
         raise ValueError("Закріплення не знайдено.")
     _require_order_mutable(con, row["order_id"])
-    return ops.update_vehicle_assignment(con, assignment_id, **kwargs)
+    return _ORIGINAL_UPDATE_ASSIGNMENT(con, assignment_id, **kwargs)
 
 
 def delete_vehicle_assignment(con, assignment_id, *, history_note=""):
@@ -134,7 +142,7 @@ def delete_vehicle_assignment(con, assignment_id, *, history_note=""):
     if row is None:
         return
     _require_order_mutable(con, row["order_id"])
-    return ops.delete_vehicle_assignment(con, assignment_id, history_note=history_note)
+    return _ORIGINAL_DELETE_ASSIGNMENT(con, assignment_id, history_note=history_note)
 
 
 def _end_day(start_iso):
@@ -161,7 +169,7 @@ def _effective_until(con, assignment_row):
 
 
 def _prepare_assignment_supersession(con, order_id):
-    """Validate new assignment order and end one unambiguous prior assignment.
+    """Validate a new assignment order and end one unambiguous prior assignment.
 
     Conflicts inside the new order or already-corrupt simultaneous prior driver
     assignments are rejected rather than silently guessed.
@@ -183,7 +191,10 @@ def _prepare_assignment_supersession(con, order_id):
                 ORDER BY a.valid_from DESC,a.id DESC""",
             (int(new["employee_id"]), int(order_id), ops.ORDER_APPROVED, start),
         ).fetchall()
-        overlapping = [row for row in prior if _overlap(row["valid_from"], _effective_until(con, row), start, new["valid_until"])]
+        overlapping = [
+            row for row in prior
+            if _overlap(row["valid_from"], _effective_until(con, row), start, new["valid_until"])
+        ]
         if len(overlapping) > 1:
             raise ValueError("Виявлено кілька одночасних чинних закріплень цього водія. Спершу усуньте конфлікт історичних даних.")
         if len(overlapping) == 1:
@@ -256,11 +267,17 @@ def active_driver_assignments(con, vehicle_id, on_date=None):
     ensure_schema_on_connection(con)
     day = ops._day(on_date or date.today())
     rows = list(_ORIGINAL_ACTIVE_ASSIGNMENTS(con, vehicle_id, day))
-    return [row for row in rows if not _effective_until(con, row) or _effective_until(con, row) >= day]
+    visible = []
+    for row in rows:
+        effective_until = _effective_until(con, row)
+        if not effective_until or effective_until >= day:
+            visible.append(row)
+    return visible
 
 
 def install(core, App):
-    # Patch the shared domain module used by operations_orders_ui.py.
+    # operations_orders_ui imports this shared module, so one patch covers UI and
+    # other runtime users without rewriting the historical 10.7 implementation.
     for name, func in (
         ("ensure_schema_on_connection", ensure_schema_on_connection),
         ("update_order", update_order),
