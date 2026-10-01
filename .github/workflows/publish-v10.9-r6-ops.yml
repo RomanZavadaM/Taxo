@@ -1,0 +1,89 @@
+name: Publish immutable Taxo 10.9-r6 checkpoint
+
+on:
+  push:
+    branches:
+      - ops/publish-v10.9-r6-531723c1
+    paths:
+      - '.github/workflows/publish-v10.9-r6-ops.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: '1'
+      GH_TOKEN: ${{ github.token }}
+      TARGET_SHA: '531723c1b7e9cb9c3d0258d085819381981de14c'
+      TAG: 'v10.9-r6'
+    steps:
+      - name: Checkout exact verified candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 0
+
+      - name: Verify exact candidate identity and unused tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${TARGET_SHA}"
+          grep -Fxq 'Version: 10.9-r6' VERSION.txt
+          grep -Fxq 'APP_VERSION = "10.9-r6"' main.py
+          test -f v1096_personnel_balance.py
+          test -f docs/maintenance/AUDIT_PERSONNEL_BALANCE_P5_v10.9-r6.md
+          test -f docs/releases/RELEASE_NOTES_v10.9-r6.md
+          grep -Fq 'if not exist "v1096_personnel_balance.py" goto :package_incomplete' START.bat
+          if git ls-remote --exit-code --tags origin refs/tags/${TAG} >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists; refusing to move/reuse it." >&2
+            exit 1
+          fi
+
+      - name: Install Tk/Xvfb and regression dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk xvfb
+          python -m pip install -r requirements.txt
+
+      - name: Run exact-source regression suite
+        run: |
+          python -m py_compile main.py taxo_app.py application_context.py feature_layers.py output_files.py backup_migration.py database_runtime.py data_access.py waybill_integrity.py vehicle_document_validity.py work_rest_compliance.py v1096_personnel_balance.py vehicle_documents.py vehicle_maintenance.py vehicle_maintenance_ui.py v1084_features.py v1085_features.py
+          xvfb-run -a python -m unittest discover -s tests -v
+
+      - name: Build and verify START archive
+        id: pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          stem='Taxo_v10_9_candidate_r6_START'
+          archive="${stem}.zip"
+          git archive --format=zip --prefix="${stem}/" --output="$archive" HEAD
+          for f in START.bat requirements.txt taxo_app.py main.py application_context.py feature_layers.py output_files.py backup_migration.py database_runtime.py data_access.py waybill_integrity.py vehicle_document_validity.py work_rest_compliance.py v1096_personnel_balance.py workspace.py vehicle_documents.py vehicle_maintenance.py vehicle_maintenance_ui.py LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md; do
+            unzip -l "$archive" | grep -q "/${f}$" || { echo "Missing ${f}" >&2; exit 1; }
+          done
+          if unzip -l "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly included' >&2
+            exit 1
+          fi
+          sha256sum "$archive" > SHA256SUMS_v10_9_r6.txt
+          sha=$(sha256sum "$archive" | awk '{print $1}')
+          echo "archive=$archive" >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Create immutable tag and prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag "${TAG}" "${TARGET_SHA}"
+          git push origin "refs/tags/${TAG}"
+          gh release create "${TAG}" \
+            "${{ steps.pack.outputs.archive }}" SHA256SUMS_v10_9_r6.txt \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title 'Taxo 10.9-r6' \
+            --prerelease \
+            --notes-file docs/releases/RELEASE_NOTES_v10.9-r6.md
+          target=$(gh api repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG} --jq '.object.sha')
+          test "$target" = "${TARGET_SHA}"
+          printf 'Issued source: %s\nSTART SHA-256: %s\n' "${TARGET_SHA}" '${{ steps.pack.outputs.sha }}'
