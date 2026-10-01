@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -f .github/workflows/apply-v10.9-r3-vehicle-validity.yml
+          git checkout -- .github/workflows/source-test-archive.yml
           rm -f .github/scripts/apply_v10_9_r3.py
           git config user.name 'RomanZavadaM'
           git config user.email 'zavada.roman.m@gmail.com'
