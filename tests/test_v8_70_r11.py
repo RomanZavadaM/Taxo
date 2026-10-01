@@ -23,7 +23,7 @@ class ActivityRegister60Tests(unittest.TestCase):
         self.assertEqual(start, datetime(2026, 9, 17, 22, 30))
         self.assertEqual(end, datetime(2026, 9, 18, 2, 15))
 
-    def test_split_workday_fills_break_and_rest(self):
+    def test_split_workday_fills_break_but_keeps_outer_time_undefined(self):
         day = date(2026, 9, 17)
         grid = new_grid(day, day)
         assign_span(grid, datetime.combine(day, time(8, 0)), datetime.combine(day, time(12, 0)),
@@ -32,14 +32,15 @@ class ActivityRegister60Tests(unittest.TestCase):
                     "Інша робота", "test", 60)
         classify_and_fill(grid)
         cells = grid[day]
-        self.assertEqual(cells[7 * 60]["activity"], "Відпочинок")
+        self.assertEqual(cells[7 * 60]["activity"], "Невизначено")
         self.assertEqual(cells[9 * 60]["activity"], "Інша робота")
         self.assertEqual(cells[12 * 60 + 30]["activity"], "Перерва")
-        self.assertEqual(cells[18 * 60]["activity"], "Відпочинок")
+        self.assertEqual(cells[18 * 60]["activity"], "Невизначено")
         summary = summarize_day(cells)
         self.assertEqual(summary["Інша робота"], 8 * 60)
         self.assertEqual(summary["Перерва"], 60)
-        self.assertEqual(summary["Відпочинок"], 15 * 60)
+        self.assertEqual(summary["Відпочинок"], 0)
+        self.assertEqual(summary["Невизначено"], 15 * 60)
         self.assertEqual(sum(summary[k] for k in (
             "Керування", "Інша робота", "Готовність", "Перерва",
             "Відпочинок", "Відсутність", "Невизначено"
