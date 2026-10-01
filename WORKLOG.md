@@ -8,63 +8,67 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest integrated code checkpoint:** **10.9-r1**  
 **Latest full multi-platform checkpoint:** **10.9-r1 / `v10.9-r1`**  
-**Latest issued fast-test:** **10.9-r7 / `v10.9-r7`**  
-**Current active slice:** **10.9-r8 — накази / незмінність і закріплення**  
+**Latest issued fast-test:** **10.9-r8 / `v10.9-r8`**  
+**Current active slice:** **10.9-r9 — сумісність схеми SQLite**  
 **Integrated main baseline:** `8f18a7ccf1588556f6f3d7dca81943f87d817935`  
-**Active branch:** `work/v10.9-r8-orders-immutability`  
-**Base:** immutable `v10.9-r7` → `88fcfb20e8632178b095a99ef9b09c86701a072e`  
+**Active branch:** `work/v10.9-r9-schema-compatibility`  
+**Base:** immutable `v10.9-r8` → `b8c3fb2d19323e8c9564eedc2f0540250dd51b29`  
 **Stable remains:** `v10.3`  
 **Live ledger:** Issue #61
 
-## DONE — 10.9-r7 immutable issuance
+## DONE — 10.9-r8 immutable issuance
 
-10.9-r7 виправив підтверджені ризики СТОІР:
+10.9-r8 закрив ризики наказів і закріплень:
 
-- `reading_at -> work_date` fallback для хронології одометра;
-- новіший waybill-факт не губиться через порожній `reading_at`;
-- середній пробіг використовує валідні датовані сегменти і newest-fact lookback;
-- прогноз ТО відраховується від останньої надійної дати одометра;
-- одиничний очевидний викид не домінує середній при достатній історії;
-- ТО-1/ТО-2 лишилися окремими циклами до явного бізнес-рішення.
+- approved/signed наказ незмінний;
+- cancelled наказ не можна повторно approve;
+- omitted `control_employee_id` не очищає відповідального;
+- assignments під approved/signed наказом незмінні;
+- конфліктні simultaneous driver→vehicle assignments блокують approval;
+- одне однозначне попереднє закріплення завершується новим наказом окремим фактом без переписування старого наказу.
 
-Immutable source: `88fcfb20e8632178b095a99ef9b09c86701a072e`.  
-Exact-source regression: **769/769 OK**.  
-Gates: source `36916227610`, Windows `36916259871`, macOS `36916259785`, publisher `36916515063` — success.  
-Release: `v10.9-r7` / https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r7  
-START SHA-256: `8d35d2e8af76af1a90e9a6600b5d637d80fb80a28cb4d2331e85f9a336e88222`.
+Immutable source: `b8c3fb2d19323e8c9564eedc2f0540250dd51b29`.  
+Exact-source regression: **777/777 OK**.  
+Gates: source `36917874768`, Windows `36917897671`, macOS `36917897612`, publisher `36918132266` — success.  
+Release: `v10.9-r8` / https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r8  
+START: `Taxo_v10_9_candidate_r8_START.zip`  
+SHA-256: `01698663d3bb01e4461bf49479bce46fb3688d72ea23854cd9557370473a6775`.
 
-PR #126 лишається draft/unmerged. `main` не змінено.
+PR #127 лишається draft/unmerged. `main` не змінено.
 
-## DOING — 10.9-r8
+## DOING — 10.9-r9
 
-Ціль: **зробити затверджені/підписані накази незмінними й прибрати неоднозначність закріплень водія за ТЗ**.
+Ціль: **ввести explicit SQLite schema compatibility baseline без ризикованого переписування historical `init_db()`**.
 
-Підтверджено на старому runtime і реалізовано:
+Реалізовано:
 
-1. approved/signed наказ не можна редагувати як чернетку;
-2. cancelled наказ не можна повторно approve;
-3. непереданий `control_employee_id` більше не очищає відповідального;
-4. assignments під approved/signed наказом не можна додавати/редагувати/видаляти;
-5. overlapping assignment одного водія за різними ТЗ у новому наказі блокує approval;
-6. одне однозначне попереднє закріплення завершується новим наказом окремим фактом, без переписування старого затвердженого наказу.
+1. `database_runtime.py` використовує `PRAGMA user_version`;
+2. schema numbering незалежний від версії програми: legacy=`0`, r9 baseline=`1`;
+3. legacy DB `user_version=0` відкривається без неявного stamp;
+4. DB із schema version `>1` відхиляється через `SchemaTooNewError` до доменної роботи;
+5. baseline `1` ставиться тільки після успішного чинного `init_db()`;
+6. failed `init_db()` не оголошує частково змінену базу успішно мігрованою;
+7. schema version helper не дозволяє downgrade.
 
 Технічно:
 
-- additive runtime layer `v1098_orders_immutability.py`;
-- runtime wrappers делегують через зафіксовані original-callable references і не рекурсують через уже patched public names;
-- additive table `vehicle_driver_assignment_endings`;
-- `tests/test_v10_9_r8.py` — поведінкові SQLite-сценарії, fixture ізольований від історичних monkey-patches повного regression suite;
-- machine identity = `10.9-r8`;
-- feature layer `v1098-orders-immutability` у domain `operations`;
-- START/source package guards вимагають r8 runtime;
-- аудит: `docs/maintenance/AUDIT_OPERATIONS_ORDERS_v10.9-r8.md`;
-- release notes: `docs/releases/RELEASE_NOTES_v10.9-r8.md`;
-- тимчасовий integration workflow видалено до фінального checkpoint.
+- compatibility helpers у `database_runtime.py`;
+- additive runtime layer `v1099_schema_compatibility.py`;
+- `tests/test_v10_9_r9.py` — поведінкові SQLite-сценарії;
+- machine identity = `10.9-r9`;
+- feature layer `v1099-schema-compatibility` у domain `infrastructure`;
+- START/source package guards вимагають r9 runtime;
+- аудит: `docs/maintenance/AUDIT_SCHEMA_COMPATIBILITY_v10.9-r9.md`;
+- release notes: `docs/releases/RELEASE_NOTES_v10.9-r9.md`.
+
+Обмеження: binaries до r9 не знають про `user_version`, тому future-schema guard гарантований від r9 і далі, а не ретроспективно.
 
 ## NEXT
 
-1. Заморозити фінальний r8 head і відкрити draft PR поверх frozen r7.
-2. Прогнати exact-head source/START + Windows/macOS gates.
-3. Якщо gates зелені — видати immutable `v10.9-r8` START+checksum.
-4. Зафіксувати SHA/run IDs/checksum у PR та Issue #61.
-5. Не зливати в `main` без прямої команди власника.
+1. Отримати результат full source regression для r9 та виправити тільки фактичні regression failures, якщо вони є.
+2. Прибрати тимчасовий integration workflow із кандидатної гілки.
+3. Синхронізувати `PROJECT_STATE.md` через issued r8 / active r9.
+4. Відкрити draft PR r9 поверх frozen r8.
+5. Прогнати exact-head source/START + Windows/macOS gates.
+6. Якщо gates зелені — видати immutable `v10.9-r9` START+checksum і зафіксувати в PR/Issue #61.
+7. Не зливати в `main` без прямої команди власника.
