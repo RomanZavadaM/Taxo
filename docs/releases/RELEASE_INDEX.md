@@ -3,26 +3,31 @@
 **Стан:** 02.10.2026  
 **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
 **Latest integrated code checkpoint in `main`:** **Taxo 10.9-r9** — cumulative PR #128 / merge `3f59544b8737cd4715d84f786e32378d87d1dd99`  
-**Latest issued fast-test:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-**Latest full multi-platform published checkpoint:** [Taxo 10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1)  
+**Latest issued checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
+**Latest full multi-platform published checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
 **Next code revision:** **10.9-r10**.
 
-> `v10.3` лишається stable до окремого рішення власника. `main` уже інтегрований до 10.9-r9. Історичні fast-test releases зберігаються як immutable checkpoints, але не є паралельними актуальними гілками розвитку.
+> `v10.3` лишається stable до окремого рішення власника. `main` інтегрований до 10.9-r9. Історичні releases зберігаються як immutable checkpoints, але не є паралельними актуальними гілками розвитку.
 
 ## Поточний інтегрований checkpoint
 
 | Ревізія | Main / issued source | Перевірка | Статус |
 |---|---|---|---|
-| **10.9-r9** | main merge `3f59544b8737cd4715d84f786e32378d87d1dd99`; tag source `a368bf3bdfd4a16cc099844b830379c5e2646c2d` | Windows `36919102579` — success; macOS `36919102540` — success | **latest integrated code checkpoint**; cumulative r2…r9 |
+| **10.9-r9** | main merge `3f59544b8737cd4715d84f786e32378d87d1dd99`; tag source `a368bf3bdfd4a16cc099844b830379c5e2646c2d` | Windows `36919102579` — success; macOS `36919102540` — success | **latest integrated + full multi-platform checkpoint**; cumulative r2…r9 |
 
-START: `Taxo_v10_9_candidate_r9_START.zip`  
-SHA-256: `9c30bf70e8c7adc4f2560a22e2bdfa2c26d698573982de01aafa4b34bbcd62d4`
+Пакети `v10.9-r9`:
+- Windows x64 Setup + Portable;
+- Windows 7 SP1 x64 Setup + Portable;
+- macOS ARM64 Portable;
+- macOS Intel x86_64 Portable;
+- START/source;
+- per-platform SHA-256 manifests.
 
 ## Taxo 10.9 history
 
 | Ревізія | Статус | Зміст |
 |---|---|---|
-| **10.9-r9** | **integrated in main; fast-test immutable** | SQLite schema compatibility baseline (`PRAGMA user_version`) |
+| **10.9-r9** | **integrated in main; full multi-platform checkpoint** | SQLite schema compatibility baseline (`PRAGMA user_version`) + cumulative r2…r9 |
 | 10.9-r8 | historical fast-test; integrated through r9 | immutable approved/signed orders and driver→vehicle assignment safety |
 | 10.9-r7 | historical fast-test; integrated through r9 | STOIR odometer chronology and maintenance forecast safety |
 | 10.9-r6 | historical fast-test; integrated through r9 | personnel balance / P-5 safety, employment-aware history |
@@ -30,15 +35,15 @@ SHA-256: `9c30bf70e8c7adc4f2560a22e2bdfa2c26d698573982de01aafa4b34bbcd62d4`
 | 10.9-r4 | historical fast-test; integrated through r9 | work/rest compliance hardening |
 | 10.9-r3 | historical fast-test; integrated through r9 | vehicle document validity for the whole trip |
 | 10.9-r2 | historical fast-test; integrated through r9 | waybill history, number reuse and retention guards |
-| 10.9-r1 | full multi-platform checkpoint | data-access foundation + cumulative 10.8-r4…r10 integration |
+| 10.9-r1 | previous full multi-platform checkpoint | data-access foundation + cumulative 10.8-r4…r10 integration |
 
-PR #121–#127 are closed as historical/superseded. PR #128 is the single cumulative integration point for r2…r9.
+PR #121–#127 are closed as historical/superseded. PR #128 is the single cumulative integration point for r2…r9. PR #129 is documentation closeout.
 
 ## Historical identity anchors
 
 Ці checkpoints залишаються тільки як regression/history anchors і не є базою нової розробки:
 
-- **Taxo 10.4-r7** — immutable historical issued checkpoint, source `9f397a092fe828570927bc39cef7a3a467e2aff0`; межа між локальним контролем документів ТЗ та державним реєстровим звірянням.
+- **Taxo 10.4-r7** — immutable historical issued checkpoint, source `9f397a092fe828570927bc39cef7a3a467e2aff0`.
 - **Taxo 10.6-r10** — historical full multi-platform checkpoint.
 - **Taxo 10.8-r3** — historical full checkpoint перед лінією 10.8-r4…10.9-r1.
 
@@ -46,9 +51,10 @@ PR #121–#127 are closed as historical/superseded. PR #128 is the single cumula
 
 | Tag | Статус | Пакети |
 |---|---|---|
-| [v10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) | **Latest full multi-platform published checkpoint** | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, platform/full SHA-256 |
-| [v10.8-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.8-r3) | previous full checkpoint | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, platform/full SHA-256 |
-| [v10.6-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r10) | historical | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, platform/full SHA-256 |
+| [v10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9) | **Latest full multi-platform published checkpoint** | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, SHA-256 |
+| [v10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) | previous full checkpoint | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, SHA-256 |
+| [v10.8-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.8-r3) | historical full checkpoint | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, SHA-256 |
+| [v10.6-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r10) | historical | Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START, SHA-256 |
 
 ## Stable line
 
