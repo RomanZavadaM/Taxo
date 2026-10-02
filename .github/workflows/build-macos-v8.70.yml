@@ -9,34 +9,21 @@ on:
     paths:
       - 'main.py'
       - 'taxo_app.py'
-      - 'work_analysis_ext.py'
-      - 'activity_register_60.py'
-      - 'v91_features.py'
-      - 'personnel_v91.py'
-      - 'branding.py'
-      - 'branding_asset.py'
-      - 'work_regime.py'
-      - 'workspace.py'
-      - 'vehicle_documents.py'
-      - 'waybill.py'
-      - 'tachograph.py'
-      - 'attestation_render.py'
-      - 'Бланк підтвердження.docx'
-      - 'attestation_visual_template.pdf'
-      - 'requirements.txt'
-      - 'requirements-build-macos.txt'
-      - 'Taxo_macos.spec'
+      - 'sitecustomize.py'
+      - 'src/taxo/**'
+      - 'assets/**'
+      - 'packaging/**'
+      - 'requirements*.txt'
       - 'tests/**'
-      - '.github/workflows/build-macos-v8.70.yml'
-      - '.github/workflows/publish-v10.3.yml'
       - 'VERSION.txt'
+      - '.github/workflows/build-macos-v8.70.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
 
 jobs:
   build-macos:
@@ -50,9 +37,9 @@ jobs:
             arch: arm64
           - runner: macos-15-intel
             arch: x86_64
-
     env:
       PYTHONUTF8: '1'
+      PYTHONPATH: ${{ github.workspace }}/src/taxo
 
     steps:
       - name: Checkout current Taxo candidate
@@ -63,40 +50,39 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Verify runner architecture
+      - name: Verify runner architecture and layout
         shell: bash
-        run: test "$(uname -m)" = "${{ matrix.arch }}"
+        run: |
+          test "$(uname -m)" = "${{ matrix.arch }}"
+          grep -Fxq 'Version: 10.9-r10' VERSION.txt
+          grep -Fq 'APP_VERSION = "10.9-r10"' main.py
+          test -f src/taxo/application_context.py
+          test -f assets/attestation_visual_template.pdf
+          test -f packaging/Taxo_macos.spec
 
       - name: Install dependencies
         shell: bash
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-
-      - name: Install macOS packaging dependencies
-        if: github.event_name == 'workflow_dispatch'
-        shell: bash
-        run: |
           python -m pip install -r requirements-build-macos.txt
 
       - name: Compile and test source
         shell: bash
         run: |
-          python -m py_compile main.py taxo_app.py work_analysis_ext.py activity_register_60.py v9_release.py hotfix_901.py v91_features.py personnel_v91.py work_regime.py workspace.py vehicle_documents.py waybill.py tachograph.py attestation_render.py
+          python -m py_compile main.py taxo_app.py sitecustomize.py src/taxo/*.py
           python -m unittest discover -s tests -v
 
       - name: Build native Taxo.app
-        if: github.event_name == 'workflow_dispatch'
         shell: bash
-        run: python -m PyInstaller --noconfirm --clean Taxo_macos.spec
+        run: python -m PyInstaller --noconfirm --clean packaging/Taxo_macos.spec
 
       - name: Verify application bundle
-        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
           test -x 'dist/Taxo.app/Contents/MacOS/Taxo'
-          find 'dist/Taxo.app' -name 'Бланк підтвердження.docx' -print -quit | grep -q .
-          find 'dist/Taxo.app' -name 'attestation_visual_template.pdf' -print -quit | grep -q .
+          find 'dist/Taxo.app' -path '*/assets/Бланк підтвердження.docx' -print -quit | grep -q .
+          find 'dist/Taxo.app' -path '*/assets/attestation_visual_template.pdf' -print -quit | grep -q .
           if find 'dist/Taxo.app' -type f \( -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -print -quit | grep -q .; then
             echo 'Database unexpectedly bundled in Taxo.app' >&2
             exit 1
@@ -105,23 +91,21 @@ jobs:
           codesign --verify --deep --strict 'dist/Taxo.app'
 
       - name: Create portable ZIP and checksum
-        if: github.event_name == 'workflow_dispatch'
         shell: bash
         run: |
-          bundle_dir="Taxo_v10_3_macOS_${{ matrix.arch }}"
+          bundle_dir="Taxo_v10_9_candidate_r10_macOS_${{ matrix.arch }}"
           zip_name="${bundle_dir}_Portable.zip"
-          mkdir "${bundle_dir}"
-          mv 'dist/Taxo.app' "${bundle_dir}/Taxo.app"
-          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle_dir}" "${zip_name}"
-          shasum -a 256 "${zip_name}" > "SHA256SUMS_v10_3_macOS_${{ matrix.arch }}.txt"
+          mkdir "$bundle_dir"
+          mv 'dist/Taxo.app' "$bundle_dir/Taxo.app"
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$bundle_dir" "$zip_name"
+          shasum -a 256 "$zip_name" > "SHA256SUMS_v10_9_r10_macOS_${{ matrix.arch }}.txt"
 
       - name: Upload macOS candidate
-        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.3-macOS-${{ matrix.arch }}
+          name: Taxo-v10.9-r10-macOS-${{ matrix.arch }}
           path: |
-            Taxo_v10_3_macOS_${{ matrix.arch }}_Portable.zip
-            SHA256SUMS_v10_3_macOS_${{ matrix.arch }}.txt
+            Taxo_v10_9_candidate_r10_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v10_9_r10_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30
