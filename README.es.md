@@ -1,17 +1,28 @@
 # Taxo / Driver Worktime
 
-[Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
+[Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-Taxo es una aplicación de escritorio para una empresa de transporte: personal y conductores, horarios, control de jornada, hojas de ruta, certificados de actividad, vehículos, control documental, informes y procesamiento selectivo de discos de tacógrafo analógicos.
+Taxo es una aplicación de escritorio para una empresa de transporte: personal y conductores, horarios, control de jornada, hojas de ruta, certificados de actividad, vehículos, control documental, informes, mantenimiento y procesamiento selectivo de discos de tacógrafo analógicos.
 
 > **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3).  
-> **Último checkpoint completo en `main`:** [Taxo 10.6-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3).  
+> **Último checkpoint integrado en `main`:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9).  
+> **Último checkpoint completo multiplataforma:** [Taxo 10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1).  
 > **Stable anterior / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1).  
-> `v10.6-r3` es un candidate/checkpoint completo y no se convierte en stable sin una decisión separada del propietario.
+> `v10.9-r9` no se convierte automáticamente en stable; la promoción a stable requiere una decisión separada del propietario.
 
-## Descargas 10.6-r3
+## Descargas
 
-[Windows x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe) · [Windows x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip) · [Windows 7 SP1 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe) · [Windows 7 SP1 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/SHA256SUMS_v10_6_r3_FULL.txt)
+### Checkpoint integrado actual — 10.9-r9
+
+[START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/SHA256SUMS_v10_9_r9.txt) · [Release 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
+
+10.9-r9 es el checkpoint de código integrado más reciente. Tiene paquete START; no se volvió a publicar un juego completo de ejecutables para r9.
+
+### Último checkpoint completo multiplataforma — 10.9-r1
+
+[Release 10.9-r1 con paquetes Windows/macOS](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) · [Combined SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r1/SHA256SUMS_v10_9_r1_ALL.txt)
+
+Para uso normal utilice un paquete preparado de Windows/macOS de `v10.9-r1`. `START.bat` está pensado principalmente para pruebas y diagnóstico técnico; extraiga completamente el ZIP START antes de ejecutarlo.
 
 Las bases de datos de usuario, archivos SQLite, escaneos, cachés y documentos personales nunca se incluyen en los releases de GitHub.
 
@@ -21,30 +32,32 @@ Las bases de datos de usuario, archivos SQLite, escaneos, cachés y documentos p
 - horarios individuales y periódicos de conductores;
 - hojas de horas con turnos divididos y separación explícita entre plan y real;
 - control de trabajo, conducción, pausas y descanso;
-- balances semanales separados de **60:00 de trabajo** y **56:00 de conducción**;
-- registro de vehículos, kilometraje y control documental;
-- rutas regulares y trabajos no regulares: encargos, servicios de traslado, ciudad, región, viajes interregionales y otros servicios puntuales;
-- hojas de ruta, certificados de actividad e informes PDF/Excel;
+- registro de actividad de 60 días sin inventar descanso a partir de tiempo desconocido;
+- registro de vehículos, kilometraje, mantenimiento y control documental;
+- hojas de ruta regulares y no regulares;
+- certificados de actividad con historial de revisiones;
 - discos de tacógrafo analógicos con verificación manual;
-- copias de seguridad y traslado de datos.
+- protección del historial de órdenes aprobadas/firmadas y asignaciones conductor→vehículo;
+- informes PDF/Excel;
+- copias de seguridad, traslado del espacio de trabajo y control de compatibilidad del esquema SQLite.
 
-## Checkpoint 10.6-r3
+## Integrado en 10.9-r2 → 10.9-r9
 
-El checkpoint incluye la corrección de la auditoría plan/real, el filtro predeterminado de vehículos inactivos, la emisión de hojas de ruta para trabajos no regulares sin exigir un `route_id` del catálogo y una ventana «Acerca de» adaptable. En una salida no regular la tabla de ruta permanece vacía, mientras que médico, mecánico, odómetro y kilometraje real se conservan cuando existe una fuente real en Taxo. Los hechos ausentes no se inventan a partir del plan.
+La línea integrada añade historial inmutable de hojas de ruta y números, validación de documentos del vehículo durante todo el viaje, controles reforzados de trabajo/descanso, prioridad más segura de fuentes reales, correcciones históricas de personal/P-5, mayor seguridad en odómetro y previsión de mantenimiento, órdenes aprobadas/firmadas inmutables y la primera base explícita del esquema SQLite mediante `PRAGMA user_version`.
 
-Notas completas: [Release notes 10.6-r3](docs/releases/RELEASE_NOTES_v10_6_r3.md).
+Notas completas: [Release notes 10.9-r9](docs/releases/RELEASE_NOTES_v10.9-r9.md) · [Índice de releases](docs/releases/RELEASE_INDEX.md).
 
 ## Registros estatales y contabilidad militar
 
-Taxo admite conciliación de vehículos con “Shlyakh”, valores de trabajo editables separados de snapshots estatales inmutables, registro de documentos de empleados, importación XLSX sin pérdida, relación empresarial de transporte militar y un flujo local Diia-first para la conciliación anual del personal.
+Taxo admite conciliación de vehículos con “Shlyakh”, valores de trabajo editables separados de snapshots estatales inmutables, registro de documentos de empleados, importación XLSX sin pérdida y un flujo local Diia-first para la conciliación anual del personal.
 
 Taxo **no sustituye una API estatal** ni afirma transmitir automáticamente datos a Diia, Oberih o Shlyakh.
 
 ## Documentación y desarrollo
 
-La documentación operativa canónica se mantiene en ucraniano. Las sesiones nuevas empiezan por `START_HERE.md`, después `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` e Issue #61. Las revisiones publicadas son inmutables. Después de `10.6-r3`, la siguiente revisión de código es **10.6-r4**.
+La documentación operativa canónica se mantiene en ucraniano. Las sesiones nuevas empiezan por `START_HERE.md`, después `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` e Issue #61. Las revisiones publicadas son inmutables. Después de `10.9-r9`, la siguiente revisión de código es **10.9-r10**.
 
-Consulte [Índice de documentación](docs/README.md) · [Descripción del sistema](docs/SYSTEM_OVERVIEW.md) · [Inicio rápido](docs/guides/QUICK_START.md) · [Índice de releases](docs/releases/RELEASE_INDEX.md).
+Consulte [Índice de documentación](docs/README.md) · [Descripción del sistema](docs/SYSTEM_OVERVIEW.md) · [Estado del producto](docs/PRODUCT_STATUS.md) · [Inicio rápido](docs/guides/QUICK_START.md) · [Índice de releases](docs/releases/RELEASE_INDEX.md).
 
 ## Derechos de autor y licencia
 
