@@ -1,0 +1,93 @@
+name: Test Taxo Windows 7 compatibility
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'main.py'
+      - 'taxo_app.py'
+      - 'sitecustomize.py'
+      - 'src/taxo/**'
+      - 'assets/**'
+      - 'packaging/**'
+      - 'requirements-win7.txt'
+      - 'scripts/check_win7_pe.py'
+      - 'VERSION.txt'
+      - 'WORKLOG.md'
+      - '.github/workflows/build-win7-current.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-win7:
+    runs-on: windows-2022
+    env:
+      PYTHONUTF8: '1'
+      PYTHONPATH: ${{ github.workspace }}\src\taxo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up CPython 3.8.10 x64
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8.10'
+          architecture: 'x64'
+
+      - name: Verify r10 identity and layout
+        shell: pwsh
+        run: |
+          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.9-r10') { throw 'VERSION.txt is not 10.9-r10' }
+          if (!(Test-Path 'packaging/Taxo_win7.spec')) { throw 'Win7 spec missing' }
+          if (!(Test-Path 'assets/Бланк підтвердження.docx')) { throw 'Template missing' }
+
+      - name: Install Win7 compatibility dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip==24.3.1
+          python -m pip install -r requirements-win7.txt
+          python -m pip install pyinstaller==5.13.2 pefile==2023.2.7
+
+      - name: Compile source
+        shell: pwsh
+        run: |
+          python -m py_compile main.py taxo_app.py sitecustomize.py
+          Get-ChildItem src/taxo -Filter *.py | ForEach-Object { python -m py_compile $_.FullName }
+
+      - name: Build Windows 7 portable
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean packaging/Taxo_win7.spec 2>&1 | Tee-Object -FilePath win7-build.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_9_candidate_r10_Windows7_x64'
+          $bundle = 'dist/Taxo_v10_9_candidate_r10_Windows7_x64'
+          if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe missing' }
+          if (!(Get-ChildItem $bundle -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll missing' }
+          $env:TAXO_WIN7_BUNDLE = (Resolve-Path $bundle).Path
+          python scripts/check_win7_pe.py 2>&1 | Tee-Object -FilePath win7-build.log -Append
+          if ($LASTEXITCODE -ne 0) { throw "Win7 PE check failed: $LASTEXITCODE" }
+          $templateOld = "$bundle/assets/Бланк підтвердження.docx"
+          $templateNew = "$bundle/_internal/assets/Бланк підтвердження.docx"
+          if (!(Test-Path $templateOld) -and !(Test-Path $templateNew)) { throw 'Bundled template missing' }
+
+      - name: Upload Win7 diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.9-r10-Windows7-build-log
+          path: win7-build.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Create Win7 portable ZIP
+        shell: pwsh
+        run: Compress-Archive -Path 'dist/Taxo_v10_9_candidate_r10_Windows7_x64' -DestinationPath 'Taxo_v10_9_candidate_r10_Windows7_x64_Portable.zip' -Force
+
+      - name: Upload Win7 candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.9-r10-Windows7-x64
+          path: Taxo_v10_9_candidate_r10_Windows7_x64_Portable.zip
+          if-no-files-found: error
+          retention-days: 30

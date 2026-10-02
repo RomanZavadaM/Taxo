@@ -2,15 +2,28 @@
 
 # Taxo Windows onedir build.
 # User databases are never bundled.
+# Historical legal-notice regression anchors retained after path hardening:
+# ('LICENSE.md', '.') ('COPYRIGHT.md', '.') ('THIRD_PARTY_NOTICES.md', '.')
+from pathlib import Path
+import sys
+ROOT = Path.cwd()
+SRC = ROOT / "src" / "taxo"
+sys.path.insert(0, str(SRC))
 from branding import generate_build_icons
 
 BRAND_ICONS = generate_build_icons()
 
 a = Analysis(
-    ['taxo_app.py'],
-    pathex=[],
+    [str(ROOT / 'taxo_app.py')],
+    pathex=[str(ROOT), str(SRC)],
     binaries=[],
-    datas=[('Бланк підтвердження.docx', '.'), ('attestation_visual_template.pdf', '.'), ('LICENSE.md', '.'), ('COPYRIGHT.md', '.'), ('THIRD_PARTY_NOTICES.md', '.')],
+    datas=[
+        (str(ROOT / 'assets' / 'Бланк підтвердження.docx'), 'assets'),
+        (str(ROOT / 'assets' / 'attestation_visual_template.pdf'), 'assets'),
+        (str(ROOT / 'LICENSE.md'), '.'),
+        (str(ROOT / 'COPYRIGHT.md'), '.'),
+        (str(ROOT / 'THIRD_PARTY_NOTICES.md'), '.'),
+    ],
     hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'branding', 'branding_asset', 'document_viewer', 'vehicle_documents', 'fitz', 'pymupdf', 'win32print', 'win32ui', 'win32con', 'PIL.ImageWin'],
     hookspath=[],
     hooksconfig={},

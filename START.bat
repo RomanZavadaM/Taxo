@@ -3,37 +3,38 @@ setlocal
 cd /d "%~dp0"
 
 echo ==============================================
-echo   Driver Worktime App - START
+echo   Taxo 10.9-r10 - START
 echo ==============================================
 echo.
 
 if not exist "requirements.txt" goto :package_incomplete
 if not exist "taxo_app.py" goto :package_incomplete
 if not exist "main.py" goto :package_incomplete
-if not exist "application_context.py" goto :package_incomplete
-if not exist "feature_layers.py" goto :package_incomplete
-if not exist "output_files.py" goto :package_incomplete
-if not exist "backup_migration.py" goto :package_incomplete
-if not exist "database_runtime.py" goto :package_incomplete
-if not exist "data_access.py" goto :package_incomplete
-if not exist "waybill_integrity.py" goto :package_incomplete
-if not exist "vehicle_document_validity.py" goto :package_incomplete
-if not exist "work_rest_compliance.py" goto :package_incomplete
-if not exist "v1096_personnel_balance.py" goto :package_incomplete
-if not exist "v1097_stoir_odometer.py" goto :package_incomplete
-if not exist "v1098_orders_immutability.py" goto :package_incomplete
-if not exist "v1099_schema_compatibility.py" goto :package_incomplete
-if not exist "workspace.py" goto :package_incomplete
-if not exist "vehicle_documents.py" goto :package_incomplete
-if not exist "v10710_features.py" goto :package_incomplete
-if not exist "v1081_features.py" goto :package_incomplete
-if not exist "v1082_features.py" goto :package_incomplete
-if not exist "v1083_features.py" goto :package_incomplete
-if not exist "v1084_features.py" goto :package_incomplete
-if not exist "v1085_features.py" goto :package_incomplete
-if not exist "vehicle_maintenance.py" goto :package_incomplete
-if not exist "vehicle_maintenance_ui.py" goto :package_incomplete
+if not exist "src\taxo\application_context.py" goto :package_incomplete
+if not exist "src\taxo\feature_layers.py" goto :package_incomplete
+if not exist "src\taxo\workspace.py" goto :package_incomplete
+if not exist "src\taxo\database_runtime.py" goto :package_incomplete
+if not exist "src\taxo\output_files.py" goto :package_incomplete
+if not exist "src\taxo\vehicle_documents.py" goto :package_incomplete
+if not exist "src\taxo\vehicle_maintenance.py" goto :package_incomplete
+if not exist "src\taxo\vehicle_maintenance_ui.py" goto :package_incomplete
+if not exist "src\taxo\v10710_features.py" goto :package_incomplete
+if not exist "src\taxo\v1081_features.py" goto :package_incomplete
+if not exist "src\taxo\v1082_features.py" goto :package_incomplete
+if not exist "src\taxo\v1083_features.py" goto :package_incomplete
+if not exist "src\taxo\v1084_features.py" goto :package_incomplete
+if not exist "src\taxo\v1085_features.py" goto :package_incomplete
+if not exist "src\taxo\v1096_personnel_balance.py" goto :package_incomplete
+if not exist "src\taxo\v1097_stoir_odometer.py" goto :package_incomplete
+if not exist "src\taxo\v1098_orders_immutability.py" goto :package_incomplete
+if not exist "src\taxo\v1099_schema_compatibility.py" goto :package_incomplete
+if not exist "assets\attestation_visual_template.pdf" goto :package_incomplete
 
+rem Keep START.bat ASCII-only while verifying the Ukrainian DOCX template.
+py -3.13 -c "from pathlib import Path; import sys; sys.exit(0 if Path('assets/\u0411\u043b\u0430\u043d\u043a \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043d\u043d\u044f.docx').is_file() else 1)" >nul 2>&1
+if errorlevel 1 goto :package_incomplete
+
+set "PYTHONPATH=%CD%\src\taxo;%PYTHONPATH%"
 py -3.13 -c "import sys" >nul 2>&1
 if errorlevel 1 goto :python_missing
 
@@ -46,7 +47,7 @@ py -3.13 -m pip install -r "requirements.txt"
 if errorlevel 1 goto :install_failed
 
 echo.
-echo Starting application...
+echo Starting Taxo 10.9-r10...
 py -3.13 "taxo_app.py"
 if errorlevel 1 goto :app_failed
 exit /b 0
@@ -55,9 +56,7 @@ exit /b 0
 echo ERROR: Taxo START package is incomplete in this folder.
 echo.
 echo Extract the ZIP completely before running START.bat.
-echo Use Windows "Extract all" or 7-Zip "Extract to...".
-echo Then open the extracted Taxo folder and run START.bat there.
-echo Required files: requirements.txt, taxo_app.py, main.py, application_context.py, feature_layers.py, output_files.py, backup_migration.py, database_runtime.py, data_access.py, waybill_integrity.py, vehicle_document_validity.py, work_rest_compliance.py, v1096_personnel_balance.py, workspace.py, vehicle_documents.py, v10710_features.py, v1081_features.py, v1082_features.py, v1083_features.py, v1084_features.py, v1085_features.py, vehicle_maintenance.py, vehicle_maintenance_ui.py
+echo Required layout: main.py, taxo_app.py, src\taxo\..., assets\..., requirements.txt.
 pause
 exit /b 2
 

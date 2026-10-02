@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 """Taxo application entry point. Current version is owned by main.APP_VERSION."""
+from pathlib import Path
+import sys
+
+_SRC = Path(__file__).resolve().parent / "src" / "taxo"
+if _SRC.is_dir() and str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
 import main as core
 from application_context import build_application_services
 from feature_layers import install_feature_layers

@@ -6,7 +6,7 @@
 
 > **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)  
 > **Актуальний інтегрований і повний multi-platform checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-> **Наступна кодова ревізія:** `10.9-r10`  
+> **Поточна ревізія розробки:** `10.9-r10` — структурне впорядкування репозиторію  
 > `10.9-r9` не стає stable автоматично — stable promotion є окремим рішенням власника.
 
 ## Завантаження 10.9-r9

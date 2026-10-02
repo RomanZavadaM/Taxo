@@ -3,20 +3,25 @@
 # Taxo Windows 7 SP1 x64 compatibility build.
 # Kept separate from the modern Taxo.spec because PyInstaller 5.13.2
 # does not support the newer Analysis() optimization argument.
+from pathlib import Path
+import sys
+ROOT = Path.cwd()
+SRC = ROOT / "src" / "taxo"
+sys.path.insert(0, str(SRC))
 from branding import generate_build_icons
 
 BRAND_ICONS = generate_build_icons()
 
 a = Analysis(
-    ['taxo_app.py'],
-    pathex=[],
+    [str(ROOT / 'taxo_app.py')],
+    pathex=[str(ROOT), str(SRC)],
     binaries=[],
     datas=[
-        ('Бланк підтвердження.docx', '.'),
-        ('attestation_visual_template.pdf', '.'),
-        ('LICENSE.md', '.'),
-        ('COPYRIGHT.md', '.'),
-        ('THIRD_PARTY_NOTICES.md', '.'),
+        (str(ROOT / 'assets' / 'Бланк підтвердження.docx'), 'assets'),
+        (str(ROOT / 'assets' / 'attestation_visual_template.pdf'), 'assets'),
+        (str(ROOT / 'LICENSE.md'), '.'),
+        (str(ROOT / 'COPYRIGHT.md'), '.'),
+        (str(ROOT / 'THIRD_PARTY_NOTICES.md'), '.'),
     ],
     hiddenimports=[
         'main', 'work_analysis_ext', 'activity_register_60', 'v9_release',
