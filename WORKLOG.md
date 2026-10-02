@@ -6,53 +6,42 @@
 ## CURRENT
 
 **Stable release:** Taxo 10.3 / `v10.3` — immutable  
-**Latest integrated code checkpoint:** **10.9-r9**  
-**Latest issued fast-test:** **10.9-r9 / `v10.9-r9`**  
+**Latest integrated code checkpoint:** **10.9-r10**  
 **Latest full multi-platform published checkpoint:** **10.9-r9 / `v10.9-r9`**  
-**Current development revision:** **10.9-r10**  
-**Branch:** `work/v10.9-r10-structure`  
-**Base main:** `3fbaa1b39cb1b683d46cc5748129d0417dc94bfc`  
-**PR:** #132 — full repository structural cleanup  
+**Current main merge:** `5e179eabccc35afa984be04208e2e4d96094a2fb`  
+**Next code revision:** **10.10-r1**  
 **Live ledger:** Issue #61
 
-## DONE — integrated baseline 10.9-r9
+## DONE — 10.9-r10 structural cleanup
 
-The cumulative r2…r9 line is integrated in `main`. The public `v10.9-r9` checkpoint has Windows x64, Windows 7 SP1 x64, macOS ARM64/Intel and START packages. Historical tags/releases remain immutable.
+PR #132 merged the repository structural refactor into `main`.
 
-## DOING — 10.9-r10 structural cleanup
+Completed:
+- support/runtime modules moved to `src/taxo/`;
+- runtime templates moved to `assets/`;
+- PyInstaller/Inno Setup definitions moved to `packaging/`;
+- historical specs moved to `packaging/history/`;
+- root reduced to entry points, project state/legal files and minimal bootstrap files;
+- START/Windows/Windows 7/macOS paths adapted to the structured tree;
+- no working-database or user-data migration introduced;
+- `VERSION.txt` and `main.APP_VERSION` identify **10.9-r10**.
 
-Goal: make the repository readable without changing Taxo business logic or user data contracts.
+Exact PR head: `ff56519da35e03204bdaf77f7187cddd692f79d4`.
 
-Implemented on the working branch:
+Verified on that head:
+- Windows run `37018721703` — **success**;
+- Windows 7 run `37018721695` — **success**;
+- macOS run `37018722335` — **success**.
 
-- runtime support modules moved from repository root to `src/taxo/`;
-- only executable entry points `main.py` and `taxo_app.py` remain at root, plus compatibility bootstrap `sitecustomize.py`;
-- historical flat imports remain supported through `src/taxo` path bootstrap;
-- DOCX/PDF runtime templates moved to `assets/`;
-- active PyInstaller specs moved to `packaging/`;
-- historical packaging specs moved out of root to `packaging/history/`;
-- Inno Setup definitions moved to `packaging/installer/`;
-- `START.bat` updated for the structured layout;
-- `VERSION.txt` and `main.APP_VERSION` raised to **10.9-r10**;
-- packaging definitions updated for `assets/` and `src/taxo/`;
-- Windows, Windows 7, macOS ARM64/Intel and START workflows are configured to verify the same r10 structure;
-- structured compile checks no longer depend on shell wildcard expansion and enumerate `src/taxo/*.py` explicitly through Python/PowerShell.
+Merged through PR #132 to main commit `5e179eabccc35afa984be04208e2e4d96094a2fb`.
 
-No database, workspace, backup, scan or user-document migration is introduced by this revision.
+## RELEASE STATE
 
-## VERIFY BEFORE DONE
-
-This WORKLOG commit is the synchronization point used to trigger all platform checks on one exact PR head after the structured-compilation CI fixes.
-
-1. exact-head Windows gate must pass;
-2. full regression suite must pass with the new source path;
-3. START complete/incomplete preflight must pass;
-4. Windows portable and installer must build and contain `assets/` templates;
-5. START test archive must be generated from the new tree;
-6. Windows 7 portable must pass the PE compatibility check;
-7. macOS ARM64 and Intel application bundles must build and verify;
-8. documentation and Issue #61 must record the final exact SHA and test artifacts.
+- Stable remains `v10.3` until a separate owner decision.
+- Latest already published full multi-platform release remains `v10.9-r9`.
+- `10.9-r10` is the latest integrated code checkpoint in `main` and closes the 10.9 revision cycle.
+- Historical tags/releases are immutable and are not reused.
 
 ## NEXT
 
-Fix any path-dependent regression reported by this synchronized exact-head CI. When all gates are green, publish the 10.9-r10 test artifacts and present PR #132 as ready for owner testing. Do not promote to stable automatically.
+Start the next code slice only from the current `main` as **Taxo 10.10-r1**. Do not create `11.x` without an explicit owner decision.
