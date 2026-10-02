@@ -111,7 +111,7 @@ class StoirOdometerSafetyR7Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         start = (root / "START.bat").read_text("ascii")
         pack = (root / ".github/workflows/source-test-archive.yml").read_text("utf-8")
-        self.assertIn('if not exist "v1097_stoir_odometer.py" goto :package_incomplete', start)
+        self.assertIn('if not exist "src\\taxo\\v1097_stoir_odometer.py" goto :package_incomplete', start)
         self.assertIn("v1097_stoir_odometer.py", pack)
 
 
