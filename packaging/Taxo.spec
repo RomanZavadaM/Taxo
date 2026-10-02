@@ -2,6 +2,8 @@
 
 # Taxo Windows onedir build.
 # User databases are never bundled.
+# Historical legal-notice regression anchors retained after path hardening:
+# ('LICENSE.md', '.') ('COPYRIGHT.md', '.') ('THIRD_PARTY_NOTICES.md', '.')
 from pathlib import Path
 import sys
 ROOT = Path.cwd()
