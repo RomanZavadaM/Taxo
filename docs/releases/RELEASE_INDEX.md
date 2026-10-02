@@ -34,6 +34,14 @@ SHA-256: `9c30bf70e8c7adc4f2560a22e2bdfa2c26d698573982de01aafa4b34bbcd62d4`
 
 PR #121–#127 are closed as historical/superseded. PR #128 is the single cumulative integration point for r2…r9.
 
+## Historical identity anchors
+
+Ці checkpoints залишаються тільки як regression/history anchors і не є базою нової розробки:
+
+- **Taxo 10.4-r7** — immutable historical issued checkpoint, source `9f397a092fe828570927bc39cef7a3a467e2aff0`; межа між локальним контролем документів ТЗ та державним реєстровим звірянням.
+- **Taxo 10.6-r10** — historical full multi-platform checkpoint.
+- **Taxo 10.8-r3** — historical full checkpoint перед лінією 10.8-r4…10.9-r1.
+
 ## Останні повні multi-platform checkpoints
 
 | Tag | Статус | Пакети |
