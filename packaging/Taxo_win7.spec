@@ -13,15 +13,15 @@ from branding import generate_build_icons
 BRAND_ICONS = generate_build_icons()
 
 a = Analysis(
-    ['taxo_app.py'],
-    pathex=[str(SRC)],
+    [str(ROOT / 'taxo_app.py')],
+    pathex=[str(ROOT), str(SRC)],
     binaries=[],
     datas=[
-        ('assets/Бланк підтвердження.docx', 'assets'),
-        ('assets/attestation_visual_template.pdf', 'assets'),
-        ('LICENSE.md', '.'),
-        ('COPYRIGHT.md', '.'),
-        ('THIRD_PARTY_NOTICES.md', '.'),
+        (str(ROOT / 'assets' / 'Бланк підтвердження.docx'), 'assets'),
+        (str(ROOT / 'assets' / 'attestation_visual_template.pdf'), 'assets'),
+        (str(ROOT / 'LICENSE.md'), '.'),
+        (str(ROOT / 'COPYRIGHT.md'), '.'),
+        (str(ROOT / 'THIRD_PARTY_NOTICES.md'), '.'),
     ],
     hiddenimports=[
         'main', 'work_analysis_ext', 'activity_register_60', 'v9_release',
