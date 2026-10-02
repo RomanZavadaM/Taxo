@@ -12,10 +12,13 @@ from branding import generate_build_icons
 BRAND_ICONS = generate_build_icons()
 
 a = Analysis(
-    ['taxo_app.py'],
-    pathex=[str(SRC)],
+    [str(ROOT / 'taxo_app.py')],
+    pathex=[str(ROOT), str(SRC)],
     binaries=[],
-    datas=[('assets/Бланк підтвердження.docx', 'assets'), ('assets/attestation_visual_template.pdf', 'assets')],
+    datas=[
+        (str(ROOT / 'assets' / 'Бланк підтвердження.docx'), 'assets'),
+        (str(ROOT / 'assets' / 'attestation_visual_template.pdf'), 'assets'),
+    ],
     hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'branding', 'branding_asset', 'fitz', 'pymupdf'],
     hookspath=[],
     hooksconfig={},
