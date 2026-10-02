@@ -57,7 +57,7 @@ class DatabaseRuntimeR10Tests(unittest.TestCase):
 
     def test_start_guard_requires_runtime_module(self):
         start = Path("START.bat").read_text(encoding="utf-8")
-        self.assertIn('if not exist "database_runtime.py" goto :package_incomplete', start)
+        self.assertIn('if not exist "src\\taxo\\database_runtime.py" goto :package_incomplete', start)
 
 
 if __name__ == "__main__":
