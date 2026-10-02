@@ -71,7 +71,17 @@ jobs:
       - name: Compile and test source
         shell: bash
         run: |
-          python -m py_compile main.py taxo_app.py sitecustomize.py src/taxo/*.py
+          python - <<'PY'
+          from pathlib import Path
+          import py_compile
+          files = [Path('main.py'), Path('taxo_app.py'), Path('sitecustomize.py')]
+          files.extend(sorted(Path('src/taxo').glob('*.py')))
+          if len(files) <= 3:
+              raise SystemExit('No structured source modules found in src/taxo')
+          for path in files:
+              py_compile.compile(str(path), doraise=True)
+          print(f'Compiled {len(files)} Python files.')
+          PY
           python -m unittest discover -s tests -v
 
       - name: Build native Taxo.app
