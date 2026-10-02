@@ -45,17 +45,37 @@ jobs:
           print(f'Compiled {len(files)} Python files.')
           PY
 
-      # Historical runtime contract inventory. These modules now live under
-      # src/taxo/, but their names remain explicit so old checkpoint tests can
-      # prove that no runtime layer disappeared during the r10 structure move:
-      # vehicle_reconciliation.py employee_document_register.py
-      # personnel_registry_lossless.py registry_working_data.py
-      # diia_reconciliation.py operations_orders.py operations_orders_ui.py
-      # v1058_features.py v1059_features.py
+      # Historical runtime contract inventory. All names below still ship,
+      # now under src/taxo/. Keeping the inventory explicit lets every older
+      # checkpoint regression prove that the r10 structure move lost no layer.
+      # application_context.py activity_register_60.py attestation_render.py
+      # backup_migration.py branding.py branding_asset.py data_access.py
+      # database_runtime.py diia_reconciliation.py document_viewer.py
+      # employee_document_register.py employee_reminders.py feature_layers.py
+      # hotfix_901.py military_accounting_2026.py military_accounting_ui.py
+      # military_transport_2026.py military_transport_statement.py
+      # military_transport_statement_ui.py military_transport_ui.py
+      # operations_orders.py operations_orders_ui.py output_files.py
+      # personnel_reconciliation.py personnel_registry.py personnel_registry_lossless.py
+      # personnel_v91.py registry_working_data.py release_naming.py tachograph.py
+      # vehicle_document_validity.py vehicle_documents.py vehicle_maintenance.py
+      # vehicle_maintenance_ui.py vehicle_reconciliation.py vehicle_registry.py
+      # waybill.py waybill_integrity.py work_analysis_ext.py work_regime.py
+      # work_rest_compliance.py workspace.py v9_release.py v91_features.py
+      # v1043_features.py v1044_features.py v1045_features.py v1046_features.py
+      # v1048_features.py v1049_features.py v10410_features.py
+      # v1051_features.py v1052_features.py v1053_features.py v1054_features.py
+      # v1055_features.py v1056_features.py v1057_features.py v1058_features.py
+      # v1059_features.py v10510_features.py
       # v1061_features.py v1062_features.py v1063_features.py v1064_features.py
       # v1065_features.py v1066_features.py v1067_features.py v1068_features.py
-      # v1069_features.py v10710_features.py v1081_features.py
-      # database_runtime.py application_context.py data_access.py
+      # v1069_features.py v10610_features.py
+      # v1071_features.py v1072_features.py v1073_features.py v1074_features.py
+      # v1074_appendix_history.py v1075_features.py v1076_features.py
+      # v1077_features.py v1078_features.py v1079_features.py v10710_features.py
+      # v1081_features.py v1082_features.py v1083_features.py v1084_features.py
+      # v1085_features.py v1096_personnel_balance.py v1097_stoir_odometer.py
+      # v1098_orders_immutability.py v1099_schema_compatibility.py
 
       - name: Stage legacy layout for historical regression only
         run: python tests/stage_legacy_layout.py
@@ -94,11 +114,20 @@ jobs:
             src/taxo/vehicle_reconciliation.py src/taxo/employee_document_register.py
             src/taxo/personnel_registry_lossless.py src/taxo/registry_working_data.py
             src/taxo/diia_reconciliation.py src/taxo/operations_orders.py src/taxo/operations_orders_ui.py
-            src/taxo/v1058_features.py src/taxo/v1059_features.py
+            src/taxo/v1051_features.py src/taxo/v1052_features.py src/taxo/v1053_features.py
+            src/taxo/v1054_features.py src/taxo/v1055_features.py src/taxo/v1056_features.py
+            src/taxo/v1057_features.py src/taxo/v1058_features.py src/taxo/v1059_features.py
+            src/taxo/v10510_features.py
             src/taxo/v1061_features.py src/taxo/v1062_features.py src/taxo/v1063_features.py
             src/taxo/v1064_features.py src/taxo/v1065_features.py src/taxo/v1066_features.py
             src/taxo/v1067_features.py src/taxo/v1068_features.py src/taxo/v1069_features.py
-            src/taxo/v10710_features.py src/taxo/v1081_features.py
+            src/taxo/v10610_features.py
+            src/taxo/v1071_features.py src/taxo/v1072_features.py src/taxo/v1073_features.py
+            src/taxo/v1074_features.py src/taxo/v1074_appendix_history.py src/taxo/v1075_features.py
+            src/taxo/v1076_features.py src/taxo/v1077_features.py src/taxo/v1078_features.py
+            src/taxo/v1079_features.py src/taxo/v10710_features.py
+            src/taxo/v1081_features.py src/taxo/v1082_features.py src/taxo/v1083_features.py
+            src/taxo/v1084_features.py src/taxo/v1085_features.py
             src/taxo/waybill_integrity.py src/taxo/vehicle_document_validity.py src/taxo/work_rest_compliance.py
             src/taxo/v1096_personnel_balance.py src/taxo/v1097_stoir_odometer.py
             src/taxo/v1098_orders_immutability.py src/taxo/v1099_schema_compatibility.py
@@ -106,6 +135,7 @@ jobs:
             src/taxo/vehicle_maintenance_ui.py src/taxo/document_viewer.py src/taxo/release_naming.py
             "assets/Бланк підтвердження.docx" assets/attestation_visual_template.pdf
             packaging/Taxo.spec packaging/Taxo_win7.spec packaging/Taxo_macos.spec
+            packaging/history/stable-v10.3/Taxo.iss packaging/history/stable-v10.3/Taxo_macos.spec
             tests/stage_legacy_layout.py
             00_README_START.txt LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md
             PROJECT_RULES.md PROJECT_STATE.md START_HERE.md WORKLOG.md
