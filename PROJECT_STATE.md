@@ -5,7 +5,7 @@
 
 ## Поточний підтверджений стан
 
-- **Stable release:** Taxo 10.3 / `v10.3` — immutable; stable tag не пересувався.
+- **Stable:** Taxo 10.3 / `v10.3` — immutable; stable tag не пересувався.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Latest integrated code checkpoint in `main`:** **Taxo 10.9-r9**.
 - **Main integration:** PR #128 — cumulative 10.9-r2 → 10.9-r9.
