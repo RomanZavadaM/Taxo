@@ -61,12 +61,15 @@ jobs:
           python -m PyInstaller --noconfirm --clean packaging/Taxo_win7.spec 2>&1 | Tee-Object -FilePath win7-build.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Move-Item 'dist/Taxo' 'dist/Taxo_v10_9_candidate_r10_Windows7_x64'
-          if (!(Test-Path 'dist/Taxo_v10_9_candidate_r10_Windows7_x64/Taxo.exe')) { throw 'Taxo.exe missing' }
-          if (!(Get-ChildItem 'dist/Taxo_v10_9_candidate_r10_Windows7_x64' -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll missing' }
-          $env:TAXO_WIN7_BUNDLE = (Resolve-Path 'dist/Taxo_v10_9_candidate_r10_Windows7_x64').Path
-          python scripts/check_win7_pe.py
+          $bundle = 'dist/Taxo_v10_9_candidate_r10_Windows7_x64'
+          if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe missing' }
+          if (!(Get-ChildItem $bundle -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll missing' }
+          $env:TAXO_WIN7_BUNDLE = (Resolve-Path $bundle).Path
+          python scripts/check_win7_pe.py 2>&1 | Tee-Object -FilePath win7-build.log -Append
           if ($LASTEXITCODE -ne 0) { throw "Win7 PE check failed: $LASTEXITCODE" }
-          if (!(Test-Path 'dist/Taxo_v10_9_candidate_r10_Windows7_x64/_internal/assets/Бланк підтвердження.docx')) { throw 'Bundled template missing' }
+          $templateOld = "$bundle/assets/Бланк підтвердження.docx"
+          $templateNew = "$bundle/_internal/assets/Бланк підтвердження.docx"
+          if (!(Test-Path $templateOld) -and !(Test-Path $templateNew)) { throw 'Bundled template missing' }
 
       - name: Upload Win7 diagnostic log
         if: always()
