@@ -16,6 +16,7 @@ on:
       - 'requirements*.txt'
       - 'tests/**'
       - 'VERSION.txt'
+      - 'WORKLOG.md'
       - '.github/workflows/build-macos-v8.70.yml'
 
 permissions:
