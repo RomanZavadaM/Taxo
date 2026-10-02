@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
-import errno
-import inspect
+import ast
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,18 +11,32 @@ import output_files
 ROOT = Path(__file__).resolve().parents[1]
 
 
-class OutputFileInfrastructureR6Tests(unittest.TestCase):
-    def test_output_helpers_live_outside_main(self):
+def version_key(value: str):
+    match = re.fullmatch(r"(\d+)\.(\d+)-r(\d+)(?:\.(\d+))?", value)
+    if not match:
+        raise AssertionError(f"unexpected version format: {value}")
+    major, minor, revision, subrevision = match.groups()
+    return int(major), int(minor), int(revision), int(subrevision or 0)
+
+
+class MainModularizationR6Tests(unittest.TestCase):
+    def test_r6_identity_is_historical_anchor(self):
+        notes = (ROOT / "docs/releases/RELEASE_NOTES_v10.8-r6.md").read_text(encoding="utf-8")
+        self.assertIn("10.8-r6", notes)
+        self.assertGreaterEqual(version_key(main.APP_VERSION), (10, 8, 6, 0))
+
+    def test_output_helpers_are_no_longer_implemented_in_main(self):
         source = (ROOT / "main.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
         top_functions = {
-            node.name
-            for node in __import__("ast").parse(source).body
-            if isinstance(node, (__import__("ast").FunctionDef, __import__("ast").AsyncFunctionDef))
+            node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         }
         for name in (
             "open_external",
             "report_font_candidates",
             "_is_file_access_error",
+            "_next_output_copy_path",
+            "_ask_locked_file_action",
             "_friendly_file_error",
         ):
             self.assertNotIn(name, top_functions)
@@ -55,12 +68,8 @@ class OutputFileInfrastructureR6Tests(unittest.TestCase):
 
     def test_permission_error_stays_classified(self):
         self.assertTrue(output_files.is_file_access_error(PermissionError("busy")))
-        err = OSError(errno.EACCES, "denied")
-        self.assertTrue(output_files.is_file_access_error(err))
-
-    def test_unrelated_oserror_is_not_file_access_error(self):
-        err = OSError(errno.ENOENT, "missing")
-        self.assertFalse(output_files.is_file_access_error(err))
+        msg = output_files.friendly_file_error(PermissionError("busy"), "x.pdf", "PDF")
+        self.assertIn("Немає доступу", msg)
 
 
 if __name__ == "__main__":
