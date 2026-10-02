@@ -14,9 +14,17 @@ if not exist "src\taxo\application_context.py" goto :package_incomplete
 if not exist "src\taxo\feature_layers.py" goto :package_incomplete
 if not exist "src\taxo\workspace.py" goto :package_incomplete
 if not exist "src\taxo\database_runtime.py" goto :package_incomplete
+if not exist "src\taxo\output_files.py" goto :package_incomplete
 if not exist "src\taxo\vehicle_documents.py" goto :package_incomplete
 if not exist "src\taxo\v10710_features.py" goto :package_incomplete
 if not exist "src\taxo\v1081_features.py" goto :package_incomplete
+if not exist "src\taxo\v1082_features.py" goto :package_incomplete
+if not exist "src\taxo\v1083_features.py" goto :package_incomplete
+if not exist "src\taxo\v1084_features.py" goto :package_incomplete
+if not exist "src\taxo\v1085_features.py" goto :package_incomplete
+if not exist "src\taxo\v1096_personnel_balance.py" goto :package_incomplete
+if not exist "src\taxo\v1097_stoir_odometer.py" goto :package_incomplete
+if not exist "src\taxo\v1098_orders_immutability.py" goto :package_incomplete
 if not exist "src\taxo\v1099_schema_compatibility.py" goto :package_incomplete
 if not exist "assets\attestation_visual_template.pdf" goto :package_incomplete
 
