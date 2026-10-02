@@ -100,7 +100,17 @@ jobs:
         run: |
           python -m py_compile main.py taxo_app.py sitecustomize.py
           Get-ChildItem src/taxo -Filter *.py | ForEach-Object { python -m py_compile $_.FullName }
-          python -m unittest discover -s tests -v
+          python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-r10.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload regression log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Taxo-v10.9-r10-regression-log
+          path: unittest-r10.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Test START preflight
         shell: pwsh
