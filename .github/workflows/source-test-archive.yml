@@ -31,7 +31,19 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Compile structured source
-        run: python -m py_compile main.py taxo_app.py sitecustomize.py src/taxo/*.py
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import py_compile
+          files = [Path('main.py'), Path('taxo_app.py'), Path('sitecustomize.py')]
+          files.extend(sorted(Path('src/taxo').glob('*.py')))
+          if len(files) <= 3:
+              raise SystemExit('No structured source modules found in src/taxo')
+          for path in files:
+              py_compile.compile(str(path), doraise=True)
+          print(f'Compiled {len(files)} Python files.')
+          PY
 
       - name: Run regression suite with virtual display
         run: xvfb-run -a python -m unittest discover -s tests -v
@@ -69,7 +81,7 @@ jobs:
             src/taxo/v1098_orders_immutability.py src/taxo/v1099_schema_compatibility.py
             src/taxo/workspace.py src/taxo/vehicle_documents.py src/taxo/vehicle_maintenance.py
             src/taxo/vehicle_maintenance_ui.py src/taxo/document_viewer.py src/taxo/release_naming.py
-            assets/Бланк\ підтвердження.docx assets/attestation_visual_template.pdf
+            "assets/Бланк підтвердження.docx" assets/attestation_visual_template.pdf
             packaging/Taxo.spec packaging/Taxo_win7.spec packaging/Taxo_macos.spec
             00_README_START.txt LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md
             PROJECT_RULES.md PROJECT_STATE.md START_HERE.md WORKLOG.md
