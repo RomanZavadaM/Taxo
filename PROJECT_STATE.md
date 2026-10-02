@@ -7,50 +7,58 @@
 
 - **Stable:** Taxo 10.3 / `v10.3` — immutable; stable tag не пересувався.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Latest integrated code checkpoint in `main`:** **Taxo 10.9-r9**.
-- **Main integration:** PR #128 — cumulative 10.9-r2 → 10.9-r9.
-- **Main merge commit:** `3f59544b8737cd4715d84f786e32378d87d1dd99`.
-- **Exact issued r9 source/tag:** `v10.9-r9` → `a368bf3bdfd4a16cc099844b830379c5e2646c2d` — immutable.
-- **r9 START:** `Taxo_v10_9_candidate_r9_START.zip`.
-- **r9 START SHA-256:** `9c30bf70e8c7adc4f2560a22e2bdfa2c26d698573982de01aafa4b34bbcd62d4`.
-- **r9 exact-head gates:** Windows run `36919102579` — success; macOS run `36919102540` — success.
-- **Latest full multi-platform published checkpoint:** **10.9-r1 / `v10.9-r1`**.
-- **Open stacked PRs from r2…r8:** closed as historical/superseded after cumulative merge.
-- **Next code revision:** **10.9-r10**.
+- **Latest integrated code checkpoint in `main`:** **Taxo 10.9-r10**.
+- **Structural cleanup integration:** PR #132.
+- **Main merge commit:** `5e179eabccc35afa984be04208e2e4d96094a2fb`.
+- **Exact r10 source before merge:** `ff56519da35e03204bdaf77f7187cddd692f79d4`.
+- **r10 exact-head gates:** Windows `37018721703` — success; Windows 7 `37018721695` — success; macOS `37018722335` — success.
+- **Latest full multi-platform published checkpoint:** **10.9-r9 / `v10.9-r9`**.
+- **Next code revision:** **10.10-r1**.
 - **Live ledger:** Issue #61.
 
-`main` тепер є єдиною канонічною кодовою лінією розвитку. Історичні fast-test tags/releases `v10.9-r2` … `v10.9-r9` не пересуваються і не перевидаються; вони зберігаються лише як immutable checkpoints. Нову роботу починати тільки від актуального `main`.
+`10.9-r10` завершив цикл ревізій 10.9. За правилом версіювання наступна кодова зміна починається з `10.10-r1`; major `11.x` без прямого рішення власника не створюється.
 
-## Що інтегровано 10.9-r2 → 10.9-r9
+## Що додано в 10.9-r10
 
-- **10.9-r2:** незворотна історія виданих шляхівок і номерів; retention не може видалити пов'язаний факт.
-- **10.9-r3:** чинність обов'язкових документів ТЗ перевіряється на весь плановий період рейсу; допускається безперервне перекриття кількома документами.
-- **10.9-r4:** посилений контроль робочого часу/відпочинку, boundary gaps, overlaps, 3+9, weekly-rest spacing і двотижневий контроль.
-- **10.9-r5:** 60-денний реєстр не вигадує відпочинок із невідомих хвилин; непідтверджений тахограф має нижчий пріоритет.
-- **10.9-r6:** баланс персоналу/П-5, employment-aware historical selection, коректна семантика вихідних і циклів 2/2 та 3/3.
-- **10.9-r7:** СТОІР — надійна хронологія одометра, fallback `work_date`, прогноз від останнього факту та захист від очевидних одиничних стрибків.
-- **10.9-r8:** незмінність затверджених/підписаних наказів, безпечне оновлення відповідального, захист закріплень водій→ТЗ.
-- **10.9-r9:** explicit SQLite schema compatibility baseline через `PRAGMA user_version`; future-schema guard від r9 і далі.
+- runtime/support Python modules перенесені з кореня в `src/taxo/`;
+- executable entry points лишені в корені, сумісність flat imports збережена bootstrap-механізмом;
+- runtime templates перенесені в `assets/`;
+- активні PyInstaller/Inno Setup файли перенесені в `packaging/`, історичні spec — в `packaging/history/`;
+- `START.bat`, Windows, Windows 7 і macOS packaging paths адаптовані до нової структури;
+- `VERSION.txt` і `main.APP_VERSION` синхронізовані на `10.9-r10`;
+- зміна не вводить міграції робочих БД, backup/workspace, сканів чи документів користувача.
 
-## Репозиторій після cleanup
+## Інтегрована лінія 10.9-r2 → 10.9-r9
 
-- PR #128 — єдина кумулятивна точка інтеграції r2…r9 у `main`.
-- PR #121–#127 закриті як historical/superseded; окремо їх більше не зливати.
-- Старі work/candidate refs, tags і releases не є джерелом актуального коду.
-- Історичні tags/releases залишаються незмінними для відтворюваності та rollback/audit history.
-- Поточний інтегрований код береться тільки з `main`.
+- **r2:** незворотна історія виданих шляхівок і номерів; retention не може видалити пов'язаний факт.
+- **r3:** чинність обов'язкових документів ТЗ на весь плановий період рейсу.
+- **r4:** посилений контроль робочого часу/відпочинку, gaps/overlaps, 3+9, weekly-rest spacing і двотижневий контроль.
+- **r5:** 60-денний реєстр не вигадує відпочинок із невідомих хвилин; непідтверджений тахограф має нижчий пріоритет.
+- **r6:** баланс персоналу/П-5, employment-aware historical selection, цикли 2/2 та 3/3.
+- **r7:** СТОІР — хронологія одометра, fallback `work_date`, прогноз від останнього факту та spike guard.
+- **r8:** незмінність затверджених/підписаних наказів, безпечне оновлення відповідального, захист driver→vehicle assignments.
+- **r9:** SQLite schema compatibility baseline через `PRAGMA user_version` і future-schema guard.
+
+## Репозиторій після structural cleanup
+
+- поточний код береться тільки з `main`;
+- `src/taxo/` — runtime/support modules;
+- `assets/` — runtime templates/assets;
+- `packaging/` — active build/installer definitions;
+- historical work/candidate refs, tags і releases не є джерелом актуального коду;
+- historical tags/releases залишаються immutable для audit/rollback.
 
 ## Чинні інваріанти
 
 - plan і fact зберігаються окремо;
-- факт не підміняється планом без явного підтвердження там, де така підстановка дозволена;
+- факт не підміняється планом без явного підтвердження там, де це дозволено;
 - Бланки підтвердження діяльності є фактичними документами;
 - невідомий/ручний час не перетворюється автоматично на роботу чи відпочинок;
-- роль водія має датовані періоди і не дорівнює факту працевлаштування;
+- роль водія має датовані періоди;
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
-- historical tag/release checkpoints immutable;
-- вже видана ревізія не перевикористовується; після `10.9-r9` наступна кодова ревізія — `10.9-r10`.
+- видані tags/releases immutable;
+- після `10.9-r10` наступна кодова ревізія — `10.10-r1`.
 
 ## Право та власність
 
