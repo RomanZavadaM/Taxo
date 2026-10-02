@@ -3,9 +3,10 @@
 Цей розділ — основна точка входу до експлуатаційної та технічної документації Taxo.
 
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
-**Latest full checkpoint in `main`:** Taxo 10.5-r8 / `v10.5-r8`  
+**Latest integrated checkpoint in `main`:** Taxo 10.9-r9 / `v10.9-r9`  
+**Latest full multi-platform checkpoint:** Taxo 10.9-r9 / `v10.9-r9`  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1`  
-**Next code revision:** `10.5-r9`
+**Next code revision:** `10.9-r10`
 
 ## Керівництва
 
@@ -24,15 +25,15 @@
 - [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
 - [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-## Поточний full checkpoint — 10.5-r8
+## Поточний checkpoint — 10.9-r9
 
-- [GitHub Release v10.5-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.5-r8)
-- [Release notes 10.5-r8](releases/RELEASE_NOTES_v10_5_r8.md)
+- [GitHub Release v10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
+- [Release notes 10.9-r9](releases/RELEASE_NOTES_v10.9-r9.md)
 - [Індекс релізів](releases/RELEASE_INDEX.md)
 - [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
 - [Технічний стан](maintenance/PROJECT_STATE.md)
 
-`v10.5-r8` містить повний набір Windows modern, Windows 7 SP1, macOS ARM64/Intel, START і SHA-256. Він merged у `main`, але stable залишається `v10.3` до окремого рішення власника.
+`v10.9-r9` інтегрований у `main`. Для користувацького тестування checkpoint доповнено повним набором Windows x64, Windows 7 SP1 x64, macOS ARM64/Intel, START і SHA-256. Stable залишається `v10.3` до окремого рішення власника.
 
 ## Для розробки
 
@@ -40,12 +41,12 @@
 - [PROJECT_RULES.md](../PROJECT_RULES.md) — постійні правила.
 - [PROJECT_STATE.md](../PROJECT_STATE.md) — канонічний інтегрований стан.
 - [WORKLOG.md](../WORKLOG.md) — оперативний поточний стан.
-- [Правила розробки](maintenance/DEVELOPMENT_RULES.md) — кожен завершений крок = нова ревізія `r1 … r10`; після `r10` — наступна minor-версія з `r1`.
+- [Правила розробки](maintenance/DEVELOPMENT_RULES.md) — кожен завершений кодовий крок = нова ревізія `r1 … r10`; після `r10` — наступна minor-версія з `r1`.
 - [Чекліст випуску](maintenance/RELEASE_CHECKLIST.md)
 - [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
 - GitHub Issue #61 — append-only live development ledger.
 
-Після `10.5-r8` наступний кодовий крок — тільки **10.5-r9**. Уже видані revision не перевикористовуються.
+Після `10.9-r9` наступний кодовий крок — тільки **10.9-r10**. Уже видані revision не перевикористовуються.
 
 ## Дані користувача
 
