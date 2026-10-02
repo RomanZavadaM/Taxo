@@ -12,6 +12,7 @@
 **Current development revision:** **10.9-r10**  
 **Branch:** `work/v10.9-r10-structure`  
 **Base main:** `3fbaa1b39cb1b683d46cc5748129d0417dc94bfc`  
+**PR:** #132 — full repository structural cleanup  
 **Live ledger:** Issue #61
 
 ## DONE — integrated baseline 10.9-r9
@@ -25,28 +26,32 @@ Goal: make the repository readable without changing Taxo business logic or user 
 Implemented on the working branch:
 
 - runtime support modules moved from repository root to `src/taxo/`;
-- only executable entry points `main.py` and `taxo_app.py` remain at root;
-- compatibility bootstrap `sitecustomize.py` exposes `src/taxo` for historical flat imports;
+- only executable entry points `main.py` and `taxo_app.py` remain at root, plus compatibility bootstrap `sitecustomize.py`;
+- historical flat imports remain supported through `src/taxo` path bootstrap;
 - DOCX/PDF runtime templates moved to `assets/`;
-- PyInstaller specs moved to `packaging/`;
+- active PyInstaller specs moved to `packaging/`;
+- historical packaging specs moved out of root to `packaging/history/`;
 - Inno Setup definitions moved to `packaging/installer/`;
 - `START.bat` updated for the structured layout;
 - `VERSION.txt` and `main.APP_VERSION` raised to **10.9-r10**;
 - packaging definitions updated for `assets/` and `src/taxo/`;
-- active Windows CI and START archive workflow are being adapted to the new structure.
+- Windows, Windows 7, macOS ARM64/Intel and START workflows are configured to verify the same r10 structure.
 
 No database, workspace, backup, scan or user-document migration is introduced by this revision.
 
 ## VERIFY BEFORE DONE
 
-1. exact-head Windows required gate must pass;
+This WORKLOG commit is the synchronization point used to trigger all platform checks on one exact PR head.
+
+1. exact-head Windows gate must pass;
 2. full regression suite must pass with the new source path;
 3. START complete/incomplete preflight must pass;
 4. Windows portable and installer must build and contain `assets/` templates;
 5. START test archive must be generated from the new tree;
-6. Windows 7 and macOS packaging paths must be verified before a full release/promotion;
-7. documentation and Issue #61 must record the final exact SHA.
+6. Windows 7 portable must pass the PE compatibility check;
+7. macOS ARM64 and Intel application bundles must build and verify;
+8. documentation and Issue #61 must record the final exact SHA and test artifacts.
 
 ## NEXT
 
-Open one PR for **10.9-r10** after the structured tree is coherent, fix all path-dependent regressions, publish a test archive, and only then decide on integration into `main`.
+Fix any path-dependent regression reported by the exact-head CI. When all gates are green, publish the 10.9-r10 test artifacts and present PR #132 as ready for owner testing. Do not promote to stable automatically.
