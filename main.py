@@ -91,13 +91,14 @@ from vehicle_documents import (
     open_vehicle_documents,
     vehicle_document_summary_text,
     vehicle_document_warning_lines,
+    vehicle_document_warning_lines_for_period,
     vehicle_document_report_rows,
     export_vehicle_document_report_pdf,
     export_vehicle_document_report_xlsx,
     display_date,
 )
 
-APP_VERSION = "10.9-r1"
+APP_VERSION = "10.9-r9"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -12469,8 +12470,8 @@ class App(tk.Tk):
         # натискання «Зберегти» перед видачею документа.
         self.save_company(show_message=False)
         con=db()
-        document_warnings=vehicle_document_warning_lines(
-            con,row["vehicle_id"],today=row["date"]
+        document_warnings=vehicle_document_warning_lines_for_period(
+            con,row["vehicle_id"],row["date"],row["end_date"]
         )
         if document_warnings:
             warning_text=(

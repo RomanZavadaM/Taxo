@@ -66,6 +66,13 @@ from v1082_features import install as install_v1082
 from v1083_features import install as install_v1083
 from v1084_features import install as install_v1084
 from v1085_features import install as install_v1085
+from waybill_integrity import install as install_waybill_integrity
+from vehicle_document_validity import install as install_vehicle_document_validity
+from work_rest_compliance import install as install_work_rest_compliance
+from v1096_personnel_balance import install as install_v1096_personnel_balance
+from v1097_stoir_odometer import install as install_v1097_stoir_odometer
+from v1098_orders_immutability import install as install_v1098_orders_immutability
+from v1099_schema_compatibility import install as install_v1099_schema_compatibility
 
 Installer = Callable[..., type]
 
@@ -132,6 +139,13 @@ FEATURE_LAYERS: Tuple[FeatureLayer, ...] = (
     FeatureLayer("v1083", install_v1083),
     FeatureLayer("v1084-stoir", install_v1084, domain="maintenance"),
     FeatureLayer("v1085-stoir", install_v1085, domain="maintenance"),
+    FeatureLayer("v1092-waybill-integrity", install_waybill_integrity, domain="waybills"),
+    FeatureLayer("v1093-vehicle-document-validity", install_vehicle_document_validity, domain="vehicles"),
+    FeatureLayer("v1094-work-rest-compliance", install_work_rest_compliance, domain="worktime"),
+    FeatureLayer("v1096-personnel-balance", install_v1096_personnel_balance, domain="personnel"),
+    FeatureLayer("v1097-stoir-odometer", install_v1097_stoir_odometer, domain="maintenance"),
+    FeatureLayer("v1098-orders-immutability", install_v1098_orders_immutability, domain="operations"),
+    FeatureLayer("v1099-schema-compatibility", install_v1099_schema_compatibility, domain="infrastructure"),
 )
 
 

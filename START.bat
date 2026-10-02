@@ -16,6 +16,13 @@ if not exist "output_files.py" goto :package_incomplete
 if not exist "backup_migration.py" goto :package_incomplete
 if not exist "database_runtime.py" goto :package_incomplete
 if not exist "data_access.py" goto :package_incomplete
+if not exist "waybill_integrity.py" goto :package_incomplete
+if not exist "vehicle_document_validity.py" goto :package_incomplete
+if not exist "work_rest_compliance.py" goto :package_incomplete
+if not exist "v1096_personnel_balance.py" goto :package_incomplete
+if not exist "v1097_stoir_odometer.py" goto :package_incomplete
+if not exist "v1098_orders_immutability.py" goto :package_incomplete
+if not exist "v1099_schema_compatibility.py" goto :package_incomplete
 if not exist "workspace.py" goto :package_incomplete
 if not exist "vehicle_documents.py" goto :package_incomplete
 if not exist "v10710_features.py" goto :package_incomplete
@@ -50,7 +57,7 @@ echo.
 echo Extract the ZIP completely before running START.bat.
 echo Use Windows "Extract all" or 7-Zip "Extract to...".
 echo Then open the extracted Taxo folder and run START.bat there.
-echo Required files: requirements.txt, taxo_app.py, main.py, application_context.py, feature_layers.py, output_files.py, backup_migration.py, database_runtime.py, workspace.py, vehicle_documents.py, v10710_features.py, v1081_features.py, v1082_features.py, v1083_features.py, v1084_features.py, v1085_features.py, vehicle_maintenance.py, vehicle_maintenance_ui.py
+echo Required files: requirements.txt, taxo_app.py, main.py, application_context.py, feature_layers.py, output_files.py, backup_migration.py, database_runtime.py, data_access.py, waybill_integrity.py, vehicle_document_validity.py, work_rest_compliance.py, v1096_personnel_balance.py, workspace.py, vehicle_documents.py, v10710_features.py, v1081_features.py, v1082_features.py, v1083_features.py, v1084_features.py, v1085_features.py, vehicle_maintenance.py, vehicle_maintenance_ui.py
 pause
 exit /b 2
 

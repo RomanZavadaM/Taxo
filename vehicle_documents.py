@@ -249,6 +249,127 @@ def vehicle_document_warning_lines(con, vehicle_id, today=None):
     return warnings
 
 
+
+def _required_document_types(con, vehicle_id):
+    vehicle = con.execute(
+        "SELECT temporary_registration_required FROM vehicles WHERE id=?",
+        (int(vehicle_id),),
+    ).fetchone()
+    temporary_required = bool(
+        vehicle and int(vehicle["temporary_registration_required"] or 0)
+    )
+    required = [
+        "insurance",
+        "inspection",
+        "registration_certificate",
+        "tachograph_inspection_protocol",
+    ]
+    if temporary_required:
+        required.append("temporary_registration")
+    return required
+
+
+def _document_validity_interval(row, doc_type):
+    """Return an inclusive validity interval, or None for an unusable record.
+
+    Older Taxo records may have an empty valid_from because that field was
+    historically optional. For compatibility an empty start is treated as
+    unknown/unbounded in operational checks. Expiry-controlled documents
+    without valid_until never provide valid coverage.
+    """
+    try:
+        start = parse_date(row["valid_from"]) if str(row["valid_from"] or "").strip() else date.min
+        if str(row["valid_until"] or "").strip():
+            end = parse_date(row["valid_until"])
+        elif doc_type in EXPIRY_REQUIRED:
+            return None
+        else:
+            end = date.max
+    except ValueError:
+        return None
+    if end < start:
+        return None
+    return start, end
+
+
+def document_coverage_for_period(con, vehicle_id, doc_type, period_start, period_end):
+    """Check continuous active-document coverage for an inclusive trip period."""
+    start = period_start if isinstance(period_start, date) else parse_date(period_start)
+    end = period_end if isinstance(period_end, date) else parse_date(period_end)
+    if start is None or end is None:
+        raise ValueError("Період рейсу має містити дату початку і завершення.")
+    if end < start:
+        raise ValueError("Дата завершення рейсу не може бути раніше дати початку.")
+
+    rows = active_documents_of_type(con, vehicle_id, doc_type)
+    intervals = []
+    for row in rows:
+        interval = _document_validity_interval(row, doc_type)
+        if interval is None:
+            continue
+        valid_from, valid_until = interval
+        if valid_until < start or valid_from > end:
+            continue
+        intervals.append((valid_from, valid_until, row))
+    intervals.sort(key=lambda item: (item[0], item[1], int(item[2]["id"])))
+
+    cursor = start
+    used = []
+    for valid_from, valid_until, row in intervals:
+        if valid_until < cursor:
+            continue
+        if valid_from > cursor:
+            break
+        used.append(row)
+        if valid_until >= end:
+            status = document_status(doc_type, row["valid_until"], today=start)
+            return True, row, status, used
+        cursor = date.fromordinal(valid_until.toordinal() + 1)
+
+    chosen = used[-1] if used else (intervals[0][2] if intervals else None)
+    return False, chosen, "Не діє весь рейс", used
+
+
+def vehicle_document_summary_for_period(con, vehicle_id, period_start, period_end):
+    """Required vehicle-document state for the complete trip period."""
+    start = period_start if isinstance(period_start, date) else parse_date(period_start)
+    end = period_end if isinstance(period_end, date) else parse_date(period_end)
+    details = []
+    for dtype in _required_document_types(con, vehicle_id):
+        covered, row, status, _used = document_coverage_for_period(
+            con, vehicle_id, dtype, start, end
+        )
+        if row is None:
+            status = "Відсутній"
+        elif not covered:
+            status = "Не діє весь рейс"
+        details.append((dtype, DOCUMENT_TYPES[dtype], row, status))
+
+    worst = min((status_rank(item[3]) for item in details), default=3)
+    overall = "Проблема" if worst <= 1 else ("Увага" if worst == 2 else "Актуально")
+    return overall, details
+
+
+def vehicle_document_warning_lines_for_period(con, vehicle_id, period_start, period_end):
+    """Operational warnings using the full planned trip date range."""
+    start = period_start if isinstance(period_start, date) else parse_date(period_start)
+    end = period_end if isinstance(period_end, date) else parse_date(period_end)
+    _overall, details = vehicle_document_summary_for_period(con, vehicle_id, start, end)
+    warnings = []
+    for _dtype, label, row, status in details:
+        if status_rank(status) >= 3:
+            continue
+        meta = []
+        if row is not None and str(row["document_no"] or "").strip():
+            meta.append(f"№ {row['document_no']}")
+        if row is not None and str(row["valid_from"] or "").strip():
+            meta.append(f"з {display_date(row['valid_from'])}")
+        if row is not None and str(row["valid_until"] or "").strip():
+            meta.append(f"до {display_date(row['valid_until'])}")
+        meta.append(f"рейс {start.strftime('%d.%m.%Y')}–{end.strftime('%d.%m.%Y')}")
+        warnings.append(f"{label}: {status} ({', '.join(meta)})")
+    return warnings
+
 def control_rows(con, active_only=True, today=None):
     sql = "SELECT * FROM vehicles"
     if active_only:

@@ -8,65 +8,67 @@
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
 **Latest integrated code checkpoint:** **10.9-r1**  
 **Latest full multi-platform checkpoint:** **10.9-r1 / `v10.9-r1`**  
-**Code merge:** PR #118 → main merge `843a38243dd4eeeb02b40f8de59cc630ef4dce09`  
-**Documentation closeout:** PR #119 merged  
-**Immutable issued source:** `b0eebbf88b22fbd7761544640d9804416a328acb`  
-**START:** `Taxo_v10_9_candidate_r1_START.zip` · SHA-256 `0c819f9f3e4b31f58e6b86e2b4f1d72086901c0bd2a26a499e4c17f6de9c1766`  
-**Regression:** **730/730 OK**  
-**Full-package run:** `36857771398` — success  
-**Open PRs after closeout:** none  
-**Next code revision:** **10.9-r2**  
+**Latest issued fast-test:** **10.9-r8 / `v10.9-r8`**  
+**Current active slice:** **10.9-r9 — сумісність схеми SQLite**  
+**Integrated main baseline:** `8f18a7ccf1588556f6f3d7dca81943f87d817935`  
+**Active branch:** `work/v10.9-r9-schema-compatibility`  
+**Base:** immutable `v10.9-r8` → `b8c3fb2d19323e8c9564eedc2f0540250dd51b29`  
+**Stable remains:** `v10.3`  
 **Live ledger:** Issue #61
 
-## DONE — 10.8-r4 → 10.9-r1 cumulative integration
+## DONE — 10.9-r8 immutable issuance
 
-За прямою командою власника кумулятивний PR #118 ретаргетовано на `main`, переведено з draft у ready і успішно злито.
+10.9-r8 закрив ризики наказів і закріплень:
 
-У main інтегровано весь послідовний ланцюг після 10.8-r3:
+- approved/signed наказ незмінний;
+- cancelled наказ не можна повторно approve;
+- omitted `control_employee_id` не очищає відповідального;
+- assignments під approved/signed наказом незмінні;
+- конфліктні simultaneous driver→vehicle assignments блокують approval;
+- одне однозначне попереднє закріплення завершується новим наказом окремим фактом без переписування старого наказу.
 
-- 10.8-r4 — базовий СТОІР і контроль ТО;
-- 10.8-r5 — прогноз ТО, заявки на ремонт, компактне fleet summary;
-- 10.8-r6 — винесення neutral file-output helpers у `output_files.py`;
-- 10.8-r7 — централізований `feature_layers.py` registry;
-- 10.8-r8 — `application_context.py` та explicit infrastructure services;
-- 10.8-r9 — `backup_migration.py`;
-- 10.8-r10 — `database_runtime.py` і єдина SQLite connection policy;
-- 10.9-r1 — `data_access.py`, transaction boundary та `ApplicationServices.data`.
+Immutable source: `b8c3fb2d19323e8c9564eedc2f0540250dd51b29`.  
+Exact-source regression: **777/777 OK**.  
+Gates: source `36917874768`, Windows `36917897671`, macOS `36917897612`, publisher `36918132266` — success.  
+Release: `v10.9-r8` / https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r8  
+START: `Taxo_v10_9_candidate_r8_START.zip`  
+SHA-256: `01698663d3bb01e4461bf49479bce46fb3688d72ea23854cd9557370473a6775`.
 
-Схема БД, plan/fact, фактичність Бланків, кадрова семантика й historical immutable checkpoints не переписувалися цим архітектурним ланцюгом.
+PR #127 лишається draft/unmerged. `main` не змінено.
 
-## DONE — full package 10.9-r1
+## DOING — 10.9-r9
 
-Existing immutable tag/source `v10.9-r1` не рухався. Full-package workflow використав exact source `b0eebbf88b22fbd7761544640d9804416a328acb`.
+Ціль: **ввести explicit SQLite schema compatibility baseline без ризикованого переписування historical `init_db()`**.
 
-Run `36857771398` — success:
+Реалізовано:
 
-- exact-source verify — success;
-- Windows x64 regression/build/portable/setup — success;
-- Windows 7 SP1 x64 Python 3.8 regression, PyInstaller build, PE gate, portable/setup — success;
-- macOS arm64 — success;
-- macOS x86_64 — success;
-- final release-asset verification — success;
-- загальний `SHA256SUMS_v10_9_r1_ALL.txt` сформовано.
+1. `database_runtime.py` використовує `PRAGMA user_version`;
+2. schema numbering незалежний від версії програми: legacy=`0`, r9 baseline=`1`;
+3. legacy DB `user_version=0` відкривається без неявного stamp;
+4. DB із schema version `>1` відхиляється через `SchemaTooNewError` до доменної роботи;
+5. baseline `1` ставиться тільки після успішного чинного `init_db()`;
+6. failed `init_db()` не оголошує частково змінену базу успішно мігрованою;
+7. schema version helper не дозволяє downgrade.
 
-Release `v10.9-r1` містить START, Windows x64, Windows 7 SP1 x64, macOS arm64/x86_64 та platform/full SHA-256 manifests.
+Технічно:
 
-## DONE — cleanup
+- compatibility helpers у `database_runtime.py`;
+- additive runtime layer `v1099_schema_compatibility.py`;
+- `tests/test_v10_9_r9.py` — поведінкові SQLite-сценарії;
+- machine identity = `10.9-r9`;
+- feature layer `v1099-schema-compatibility` у domain `infrastructure`;
+- START/source package guards вимагають r9 runtime;
+- аудит: `docs/maintenance/AUDIT_SCHEMA_COMPATIBILITY_v10.9-r9.md`;
+- release notes: `docs/releases/RELEASE_NOTES_v10.9-r9.md`.
 
-Після кумулятивної інтеграції закрито старі open PR, які більше не мають самостійного шляху злиття: #108, #109, #110, #111, #112, #113, а також старі тупикові #103, #94, #93, #91. #107 був закритий після кумулятивної інтеграції. Після documentation closeout open PR не залишилося.
-
-#103 мав post-issuance хвіст, що розійшовся з канонічною лінією; immutable issued checkpoint збережено, але сам тупиковий PR закрито і його head не використовується як кодова база.
-
-Історичні branch refs, tags і releases зберігаються як історія. Для нової роботи вони не є джерелом коду: старт тільки від актуального `main`.
-
-## DONE — documentation closeout
-
-PR #119 синхронізував `PROJECT_STATE.md`, `WORKLOG.md`, `docs/releases/RELEASE_INDEX.md` і `docs/releases/MAIN_CHECKPOINT_v10.9-r1.md`. Historical regression anchors збережені; документаційний CI після виправлення пройшов успішно.
-
-## DOING
-
-Немає активного code slice. `10.9-r1` заморожений і повністю закритий як інтегрований checkpoint.
+Обмеження: binaries до r9 не знають про `user_version`, тому future-schema guard гарантований від r9 і далі, а не ретроспективно.
 
 ## NEXT
 
-Перший наступний code slice — **10.9-r2**, від актуального `main`. Продовжувати модульну архітектуру малими завершеними кроками: нові великі можливості підключати через чіткі межі `domain → service → repository/data access → infrastructure`, не повертаючи предметні залежності у глобальний `main.py`.
+1. Отримати результат full source regression для r9 та виправити тільки фактичні regression failures, якщо вони є.
+2. Прибрати тимчасовий integration workflow із кандидатної гілки.
+3. Синхронізувати `PROJECT_STATE.md` через issued r8 / active r9.
+4. Відкрити draft PR r9 поверх frozen r8.
+5. Прогнати exact-head source/START + Windows/macOS gates.
+6. Якщо gates зелені — видати immutable `v10.9-r9` START+checksum і зафіксувати в PR/Issue #61.
+7. Не зливати в `main` без прямої команди власника.

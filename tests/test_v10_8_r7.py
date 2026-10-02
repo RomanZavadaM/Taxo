@@ -14,7 +14,9 @@ class FeatureLayerRegistryR7Tests(unittest.TestCase):
         ids = feature_layers.feature_layer_ids()
         self.assertEqual(len(ids), len(set(ids)))
         self.assertEqual(ids[0], "work-analysis-r10")
-        self.assertEqual(ids[-1], "v1085-stoir")
+        # r7 established v1085-stoir as the then-current tail.  Newer revisions
+        # must be allowed to extend the registry without rewriting that history.
+        self.assertIn("v1085-stoir", ids)
         self.assertTrue(feature_layers.FEATURE_LAYERS[0].bootstrap)
         self.assertFalse(any(layer.bootstrap for layer in feature_layers.FEATURE_LAYERS[1:]))
 

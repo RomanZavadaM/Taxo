@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Taxo v8.70 r11 — 60-day minute-by-minute driver activity register.
+"""Taxo 10.9-r5 — 60-day minute-by-minute driver activity register.
 
 The report intentionally separates recorded facts from calculated coverage.
 Every minute in the requested 60 calendar days is represented. Missing source
@@ -351,7 +351,7 @@ def apply_tachograph_database(core, grid, driver_id, start_day, end_day):
                 vlabel = vehicles.get(disc["vehicle_id"], "") if disc["vehicle_id"] else ""
                 assign_span(
                     grid, begin, finish, _tacho_activity(row["activity"]), source,
-                    100 if manual else 80,
+                    100 if manual else 40,
                     row["note"] or "", vlabel,
                 )
     finally:
@@ -363,8 +363,8 @@ def classify_and_fill(grid):
 
     - explicit tachograph rest inside the day's active envelope becomes a break;
     - explicit tachograph rest outside the envelope remains rest;
-    - uncovered minutes inside an observed work envelope become a calculated break;
-    - uncovered minutes outside an observed work envelope become calculated rest;
+    - uncovered minutes remain undefined even inside/outside an observed envelope;
+    - only explicit source data may classify rest or a break;
     - a day with no observed activity remains undefined unless another explicit
       source (day type / attestation) already covers it.
     """
@@ -383,24 +383,16 @@ def classify_and_fill(grid):
                 cell["note"] = "; ".join(x for x in (cell.get("note", ""), suffix) if x)
                 cells[minute] = cell
 
-        if first is not None:
-            for minute in range(MINUTES_PER_DAY):
-                if cells[minute] is not None:
-                    continue
-                if first <= minute <= last:
-                    cells[minute] = _cell(
-                        "Перерва", "Розраховано з меж активності", 10,
-                        "Проміжок між зафіксованими активностями",
-                    )
-                else:
-                    cells[minute] = _cell(
-                        "Відпочинок", "Розраховано поза межами активності", 10,
-                        "Поза першою/останньою зафіксованою активністю дня",
-                    )
-
+        # Missing minutes are never promoted to legal rest/break merely from position.
         for minute in range(MINUTES_PER_DAY):
-            if cells[minute] is None:
-                cells[minute] = _cell("Невизначено", "Немає достатніх даних", 0)
+            if cells[minute] is not None:
+                continue
+            inside = first is not None and first <= minute <= last
+            cells[minute] = _cell(
+                "Невизначено", "Немає достатніх даних", 0,
+                "Проміжок між зафіксованими активностями" if inside
+                else "Поза зафіксованими активностями; відпочинок не припускається автоматично",
+            )
 
 
 def compress_day(cells):

@@ -12,10 +12,20 @@ import main
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _revision_tuple(version):
+    text = str(version or "").strip().removeprefix("Version: ")
+    base, sep, rev = text.partition("-r")
+    major, minor = (int(part) for part in base.split(".", 1))
+    return major, minor, int(rev) if sep else 0
+
+
 class DataAccessR1Tests(unittest.TestCase):
-    def test_current_identity_is_10_9_r1(self):
-        self.assertEqual((ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(), "Version: 10.9-r1")
-        self.assertEqual(main.APP_VERSION, "10.9-r1")
+    def test_r1_identity_is_historical_anchor_not_current_version_lock(self):
+        current_file = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+        self.assertGreaterEqual(_revision_tuple(current_file), (10, 9, 1))
+        self.assertGreaterEqual(_revision_tuple(main.APP_VERSION), (10, 9, 1))
+        source = (ROOT / "docs/releases/RELEASE_NOTES_v10.9-r1.md").read_text(encoding="utf-8")
+        self.assertIn("10.9-r1", source)
 
     def test_data_access_commits_successful_write(self):
         with tempfile.TemporaryDirectory() as td:
