@@ -13,6 +13,7 @@ on:
       - 'requirements-win7.txt'
       - 'scripts/check_win7_pe.py'
       - 'VERSION.txt'
+      - 'WORKLOG.md'
       - '.github/workflows/build-win7-current.yml'
 
 permissions:
