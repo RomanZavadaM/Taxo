@@ -13,10 +13,16 @@ if not exist "main.py" goto :package_incomplete
 if not exist "src\taxo\application_context.py" goto :package_incomplete
 if not exist "src\taxo\feature_layers.py" goto :package_incomplete
 if not exist "src\taxo\workspace.py" goto :package_incomplete
+if not exist "src\taxo\database_runtime.py" goto :package_incomplete
 if not exist "src\taxo\vehicle_documents.py" goto :package_incomplete
+if not exist "src\taxo\v10710_features.py" goto :package_incomplete
+if not exist "src\taxo\v1081_features.py" goto :package_incomplete
 if not exist "src\taxo\v1099_schema_compatibility.py" goto :package_incomplete
-if not exist "assets\Бланк підтвердження.docx" goto :package_incomplete
 if not exist "assets\attestation_visual_template.pdf" goto :package_incomplete
+
+rem Keep START.bat ASCII-only while verifying the Ukrainian DOCX template.
+py -3.13 -c "from pathlib import Path; import sys; sys.exit(0 if Path('assets/\u0411\u043b\u0430\u043d\u043a \u043f\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043d\u043d\u044f.docx').is_file() else 1)" >nul 2>&1
+if errorlevel 1 goto :package_incomplete
 
 set "PYTHONPATH=%CD%\src\taxo;%PYTHONPATH%"
 py -3.13 -c "import sys" >nul 2>&1
