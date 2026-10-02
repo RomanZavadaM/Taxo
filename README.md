@@ -5,19 +5,24 @@
 **Taxo — настільна система для одного автотранспортного підприємства:** водії й персонал, графіки, табелі, шляхові листи, бланки підтвердження діяльності, транспорт, документи, СТОІР, звіти та контроль аналогових тахокарт.
 
 > **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)  
-> **Актуальний інтегрований і повний multi-platform checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-> **Поточна ревізія розробки:** `10.9-r10` — структурне впорядкування репозиторію  
-> `10.9-r9` не стає stable автоматично — stable promotion є окремим рішенням власника.
+> **Актуальний інтегрований checkpoint у `main`:** **Taxo 10.9-r10** — PR #132, structural cleanup  
+> **Останній повний multi-platform release для тестування:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
+> **Наступна кодова ревізія:** `10.10-r1`  
+> `10.9-r10` не стає stable автоматично — stable promotion є окремим рішенням власника.
 
-## Завантаження 10.9-r9
+## Завантаження для тестування
 
-**Windows:** [x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows_x64.exe) · [x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows_x64_Portable.zip) · [Windows 7 SP1 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows7_x64.exe) · [Windows 7 SP1 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows7_x64_Portable.zip)
+Поки повний multi-platform release `10.9-r10` окремо не опублікований, для готових Windows/macOS пакетів використовуйте останній повний checkpoint `10.9-r9`.
+
+**Windows 10/11:** [x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows_x64.exe) · [x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows_x64_Portable.zip)
+
+**Windows 7 SP1:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows7_x64_Portable.zip)
 
 **macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_x86_64_Portable.zip)
 
-**Тестування:** [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [Release notes](docs/releases/RELEASE_NOTES_v10.9-r9.md) · [Індекс релізів](docs/releases/RELEASE_INDEX.md)
+**Source/START:** [START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [Release notes 10.9-r10](docs/releases/RELEASE_NOTES_v10.9-r10.md) · [Індекс релізів](docs/releases/RELEASE_INDEX.md)
 
-Для звичайної експлуатації використовуйте готовий пакет під свою ОС. Робочі БД, SQLite, скани, кеші та персональні документи до GitHub releases **не входять**.
+Робочі БД, SQLite, скани, кеші та персональні документи до GitHub releases **не входять**.
 
 ## Що вміє Taxo
 
@@ -27,7 +32,7 @@
 
 ## Для розробки
 
-Точка входу: [`START_HERE.md`](START_HERE.md). Далі — `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61. Видані revision не перевикористовуються.
+Точка входу: [`START_HERE.md`](START_HERE.md). Далі — `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61. Після завершеного `10.9-r10` нова кодова робота починається як `10.10-r1` тільки від актуального `main`.
 
 ## Ліцензія
 
