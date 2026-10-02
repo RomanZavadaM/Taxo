@@ -35,13 +35,14 @@ Implemented on the working branch:
 - `START.bat` updated for the structured layout;
 - `VERSION.txt` and `main.APP_VERSION` raised to **10.9-r10**;
 - packaging definitions updated for `assets/` and `src/taxo/`;
-- Windows, Windows 7, macOS ARM64/Intel and START workflows are configured to verify the same r10 structure.
+- Windows, Windows 7, macOS ARM64/Intel and START workflows are configured to verify the same r10 structure;
+- structured compile checks no longer depend on shell wildcard expansion and enumerate `src/taxo/*.py` explicitly through Python/PowerShell.
 
 No database, workspace, backup, scan or user-document migration is introduced by this revision.
 
 ## VERIFY BEFORE DONE
 
-This WORKLOG commit is the synchronization point used to trigger all platform checks on one exact PR head.
+This WORKLOG commit is the synchronization point used to trigger all platform checks on one exact PR head after the structured-compilation CI fixes.
 
 1. exact-head Windows gate must pass;
 2. full regression suite must pass with the new source path;
@@ -54,4 +55,4 @@ This WORKLOG commit is the synchronization point used to trigger all platform ch
 
 ## NEXT
 
-Fix any path-dependent regression reported by the exact-head CI. When all gates are green, publish the 10.9-r10 test artifacts and present PR #132 as ready for owner testing. Do not promote to stable automatically.
+Fix any path-dependent regression reported by this synchronized exact-head CI. When all gates are green, publish the 10.9-r10 test artifacts and present PR #132 as ready for owner testing. Do not promote to stable automatically.
