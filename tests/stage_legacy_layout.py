@@ -34,18 +34,31 @@ def _copy_files(source_dir: Path, destination_dir: Path, pattern: str) -> int:
     return copied
 
 
+def _copy_exact(source: Path, destination: Path) -> int:
+    if not source.is_file():
+        raise FileNotFoundError(source)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+    return 1
+
+
 def main() -> int:
     copied = 0
 
     # Historical flat Python module paths.
     copied += _copy_files(ROOT / "src" / "taxo", ROOT, "*.py")
 
-    # Historical PyInstaller spec paths.
+    # Historical PyInstaller spec paths. Candidate/current specs are staged
+    # generally, then the immutable stable 10.3 anchor is restored explicitly.
     copied += _copy_files(ROOT / "packaging", ROOT, "*.spec")
     copied += _copy_files(ROOT / "packaging" / "history", ROOT, "*.spec")
 
     # Historical Inno Setup directory.
     copied += _copy_files(ROOT / "packaging" / "installer", ROOT / "installer", "*.iss")
+
+    stable = ROOT / "packaging" / "history" / "stable-v10.3"
+    copied += _copy_exact(stable / "Taxo_macos.spec", ROOT / "Taxo_macos.spec")
+    copied += _copy_exact(stable / "Taxo.iss", ROOT / "installer" / "Taxo.iss")
 
     # Historical template locations used by old regression tests.
     copied += _copy_files(ROOT / "assets", ROOT, "*.docx")
