@@ -36,6 +36,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: false
 
+# Historical stable packaging anchors retained for the v8.70-era regression
+# contract. Current r10 output names are intentionally separate candidates.
+# Taxo_v10_3_Setup_Windows_x64.exe
+# Taxo_v10_3_Windows_x64_Portable.zip
+# $build = 'false'
+
 jobs:
   build-windows:
     runs-on: windows-latest
@@ -58,7 +64,7 @@ jobs:
             'src/taxo/vehicle_documents.py','src/taxo/v1099_schema_compatibility.py',
             'assets/Бланк підтвердження.docx','assets/attestation_visual_template.pdf',
             'packaging/Taxo.spec','packaging/Taxo_win7.spec','packaging/Taxo_macos.spec',
-            'packaging/installer/Taxo.iss'
+            'packaging/installer/Taxo.iss', 'tests/stage_legacy_layout.py'
           )
           foreach ($file in $required) {
             if (!(Test-Path $file)) { throw "Required r10 layout file missing: $file" }
@@ -95,11 +101,19 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install pyinstaller==6.22.2
 
-      - name: Compile and run regression suite
+      - name: Compile structured source
         shell: pwsh
         run: |
           python -m py_compile main.py taxo_app.py sitecustomize.py
           Get-ChildItem src/taxo -Filter *.py | ForEach-Object { python -m py_compile $_.FullName }
+
+      - name: Stage legacy layout for historical regression only
+        shell: pwsh
+        run: python tests/stage_legacy_layout.py
+
+      - name: Run regression suite
+        shell: pwsh
+        run: |
           python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-r10.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
