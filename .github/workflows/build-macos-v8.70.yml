@@ -60,6 +60,7 @@ jobs:
           test -f src/taxo/application_context.py
           test -f assets/attestation_visual_template.pdf
           test -f packaging/Taxo_macos.spec
+          test -f tests/stage_legacy_layout.py
 
       - name: Install dependencies
         shell: bash
@@ -68,7 +69,7 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-build-macos.txt
 
-      - name: Compile and test source
+      - name: Compile structured source
         shell: bash
         run: |
           python - <<'PY'
@@ -82,7 +83,12 @@ jobs:
               py_compile.compile(str(path), doraise=True)
           print(f'Compiled {len(files)} Python files.')
           PY
-          python -m unittest discover -s tests -v
+
+      - name: Stage legacy layout for historical regression only
+        run: python tests/stage_legacy_layout.py
+
+      - name: Run regression suite
+        run: python -m unittest discover -s tests -v
 
       - name: Build native Taxo.app
         shell: bash
