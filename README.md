@@ -1,19 +1,28 @@
 # Taxo / Driver Worktime
 
-[Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
+[Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
 **Taxo — настільна система для одного автотранспортного підприємства: водії й персонал, графіки, табелі, шляхові листи, бланки підтвердження діяльності, транспорт, документи, звіти та вибірковий контроль аналогових тахокарт.**
 
 > **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — чинна stable-лінія.  
-> **Latest full checkpoint in `main`:** [Taxo 10.6-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3) — повний multi-platform candidate/checkpoint.  
+> **Latest integrated checkpoint in `main`:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9) — актуальний інтегрований кодовий checkpoint.  
+> **Latest full multi-platform checkpoint:** [Taxo 10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) — Windows / Windows 7 / macOS пакети.  
 > **Previous stable / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1).  
-> `v10.6-r3` не стає stable автоматично; stable promotion — окреме рішення власника.
+> `v10.9-r9` не стає stable автоматично; stable promotion — окреме рішення власника.
 
-## Завантаження 10.6-r3
+## Завантаження
 
-[Windows x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe) · [Windows x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip) · [Windows 7 SP1 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe) · [Windows 7 SP1 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/SHA256SUMS_v10_6_r3_FULL.txt)
+### Актуальний інтегрований checkpoint — 10.9-r9
 
-Для звичайної експлуатації використовуйте готовий Windows/macOS пакет. `START.bat` призначений насамперед для тестування й технічної діагностики; START ZIP спочатку потрібно повністю розпакувати.
+[START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/SHA256SUMS_v10_9_r9.txt) · [Release 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
+
+`10.9-r9` — останній інтегрований кодовий checkpoint. Для нього опубліковано START-пакет; окремий повний multi-platform executable checkpoint не перевидавався.
+
+### Останній повний multi-platform checkpoint — 10.9-r1
+
+[Release 10.9-r1 з Windows/macOS пакетами](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) · [Combined SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r1/SHA256SUMS_v10_9_r1_ALL.txt)
+
+Для звичайної експлуатації використовуйте готовий Windows/macOS пакет із `v10.9-r1`. `START.bat` призначений насамперед для тестування й технічної діагностики; START ZIP спочатку потрібно повністю розпакувати.
 
 Робочі БД, SQLite, скани, кеші та персональні документи у GitHub releases **не входять**.
 
@@ -23,28 +32,29 @@
 - індивідуальні й періодичні графіки водіїв;
 - табель робочого часу з чітким розділенням плану й факту та підтримкою поділених змін;
 - контроль робочого часу, керування, перерв і відпочинку;
-- окремі тижневі баланси **60:00 робочого часу** і **56:00 керування**;
-- 60-денний похвилинний реєстр діяльності;
-- транспортні засоби, пробіг і реєстр документів ТЗ;
+- 60-денний похвилинний реєстр діяльності без вигадування відпочинку з невідомого часу;
+- транспортні засоби, пробіг, СТОІР і реєстр документів ТЗ;
 - страховка, ДЦВ, техконтроль, техпаспорт, тимчасова реєстрація, протокол тахографа; кілька активних документів одного типу та ручне архівування;
 - маршрути, часові сценарії та нерегулярні виїзди;
-- шляхові листи для регулярних маршрутів, замовлень, розвозок, міських, обласних, міжобласних та інших разових поїздок;
+- шляхові листи для регулярних маршрутів і нерегулярної роботи;
 - бланки підтвердження діяльності DOCX/PDF/JPG з ревізіями та архівом;
 - аналогові тахокарти: скани, інтервали, ручне підтвердження, протоколи;
+- накази та закріплення водій→ТЗ із захистом затвердженої/підписаної історії;
 - PDF/Excel звіти;
-- резервні копії та перенесення робочого сховища.
+- резервні копії, перенесення робочого сховища та контроль сумісності схеми SQLite.
 
-## Що увійшло до checkpoint 10.6-r3
+## Що інтегровано в 10.9-r2 → 10.9-r9
 
-- аудит дня не змішує історичний/перепланований план із поточним шаблоном маршруту;
-- у реєстрі документів ТЗ неактивні автомобілі приховані за замовчуванням, але можуть бути показані прапорцем;
-- шляхівка може формуватися без регулярного `route_id`: для замовлень, розвозок, поїздок по місту/області/між областями та інших разових робіт;
-- для нерегулярної поїздки час береться з графіка водія, автобус можна вибрати при видачі, опис поїздки редагується; типове значення — «по області»;
-- зворот нерегулярної шляхівки не отримує фіктивного маршрутного розкладу, але зберігає лікаря, механіка, спідометр і фактичний пробіг, якщо ці дані реально є в Taxo;
-- вікно «Про програму» адаптоване до невисоких/масштабованих екранів;
-- межа **plan ≠ fact** і тахографічний облік не змінені.
+- захист історії виданих шляхівок і номерів від повторного використання;
+- перевірка чинності документів ТЗ на весь період рейсу;
+- посилений контроль робочого часу/відпочинку, overlaps, boundary gaps, 3+9 і двотижневий контроль;
+- безпечний пріоритет фактичних джерел у 60-денному реєстрі;
+- коректні історичні межі працевлаштування, П-5 та цикли 2/2 і 3/3;
+- надійніша хронологія одометра й прогноз ТО;
+- immutable затверджені/підписані накази та безпечні закріплення водій→ТЗ;
+- explicit SQLite schema baseline через `PRAGMA user_version` і future-schema guard від r9.
 
-Повні release notes: [10.6-r3](docs/releases/RELEASE_NOTES_v10_6_r3.md).
+Повні release notes: [10.9-r9](docs/releases/RELEASE_NOTES_v10.9-r9.md) · [індекс релізів](docs/releases/RELEASE_INDEX.md).
 
 ## Реєстри та військовий облік
 
@@ -56,6 +66,7 @@ Taxo **не підміняє державні сервіси**: локальна
 
 - [Огляд документації](docs/README.md)
 - [Огляд системи](docs/SYSTEM_OVERVIEW.md)
+- [Поточний стан продукту](docs/PRODUCT_STATUS.md)
 - [Швидкий старт](docs/guides/QUICK_START.md)
 - [Інструкція для персоналу](docs/guides/USER_MANUAL.md)
 - [Робота з тахографом](docs/guides/TACHOGRAPH_GUIDE.md)
@@ -68,7 +79,7 @@ Taxo **не підміняє державні сервіси**: локальна
 
 Перед новою робочою сесією читати `START_HERE.md`, далі `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61.
 
-Правило candidate-версій: кожен завершений крок = нова ревізія `r1 … r10`; після `r10` піднімається minor-версія й цикл починається з `r1`. Уже видані revision не перевикористовуються. Після `10.6-r3` наступна кодова ревізія — **10.6-r4**.
+Правило candidate-версій: кожен завершений **кодовий** крок = нова ревізія `r1 … r10`; після `r10` піднімається minor-версія й цикл починається з `r1`. Уже видані revision не перевикористовуються. Після `10.9-r9` наступна кодова ревізія — **10.9-r10**.
 
 ## Дані та безпека
 
