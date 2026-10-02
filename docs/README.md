@@ -3,10 +3,12 @@
 Цей розділ — основна точка входу до експлуатаційної та технічної документації Taxo.
 
 **Stable:** Taxo 10.3 / `v10.3` — immutable  
-**Latest integrated checkpoint in `main`:** Taxo 10.9-r9 / `v10.9-r9`  
-**Latest full multi-platform checkpoint:** Taxo 10.9-r9 / `v10.9-r9`  
+**Latest integrated checkpoint in `main`:** **Taxo 10.9-r10**  
+**Latest full multi-platform published checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
 **Previous stable / rollback:** Taxo 10.1 / `v10.1`  
-**Next code revision:** `10.9-r10`
+**Next code revision:** `10.10-r1`
+
+> `10.9-r10` уже інтегровано в `main`, але окремий повний public release з готовими пакетами для цієї ревізії не публікувався. Для Windows/macOS тестування останнім повним release лишається `v10.9-r9`.
 
 ## Керівництва
 
@@ -25,15 +27,28 @@
 - [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
 - [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-## Поточний checkpoint — 10.9-r9
+## Поточний інтегрований checkpoint — 10.9-r10
 
-- [GitHub Release v10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
-- [Release notes 10.9-r9](releases/RELEASE_NOTES_v10.9-r9.md)
+- [Release notes 10.9-r10](releases/RELEASE_NOTES_v10.9-r10.md)
 - [Індекс релізів](releases/RELEASE_INDEX.md)
 - [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
 - [Технічний стан](maintenance/PROJECT_STATE.md)
 
-`v10.9-r9` інтегрований у `main`. Для користувацького тестування checkpoint доповнено повним набором Windows x64, Windows 7 SP1 x64, macOS ARM64/Intel, START і SHA-256. Stable залишається `v10.3` до окремого рішення власника.
+10.9-r10 завершив структурне впорядкування репозиторію: runtime-модулі в `src/taxo/`, шаблони в `assets/`, packaging у `packaging/`, без зміни бізнес-логіки та без міграції робочих даних.
+
+## Останній повний public release — 10.9-r9
+
+- [GitHub Release v10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
+- Windows x64 Setup/Portable;
+- Windows 7 SP1 x64 Setup/Portable;
+- macOS ARM64/Intel;
+- START/source та SHA-256.
+
+Stable лишається `v10.3` до окремого рішення власника.
+
+## Мови публічного опису
+
+Короткий public README підтримується українською, англійською, німецькою, іспанською, французькою, корейською та японською: [індекс перекладів](i18n/README.md).
 
 ## Для розробки
 
@@ -41,12 +56,12 @@
 - [PROJECT_RULES.md](../PROJECT_RULES.md) — постійні правила.
 - [PROJECT_STATE.md](../PROJECT_STATE.md) — канонічний інтегрований стан.
 - [WORKLOG.md](../WORKLOG.md) — оперативний поточний стан.
-- [Правила розробки](maintenance/DEVELOPMENT_RULES.md) — кожен завершений кодовий крок = нова ревізія `r1 … r10`; після `r10` — наступна minor-версія з `r1`.
+- [Правила розробки](maintenance/DEVELOPMENT_RULES.md)
 - [Чекліст випуску](maintenance/RELEASE_CHECKLIST.md)
 - [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
 - GitHub Issue #61 — append-only live development ledger.
 
-Після `10.9-r9` наступний кодовий крок — тільки **10.9-r10**. Уже видані revision не перевикористовуються.
+Після завершеного `10.9-r10` наступний кодовий крок — тільки **10.10-r1** від актуального `main`. Уже видані revision не перевикористовуються.
 
 ## Дані користувача
 
@@ -54,4 +69,4 @@
 
 ## Історія
 
-Старі release/checkpoint-и залишаються immutable у GitHub tags/releases. Історичні матеріали 8.x збережені окремо в [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8). Для поточного стану не використовувати старі work/candidate branches як кодову базу.
+Старі release/checkpoint-и залишаються immutable у GitHub tags/releases і не є базою нової розробки.
