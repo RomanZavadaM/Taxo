@@ -6,25 +6,19 @@ Taxo is a desktop application for a single transport company: personnel and driv
 
 > **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3).  
 > **Latest integrated checkpoint in `main`:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9).  
-> **Latest full multi-platform checkpoint:** [Taxo 10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1).  
+> **Latest full multi-platform checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9).  
 > **Previous stable / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1).  
 > `v10.9-r9` does not become stable automatically; stable promotion is a separate owner decision.
 
-## Downloads
+## Downloads — 10.9-r9
 
-### Latest integrated checkpoint — 10.9-r9
+**Windows:** [x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows_x64.exe) · [x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows_x64_Portable.zip) · [Windows 7 SP1 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows7_x64.exe) · [Windows 7 SP1 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows7_x64_Portable.zip)
 
-[START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/SHA256SUMS_v10_9_r9.txt) · [Release 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
+**macOS:** [ARM64 / Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_x86_64_Portable.zip)
 
-10.9-r9 is the latest integrated code checkpoint. It has a START package; a separate full executable set was not republished for r9.
+**Testing/diagnostics:** [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9) · [Release notes](docs/releases/RELEASE_NOTES_v10.9-r9.md)
 
-### Latest full multi-platform checkpoint — 10.9-r1
-
-[Release 10.9-r1 with Windows/macOS packages](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) · [Combined SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r1/SHA256SUMS_v10_9_r1_ALL.txt)
-
-Use a ready Windows/macOS package from `v10.9-r1` for normal operation. `START.bat` is mainly for testing and technical diagnostics; extract the START ZIP completely before running it.
-
-User databases, SQLite files, scans, caches, and personal documents are never bundled into GitHub releases.
+Use a ready Windows/macOS package for normal operation. `START.bat` is mainly for testing and technical diagnostics. User databases, SQLite files, scans, caches, and personal documents are never bundled into GitHub releases.
 
 ## Main features
 
@@ -47,22 +41,12 @@ The integrated line adds immutable waybill-number history, whole-trip vehicle-do
 
 Full notes: [10.9-r9 release notes](docs/releases/RELEASE_NOTES_v10.9-r9.md) · [release index](docs/releases/RELEASE_INDEX.md).
 
-## Government registries and military accounting
-
-Taxo supports vehicle reconciliation with Shlyakh data, editable working values separated from immutable government snapshots, an employee-document register, lossless government XLSX import, an enterprise military-transport statement, and a local Diia-first annual personnel reconciliation workflow.
-
-Taxo does **not** pretend to be a government API and does not claim automatic transmission to Diia, Oberih or Shlyakh.
-
 ## Documentation and development state
 
 Canonical operational documentation is maintained in Ukrainian. Start a development/recovery session with `START_HERE.md`, then `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` and Issue #61. Issued revisions are immutable. After `10.9-r9`, the next code revision is **10.9-r10**.
-
-See [Documentation index](docs/README.md) · [System overview](docs/SYSTEM_OVERVIEW.md) · [Product status](docs/PRODUCT_STATUS.md) · [Quick start](docs/guides/QUICK_START.md) · [Release index](docs/releases/RELEASE_INDEX.md).
 
 ## Copyright and licence
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.**
 
 Taxo is proprietary software. Public visibility of this repository does not grant an open-source licence or permission to redistribute, sell, republish, or distribute modified/derivative versions without written permission from the copyright holder.
-
-See [LICENSE.md](LICENSE.md), [COPYRIGHT.md](COPYRIGHT.md), and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
