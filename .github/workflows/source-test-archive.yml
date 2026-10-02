@@ -45,6 +45,21 @@ jobs:
           print(f'Compiled {len(files)} Python files.')
           PY
 
+      # Historical runtime contract inventory. These modules now live under
+      # src/taxo/, but their names remain explicit so old checkpoint tests can
+      # prove that no runtime layer disappeared during the r10 structure move:
+      # vehicle_reconciliation.py employee_document_register.py
+      # personnel_registry_lossless.py registry_working_data.py
+      # diia_reconciliation.py operations_orders.py operations_orders_ui.py
+      # v1058_features.py v1059_features.py
+      # v1061_features.py v1062_features.py v1063_features.py v1064_features.py
+      # v1065_features.py v1066_features.py v1067_features.py v1068_features.py
+      # v1069_features.py v10710_features.py v1081_features.py
+      # database_runtime.py application_context.py data_access.py
+
+      - name: Stage legacy layout for historical regression only
+        run: python tests/stage_legacy_layout.py
+
       - name: Run regression suite with virtual display
         run: xvfb-run -a python -m unittest discover -s tests -v
 
@@ -76,6 +91,14 @@ jobs:
             START.bat requirements.txt taxo_app.py main.py sitecustomize.py VERSION.txt
             src/taxo/application_context.py src/taxo/feature_layers.py src/taxo/output_files.py
             src/taxo/backup_migration.py src/taxo/database_runtime.py src/taxo/data_access.py
+            src/taxo/vehicle_reconciliation.py src/taxo/employee_document_register.py
+            src/taxo/personnel_registry_lossless.py src/taxo/registry_working_data.py
+            src/taxo/diia_reconciliation.py src/taxo/operations_orders.py src/taxo/operations_orders_ui.py
+            src/taxo/v1058_features.py src/taxo/v1059_features.py
+            src/taxo/v1061_features.py src/taxo/v1062_features.py src/taxo/v1063_features.py
+            src/taxo/v1064_features.py src/taxo/v1065_features.py src/taxo/v1066_features.py
+            src/taxo/v1067_features.py src/taxo/v1068_features.py src/taxo/v1069_features.py
+            src/taxo/v10710_features.py src/taxo/v1081_features.py
             src/taxo/waybill_integrity.py src/taxo/vehicle_document_validity.py src/taxo/work_rest_compliance.py
             src/taxo/v1096_personnel_balance.py src/taxo/v1097_stoir_odometer.py
             src/taxo/v1098_orders_immutability.py src/taxo/v1099_schema_compatibility.py
@@ -83,6 +106,7 @@ jobs:
             src/taxo/vehicle_maintenance_ui.py src/taxo/document_viewer.py src/taxo/release_naming.py
             "assets/Бланк підтвердження.docx" assets/attestation_visual_template.pdf
             packaging/Taxo.spec packaging/Taxo_win7.spec packaging/Taxo_macos.spec
+            tests/stage_legacy_layout.py
             00_README_START.txt LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md
             PROJECT_RULES.md PROJECT_STATE.md START_HERE.md WORKLOG.md
           )
