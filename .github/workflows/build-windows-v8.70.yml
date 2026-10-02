@@ -30,7 +30,8 @@ on:
       - 'Taxo.spec'
       - 'installer/**'
       - 'tests/**'
-      - 'README*.md'
+      - 'README.md'
+      - 'docs/i18n/**'
       - 'LICENSE.md'
       - 'COPYRIGHT.md'
       - 'THIRD_PARTY_NOTICES.md'
@@ -87,7 +88,15 @@ jobs:
         if: steps.changes.outputs.build != 'true'
         shell: pwsh
         run: |
-          $required = @('README.md','README.en.md','README.de.md','README.es.md','README.fr.md')
+          $required = @(
+            'README.md',
+            'docs/i18n/README.en.md',
+            'docs/i18n/README.de.md',
+            'docs/i18n/README.es.md',
+            'docs/i18n/README.fr.md',
+            'docs/i18n/README.ko.md',
+            'docs/i18n/README.ja.md'
+          )
           foreach ($file in $required) {
             if (!(Test-Path $file)) { throw "Missing documentation file: $file" }
           }
