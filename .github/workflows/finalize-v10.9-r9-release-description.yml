@@ -1,0 +1,74 @@
+name: Finalize Taxo 10.9-r9 release description
+
+on:
+  push:
+    branches:
+      - 'docs/v10.9-r9-public-state-sync'
+    paths:
+      - '.github/workflows/finalize-v10.9-r9-release-description.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Update release title and description
+        shell: bash
+        run: |
+          cat > /tmp/release.md <<'EOF'
+          # Taxo 10.9-r9 — повний multi-platform checkpoint
+
+          **Статус:** актуальний інтегрований candidate/checkpoint у `main`.  
+          **Stable:** `v10.3` лишається чинною stable-лінією до окремого рішення власника.  
+          **Наступна кодова ревізія:** `10.9-r10`.
+
+          ## Завантаження
+
+          ### Windows
+          - `Taxo_v10_9_candidate_r9_Setup_Windows_x64.exe` — інсталятор Windows x64.
+          - `Taxo_v10_9_candidate_r9_Windows_x64_Portable.zip` — portable Windows x64.
+          - `Taxo_v10_9_candidate_r9_Setup_Windows7_x64.exe` — інсталятор Windows 7 SP1 x64.
+          - `Taxo_v10_9_candidate_r9_Windows7_x64_Portable.zip` — portable Windows 7 SP1 x64.
+
+          ### macOS
+          - `Taxo_v10_9_candidate_r9_macOS_arm64_Portable.zip` — Apple Silicon / ARM64.
+          - `Taxo_v10_9_candidate_r9_macOS_x86_64_Portable.zip` — Intel x86_64.
+
+          ### Тестування / діагностика
+          - `Taxo_v10_9_candidate_r9_START.zip` — START/source пакет.
+          - `SHA256SUMS_*` — контрольні суми для платформ.
+
+          Для звичайної експлуатації використовуйте готовий пакет під свою ОС. START призначений передусім для тестування та технічної діагностики.
+
+          ## Що інтегровано у 10.9-r2 → 10.9-r9
+
+          - незворотна історія виданих шляхівок і номерів;
+          - контроль чинності документів ТЗ на весь період рейсу;
+          - посилений контроль work/rest, overlaps, boundary gaps, 3+9 і двотижневих меж;
+          - безпечніший пріоритет фактичних джерел у 60-денному реєстрі;
+          - historical employment / П-5 / personnel balance safety;
+          - надійніша хронологія одометра і прогноз СТОІР;
+          - immutable approved/signed orders та захист driver→vehicle assignment history;
+          - explicit SQLite schema baseline через `PRAGMA user_version` і future-schema guard.
+
+          ## Інтеграція і перевірки
+
+          - issued source/tag: `a368bf3bdfd4a16cc099844b830379c5e2646c2d`;
+          - cumulative PR #128 — merged;
+          - main code merge: `3f59544b8737cd4715d84f786e32378d87d1dd99`;
+          - exact-head Windows gate `36919102579` — success;
+          - exact-head macOS gate `36919102540` — success;
+          - full multi-platform backfill workflow `36994826410` — success.
+
+          Робочі БД, SQLite, скани, кеші та персональні документи до release **не входять**.
+
+          Повні нотатки: `docs/releases/RELEASE_NOTES_v10.9-r9.md`.
+
+          **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo — proprietary software.
+          EOF
+          gh release edit v10.9-r9 --repo "$GITHUB_REPOSITORY" --title 'Taxo 10.9-r9 — full multi-platform checkpoint' --notes-file /tmp/release.md --prerelease
