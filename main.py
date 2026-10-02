@@ -98,7 +98,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.9-r9"
+APP_VERSION = "10.9-r10"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -119,8 +119,8 @@ ATT_REPLACED_DIR = _WORKSPACE_PATHS["att_replaced"]
 ATT_DELETED_DIR = _WORKSPACE_PATHS["att_deleted"]
 WAYBILL_DIR = _WORKSPACE_PATHS["waybills"]
 DB_PATH = _WORKSPACE_PATHS["main_db"]
-TEMPLATE_PATH = APP_DIR / "Бланк підтвердження.docx"
-ATT_VISUAL_TEMPLATE_PATH = APP_DIR / "attestation_visual_template.pdf"
+TEMPLATE_PATH = APP_DIR / "assets" / "Бланк підтвердження.docx"
+ATT_VISUAL_TEMPLATE_PATH = APP_DIR / "assets" / "attestation_visual_template.pdf"
 
 ACTIVE_WORKSPACE_LOCK = None
 

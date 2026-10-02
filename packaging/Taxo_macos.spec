@@ -2,15 +2,20 @@
 
 # Taxo native macOS application bundle.
 # Build separately on Apple Silicon and Intel; user databases are forbidden.
+from pathlib import Path
+import sys
+ROOT = Path.cwd()
+SRC = ROOT / "src" / "taxo"
+sys.path.insert(0, str(SRC))
 from branding import generate_build_icons
 
 BRAND_ICONS = generate_build_icons()
 
 a = Analysis(
     ['taxo_app.py'],
-    pathex=[],
+    pathex=[str(SRC)],
     binaries=[],
-    datas=[('Бланк підтвердження.docx', '.'), ('attestation_visual_template.pdf', '.')],
+    datas=[('assets/Бланк підтвердження.docx', 'assets'), ('assets/attestation_visual_template.pdf', 'assets')],
     hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'branding', 'branding_asset', 'fitz', 'pymupdf'],
     hookspath=[],
     hooksconfig={},
@@ -53,12 +58,12 @@ app = BUNDLE(
     name='Taxo.app',
     icon=str(BRAND_ICONS['icns']),
     bundle_identifier='com.romanzavadam.taxo',
-    version='10.3',
+    version='10.9.10',
     info_plist={
         'CFBundleDisplayName': 'Taxo',
         'CFBundleName': 'Taxo',
-        'CFBundleShortVersionString': '10.3',
-        'CFBundleVersion': '10.3',
+        'CFBundleShortVersionString': '10.9.10',
+        'CFBundleVersion': '10910',
         'LSApplicationCategoryType': 'public.app-category.productivity',
         'NSPrincipalClass': 'NSApplication',
         'NSHighResolutionCapable': True,
