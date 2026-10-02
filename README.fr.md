@@ -1,17 +1,28 @@
 # Taxo / Driver Worktime
 
-[Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md)
+[Українська](README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-Taxo est une application de bureau destinée à une entreprise de transport : personnel et conducteurs, plannings, temps de travail, feuilles de route, attestations d’activité, véhicules, contrôle documentaire, rapports et traitement sélectif des disques de tachygraphe analogiques.
+Taxo est une application de bureau destinée à une entreprise de transport : personnel et conducteurs, plannings, temps de travail, feuilles de route, attestations d’activité, véhicules, contrôle documentaire, rapports, maintenance et traitement sélectif des disques de tachygraphe analogiques.
 
 > **Stable :** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3).  
-> **Dernier checkpoint complet dans `main` :** [Taxo 10.6-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.6-r3).  
+> **Dernier checkpoint intégré dans `main` :** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9).  
+> **Dernier checkpoint multi-plateforme complet :** [Taxo 10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1).  
 > **Stable précédente / rollback :** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1).  
-> `v10.6-r3` est un candidate/checkpoint complet et ne devient pas stable sans une décision séparée du propriétaire.
+> `v10.9-r9` ne devient pas stable automatiquement ; la promotion stable reste une décision séparée du propriétaire.
 
-## Téléchargements 10.6-r3
+## Téléchargements
 
-[Windows x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Setup_Windows_x64.exe) · [Windows x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Windows_x64_Portable.zip) · [Windows 7 SP1 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Setup_Windows7_x64.exe) · [Windows 7 SP1 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_Windows7_x64_Portable.zip) · [macOS ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_macOS_arm64_Portable.zip) · [macOS Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_macOS_x86_64_Portable.zip) · [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/Taxo_v10_6_candidate_r3_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.6-r3/SHA256SUMS_v10_6_r3_FULL.txt)
+### Checkpoint intégré actuel — 10.9-r9
+
+[START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/SHA256SUMS_v10_9_r9.txt) · [Release 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
+
+10.9-r9 est le dernier checkpoint de code intégré. Un paquet START est publié ; un ensemble complet d’exécutables n’a pas été republié pour r9.
+
+### Dernier checkpoint multi-plateforme complet — 10.9-r1
+
+[Release 10.9-r1 avec paquets Windows/macOS](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) · [Combined SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r1/SHA256SUMS_v10_9_r1_ALL.txt)
+
+Pour l’exploitation normale, utilisez un paquet Windows/macOS prêt à l’emploi de `v10.9-r1`. `START.bat` est principalement destiné aux tests et au diagnostic technique ; extrayez complètement le ZIP START avant de l’exécuter.
 
 Les bases utilisateurs, fichiers SQLite, scans, caches et documents personnels ne sont jamais inclus dans les releases GitHub.
 
@@ -21,30 +32,32 @@ Les bases utilisateurs, fichiers SQLite, scans, caches et documents personnels n
 - plannings individuels et périodiques des conducteurs ;
 - feuilles de temps avec services fractionnés et séparation explicite plan/réel ;
 - contrôle du travail, de la conduite, des pauses et du repos ;
-- bilans hebdomadaires séparés de **60:00 de travail** et **56:00 de conduite** ;
-- registre des véhicules, kilométrage et contrôle des documents ;
-- itinéraires réguliers et travaux non réguliers : commandes, navettes, ville, région, interrégional et autres services ponctuels ;
-- feuilles de route, attestations d’activité et rapports PDF/Excel ;
+- registre d’activité sur 60 jours sans inventer du repos à partir de temps inconnu ;
+- registre des véhicules, kilométrage, maintenance et contrôle des documents ;
+- feuilles de route régulières et non régulières ;
+- attestations d’activité avec historique des révisions ;
 - disques de tachygraphe analogiques avec vérification manuelle ;
-- sauvegardes et transfert des données.
+- protection de l’historique des ordres approuvés/signés et des affectations conducteur→véhicule ;
+- rapports PDF/Excel ;
+- sauvegardes, transfert de l’espace de travail et contrôle de compatibilité du schéma SQLite.
 
-## Checkpoint 10.6-r3
+## Intégré dans 10.9-r2 → 10.9-r9
 
-Le checkpoint comprend la correction de l’audit plan/réel, le masquage par défaut des véhicules inactifs, l’émission de feuilles de route pour des travaux non réguliers sans exiger un `route_id` du catalogue et une fenêtre « À propos » adaptative. Pour une sortie non régulière, la table d’itinéraire reste vide tandis que le médecin, le mécanicien, l’odomètre et le kilométrage réel sont conservés lorsqu’une source réelle existe dans Taxo. Les faits manquants ne sont pas inventés à partir du plan.
+La ligne intégrée ajoute un historique immuable des feuilles de route et numéros, la validation des documents du véhicule pendant tout le trajet, un contrôle renforcé travail/repos, une priorité plus sûre des sources factuelles, des corrections historiques personnel/P-5, un durcissement de l’odomètre et des prévisions de maintenance, des ordres approuvés/signés immuables et la première base explicite du schéma SQLite via `PRAGMA user_version`.
 
-Notes complètes : [Release notes 10.6-r3](docs/releases/RELEASE_NOTES_v10_6_r3.md).
+Notes complètes : [Release notes 10.9-r9](docs/releases/RELEASE_NOTES_v10.9-r9.md) · [Index des releases](docs/releases/RELEASE_INDEX.md).
 
 ## Registres étatiques et comptabilité militaire
 
-Taxo prend en charge le rapprochement des véhicules avec « Shlyakh », des valeurs de travail modifiables séparées des snapshots étatiques immuables, le registre des documents salariés, l’import XLSX sans perte, l’état d’entreprise pour le transport militaire et un flux local Diia-first pour le rapprochement annuel du personnel.
+Taxo prend en charge le rapprochement des véhicules avec « Shlyakh », des valeurs de travail modifiables séparées des snapshots étatiques immuables, le registre des documents salariés, l’import XLSX sans perte et un flux local Diia-first pour le rapprochement annuel du personnel.
 
 Taxo **ne remplace pas une API étatique** et ne prétend pas transmettre automatiquement des données à Diia, Oberih ou Shlyakh.
 
 ## Documentation et développement
 
-La documentation opérationnelle canonique est maintenue en ukrainien. Les nouvelles sessions commencent par `START_HERE.md`, puis `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` et Issue #61. Les révisions publiées sont immuables. Après `10.6-r3`, la prochaine révision de code est **10.6-r4**.
+La documentation opérationnelle canonique est maintenue en ukrainien. Les nouvelles sessions commencent par `START_HERE.md`, puis `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` et Issue #61. Les révisions publiées sont immuables. Après `10.9-r9`, la prochaine révision de code est **10.9-r10**.
 
-Voir [Index de documentation](docs/README.md) · [Présentation du système](docs/SYSTEM_OVERVIEW.md) · [Démarrage rapide](docs/guides/QUICK_START.md) · [Index des releases](docs/releases/RELEASE_INDEX.md).
+Voir [Index de documentation](docs/README.md) · [Présentation du système](docs/SYSTEM_OVERVIEW.md) · [État du produit](docs/PRODUCT_STATUS.md) · [Démarrage rapide](docs/guides/QUICK_START.md) · [Index des releases](docs/releases/RELEASE_INDEX.md).
 
 ## Droit d’auteur et licence
 
