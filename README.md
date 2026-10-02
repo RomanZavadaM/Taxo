@@ -5,24 +5,20 @@
 **Taxo — настільна система для одного автотранспортного підприємства: водії й персонал, графіки, табелі, шляхові листи, бланки підтвердження діяльності, транспорт, документи, звіти та вибірковий контроль аналогових тахокарт.**
 
 > **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — чинна stable-лінія.  
-> **Latest integrated checkpoint in `main`:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9) — актуальний інтегрований кодовий checkpoint.  
-> **Latest full multi-platform checkpoint:** [Taxo 10.9-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) — Windows / Windows 7 / macOS пакети.  
+> **Latest integrated checkpoint in `main`:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9).  
+> **Latest full multi-platform checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9).  
 > **Previous stable / rollback:** [Taxo 10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1).  
 > `v10.9-r9` не стає stable автоматично; stable promotion — окреме рішення власника.
 
-## Завантаження
+## Завантаження 10.9-r9
 
-### Актуальний інтегрований checkpoint — 10.9-r9
+**Windows:** [x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows_x64.exe) · [x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows_x64_Portable.zip) · [Windows 7 SP1 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows7_x64.exe) · [Windows 7 SP1 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows7_x64_Portable.zip)
 
-[START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/SHA256SUMS_v10_9_r9.txt) · [Release 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
+**macOS:** [ARM64 / Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_x86_64_Portable.zip)
 
-`10.9-r9` — останній інтегрований кодовий checkpoint. Для нього опубліковано START-пакет; окремий повний multi-platform executable checkpoint не перевидавався.
+**Тестування/діагностика:** [START](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [Release 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9) · [Release notes](docs/releases/RELEASE_NOTES_v10.9-r9.md)
 
-### Останній повний multi-platform checkpoint — 10.9-r1
-
-[Release 10.9-r1 з Windows/macOS пакетами](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r1) · [Combined SHA-256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r1/SHA256SUMS_v10_9_r1_ALL.txt)
-
-Для звичайної експлуатації використовуйте готовий Windows/macOS пакет із `v10.9-r1`. `START.bat` призначений насамперед для тестування й технічної діагностики; START ZIP спочатку потрібно повністю розпакувати.
+Для звичайної експлуатації використовуйте готовий Windows/macOS пакет. `START.bat` призначений насамперед для тестування й технічної діагностики; START ZIP спочатку потрібно повністю розпакувати.
 
 Робочі БД, SQLite, скани, кеші та персональні документи у GitHub releases **не входять**.
 
@@ -64,26 +60,13 @@ Taxo **не підміняє державні сервіси**: локальна
 
 ## Документація
 
-- [Огляд документації](docs/README.md)
-- [Огляд системи](docs/SYSTEM_OVERVIEW.md)
-- [Поточний стан продукту](docs/PRODUCT_STATUS.md)
-- [Швидкий старт](docs/guides/QUICK_START.md)
-- [Інструкція для персоналу](docs/guides/USER_MANUAL.md)
-- [Робота з тахографом](docs/guides/TACHOGRAPH_GUIDE.md)
-- [Звіти](docs/guides/REPORTS_GUIDE.md)
-- [Адміністрування і резервні копії](docs/guides/ADMIN_GUIDE.md)
-- [Типові проблеми](docs/guides/TROUBLESHOOTING.md)
-- [Індекс релізів](docs/releases/RELEASE_INDEX.md)
+[Огляд документації](docs/README.md) · [Огляд системи](docs/SYSTEM_OVERVIEW.md) · [Поточний стан продукту](docs/PRODUCT_STATUS.md) · [Швидкий старт](docs/guides/QUICK_START.md) · [Інструкція для персоналу](docs/guides/USER_MANUAL.md) · [Індекс релізів](docs/releases/RELEASE_INDEX.md)
 
 ## Розробка й відновлення контексту
 
 Перед новою робочою сесією читати `START_HERE.md`, далі `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61.
 
 Правило candidate-версій: кожен завершений **кодовий** крок = нова ревізія `r1 … r10`; після `r10` піднімається minor-версія й цикл починається з `r1`. Уже видані revision не перевикористовуються. Після `10.9-r9` наступна кодова ревізія — **10.9-r10**.
-
-## Дані та безпека
-
-Програма й робочі дані розділені. Оновлення програми не повинно вимагати повторного введення робочої бази. Планові дані не оголошуються фактом без явного підтвердження.
 
 ## Авторські права та ліцензія
 
