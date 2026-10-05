@@ -11,7 +11,8 @@ class TestTaxo103Stable(unittest.TestCase):
     def test_stable_checkpoint_identity_is_10_3(self):
         self.assertEqual(start_archive_stem("10.3"),"Taxo_v10_3_START")
         state=(ROOT/"PROJECT_STATE.md").read_text("utf-8")
-        self.assertIn("**Stable:** Taxo 10.3 / `v10.3`",state)
+        # 05.10.2026: stable is 10.9-r10; 10.3 is the immutable previous stable / rollback.
+        self.assertIn("Taxo 10.3 / `v10.3`",state)
         self.assertIn(
             "7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60",
             state,

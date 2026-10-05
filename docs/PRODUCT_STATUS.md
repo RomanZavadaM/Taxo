@@ -1,32 +1,25 @@
 # Taxo — стан продукту
 
-**Актуально:** 02.10.2026
+**Актуально:** 05.10.2026
 
 ## Поточний статус
 
-- **Stable:** Taxo 10.3 / `v10.3` — immutable.
-- **Previous stable / rollback:** Taxo 10.1 / `v10.1`.
-- **Latest integrated checkpoint in `main`:** **Taxo 10.9-r10**.
-- **Structural cleanup PR:** #132.
-- **Exact r10 source:** `ff56519da35e03204bdaf77f7187cddd692f79d4`.
-- **Main merge:** `5e179eabccc35afa984be04208e2e4d96094a2fb`.
-- **Exact-head gates:** Windows `37018721703` — success; Windows 7 `37018721695` — success; macOS `37018722335` — success.
-- **Latest full multi-platform published checkpoint:** Taxo 10.9-r9 / `v10.9-r9`.
-- **Next code revision:** `10.10-r1`.
+- **Stable:** Taxo 10.9-r10 / `v10.9-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10); перевірено власником на реальних даних.
+- **Previous stable / rollback:** Taxo 10.3 / `v10.3`.
+- **Тестова лінія в `main`:** 10.10-r3; prerelease `v10.10-r1`…`v10.10-r3` перевіряються на реальних даних.
+- **Next code revision:** `10.10-r4`.
 
-Release з готовими пакетами для тестування: https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9
+## Відомі обмеження stable 10.9-r10
 
-`10.9-r10` — актуальний integrated code checkpoint; stable лишається `v10.3` до окремого рішення власника.
+- у вікні програми версія може показуватися як «10.8-r5» (виправлено в тестовій 10.10-r3);
+- повна резервна копія без позначених вкладень не попереджає, що містить лише БД (виправлено в 10.10-r3);
+- пакети містять PyMuPDF (AGPL-3.0) — у 10.10 його вже немає.
 
-## Що змінилося в 10.9-r10
+## Тестова лінія 10.10
 
-- runtime/support Python modules перенесені в `src/taxo/`;
-- runtime templates перенесені в `assets/`;
-- active PyInstaller/Inno Setup definitions перенесені в `packaging/`;
-- historical packaging specs винесені в `packaging/history/`;
-- START/Windows/Windows 7/macOS build paths адаптовані до нової структури;
-- flat-import compatibility збережена bootstrap-механізмом;
-- робочі БД та користувацькі дані не мігрують і не переміщуються цією ревізією.
+- **10.10-r1:** PyMuPDF прибрано; PDF/JPG бланка, дата №340 і перегляд PDF — pypdfium2 + reportlab + pypdf.
+- **10.10-r2:** застарілі публікаційні workflow вимкнено; тести ізольовано від робочого сховища.
+- **10.10-r3:** правильна версія у вікні; попередження «лише БД».
 
 ## Функціональний стан
 

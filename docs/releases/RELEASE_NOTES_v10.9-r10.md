@@ -1,7 +1,8 @@
 # Taxo 10.9-r10 — structural cleanup
 
 **Дата:** 02.10.2026  
-**Статус:** integrated checkpoint in `main`; closes the 10.9 revision cycle  
+**Статус:** **STABLE** з 05.10.2026 — [GitHub Release v10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) (Latest); перевірено власником на реальних даних; closes the 10.9 revision cycle  
+**Пакети stable:** оригінальні CI-збірки exact head (Windows `37018721703`, Windows 7 `37018721695`, macOS `37018722335`, START `37018715592`), без перезбирання  
 **PR:** #132  
 **Exact PR head:** `ff56519da35e03204bdaf77f7187cddd692f79d4`  
 **Main merge:** `5e179eabccc35afa984be04208e2e4d96094a2fb`
