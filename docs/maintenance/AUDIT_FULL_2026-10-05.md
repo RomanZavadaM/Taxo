@@ -45,13 +45,18 @@
 ### A4 — P0 (ліцензія). PyMuPDF несумісний із пропрієтарною ліцензією Taxo
 PyMuPDF 1.26.7 (метадані пакета): **«Dual Licensed — GNU AFFERO GPL 3.0 or Artifex Commercial License»**. Taxo — proprietary / all rights reserved, а PyMuPDF вшитий у всі executable-збірки (`hiddenimports: 'fitz', 'pymupdf'` у specs) і заявлений у `requirements*.txt` та `THIRD_PARTY_NOTICES.md`. Розповсюдження пропрієтарної програми разом з AGPL-бібліотекою без комерційної ліцензії Artifex суперечить умовам AGPL. Пункт зовнішнього аудиту 01.10 («прибрати PyMuPDF») **не закрито**; до того ж `document_viewer.py` імпортує `fitz` на верхньому рівні — без нього програма не стартує.
 
+Історія (перевірено по тегах):
+- Бланк підтвердження діяльності існує з ранніх версій Taxo як DOCX: шаблон `Бланк підтвердження.docx`, заповнення через `python-docx` (MIT), таблиця `attestations`. Це є вже у `v8.56` — останньому опублікованому на GitHub релізі **без** PyMuPDF (11.09.2026). Ранніші версії (v7 … v8.49) у GitHub releases не публікувались.
+- PyMuPDF з'явився у `v8.64` (12.09.2026) разом з `attestation_render.py` — автономним PDF/JPG-рендером бланка без Word/LibreOffice (статичний PDF-шаблон `attestation_visual_template.pdf` + штампування значень). Пізніше додано перегляд PDF у `document_viewer.py` і штамп дати у звіті №340.
+- Отже PyMuPDF використовується **обмежено**: лише растеризація PDF і штампування тексту в PDF; основа бланка (DOCX) від нього не залежить.
+
 Використання в коді:
 - `document_viewer.py` — растеризація сторінок PDF для перегляду (`fitz.open`, `get_pixmap`);
 - `attestation_render.py` — растеризація шаблону бланка в JPEG і заповнення PDF-шаблону (шрифти, `insert_text`, `draw_rect`, `save`);
 - `v9_release.py` — штампування тексту в PDF;
 - тести: `test_v9_0`, `test_v9_1`, `test_v9_1_r3`, `test_v8_70_r5…r8`, `test_v10_5_r9`, `test_v10_6_r3`.
 
-**Виправлення (обов'язкове до Stable):** повністю прибрати PyMuPDF із коду, requirements (включно з Win7), specs і notices. Заміна на permissive-ліцензії:
+**Виправлення (наступна ревізія 10.10-r1, обов'язкове до Stable):** повністю прибрати PyMuPDF із коду, requirements (включно з Win7), specs і notices. Заміна на permissive-ліцензії:
 - перегляд/растеризація → **pypdfium2** (Apache-2.0 / BSD-3-Clause; PDFium — BSD-3);
 - заповнення/штампування PDF → **reportlab** (BSD, уже в залежностях) як overlay + **pypdf** (BSD-3) для накладання на шаблон.
 Бланк підтвердження — фактичний документ, тому потрібна візуальна регресія «до/після» на еталонних даних. CI-gate: збірка падає, якщо `fitz`/`pymupdf` присутні в bundle.
@@ -121,13 +126,17 @@ PyMuPDF 1.26.7 (метадані пакета): **«Dual Licensed — GNU AFFERO
 
 ## Рекомендований порядок до Stable
 
-1. **10.10-r1 — CI hardening:** вимкнути/архівувати історичні workflow (C1, C2), перевести старі тести на архів, оновити робочі gates, docs-PR gate.
-2. **10.10-r2 — рантайм-версія + backup:** A1 з поведінковим тестом, A5 попередження «лише БД».
-3. **10.10-r3 — видалення PyMuPDF:** A4, заміна на pypdfium2 + reportlab/pypdf, візуальна регресія бланка, CI-gate проти AGPL-залежностей.
+Порядок уточнено власником 05.10.2026: **наступна ревізія має бути без PyMuPDF**.
+
+1. **10.10-r1 — видалення PyMuPDF:** A4, заміна на pypdfium2 + reportlab/pypdf, візуальна регресія бланка й звіту №340, CI-gate проти заборонених залежностей, повні third-party notices.
+2. **10.10-r2 — CI hardening:** вимкнути/архівувати історичні workflow (C1, C2), перевести старі тести на архів, оновити робочі gates, docs-PR gate.
+3. **10.10-r3 — рантайм-версія + backup:** A1 з поведінковим тестом, A5 попередження «лише БД».
 4. **10.10-r4 — документація:** оновити посібники під 10.9/10.10, прибрати дублі/застарілі handoff, переклади.
 4. **Stable checkpoint:** повний реліз (START, Windows x64, Windows 7, macOS arm64/x86_64, checksums, legal) з immutable тегом.
 
-A2, A3, A5 (повний обсяг), гілки — після Stable або за окремим рішенням.
+A2, A3 — після Stable. Видалення злитих гілок — у межах CI/repo cleanup.
+
+Примітка: до мерджу 10.10-r2 правки файлів `.release/v10.3-stable-ready` і `docs/releases/RELEASE_NOTES_v9_0.md` у `main` заборонені (C1).
 
 ## Рішення власника, потрібні до старту
 
