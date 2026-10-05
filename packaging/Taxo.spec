@@ -30,7 +30,7 @@ a = Analysis(
         (str(ROOT / 'COPYRIGHT.md'), '.'),
         (str(ROOT / 'THIRD_PARTY_NOTICES.md'), '.'),
     ] + PDF_ENGINE_DATAS,
-    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'branding', 'branding_asset', 'document_viewer', 'vehicle_documents', 'pdf_engine', 'pypdfium2', 'pypdfium2_raw', 'pypdf', 'win32print', 'win32ui', 'win32con', 'PIL.ImageWin'],
+    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'branding', 'branding_asset', 'document_viewer', 'vehicle_documents', 'pdf_engine', 'version_identity', 'pypdfium2', 'pypdfium2_raw', 'pypdf', 'win32print', 'win32ui', 'win32con', 'PIL.ImageWin'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

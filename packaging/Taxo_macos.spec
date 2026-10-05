@@ -25,7 +25,7 @@ a = Analysis(
         (str(ROOT / 'assets' / 'Бланк підтвердження.docx'), 'assets'),
         (str(ROOT / 'assets' / 'attestation_visual_template.pdf'), 'assets'),
     ] + PDF_ENGINE_DATAS,
-    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'branding', 'branding_asset', 'pdf_engine', 'pypdfium2', 'pypdfium2_raw', 'pypdf'],
+    hiddenimports=['main', 'work_analysis_ext', 'activity_register_60', 'v9_release', 'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime', 'workspace', 'tachograph', 'attestation_render', 'waybill', 'branding', 'branding_asset', 'pdf_engine', 'version_identity', 'pypdfium2', 'pypdfium2_raw', 'pypdf'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

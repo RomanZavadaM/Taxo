@@ -7,8 +7,11 @@ _SRC = Path(__file__).resolve().parent / "src" / "taxo"
 if _SRC.is_dir() and str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 import main as core
+# Canonical runtime version, captured before historical layers overwrite it.
+CANONICAL_APP_VERSION = core.APP_VERSION
 from application_context import build_application_services
 from feature_layers import install_feature_layers
+from version_identity import pin_application_version
 
 
 # Historical source-contract manifest.
@@ -140,6 +143,7 @@ App = install_v1085(core, App)
 
 SERVICES = build_application_services(core)
 App = install_feature_layers(core, services=SERVICES)
+pin_application_version(core, App, CANONICAL_APP_VERSION)
 
 
 def run():

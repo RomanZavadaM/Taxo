@@ -7,13 +7,12 @@
 
 - **Stable:** Taxo 10.3 / `v10.3` — immutable; stable tag не пересувався.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Latest integrated code checkpoint in `main`:** **Taxo 10.10-r1** — без PyMuPDF.
-- **Integration:** PR #136; main merge commit `15439b6c5423fbdff990a0c7528c61ed86d74f21`.
-- **Exact r1 PR head:** `3e7106f8f3f5adfc08c2cead37caa9b5e8f037c7` (git tree ідентичний merge commit).
-- **r1 exact-head gates:** Windows `37308556735`, Windows 7 `37308556744`, macOS arm64/x86_64 `37308557118`, START `37308551299` — success; 797 тестів OK.
-- **Latest published checkpoint:** **10.10-r1 / `v10.10-r1`** — prerelease, повний набір пакетів (START, Windows x64 Portable/Setup, Windows 7 Portable, macOS arm64/x86_64, SHA256SUMS). Перевірено власником на робочій машині.
-- **Previous full multi-platform checkpoint:** 10.9-r9 / `v10.9-r9`.
-- **Next code revision:** **10.10-r2** (CI hardening + ізоляція тестів).
+- **Latest integrated code checkpoint in `main`:** **Taxo 10.10-r2** — CI hardening + ізоляція тестів (код програми = 10.10-r1).
+- **Integration:** PR #137; main merge commit `26ec7b8bdeefa69cf5df7dd02d4a61e0c99cc752`; exact head `0451a711` — Windows, Win7, macOS, START success; 806 тестів OK.
+- **Latest published checkpoint:** **10.10-r2 / `v10.10-r2`** — prerelease, повний набір пакетів, зібраних з main commit.
+- **10.10-r1 / `v10.10-r1`** — без PyMuPDF; PR #136 → `15439b6c`; перевірено власником на робочій машині.
+- **Previous full multi-platform checkpoint (10.9):** 10.9-r9 / `v10.9-r9`.
+- **Next code revision:** **10.10-r3**.
 - **Ціль лінії 10.10:** Stable `v10.10` (рішення власника 05.10.2026).
 - **Live ledger:** Issue #61.
 
