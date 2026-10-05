@@ -16,8 +16,10 @@ class TestTaxo103R10Windows7(unittest.TestCase):
 
     def test_win7_requirements_are_python38_compatible_line(self):
         text=(ROOT/"requirements-win7.txt").read_text("utf-8")
-        for item in ("python-docx==1.1.2","reportlab==4.3.0","Pillow==10.4.0","PyMuPDF==1.24.11","opencv-python-headless==4.10.0.84","pywin32==306"):
+        # 10.10-r1: PyMuPDF (AGPL-3.0) replaced by pypdfium2 + pypdf (PROJECT_RULES.md §17).
+        for item in ("python-docx==1.1.2","reportlab==4.3.0","Pillow==10.4.0","pypdfium2==","pypdf==5.","opencv-python-headless==4.10.0.84","pywin32==306"):
             self.assertIn(item,text)
+        self.assertNotIn("PyMuPDF",text)
 
     def test_win7_pyinstaller_spec_avoids_modern_analysis_arguments(self):
         text=(ROOT/"Taxo_win7.spec").read_text("utf-8")

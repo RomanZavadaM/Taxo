@@ -57,7 +57,7 @@ class ActivityRegisterSafetyR5Tests(unittest.TestCase):
         self.assertTrue(audit.is_file())
         self.assertIn("10.9-r5", notes.read_text("utf-8"))
         current = (root / "VERSION.txt").read_text("utf-8").strip()
-        self.assertRegex(current, r"^Version: 10\.9-r(?:[6-9]|10)$")
+        self.assertRegex(current, r"^Version: 10\.(?:9-r(?:[6-9]|10)|1\d-r\d+)$")
 
 
 if __name__ == "__main__":

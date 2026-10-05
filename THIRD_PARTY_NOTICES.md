@@ -10,7 +10,8 @@ Direct Python dependencies currently declared by the project include:
 - openpyxl
 - reportlab
 - Pillow
-- PyMuPDF
+- pypdfium2 (Apache-2.0 / BSD-3-Clause) with PDFium (BSD-3-Clause)
+- pypdf (BSD-3-Clause)
 - opencv-python-headless
 - pywin32 on Windows
 

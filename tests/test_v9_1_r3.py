@@ -418,8 +418,7 @@ class TestPersonnelR3(unittest.TestCase):
     def test_p5_pdf_and_xlsx_smoke(self):
         with tempfile.TemporaryDirectory() as tmp:
             from openpyxl import load_workbook
-            import fitz
-
+            from pdf_test_utils import open_pdf
             db_path = Path(tmp) / "db.sqlite3"
             make_db(db_path)
             core = FakeCore(db_path)
@@ -436,7 +435,7 @@ class TestPersonnelR3(unittest.TestCase):
             self.assertTrue(pdf.exists() and pdf.stat().st_size > 1000)
             self.assertTrue(xlsx.exists() and xlsx.stat().st_size > 1000)
 
-            with fitz.open(pdf) as doc:
+            with open_pdf(pdf) as doc:
                 self.assertGreaterEqual(doc.page_count, 2)
                 text = "\n".join(page.get_text() for page in doc)
             # Numeric metadata remains extractable even on CI hosts where the

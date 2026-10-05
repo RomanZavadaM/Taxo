@@ -8,7 +8,7 @@
 **Stable release:** Taxo 10.3 / `v10.3` — immutable  
 **Latest integrated code checkpoint:** **10.9-r10**  
 **Latest full multi-platform published checkpoint:** **10.9-r9 / `v10.9-r9`**  
-**Current main:** `230eac3cf13cd802a2abbd2456a16ae2a2c01ee0` (після docs PR #133, #134; код = 10.9-r10)  
+**Current main:** `bd6f9a1dcd384b3a73402faafa1c853c84160ef5` (PR #135 — аудит, правило §17; код = 10.9-r10)  
 **Next code revision:** **10.10-r1**  
 **Live ledger:** Issue #61
 
@@ -29,12 +29,16 @@
 
 ## DOING
 
-- Аудит завершено (PR #135); рішення власника прийняті (див. DECISIONS).
-- **10.10-r1 — видалення PyMuPDF** (наступна ревізія за рішенням власника).
+**10.10-r1 — видалення PyMuPDF** (AGPL-3.0).
+- Branch `work/v10.10-r1`, base main `bd6f9a1d`, head `41590d2e98a20b350ba75918ab65d93542d1898f`, PR #136.
+- Новий `src/taxo/pdf_engine.py` (pypdfium2 + reportlab + pypdf); `attestation_render`, `v9_release`, `document_viewer` переведені; fallback перегляду на системну програму.
+- requirements/specs/notices оновлено; gate `scripts/check_bundle_licenses.py` у збірках; `tests/test_v10_10_r1.py`.
+- Локальна перевірка: Бланк (4 варіанти) і №340 попіксельно ідентичні до/після (max diff 0); чисте середовище без PyMuPDF — 797 тестів OK.
+- Критерії готовності: зелені `build-windows`, `build-win7`, macOS arm64/x86_64 на exact head PR; START-архів 10.10-r1; merge у `main`.
 
 ## NEXT
 
-1. **10.10-r1 — без PyMuPDF:** PyMuPDF (AGPL-3.0) використовується обмежено — перегляд PDF (`document_viewer.py`), PDF/JPG-штамп бланка (`attestation_render.py`, з v8.64), дата у звіті №340 (`v9_release.py`). Заміна: pypdfium2 + reportlab/pypdf; візуальна регресія бланка й №340; CI-gate проти заборонених залежностей; повні third-party notices.
+1. ~~10.10-r1~~ — у роботі (див. DOING). **10.10-r1 — без PyMuPDF:** PyMuPDF (AGPL-3.0) використовується обмежено — перегляд PDF (`document_viewer.py`), PDF/JPG-штамп бланка (`attestation_render.py`, з v8.64), дата у звіті №340 (`v9_release.py`). Заміна: pypdfium2 + reportlab/pypdf; візуальна регресія бланка й №340; CI-gate проти заборонених залежностей; повні third-party notices.
 2. **10.10-r2 — CI hardening:** історичні workflow → `docs/history/workflows/`, старі тести → архівний шлях, робочі gates без хардкоду версії, docs-PR gate, видалення злитих гілок.
 3. **10.10-r3:** A1 (єдине джерело версії + поведінковий тест), A5 (попередження «лише БД» у повній резервній копії).
 4. **10.10-r4:** документація й переклади.

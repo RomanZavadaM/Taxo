@@ -10,9 +10,10 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
-import fitz
 from PIL import Image, ImageTk
 from docx import Document
+
+from pdf_engine import PdfDocument, PdfEngineUnavailable, render_pdf_pages
 
 
 PDF_EXTENSIONS = {".pdf"}
@@ -84,14 +85,8 @@ def _windows_print_raster(path):
     dc.StartDoc(target.name)
     try:
         if document_kind(target) == "pdf":
-            pdf = fitz.open(str(target))
-            try:
-                for page in pdf:
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2.5, 2.5), alpha=False)
-                    image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-                    draw_image(image)
-            finally:
-                pdf.close()
+            for image in render_pdf_pages(target, 2.5):
+                draw_image(image)
         else:
             with Image.open(target) as image:
                 draw_image(image.copy())
@@ -176,7 +171,7 @@ class RasterDocumentWindow:
         self.zoom = 1.15
         self.fit_width = True
         self.photo = None
-        self.pdf = fitz.open(str(self.path)) if self.kind == "pdf" else None
+        self.pdf = PdfDocument(self.path) if self.kind == "pdf" else None
         self.page_count = len(self.pdf) if self.pdf is not None else 1
         self.image = None if self.kind == "pdf" else Image.open(self.path)
 
@@ -252,8 +247,7 @@ class RasterDocumentWindow:
 
     def _source_size(self):
         if self.kind == "pdf":
-            rect = self.pdf[self.page_index].rect
-            return float(rect.width), float(rect.height)
+            return self.pdf.page_size(self.page_index)
         return float(self.image.width), float(self.image.height)
 
     def _effective_zoom(self):
@@ -266,9 +260,7 @@ class RasterDocumentWindow:
     def render(self):
         scale = self._effective_zoom()
         if self.kind == "pdf":
-            page = self.pdf[self.page_index]
-            pix = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
-            image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            image = self.pdf.render(self.page_index, scale)
         else:
             size = (
                 max(1, int(self.image.width * scale)),
@@ -376,7 +368,17 @@ def open_document(parent, path, external_opener=None):
     if not target.exists():
         raise FileNotFoundError(str(target))
     kind = document_kind(target)
-    if kind in {"pdf", "image"}:
+    if kind == "pdf":
+        try:
+            return RasterDocumentWindow(
+                parent, target, external_opener=external_opener
+            ).win
+        except PdfEngineUnavailable as exc:
+            # A system where the PDFium library cannot load must never lose
+            # access to the document: hand it to the system viewer instead.
+            messagebox.showinfo("Перегляд PDF", str(exc), parent=parent)
+            return opener(target)
+    if kind == "image":
         return RasterDocumentWindow(
             parent, target, external_opener=external_opener
         ).win

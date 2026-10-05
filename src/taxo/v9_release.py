@@ -59,35 +59,32 @@ def _driver_choices(core, app):
 
 
 def stamp_work_analysis_pdf(core, path, report_date):
-    """Add the editable formation date to every page of the №340 PDF."""
-    import fitz
+    """Add the editable formation date to every page of the №340 PDF.
+
+    Uses reportlab + pypdf (permissive licenses); PyMuPDF is banned in Taxo.
+    """
+    from pdf_engine import register_ttf, stamp_pdf
 
     path = Path(path)
-    tmp = path.with_name(path.stem + ".v9-stamped" + path.suffix)
-    doc = fitz.open(str(path))
     text = f"Дата формування: {report_date.strftime('%d.%m.%Y')}"
+    ascii_text = f"Formation date: {report_date.strftime('%d.%m.%Y')}"
     font_path = next((p for p in core.report_font_candidates() if os.path.exists(p)), None)
-    try:
-        for page in doc:
-            y = max(10, page.rect.height - 12)
-            kwargs = {"fontsize": 6.5, "overlay": True}
-            if font_path:
-                kwargs.update({"fontname": "TaxoV9FormationDate", "fontfile": font_path})
-            try:
-                page.insert_text((28, y), text, **kwargs)
-            except Exception:
-                # Base14 fallback stays ASCII-safe if the system font cannot be embedded.
-                page.insert_text(
-                    (28, y),
-                    f"Formation date: {report_date.strftime('%d.%m.%Y')}",
-                    fontsize=6.5,
-                    overlay=True,
-                )
-        doc.save(str(tmp), garbage=4, deflate=True)
-    finally:
-        doc.close()
-    os.replace(tmp, path)
-    return path
+    font_name = None
+    if font_path:
+        try:
+            font_name = register_ttf(font_path, "TaxoV9FormationDate")
+        except Exception:
+            font_name = None
+
+    def draw(canvas, _index, _width, height):
+        y = max(10, height - 12)
+        if font_name:
+            canvas.text(28, y, text, font_name, 6.5)
+        else:
+            # Base14 fallback stays ASCII-safe if the system font cannot be embedded.
+            canvas.text(28, y, ascii_text, "Helvetica", 6.5)
+
+    return stamp_pdf(path, path, draw)
 
 
 def install(core, base_app):

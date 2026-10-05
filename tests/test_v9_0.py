@@ -5,7 +5,7 @@ import unittest
 from datetime import date, datetime
 from pathlib import Path
 
-import fitz
+from pdf_test_utils import open_pdf
 from reportlab.pdfgen import canvas
 
 import v9_release
@@ -37,7 +37,7 @@ class TaxoV90Tests(unittest.TestCase):
             v9_release.stamp_work_analysis_pdf(
                 _NoFontCore, target, date(2026, 9, 17)
             )
-            doc = fitz.open(target)
+            doc = open_pdf(target)
             try:
                 text = "\n".join(page.get_text() for page in doc)
                 self.assertIn("17.09.2026", text)
