@@ -60,6 +60,11 @@ def main() -> int:
     copied += _copy_exact(stable / "Taxo_macos.spec", ROOT / "Taxo_macos.spec")
     copied += _copy_exact(stable / "Taxo.iss", ROOT / "installer" / "Taxo.iss")
 
+    # Historical workflow paths. 10.10-r2 archived one-off publish/apply
+    # workflows in docs/history/workflows/ so GitHub no longer executes them;
+    # old regression tests still read them from .github/workflows/.
+    copied += _copy_files(ROOT / "docs" / "history" / "workflows", ROOT / ".github" / "workflows", "*.yml")
+
     # Historical template locations used by old regression tests.
     copied += _copy_files(ROOT / "assets", ROOT, "*.docx")
     copied += _copy_files(ROOT / "assets", ROOT, "*.pdf")
