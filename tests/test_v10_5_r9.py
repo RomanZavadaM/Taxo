@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import fitz
+from pdf_test_utils import open_pdf
 import waybill
 import v1059_features as r9
 
@@ -135,7 +135,7 @@ class OffRouteWaybillR9Tests(unittest.TestCase):
                 target = Path(folder) / "off_route.pdf"
                 waybill.build_waybill_pdf(None, target, clean)
                 self.assertTrue(target.exists())
-                doc = fitz.open(target)
+                doc = open_pdf(target)
                 try:
                     self.assertEqual(doc.page_count, 2)
                     front = doc[0].get_text()

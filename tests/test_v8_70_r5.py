@@ -12,7 +12,7 @@ _temporary_home = tempfile.TemporaryDirectory()
 _original_path_home = Path.home
 Path.home = classmethod(lambda cls: Path(_temporary_home.name))
 try:
-    import fitz
+    from pdf_test_utils import open_pdf
     import main
     import tachograph
     import waybill
@@ -170,7 +170,7 @@ class V870R5Tests(unittest.TestCase):
                 }],
             }
             waybill.build_waybill_pdf(None, target, data)
-            doc = fitz.open(target)
+            doc = open_pdf(target)
             self.assertEqual(doc.page_count, 2)
             text = "\n".join(page.get_text() for page in doc)
             self.assertIn("Прямий напрямок", text)

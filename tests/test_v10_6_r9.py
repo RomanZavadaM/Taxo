@@ -33,8 +33,8 @@ class R9IntegrationTests(unittest.TestCase):
         version = (ROOT / "VERSION.txt").read_text("utf-8")
         main = (ROOT / "main.py").read_text("utf-8")
         self.assertEqual(r9.APP_VERSION, "10.6-r9")
-        self.assertRegex(version, r"Version: 10\.(?:6-r(?:9|10)|[7-9]-r\d+)")
-        self.assertRegex(main, r'APP_VERSION = "10\.(?:6-r(?:9|10)|[7-9]-r\d+)"')
+        self.assertRegex(version, r"Version: 10\.(?:6-r(?:9|10)|[7-9]-r\d+|1\d-r\d+)")
+        self.assertRegex(main, r'APP_VERSION = "10\.(?:6-r(?:9|10)|[7-9]-r\d+|1\d-r\d+)"')
 
     def test_r9_is_before_any_later_outer_layer_and_r8_remains_in_runtime_chain(self):
         source = (ROOT / "taxo_app.py").read_text("utf-8")

@@ -83,7 +83,7 @@ class VehicleDocumentValidityR3Tests(unittest.TestCase):
         if "v1094-work-rest-compliance" in ids:
             self.assertLess(ids.index("v1093-vehicle-document-validity"), ids.index("v1094-work-rest-compliance"))
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
-        self.assertRegex(version, r"^Version: 10\.9-r(?:[3-9]|10)$")
+        self.assertRegex(version, r"^Version: 10\.(?:9-r(?:[3-9]|10)|1\d-r\d+)$")
 
 
 if __name__ == "__main__":

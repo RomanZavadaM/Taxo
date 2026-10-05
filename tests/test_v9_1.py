@@ -4,8 +4,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-import fitz
-
+from pdf_test_utils import open_pdf
 from v91_features import (
     PATTERN_2_2,
     PATTERN_SELECTED,
@@ -127,7 +126,7 @@ class TestV91WaybillRendering(unittest.TestCase):
 
     def test_filled_company_replaces_stamp_hint(self):
         output = self._make_pdf("ТОВ АВТОТРАНСПОРТНЕ ПІДПРИЄМСТВО")
-        with fitz.open(output) as doc:
+        with open_pdf(output) as doc:
             text = "\n".join(page.get_text() for page in doc)
         normalized = " ".join(text.split())
         self.assertIn("ТОВ АВТОТРАНСПОРТНЕ", normalized)
@@ -137,7 +136,7 @@ class TestV91WaybillRendering(unittest.TestCase):
 
     def test_empty_company_keeps_stamp_hint(self):
         output = self._make_pdf("")
-        with fitz.open(output) as doc:
+        with open_pdf(output) as doc:
             text = doc[0].get_text()
         self.assertIn("Місце для штампа", text)
 

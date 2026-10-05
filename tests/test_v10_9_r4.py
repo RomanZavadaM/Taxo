@@ -88,7 +88,7 @@ class WorkRestComplianceR4Tests(unittest.TestCase):
         main = (root / "main.py").read_text("utf-8")
         version = (root / "VERSION.txt").read_text("utf-8").strip()
         self.assertIn("v1094-work-rest-compliance", feature)
-        self.assertRegex(version, r"^Version: 10\.9-r(?:[4-9]|10)$")
+        self.assertRegex(version, r"^Version: 10\.(?:9-r(?:[4-9]|10)|1\d-r\d+)$")
         current = version.removeprefix("Version: ")
         self.assertIn(f'APP_VERSION = "{current}"', main)
 

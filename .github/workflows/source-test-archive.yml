@@ -109,7 +109,7 @@ jobs:
           fi
           required_files=(
             START.bat requirements.txt taxo_app.py main.py sitecustomize.py VERSION.txt
-            src/taxo/application_context.py src/taxo/feature_layers.py src/taxo/output_files.py
+            src/taxo/application_context.py src/taxo/feature_layers.py src/taxo/output_files.py src/taxo/pdf_engine.py
             src/taxo/backup_migration.py src/taxo/database_runtime.py src/taxo/data_access.py
             src/taxo/vehicle_reconciliation.py src/taxo/employee_document_register.py
             src/taxo/personnel_registry_lossless.py src/taxo/registry_working_data.py

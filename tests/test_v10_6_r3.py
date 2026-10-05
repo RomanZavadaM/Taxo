@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import fitz
+from pdf_test_utils import open_pdf
 import waybill
 import v1059_features as r9
 import v1063_features as r3
@@ -79,7 +79,7 @@ class NonRegularReverseFieldsR3Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             target = Path(folder) / "nonregular_r3.pdf"
             waybill.build_waybill_pdf(None, target, adapted)
-            doc = fitz.open(target)
+            doc = open_pdf(target)
             try:
                 self.assertEqual(doc.page_count, 2)
                 reverse = doc[1].get_text()

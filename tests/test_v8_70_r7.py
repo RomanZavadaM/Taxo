@@ -7,7 +7,7 @@ _temporary_home = tempfile.TemporaryDirectory()
 _original_path_home = Path.home
 Path.home = classmethod(lambda cls: Path(_temporary_home.name))
 try:
-    import fitz
+    from pdf_test_utils import open_pdf
     import main
     import waybill
 finally:
@@ -66,7 +66,7 @@ class V870R7Tests(unittest.TestCase):
                 "odometer_start":120000,"odometer_end":120280,"distance_km":280,
                 "planned_distance_km":275,
             })
-            doc=fitz.open(target)
+            doc=open_pdf(target)
             text="\n".join(page.get_text() for page in doc)
             doc.close()
             self.assertIn("пробіг 280 км",text)
