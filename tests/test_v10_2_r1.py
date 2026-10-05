@@ -434,7 +434,9 @@ class TestTaxo102R1VehicleDocuments(unittest.TestCase):
         self.assertIn(f"version='{current_stable}'",stable_mac)
         self.assertTrue(
             current_candidate==current_stable
-            or (current_candidate.startswith("10.") and "-r" in current_candidate),
+            or (current_candidate.startswith("10.") and "-r" in current_candidate)
+            # 10.10: a later stable promotion of the 10 line (plain X.Y identity)
+            or (current_candidate.startswith("10.") and current_candidate.replace(".", "").isdigit()),
             current_candidate,
         )
         self.assertIn("version='10.2.2'",candidate_mac)
