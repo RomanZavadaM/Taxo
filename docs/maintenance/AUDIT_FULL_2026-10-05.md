@@ -14,7 +14,8 @@
 | Архітектура | ⚠️ борг | 55 шарів успадкування `App`, 184 підміни функцій `core`, `main.py` 16.4 тис. рядків |
 | Документація | ⚠️ застаріла | README 7 мовами актуальні; посібники користувача зупинились на 10.4 і раніше |
 | Репозиторій | ⚠️ шум | 206 гілок, дубль `PROJECT_STATE.md` |
-| Безпека даних / legal | ✅ | БД/скани не пакуються, legal-файли в пакетах, теги захищені ruleset |
+| Ліцензії | ❌ конфлікт | PyMuPDF (AGPL-3.0) вшитий у пропрієтарні збірки (A4) |
+| Безпека даних | ✅ | БД/скани не пакуються, legal-файли в пакетах, теги захищені ruleset |
 
 ---
 
@@ -41,9 +42,21 @@
 - 11 прямих `sqlite3.connect(` поза `data_access.py`/`database_runtime.py` (4 у `workspace.py` — допустимо для backup).
 **Напрям:** почати з критичних шляхів (видача шляхівок, накази, backup/restore) — логувати, а не ковтати.
 
-### A4 — P2. PyMuPDF
-`document_viewer.py` імпортує `fitz` на верхньому рівні, а його верхньорівнево імпортують `main.py` і `vehicle_documents.py` ⇒ без PyMuPDF програма не стартує. Пункт зовнішнього аудиту 01.10 **не закрито**.
-**Виправлення:** lazy-import у `document_viewer`, у UI — повідомлення «перегляд PDF недоступний».
+### A4 — P0 (ліцензія). PyMuPDF несумісний із пропрієтарною ліцензією Taxo
+PyMuPDF 1.26.7 (метадані пакета): **«Dual Licensed — GNU AFFERO GPL 3.0 or Artifex Commercial License»**. Taxo — proprietary / all rights reserved, а PyMuPDF вшитий у всі executable-збірки (`hiddenimports: 'fitz', 'pymupdf'` у specs) і заявлений у `requirements*.txt` та `THIRD_PARTY_NOTICES.md`. Розповсюдження пропрієтарної програми разом з AGPL-бібліотекою без комерційної ліцензії Artifex суперечить умовам AGPL. Пункт зовнішнього аудиту 01.10 («прибрати PyMuPDF») **не закрито**; до того ж `document_viewer.py` імпортує `fitz` на верхньому рівні — без нього програма не стартує.
+
+Використання в коді:
+- `document_viewer.py` — растеризація сторінок PDF для перегляду (`fitz.open`, `get_pixmap`);
+- `attestation_render.py` — растеризація шаблону бланка в JPEG і заповнення PDF-шаблону (шрифти, `insert_text`, `draw_rect`, `save`);
+- `v9_release.py` — штампування тексту в PDF;
+- тести: `test_v9_0`, `test_v9_1`, `test_v9_1_r3`, `test_v8_70_r5…r8`, `test_v10_5_r9`, `test_v10_6_r3`.
+
+**Виправлення (обов'язкове до Stable):** повністю прибрати PyMuPDF із коду, requirements (включно з Win7), specs і notices. Заміна на permissive-ліцензії:
+- перегляд/растеризація → **pypdfium2** (Apache-2.0 / BSD-3-Clause; PDFium — BSD-3);
+- заповнення/штампування PDF → **reportlab** (BSD, уже в залежностях) як overlay + **pypdf** (BSD-3) для накладання на шаблон.
+Бланк підтвердження — фактичний документ, тому потрібна візуальна регресія «до/після» на еталонних даних. CI-gate: збірка падає, якщо `fitz`/`pymupdf` присутні в bundle.
+
+**Історичні releases** (v8.x–v10.9-r9) уже містять PyMuPDF. Теги/releases immutable за правилами проєкту; як діяти з уже опублікованими executable-пакетами — рішення власника (бажано з юридичною консультацією). Цей аудит не є юридичним висновком.
 
 ### A5 — P2. Повна резервна копія (DR)
 `create_workspace_backup_archive` атомарна й перевіряє SQLite, але документи ТЗ, скани тахокарт і output **за замовчуванням не включаються** (`include_*=False`). Потрібно перевірити, що UI явно пояснює «це лише БД» або пропонує повну копію за замовчуванням. Пункт зовнішнього аудиту закрито лише частково.
@@ -101,14 +114,17 @@
 
 - `.db/.sqlite/__pycache__` у START/bundle блокуються CI ✅.
 - `LICENSE.md`, `COPYRIGHT.md`, `THIRD_PARTY_NOTICES.md` у source та executable пакетах ✅.
+- Ліцензії залежностей (за метаданими пакетів): python-docx, openpyxl, Pillow (MIT/MIT-CMU), reportlab, lxml, numpy (BSD), opencv-python-headless (Apache-2.0), pywin32 (PSF), PyInstaller (GPL з bootloader-винятком) — сумісні. **PyMuPDF — AGPL-3.0, несумісний (A4).**
+- `THIRD_PARTY_NOTICES.md` лише перелічує назви пакетів без текстів ліцензій; колеса opencv містять FFmpeg (LGPL-2.1, динамічні бібліотеки) — для Stable додати повні тексти ліцензій/notice в executable-пакети.
 
 ---
 
 ## Рекомендований порядок до Stable
 
 1. **10.10-r1 — CI hardening:** вимкнути/архівувати історичні workflow (C1, C2), перевести старі тести на архів, оновити робочі gates, docs-PR gate.
-2. **10.10-r2 — рантайм-версія + PyMuPDF:** A1 + A4 з поведінковими тестами.
-3. **10.10-r3 — документація:** оновити посібники під 10.9/10.10, прибрати дублі/застарілі handoff, переклади.
+2. **10.10-r2 — рантайм-версія + backup:** A1 з поведінковим тестом, A5 попередження «лише БД».
+3. **10.10-r3 — видалення PyMuPDF:** A4, заміна на pypdfium2 + reportlab/pypdf, візуальна регресія бланка, CI-gate проти AGPL-залежностей.
+4. **10.10-r4 — документація:** оновити посібники під 10.9/10.10, прибрати дублі/застарілі handoff, переклади.
 4. **Stable checkpoint:** повний реліз (START, Windows x64, Windows 7, macOS arm64/x86_64, checksums, legal) з immutable тегом.
 
 A2, A3, A5 (повний обсяг), гілки — після Stable або за окремим рішенням.
