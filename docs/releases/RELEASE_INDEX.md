@@ -1,25 +1,32 @@
 # Індекс релізів Taxo
 
-**Стан:** 02.10.2026  
-**Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
-**Latest integrated code checkpoint in `main`:** **Taxo 10.9-r10** — PR #132 / merge `5e179eabccc35afa984be04208e2e4d96094a2fb`  
-**Latest full multi-platform published checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-**Next code revision:** **10.10-r1**.
+**Стан:** 05.10.2026
+**Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — immutable; перевірено власником на реальних даних
+**Previous stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable
+**Next code revision:** **10.10-r4**.
 
-> `v10.3` лишається stable до окремого рішення власника. `10.9-r10` закриває цикл ревізій 10.9. Наступна кодова зміна починається з `10.10-r1`; major `11.x` не створюється без прямого рішення власника.
+> Stable 10.9-r10 опубліковано з оригінальними CI-збірками, які перевірялись. Лінія 10.10 — prerelease для перевірки на реальних даних.
 
-## Поточний інтегрований checkpoint
+## Тестова лінія 10.10 (prerelease)
+
+| Реліз | PR | Зміст |
+|---|---|---|
+| [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) | #138 | правильна версія у вікні; попередження «лише БД» |
+| [10.10-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r2) | #137 | CI hardening; ізоляція тестів |
+| [10.10-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r1) | #136 | без PyMuPDF |
+
+## Stable 10.9-r10 і попередні checkpoint-и
 
 | Ревізія | Main / source | Перевірка | Статус |
 |---|---|---|---|
-| **10.9-r10** | PR #132; main merge `5e179eabccc35afa984be04208e2e4d96094a2fb`; exact PR head `ff56519da35e03204bdaf77f7187cddd692f79d4` | Windows `37018721703`; Win7 `37018721695`; macOS `37018722335` — success | **latest integrated**; repository structural cleanup |
+| **10.9-r10** | PR #132; main merge `5e179eabccc35afa984be04208e2e4d96094a2fb`; exact PR head `ff56519da35e03204bdaf77f7187cddd692f79d4` | Windows `37018721703`; Win7 `37018721695`; macOS `37018722335` — success | **STABLE (05.10.2026)**; repository structural cleanup |
 | **10.9-r9** | tag source `a368bf3bdfd4a16cc099844b830379c5e2646c2d` | Windows/macOS exact-head gates passed | **latest full multi-platform published checkpoint** |
 
 ## Taxo 10.9 history
 
 | Ревізія | Статус | Зміст |
 |---|---|---|
-| **10.9-r10** | **integrated in main** | full repository structural cleanup: `src/taxo/`, `assets/`, `packaging/`, START/build path updates |
+| **10.9-r10** | **STABLE** | full repository structural cleanup: `src/taxo/`, `assets/`, `packaging/`, START/build path updates |
 | **10.9-r9** | full multi-platform published checkpoint | SQLite schema compatibility baseline (`PRAGMA user_version`) + cumulative r2…r9 |
 | 10.9-r8 | historical fast-test; integrated through r9 | immutable approved/signed orders and driver→vehicle assignment safety |
 | 10.9-r7 | historical fast-test; integrated through r9 | STOIR odometer chronology and maintenance forecast safety |
