@@ -8,6 +8,7 @@ from pdf_test_utils import open_pdf
 import waybill
 import v1059_features as r9
 import v1063_features as r3
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -152,7 +153,7 @@ class WaybillPayloadAuditR3Tests(unittest.TestCase):
 class R3IntegrationTests(unittest.TestCase):
     def test_candidate_identity_is_10_6_r3(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 6, 3))
         feature = (ROOT / "v1063_features.py").read_text(encoding="utf-8")

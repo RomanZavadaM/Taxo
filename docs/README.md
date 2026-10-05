@@ -2,13 +2,10 @@
 
 Цей розділ — основна точка входу до експлуатаційної та технічної документації Taxo.
 
-**Stable:** Taxo 10.3 / `v10.3` — immutable  
-**Latest integrated checkpoint in `main`:** **Taxo 10.9-r10**  
-**Latest full multi-platform published checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-**Previous stable / rollback:** Taxo 10.1 / `v10.1`  
-**Next code revision:** `10.10-r1`
-
-> `10.9-r10` уже інтегровано в `main`, але окремий повний public release з готовими пакетами для цієї ревізії не публікувався. Для Windows/macOS тестування останнім повним release лишається `v10.9-r9`.
+**Stable:** [Taxo 10.10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10) — 05.10.2026, immutable
+**Previous stable / rollback:** Taxo 10.3 / `v10.3`
+**Verified candidate:** Taxo 10.10-r3 / `v10.10-r3` (перевірено власником)
+**Next code revision:** `10.10-r4`
 
 ## Керівництва
 
@@ -27,24 +24,15 @@
 - [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
 - [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-## Поточний інтегрований checkpoint — 10.9-r10
+## Stable 10.10
 
-- [Release notes 10.9-r10](releases/RELEASE_NOTES_v10.9-r10.md)
+- [GitHub Release v10.10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10) — Windows x64 Setup/Portable, Windows 7 SP1 x64 Portable, macOS ARM64/Intel, START/source та SHA-256.
+- [Release notes 10.10](releases/RELEASE_NOTES_v10_10.md)
 - [Індекс релізів](releases/RELEASE_INDEX.md)
 - [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
-- [Технічний стан](maintenance/PROJECT_STATE.md)
+- [Повний аудит 05.10.2026](maintenance/AUDIT_FULL_2026-10-05.md)
 
-10.9-r10 завершив структурне впорядкування репозиторію: runtime-модулі в `src/taxo/`, шаблони в `assets/`, packaging у `packaging/`, без зміни бізнес-логіки та без міграції робочих даних.
-
-## Останній повний public release — 10.9-r9
-
-- [GitHub Release v10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)
-- Windows x64 Setup/Portable;
-- Windows 7 SP1 x64 Setup/Portable;
-- macOS ARM64/Intel;
-- START/source та SHA-256.
-
-Stable лишається `v10.3` до окремого рішення власника.
+Stable 10.10 промотує перевірену власником лінію 10.10-r1…r3 (без PyMuPDF, CI hardening, правильна версія в програмі) разом з усією лінією 10.4…10.9.
 
 ## Мови публічного опису
 
@@ -61,7 +49,7 @@ Stable лишається `v10.3` до окремого рішення влас�
 - [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
 - GitHub Issue #61 — append-only live development ledger.
 
-Після завершеного `10.9-r10` наступний кодовий крок — тільки **10.10-r1** від актуального `main`. Уже видані revision не перевикористовуються.
+Після stable 10.10 наступний кодовий крок — **10.10-r4** від актуального `main`. Уже видані revision не перевикористовуються.
 
 ## Дані користувача
 

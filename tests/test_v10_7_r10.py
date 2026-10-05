@@ -4,13 +4,14 @@ import unittest
 from pathlib import Path
 
 import v10710_features as feature
+import version_compat  # 10.10 stable-aware version parsing
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _version_tuple(text):
-    match = re.search(r"(\d+)\.(\d+)-r(\d+)", text)
+    match = version_compat.search_version(text)
     if not match:
         raise AssertionError("Taxo version not found: %r" % text)
     return tuple(int(part) for part in match.groups())

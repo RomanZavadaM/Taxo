@@ -9,6 +9,7 @@ import personnel_registry as personnel
 import personnel_registry_lossless as lossless
 import registry_working_data as working
 import vehicle_reconciliation as reconciliation
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -160,7 +161,7 @@ class RegistryWorkingDataR6Tests(unittest.TestCase):
 class R6IntegrationTests(unittest.TestCase):
     def test_candidate_identity_is_r6_or_later(self):
         version = (ROOT / "VERSION.txt").read_text("utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 6))
 

@@ -47,8 +47,8 @@ jobs:
           foreach ($file in $required) {
             if (!(Test-Path $file)) { throw "Required r10 layout file missing: $file" }
           }
-          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.10-r3') { throw 'VERSION.txt is not 10.10-r3' }
-          if (!(Select-String -Path main.py -Pattern 'APP_VERSION = "10.10-r3"' -SimpleMatch)) { throw 'main.APP_VERSION is not 10.10-r3' }
+          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.10') { throw 'VERSION.txt is not 10.10' }
+          if (!(Select-String -Path main.py -Pattern 'APP_VERSION = "10.10"' -SimpleMatch)) { throw 'main.APP_VERSION is not 10.10' }
 
       - name: Verify multilingual documentation
         shell: pwsh
@@ -92,15 +92,15 @@ jobs:
       - name: Run regression suite
         shell: pwsh
         run: |
-          python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-r3.log
+          python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-v10.10.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload regression log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.10-r3-regression-log
-          path: unittest-r3.log
+          name: Taxo-v10.10-regression-log
+          path: unittest-v10.10.log
           if-no-files-found: ignore
           retention-days: 7
 
@@ -135,12 +135,12 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean packaging/Taxo.spec
-          Move-Item 'dist/Taxo' 'dist/Taxo_v10_10_candidate_r3_Windows_x64'
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_10_Windows_x64'
 
       - name: Verify portable bundle
         shell: pwsh
         run: |
-          $bundle = 'dist/Taxo_v10_10_candidate_r3_Windows_x64'
+          $bundle = 'dist/Taxo_v10_10_Windows_x64'
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
           if (!(Test-Path "$bundle/_internal/assets/Бланк підтвердження.docx")) { throw 'DOCX template not found' }
           if (!(Test-Path "$bundle/_internal/assets/attestation_visual_template.pdf")) { throw 'PDF template not found' }
@@ -151,7 +151,7 @@ jobs:
 
       - name: Create Windows portable ZIP
         shell: pwsh
-        run: Compress-Archive -Path 'dist/Taxo_v10_10_candidate_r3_Windows_x64' -DestinationPath 'Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip' -Force
+        run: Compress-Archive -Path 'dist/Taxo_v10_10_Windows_x64' -DestinationPath 'Taxo_v10_10_Windows_x64_Portable.zip' -Force
 
       - name: Build Windows installer
         shell: pwsh
@@ -161,22 +161,22 @@ jobs:
           if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
           & $iscc 'packaging/installer/Taxo.iss'
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
-          if (!(Test-Path 'release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe')) { throw 'Installer not found' }
+          if (!(Test-Path 'release_out/Taxo_v10_10_Setup_Windows_x64.exe')) { throw 'Installer not found' }
 
       - name: Create checksums
         shell: pwsh
         run: |
-          $files = @('Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip','release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe')
+          $files = @('Taxo_v10_10_Windows_x64_Portable.zip','release_out/Taxo_v10_10_Setup_Windows_x64.exe')
           $lines = foreach ($file in $files) { "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))" }
-          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_10_r3_Windows_x64.txt'
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_10_Windows_x64.txt'
 
       - name: Upload Windows test executables
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.10-r3-Windows-x64
+          name: Taxo-v10.10-Windows-x64
           path: |
-            Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip
-            release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe
-            SHA256SUMS_v10_10_r3_Windows_x64.txt
+            Taxo_v10_10_Windows_x64_Portable.zip
+            release_out/Taxo_v10_10_Setup_Windows_x64.exe
+            SHA256SUMS_v10_10_Windows_x64.txt
           if-no-files-found: error
           retention-days: 30

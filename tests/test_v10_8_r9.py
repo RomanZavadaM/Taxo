@@ -6,13 +6,14 @@ from pathlib import Path
 
 import backup_migration
 import main
+import version_compat  # 10.10 stable-aware version parsing
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def version_key(value: str):
-    match = re.fullmatch(r"(\d+)\.(\d+)-r(\d+)(?:\.(\d+))?", value)
+    match = version_compat.fullmatch_version4(value)
     if not match:
         raise AssertionError(f"unexpected version format: {value}")
     major, minor, revision, subrevision = match.groups()

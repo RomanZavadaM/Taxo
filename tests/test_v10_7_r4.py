@@ -8,6 +8,7 @@ from pathlib import Path
 import operations_orders as ops
 import v1073_features as r3
 import v1074_appendix_history as r4_appendix
+import version_compat  # 10.10 stable-aware version parsing
 
 
 class _Core:
@@ -161,7 +162,7 @@ class OperationsEditingR4Tests(unittest.TestCase):
 class R4IdentityTests(unittest.TestCase):
     def _current_version_tuple(self):
         text = Path("VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", text)
+        match = version_compat.search_version_line(text)
         self.assertIsNotNone(match)
         return tuple(int(value) for value in match.groups())
 
@@ -176,7 +177,7 @@ class R4IdentityTests(unittest.TestCase):
 
     def test_current_main_is_r4_or_later_in_10_7_line(self):
         import main
-        match = re.fullmatch(r"(\d+)\.(\d+)-r(\d+)", main.APP_VERSION)
+        match = version_compat.fullmatch_version(main.APP_VERSION)
         self.assertIsNotNone(match)
         major, minor, revision = (int(value) for value in match.groups())
         self.assertGreaterEqual((major, minor, revision), (10, 7, 4))

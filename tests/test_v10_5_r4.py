@@ -9,6 +9,7 @@ from openpyxl import Workbook
 
 import personnel_registry as registry
 import personnel_registry_lossless as lossless
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 lossless.install(registry)
@@ -223,7 +224,7 @@ class R4IntegrationTests(unittest.TestCase):
 
     def test_current_version_is_r4_or_later(self):
         version = (ROOT / "VERSION.txt").read_text("utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         major, minor, revision = map(int, match.groups())
         self.assertTrue((major, minor, revision) >= (10, 5, 4))

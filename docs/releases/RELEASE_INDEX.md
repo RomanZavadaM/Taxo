@@ -1,14 +1,22 @@
 # Індекс релізів Taxo
 
-**Стан:** 02.10.2026  
-**Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable  
-**Latest integrated code checkpoint in `main`:** **Taxo 10.9-r10** — PR #132 / merge `5e179eabccc35afa984be04208e2e4d96094a2fb`  
-**Latest full multi-platform published checkpoint:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-**Next code revision:** **10.10-r1**.
+**Стан:** 05.10.2026
+**Stable:** [Taxo 10.10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10) — immutable
+**Previous stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable
+**Next code revision:** **10.10-r4**.
 
-> `v10.3` лишається stable до окремого рішення власника. `10.9-r10` закриває цикл ревізій 10.9. Наступна кодова зміна починається з `10.10-r1`; major `11.x` не створюється без прямого рішення власника.
+> Stable 10.10 промотує перевірену власником 10.10-r3. Наступна кодова зміна — `10.10-r4`; major `11.x` не створюється без прямого рішення власника.
 
-## Поточний інтегрований checkpoint
+## Taxo 10.10
+
+| Реліз | Статус | Зміст |
+|---|---|---|
+| **[10.10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10)** | **stable** | промоція 10.10-r3; повний набір пакетів Windows/Win7/macOS/START |
+| [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) | verified candidate (prerelease) | правильна версія в програмі; попередження «лише БД» (PR #138) |
+| [10.10-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r2) | prerelease | CI hardening, ізоляція тестів (PR #137) |
+| [10.10-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r1) | prerelease | без PyMuPDF (PR #136) |
+
+## Попередній інтегрований checkpoint (10.9)
 
 | Ревізія | Main / source | Перевірка | Статус |
 |---|---|---|---|

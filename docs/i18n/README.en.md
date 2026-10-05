@@ -1,31 +1,32 @@
 # Taxo / Driver Worktime
 
-[Українська](../../README.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
+[Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
 Taxo is a desktop system for a single transport company: personnel and drivers, schedules, work-time accounting, waybills, activity confirmation forms, vehicles, document control, maintenance, reports, and analogue tachograph checks.
 
-> **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)  
-> **Latest integrated checkpoint in `main`:** **Taxo 10.9-r10**  
-> **Latest full multi-platform published release:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-> **Next code revision:** `10.10-r1`
+> **Stable:** [Taxo 10.10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10) — 2026-10-05
+> **Previous stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
+> **Next code revision:** `10.10-r4`
 
-`10.9-r10` is already integrated into `main`, but it has not been published as a separate full public multi-platform release. For ready Windows/macOS packages, use `v10.9-r9`.
+## Downloads — Taxo 10.10 (stable)
 
-## Downloads — 10.9-r9
+**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Windows_x64_Portable.zip)
 
-**Windows 10/11:** [x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows_x64.exe) · [x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows_x64_Portable.zip)
+**Windows 7 SP1 x64:** [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Windows7_x64_Portable.zip)
 
-**Windows 7 SP1:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows7_x64_Portable.zip)
+**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_macOS_x86_64_Portable.zip)
 
-**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_x86_64_Portable.zip)
+**Source/START:** [START 10.10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/SHA256SUMS_v10_10.txt) · [Release notes 10.10 (Ukrainian)](../releases/RELEASE_NOTES_v10_10.md) · [Release index](../releases/RELEASE_INDEX.md)
 
-**Testing/source:** [START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [10.9-r10 release notes](../releases/RELEASE_NOTES_v10.9-r10.md) · [Release index](../releases/RELEASE_INDEX.md)
+User databases, SQLite files, scans, caches, and personal documents are not included in GitHub releases. Updating does not require re-entering working data.
 
-User databases, SQLite files, scans, caches, and personal documents are not included in GitHub releases.
+## What is new in 10.10
 
-## What changed in 10.9-r10
-
-The repository was structurally cleaned up without changing business logic: runtime modules moved to `src/taxo/`, templates to `assets/`, and active packaging definitions to `packaging/`. No user-data migration was introduced.
+- **No PyMuPDF.** The activity confirmation form (PDF/JPG), the No. 340 report date stamp and PDF viewing/printing now use permissively licensed libraries (pypdfium2, reportlab, pypdf); output is pixel-identical to the previous version.
+- **Correct version shown in the application** — window title, About dialog, PDF headers and backup manifest.
+- **Backups** explicitly warn when they contain databases only.
+- **Infrastructure:** obsolete publishing workflows disabled, tests isolated from working storage, license gate in every build.
+- Includes the whole 10.4 … 10.9 line: vehicle document validity for the whole trip, protection of issued waybills and numbers, stronger work/rest control, 60-day register, personnel balance, maintenance, immutable signed orders, SQLite schema compatibility.
 
 ## Main capabilities
 
@@ -33,6 +34,6 @@ Personnel and driver history; individual and periodic schedules; plan/fact work 
 
 ## Development
 
-Canonical operational documentation is maintained in Ukrainian. Start with [`START_HERE.md`](../../START_HERE.md). After `10.9-r10`, new code starts at `10.10-r1` from current `main`. Issued revisions are immutable.
+Canonical operational documentation is maintained in Ukrainian. Start with [`START_HERE.md`](../../START_HERE.md). After stable 10.10, new code starts at `10.10-r4` from current `main`. Issued revisions are immutable.
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.

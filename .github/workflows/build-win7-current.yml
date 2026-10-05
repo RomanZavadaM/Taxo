@@ -41,7 +41,7 @@ jobs:
       - name: Verify r10 identity and layout
         shell: pwsh
         run: |
-          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.10-r3') { throw 'VERSION.txt is not 10.10-r3' }
+          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.10') { throw 'VERSION.txt is not 10.10' }
           if (!(Test-Path 'packaging/Taxo_win7.spec')) { throw 'Win7 spec missing' }
           if (!(Test-Path 'assets/Бланк підтвердження.docx')) { throw 'Template missing' }
 
@@ -63,8 +63,8 @@ jobs:
         run: |
           python -m PyInstaller --noconfirm --clean packaging/Taxo_win7.spec 2>&1 | Tee-Object -FilePath win7-build.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Move-Item 'dist/Taxo' 'dist/Taxo_v10_10_candidate_r3_Windows7_x64'
-          $bundle = 'dist/Taxo_v10_10_candidate_r3_Windows7_x64'
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_10_Windows7_x64'
+          $bundle = 'dist/Taxo_v10_10_Windows7_x64'
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe missing' }
           if (!(Get-ChildItem $bundle -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll missing' }
           $env:TAXO_WIN7_BUNDLE = (Resolve-Path $bundle).Path
@@ -80,19 +80,19 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.10-r3-Windows7-build-log
+          name: Taxo-v10.10-Windows7-build-log
           path: win7-build.log
           if-no-files-found: ignore
           retention-days: 7
 
       - name: Create Win7 portable ZIP
         shell: pwsh
-        run: Compress-Archive -Path 'dist/Taxo_v10_10_candidate_r3_Windows7_x64' -DestinationPath 'Taxo_v10_10_candidate_r3_Windows7_x64_Portable.zip' -Force
+        run: Compress-Archive -Path 'dist/Taxo_v10_10_Windows7_x64' -DestinationPath 'Taxo_v10_10_Windows7_x64_Portable.zip' -Force
 
       - name: Upload Win7 candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.10-r3-Windows7-x64
-          path: Taxo_v10_10_candidate_r3_Windows7_x64_Portable.zip
+          name: Taxo-v10.10-Windows7-x64
+          path: Taxo_v10_10_Windows7_x64_Portable.zip
           if-no-files-found: error
           retention-days: 30

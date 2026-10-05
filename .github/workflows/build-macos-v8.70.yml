@@ -55,8 +55,8 @@ jobs:
         shell: bash
         run: |
           test "$(uname -m)" = "${{ matrix.arch }}"
-          grep -Fxq 'Version: 10.10-r3' VERSION.txt
-          grep -Fq 'APP_VERSION = "10.10-r3"' main.py
+          grep -Fxq 'Version: 10.10' VERSION.txt
+          grep -Fq 'APP_VERSION = "10.10"' main.py
           test -f src/taxo/application_context.py
           test -f assets/attestation_visual_template.pdf
           test -f packaging/Taxo_macos.spec
@@ -111,19 +111,19 @@ jobs:
       - name: Create portable ZIP and checksum
         shell: bash
         run: |
-          bundle_dir="Taxo_v10_10_candidate_r3_macOS_${{ matrix.arch }}"
+          bundle_dir="Taxo_v10_10_macOS_${{ matrix.arch }}"
           zip_name="${bundle_dir}_Portable.zip"
           mkdir "$bundle_dir"
           mv 'dist/Taxo.app' "$bundle_dir/Taxo.app"
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$bundle_dir" "$zip_name"
-          shasum -a 256 "$zip_name" > "SHA256SUMS_v10_10_r3_macOS_${{ matrix.arch }}.txt"
+          shasum -a 256 "$zip_name" > "SHA256SUMS_v10_10_macOS_${{ matrix.arch }}.txt"
 
       - name: Upload macOS candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.10-r3-macOS-${{ matrix.arch }}
+          name: Taxo-v10.10-macOS-${{ matrix.arch }}
           path: |
-            Taxo_v10_10_candidate_r3_macOS_${{ matrix.arch }}_Portable.zip
-            SHA256SUMS_v10_10_r3_macOS_${{ matrix.arch }}.txt
+            Taxo_v10_10_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v10_10_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30

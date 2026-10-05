@@ -10,6 +10,7 @@ from openpyxl import Workbook, load_workbook
 
 import vehicle_registry
 import v1055_features
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -105,7 +106,7 @@ class R5IdentityTests(unittest.TestCase):
     def test_r5_module_keeps_historical_identity_while_current_version_advances(self):
         self.assertEqual(v1055_features.APP_VERSION, "10.5-r5")
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 5))
 

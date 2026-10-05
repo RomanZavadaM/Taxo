@@ -1,38 +1,39 @@
 # Taxo / Driver Worktime
 
-[Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
+[Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-Taxo est un système de bureau pour une entreprise de transport : personnel et conducteurs, plannings, temps de travail, feuilles de route, attestations d’activité, véhicules, documents, maintenance, rapports et tachygraphes analogiques.
+Taxo est un système de bureau pour une seule entreprise de transport : personnel et conducteurs, plannings, suivi du temps de travail, feuilles de route, formulaires d'attestation d'activité, véhicules, contrôle documentaire, maintenance, rapports et contrôle des disques de chronotachygraphe analogique.
 
-> **Stable :** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)  
-> **Dernier checkpoint intégré dans `main` :** **Taxo 10.9-r10**  
-> **Dernière release multi-plateforme complète publiée :** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-> **Prochaine révision de code :** `10.10-r1`
+> **Stable:** [Taxo 10.10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10) — 2026-10-05
+> **Stable précédente / retour arrière:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
+> **Prochaine révision du code:** `10.10-r4`
 
-`10.9-r10` est déjà intégré dans `main`, mais n’a pas été publié comme une release publique multi-plateforme complète séparée. Pour les paquets Windows/macOS prêts à l’emploi, utilisez `v10.9-r9`.
+## Téléchargements — Taxo 10.10 (stable)
 
-## Téléchargements — 10.9-r9
+**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Windows_x64_Portable.zip)
 
-**Windows 10/11 :** [x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows_x64.exe) · [x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows_x64_Portable.zip)
+**Windows 7 SP1 x64:** [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Windows7_x64_Portable.zip)
 
-**Windows 7 SP1 :** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows7_x64_Portable.zip)
+**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_macOS_x86_64_Portable.zip)
 
-**macOS :** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_x86_64_Portable.zip)
+**Source/START:** [START 10.10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/SHA256SUMS_v10_10.txt) · [Notes de version 10.10 (ukrainien)](../releases/RELEASE_NOTES_v10_10.md) · [Index des versions](../releases/RELEASE_INDEX.md)
 
-**Tests/source :** [START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [Notes 10.9-r10](../releases/RELEASE_NOTES_v10.9-r10.md) · [Index des releases](../releases/RELEASE_INDEX.md)
+Les bases de données de travail, fichiers SQLite, numérisations, caches et documents personnels ne sont pas inclus dans les versions GitHub. La mise à jour ne nécessite pas de ressaisir les données de travail.
 
-Les bases utilisateurs, fichiers SQLite, scans, caches et documents personnels ne sont pas inclus dans les releases GitHub.
+## Nouveautés de 10.10
 
-## Changements dans 10.9-r10
-
-Le dépôt a été réorganisé sans modifier la logique métier : les modules runtime ont été déplacés dans `src/taxo/`, les modèles dans `assets/` et les définitions actives de packaging dans `packaging/`. Aucune migration de données utilisateur n’a été introduite.
+- **Sans PyMuPDF.** Le formulaire d'attestation d'activité (PDF/JPG), le tampon de date du rapport n° 340 ainsi que l'affichage/l'impression PDF utilisent des bibliothèques sous licences permissives (pypdfium2, reportlab, pypdf) ; le rendu est identique au pixel près à la version précédente.
+- **Version correcte affichée** — titre de la fenêtre, boîte « À propos », en-têtes PDF et manifeste de sauvegarde.
+- **Les sauvegardes** avertissent explicitement lorsqu'elles ne contiennent que les bases de données.
+- **Infrastructure :** workflows de publication obsolètes désactivés, tests isolés du stockage de travail, contrôle des licences dans chaque build.
+- Inclut toute la ligne 10.4 … 10.9 : validité des documents du véhicule pour tout le trajet, protection des feuilles de route et numéros émis, contrôle renforcé travail/repos, registre de 60 jours, bilan du personnel, maintenance, ordres signés immuables, compatibilité du schéma SQLite.
 
 ## Fonctions principales
 
-Personnel et conducteurs avec historique ; plannings individuels/périodiques ; plan/réel et services fractionnés ; contrôle travail/conduite/pauses/repos ; registre 60 jours ; véhicules, kilométrage, maintenance et documents ; feuilles de route ; attestations d’activité ; tachygraphes analogiques ; ordres et affectations conducteur→véhicule protégés ; rapports PDF/Excel ; sauvegardes et compatibilité SQLite.
+Historique du personnel et des conducteurs ; plannings individuels et périodiques ; temps de travail prévu/réel et services fractionnés ; contrôle du travail, de la conduite, des pauses et du repos ; registre d'activité de 60 jours ; véhicules, kilométrage, maintenance et documents ; feuilles de route régulières et non régulières ; formulaires d'attestation d'activité ; contrôle de chronotachygraphe analogique ; ordres protégés et affectations conducteur→véhicule ; rapports PDF/Excel ; sauvegardes et contrôle de compatibilité SQLite.
 
 ## Développement
 
-La documentation canonique est maintenue en ukrainien. Point d’entrée : [`START_HERE.md`](../../START_HERE.md). Après `10.9-r10`, le nouveau code commence avec `10.10-r1` depuis le `main` actuel. Les révisions publiées sont immuables.
+La documentation opérationnelle de référence est tenue en ukrainien. Commencez par [`START_HERE.md`](../../START_HERE.md). Après la stable 10.10, le nouveau code commence à `10.10-r4` depuis le `main` actuel. Les révisions publiées sont immuables.
 
-**Copyright © 2026 Roman Zavada (Роман Завада). Tous droits réservés.** Taxo est un logiciel propriétaire.
+**Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo est un logiciel propriétaire.

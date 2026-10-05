@@ -20,7 +20,7 @@ class PersonnelBalanceR6Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(FEATURE_VERSION, "10.9-r6")
         version = (root / "VERSION.txt").read_text("utf-8").strip()
-        self.assertRegex(version, r"^Version: 10\.(?:9-r(?:[6-9]|10)|1\d-r\d+)$")
+        self.assertRegex(version, r"^Version: 10\.(?:9-r(?:[6-9]|10)|1\d(?:-r\d+)?)$")
         ids = feature_layer_ids()
         self.assertIn("v1096-personnel-balance", ids)
         self.assertGreaterEqual(ids.index("v1096-personnel-balance"), 0)

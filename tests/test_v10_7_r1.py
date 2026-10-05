@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 import v1071_features as r1
+import version_compat  # 10.10 stable-aware version parsing
 
 
 class CircularRunTests(unittest.TestCase):
@@ -84,7 +85,7 @@ class R1IdentityTests(unittest.TestCase):
 
     def test_current_version_is_not_before_historical_r1(self):
         text = Path("VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", text)
+        match = version_compat.search_version_line(text)
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 7, 1))
 

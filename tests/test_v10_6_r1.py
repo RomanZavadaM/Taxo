@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 import v1061_features as r1
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -44,7 +45,7 @@ class VehicleRegistryFilterR1Tests(unittest.TestCase):
 class R1IntegrationTests(unittest.TestCase):
     def test_current_version_is_not_before_historical_10_6_r1(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         major, minor, revision = map(int, match.groups())
         self.assertGreaterEqual((major, minor, revision), (10, 6, 1))

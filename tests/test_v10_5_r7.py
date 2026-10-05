@@ -8,6 +8,7 @@ from pathlib import Path
 
 import diia_reconciliation as diia
 import military_accounting_2026 as military
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -181,7 +182,7 @@ class DiiaCycleR7Tests(unittest.TestCase):
 class R7IntegrationTests(unittest.TestCase):
     def test_candidate_identity_is_r7_or_later(self):
         version = (ROOT / "VERSION.txt").read_text("utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 7))
 

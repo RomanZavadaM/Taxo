@@ -7,6 +7,7 @@ import unittest
 
 import military_transport_statement as statement
 import v1083_features as r3
+import version_compat  # 10.10 stable-aware version parsing
 
 
 class StatementDateNormalizationTests(unittest.TestCase):
@@ -103,7 +104,7 @@ class RuntimeIdentityTests(unittest.TestCase):
         self.assertEqual(r3.APP_VERSION, "10.8-r3")
         self.assertIn('APP_VERSION = "10.8-r3"', Path("v1083_features.py").read_text("utf-8"))
         current = Path("VERSION.txt").read_text("utf-8")
-        match = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", current)
+        match = version_compat.search_version_line(current)
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 8, 3))
         self.assertIn("v1083_features.py", Path("START.bat").read_text("utf-8"))

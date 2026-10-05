@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 import v1055_features
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,11 +31,11 @@ class Win7TabIdCompatibilityR8Tests(unittest.TestCase):
 class R8IntegrationTests(unittest.TestCase):
     def test_candidate_identity_is_r8_or_later(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 5, 8))
         main = (ROOT / "main.py").read_text(encoding="utf-8")
-        main_match = re.search(r'APP_VERSION\s*=\s*"(\d+)\.(\d+)-r(\d+)"', main)
+        main_match = version_compat.search_app_version(main)
         self.assertIsNotNone(main_match)
         self.assertGreaterEqual(tuple(map(int, main_match.groups())), (10, 5, 8))
 

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import employee_document_register as docreg
 import personnel_registry as personnel
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -157,7 +158,7 @@ class R3IntegrationTests(unittest.TestCase):
 
     def test_current_version_is_r3_or_later_not_frozen_to_r3_forever(self):
         version = (ROOT / "VERSION.txt").read_text("utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         major, minor, revision = map(int, match.groups())
         self.assertTrue((major, minor, revision) >= (10, 5, 3))

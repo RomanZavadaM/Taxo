@@ -4,25 +4,29 @@
 
 **Taxo — настільна система для одного автотранспортного підприємства:** водії й персонал, графіки, табелі, шляхові листи, бланки підтвердження діяльності, транспорт, документи, СТОІР, звіти та контроль аналогових тахокарт.
 
-> **Stable:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)  
-> **Актуальний інтегрований checkpoint у `main`:** **Taxo 10.9-r10** — PR #132, structural cleanup  
-> **Останній повний multi-platform release для тестування:** [Taxo 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9)  
-> **Наступна кодова ревізія:** `10.10-r1`  
-> `10.9-r10` не стає stable автоматично — stable promotion є окремим рішенням власника.
+> **Stable:** [Taxo 10.10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10) — 05.10.2026
+> **Попередній stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
+> **Наступна кодова ревізія:** `10.10-r4`
 
-## Завантаження для тестування
+## Завантаження — Taxo 10.10 (stable)
 
-Поки повний multi-platform release `10.9-r10` окремо не опублікований, для готових Windows/macOS пакетів використовуйте останній повний checkpoint `10.9-r9`.
+**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Windows_x64_Portable.zip)
 
-**Windows 10/11:** [x64 Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows_x64.exe) · [x64 Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows_x64_Portable.zip)
+**Windows 7 SP1 x64:** [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_Windows7_x64_Portable.zip)
 
-**Windows 7 SP1:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_Windows7_x64_Portable.zip)
+**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_macOS_x86_64_Portable.zip)
 
-**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_macOS_x86_64_Portable.zip)
+**Source/START:** [START 10.10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/Taxo_v10_10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10/SHA256SUMS_v10_10.txt) · [Release notes 10.10](docs/releases/RELEASE_NOTES_v10_10.md) · [Індекс релізів](docs/releases/RELEASE_INDEX.md)
 
-**Source/START:** [START 10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r9/Taxo_v10_9_candidate_r9_START.zip) · [Release notes 10.9-r10](docs/releases/RELEASE_NOTES_v10.9-r10.md) · [Індекс релізів](docs/releases/RELEASE_INDEX.md)
+Робочі БД, SQLite, скани, кеші та персональні документи до GitHub releases **не входять**. Оновлення не вимагає повторного введення робочих даних.
 
-Робочі БД, SQLite, скани, кеші та персональні документи до GitHub releases **не входять**.
+## Що нового в 10.10
+
+- **Без PyMuPDF.** PDF/JPG бланка підтвердження, дата у звіті №340 і перегляд/друк PDF працюють на бібліотеках з permissive-ліцензіями (pypdfium2, reportlab, pypdf); бланк і звіт попіксельно ідентичні попереднім.
+- **Правильна версія в програмі** — у заголовку, «Про програму», PDF-шапках і маніфесті резервної копії.
+- **Резервна копія** явно попереджає, коли містить лише бази даних.
+- **Інфраструктура:** вимкнено застарілі публікаційні workflow, тести ізольовані від робочого сховища, license gate у всіх збірках.
+- Накопичено лінію 10.4 … 10.9: контроль документів ТЗ на весь рейс, захист виданих шляхівок і номерів, посилений контроль праці/відпочинку, 60-денний реєстр, П-5/баланс персоналу, СТОІР, незмінність підписаних наказів, контроль сумісності схеми SQLite.
 
 ## Що вміє Taxo
 
@@ -32,7 +36,7 @@
 
 ## Для розробки
 
-Точка входу: [`START_HERE.md`](START_HERE.md). Далі — `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61. Після завершеного `10.9-r10` нова кодова робота починається як `10.10-r1` тільки від актуального `main`.
+Точка входу: [`START_HERE.md`](START_HERE.md). Далі — `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61. Після stable 10.10 нова кодова робота починається як `10.10-r4` від актуального `main`.
 
 ## Ліцензія
 

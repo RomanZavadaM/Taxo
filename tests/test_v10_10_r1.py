@@ -48,9 +48,10 @@ def _requirement_names(path):
 class TestRevision(unittest.TestCase):
     def test_version_is_10_10_r1_or_later(self):
         version = version_from_file(ROOT / "VERSION.txt")
-        match = re.fullmatch(r"10\.(\d+)-r(\d+)", version)
+        match = re.fullmatch(r"10\.(\d+)(?:-r(\d+))?", version)
         self.assertIsNotNone(match, version)
-        self.assertGreaterEqual((int(match.group(1)), int(match.group(2))), (10, 1))
+        revision = int(match.group(2)) if match.group(2) else 999  # stable promotion
+        self.assertGreaterEqual((int(match.group(1)), revision), (10, 1))
         self.assertIn(f'APP_VERSION = "{version}"', (ROOT / "main.py").read_text("utf-8"))
         self.assertIn(f"Taxo {version}", (ROOT / "START.bat").read_text("utf-8"))
 

@@ -5,15 +5,12 @@
 
 ## Поточний підтверджений стан
 
-- **Stable:** Taxo 10.3 / `v10.3` — immutable; stable tag не пересувався.
-- **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Latest integrated code checkpoint in `main`:** **Taxo 10.10-r2** — CI hardening + ізоляція тестів (код програми = 10.10-r1).
-- **Integration:** PR #137; main merge commit `26ec7b8bdeefa69cf5df7dd02d4a61e0c99cc752`; exact head `0451a711` — Windows, Win7, macOS, START success; 806 тестів OK.
-- **Latest published checkpoint:** **10.10-r2 / `v10.10-r2`** — prerelease, повний набір пакетів, зібраних з main commit.
-- **10.10-r1 / `v10.10-r1`** — без PyMuPDF; PR #136 → `15439b6c`; перевірено власником на робочій машині.
-- **Previous full multi-platform checkpoint (10.9):** 10.9-r9 / `v10.9-r9`.
-- **Next code revision:** **10.10-r3**.
-- **Ціль лінії 10.10:** Stable `v10.10` (рішення власника 05.10.2026).
+- **Stable:** Taxo 10.10 / `v10.10` — immutable; промоція перевіреної власником 10.10-r3 з ідентичністю версії `10.10` (за зразком stable 10.3).
+- **Previous stable / rollback:** Taxo 10.3 / `v10.3` — immutable; tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+- **Лінія 10.10:** r1 (PR #136, без PyMuPDF) → r2 (PR #137, CI hardening) → r3 (PR #138, правильна версія + попередження backup) → stable 10.10.
+- **Verified candidate:** `v10.10-r3` → main `de9b11ad581cd91805b1a8b6e506e1fa74f44ea3`; 813 тестів; Windows/Win7/macOS/START success; перевірено власником.
+- **Пакети stable:** Windows x64 Setup/Portable, Windows 7 x64 Portable, macOS arm64/x86_64 Portable, START, SHA256SUMS — з stable-коміту `main`.
+- **Next code revision:** **10.10-r4**.
 - **Live ledger:** Issue #61.
 
 ## Що додано в 10.10-r1
@@ -65,7 +62,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- після `10.10-r1` наступна кодова ревізія — `10.10-r2`;
+- після stable `10.10` наступна кодова ревізія — `10.10-r4`;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 

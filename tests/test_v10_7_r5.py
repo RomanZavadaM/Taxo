@@ -9,6 +9,7 @@ from pathlib import Path
 import main as core
 import personnel_v91 as personnel
 import v1075_features as r5
+import version_compat  # 10.10 stable-aware version parsing
 
 
 class HistoricalPersonnelScopeTests(unittest.TestCase):
@@ -85,7 +86,7 @@ class HistoricalPersonnelScopeTests(unittest.TestCase):
         self.assertIn('APP_VERSION = "10.7-r5"', Path("v1075_features.py").read_text(encoding="utf-8"))
 
         current = Path("VERSION.txt").read_text(encoding="utf-8")
-        m = re.search(r"Version:\s*(\d+)\.(\d+)-r(\d+)", current)
+        m = version_compat.search_version_line(current)
         self.assertIsNotNone(m)
         self.assertGreaterEqual(tuple(map(int, m.groups())), (10, 7, 5))
 

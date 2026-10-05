@@ -4,12 +4,11 @@
 
 ## Актуальний стан
 
-- **Stable:** Taxo 10.3 / `v10.3`.
-- **Latest integrated checkpoint in `main`:** **10.9-r10**.
-- **Latest full multi-platform published release:** [10.9-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r9).
-- **Next code revision:** `10.10-r1`.
+- **Stable:** [Taxo 10.10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10) — 05.10.2026.
+- **Previous stable / rollback:** Taxo 10.3 / `v10.3`.
+- **Next code revision:** `10.10-r4`.
 
-Усі переклади нижче синхронізовані з цим самим public status і однаково розділяють інтегрований code checkpoint та останній повний downloadable release.
+Усі переклади нижче синхронізовані з цим самим public status (stable 10.10).
 
 ## Переклади публічного опису
 

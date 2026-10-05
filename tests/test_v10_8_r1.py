@@ -7,12 +7,13 @@ import v1081_features as r1
 import vehicle_documents
 import v1064_features as waybill_ui
 import v10710_features as document_center
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _version_tuple(text):
-    match = re.search(r"(\d+)\.(\d+)-r(\d+)", text)
+    match = version_compat.search_version(text)
     if not match:
         raise AssertionError("Taxo version not found: %r" % text)
     return tuple(int(part) for part in match.groups())

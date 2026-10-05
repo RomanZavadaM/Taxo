@@ -4,6 +4,7 @@ import unittest
 from pathlib import Path
 
 import v1062_features as r2
+import version_compat  # 10.10 stable-aware version parsing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -78,7 +79,7 @@ class AboutLayoutR2Tests(unittest.TestCase):
 class R2IntegrationTests(unittest.TestCase):
     def test_candidate_identity_is_r2_or_later(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8")
-        match = re.search(r"Version:\s+(\d+)\.(\d+)-r(\d+)", version)
+        match = version_compat.search_version_line(version)
         self.assertIsNotNone(match)
         self.assertGreaterEqual(tuple(map(int, match.groups())), (10, 6, 2))
         feature = (ROOT / "v1062_features.py").read_text(encoding="utf-8")
