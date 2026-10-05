@@ -1,22 +1,30 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 02.10.2026  
+**Дата:** 05.10.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## Поточний підтверджений стан
 
 - **Stable:** Taxo 10.3 / `v10.3` — immutable; stable tag не пересувався.
 - **Stable tag target:** `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Latest integrated code checkpoint in `main`:** **Taxo 10.9-r10**.
-- **Structural cleanup integration:** PR #132.
-- **Main merge commit:** `5e179eabccc35afa984be04208e2e4d96094a2fb`.
-- **Exact r10 source before merge:** `ff56519da35e03204bdaf77f7187cddd692f79d4`.
-- **r10 exact-head gates:** Windows `37018721703` — success; Windows 7 `37018721695` — success; macOS `37018722335` — success.
-- **Latest full multi-platform published checkpoint:** **10.9-r9 / `v10.9-r9`**.
-- **Next code revision:** **10.10-r1**.
+- **Latest integrated code checkpoint in `main`:** **Taxo 10.10-r1** — без PyMuPDF.
+- **Integration:** PR #136; main merge commit `15439b6c5423fbdff990a0c7528c61ed86d74f21`.
+- **Exact r1 PR head:** `3e7106f8f3f5adfc08c2cead37caa9b5e8f037c7` (git tree ідентичний merge commit).
+- **r1 exact-head gates:** Windows `37308556735`, Windows 7 `37308556744`, macOS arm64/x86_64 `37308557118`, START `37308551299` — success; 797 тестів OK.
+- **Latest published checkpoint:** **10.10-r1 / `v10.10-r1`** — prerelease, повний набір пакетів (START, Windows x64 Portable/Setup, Windows 7 Portable, macOS arm64/x86_64, SHA256SUMS). Перевірено власником на робочій машині.
+- **Previous full multi-platform checkpoint:** 10.9-r9 / `v10.9-r9`.
+- **Next code revision:** **10.10-r2** (CI hardening + ізоляція тестів).
+- **Ціль лінії 10.10:** Stable `v10.10` (рішення власника 05.10.2026).
 - **Live ledger:** Issue #61.
 
-`10.9-r10` завершив цикл ревізій 10.9. За правилом версіювання наступна кодова зміна починається з `10.10-r1`; major `11.x` без прямого рішення власника не створюється.
+## Що додано в 10.10-r1
+
+- PyMuPDF (AGPL-3.0) повністю прибрано з коду, тестів, requirements, specs і пакетів (`PROJECT_RULES.md` §17);
+- новий `src/taxo/pdf_engine.py`: pypdfium2 (рендер), reportlab + pypdf (штамп);
+- Бланк підтвердження PDF/JPG і дата у звіті №340 — попіксельно ідентичні попередній реалізації;
+- вбудований перегляд/друк PDF — pypdfium2, з fallback на системну програму;
+- license gate: `tests/test_v10_10_r1.py` + `scripts/check_bundle_licenses.py` у всіх збірках;
+- без міграцій робочих БД і змін даних користувача.
 
 ## Що додано в 10.9-r10
 
@@ -58,7 +66,9 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- після `10.9-r10` наступна кодова ревізія — `10.10-r1`.
+- після `10.10-r1` наступна кодова ревізія — `10.10-r2`;
+- у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
+- regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 
 ## Право та власність
 
