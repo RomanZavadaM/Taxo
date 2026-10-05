@@ -98,7 +98,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.10-r2"
+APP_VERSION = "10.10-r3"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -8094,7 +8094,14 @@ class App(tk.Tk):
                 "Резервна копія",
                 "Резервну копію створено й перевірено.\n\n"
                 f"{actual}\n\nРозмір: {size_mb:.2f} МБ\n"
-                f"Склад: обидві БД; {extra_text}.",
+                f"Склад: обидві БД; {extra_text}."
+                + (
+                    "" if extras else
+                    "\n\n⚠ УВАГА: ця копія містить лише бази даних і службові файли з Data. "
+                    "Копії документів ТЗ, скани тахографів і файли Output (шляхівки, бланки, звіти) "
+                    "у неї НЕ входять. Для повного відновлення позначайте їх у діалозі "
+                    "резервної копії або зберігайте робочу папку окремо."
+                ),
                 parent=self,
             )
         except Exception as e:

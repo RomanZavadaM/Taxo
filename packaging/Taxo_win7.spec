@@ -34,7 +34,7 @@ a = Analysis(
         'hotfix_901', 'v91_features', 'personnel_v91', 'work_regime',
         'workspace', 'tachograph', 'attestation_render', 'waybill',
         'branding', 'branding_asset', 'document_viewer', 'vehicle_documents',
-        'pdf_engine', 'pypdfium2', 'pypdfium2_raw', 'pypdf', 'win32print', 'win32ui', 'win32con', 'PIL.ImageWin',
+        'pdf_engine', 'version_identity', 'pypdfium2', 'pypdfium2_raw', 'pypdf', 'win32print', 'win32ui', 'win32con', 'PIL.ImageWin',
     ],
     hookspath=[],
     hooksconfig={},
