@@ -82,12 +82,14 @@ jobs:
           }
 
       - name: Set up Python 3.13 x64
+        if: steps.scope.outputs.skip_heavy != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           architecture: 'x64'
 
       - name: Install dependencies and packaging tools
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
@@ -95,22 +97,26 @@ jobs:
           python -m pip install pyinstaller==6.22.2
 
       - name: Compile structured source
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m py_compile main.py taxo_app.py sitecustomize.py
           Get-ChildItem src/taxo -Filter *.py | ForEach-Object { python -m py_compile $_.FullName }
 
       - name: Stage legacy layout for historical regression only
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: python tests/stage_legacy_layout.py
 
       - name: Run regression suite
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-r3.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload regression log
+        if: steps.scope.outputs.skip_heavy != 'true'
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -120,6 +126,7 @@ jobs:
           retention-days: 7
 
       - name: Test START preflight
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $stdout = Join-Path $env:RUNNER_TEMP 'taxo-start-full-stdout.txt'
@@ -134,6 +141,7 @@ jobs:
           if (!$out.Contains('START preflight OK.')) { throw 'START preflight marker missing' }
 
       - name: Test incomplete START guard
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $tmp = Join-Path $env:RUNNER_TEMP 'taxo-start-incomplete'
@@ -147,12 +155,14 @@ jobs:
           if ($process.ExitCode -ne 2) { throw "Expected incomplete START exit code 2, got $($process.ExitCode)" }
 
       - name: Build Windows portable application
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean packaging/Taxo.spec
           Move-Item 'dist/Taxo' 'dist/Taxo_v10_10_candidate_r3_Windows_x64'
 
       - name: Verify portable bundle
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $bundle = 'dist/Taxo_v10_10_candidate_r3_Windows_x64'
@@ -165,10 +175,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "License bundle gate failed: $LASTEXITCODE" }
 
       - name: Create Windows portable ZIP
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: Compress-Archive -Path 'dist/Taxo_v10_10_candidate_r3_Windows_x64' -DestinationPath 'Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip' -Force
 
       - name: Build Windows installer
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
@@ -179,6 +191,7 @@ jobs:
           if (!(Test-Path 'release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe')) { throw 'Installer not found' }
 
       - name: Create checksums
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $files = @('Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip','release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe')
@@ -186,6 +199,7 @@ jobs:
           $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_10_r3_Windows_x64.txt'
 
       - name: Upload Windows test executables
+        if: steps.scope.outputs.skip_heavy != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: Taxo-v10.10-r3-Windows-x64
@@ -229,12 +243,14 @@ jobs:
           }
 
       - name: Set up Python 3.13 x64
+        if: steps.scope.outputs.skip_heavy != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           architecture: 'x64'
 
       - name: Install dependencies and packaging tools
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
@@ -242,22 +258,26 @@ jobs:
           python -m pip install pyinstaller==6.22.2
 
       - name: Compile structured source
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m py_compile main.py taxo_app.py sitecustomize.py
           Get-ChildItem src/taxo -Filter *.py | ForEach-Object { python -m py_compile $_.FullName }
 
       - name: Stage legacy layout for historical regression only
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: python tests/stage_legacy_layout.py
 
       - name: Run regression suite
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-r3.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload regression log
+        if: steps.scope.outputs.skip_heavy != 'true'
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -267,6 +287,7 @@ jobs:
           retention-days: 7
 
       - name: Test START preflight
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $stdout = Join-Path $env:RUNNER_TEMP 'taxo-start-full-stdout.txt'
@@ -281,6 +302,7 @@ jobs:
           if (!$out.Contains('START preflight OK.')) { throw 'START preflight marker missing' }
 
       - name: Test incomplete START guard
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $tmp = Join-Path $env:RUNNER_TEMP 'taxo-start-incomplete'
@@ -294,12 +316,14 @@ jobs:
           if ($process.ExitCode -ne 2) { throw "Expected incomplete START exit code 2, got $($process.ExitCode)" }
 
       - name: Build Windows portable application
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean packaging/Taxo.spec
           Move-Item 'dist/Taxo' 'dist/Taxo_v10_10_candidate_r3_Windows_x64'
 
       - name: Verify portable bundle
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $bundle = 'dist/Taxo_v10_10_candidate_r3_Windows_x64'
@@ -312,10 +336,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "License bundle gate failed: $LASTEXITCODE" }
 
       - name: Create Windows portable ZIP
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: Compress-Archive -Path 'dist/Taxo_v10_10_candidate_r3_Windows_x64' -DestinationPath 'Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip' -Force
 
       - name: Build Windows installer
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
@@ -326,6 +352,7 @@ jobs:
           if (!(Test-Path 'release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe')) { throw 'Installer not found' }
 
       - name: Create checksums
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $files = @('Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip','release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe')
@@ -333,6 +360,7 @@ jobs:
           $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_10_r3_Windows_x64.txt'
 
       - name: Upload Windows test executables
+        if: steps.scope.outputs.skip_heavy != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: Taxo-v10.10-r3-Windows-x64
@@ -349,6 +377,7 @@ jobs:
           Write-Host "Docs-only PR: $docsOnly"
 
       - name: Verify repository layout and version
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $required = @(
@@ -382,12 +411,14 @@ jobs:
           }
 
       - name: Set up Python 3.13 x64
+        if: steps.scope.outputs.skip_heavy != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
           architecture: 'x64'
 
       - name: Install dependencies and packaging tools
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
@@ -395,22 +426,26 @@ jobs:
           python -m pip install pyinstaller==6.22.2
 
       - name: Compile structured source
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m py_compile main.py taxo_app.py sitecustomize.py
           Get-ChildItem src/taxo -Filter *.py | ForEach-Object { python -m py_compile $_.FullName }
 
       - name: Stage legacy layout for historical regression only
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: python tests/stage_legacy_layout.py
 
       - name: Run regression suite
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-r3.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload regression log
+        if: steps.scope.outputs.skip_heavy != 'true'
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -420,6 +455,7 @@ jobs:
           retention-days: 7
 
       - name: Test START preflight
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $stdout = Join-Path $env:RUNNER_TEMP 'taxo-start-full-stdout.txt'
@@ -434,6 +470,7 @@ jobs:
           if (!$out.Contains('START preflight OK.')) { throw 'START preflight marker missing' }
 
       - name: Test incomplete START guard
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $tmp = Join-Path $env:RUNNER_TEMP 'taxo-start-incomplete'
@@ -447,12 +484,14 @@ jobs:
           if ($process.ExitCode -ne 2) { throw "Expected incomplete START exit code 2, got $($process.ExitCode)" }
 
       - name: Build Windows portable application
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean packaging/Taxo.spec
           Move-Item 'dist/Taxo' 'dist/Taxo_v10_10_candidate_r3_Windows_x64'
 
       - name: Verify portable bundle
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $bundle = 'dist/Taxo_v10_10_candidate_r3_Windows_x64'
@@ -465,10 +504,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "License bundle gate failed: $LASTEXITCODE" }
 
       - name: Create Windows portable ZIP
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: Compress-Archive -Path 'dist/Taxo_v10_10_candidate_r3_Windows_x64' -DestinationPath 'Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip' -Force
 
       - name: Build Windows installer
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
@@ -479,6 +520,7 @@ jobs:
           if (!(Test-Path 'release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe')) { throw 'Installer not found' }
 
       - name: Create checksums
+        if: steps.scope.outputs.skip_heavy != 'true'
         shell: pwsh
         run: |
           $files = @('Taxo_v10_10_candidate_r3_Windows_x64_Portable.zip','release_out/Taxo_v10_10_candidate_r3_Setup_Windows_x64.exe')
@@ -486,6 +528,7 @@ jobs:
           $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_10_r3_Windows_x64.txt'
 
       - name: Upload Windows test executables
+        if: steps.scope.outputs.skip_heavy != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: Taxo-v10.10-r3-Windows-x64
