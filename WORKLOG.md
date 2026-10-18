@@ -1,6 +1,6 @@
 # WORKLOG — Taxo
 
-**Оновлено:** 05.10.2026  
+**Оновлено:** 18.10.2026 (CI maintenance; stable/project status unchanged)  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## CURRENT
@@ -16,8 +16,9 @@
 
 - **DOING:** Actions usage audit/optimization, stage 1; branch `ci/actions-usage-audit-20261018`, draft PR #142, base main `2bb7d580`.
 - Verified all four active workflow YAMLs. Changes: PR-only superseded-run cancellation for Windows/macOS; remove `WORKLOG.md` platform PR triggers; docs-only push skip for START. See `docs/maintenance/ACTIONS_USAGE_AUDIT_2026-10-18.md`.
-- **NEXT:** inspect current PR checks and run the docs-only/code/platform scenarios; redesign required Windows check before allowing docs-only PR to skip Windows packaging. Verify actual Actions minutes, preserve full release matrix.
-- **BLOCKED:** full cost attribution and live CI confirmation not yet obtained; do not merge or mark done. No product release or revision change.
+- **VERIFIED 18.10:** latest #142 head `248a5ead627dd92330998e1f84a2852e67351112`: Windows run `39160230998` success; Win7 `39160230954` success; macOS two architecture jobs in run `39160231052` success. Docs-only PR #143 head `35d8f91c`: required Windows job run `39160170219` success with Python, regression, PyInstaller, ZIP and installer steps skipped; no Win7/macOS runs; test PR #143 closed without merge.
+- **NEXT (first action):** inspect #142 current check matrix and YAML diff; test a *mixed code+docs* change and main-push/release behavior before merge. Confirm `build-windows` remains required and full build executes for code changes; examine path-filter behavior for deleted/renamed files and update audit. Quantify actual Actions minutes via UI/API when available.
+- **BLOCKED:** mixed/code and release-driving validation, actual billed usage and release/no-cancellation audit not finished. PR #142 stays DRAFT / UNMERGED. No product release, revision change or stable promotion.
 
 ## DOING
 
