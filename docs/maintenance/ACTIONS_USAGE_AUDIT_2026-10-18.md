@@ -15,8 +15,11 @@ Status: **in progress; PR validation required; not merged**. Base: main `2bb7d58
 2. Remove `WORKLOG.md` from Win7 and macOS pull-request path lists. Worklog-only PRs must not launch those platform builds.
 3. START packaging now excludes docs-only pushes via `paths-ignore`; mixed code+docs pushes still run START. Manual START builds remain possible.
 
+## Second-stage modification (still unverified)
+- Required `build-windows` remains present for every PR. A conservative diff-classifier skips Python setup, regression, PyInstaller and artifacts **only** for PRs whose changed files are exclusively selected Markdown documentation (`README.md`, `START_HERE.md`, `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md`, `docs/**/*.md`). Unknown files, mixed changes, pushes and manual runs execute full Windows CI.
+- Documentation links are still checked in the required job. Branch-protection check name does not change. This approach has not yet been validated against a genuinely docs-only PR; do not merge without that test.
+
 ## Important remaining work, not claimed complete
-- Required `build-windows` remains heavy on docs-only PRs: simply applying a top-level `paths` filter would leave the required check pending and block merge. First design a lightweight, always-present required gate and preserve a heavyweight code-build check, updating GitHub branch protection in lockstep.
 - Draft PR gating and fine-grained path-aware platform checks require validating final required checks, `ready_for_review` and security of PR-derived path filtering. Never weaken dependency license and bundle gates.
 - Audit current Actions run durations, cache feasibility (Python pip rather than Rust/npm), and manual/tag/release paths using GitHub Actions UI/API before further optimization.
 - Preserve complete Windows, Windows 7, macOS arm64/x86_64 and START packaging for release checkpoints.
@@ -24,7 +27,7 @@ Status: **in progress; PR validation required; not merged**. Base: main `2bb7d58
 - `PROJECT_STATE.md` should remain unchanged until integration is confirmed; do not create a product revision for CI-only maintenance.
 
 ## Validation matrix
-- Docs-only PR: required Windows check remains, Win7/macOS PR jobs absent; document total heavy minutes for remaining optimization.
+- Docs-only PR: required Windows check remains fast, Win7/macOS PR jobs absent; verify with a separate docs-only PR.
 - Repeated PR commits: old Windows/macOS PR runs canceled; latest SHA passes.
 - Code/platform PR: all currently applicable checks execute and pass.
 - Docs-only main push: START packaging skipped. Note Windows/macOS/Win7 main-push builds still occur until next safe optimization step.
