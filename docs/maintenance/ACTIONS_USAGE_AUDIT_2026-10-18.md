@@ -35,3 +35,10 @@ Status: **in progress; PR validation required; not merged**. Base: main `2bb7d58
 - workflow_dispatch: no change to manually invoked release/test packaging.
 
 Ownership: resume from START_HERE -> PROJECT_RULES -> PROJECT_STATE -> WORKLOG -> Issue #61. This PR is a narrow first stage.
+
+## Live docs-only smoke — PR #143
+
+- Draft test PR #143 changed only `docs/maintenance/CI_DOCS_ONLY_TRIGGER_TEST_2026-10-18.md` relative to #142 branch.
+- Windows workflow run `39160170219`, required job `build-windows`: **success**. Documentation verification passed; Python setup, dependencies, regressions, PyInstaller, portable and installer steps all **skipped**. No Windows 7/macOS PR runs returned for the docs-only commit.
+- PR #143 closed without merging; temporary test branch/file not in main.
+- Full mixed/code and release-driving validation still pending. PR #142 remains draft.
