@@ -12,6 +12,13 @@
 
 Повний аудит: [`docs/maintenance/AUDIT_FULL_2026-10-05.md`](docs/maintenance/AUDIT_FULL_2026-10-05.md).
 
+## ACTIVE CI MAINTENANCE — 18.10.2026 (not integrated)
+
+- **DOING:** Actions usage audit/optimization, stage 1; branch `ci/actions-usage-audit-20261018`, draft PR #142, base main `2bb7d580`.
+- Verified all four active workflow YAMLs. Changes: PR-only superseded-run cancellation for Windows/macOS; remove `WORKLOG.md` platform PR triggers; docs-only push skip for START. See `docs/maintenance/ACTIONS_USAGE_AUDIT_2026-10-18.md`.
+- **NEXT:** inspect current PR checks and run the docs-only/code/platform scenarios; redesign required Windows check before allowing docs-only PR to skip Windows packaging. Verify actual Actions minutes, preserve full release matrix.
+- **BLOCKED:** full cost attribution and live CI confirmation not yet obtained; do not merge or mark done. No product release or revision change.
+
 ## DOING
 
 - Немає активної роботи. Сесію 05.10.2026 закрито за рішенням власника; нові кроки — лише за його вказівкою.
