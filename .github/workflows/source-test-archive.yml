@@ -6,6 +6,14 @@ on:
       - main
       - 'work/v9.*'
       - 'work/v10.*'
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - 'WORKLOG.md'
+      - 'PROJECT_STATE.md'
+      - 'PROJECT_RULES.md'
+      - 'START_HERE.md'
+      - '*.md'
   workflow_dispatch:
 
 permissions:

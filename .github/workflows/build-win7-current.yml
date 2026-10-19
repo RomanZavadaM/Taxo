@@ -5,6 +5,14 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - 'WORKLOG.md'
+      - 'PROJECT_STATE.md'
+      - 'PROJECT_RULES.md'
+      - 'START_HERE.md'
+      - '*.md'
   pull_request:
     paths:
       - 'main.py'
@@ -16,11 +24,14 @@ on:
       - 'requirements-win7.txt'
       - 'scripts/check_win7_pe.py'
       - 'VERSION.txt'
-      - 'WORKLOG.md'
       - '.github/workflows/build-win7-current.yml'
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-win7:
