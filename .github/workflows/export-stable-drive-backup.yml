@@ -1,0 +1,44 @@
+name: Export stable release assets for Drive backup
+
+on:
+  push:
+    branches:
+      - backup/drive-stable-v10.10-r4-20261103
+    paths:
+      - '.github/workflows/export-stable-drive-backup.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    strategy:
+      fail-fast: false
+      matrix:
+        asset:
+          - SHA256SUMS_v10_10_r4.txt
+          - Taxo_v10_10_candidate_r4_Setup_Windows_x64.exe
+          - Taxo_v10_10_candidate_r4_Windows_x64_Portable.zip
+          - Taxo_v10_10_candidate_r4_Setup_Windows7_x64.exe
+          - Taxo_v10_10_candidate_r4_Windows7_x64_Portable.zip
+          - Taxo_v10_10_candidate_r4_macOS_arm64_Portable.zip
+          - Taxo_v10_10_candidate_r4_macOS_x86_64_Portable.zip
+          - Taxo_v10_10_candidate_r4_START.zip
+    steps:
+      - name: Download exact stable release asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release download v10.10-r4 --repo "${GITHUB_REPOSITORY}" --pattern "${{ matrix.asset }}" --dir export
+          test -f "export/${{ matrix.asset }}"
+
+      - name: Upload one backup-safe artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: drive-backup-${{ matrix.asset }}
+          path: export/${{ matrix.asset }}
+          retention-days: 7
+          compression-level: 0
