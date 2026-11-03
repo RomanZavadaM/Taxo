@@ -6,7 +6,7 @@
 
 > **Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — перевірено на реальних даних
 > **Попередній stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-> **Тестова лінія:** [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) (prerelease, перевіряється на реальних даних)
+> **Поточний кандидат:** **10.10-r4** — успішно зібрано для Windows 10/11, Windows 7, macOS Intel та Apple Silicon; ще не опубліковано
 
 ## Завантаження — Taxo 10.9-r10 (stable)
 
@@ -34,7 +34,7 @@
 
 ## Тестові версії (не stable)
 
-[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) — prerelease для перевірки на реальних даних: без PyMuPDF, правильна версія у вікні, попередження «лише БД» у резервній копії, CI hardening. Stable стануть лише після перевірки власником.
+[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) — опубліковані prerelease. **10.10-r4** виправляє показ старої версії у всіх вікнах і повертає інсталятор для Windows 7. Усі чотири збірки (Windows, Win7, macOS Intel, macOS ARM) успішні. Публікація ще не виконана.
 
 ## Що вміє Taxo
 
@@ -44,7 +44,7 @@
 
 ## Для розробки
 
-Точка входу: [`START_HERE.md`](START_HERE.md). Далі — `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61. Код у `main` — тестова лінія 10.10; наступна кодова ревізія — `10.10-r4`.
+Точка входу: [`START_HERE.md`](START_HERE.md). Далі — `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61. Після злиття `10.10-r4` код у `main` буде актуальною тестовою лінією; наступна кодова ревізія — `10.10-r5`.
 
 ## Ліцензія
 
