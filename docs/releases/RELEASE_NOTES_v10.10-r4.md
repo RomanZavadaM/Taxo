@@ -1,6 +1,6 @@
 # Taxo 10.10-r4 — release notes
 
-Статус: **candidate / test line**. Stable `v10.9-r10` не змінюється.
+Статус: **STABLE**. `v10.10-r4` прийнято власником як нову стабільну версію. Попередня stable / rollback — `v10.9-r10`.
 
 ## Виправлено
 
@@ -11,13 +11,13 @@
 
 ## Пакети
 
-Для 10.10-r4 CI має формувати:
+Для stable 10.10-r4 опубліковано:
 - Windows 10/11 x64: Setup + Portable;
 - Windows 7 SP1 x64: **Setup + Portable**;
 - macOS arm64/x86_64: Portable;
 - START/source package та SHA-256.
 
-Win7 Setup повернуто в активний workflow; у README посилання буде додано тільки після фактичної публікації релізного asset.
+Win7 Setup повернуто та опубліковано разом із Win7 Portable. README містить прямі посилання на фактичні release assets.
 
 ## Перевірка
 
@@ -31,5 +31,6 @@ Win7 Setup повернуто в активний workflow; у README посил
 ## Ідентичність
 
 - Revision: `10.10-r4`
-- Stable залишається: `v10.9-r10`
+- Stable: `v10.10-r4`
+- Previous stable / rollback: `v10.9-r10`
 - Попередній test candidate: `v10.10-r3`
