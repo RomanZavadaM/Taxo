@@ -4,11 +4,11 @@
 
 Taxo is a desktop system for a single transport company: personnel and drivers, schedules, work-time accounting, waybills, activity confirmation forms, vehicles, document control, maintenance, reports, and analogue tachograph checks.
 
-> **Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — verified on real data
-> **Previous stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-> **Current candidate:** [Taxo 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) — published prerelease; verified on Windows 10/11, Windows 7, macOS Intel and Apple Silicon
+> **Stable:** [Taxo 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) — accepted by the owner as the stable release; verified on Windows 10/11, Windows 7, macOS Intel and Apple Silicon
+> **Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
+> **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
 
-## Downloads — Taxo 10.9-r10 (stable)
+## Downloads — Taxo 10.9-r10 (previous stable / rollback)
 
 **Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Windows_x64_Portable.zip)
 
@@ -18,7 +18,7 @@ Taxo is a desktop system for a single transport company: personnel and drivers, 
 
 **Source/START:** [START 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/SHA256SUMS_v10_9_r10.txt) · [Release notes 10.9-r10 (Ukrainian)](../releases/RELEASE_NOTES_v10.9-r10.md) · [Release index](../releases/RELEASE_INDEX.md)
 
-## Downloads — Taxo 10.10-r4 (test / prerelease)
+## Downloads — Taxo 10.10-r4 (stable)
 
 **Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Windows_x64_Portable.zip)
 
@@ -30,7 +30,7 @@ Taxo is a desktop system for a single transport company: personnel and drivers, 
 
 User databases, SQLite files, scans, caches, and personal documents are not included in GitHub releases. Updating does not require re-entering working data.
 
-## What stable 10.9-r10 contains
+## What previous stable 10.9-r10 contains
 
 - permanent history of issued waybills and numbers; retention never deletes linked facts
 - vehicle document validity for the whole planned trip
@@ -42,12 +42,12 @@ User databases, SQLite files, scans, caches, and personal documents are not incl
 - SQLite schema compatibility control
 - structured code layout without business-logic changes
 
-## Test versions (not stable)
+## 10.10 line
 
-[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) are earlier prereleases. [**10.10-r4**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) fixes stale version numbers across all application windows and restores the Windows 7 installer. All platforms passed and the prerelease is published.
+[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) are earlier prereleases. [**10.10-r4**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) fixes stale version numbers across all application windows and restores the Windows 7 installer. All platforms passed and **10.10-r4 is now the stable release**.
 
 ## Development
 
-Canonical operational documentation is maintained in Ukrainian. Start with [`START_HERE.md`](../../START_HERE.md). `10.10-r4` is already in `main` and published as a test prerelease; the next code revision is `10.10-r5`.
+Canonical operational documentation is maintained in Ukrainian. Start with [`START_HERE.md`](../../START_HERE.md). `10.10-r4` is already in `main` and is the current stable release; the next code revision is `10.10-r5`.
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
