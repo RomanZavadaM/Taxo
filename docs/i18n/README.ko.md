@@ -6,7 +6,7 @@ Taxo는 단일 운송 회사를 위한 데스크톱 시스템입니다: 직원 �
 
 > **안정 버전:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — 실제 데이터로 검증됨
 > **이전 안정 버전 / 롤백:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-> **현재 후보:** **10.10-r4** — Windows 10/11, Windows 7, macOS Intel 및 Apple Silicon 빌드가 모두 성공했으며 아직 게시되지 않았습니다.
+> **현재 후보:** [Taxo 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) — 테스트용 사전 릴리스로 게시되었으며 Windows 10/11, Windows 7, macOS Intel 및 Apple Silicon에서 검증되었습니다.
 
 ## 다운로드 — Taxo 10.9-r10 (안정 버전)
 
@@ -17,6 +17,16 @@ Taxo는 단일 운송 회사를 위한 데스크톱 시스템입니다: 직원 �
 **macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_x86_64_Portable.zip)
 
 **Source/START:** [START 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/SHA256SUMS_v10_9_r10.txt) · [10.9-r10 릴리스 노트 (우크라이나어)](../releases/RELEASE_NOTES_v10.9-r10.md) · [릴리스 색인](../releases/RELEASE_INDEX.md)
+
+## 다운로드 — Taxo 10.10-r4 (테스트 / 사전 릴리스)
+
+**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Windows_x64_Portable.zip)
+
+**Windows 7 SP1 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Windows7_x64_Portable.zip)
+
+**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_macOS_x86_64_Portable.zip)
+
+**Source/START:** [START 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/SHA256SUMS_v10_10_r4.txt)
 
 업무 데이터베이스, SQLite 파일, 스캔, 캐시 및 개인 문서는 GitHub 릴리스에 포함되지 않습니다. 업데이트 시 업무 데이터를 다시 입력할 필요가 없습니다.
 
@@ -34,12 +44,12 @@ Taxo는 단일 운송 회사를 위한 데스크톱 시스템입니다: 직원 �
 
 ## 테스트 버전
 
-**10.10-r4**는 모든 창의 오래된 버전 표시를 수정하고 Windows 7 설치 프로그램을 복원합니다. Windows, Win7, macOS Intel, macOS ARM 빌드가 모두 성공했습니다. 게시만 남았습니다. (안정 버전 아님)
+**10.10-r4**는 모든 창의 오래된 버전 표시를 수정하고 Windows 7 설치 프로그램을 복원합니다. Windows, Win7, macOS Intel, macOS ARM 빌드가 모두 성공했습니다. 사전 릴리스가 게시되었습니다. (안정 버전 아님)
 
 [10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) 은 실제 데이터 검증용 사전 릴리스입니다: PyMuPDF 제거, 창에 올바른 버전 표시, DB 전용 백업 경고, CI 강화. 소유자의 검증 후에만 안정 버전이 됩니다.
 
 ## 개발
 
-공식 운영 문서는 우크라이나어로 관리됩니다. [`START_HERE.md`](../../START_HERE.md)에서 시작하세요. `10.10-r4`가 병합되면 `main`이 최신 10.10 테스트 라인이 되며 다음 코드 리비전은 `10.10-r5`입니다.
+공식 운영 문서는 우크라이나어로 관리됩니다. [`START_HERE.md`](../../START_HERE.md)에서 시작하세요. `10.10-r4`는 이미 `main`에 병합되어 테스트용 사전 릴리스로 게시되었습니다. 다음 코드 리비전은 `10.10-r5`입니다.
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo는 독점 소프트웨어입니다.
