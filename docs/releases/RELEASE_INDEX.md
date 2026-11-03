@@ -1,9 +1,10 @@
 # Індекс релізів Taxo
 
-**Стан:** 05.10.2026
+**Стан:** 03.11.2026
 **Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — immutable; перевірено власником на реальних даних
 **Previous stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable
-**Next code revision:** **10.10-r4**.
+**Current candidate:** **10.10-r4** — Windows, Windows 7 and both macOS builds passed; not published yet.
+**Next code revision after merge:** **10.10-r5**.
 
 > Stable 10.9-r10 опубліковано з оригінальними CI-збірками, які перевірялись. Лінія 10.10 — prerelease для перевірки на реальних даних.
 
@@ -11,6 +12,7 @@
 
 | Реліз | PR | Зміст |
 |---|---|---|
+| **10.10-r4** | #144 | версія у всіх вікнах; повернуто Windows 7 Setup; усі збірки успішні; ще не опубліковано |
 | [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) | #138 | правильна версія у вікні; попередження «лише БД» |
 | [10.10-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r2) | #137 | CI hardening; ізоляція тестів |
 | [10.10-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r1) | #136 | без PyMuPDF |
