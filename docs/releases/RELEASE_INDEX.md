@@ -1,18 +1,18 @@
 # Індекс релізів Taxo
 
 **Стан:** 03.11.2026
-**Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — immutable; перевірено власником на реальних даних
-**Previous stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) — immutable
-**Current candidate:** **10.10-r4** — Windows, Windows 7 and both macOS builds passed; not published yet.
-**Next code revision after merge:** **10.10-r5**.
+**Stable:** [Taxo 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) — прийнято власником як stable 03.11.2026
+**Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
+**Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
+**Next code revision:** **10.10-r5**.
 
-> Stable 10.9-r10 опубліковано з оригінальними CI-збірками, які перевірялись. Лінія 10.10 — prerelease для перевірки на реальних даних.
+> Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
 
-## Тестова лінія 10.10 (prerelease)
+## Лінія 10.10
 
 | Реліз | PR | Зміст |
 |---|---|---|
-| **10.10-r4** | #144 | версія у всіх вікнах; повернуто Windows 7 Setup; усі збірки успішні; ще не опубліковано |
+| [**10.10-r4**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) | #144 | **STABLE 03.11.2026**; версія у всіх вікнах; Windows 7 Setup + Portable; повний комплект пакетів |
 | [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) | #138 | правильна версія у вікні; попередження «лише БД» |
 | [10.10-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r2) | #137 | CI hardening; ізоляція тестів |
 | [10.10-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r1) | #136 | без PyMuPDF |
@@ -52,7 +52,9 @@
 
 | Tag | Статус |
 |---|---|
-| [v10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) | **Current stable** |
+| [v10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) | **Current stable** |
+| [v10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) | Previous stable / rollback |
+| [v10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) | Older rollback |
 | [v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) | Previous stable / rollback |
 | [v10.0](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.0) | Historical stable |
 | [v9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) | Historical stable |
@@ -84,4 +86,4 @@
 4. БД, SQLite, скани, кеші та персональні документи не публікуються.
 5. Новий код починається тільки від актуального `main`.
 6. Historical work/candidate branches and stacked PRs are never reused as current development bases.
-7. Після завершеного `10.9-r10` наступна кодова зміна — `10.10-r1`.
+7. Після stable `10.10-r4` наступна кодова зміна — `10.10-r5`.
