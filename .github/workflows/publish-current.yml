@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - '.github/workflows/publish-current.yml'
+      - '.release/stable-current'
 
 permissions:
   contents: write
@@ -19,6 +20,48 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     steps:
+      - uses: actions/checkout@v4
+
+
+      - name: Promote existing current release to stable
+        if: ${{ hashFiles('.release/stable-current') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^Version:[[:space:]]*//p' VERSION.txt | tr -d '\r')"
+          marker="$(tr -d '\r\n' < .release/stable-current)"
+          if [ "${marker}" != "${version}" ]; then
+            echo "Stable marker ${marker} does not match current version ${version}; normal prerelease publishing remains enabled."
+            exit 0
+          fi
+
+          tag="v${version}"
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.id')"
+          test -n "${release_id}"
+
+          required=(
+            "Taxo_v10_10_candidate_r4_Setup_Windows_x64.exe"
+            "Taxo_v10_10_candidate_r4_Windows_x64_Portable.zip"
+            "Taxo_v10_10_candidate_r4_Setup_Windows7_x64.exe"
+            "Taxo_v10_10_candidate_r4_Windows7_x64_Portable.zip"
+            "Taxo_v10_10_candidate_r4_macOS_arm64_Portable.zip"
+            "Taxo_v10_10_candidate_r4_macOS_x86_64_Portable.zip"
+            "Taxo_v10_10_candidate_r4_START.zip"
+            "SHA256SUMS_v10_10_r4.txt"
+          )
+          assets="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" --paginate --jq '.[].name')"
+          for name in "${required[@]}"; do
+            printf '%s\n' "${assets}" | grep -Fxq "${name}" || { echo "Missing release asset: ${name}" >&2; exit 1; }
+          done
+
+          notes="docs/releases/RELEASE_NOTES_v${version}.md"
+          test -f "${notes}"
+          body="$(cat "${notes}")"
+          jq -n --arg name "Taxo ${version} — Stable" --arg body "${body}"             '{name:$name,body:$body,prerelease:false,make_latest:"true"}'             | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --input -
+
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.prerelease')" = "false"
+          echo "Taxo ${version} promoted to stable/latest."
+
       - name: Resolve exact source checkpoint
         id: source
         shell: bash
@@ -38,6 +81,7 @@ jobs:
           fetch-depth: 0
 
       - name: Read version and refuse overwrite
+        if: ${{ hashFiles('.release/stable-current') == '' }}
         id: version
         shell: bash
         run: |
@@ -65,6 +109,7 @@ jobs:
           echo "notes=${notes}" >> "${GITHUB_OUTPUT}"
 
       - name: Find successful build runs for exact source
+        if: ${{ hashFiles('.release/stable-current') == '' }}
         id: runs
         shell: bash
         run: |
@@ -85,6 +130,7 @@ jobs:
           echo "start=${start}" >> "${GITHUB_OUTPUT}"
 
       - name: Download verified platform packages
+        if: ${{ hashFiles('.release/stable-current') == '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -94,6 +140,7 @@ jobs:
           gh run download "${{ steps.runs.outputs.mac }}" --repo "${GITHUB_REPOSITORY}" --dir collected/macos
 
       - name: Assemble exact release files
+        if: ${{ hashFiles('.release/stable-current') == '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -133,6 +180,7 @@ jobs:
           )
 
       - name: Publish immutable prerelease
+        if: ${{ hashFiles('.release/stable-current') == '' }}
         shell: bash
         run: |
           set -euo pipefail
