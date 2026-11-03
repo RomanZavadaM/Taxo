@@ -5,14 +5,13 @@
 
 ## Поточний підтверджений стан
 
-- **Stable:** Taxo 10.9-r10 / `v10.9-r10` — immutable; [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) (Latest), опубліковано 05.10.2026.
-  - код: main merge `5e179eabccc35afa984be04208e2e4d96094a2fb` (PR #132); exact head `ff56519da35e03204bdaf77f7187cddd692f79d4`;
-  - пакети — оригінальні CI-збірки exact head, без перезбирання; перевірено власником на реальних даних (3 дні).
-- **Previous stable / rollback:** Taxo 10.3 / `v10.3`; tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Поточний кандидат:** **10.10-r4**, PR #144; Windows 10/11, Windows 7, macOS Intel та macOS ARM — успішно. Ще не злито й не опубліковано.
-- **Опублікована тестова лінія:** `v10.10-r1`…`v10.10-r3`.
-- **Next code revision after merge:** **10.10-r5**.
-- **Live ledger:** Issue #61.
+- **Stable / Latest:** Taxo 10.10-r4 / `v10.10-r4` — прийнято власником 03.11.2026.
+- **Previous stable / rollback:** Taxo 10.9-r10 / `v10.9-r10`.
+- **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+- **Next code revision:** **10.10-r5**.
+- **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
+- **Google Drive backup:** повний запасний stable-комплект + current-main snapshot у папці `Taxo — Розробка — резервний комплект`.
+- **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
 ## Що додано в 10.10-r1
 
@@ -84,6 +83,6 @@ Taxo — proprietary software.
 
 ## Джерело істини при новій сесії
 
-`START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → live GitHub state → Issue #61.
+`START_HERE.md` → `HANDOFF_CURRENT.md` → private `dev-strategy/profile/taxo/TAXO_PROFILE.md` → live GitHub → `PROJECT_STATE.md`; `WORKLOG.md` та Issue #61 — для деталей/історії.
 
 При суперечності документації з live GitHub перемагає фактичний GitHub state.
