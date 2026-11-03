@@ -7,7 +7,7 @@
 
 - **Stable / Latest:** Taxo 10.10-r4 / `v10.10-r4` — прийнято власником 03.11.2026.
 - **Previous stable / rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Older rollback:** Taxo 10.3 / `v10.3`.
+- **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Next code revision:** **10.10-r5**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Google Drive backup:** повний запасний stable-комплект + current-main snapshot у папці `Taxo — Розробка — резервний комплект`.
