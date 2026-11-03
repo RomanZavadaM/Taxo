@@ -1,0 +1,147 @@
+name: Publish current Taxo release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/publish-current.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Resolve exact source checkpoint
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            target="${{ github.event.before }}"
+          else
+            target="${GITHUB_SHA}"
+          fi
+          echo "sha=${target}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout exact issued source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Read version and refuse overwrite
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^Version:[[:space:]]*//p' VERSION.txt | tr -d '\r')"
+          test -n "${version}"
+          grep -Fq "APP_VERSION = \"${version}\"" main.py
+          tag="v${version}"
+          candidate="$(printf '%s' "${version}" | sed -E 's/^([0-9]+)\.([0-9]+)-r([0-9]+)$/\1_\2_candidate_r\3/')"
+          sumstem="$(printf '%s' "${version}" | sed -E 's/^([0-9]+)\.([0-9]+)-r([0-9]+)$/\1_\2_r\3/')"
+          notes="docs/releases/RELEASE_NOTES_v${version}.md"
+          test -f "${notes}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists; refusing to move or reuse it." >&2
+            exit 1
+          fi
+          if gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${tag} already exists; refusing to overwrite it." >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "candidate=${candidate}" >> "${GITHUB_OUTPUT}"
+          echo "sumstem=${sumstem}" >> "${GITHUB_OUTPUT}"
+          echo "notes=${notes}" >> "${GITHUB_OUTPUT}"
+
+      - name: Find successful build runs for exact source
+        id: runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="${{ steps.source.outputs.sha }}"
+          runs_json="$(gh run list --repo "${GITHUB_REPOSITORY}" --commit "${sha}" --status success --limit 100 --json databaseId,workflowName,headSha)"
+          find_run() {
+            printf '%s' "${runs_json}" | jq -r --arg name "$1" '[.[] | select(.workflowName == $name and .headSha == "'"${sha}"'")] | first | .databaseId // empty'
+          }
+          win="$(find_run 'Test Taxo source / build Windows on demand')"
+          win7="$(find_run 'Test Taxo Windows 7 compatibility')"
+          mac="$(find_run 'Test Taxo source / build macOS on demand')"
+          start="$(find_run 'Package Taxo START source')"
+          test -n "${win}" && test -n "${win7}" && test -n "${mac}" && test -n "${start}"
+          echo "win=${win}" >> "${GITHUB_OUTPUT}"
+          echo "win7=${win7}" >> "${GITHUB_OUTPUT}"
+          echo "mac=${mac}" >> "${GITHUB_OUTPUT}"
+          echo "start=${start}" >> "${GITHUB_OUTPUT}"
+
+      - name: Download verified platform packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p collected
+          gh run download "${{ steps.runs.outputs.win }}" --repo "${GITHUB_REPOSITORY}" --dir collected/windows
+          gh run download "${{ steps.runs.outputs.win7 }}" --repo "${GITHUB_REPOSITORY}" --dir collected/win7
+          gh run download "${{ steps.runs.outputs.mac }}" --repo "${GITHUB_REPOSITORY}" --dir collected/macos
+
+      - name: Assemble exact release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          c="${{ steps.version.outputs.candidate }}"
+          mkdir -p release_files
+
+          copy_one() {
+            pattern="$1"
+            dest="$2"
+            mapfile -t files < <(find collected -type f -name "${pattern}")
+            if [ "${#files[@]}" -ne 1 ]; then
+              echo "Expected exactly one file matching ${pattern}, found ${#files[@]}" >&2
+              printf '%s\n' "${files[@]}" >&2
+              exit 1
+            fi
+            cp "${files[0]}" "release_files/${dest}"
+          }
+
+          copy_one "Taxo_v${c}_Windows_x64_Portable.zip" "Taxo_v${c}_Windows_x64_Portable.zip"
+          copy_one "Taxo_v${c}_Setup_Windows_x64.exe" "Taxo_v${c}_Setup_Windows_x64.exe"
+          copy_one "Taxo_v${c}_Windows7_x64_Portable.zip" "Taxo_v${c}_Windows7_x64_Portable.zip"
+          copy_one "Taxo_v${c}_Setup_Windows7_x64.exe" "Taxo_v${c}_Setup_Windows7_x64.exe"
+          copy_one "Taxo_v${c}_macOS_arm64_Portable.zip" "Taxo_v${c}_macOS_arm64_Portable.zip"
+          copy_one "Taxo_v${c}_macOS_x86_64_Portable.zip" "Taxo_v${c}_macOS_x86_64_Portable.zip"
+
+          start="Taxo_v${c}_START"
+          git archive --format=zip --prefix="${start}/" --output="release_files/${start}.zip" "${{ steps.source.outputs.sha }}"
+
+          if unzip -l "release_files/${start}.zip" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly included in START archive' >&2
+            exit 1
+          fi
+
+          (
+            cd release_files
+            sha256sum Taxo_* > "SHA256SUMS_v${{ steps.version.outputs.sumstem }}.txt"
+          )
+
+      - name: Publish immutable prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.version.outputs.tag }}"
+          sha="${{ steps.source.outputs.sha }}"
+          gh release create "${tag}" release_files/*             --repo "${GITHUB_REPOSITORY}"             --target "${sha}"             --title "Taxo ${{ steps.version.outputs.version }}"             --notes-file "${{ steps.version.outputs.notes }}"             --prerelease
+
+          target="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" --jq '.object.sha')"
+          test "${target}" = "${sha}"
+
+          assets="$(gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')"
+          test "${assets}" -eq 8
