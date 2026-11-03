@@ -22,6 +22,25 @@
 - Після критичних змін HANDOFF оновлюється одразу.
 - Наступний етап після інтеграції: незалежний review Taxo-профілю самим проєктом/іншим виконавцем із feedback у dev-strategy.
 
+## DEV-STRATEGY AUDIT RESPONSE — 03.11.2026
+
+Незалежний read-only аудит `dev-strategy` розглянуто.
+
+Прийнято:
+- split quick recovery / full preflight;
+- виправлення меж read-only аналізу Taxo;
+- окремий CI optimization slice для docs-only;
+- окремий build/release security audit;
+- окрема перевірка технічної незмінності releases;
+- незалежний continuity recovery trial.
+
+Не робити:
+- не міняти stable лише заради методології;
+- не застосовувати рекомендації автоматично;
+- не змішувати CI/security/release hardening із функціональними змінами.
+
+Деталі: `docs/maintenance/DEV_STRATEGY_AUDIT_RESPONSE_2026-11-03.md`.
+
 ## DOING
 
 - **10.10-r4 завершено і прийнято як stable.** Виправлено версію у всіх вікнах, повернено Windows 7 Setup, усі платформні збірки успішні. PR #144 злитий; `v10.10-r4` опублікований; власник 03.11.2026 дав рішення випустити його як stable.
