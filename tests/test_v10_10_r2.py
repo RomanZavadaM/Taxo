@@ -5,8 +5,10 @@
   ``docs/history/workflows/`` and no longer executed by GitHub. Two of them
   (``publish-v10.3.yml``, ``update-release-description-v9.yml``) could rewrite
   historical releases on a push to ``main``.
-* Only the four active gates stay in ``.github/workflows/`` and none of them
-  may write repository contents or releases.
+* The four active validation gates stay in ``.github/workflows/`` and none of
+  them may write repository contents or releases.
+* One universal publisher, ``publish-current.yml``, may write releases. It replaces
+  the historical one-file-per-revision publishers and must not rewrite old tags.
 * The required ``build-windows`` check runs on every pull request, so
   documentation-only PRs can be integrated.
 
@@ -21,12 +23,14 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ACTIVE = {
+ACTIVE_GATES = {
     "build-windows-v8.70.yml",
     "build-win7-current.yml",
     "build-macos-v8.70.yml",
     "source-test-archive.yml",
 }
+PUBLISHER = "publish-current.yml"
+ACTIVE = ACTIVE_GATES | {PUBLISHER}
 ARCHIVE = ROOT / "docs" / "history" / "workflows"
 
 
@@ -53,20 +57,33 @@ class TestWorkflowInventory(unittest.TestCase):
         self.assertEqual(names, ACTIVE)
 
     def test_active_gates_cannot_write_releases(self):
-        for name in sorted(ACTIVE):
+        for name in sorted(ACTIVE_GATES):
             text = (ROOT / ".github" / "workflows" / name).read_text("utf-8")
             self.assertNotRegex(text, r"contents:\s*write", name)
             self.assertNotIn("gh release", text, name)
             self.assertNotIn("softprops/action-gh-release", text, name)
+
+    def test_single_universal_publisher_is_allowed(self):
+        text = (ROOT / ".github" / "workflows" / PUBLISHER).read_text("utf-8")
+        self.assertRegex(text, r"contents:\s*write")
+        self.assertIn("gh release create", text)
+        self.assertIn("already exists; refusing", text)
+        self.assertNotRegex(PUBLISHER, r"publish-v\d")
 
     def test_dangerous_historical_publishers_are_archived(self):
         for name in ("publish-v10.3.yml", "update-release-description-v9.yml"):
             self.assertTrue((ARCHIVE / name).is_file(), name)
         tracked = _tracked(".github/workflows")
         if tracked is not None:
-            self.assertFalse(any(Path(p).name.startswith(("publish-", "apply-", "repair-", "restore-",
-                                                          "backfill-", "update-release-"))
-                                 for p in tracked))
+            forbidden = []
+            for p in tracked:
+                name = Path(p).name
+                if name == PUBLISHER:
+                    continue
+                if name.startswith(("publish-", "apply-", "repair-", "restore-",
+                                    "backfill-", "update-release-")):
+                    forbidden.append(name)
+            self.assertEqual(forbidden, [])
         self.assertTrue((ARCHIVE / "README.md").is_file())
 
     def test_required_check_runs_on_every_pull_request(self):
