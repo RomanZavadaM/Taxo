@@ -144,12 +144,12 @@ START-пакет формується для кожної тестової ре�
 ## 14. Startup / recovery protocol
 
 - Кожна нова сесія або новий чат Taxo починається з `START_HERE.md`.
-- Після нього обов'язково читаються `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` і live ledger Issue #61.
-- GitHub є фактичним арбітром для branch/PR/SHA/CI/release; текстові файли мають бути синхронізовані з ним.
-- `PROJECT_STATE.md` містить підтверджений інтегрований стан, а не незлиті експерименти.
-- `WORKLOG.md` містить оперативний active slice і точну наступну дію.
-- Кожен завершений slice записується в Issue #61.
-- Після обриву не відтворювати стан з пам'яті чату, якщо його можна відновити з GitHub.
+- Друга обов'язкова точка — `HANDOFF_CURRENT.md`.
+- Далі читається приватний Taxo-profile у `RomanZavadaM/dev-strategy` / branch `profile/taxo` / `TAXO_PROFILE.md`.
+- Після цього звіряється фактичний GitHub. Він є арбітром для branch/PR/SHA/CI/release.
+- `PROJECT_STATE.md` містить підтверджений інтегрований стан продукту.
+- `WORKLOG.md` та Issue #61 використовуються для деталей і історії, але не як перша сторінка recovery.
+- Після обриву не відтворювати стан з пам'яті чату: виконати reconciliation GitHub ↔ HANDOFF і продовжити з єдиної наступної дії.
 
 
 ## 14A. Continuity / захист від обривів і зависань
