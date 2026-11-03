@@ -31,11 +31,11 @@ Adoption dev-strategy v2 continuity:
 - без доступу до private Taxo-profile не виконувати зміни release/build/update/security/dependency.
 
 ## Не завершено
-- Локальні процесні правила Taxo ще приводяться у відповідність до private `TAXO_PROFILE.md`.
+- Continuity-adoption підготовлено в окремому documentation-only slice і ще має пройти перевірку та інтеграцію.
 - Бізнес-правила Taxo лишаються локальними й не переносяться в загальну методологію.
 
 ## Єдина наступна дія
-Завершити continuity-adoption у `START_HERE.md`, `PROJECT_RULES.md`, `PROJECT_STATE.md` та `WORKLOG.md`, потім зробити `HANDOFF_CURRENT.md` обов'язковою другою точкою читання кожної нової сесії.
+Перевірити documentation-only continuity slice, інтегрувати його в `main`, після чого провести незалежний review private Taxo-profile самим проєктом/іншим виконавцем і передати feedback у `dev-strategy`.
 
 ## Recovery після обриву
 1. Відкрити `START_HERE.md`.
