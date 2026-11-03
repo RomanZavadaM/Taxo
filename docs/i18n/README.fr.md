@@ -6,7 +6,7 @@ Taxo est un système de bureau pour une seule entreprise de transport : personne
 
 > **Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — vérifiée sur données réelles
 > **Stable précédente / retour arrière:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-> **Candidat actuel:** **10.10-r4** — compilé avec succès pour Windows 10/11, Windows 7, macOS Intel et Apple Silicon ; pas encore publié
+> **Candidat actuel:** [Taxo 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) — préversion publiée ; vérifiée sous Windows 10/11, Windows 7, macOS Intel et Apple Silicon
 
 ## Téléchargements — Taxo 10.9-r10 (stable)
 
@@ -17,6 +17,16 @@ Taxo est un système de bureau pour une seule entreprise de transport : personne
 **macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_x86_64_Portable.zip)
 
 **Source/START:** [START 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/SHA256SUMS_v10_9_r10.txt) · [Notes de version 10.9-r10 (ukrainien)](../releases/RELEASE_NOTES_v10.9-r10.md) · [Index des versions](../releases/RELEASE_INDEX.md)
+
+## Téléchargements — Taxo 10.10-r4 (test / préversion)
+
+**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Windows_x64_Portable.zip)
+
+**Windows 7 SP1 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Windows7_x64_Portable.zip)
+
+**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_macOS_x86_64_Portable.zip)
+
+**Source/START:** [START 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/SHA256SUMS_v10_10_r4.txt)
 
 Les bases de données de travail, fichiers SQLite, numérisations, caches et documents personnels ne sont pas inclus dans les versions GitHub. La mise à jour ne nécessite pas de ressaisir les données de travail.
 
@@ -34,10 +44,10 @@ Les bases de données de travail, fichiers SQLite, numérisations, caches et doc
 
 ## Versions de test (non stables)
 
-[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) sont des préversions publiées. **10.10-r4** corrige les anciens numéros de version dans toutes les fenêtres et rétablit l’installateur Windows 7. Les compilations Windows, Win7, macOS Intel et macOS ARM réussissent. La publication reste à faire.
+[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) sont des préversions publiées. **10.10-r4** corrige les anciens numéros de version dans toutes les fenêtres et rétablit l’installateur Windows 7. Les compilations Windows, Win7, macOS Intel et macOS ARM réussissent. La préversion est maintenant publiée.
 
 ## Développement
 
-La documentation opérationnelle de référence est tenue en ukrainien. Commencez par [`START_HERE.md`](../../START_HERE.md). Après l’intégration de 10.10-r4, `main` contiendra la ligne de test 10.10 actuelle ; la prochaine révision sera `10.10-r5`.
+La documentation opérationnelle de référence est tenue en ukrainien. Commencez par [`START_HERE.md`](../../START_HERE.md). `10.10-r4` est déjà dans `main` et publiée comme préversion de test ; la prochaine révision est `10.10-r5`.
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo est un logiciel propriétaire.
