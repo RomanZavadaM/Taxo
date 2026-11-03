@@ -8,9 +8,19 @@
 **Stable release:** **Taxo 10.10-r4 / `v10.10-r4`** — прийнято власником 03.11.2026; Windows 10/11, Windows 7, macOS Intel/ARM, START і SHA256 опубліковані
 **Previous stable / rollback:** **v10.9-r10**; older rollback — `v10.3`
 **Next code revision:** **10.10-r5**
-**Live ledger:** Issue #61
+**Recovery:** `HANDOFF_CURRENT.md` — короткий актуальний стан; Issue #61 — довга історія
 
 Повний аудит: [`docs/maintenance/AUDIT_FULL_2026-10-05.md`](docs/maintenance/AUDIT_FULL_2026-10-05.md).
+
+## CONTINUITY ADOPTION — 03.11.2026
+
+- Прийнято dev-strategy v2 continuity для Taxo.
+- Додано `HANDOFF_CURRENT.md` як першу recovery-точку після `START_HERE.md`.
+- Створено private Taxo-profile у `RomanZavadaM/dev-strategy`, branch `profile/taxo`.
+- Новий recovery-порядок: START → HANDOFF → private profile → live GitHub.
+- WORKLOG лишається технічною хронологією і більше не повинен бути першим великим документом для нового чату.
+- Після критичних змін HANDOFF оновлюється одразу.
+- Наступний етап після інтеграції: незалежний review Taxo-профілю самим проєктом/іншим виконавцем із feedback у dev-strategy.
 
 ## DOING
 
