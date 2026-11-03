@@ -6,7 +6,7 @@ Taxo is a desktop system for a single transport company: personnel and drivers, 
 
 > **Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — verified on real data
 > **Previous stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-> **Current candidate:** **10.10-r4** — successfully built for Windows 10/11, Windows 7, macOS Intel and Apple Silicon; not published yet
+> **Current candidate:** [Taxo 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) — published prerelease; verified on Windows 10/11, Windows 7, macOS Intel and Apple Silicon
 
 ## Downloads — Taxo 10.9-r10 (stable)
 
@@ -17,6 +17,16 @@ Taxo is a desktop system for a single transport company: personnel and drivers, 
 **macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_x86_64_Portable.zip)
 
 **Source/START:** [START 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/SHA256SUMS_v10_9_r10.txt) · [Release notes 10.9-r10 (Ukrainian)](../releases/RELEASE_NOTES_v10.9-r10.md) · [Release index](../releases/RELEASE_INDEX.md)
+
+## Downloads — Taxo 10.10-r4 (test / prerelease)
+
+**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Windows_x64_Portable.zip)
+
+**Windows 7 SP1 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_Windows7_x64_Portable.zip)
+
+**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_macOS_x86_64_Portable.zip)
+
+**Source/START:** [START 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/Taxo_v10_10_candidate_r4_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.10-r4/SHA256SUMS_v10_10_r4.txt) · [Release notes 10.10-r4 (Ukrainian)](../releases/RELEASE_NOTES_v10.10-r4.md)
 
 User databases, SQLite files, scans, caches, and personal documents are not included in GitHub releases. Updating does not require re-entering working data.
 
@@ -34,10 +44,10 @@ User databases, SQLite files, scans, caches, and personal documents are not incl
 
 ## Test versions (not stable)
 
-[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) are published prereleases. **10.10-r4** fixes stale version numbers across all application windows and restores the Windows 7 installer. Windows, Win7, macOS Intel and macOS ARM builds all pass. Publication is still pending.
+[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) are earlier prereleases. [**10.10-r4**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) fixes stale version numbers across all application windows and restores the Windows 7 installer. All platforms passed and the prerelease is published.
 
 ## Development
 
-Canonical operational documentation is maintained in Ukrainian. Start with [`START_HERE.md`](../../START_HERE.md). After 10.10-r4 is merged, `main` will contain the current 10.10 test line; the next code revision will be `10.10-r5`.
+Canonical operational documentation is maintained in Ukrainian. Start with [`START_HERE.md`](../../START_HERE.md). `10.10-r4` is already in `main` and published as a test prerelease; the next code revision is `10.10-r5`.
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
