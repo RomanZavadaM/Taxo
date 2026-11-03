@@ -69,13 +69,13 @@ Append-only хронологія:
 - release;
 - наступна точка.
 
-Issue не заміняє `WORKLOG.md`: він зберігає історію, а `WORKLOG.md` — поточний знімок.
+Issue #61 зберігає довгу історію. Поточний recovery-знімок — `HANDOFF_CURRENT.md`; `WORKLOG.md` лишається детальним технічним журналом.
 
 ### `VERSION.txt` + `main.APP_VERSION`
 Машинна ідентичність активної збірки. Перед candidate/release вони повинні збігатися. Назва START archive формується з цієї версії через `release_naming.py`.
 
 ### `docs/releases/RELEASE_INDEX.md`
-Індекс опублікованих release/checkpoint. Не використовувати замість `WORKLOG.md` для визначення поточної незавершеної роботи.
+Індекс опублікованих release/checkpoint. Не використовувати замість `HANDOFF_CURRENT.md` для визначення поточної незавершеної роботи.
 
 ## Команда власника «злити у main»
 
