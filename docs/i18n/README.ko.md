@@ -6,7 +6,7 @@ Taxo는 단일 운송 회사를 위한 데스크톱 시스템입니다: 직원 �
 
 > **안정 버전:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — 실제 데이터로 검증됨
 > **이전 안정 버전 / 롤백:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-> **테스트 라인:** [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) (사전 릴리스, 실제 데이터로 검증 중)
+> **현재 후보:** **10.10-r4** — Windows 10/11, Windows 7, macOS Intel 및 Apple Silicon 빌드가 모두 성공했으며 아직 게시되지 않았습니다.
 
 ## 다운로드 — Taxo 10.9-r10 (안정 버전)
 
@@ -40,6 +40,6 @@ Taxo는 단일 운송 회사를 위한 데스크톱 시스템입니다: 직원 �
 
 ## 개발
 
-공식 운영 문서는 우크라이나어로 관리됩니다. [`START_HERE.md`](../../START_HERE.md)에서 시작하세요. `main`의 코드는 10.10 테스트 라인이며 다음 코드 리비전은 `10.10-r4`입니다.
+공식 운영 문서는 우크라이나어로 관리됩니다. [`START_HERE.md`](../../START_HERE.md)에서 시작하세요. `10.10-r4`가 병합되면 `main`이 최신 10.10 테스트 라인이 되며 다음 코드 리비전은 `10.10-r5`입니다.
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo는 독점 소프트웨어입니다.
