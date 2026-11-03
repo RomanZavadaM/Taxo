@@ -24,7 +24,7 @@
 
 ## Поточний стан continuity
 
-Adoption dev-strategy v2 continuity **завершено та інтегровано в main**:
+Adoption dev-strategy v2 continuity **завершено та інтегровано в main**. Незалежний аудит `dev-strategy` розглянуто; рішення Taxo зафіксовані:
 - новий чат не відновлює роботу з пам'яті;
 - після критичної зміни одразу оновлюється цей HANDOFF;
 - довгі технічні деталі лишаються у WORKLOG / GitHub;
@@ -39,7 +39,14 @@ Adoption dev-strategy v2 continuity **завершено та інтегрова
 
 ## Єдина наступна дія
 
-Інтегрувати documentation-only відповідь на аудит `dev-strategy`. Після цього наступний окремий технічний slice — оптимізація CI для docs-only змін, без автоматичного злиття старого PR #142 і без послаблення release-контролю.
+Почати окремий CI-slice для documentation-only змін:
+- виходити тільки з актуального `main`;
+- не зливати старий PR #142 автоматично;
+- прибрати важкі Windows / Windows 7 / macOS збірки для звичайних docs-only змін;
+- зберегти повні перевірки для коду, dependencies, packaging, workflow, security і release;
+- не змінювати stable `v10.10-r4`.
+
+Після цього окремо виконати build/release security audit і незалежний continuity recovery trial.
 
 ## Recovery після обриву
 1. Відкрити `START_HERE.md`.
