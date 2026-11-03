@@ -6,7 +6,7 @@ Taxo is a desktop system for a single transport company: personnel and drivers, 
 
 > **Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — verified on real data
 > **Previous stable / rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-> **Testing line:** [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) (prerelease, being verified on real data)
+> **Current candidate:** **10.10-r4** — successfully built for Windows 10/11, Windows 7, macOS Intel and Apple Silicon; not published yet
 
 ## Downloads — Taxo 10.9-r10 (stable)
 
@@ -34,10 +34,10 @@ User databases, SQLite files, scans, caches, and personal documents are not incl
 
 ## Test versions (not stable)
 
-[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) are prereleases for real-data verification: no PyMuPDF, correct version in the window, DB-only backup warning, CI hardening. They become stable only after the owner verifies them.
+[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) are published prereleases. **10.10-r4** fixes stale version numbers across all application windows and restores the Windows 7 installer. Windows, Win7, macOS Intel and macOS ARM builds all pass. Publication is still pending.
 
 ## Development
 
-Canonical operational documentation is maintained in Ukrainian. Start with [`START_HERE.md`](../../START_HERE.md). The code in `main` is the 10.10 test line; next code revision is `10.10-r4`.
+Canonical operational documentation is maintained in Ukrainian. Start with [`START_HERE.md`](../../START_HERE.md). After 10.10-r4 is merged, `main` will contain the current 10.10 test line; the next code revision will be `10.10-r5`.
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.

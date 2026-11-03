@@ -6,7 +6,7 @@ Taxo est un système de bureau pour une seule entreprise de transport : personne
 
 > **Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — vérifiée sur données réelles
 > **Stable précédente / retour arrière:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-> **Ligne de test:** [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) (préversion, en vérification sur données réelles)
+> **Candidat actuel:** **10.10-r4** — compilé avec succès pour Windows 10/11, Windows 7, macOS Intel et Apple Silicon ; pas encore publié
 
 ## Téléchargements — Taxo 10.9-r10 (stable)
 
@@ -34,10 +34,10 @@ Les bases de données de travail, fichiers SQLite, numérisations, caches et doc
 
 ## Versions de test (non stables)
 
-[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) sont des préversions à vérifier sur données réelles : sans PyMuPDF, version correcte dans la fenêtre, avertissement de sauvegarde « BD uniquement », renforcement CI. Elles ne deviennent stables qu'après vérification par le propriétaire.
+[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) sont des préversions publiées. **10.10-r4** corrige les anciens numéros de version dans toutes les fenêtres et rétablit l’installateur Windows 7. Les compilations Windows, Win7, macOS Intel et macOS ARM réussissent. La publication reste à faire.
 
 ## Développement
 
-La documentation opérationnelle de référence est tenue en ukrainien. Commencez par [`START_HERE.md`](../../START_HERE.md). Le code dans `main` est la ligne de test 10.10 ; la prochaine révision est `10.10-r4`.
+La documentation opérationnelle de référence est tenue en ukrainien. Commencez par [`START_HERE.md`](../../START_HERE.md). Après l’intégration de 10.10-r4, `main` contiendra la ligne de test 10.10 actuelle ; la prochaine révision sera `10.10-r5`.
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo est un logiciel propriétaire.
