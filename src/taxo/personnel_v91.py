@@ -1941,9 +1941,15 @@ def install(core, base_app):
             driver_key=str(self.tab_drivers)
             personnel_button=nav_buttons.pop(driver_key,None)
             if personnel_button is not None:
-                personnel_button.configure(
-                    command=self.show_personnel_overview
-                )
+                # Navigation can be a Label on macOS; unlike Button, it has
+                # no "command" option. Keep both widget types functional.
+                if "command" in personnel_button.keys():
+                    personnel_button.configure(command=self.show_personnel_overview)
+                else:
+                    personnel_button.bind(
+                        "<Button-1>",
+                        lambda _event: self.show_personnel_overview(),
+                    )
                 nav_buttons[str(self.tab_personnel)]=personnel_button
 
             # Numeric tab indexes became unstable after adding «Персонал».
