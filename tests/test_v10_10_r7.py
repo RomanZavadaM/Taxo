@@ -87,6 +87,28 @@ class EmployeeDocumentRequirementR7Tests(unittest.TestCase):
         )[0]
         self.assertEqual(row["state"], control.STATE_DATE_REQUIRED)
 
+
+    def test_required_document_without_workspace_copy_is_visible_problem(self):
+        control.save_requirement(
+            self.con, 1, "Посвідчення водія",
+            required=True, expiry_control=False,
+        )
+        personnel.save_employee_document(
+            self.con, 1, {
+                "doc_type": "Посвідчення водія",
+                "number": "DRV-NO-FILE",
+                "expiry_date": "",
+                "file_path": "",
+            }
+        )
+        self.con.commit()
+        rows = control.document_control_rows(
+            self.con, today=date(2026, 11, 5), problems_only=True
+        )
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["state"], control.STATE_COPY_REQUIRED)
+        self.assertFalse(rows[0]["file_backed_up"])
+
     def test_optional_document_can_have_expiry_control(self):
         control.save_requirement(
             self.con, 1, "Інше",
