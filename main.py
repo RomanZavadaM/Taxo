@@ -11314,6 +11314,8 @@ class App(tk.Tk):
         self.monthly_shift_pdf_dirty=True
         self.monthly_shift_last_detail_pdf=None
         self.monthly_shift_last_xlsx=None
+        self.monthly_shift_report_driver_ids=None  # None = усі водії
+        self.monthly_shift_report_label=tk.StringVar(value="Звіт: усі водії")
 
         ttk.Label(filters,text="Рік:").pack(side="left")
         ttk.Spinbox(
@@ -11336,6 +11338,10 @@ class App(tk.Tk):
         ttk.Button(
             filters,text="Оновити",command=self.refresh_monthly_shift_schedule
         ).pack(side="left",padx=3)
+        ttk.Button(
+            filters,text="Водії для звіту…",command=self.choose_monthly_shift_report_drivers
+        ).pack(side="left",padx=(12,3))
+        ttk.Label(filters,textvariable=self.monthly_shift_report_label).pack(side="left",padx=4)
 
         ttk.Button(
             exports,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
@@ -11399,6 +11405,62 @@ class App(tk.Tk):
         ).pack(fill="x",padx=10,pady=(0,8))
 
         self.refresh_monthly_shift_schedule()
+
+    def choose_monthly_shift_report_drivers(self):
+        """Вибір водіїв лише для PDF/Excel; основний графік не змінюється."""
+        data=collect_monthly_shift_schedule(
+            int(self.monthly_shift_year.get()),
+            int(self.monthly_shift_month.get()),
+            active_only=bool(self.monthly_shift_active_only.get()),
+        )
+        drivers=data["drivers"]
+        if not drivers:
+            messagebox.showinfo("Звіт водіїв", "За вибраний період водіїв немає.", parent=self.monthly_shift_win)
+            return
+        popup=tk.Toplevel(self.monthly_shift_win)
+        popup.title("Вибір водіїв для звіту")
+        fit_window_to_screen(popup, 510, 570, 400, 360)
+        popup.transient(self.monthly_shift_win)
+        body=ttk.Frame(popup,padding=12)
+        body.pack(fill="both",expand=True)
+        ttk.Label(body,text="Виберіть водіїв для PDF, Excel та деталізації.\nГрафік на екрані та дані обліку не змінюються.").pack(anchor="w")
+        frame=ttk.Frame(body)
+        frame.pack(fill="both",expand=True,pady=8)
+        chooser=tk.Listbox(frame,selectmode="extended",exportselection=False)
+        sy=ttk.Scrollbar(frame,orient="vertical",command=chooser.yview)
+        chooser.configure(yscrollcommand=sy.set)
+        chooser.pack(side="left",fill="both",expand=True)
+        sy.pack(side="right",fill="y")
+        current=self.monthly_shift_report_driver_ids
+        for index,driver in enumerate(drivers):
+            chooser.insert("end",driver["name"])
+            if current is None or int(driver["id"]) in current:
+                chooser.selection_set(index)
+        actions=ttk.Frame(body)
+        actions.pack(fill="x",pady=(3,0))
+        ttk.Button(actions,text="Позначити всіх",
+                   command=lambda:chooser.selection_set(0,"end")).pack(side="left")
+        ttk.Button(actions,text="Очистити",
+                   command=lambda:chooser.selection_clear(0,"end")).pack(side="left",padx=5)
+        def apply_selection(all_drivers=False):
+            indices=chooser.curselection()
+            if not all_drivers and not indices:
+                messagebox.showwarning("Звіт водіїв","Виберіть хоча б одного водія.",parent=popup)
+                return
+            selected=None if all_drivers else tuple(sorted(int(drivers[i]["id"]) for i in indices))
+            self.monthly_shift_report_driver_ids=selected
+            self.monthly_shift_report_label.set(
+                "Звіт: усі водії" if selected is None else f"Звіт: вибрано {len(selected)}"
+            )
+            self.monthly_shift_pdf_dirty=True
+            self.monthly_shift_last_pdf=None
+            popup.destroy()
+        ttk.Button(actions,text="Усі для звіту",
+                   command=lambda:apply_selection(True)).pack(side="right",padx=4)
+        ttk.Button(actions,text="Застосувати",
+                   command=apply_selection).pack(side="right")
+        popup.grab_set()
+        chooser.focus_set()
 
     def refresh_monthly_shift_schedule(self):
         if not hasattr(self,"monthly_shift_tree") or not self.monthly_shift_tree.winfo_exists():
@@ -11486,7 +11548,8 @@ class App(tk.Tk):
             return
         actual=write_output_file(
             lambda out: export_monthly_shift_schedule_xlsx(
-                y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+                y,m,out,active_only=bool(self.monthly_shift_active_only.get()),
+                driver_ids=self.monthly_shift_report_driver_ids
             ),
             path,
             parent=self.monthly_shift_win,
@@ -11520,7 +11583,8 @@ class App(tk.Tk):
             return
         actual=write_output_file(
             lambda out: export_monthly_shift_detail_pdf(
-                y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+                y,m,out,active_only=bool(self.monthly_shift_active_only.get()),
+                driver_ids=self.monthly_shift_report_driver_ids
             ),
             path,
             parent=self.monthly_shift_win,
@@ -11549,7 +11613,8 @@ class App(tk.Tk):
         try:
             actual=write_output_file(
                 lambda out: export_monthly_shift_detail_pdf(
-                    y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+                    y,m,out,active_only=bool(self.monthly_shift_active_only.get()),
+                driver_ids=self.monthly_shift_report_driver_ids
                 ),
                 path,
                 parent=self.monthly_shift_win,
@@ -11577,6 +11642,7 @@ class App(tk.Tk):
             int(self.monthly_shift_year.get()),
             int(self.monthly_shift_month.get()),
             bool(self.monthly_shift_active_only.get()),
+            self.monthly_shift_report_driver_ids,
         )
 
     def save_monthly_shift_schedule_pdf(self):
@@ -11594,7 +11660,8 @@ class App(tk.Tk):
             return
         actual=write_output_file(
             lambda out: export_monthly_shift_schedule_pdf(
-                y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+                y,m,out,active_only=bool(self.monthly_shift_active_only.get()),
+                driver_ids=self.monthly_shift_report_driver_ids
             ),
             path,
             parent=self.monthly_shift_win,
@@ -11623,7 +11690,8 @@ class App(tk.Tk):
             if not use_last:
                 actual=write_output_file(
                     lambda out: export_monthly_shift_schedule_pdf(
-                        y,m,out,active_only=bool(self.monthly_shift_active_only.get())
+                        y,m,out,active_only=bool(self.monthly_shift_active_only.get()),
+                driver_ids=self.monthly_shift_report_driver_ids
                     ),
                     path,
                     parent=self.monthly_shift_win,
