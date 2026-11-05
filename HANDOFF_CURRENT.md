@@ -1,52 +1,51 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 03.11.2026
+**Оновлено:** 05.11.2026
 
 Це короткий recovery-знімок для нового чату або нового виконавця. Він замінюється при критичній зміні стану й не використовується як довгий журнал.
 
 ## База
 - Repository: `RomanZavadaM/Taxo`
+- Актуальний `main`: `1f6a397fdd7b218a21ffc10f3fd87d5aad566d36`
 - Stable / Latest: `v10.10-r4`
 - Previous stable / rollback: `v10.9-r10`
 - Наступна кодова ревізія: `10.10-r5`
 - Загальна методологія: private `RomanZavadaM/dev-strategy`, branch `profile/taxo`, файл `TAXO_PROFILE.md`
 - Google Drive backup: `Taxo — Розробка — резервний комплект`
 
-## Завершено
-- `v10.10-r4` прийнято власником як Stable / Latest.
-- Windows 10/11: Setup + Portable.
-- Windows 7: Setup + Portable.
-- macOS: ARM64 + Intel.
-- START/source + SHA256 опубліковані.
-- README та релізні документи синхронізовані.
-- Додано універсальний механізм публікації.
-- На Google Drive є повний запасний stable-комплект і snapshot current main.
+## Live reconciliation 05.11.2026
+Після закриття сесії 03.11 у GitHub з'явився окремий draft PR #151:
+- `fix(macOS): prevent startup crash in personnel navigation`;
+- branch `fix/macos-personnel-navigation-command-20261104`;
+- CI Windows / Windows 7 / macOS — success;
+- це окрема кодова лінія для майбутньої `10.10-r5`; вона **не входить** у CI optimization slice і не змінює stable `v10.10-r4`.
 
-## Поточний стан continuity
+Старий draft PR #142 лишається довідкою і **не зливається автоматично**.
 
-Adoption dev-strategy v2 continuity **завершено та інтегровано в main**. Незалежний аудит `dev-strategy` розглянуто; рішення Taxo зафіксовані:
-- новий чат не відновлює роботу з пам'яті;
-- після критичної зміни одразу оновлюється цей HANDOFF;
-- довгі технічні деталі лишаються у WORKLOG / GitHub;
-- після зависання або обриву наступник спершу звіряє GitHub і HANDOFF;
-- process/security/release деталі Taxo зберігаються у private Taxo-profile.
+## Активна робота
+Окремий CI optimization slice розпочато від актуального `main`.
 
-## Межа з dev-strategy
+- Branch: `ci/docs-only-optimization-20261105`
+- Base: `1f6a397fdd7b218a21ffc10f3fd87d5aad566d36`
+- Мета: звичайні documentation-only зміни не повинні запускати важкі Windows / Windows 7 / macOS збірки.
+- Повні перевірки мають зберігатися для коду, dependencies, packaging, scripts/security, workflow і release змін.
+- Перед release фінальний повний контроль не послаблюється.
+- Stable/version не змінюються: це process/CI maintenance, не продуктова ревізія.
 
-Розробники `dev-strategy` можуть проводити **read-only аналіз Taxo**: читати код і документацію, звіряти процеси та рекомендувати зміни. Вони не вносять зміни в продукт без окремого доручення власника.
-
-Їхні рекомендації не застосовуються автоматично: власник сам вирішує, що корисне для методології, private Taxo-profile і самого Taxo.
+## Уже перевірено
+- Фактичний `main`, відкриті PR та останні Actions звірені.
+- Підтверджено проблему: docs-only PR 03.11 запускав Windows, Windows 7 і macOS.
+- Прочитані `START_HERE.md`, цей HANDOFF, private Taxo-profile, `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md`, Issue #61.
+- PR #142 переглянуто лише як історичну довідку; його зміни не копіюються без звірки з актуальним `main`.
 
 ## Єдина наступна дія
+Завершити і перевірити нові CI-фільтри на branch `ci/docs-only-optimization-20261105`, відкрити окремий draft PR і підтвердити матрицю:
+1. docs-only PR — без важких платформних збірок;
+2. code/workflow/security/release change — повний набір відповідних перевірок;
+3. main docs-only push — без зайвих платформних/START збірок;
+4. release checkpoint — повний контроль збережено.
 
-Почати окремий CI-slice для documentation-only змін:
-- виходити тільки з актуального `main`;
-- не зливати старий PR #142 автоматично;
-- прибрати важкі Windows / Windows 7 / macOS збірки для звичайних docs-only змін;
-- зберегти повні перевірки для коду, dependencies, packaging, workflow, security і release;
-- не змінювати stable `v10.10-r4`.
-
-Після цього окремо виконати build/release security audit і незалежний continuity recovery trial.
+Після підтвердження — оновити WORKLOG / Issue #61 і вирішувати інтеграцію окремо. Не змішувати з PR #151.
 
 ## Recovery після обриву
 1. Відкрити `START_HERE.md`.
@@ -55,5 +54,3 @@ Adoption dev-strategy v2 continuity **завершено та інтегрова
 4. Звірити live GitHub.
 5. Якщо HANDOFF суперечить GitHub — GitHub має пріоритет, HANDOFF одразу виправити.
 6. Продовжити лише з пункту «Єдина наступна дія».
-
-Не читати старі чати для відновлення стану, якщо потрібний факт уже є у GitHub або HANDOFF.
