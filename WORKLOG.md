@@ -5,6 +5,17 @@
 
 ## CURRENT
 
+## R5 STABLE — 05.11.2026
+
+- `v10.10-r5` опубліковано повним комплектом із 8 release assets.
+- Власник раніше перевірив виправлення запуску на Apple Silicon Mac mini.
+- Повний CI на PR і на main — SUCCESS для Windows, Windows 7, macOS ARM64/Intel та START.
+- `v10.10-r4` superseded через підтверджену проблему запуску на macOS; tag/release не змінюється.
+- `v10.10-r5` стає Stable / Latest.
+- Наступна кодова ревізія: `10.10-r6`.
+- Наступна робота: повернутися до CI optimization; PR #152 спершу звірити/перенести на актуальний r5 main.
+
+
 ## R5 MAIN CHECKPOINT — 05.11.2026
 
 - PR #151 інтегровано в `main`; main SHA `44ff2854d85ef71cd2647f90568c73c2ba56c6f9`.
@@ -25,9 +36,9 @@
 - Далі: повна перевірка r5 → інтеграція #151 → випуск r5 → заміна r4 як stable/Latest.
 
 
-**Stable release:** **Taxo 10.10-r4 / `v10.10-r4`** — прийнято власником 03.11.2026; Windows 10/11, Windows 7, macOS Intel/ARM, START і SHA256 опубліковані
+**Stable release:** **Taxo 10.10-r5 / `v10.10-r5`** — виправлена macOS-версія; Windows 10/11, Windows 7, macOS Intel/ARM, START і SHA256 опубліковані
 **Previous stable / rollback:** **v10.9-r10**; older rollback — `v10.3`
-**Next code revision:** **10.10-r5**
+**Next code revision:** **10.10-r6**
 **Recovery:** `HANDOFF_CURRENT.md` — короткий актуальний стан; Issue #61 — довга історія
 
 Повний аудит: [`docs/maintenance/AUDIT_FULL_2026-10-05.md`](docs/maintenance/AUDIT_FULL_2026-10-05.md).
