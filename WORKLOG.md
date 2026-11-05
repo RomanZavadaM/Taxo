@@ -5,6 +5,18 @@
 
 ## CURRENT
 
+## 10.10-r9 — узгодження графіка водіїв — 05.11.2026
+
+- Скріншоти власника виявили розбіжності між водійським табелем та новим графіком/PDF r8 (02.11, 14–16.11) та crash `adjusted() takes 5 positional arguments but 6 were given`.
+- Створено робочу гілку `fix/r9-driver-schedule-consistency` та PR #160; виправлено визначення linked driver, читання worklog для клітинок водійського графіка і wrapper коригування відсутностей.
+- Новий тест `tests/test_v10_10_r9.py`; версія та пакетування оновлені до r9.
+- Початкові PR workflow впали лише через старий hardcoded r8 version guard; після узгодження workflow PR CI: Windows, Windows 7, macOS ARM64/Intel SUCCESS.
+- PR #160 merged squash у main `66882a2164bea1a72a30ec1db74d36d1613d0c68`.
+- Main START та platform jobs запущені після merge; точні успіхи потрібно звірити перед передачею власнику.
+- Stable v10.10-r5 збережено. Жодної робочої БД чи сканів не читали й не переписували.
+- Раніше записані подвійні employee_shifts не видаляємо автоматично; діагностика на копії — окрема робота.
+- Next revision: 10.10-r10. CI optimization #152 не змішувати.
+
 ## 10.10-r8 — простий місячний графік — 05.11.2026
 
 - PR r8 інтегровано в `main`; exact-main START, Windows, Windows 7, macOS ARM64 та Intel підтверджені успішно.
@@ -72,7 +84,7 @@
 
 **Stable release:** **Taxo 10.10-r5 / `v10.10-r5`** — виправлена macOS-версія; Windows 10/11, Windows 7, macOS Intel/ARM, START і SHA256 опубліковані
 **Previous stable / rollback:** **v10.9-r10**; older rollback — `v10.3`
-**Next code revision:** **10.10-r9**
+**Next code revision:** **10.10-r10**
 **Recovery:** `HANDOFF_CURRENT.md` — короткий актуальний стан; Issue #61 — довга історія
 
 Повний аудит: [`docs/maintenance/AUDIT_FULL_2026-10-05.md`](docs/maintenance/AUDIT_FULL_2026-10-05.md).
