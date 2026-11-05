@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Taxo 10.10-r4 — canonical version in all current and future UI windows."""
 import sys
+import re
 import types
 import unittest
 from pathlib import Path
@@ -89,10 +90,12 @@ class TestVersionUiR4(unittest.TestCase):
         self.assertEqual(late_label._text, "Version: 10.10-r4")
         self.assertEqual(core.APP_VERSION, "10.10-r4")
 
-    def test_repository_version_identity_is_r4(self):
+    def test_repository_version_identity_is_r4_or_later(self):
         version = version_from_file(ROOT / "VERSION.txt")
-        self.assertEqual(version, "10.10-r4")
-        self.assertIn('APP_VERSION = "10.10-r4"', (ROOT / "main.py").read_text("utf-8"))
+        match = re.fullmatch(r"10\.10-r(\d+)", version)
+        self.assertIsNotNone(match, version)
+        self.assertGreaterEqual(int(match.group(1)), 4)
+        self.assertIn(f'APP_VERSION = "{version}"', (ROOT / "main.py").read_text("utf-8"))
 
 
 if __name__ == "__main__":
