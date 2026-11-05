@@ -9,7 +9,7 @@
 - **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Current main candidate:** Taxo **10.11-r1** — перший етап спрощення UX, інтегровано 05.11.2026; stable ще не змінено.
+- **Current main candidate:** Taxo **10.11-r1** — перший етап спрощення UX, інтегровано 05.11.2026. Офіційний [prerelease v10.11-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r1) опубліковано 05.11.2026; 8 assets і SHA256, tag source `89a93c0ddf95dfa120260f71ae98c8b772178a56`; stable ще не змінено.
 - **Next code revision:** **10.11-r2**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Google Drive backup:** повний запасний stable-комплект + current-main snapshot у папці `Taxo — Розробка — резервний комплект`.
@@ -23,6 +23,8 @@
 - **r9:** вибрані водії відображають основний worklog замість загальної кадрової норми; посада водія не створює дубль у планувальнику; виправлено аварію коригування відсутностей. Тести r9 додано. PR #160 merged; exact-main START, Windows, Windows 7, macOS ARM64/Intel — SUCCESS.
 - **r10:** українське «част.»; вибір водіїв у деталізованому водійському PDF/Excel, PR #162 merged.
 - **10.11-r1:** спрощення до вибору документа та двох дій; читабельні імена файлів; PR #163 merged. Exact-main START/Windows/Win7/macOS SUCCESS. Issue #164 — подальша системна UX робота.
+- **Публікація:** docs PR #165/#166 та release trigger PR #167 merged; publish workflow #42063810115 SUCCESS. 10.11-r1 = immutable prerelease, не stable.
+- **Зауваження власника:** PDF простого місячного графіка працівників має надто загальне ім'я `Графік_працівників_2026_11.pdf` та зайву колонку «Роль». Зробити в наступній кодовій 10.11-r2; Issue #164; решту власник ще тестує.
 - Водійський план не дублюється у загальному плануванні персоналу.
 - Персональний PDF/Excel містить тільки вибраних працівників і не показує службові проблеми інших ролей.
 - Перед інтеграцією r8 повні перевірки Windows, Windows 7, macOS ARM64/Intel та START пройшли успішно.
