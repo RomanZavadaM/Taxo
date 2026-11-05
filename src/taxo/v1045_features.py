@@ -201,28 +201,12 @@ def _document_editor(app, core, employee_id, row=None, on_saved=None):
                 parent=win,
             )
             return
-        if required_var.get() and not str(payload["file_path"] or "").strip():
-            core.messagebox.showerror(
-                "Документ",
-                "Обов'язковий документ повинен мати завантажений файл.",
-                parent=win,
-            )
-            return
-
         file_value=str(payload["file_path"] or "").strip()
         if file_value:
             try:
                 stored,backed_up=docctl.stored_document_path(core,employee_id,file_value)
             except Exception as exc:
                 core.messagebox.showerror("Файл документа",str(exc),parent=win)
-                return
-            if required_var.get() and not backed_up:
-                core.messagebox.showerror(
-                    "Файл документа",
-                    "Обов'язковий документ має бути локальним файлом, який Taxo може зберегти у робочому сховищі. "
-                    "Зовнішнього веб-посилання недостатньо.",
-                    parent=win,
-                )
                 return
             payload["file_path"]=stored
 
