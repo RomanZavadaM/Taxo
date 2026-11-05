@@ -334,6 +334,29 @@ def _short_day_cell(core, con, employee, work_date):
     if hasattr(core, "employee_employed_on") and not core.employee_employed_on(employee, work_date):
         return ""
 
+    # A driver-facing schedule follows the dedicated driver calendar. An
+    # employee regime and generic personnel shifts must not invent driver days.
+    if employee["driver_id"] is not None:
+        entry = con.execute(
+            "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
+            (employee["id"], work_date.isoformat()),
+        ).fetchone()
+        if entry and _text(entry["day_type"]) in ABSENCE_CODES and _text(entry["day_type"]) not in ("Вихідний", "Відпочинок"):
+            return ABSENCE_CODES[_text(entry["day_type"])]
+        driver_day = con.execute(
+            "SELECT day_type FROM worklog WHERE driver_id=? AND work_date=? ORDER BY id DESC LIMIT 1",
+            (employee["driver_id"], work_date.isoformat()),
+        ).fetchone()
+        if driver_day is not None:
+            kind = _text(driver_day["day_type"])
+            if kind == "Робота":
+                return "Р"
+            return ABSENCE_CODES.get(kind, "Вих" if kind in ("", "Вихідний", "Відпочинок") else kind[:3])
+        driver_plan = getattr(core, "_driver_plan_minutes_for_day", None)
+        if callable(driver_plan) and int(driver_plan(con, employee["driver_id"], work_date) or 0) > 0:
+            return "Р"
+        return "Вих"
+
     entry = con.execute(
         """SELECT * FROM employee_time_entries
             WHERE employee_id=? AND work_date=?""",
