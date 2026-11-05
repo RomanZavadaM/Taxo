@@ -17,11 +17,11 @@
 
 ## Перевірка
 - Перед інтеграцією r8: START, Windows, Windows 7, macOS ARM64 та Intel — SUCCESS.
-- Точний інтегрований `main` r8: START — SUCCESS; повторні Windows / Windows 7 / macOS перевірки ще виконуються.
+- Точний інтегрований `main` r8: START, Windows, Windows 7, macOS ARM64 та Intel — SUCCESS.
 - Stable не змінювався: користувацький stable залишається **v10.10-r5**.
 
 ## Єдина наступна дія
-Дочекатися результату повторних перевірок точного `main` r8, зафіксувати їх і видати власнику START r8 для перевірки нового інтерфейсу.
+Видати власнику START r8 для перевірки нового інтерфейсу; наступну кодову роботу починати вже як 10.10-r9.
 
 ## Recovery
 `START_HERE.md` → цей HANDOFF → private Taxo-profile → live GitHub → `PROJECT_STATE.md`.
