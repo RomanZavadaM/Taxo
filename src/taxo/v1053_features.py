@@ -156,6 +156,8 @@ def install(core, base_app):
             tree.tag_configure(docreg.STATE_EXPIRED, foreground="#8A1C1C")
             tree.tag_configure(docreg.STATE_NO_EXPIRY, foreground="#365A7A")
             tree.tag_configure(docreg.STATE_DATE_REVIEW, foreground="#8A5A00")
+            tree.tag_configure(docreg.STATE_DATE_REQUIRED, foreground="#8A1C1C")
+            tree.tag_configure(docreg.STATE_NOT_CONTROLLED, foreground="#365A7A")
             tree.tag_configure(docreg.STATE_ARCHIVED, foreground="#777777")
 
             cache = {}
@@ -202,9 +204,9 @@ def install(core, base_app):
                     )
                 counts = docreg.summary(rows)
                 summary_var.set(
-                    "Показано: %d  ·  прострочено: %d  ·  ≤30 днів: %d  ·  без строку: %d" % (
+                    "Показано: %d  ·  прострочено: %d  ·  ≤30 днів: %d  ·  потрібна дата: %d  ·  строк не контролюється: %d" % (
                         counts["total"], counts[docreg.STATE_EXPIRED], counts[docreg.STATE_EXPIRING],
-                        counts[docreg.STATE_NO_EXPIRY],
+                        counts[docreg.STATE_DATE_REQUIRED], counts[docreg.STATE_NOT_CONTROLLED],
                     )
                 )
 
