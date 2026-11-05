@@ -5,6 +5,14 @@
 
 ## CURRENT
 
+## R5 MAIN CHECKPOINT — 05.11.2026
+
+- PR #151 інтегровано в `main`; main SHA `44ff2854d85ef71cd2647f90568c73c2ba56c6f9`.
+- Повний main CI: Windows, Windows 7, macOS ARM64 + Intel, START — SUCCESS.
+- Випуск `v10.10-r5` формується тільки з цих перевірених main-артефактів.
+- Наступна дія: publish r5 → stable/Latest → документація.
+
+
 ## MACOS STARTUP FIX → 10.10-r5 — 05.11.2026
 
 - Stable `v10.10-r4` має підтверджену проблему запуску на macOS.
