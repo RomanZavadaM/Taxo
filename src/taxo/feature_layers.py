@@ -74,6 +74,7 @@ from v1097_stoir_odometer import install as install_v1097_stoir_odometer
 from v1098_orders_immutability import install as install_v1098_orders_immutability
 from v1099_schema_compatibility import install as install_v1099_schema_compatibility
 from personnel_data_center_r6 import install as install_personnel_data_center_r6
+from employee_document_control_r7 import install as install_employee_document_control_r7
 
 Installer = Callable[..., type]
 
@@ -148,6 +149,7 @@ FEATURE_LAYERS: Tuple[FeatureLayer, ...] = (
     FeatureLayer("v1098-orders-immutability", install_v1098_orders_immutability, domain="operations"),
     FeatureLayer("v1099-schema-compatibility", install_v1099_schema_compatibility, domain="infrastructure"),
     FeatureLayer("v1010-r6-personnel-data-center", install_personnel_data_center_r6, domain="personnel"),
+    FeatureLayer("v1010-r7-employee-document-control", install_employee_document_control_r7, domain="personnel"),
 )
 
 
