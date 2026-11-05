@@ -115,13 +115,14 @@ def paths_for(root):
         "tacho_db":data/"tachograph_test.sqlite3",
         "tacho_scans":data/"TachographScans",
         "vehicle_documents":data/"VehicleDocuments",
+        "employee_documents":data/"EmployeeDocuments",
     }
 
 
 def ensure_workspace(root):
     root=normalize_root(root)
     p=paths_for(root)
-    for key in ("data","backups","output","logs","att_archive","att_replaced","att_deleted","waybills","tacho_scans","vehicle_documents"):
+    for key in ("data","backups","output","logs","att_archive","att_replaced","att_deleted","waybills","tacho_scans","vehicle_documents","employee_documents"):
         p[key].mkdir(parents=True,exist_ok=True)
     marker=root/MARKER_NAME
     if not marker.exists():
@@ -169,7 +170,7 @@ def workspace_has_data(root):
     p=paths_for(root)
     if p["main_db"].exists() or p["tacho_db"].exists():
         return True
-    for key in ("tacho_scans","vehicle_documents","output","backups"):
+    for key in ("tacho_scans","vehicle_documents","employee_documents","output","backups"):
         folder=p[key]
         try:
             if folder.exists() and any(folder.iterdir()):
@@ -507,8 +508,8 @@ def create_workspace_backup_archive(
     """Create an atomic, verified, selective ZIP backup.
 
     Both SQLite databases are always included through SQLite backup().
-    Large document/scans/output trees are optional and are never pulled in
-    merely because they live in the working workspace. Backups/ and Logs/ are
+    Employee-document copies are always included. Vehicle documents,
+    tachograph scans and Output remain optional large trees. Backups/ and Logs/ are
     excluded to avoid recursive growth and low-value bulk.
     """
     source=normalize_root(source_root)
@@ -542,6 +543,7 @@ def create_workspace_backup_archive(
             "includes":{
                 "databases":True,
                 "vehicle_documents":bool(include_vehicle_documents),
+                "employee_documents":True,
                 "tachograph_scans":bool(include_tacho_scans),
                 "output":bool(include_output),
             },
