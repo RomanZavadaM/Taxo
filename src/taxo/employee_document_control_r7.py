@@ -20,6 +20,7 @@ STATE_DATE_REQUIRED = "date_required"
 STATE_EXPIRED = "expired"
 STATE_EXPIRING = "expiring"
 STATE_NOT_CONTROLLED = "not_controlled"
+STATE_COPY_REQUIRED = "copy_required"
 
 STATE_LABELS = {
     STATE_OK: "Чинний",
@@ -28,6 +29,7 @@ STATE_LABELS = {
     STATE_EXPIRED: "Прострочений",
     STATE_EXPIRING: "Закінчується ≤30 днів",
     STATE_NOT_CONTROLLED: "Строк не контролюється",
+    STATE_COPY_REQUIRED: "Немає резервної копії файла",
 }
 
 PROBLEM_STATES = {
@@ -35,6 +37,7 @@ PROBLEM_STATES = {
     STATE_DATE_REQUIRED,
     STATE_EXPIRED,
     STATE_EXPIRING,
+    STATE_COPY_REQUIRED,
 }
 
 
@@ -291,9 +294,28 @@ def document_control_rows(con, today=None, problems_only=False):
             bool(req["expiry_control"]),
             today,
         )
+        state_label = STATE_LABELS[state]
+        file_backed_up = False
+        if document is not None:
+            raw_file = _text(document["file_path"])
+            file_backed_up = raw_file.startswith("workspace://Data/EmployeeDocuments/")
+
+        # A required document may be declared before its copy is available.
+        # That is a valid requirement state, but it remains a visible problem
+        # until Taxo owns a workspace copy of the file.
+        if bool(req["required"]) and not file_backed_up:
+            if state in (STATE_OK, STATE_NOT_CONTROLLED):
+                state = STATE_COPY_REQUIRED
+                state_label = STATE_LABELS[state]
+            elif state not in (STATE_NO_DOCUMENT,):
+                state_label = state_label + " · немає резервної копії файла"
+
         # Missing optional-but-controlled document is still a control problem;
         # required determines why it matters, not whether it is visible.
-        if problems_only and state not in PROBLEM_STATES:
+        is_problem = state in PROBLEM_STATES or (
+            bool(req["required"]) and not file_backed_up
+        )
+        if problems_only and not is_problem:
             continue
         result.append({
             "employee_id": int(req["employee_id"]),
@@ -306,8 +328,9 @@ def document_control_rows(con, today=None, problems_only=False):
             "number": _text(document["number"]) if document is not None else "",
             "expiry_date": _text(document["expiry_date"]) if document is not None else "",
             "file_path": _text(document["file_path"]) if document is not None else "",
+            "file_backed_up": file_backed_up,
             "state": state,
-            "state_label": STATE_LABELS[state],
+            "state_label": state_label,
         })
     return result
 
@@ -404,6 +427,7 @@ def install(core, base_app):
                 (STATE_EXPIRING, "#7A5B00"),
                 (STATE_OK, "#0B5D1E"),
                 (STATE_NOT_CONTROLLED, "#365A7A"),
+                (STATE_COPY_REQUIRED, "#8A1C1C"),
             ):
                 tree.tag_configure(state, foreground=color)
 
