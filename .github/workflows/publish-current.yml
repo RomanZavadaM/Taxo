@@ -56,14 +56,14 @@ jobs:
           test -n "${release_id}"
 
           required=(
-            "Taxo_v10_10_candidate_r4_Setup_Windows_x64.exe"
-            "Taxo_v10_10_candidate_r4_Windows_x64_Portable.zip"
-            "Taxo_v10_10_candidate_r4_Setup_Windows7_x64.exe"
-            "Taxo_v10_10_candidate_r4_Windows7_x64_Portable.zip"
-            "Taxo_v10_10_candidate_r4_macOS_arm64_Portable.zip"
-            "Taxo_v10_10_candidate_r4_macOS_x86_64_Portable.zip"
-            "Taxo_v10_10_candidate_r4_START.zip"
-            "SHA256SUMS_v10_10_r4.txt"
+            "Taxo_v10_10_candidate_r5_Setup_Windows_x64.exe"
+            "Taxo_v10_10_candidate_r5_Windows_x64_Portable.zip"
+            "Taxo_v10_10_candidate_r5_Setup_Windows7_x64.exe"
+            "Taxo_v10_10_candidate_r5_Windows7_x64_Portable.zip"
+            "Taxo_v10_10_candidate_r5_macOS_arm64_Portable.zip"
+            "Taxo_v10_10_candidate_r5_macOS_x86_64_Portable.zip"
+            "Taxo_v10_10_candidate_r5_START.zip"
+            "SHA256SUMS_v10_10_r5.txt"
           )
           assets="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" --paginate --jq '.[].name')"
           for name in "${required[@]}"; do
