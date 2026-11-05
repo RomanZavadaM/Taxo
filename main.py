@@ -98,7 +98,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.10-r9"
+APP_VERSION = "10.10-r10"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -3998,7 +3998,7 @@ def _monthly_shift_cell(row, segments):
     if not start and not end:
         return "Р"
     if parts>1:
-        return f"{start}\n{end}\n{parts}ч"
+        return f"{start}\n{end}\n{parts} част."
     return f"{start}\n{end}"
 
 
@@ -5337,8 +5337,8 @@ def export_personnel_monthly_balance_pdf(year, month, out_path, active_only=True
     doc.build(story); return data
 
 
-def collect_monthly_shift_schedule(year, month, active_only=True):
-    """Збирає дані графіка змінності для всіх водіїв за місяць."""
+def collect_monthly_shift_schedule(year, month, active_only=True, driver_ids=None):
+    """Збирає дані графіка змінності; driver_ids обмежує звіт вибраними водіями."""
     y=int(year); m=int(month)
     days=month_dates(y,m)
     con=db()
@@ -5347,6 +5347,9 @@ def collect_monthly_shift_schedule(year, month, active_only=True):
         "SELECT * FROM drivers ORDER BY active DESC,last_name,first_name,middle_name"
     ).fetchall()
     drivers=[dr for dr in drivers if _driver_role_mode(dr)!="invalid"]
+    if driver_ids is not None:
+        selected_ids={int(value) for value in driver_ids}
+        drivers=[dr for dr in drivers if int(dr["id"]) in selected_ids]
     role_active_by_day={
         (int(dr["id"]),d.isoformat()):driver_role_active_on(con,dr["id"],d)
         for dr in drivers for d in days
@@ -5488,7 +5491,7 @@ def _monthly_shift_print_cell(cell):
     Час навмисно ставимо у два окремі рядки:
         06:30
         20:00
-        3ч
+        3 част.
     Так цифри не стискаються і не переносяться посеред часу.
     """
     if not cell:
@@ -5524,7 +5527,7 @@ def _split_month_days_a4(days):
     return out
 
 
-def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True):
+def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True, driver_ids=None):
     """Читабельний PDF графіка змінності на звичайному офісному A4.
 
     Місяць ділиться на 3 частини, щоб не стискати шрифт:
@@ -5540,7 +5543,7 @@ def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True):
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
     from xml.sax.saxutils import escape
 
-    data=collect_monthly_shift_schedule(year,month,active_only=active_only)
+    data=collect_monthly_shift_schedule(year,month,active_only=active_only,driver_ids=driver_ids)
 
     candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
@@ -5691,7 +5694,7 @@ def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True):
         story.append(table)
         story.append(Spacer(1,7))
         story.append(Paragraph(
-            "У клітинці робочого дня: початок–кінець зміни; «3ч» — три частини зміни. "
+            "У клітинці робочого дня: початок–кінець зміни; «3 част.» — три частини зміни. "
             "В — вихідний; Відп — відпустка; Лік — лікарняний; "
             "Відпч — відпочинок; Гот — готовність.",
             normal
@@ -5711,7 +5714,7 @@ def export_monthly_shift_schedule_pdf(year, month, out_path, active_only=True):
     return data
 
 
-def export_monthly_shift_detail_pdf(year, month, out_path, active_only=True):
+def export_monthly_shift_detail_pdf(year, month, out_path, active_only=True, driver_ids=None):
     """Окремий читабельний PDF деталізації графіка змінності.
 
     Формат: A4 landscape.
@@ -5731,7 +5734,7 @@ def export_monthly_shift_detail_pdf(year, month, out_path, active_only=True):
     )
     from xml.sax.saxutils import escape
 
-    data=collect_monthly_shift_schedule(year,month,active_only=active_only)
+    data=collect_monthly_shift_schedule(year,month,active_only=active_only,driver_ids=driver_ids)
 
     candidates=report_font_candidates()
     font_path=next((p for p in candidates if os.path.exists(p)),None)
@@ -5919,7 +5922,7 @@ def export_monthly_shift_detail_pdf(year, month, out_path, active_only=True):
     return data
 
 
-def export_monthly_shift_schedule_xlsx(year, month, out_path, active_only=True):
+def export_monthly_shift_schedule_xlsx(year, month, out_path, active_only=True, driver_ids=None):
     """Редагований Excel графіка змінності під стандартний A4.
 
     Місяць ділиться на три аркуші/друковані частини, як і PDF.
@@ -5929,7 +5932,7 @@ def export_monthly_shift_schedule_xlsx(year, month, out_path, active_only=True):
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from openpyxl.utils import get_column_letter
 
-    data=collect_monthly_shift_schedule(year,month,active_only=active_only)
+    data=collect_monthly_shift_schedule(year,month,active_only=active_only,driver_ids=driver_ids)
     wb=Workbook()
     wb.remove(wb.active)
 
