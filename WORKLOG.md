@@ -7,7 +7,7 @@
 
 ## 10.10-r8 — простий місячний графік — 05.11.2026
 
-- PR r8 інтегровано в `main`; exact-main START, Windows, Windows 7 і macOS ARM64 підтверджені успішно; macOS Intel повторна збірка ще виконується на момент цього checkpoint.
+- PR r8 інтегровано в `main`; exact-main START, Windows, Windows 7, macOS ARM64 та Intel підтверджені успішно.
 - Stable не змінено: користувацький stable залишається `v10.10-r5`.
 - Наступна кодова ревізія після завершення r8 checkpoint — `10.10-r9`.
 
