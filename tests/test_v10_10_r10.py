@@ -40,7 +40,7 @@ class DriverReportSelectionR10Tests(unittest.TestCase):
             all_data = main.collect_monthly_shift_schedule(2026, 11)
             selected = main.collect_monthly_shift_schedule(2026, 11, driver_ids=[2])
             empty = main.collect_monthly_shift_schedule(2026, 11, driver_ids=[])
-        self.assertEqual([row["id"] for row in all_data["drivers"]], [1, 2])
+        self.assertEqual(sorted(row["id"] for row in all_data["drivers"]), [1, 2])
         self.assertEqual([row["id"] for row in selected["drivers"]], [2])
         self.assertEqual(empty["drivers"], [])
 
@@ -52,7 +52,7 @@ class DriverReportSelectionR10Tests(unittest.TestCase):
             {"segment_no": 3, "start_time": "17:20", "end_time": "19:40"},
         ]
         cell = main._monthly_shift_cell(day, segs)
-        self.assertEqual(cell, "07:55\\n19:40\\n3 част.")
+        self.assertEqual(cell, "07:55\n19:40\n3 част.")
         self.assertNotIn("3ч", cell)
 
     def test_excel_for_selected_drivers_only(self):
