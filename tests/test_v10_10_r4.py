@@ -92,9 +92,9 @@ class TestVersionUiR4(unittest.TestCase):
 
     def test_repository_version_identity_is_r4_or_later(self):
         version = version_from_file(ROOT / "VERSION.txt")
-        match = re.fullmatch(r"10\.10-r(\d+)", version)
+        match = re.fullmatch(r"10\.(\d+)-r(\d+)", version)
         self.assertIsNotNone(match, version)
-        self.assertGreaterEqual(int(match.group(1)), 4)
+        self.assertGreaterEqual((int(match.group(1)), int(match.group(2))), (10, 4))
         self.assertIn(f'APP_VERSION = "{version}"', (ROOT / "main.py").read_text("utf-8"))
 
 

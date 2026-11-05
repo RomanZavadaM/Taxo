@@ -16,10 +16,12 @@ class _Var:
 
 
 class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
-    def test_monthly_shift_window_exposes_open_detail_button(self):
+    def test_monthly_shift_window_exposes_unified_report_preview(self):
         source = inspect.getsource(main.App.show_monthly_shift_schedule)
-        self.assertIn('text="Відкрити деталізацію"', source)
-        self.assertIn("command=self.open_monthly_shift_detail_pdf", source)
+        self.assertIn('"Деталізація змін (PDF)"', source)
+        self.assertIn("command=self.preview_monthly_shift_document", source)
+        dispatch = inspect.getsource(main.App.preview_monthly_shift_document)
+        self.assertIn("return self.open_monthly_shift_detail_pdf()", dispatch)
 
     def test_open_detail_regenerates_current_pdf_and_opens_it(self):
         app = object.__new__(main.App)
@@ -29,6 +31,7 @@ class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
         app.monthly_shift_win = object()
         app.monthly_shift_last_detail_pdf = None
         app.monthly_shift_report_driver_ids = None
+        app.monthly_shift_report_driver_names = {}
 
         with tempfile.TemporaryDirectory() as folder:
             output_dir = Path(folder)
@@ -37,7 +40,7 @@ class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
             def fake_write(writer, path, **kwargs):
                 self.assertEqual(
                     Path(path).name,
-                    "Деталізація_графіка_змінності_2026_09.pdf",
+                    "Деталізація_змін_2026-09_усі-водії.pdf",
                 )
                 writer(generated)
                 return generated

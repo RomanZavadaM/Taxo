@@ -98,7 +98,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.10-r10"
+APP_VERSION = "10.11-r1"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -5483,6 +5483,34 @@ def month_name_ua(month):
         return MONTH_NAMES_UA[int(month)-1]
     except Exception:
         return str(month)
+
+
+
+def monthly_shift_report_filename(year, month, kind, driver_ids=None, extension="pdf", driver_names=None):
+    """Зрозуміла назва за типом, періодом та іменами вибраних людей."""
+    import hashlib
+    kinds={"graph":"Графік_змінності","detail":"Деталізація_змін"}
+    if kind not in kinds or extension not in ("pdf","xlsx"):
+        raise ValueError("Невідомий тип звіту")
+    selected=None if driver_ids is None else sorted({int(value) for value in driver_ids})
+    names=driver_names or {}
+    def short_name(identifier, first_two=False):
+        value=str(names.get(identifier, "") or "").strip()
+        words=["".join(ch for ch in word if ch.isalnum() or ch=="-")
+               for word in value.split()]
+        words=[word for word in words if word]
+        if words:
+            return "-".join(words[:2] if first_two else words[:1])
+        return f"ID-{identifier}"
+    if selected is None:
+        audience="усі-водії"
+    elif len(selected)==1:
+        audience=short_name(selected[0],first_two=True)
+    else:
+        digest=hashlib.sha256(",".join(map(str,selected)).encode("ascii")).hexdigest()[:6]
+        first="-".join(short_name(identifier) for identifier in selected[:2])
+        audience=f"{first}-та-ще-{len(selected)-2}-{digest}" if len(selected)>2 else f"{first}-{digest}"
+    return f"{kinds[kind]}_{int(year)}-{int(month):02d}_{audience}.{extension}"
 
 
 def _monthly_shift_print_cell(cell):
@@ -11315,6 +11343,7 @@ class App(tk.Tk):
         self.monthly_shift_last_detail_pdf=None
         self.monthly_shift_last_xlsx=None
         self.monthly_shift_report_driver_ids=None  # None = усі водії
+        self.monthly_shift_report_driver_names={}
         self.monthly_shift_report_label=tk.StringVar(value="Звіт: усі водії")
 
         ttk.Label(filters,text="Рік:").pack(side="left")
@@ -11343,36 +11372,22 @@ class App(tk.Tk):
         ).pack(side="left",padx=(12,3))
         ttk.Label(filters,textvariable=self.monthly_shift_report_label).pack(side="left",padx=4)
 
-        ttk.Button(
-            exports,text="Excel — редагувати",command=self.save_monthly_shift_schedule_xlsx
-        ).pack(side="left",padx=(0,3))
-        ttk.Button(
-            exports,text="PDF — графік",command=self.save_monthly_shift_schedule_pdf
-        ).pack(side="left",padx=3)
-        ttk.Button(
-            exports,text="Відкрити графік PDF",command=self.open_monthly_shift_schedule_pdf
-        ).pack(side="left",padx=3)
-        ttk.Button(
-            exports,text="PDF — деталізація",command=self.save_monthly_shift_detail_pdf
-        ).pack(side="left",padx=(10,3))
-        ttk.Button(
-            exports,text="Відкрити деталізацію",command=self.open_monthly_shift_detail_pdf
-        ).pack(side="left",padx=3)
+        # Єдина точка виходу: спочатку тип документа, потім дія.
+        ttk.Label(exports,text="Документ:").pack(side="left",padx=(0,6))
+        self.monthly_shift_document_kind=tk.StringVar(value="Графік змінності (PDF)")
+        ttk.Combobox(
+            exports,textvariable=self.monthly_shift_document_kind,
+            values=("Графік змінності (PDF)","Деталізація змін (PDF)","Графік для редагування (Excel)"),
+            state="readonly",width=36
+        ).pack(side="left",padx=(0,10))
+        ttk.Button(exports,text="Переглянути",command=self.preview_monthly_shift_document).pack(side="left",padx=3)
+        ttk.Button(exports,text="Зберегти…",command=self.save_monthly_shift_document).pack(side="left",padx=3)
 
         ttk.Label(
             win,
-            text=(
-                "Місячна матриця формується з уже введених табелів. "
-                "Графік розрахований на стандартний офісний папір A4, альбомна орієнтація. "
-                "PDF графіка автоматично ділить місяць на три читабельні частини (для 31 дня: 1–11, 12–21, 22–31). "
-                "«PDF — деталізація» формує окремий A4-документ з точними частинами змін, перервами, "
-                "робочим часом, часом керування, маршрутом та автомобілем. "
-                "«Відкрити деталізацію» формує актуальний PDF без діалогу збереження та одразу відкриває його. "
-                "Для ручного редагування використовуйте «Excel — редагувати»."
-            ),
-            foreground=PALETTE["muted"],
-            wraplength=1350,
-            justify="left"
+            text="1. Виберіть місяць.   2. Натисніть «Водії для звіту…».   3. Виберіть документ і натисніть «Переглянути» або «Зберегти…». "
+                 "Це не змінює дані водіїв. Позначка «част.» — кількість частин зміни, не години.",
+            foreground=PALETTE["muted"],wraplength=1300,justify="left"
         ).pack(fill="x",padx=10,pady=(0,6))
 
         frame=ttk.Frame(win)
@@ -11449,6 +11464,7 @@ class App(tk.Tk):
                 return
             selected=None if all_drivers else tuple(sorted(int(drivers[i]["id"]) for i in indices))
             self.monthly_shift_report_driver_ids=selected
+            self.monthly_shift_report_driver_names={int(dr["id"]): dr["name"] for dr in drivers}
             self.monthly_shift_report_label.set(
                 "Звіт: усі водії" if selected is None else f"Звіт: вибрано {len(selected)}"
             )
@@ -11461,6 +11477,45 @@ class App(tk.Tk):
                    command=apply_selection).pack(side="right")
         popup.grab_set()
         chooser.focus_set()
+
+    def preview_monthly_shift_document(self):
+        """Один зрозумілий попередній перегляд для обраного формату."""
+        kind=self.monthly_shift_document_kind.get()
+        if kind=="Графік змінності (PDF)":
+            return self.open_monthly_shift_schedule_pdf()
+        if kind=="Деталізація змін (PDF)":
+            return self.open_monthly_shift_detail_pdf()
+        return self.open_monthly_shift_schedule_xlsx()
+
+    def save_monthly_shift_document(self):
+        """Одна дія збереження; початкове ім'я містить період і склад звіту."""
+        kind=self.monthly_shift_document_kind.get()
+        if kind=="Графік змінності (PDF)":
+            return self.save_monthly_shift_schedule_pdf()
+        if kind=="Деталізація змін (PDF)":
+            return self.save_monthly_shift_detail_pdf()
+        return self.save_monthly_shift_schedule_xlsx()
+
+    def open_monthly_shift_schedule_xlsx(self):
+        """Без діалогу збереження показати вибраний Excel у його програмі."""
+        y=int(self.monthly_shift_year.get())
+        m=int(self.monthly_shift_month.get())
+        path=OUTPUT_DIR / monthly_shift_report_filename(
+            y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx",driver_names=getattr(self,"monthly_shift_report_driver_names",{})
+        )
+        try:
+            actual=write_output_file(
+                lambda out: export_monthly_shift_schedule_xlsx(
+                    y,m,out,active_only=bool(self.monthly_shift_active_only.get()),
+                    driver_ids=self.monthly_shift_report_driver_ids
+                ),
+                path,parent=self.monthly_shift_win,
+                kind="Excel графіка змінності",error_title="Помилка Excel"
+            )
+            if actual is not None:
+                open_external(actual)
+        except Exception as exc:
+            messagebox.showerror("Перегляд Excel",f"Не вдалося відкрити Excel:\n{exc}",parent=self.monthly_shift_win)
 
     def refresh_monthly_shift_schedule(self):
         if not hasattr(self,"monthly_shift_tree") or not self.monthly_shift_tree.winfo_exists():
@@ -11540,7 +11595,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти редагований графік змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=f"Графік_змінності_{y}_{m:02d}.xlsx",
+            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx",driver_names=getattr(self,"monthly_shift_report_driver_names",{})),
             defaultextension=".xlsx",
             filetypes=[("Excel","*.xlsx")]
         )
@@ -11575,7 +11630,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти деталізацію графіка змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=f"Деталізація_графіка_змінності_{y}_{m:02d}.pdf",
+            initialfile=monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf",driver_names=getattr(self,"monthly_shift_report_driver_names",{})),
             defaultextension=".pdf",
             filetypes=[("PDF","*.pdf")]
         )
@@ -11603,7 +11658,7 @@ class App(tk.Tk):
     def _monthly_shift_default_detail_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
-        return OUTPUT_DIR / f"Деталізація_графіка_змінності_{y}_{m:02d}.pdf"
+        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf",driver_names=getattr(self,"monthly_shift_report_driver_names",{}))
 
     def open_monthly_shift_detail_pdf(self):
         """Сформувати актуальну деталізацію місячного графіка і одразу відкрити PDF."""
@@ -11635,7 +11690,7 @@ class App(tk.Tk):
     def _monthly_shift_default_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
-        return OUTPUT_DIR / f"Графік_змінності_{y}_{m:02d}.pdf"
+        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf",driver_names=getattr(self,"monthly_shift_report_driver_names",{}))
 
     def _monthly_shift_pdf_key(self):
         return (
@@ -11652,7 +11707,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти місячний графік змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=f"Графік_змінності_{y}_{m:02d}.pdf",
+            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf",driver_names=getattr(self,"monthly_shift_report_driver_names",{})),
             defaultextension=".pdf",
             filetypes=[("PDF","*.pdf")]
         )

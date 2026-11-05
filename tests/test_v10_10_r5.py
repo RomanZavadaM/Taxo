@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 class TestMacPersonnelNavigationR5(unittest.TestCase):
     def test_revision_identity_is_r5_or_later(self):
         version = (ROOT / "VERSION.txt").read_text("utf-8").strip().replace("Version: ", "")
-        match = re.fullmatch(r"10\.10-r(\d+)", version)
+        match = re.fullmatch(r"10\.(\d+)-r(\d+)", version)
         self.assertIsNotNone(match, version)
-        self.assertGreaterEqual(int(match.group(1)), 5)
+        self.assertGreaterEqual((int(match.group(1)), int(match.group(2))), (10, 5))
         self.assertIn(f'APP_VERSION = "{version}"', (ROOT / "main.py").read_text("utf-8"))
 
     def test_personnel_navigation_supports_widget_without_command(self):
