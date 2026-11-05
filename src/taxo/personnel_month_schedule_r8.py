@@ -66,9 +66,9 @@ def employee_roles(row):
 
 def active_employee_rows(con):
     cols = {row[1] for row in con.execute("PRAGMA table_info(employees)").fetchall()}
-    driver_expr = "e.driver_id" if "driver_id" in cols else "NULL AS driver_id"
+    driver_expr = "" if "driver_id" in cols else ", NULL AS driver_id"
     rows = con.execute(
-        f"""SELECT e.*, {driver_expr},
+        f"""SELECT e.*{driver_expr},
                    GROUP_CONCAT(er.role, ', ') AS roles
               FROM employees e
          LEFT JOIN employee_roles er ON er.employee_id=e.id
