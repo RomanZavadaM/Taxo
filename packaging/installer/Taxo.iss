@@ -1,6 +1,6 @@
 #define MyAppName "Taxo"
 #ifndef MyAppVersion
-  #define MyAppVersion "10.11-r1"
+  #define MyAppVersion "10.11-r2"
 #endif
 #ifndef SourceBundle
   #define SourceBundle "Taxo_v10_11_candidate_r1_Windows_x64"

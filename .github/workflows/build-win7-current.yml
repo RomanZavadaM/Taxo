@@ -41,7 +41,7 @@ jobs:
       - name: Verify r10 identity and layout
         shell: pwsh
         run: |
-          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.11-r1') { throw 'VERSION.txt is not 10.11-r1' }
+          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.11-r2') { throw 'VERSION.txt is not 10.11-r2' }
           if (!(Test-Path 'packaging/Taxo_win7.spec')) { throw 'Win7 spec missing' }
           if (!(Test-Path 'assets/Бланк підтвердження.docx')) { throw 'Template missing' }
 
@@ -80,7 +80,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.11-r1-Windows7-build-log
+          name: Taxo-v10.11-r2-Windows7-build-log
           path: win7-build.log
           if-no-files-found: ignore
           retention-days: 7
@@ -95,7 +95,7 @@ jobs:
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (!(Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
-          & $iscc /DMyAppVersion=10.11-r1 /DSourceBundle=Taxo_v10_11_candidate_r1_Windows7_x64 /DOutputBase=Taxo_v10_11_candidate_r1_Setup_Windows7_x64 'packaging/installer/Taxo.iss'
+          & $iscc /DMyAppVersion=10.11-r2 /DSourceBundle=Taxo_v10_11_candidate_r1_Windows7_x64 /DOutputBase=Taxo_v10_11_candidate_r1_Setup_Windows7_x64 'packaging/installer/Taxo.iss'
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
           if (!(Test-Path 'release_out/Taxo_v10_11_candidate_r1_Setup_Windows7_x64.exe')) { throw 'Win7 installer not found' }
 
@@ -109,7 +109,7 @@ jobs:
       - name: Upload Win7 candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.11-r1-Windows7-x64
+          name: Taxo-v10.11-r2-Windows7-x64
           path: |
             Taxo_v10_11_candidate_r1_Windows7_x64_Portable.zip
             release_out/Taxo_v10_11_candidate_r1_Setup_Windows7_x64.exe

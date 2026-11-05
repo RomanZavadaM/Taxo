@@ -11,6 +11,7 @@ employees and never include internal staffing warnings or missing-role notes.
 from __future__ import annotations
 
 import calendar
+import hashlib
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -31,7 +32,7 @@ from personnel_v91 import (
 )
 from output_files import report_font_candidates
 
-APP_VERSION = "10.11-r1"
+APP_VERSION = "10.11-r2"
 
 PATTERN_3_3 = "3/3"
 SIMPLE_PATTERNS = (
@@ -81,6 +82,51 @@ def _employee_name(row):
         _text(row[key])
         for key in ("last_name", "first_name", "middle_name")
         if _text(row[key])
+    )
+
+
+def _filename_token(value, limit=48):
+    token = "".join(ch if ch.isalnum() else "-" for ch in _text(value))
+    token = "-".join(part for part in token.split("-") if part)
+    return token[: int(limit)].strip("-") or "без-назви"
+
+
+def _employee_filename_label(employee, *, surname_only=False):
+    parts = _text(employee.get("name")).split()
+    if parts:
+        visible = parts[:1] if surname_only else parts[:2]
+        return _filename_token("-".join(visible), 32 if surname_only else 48)
+    return "ID-%s" % int(employee.get("employee_id") or 0)
+
+
+def employee_schedule_filename(data, kind="pdf"):
+    """Human-readable collision-resistant filename for a simple personnel schedule."""
+    suffix = ".xlsx" if kind == "xlsx" else ".pdf"
+    employees = sorted(
+        list(data.get("employees") or []),
+        key=lambda row: int(row.get("employee_id") or 0),
+    )
+    if data.get("all_selected"):
+        who = "усі-працівники"
+    elif len(employees) == 1:
+        who = _employee_filename_label(employees[0])
+    elif employees:
+        preview = "-".join(
+            _employee_filename_label(row, surname_only=True)
+            for row in employees[:2]
+        )
+        if len(employees) > 2:
+            preview += "-та-ще-%d" % (len(employees) - 2)
+        ids = "-".join(str(int(row.get("employee_id") or 0)) for row in employees)
+        digest = hashlib.sha1(ids.encode("ascii")).hexdigest()[:6]
+        who = "%s-%s" % (preview, digest)
+    else:
+        who = "без-працівників"
+    return "Простий_графік_роботи_%04d-%02d_%s%s" % (
+        int(data["year"]),
+        int(data["month"]),
+        who,
+        suffix,
     )
 
 
@@ -401,12 +447,15 @@ def collect_month_schedule(core, con, year, month, employee_ids=None, *, view=VI
             }
         )
 
+    all_active_ids = {int(row["id"]) for row in all_rows}
+    actual_ids = {int(row["employee_id"]) for row in employees}
     return {
         "year": int(year),
         "month": int(month),
         "days": days,
         "employees": employees,
         "view": view,
+        "all_selected": bool(all_active_ids) and actual_ids == all_active_ids,
         # Reserved for manager-only diagnostics. Employee-facing views always
         # receive an empty list by contract.
         "internal_notes": [] if view == VIEW_EMPLOYEE else _internal_schedule_notes(con, year, month),
@@ -538,13 +587,11 @@ def export_employee_schedule_pdf(data, out_path):
         block_days = days[start_index:end_index]
         headers = [
             Paragraph("<b>Працівник</b>", center),
-            Paragraph("<b>Роль</b>", center),
         ] + [Paragraph("<b>%02d<br/>%s</b>" % (d.day, WEEKDAY_NAMES[d.weekday()]), center) for d in block_days]
         rows = [headers]
         for employee in data["employees"]:
             values = [
                 Paragraph(escape(employee["name"]), normal),
-                Paragraph(escape(employee["roles"]), normal),
             ]
             values += [
                 Paragraph(escape(str(value)), center)
@@ -553,9 +600,9 @@ def export_employee_schedule_pdf(data, out_path):
             rows.append(values)
 
         page_width = landscape(A4)[0] - 28
-        fixed = 135 + 90
+        fixed = 180
         day_width = max(18, (page_width - fixed) / max(1, len(block_days)))
-        table = Table(rows, colWidths=[135, 90] + [day_width] * len(block_days), repeatRows=1)
+        table = Table(rows, colWidths=[180] + [day_width] * len(block_days), repeatRows=1)
         table.setStyle(
             TableStyle(
                 [
@@ -919,7 +966,7 @@ def install(core, base_app):
                 if data is None:
                     return
                 suffix = ".xlsx" if kind == "xlsx" else ".pdf"
-                name = "Графік_працівників_%04d_%02d%s" % (data["year"], data["month"], suffix)
+                name = employee_schedule_filename(data, kind)
                 path = core.filedialog.asksaveasfilename(
                     parent=win,
                     title="Зберегти графік для працівників",
