@@ -5486,20 +5486,30 @@ def month_name_ua(month):
 
 
 
-def monthly_shift_report_filename(year, month, kind, driver_ids=None, extension="pdf"):
-    """Стала зрозуміла назва: зміст, період, склад звіту, формат."""
+def monthly_shift_report_filename(year, month, kind, driver_ids=None, extension="pdf", driver_names=None):
+    """Зрозуміла назва за типом, періодом та іменами вибраних людей."""
     import hashlib
     kinds={"graph":"Графік_змінності","detail":"Деталізація_змін"}
     if kind not in kinds or extension not in ("pdf","xlsx"):
         raise ValueError("Невідомий тип звіту")
     selected=None if driver_ids is None else sorted({int(value) for value in driver_ids})
+    names=driver_names or {}
+    def short_name(identifier, first_two=False):
+        value=str(names.get(identifier, "") or "").strip()
+        words=["".join(ch for ch in word if ch.isalnum() or ch=="-")
+               for word in value.split()]
+        words=[word for word in words if word]
+        if words:
+            return "-".join(words[:2] if first_two else words[:1])
+        return f"ID-{identifier}"
     if selected is None:
         audience="усі-водії"
     elif len(selected)==1:
-        audience=f"водій-{selected[0]}"
+        audience=short_name(selected[0],first_two=True)
     else:
         digest=hashlib.sha256(",".join(map(str,selected)).encode("ascii")).hexdigest()[:6]
-        audience=f"обрані-{len(selected)}-{digest}"
+        first="-".join(short_name(identifier) for identifier in selected[:2])
+        audience=f"{first}-та-ще-{len(selected)-2}-{digest}" if len(selected)>2 else f"{first}-{digest}"
     return f"{kinds[kind]}_{int(year)}-{int(month):02d}_{audience}.{extension}"
 
 
@@ -11333,6 +11343,7 @@ class App(tk.Tk):
         self.monthly_shift_last_detail_pdf=None
         self.monthly_shift_last_xlsx=None
         self.monthly_shift_report_driver_ids=None  # None = усі водії
+        self.monthly_shift_report_driver_names={}
         self.monthly_shift_report_label=tk.StringVar(value="Звіт: усі водії")
 
         ttk.Label(filters,text="Рік:").pack(side="left")
@@ -11453,6 +11464,7 @@ class App(tk.Tk):
                 return
             selected=None if all_drivers else tuple(sorted(int(drivers[i]["id"]) for i in indices))
             self.monthly_shift_report_driver_ids=selected
+            self.monthly_shift_report_driver_names={int(dr["id"]): dr["name"] for dr in drivers}
             self.monthly_shift_report_label.set(
                 "Звіт: усі водії" if selected is None else f"Звіт: вибрано {len(selected)}"
             )
@@ -11489,7 +11501,7 @@ class App(tk.Tk):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
         path=OUTPUT_DIR / monthly_shift_report_filename(
-            y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx"
+            y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx",driver_names=self.monthly_shift_report_driver_names
         )
         try:
             actual=write_output_file(
@@ -11583,7 +11595,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти редагований графік змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx"),
+            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx",driver_names=self.monthly_shift_report_driver_names),
             defaultextension=".xlsx",
             filetypes=[("Excel","*.xlsx")]
         )
@@ -11618,7 +11630,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти деталізацію графіка змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf"),
+            initialfile=monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf",driver_names=self.monthly_shift_report_driver_names),
             defaultextension=".pdf",
             filetypes=[("PDF","*.pdf")]
         )
@@ -11646,7 +11658,7 @@ class App(tk.Tk):
     def _monthly_shift_default_detail_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
-        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf")
+        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf",driver_names=self.monthly_shift_report_driver_names)
 
     def open_monthly_shift_detail_pdf(self):
         """Сформувати актуальну деталізацію місячного графіка і одразу відкрити PDF."""
@@ -11678,7 +11690,7 @@ class App(tk.Tk):
     def _monthly_shift_default_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
-        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf")
+        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf",driver_names=self.monthly_shift_report_driver_names)
 
     def _monthly_shift_pdf_key(self):
         return (
@@ -11695,7 +11707,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти місячний графік змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf"),
+            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf",driver_names=self.monthly_shift_report_driver_names),
             defaultextension=".pdf",
             filetypes=[("PDF","*.pdf")]
         )

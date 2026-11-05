@@ -22,6 +22,17 @@ class ReportFilenameTests(unittest.TestCase):
         self.assertNotEqual(a,c)
         self.assertIn("обрані-2-",a)
 
+    def test_selected_driver_filename_uses_person_name(self):
+        label=main.monthly_shift_report_filename(
+            2026,11,"graph",[18],"pdf",driver_names={18:"Галань Михайло Степанович"}
+        )
+        self.assertEqual(label,"Графік_змінності_2026-11_Галань-Михайло.pdf")
+
+    def test_selected_group_filename_shows_names_and_differs_by_group(self):
+        people={2:"Галань Михайло",3:"Дробот Олег",4:"Палій Петро"}
+        label=main.monthly_shift_report_filename(2026,11,"graph",[2,3,4],"pdf",people)
+        self.assertIn("Галань-Дробот-та-ще-1-",label)
+
     def test_detail_and_excel_are_distinguishable(self):
         detail=main.monthly_shift_report_filename(2026,11,"detail",[3],"pdf")
         excel=main.monthly_shift_report_filename(2026,11,"graph",[3],"xlsx")
