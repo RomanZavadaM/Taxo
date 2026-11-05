@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 import personnel_registry as personnel
+import employee_document_control_r7 as control
 
 APP_VERSION = "10.5-r3"
 EXPIRING_SOON_DAYS = 30
@@ -21,6 +22,8 @@ STATE_EXPIRED = "expired"
 STATE_NO_EXPIRY = "no_expiry"
 STATE_DATE_REVIEW = "date_review"
 STATE_ARCHIVED = "archived"
+STATE_NOT_CONTROLLED = "not_controlled"
+STATE_DATE_REQUIRED = "date_required"
 
 STATE_LABELS = {
     STATE_VALID: "Чинний",
@@ -29,6 +32,8 @@ STATE_LABELS = {
     STATE_NO_EXPIRY: "Строк не вказано / безстроковий",
     STATE_DATE_REVIEW: "Перевірити дату строку",
     STATE_ARCHIVED: "Архів",
+    STATE_NOT_CONTROLLED: "Строк не контролюється",
+    STATE_DATE_REQUIRED: "Потрібна дата закінчення",
 }
 
 SOURCE_ALL = "all"
@@ -62,13 +67,26 @@ def _date_value(value):
 
 
 def document_state(row, today=None, soon_days=EXPIRING_SOON_DAYS):
-    """Return an informational document state without changing the document."""
+    """Return document state.
+
+    Historical raw rows without r7 requirement metadata keep the old behavior.
+    Rows read through the r7 unified register respect the user's explicit
+    expiry-control choice.
+    """
     if not int(row["active"] or 0):
         return STATE_ARCHIVED
+
+    keys = set(row.keys()) if hasattr(row, "keys") else set()
+    requirement_present = int(row["requirement_present"] or 0) if "requirement_present" in keys else 0
+    if requirement_present:
+        expiry_control = bool(row["requirement_expiry_control"]) if "requirement_expiry_control" in keys else False
+        if not expiry_control:
+            return STATE_NOT_CONTROLLED
+
     today = today or date.today()
     expiry = _date_value(row["expiry_date"])
     if expiry is None:
-        return STATE_NO_EXPIRY
+        return STATE_DATE_REQUIRED if requirement_present else STATE_NO_EXPIRY
     if expiry is False:
         return STATE_DATE_REVIEW
     if expiry < today:
@@ -112,12 +130,17 @@ def list_documents(con, *, query="", doc_type="", state="", source=SOURCE_ALL,
     Filtering is intentionally non-destructive. A missing person/document in a later
     registry extract never archives or removes a local record.
     """
-    personnel.ensure_schema_on_connection(con)
+    control.ensure_schema_on_connection(con)
     rows = con.execute(
         """SELECT d.*, e.last_name, e.first_name, e.middle_name, e.personnel_no,
-                  e.active AS employee_active
+                  e.active AS employee_active,
+                  CASE WHEN r.employee_id IS NULL THEN 0 ELSE 1 END AS requirement_present,
+                  COALESCE(r.required,0) AS requirement_required,
+                  COALESCE(r.expiry_control,0) AS requirement_expiry_control
              FROM employee_documents d
              JOIN employees e ON e.id=d.employee_id
+        LEFT JOIN employee_document_requirements r
+               ON r.employee_id=d.employee_id AND r.doc_type=d.doc_type
          ORDER BY d.active DESC, e.last_name, e.first_name, e.middle_name,
                   d.doc_type, d.expiry_date, d.id"""
     ).fetchall()
@@ -146,7 +169,7 @@ def list_documents(con, *, query="", doc_type="", state="", source=SOURCE_ALL,
 
 
 def distinct_document_types(con):
-    personnel.ensure_schema_on_connection(con)
+    control.ensure_schema_on_connection(con)
     return [row[0] for row in con.execute(
         """SELECT DISTINCT doc_type FROM employee_documents
            WHERE TRIM(COALESCE(doc_type,''))<>'' ORDER BY doc_type"""
@@ -164,12 +187,17 @@ def summary(rows):
 
 
 def get_document(con, document_id):
-    personnel.ensure_schema_on_connection(con)
+    control.ensure_schema_on_connection(con)
     row = con.execute(
         """SELECT d.*, e.last_name, e.first_name, e.middle_name, e.personnel_no,
-                  e.active AS employee_active
+                  e.active AS employee_active,
+                  CASE WHEN r.employee_id IS NULL THEN 0 ELSE 1 END AS requirement_present,
+                  COALESCE(r.required,0) AS requirement_required,
+                  COALESCE(r.expiry_control,0) AS requirement_expiry_control
              FROM employee_documents d
              JOIN employees e ON e.id=d.employee_id
+        LEFT JOIN employee_document_requirements r
+               ON r.employee_id=d.employee_id AND r.doc_type=d.doc_type
             WHERE d.id=?""",
         (int(document_id),),
     ).fetchone()

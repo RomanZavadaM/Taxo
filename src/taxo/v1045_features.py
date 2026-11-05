@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import personnel_registry as registry
+import employee_document_control_r7 as docctl
 
 APP_VERSION = "10.4-r5"
 
@@ -102,23 +103,40 @@ def _fill_kv(tree, rows):
 
 def _document_editor(app, core, employee_id, row=None, on_saved=None):
     win=core.tk.Toplevel(app)
-    _configure_window(core,win,"Документ працівника",760,590)
+    _configure_window(core,win,"Документ працівника",820,690)
     body=core.ttk.Frame(win,padding=14); body.pack(fill="both",expand=True)
     body.columnconfigure(1,weight=1)
+
     values={key:core.tk.StringVar(value="") for key in (
         "doc_type","series","number","issue_date","expiry_date","issuer","file_path"
     )}
     notes_var=core.tk.StringVar(value="")
+    required_var=core.tk.BooleanVar(value=False)
+    expiry_control_var=core.tk.BooleanVar(value=False)
+
     if row is not None:
         for key,var in values.items():
             try: var.set(row[key] or "")
             except Exception: pass
         try: notes_var.set(row["notes"] or "")
         except Exception: pass
+
+    initial_type=(row["doc_type"] if row is not None and "doc_type" in row.keys() else "") or ""
+    con=core.db()
+    try:
+        docctl.ensure_schema_on_connection(con)
+        req=docctl.get_requirement(con,employee_id,initial_type) if initial_type else None
+        if req is not None:
+            required_var.set(bool(req["required"]))
+            expiry_control_var.set(bool(req["expiry_control"]))
+        con.commit()
+    finally:
+        con.close()
+
     labels=(
         ("Тип документа","doc_type"),("Серія","series"),("Номер","number"),
         ("Дата видачі (ДД.ММ.РРРР)","issue_date"),("Чинний до (ДД.ММ.РРРР)","expiry_date"),
-        ("Ким виданий","issuer"),("Файл / посилання","file_path"),
+        ("Ким виданий","issuer"),("Файл документа","file_path"),
     )
     for r,(label,key) in enumerate(labels):
         core.ttk.Label(body,text=label).grid(row=r,column=0,sticky="nw",padx=(0,8),pady=5)
@@ -130,23 +148,77 @@ def _document_editor(app, core, employee_id, row=None, on_saved=None):
         if key=="file_path":
             def choose_file():
                 path=core.filedialog.askopenfilename(parent=win,title="Виберіть файл документа")
-                if path: values["file_path"].set(path)
+                if path:
+                    values["file_path"].set(path)
             core.ttk.Button(body,text="…",width=4,command=choose_file).grid(row=r,column=2,padx=(5,0),pady=5)
-    core.ttk.Label(body,text="Примітка").grid(row=len(labels),column=0,sticky="nw",padx=(0,8),pady=5)
+
+    checks_row=len(labels)
+    checks=core.ttk.LabelFrame(body,text="Контроль цього типу документа для працівника",padding=(8,6))
+    checks.grid(row=checks_row,column=0,columnspan=3,sticky="ew",pady=(8,5))
+    core.ttk.Checkbutton(
+        checks,
+        text="Обов'язковий для цього працівника",
+        variable=required_var,
+    ).pack(anchor="w")
+    core.ttk.Checkbutton(
+        checks,
+        text="Контролювати строк дії",
+        variable=expiry_control_var,
+    ).pack(anchor="w",pady=(3,0))
+    core.ttk.Label(
+        checks,
+        text=(
+            "Якщо контроль строку ввімкнено, дата «Чинний до» є обов'язковою. "
+            "Архівування старої копії не скасовує цю вимогу."
+        ),
+        style="Muted.TLabel",
+        wraplength=740,
+        justify="left",
+    ).pack(anchor="w",pady=(4,0))
+
+    notes_row=checks_row+1
+    core.ttk.Label(body,text="Примітка").grid(row=notes_row,column=0,sticky="nw",padx=(0,8),pady=5)
     notes=core.tk.Text(body,height=6,wrap="word")
-    notes.grid(row=len(labels),column=1,columnspan=2,sticky="nsew",pady=5)
+    notes.grid(row=notes_row,column=1,columnspan=2,sticky="nsew",pady=5)
     notes.insert("1.0",notes_var.get())
-    body.rowconfigure(len(labels),weight=1)
-    buttons=core.ttk.Frame(body); buttons.grid(row=len(labels)+1,column=0,columnspan=3,sticky="ew",pady=(12,0))
+    body.rowconfigure(notes_row,weight=1)
+    buttons=core.ttk.Frame(body); buttons.grid(row=notes_row+1,column=0,columnspan=3,sticky="ew",pady=(12,0))
 
     def save():
         payload={key:var.get() for key,var in values.items()}
         payload["notes"]=notes.get("1.0","end-1c")
         payload["source_kind"]=(row["source_kind"] if row is not None and "source_kind" in row.keys() else "manual") or "manual"
         payload["source_name"]=(row["source_name"] if row is not None and "source_name" in row.keys() else "") or ""
+
+        doc_type=str(payload["doc_type"] or "").strip()
+        if not doc_type:
+            core.messagebox.showerror("Документ","Вкажіть тип документа.",parent=win)
+            return
+        if expiry_control_var.get() and not str(payload["expiry_date"] or "").strip():
+            core.messagebox.showerror(
+                "Документ",
+                "Для цього документа ввімкнено контроль строку. Вкажіть дату «Чинний до».",
+                parent=win,
+            )
+            return
+        file_value=str(payload["file_path"] or "").strip()
+        if file_value:
+            try:
+                stored,backed_up=docctl.stored_document_path(core,employee_id,file_value)
+            except Exception as exc:
+                core.messagebox.showerror("Файл документа",str(exc),parent=win)
+                return
+            payload["file_path"]=stored
+
         con=core.db()
         try:
+            docctl.ensure_schema_on_connection(con)
             registry.save_employee_document(con,employee_id,payload,row["id"] if row is not None else None)
+            docctl.save_requirement(
+                con,employee_id,doc_type,
+                required=required_var.get(),
+                expiry_control=expiry_control_var.get(),
+            )
             con.commit()
         except Exception as exc:
             con.rollback(); core.messagebox.showerror("Документ",str(exc),parent=win); return
@@ -158,7 +230,6 @@ def _document_editor(app, core, employee_id, row=None, on_saved=None):
     core.ttk.Button(buttons,text="Скасувати",command=win.destroy).pack(side="right",padx=(6,0))
     core.ttk.Button(buttons,text="Зберегти",style="Accent.TButton",command=save).pack(side="right")
     win.transient(app)
-
 
 def install(core, base_app):
     if getattr(core,"_TAXO_1045_INSTALLED",False):
