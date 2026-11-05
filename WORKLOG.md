@@ -7,6 +7,10 @@
 
 ## 10.10-r8 — простий місячний графік — 05.11.2026
 
+- PR r8 інтегровано в `main`; exact-main START, Windows, Windows 7 і macOS ARM64 підтверджені успішно; macOS Intel повторна збірка ще виконується на момент цього checkpoint.
+- Stable не змінено: користувацький stable залишається `v10.10-r5`.
+- Наступна кодова ревізія після завершення r8 checkpoint — `10.10-r9`.
+
 - Додано місячне планування для явно вибраних працівників.
 - Простий план пишеться у чинний employee_shifts лише для безпечної однозначної неводійської ролі.
 - Driver-only працівники не дублюються: їхній план читається з графіка водіїв.
@@ -68,7 +72,7 @@
 
 **Stable release:** **Taxo 10.10-r5 / `v10.10-r5`** — виправлена macOS-версія; Windows 10/11, Windows 7, macOS Intel/ARM, START і SHA256 опубліковані
 **Previous stable / rollback:** **v10.9-r10**; older rollback — `v10.3`
-**Next code revision:** **10.10-r6**
+**Next code revision:** **10.10-r9**
 **Recovery:** `HANDOFF_CURRENT.md` — короткий актуальний стан; Issue #61 — довга історія
 
 Повний аудит: [`docs/maintenance/AUDIT_FULL_2026-10-05.md`](docs/maintenance/AUDIT_FULL_2026-10-05.md).
