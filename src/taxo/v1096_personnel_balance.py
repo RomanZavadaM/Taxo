@@ -86,7 +86,13 @@ def dated_absence_rows(con, start_day, end_day, driver_ids):
 
 
 def _safe_absence_adjustment(core, original):
-    def adjusted(con, employee, work_date, regime, base_norm):
+    def adjusted(*args):
+        if len(args) == 6:
+            _caller_core, con, employee, work_date, regime, base_norm = args
+        elif len(args) == 5:
+            con, employee, work_date, regime, base_norm = args
+        else:
+            raise TypeError('Некоректна кількість аргументів коригування відсутності')
         entry = con.execute(
             "SELECT day_type FROM employee_time_entries WHERE employee_id=? AND work_date=?",
             (employee["id"], work_date.isoformat()),
