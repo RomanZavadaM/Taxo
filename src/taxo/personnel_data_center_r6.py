@@ -355,17 +355,25 @@ def install(core, base_app):
                 documents_box,
                 text=(
                     "Загальний реєстр усіх документів із фільтрами за строком, типом і джерелом. "
-                    "У наступній ревізії цей блок отримає обов'язковість для конкретної людини, "
-                    "контроль строку та гарантоване збереження копій у робочому сховищі."
+                    "Обов'язковість і контроль строку задаються для конкретного працівника; локальні файли "
+                    "документів зберігаються у робочому сховищі Taxo."
                 ),
                 wraplength=1020,
                 justify="left",
             ).pack(anchor="w")
+            db = core.ttk.Frame(documents_box)
+            db.pack(fill="x", pady=(8, 0))
             core.ttk.Button(
-                documents_box,
+                db,
                 text="Відкрити реєстр документів",
                 command=self.open_employee_document_register,
-            ).pack(anchor="w", pady=(8, 0))
+            ).pack(side="left")
+            if hasattr(self, "open_required_employee_documents_r7"):
+                core.ttk.Button(
+                    db,
+                    text="Контроль обов'язкових документів…",
+                    command=self.open_required_employee_documents_r7,
+                ).pack(side="left", padx=6)
 
             official_box = core.ttk.LabelFrame(body, text="4. Офіційне звіряння та військовий облік", padding=10)
             official_box.pack(fill="x", pady=(0, 10))
