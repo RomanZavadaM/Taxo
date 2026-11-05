@@ -49,6 +49,12 @@ def make_db():
             notes TEXT DEFAULT '',
             UNIQUE(employee_id, role, work_date, shift_no)
         );
+        CREATE TABLE worklog (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            driver_id INTEGER NOT NULL,
+            work_date TEXT NOT NULL,
+            day_type TEXT NOT NULL DEFAULT 'Робота'
+        );
         CREATE TABLE employee_time_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER NOT NULL,
