@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Taxo 10.10-r5 — macOS personnel navigation startup regression."""
+import re
 import unittest
 from pathlib import Path
 
@@ -7,9 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestMacPersonnelNavigationR5(unittest.TestCase):
-    def test_revision_identity_is_r5(self):
-        self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8").strip(), "Version: 10.10-r5")
-        self.assertIn('APP_VERSION = "10.10-r5"', (ROOT / "main.py").read_text("utf-8"))
+    def test_revision_identity_is_r5_or_later(self):
+        version = (ROOT / "VERSION.txt").read_text("utf-8").strip().replace("Version: ", "")
+        match = re.fullmatch(r"10\.10-r(\d+)", version)
+        self.assertIsNotNone(match, version)
+        self.assertGreaterEqual(int(match.group(1)), 5)
+        self.assertIn(f'APP_VERSION = "{version}"', (ROOT / "main.py").read_text("utf-8"))
 
     def test_personnel_navigation_supports_widget_without_command(self):
         source = (ROOT / "src" / "taxo" / "personnel_v91.py").read_text("utf-8")
