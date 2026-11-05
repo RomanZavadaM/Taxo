@@ -4,9 +4,20 @@
 **Stable:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — виправлена macOS-версія, stable 05.11.2026
 **Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-**Next code revision:** **10.10-r6**.
+**Current integrated candidate:** **Taxo 10.11-r1** — prerelease publication pending; stable remains 10.10-r5.  
+**Next code revision:** **10.11-r2**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
+
+## Кандидатна лінія 10.11
+
+| Версія | PR | Стан |
+|---|---|---|
+| **10.11-r1** | #163, документація #165 | Integrated; START / Windows / Win7 / macOS CI SUCCESS; candidate prerelease готується, не stable. UX звітів, назви файлів водійського графіка. |
+| **10.10-r10** | #162 | Integrated; вибір водіїв для звіту, «част.» |
+| **10.10-r9** | #160 | Integrated; графік водіїв + коригування відсутностей |
+
+Зауваження до друкованого графіка працівників (назва файлу і колонка «Роль») відкладено до 10.11-r2 в Issue #164.
 
 ## Лінія 10.10
 
