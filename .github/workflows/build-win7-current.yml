@@ -63,8 +63,8 @@ jobs:
         run: |
           python -m PyInstaller --noconfirm --clean packaging/Taxo_win7.spec 2>&1 | Tee-Object -FilePath win7-build.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Move-Item 'dist/Taxo' 'dist/Taxo_v10_11_candidate_r1_Windows7_x64'
-          $bundle = 'dist/Taxo_v10_11_candidate_r1_Windows7_x64'
+          Move-Item 'dist/Taxo' 'dist/Taxo_v10_11_candidate_r2_Windows7_x64'
+          $bundle = 'dist/Taxo_v10_11_candidate_r2_Windows7_x64'
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe missing' }
           if (!(Get-ChildItem $bundle -Recurse -Filter python38.dll | Select-Object -First 1)) { throw 'python38.dll missing' }
           $env:TAXO_WIN7_BUNDLE = (Resolve-Path $bundle).Path
@@ -87,7 +87,7 @@ jobs:
 
       - name: Create Win7 portable ZIP
         shell: pwsh
-        run: Compress-Archive -Path 'dist/Taxo_v10_11_candidate_r1_Windows7_x64' -DestinationPath 'Taxo_v10_11_candidate_r1_Windows7_x64_Portable.zip' -Force
+        run: Compress-Archive -Path 'dist/Taxo_v10_11_candidate_r2_Windows7_x64' -DestinationPath 'Taxo_v10_11_candidate_r2_Windows7_x64_Portable.zip' -Force
 
       - name: Build Win7 installer
         shell: pwsh
@@ -95,24 +95,24 @@ jobs:
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (!(Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
-          & $iscc /DMyAppVersion=10.11-r2 /DSourceBundle=Taxo_v10_11_candidate_r1_Windows7_x64 /DOutputBase=Taxo_v10_11_candidate_r1_Setup_Windows7_x64 'packaging/installer/Taxo.iss'
+          & $iscc /DMyAppVersion=10.11-r2 /DSourceBundle=Taxo_v10_11_candidate_r2_Windows7_x64 /DOutputBase=Taxo_v10_11_candidate_r2_Setup_Windows7_x64 'packaging/installer/Taxo.iss'
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
-          if (!(Test-Path 'release_out/Taxo_v10_11_candidate_r1_Setup_Windows7_x64.exe')) { throw 'Win7 installer not found' }
+          if (!(Test-Path 'release_out/Taxo_v10_11_candidate_r2_Setup_Windows7_x64.exe')) { throw 'Win7 installer not found' }
 
       - name: Create Win7 checksums
         shell: pwsh
         run: |
-          $files = @('Taxo_v10_11_candidate_r1_Windows7_x64_Portable.zip','release_out/Taxo_v10_11_candidate_r1_Setup_Windows7_x64.exe')
+          $files = @('Taxo_v10_11_candidate_r2_Windows7_x64_Portable.zip','release_out/Taxo_v10_11_candidate_r2_Setup_Windows7_x64.exe')
           $lines = foreach ($file in $files) { "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))" }
-          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_11_r1_Windows7_x64.txt'
+          $lines | Set-Content -Encoding ascii 'SHA256SUMS_v10_11_r2_Windows7_x64.txt'
 
       - name: Upload Win7 candidate
         uses: actions/upload-artifact@v4
         with:
           name: Taxo-v10.11-r2-Windows7-x64
           path: |
-            Taxo_v10_11_candidate_r1_Windows7_x64_Portable.zip
-            release_out/Taxo_v10_11_candidate_r1_Setup_Windows7_x64.exe
-            SHA256SUMS_v10_11_r1_Windows7_x64.txt
+            Taxo_v10_11_candidate_r2_Windows7_x64_Portable.zip
+            release_out/Taxo_v10_11_candidate_r2_Setup_Windows7_x64.exe
+            SHA256SUMS_v10_11_r2_Windows7_x64.txt
           if-no-files-found: error
           retention-days: 30
