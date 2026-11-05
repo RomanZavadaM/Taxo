@@ -1,4 +1,5 @@
 name: Publish current Taxo release
+# Publish checkpoint: candidate 10.11-r1, only after the source-notes PR is merged and exact-main platform checks pass.
 
 on:
   workflow_dispatch:
