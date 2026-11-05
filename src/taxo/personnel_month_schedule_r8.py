@@ -29,6 +29,7 @@ from personnel_v91 import (
     NONWORK_OVERRIDE_TYPES,
     driver_plan_conflict,
 )
+from output_files import report_font_candidates
 
 APP_VERSION = "10.10-r8"
 
@@ -461,8 +462,20 @@ def export_employee_schedule_pdf(data, out_path):
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from xml.sax.saxutils import escape
+
+    font_name = "Helvetica"
+    font_path = next((p for p in report_font_candidates() if Path(p).exists()), None)
+    if font_path:
+        try:
+            if "TaxoScheduleFont" not in pdfmetrics.getRegisteredFontNames():
+                pdfmetrics.registerFont(TTFont("TaxoScheduleFont", str(font_path)))
+            font_name = "TaxoScheduleFont"
+        except Exception:
+            pass
 
     doc = SimpleDocTemplate(
         str(out_path),
@@ -474,10 +487,12 @@ def export_employee_schedule_pdf(data, out_path):
     )
     styles = getSampleStyleSheet()
     title = ParagraphStyle(
-        "TaxoScheduleTitle", parent=styles["Heading2"], fontSize=11, leading=13, alignment=1
+        "TaxoScheduleTitle", parent=styles["Heading2"], fontName=font_name,
+        fontSize=11, leading=13, alignment=1
     )
     normal = ParagraphStyle(
-        "TaxoScheduleNormal", parent=styles["Normal"], fontSize=6.8, leading=8
+        "TaxoScheduleNormal", parent=styles["Normal"], fontName=font_name,
+        fontSize=6.8, leading=8
     )
     center = ParagraphStyle(
         "TaxoScheduleCenter", parent=normal, alignment=1
@@ -888,12 +903,8 @@ def install(core, base_app):
                 )
                 if not path:
                     return
-                writer = (
-                    lambda target: export_employee_schedule_xlsx(data, target)
-                    if kind == "xlsx"
-                    else lambda target: export_employee_schedule_pdf(data, target)
-                )
-                # Avoid nested lambdas ambiguity.
+                # Employee-facing exports are deliberately built from VIEW_EMPLOYEE
+                # data above, so internal staffing diagnostics cannot leak into them.
                 if kind == "xlsx":
                     actual = core.write_output_file(
                         lambda target: export_employee_schedule_xlsx(data, target),
