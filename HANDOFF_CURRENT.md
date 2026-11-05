@@ -7,7 +7,7 @@
 - Current main: **10.10-r9**, merge commit `66882a2164bea1a72a30ec1db74d36d1613d0c68`.
 - Наступна кодова ревізія: **10.10-r10**.
 - CI optimization PR #152 — окрема робота; не змішувати.
-- Google Drive stable backup r5 збережений; окремий current-main r9 snapshot ще належить оновити.
+- Google Drive stable backup r5 збережений; current-main r9 START/source snapshot додано до `02_CURRENT_MAIN` (05.11.2026); кандидатний START також у `03_CANDIDATE_v10.10-r9 — тестові збірки`.
 
 ## Що завершено
 - r6: єдиний центр «Дані / Дія / документи», масові державні оновлення.
@@ -22,7 +22,7 @@
 - Виданий стабільний r5 залишається rollback.
 
 ## Єдина наступна дія
-Передати власнику зібраний Windows Portable r9 та прийняти ручну звірку основного водійського табеля з новим графіком/PDF (зокрема 02.11 і 14–16.11); зафіксувати результати, окремо оновити Drive current-main snapshot.
+Передати власнику зібраний Windows Portable r9 та прийняти ручну звірку основного водійського табеля з новим графіком/PDF (зокрема 02.11 і 14–16.11); зафіксувати результати; зберігати stable r5 без змін.
 
 ## Recovery
 `START_HERE.md` → цей HANDOFF → private Taxo-profile → live GitHub → `PROJECT_STATE.md`.
