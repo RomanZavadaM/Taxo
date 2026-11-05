@@ -12,7 +12,7 @@
 - Новий тест `tests/test_v10_10_r9.py`; версія та пакетування оновлені до r9.
 - Початкові PR workflow впали лише через старий hardcoded r8 version guard; після узгодження workflow PR CI: Windows, Windows 7, macOS ARM64/Intel SUCCESS.
 - PR #160 merged squash у main `66882a2164bea1a72a30ec1db74d36d1613d0c68`.
-- Main START та platform jobs запущені після merge; точні успіхи потрібно звірити перед передачею власнику.
+- Exact-main r9 SUCCESS: START #42041201788, Windows #42041201831, Windows 7 #42041202075, macOS #42041201978. Windows Portable/Installer отримано та звірено SHA256.
 - Stable v10.10-r5 збережено. Жодної робочої БД чи сканів не читали й не переписували.
 - Раніше записані подвійні employee_shifts не видаляємо автоматично; діагностика на копії — окрема робота.
 - Next revision: 10.10-r10. CI optimization #152 не змішувати.
