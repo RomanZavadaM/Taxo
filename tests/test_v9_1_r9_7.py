@@ -28,6 +28,7 @@ class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
         app.monthly_shift_active_only = _Var(True)
         app.monthly_shift_win = object()
         app.monthly_shift_last_detail_pdf = None
+        app.monthly_shift_report_driver_ids = None
 
         with tempfile.TemporaryDirectory() as folder:
             output_dir = Path(folder)
@@ -50,7 +51,7 @@ class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
                     main.App.open_monthly_shift_detail_pdf(app)
 
             export_detail.assert_called_once_with(
-                2026, 9, generated, active_only=True
+                2026, 9, generated, active_only=True, driver_ids=None
             )
             open_external.assert_called_once_with(generated)
             self.assertEqual(app.monthly_shift_last_detail_pdf, generated)
