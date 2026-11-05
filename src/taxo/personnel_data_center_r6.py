@@ -25,6 +25,10 @@ MODE_ACCEPT_NONCRITICAL = "accept_noncritical"
 
 CRITICAL_FIELDS = {
     ("personal", "rnokpp"),
+    ("personal", "birth_date"),
+    ("personal", "passport_series"),
+    ("personal", "passport_number"),
+    ("personal", "id_card_number"),
     ("military", "registry_person_id"),
 }
 
@@ -232,10 +236,18 @@ def install(core, base_app):
                         "Звіряння через Дію",
                     }
                 ):
-                    for forget in ("pack_forget", "grid_remove", "place_forget"):
+                    try:
+                        manager = str(widget.winfo_manager() or "")
+                    except Exception:
+                        manager = ""
+                    forget = {
+                        "pack": "pack_forget",
+                        "grid": "grid_remove",
+                        "place": "place_forget",
+                    }.get(manager)
+                    if forget:
                         try:
                             getattr(widget, forget)()
-                            break
                         except Exception:
                             pass
 
@@ -432,8 +444,8 @@ def install(core, base_app):
                 body,
                 text=(
                     "Виберіть одного або кількох працівників. Безпечний режим заповнює лише порожні поля. "
-                    "Режим поновлення також приймає непорожні зміни, але РНОКПП та ідентифікатор у Реєстрі "
-                    "ніколи не переписуються масово."
+                    "Режим поновлення також приймає непорожні зміни, але ключові ідентифікаційні реквізити "
+                    "(РНОКПП, дата народження, паспорт/ID та ідентифікатор у Реєстрі) ніколи не переписуються масово."
                 ),
                 style="Muted.TLabel",
                 wraplength=1060,
@@ -589,7 +601,7 @@ def install(core, base_app):
             ).pack(side="left", padx=6)
             core.ttk.Button(
                 actions,
-                text="Прийняти безконфліктні зміни у вибраних",
+                text="Прийняти реєстрові зміни у вибраних",
                 command=lambda: apply(MODE_ACCEPT_NONCRITICAL),
             ).pack(side="left", padx=6)
             core.ttk.Button(actions, text="Оновити", command=refresh).pack(side="left", padx=6)
