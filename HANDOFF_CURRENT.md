@@ -4,21 +4,23 @@
 
 ## База
 - Repository: `RomanZavadaM/Taxo`
-- `10.10-r5` уже інтегрована в `main`.
-- Попередній stable: `v10.10-r4` — має підтверджену проблему запуску на macOS.
-- Rollback: `v10.9-r10`.
-- Private profile: `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
+- Stable / Latest: **`v10.10-r5`**
+- Superseded: `v10.10-r4` — підтверджена проблема запуску на macOS
+- Rollback: `v10.9-r10`
+- Наступна кодова ревізія: **10.10-r6**
+- Private profile: `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`
 
-## Що зроблено
+## Завершено
 - Виправлено аварійний запуск macOS у навігації «Працівники».
 - Власник 04.11.2026 перевірив виправлення на Apple Silicon Mac mini.
-- Офіційна ревізія — `10.10-r5`; видану r4 не перевикористано.
 - PR #151 інтегровано в `main`.
-- Повна перевірка вже на `main`: Windows, Windows 7, macOS ARM64, macOS Intel і START — успішно.
-- PR #152 з оптимізацією перевірок лишається окремою роботою.
+- Повний контроль на `main`: Windows, Windows 7, macOS ARM64, macOS Intel і START — успішно.
+- `v10.10-r5` опублікований повним комплектом із 8 файлів.
+- Поточний stable переводиться на `v10.10-r5`; r4 лишається історичною й не використовується як Mac-збірка.
+- PR #152 з оптимізацією перевірок не змішувався з r5.
 
 ## Єдина наступна дія
-Опублікувати повний комплект `v10.10-r5` з перевірених збірок і зробити його новою stable/Latest замість `v10.10-r4`. Після цього синхронізувати README, PROJECT_STATE, release index і резервну документацію.
+Після підтвердження stable-promotion `v10.10-r5` повернутися до CI optimization: PR #152 не зливати як є, а спочатку звірити його з новим `main` r5 і перенести корисні зміни на актуальну базу.
 
 ## Recovery
 `START_HERE.md` → цей HANDOFF → private Taxo-profile → live GitHub → `PROJECT_STATE.md`.
