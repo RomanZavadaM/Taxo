@@ -92,7 +92,7 @@ jobs:
       - name: Run regression suite
         shell: pwsh
         run: |
-          python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-r5.log
+          python -m unittest discover -s tests -v 2>&1 | Tee-Object -FilePath unittest-r6.log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload regression log
@@ -100,7 +100,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Taxo-v10.10-r6-regression-log
-          path: unittest-r5.log
+          path: unittest-r6.log
           if-no-files-found: ignore
           retention-days: 7
 
