@@ -1,10 +1,10 @@
 # Індекс релізів Taxo
 
-**Стан:** 03.11.2026
-**Stable:** [Taxo 10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) — прийнято власником як stable 03.11.2026
+**Стан:** 05.11.2026
+**Stable:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — виправлена macOS-версія, stable 05.11.2026
 **Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-**Next code revision:** **10.10-r5**.
+**Next code revision:** **10.10-r6**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
 
@@ -12,7 +12,8 @@
 
 | Реліз | PR | Зміст |
 |---|---|---|
-| [**10.10-r4**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) | #144 | **STABLE 03.11.2026**; версія у всіх вікнах; Windows 7 Setup + Portable; повний комплект пакетів |
+| [**10.10-r5**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | #151 | **STABLE 05.11.2026**; виправлено запуск macOS; повний комплект Windows/Win7/macOS/START |
+| [10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) | #144 | superseded: підтверджена проблема запуску на macOS; історичний immutable release |
 | [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) | #138 | правильна версія у вікні; попередження «лише БД» |
 | [10.10-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r2) | #137 | CI hardening; ізоляція тестів |
 | [10.10-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r1) | #136 | без PyMuPDF |
@@ -52,7 +53,8 @@
 
 | Tag | Статус |
 |---|---|
-| [v10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) | **Current stable** |
+| [v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | **Current stable** |
+| [v10.10-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r4) | Superseded — macOS startup issue |
 | [v10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) | Previous stable / rollback |
 | [v10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3) | Older rollback |
 | [v10.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.1) | Previous stable / rollback |
