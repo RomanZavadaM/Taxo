@@ -31,6 +31,7 @@ class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
         app.monthly_shift_win = object()
         app.monthly_shift_last_detail_pdf = None
         app.monthly_shift_report_driver_ids = None
+        app.monthly_shift_report_driver_names = {}
 
         with tempfile.TemporaryDirectory() as folder:
             output_dir = Path(folder)
@@ -39,7 +40,7 @@ class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
             def fake_write(writer, path, **kwargs):
                 self.assertEqual(
                     Path(path).name,
-                    "Деталізація_графіка_змінності_2026_09.pdf",
+                    "Деталізація_змін_2026-09_усі-водії.pdf",
                 )
                 writer(generated)
                 return generated

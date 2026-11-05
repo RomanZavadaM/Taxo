@@ -20,7 +20,7 @@ class ReportFilenameTests(unittest.TestCase):
         c=main.monthly_shift_report_filename(2026,11,"graph",[2,4],"pdf")
         self.assertEqual(a,b)
         self.assertNotEqual(a,c)
-        self.assertIn("обрані-2-",a)
+        self.assertIn("ID-2-ID-3-",a)
 
     def test_selected_driver_filename_uses_person_name(self):
         label=main.monthly_shift_report_filename(
