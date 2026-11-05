@@ -2,10 +2,10 @@
 
 Цей розділ — основна точка входу до експлуатаційної та технічної документації Taxo.
 
-**Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — immutable; перевірено власником на реальних даних
-**Previous stable / rollback:** Taxo 10.3 / `v10.3`
-**Тестова лінія в `main`:** 10.10-r3 (`v10.10-r1`…`r3` — prerelease, перевіряються на реальних даних)
-**Next code revision:** `10.10-r4`
+**Stable / Latest:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — виправлена macOS-версія; повний multi-platform checkpoint
+**Superseded:** Taxo 10.10-r4 / `v10.10-r4` — проблема запуску на macOS
+**Safe rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
+**Next code revision:** `10.10-r6`
 
 ## Керівництва
 
@@ -39,18 +39,17 @@
 - [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
 - [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-## Stable — 10.9-r10
+## Stable — 10.10-r5
 
-- [GitHub Release v10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — Windows x64 Setup/Portable, Windows 7 SP1 x64 Portable, macOS ARM64/Intel, START/source, SHA-256.
-- [Release notes 10.9-r10](releases/RELEASE_NOTES_v10.9-r10.md)
+- [GitHub Release v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START/source, SHA-256.
+- [Release notes 10.10-r5](releases/RELEASE_NOTES_v10.10-r5.md)
 - [Індекс релізів](releases/RELEASE_INDEX.md)
 - [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
 - [Повний аудит 05.10.2026](maintenance/AUDIT_FULL_2026-10-05.md)
 
-## Тестова лінія — 10.10
+## Лінія 10.10
 
-- [10.10-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r1) — без PyMuPDF; [10.10-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r2) — CI hardening; [10.10-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) — правильна версія у вікні, попередження «лише БД».
-- Це prerelease для перевірки на реальних даних; stable стануть лише після перевірки власником.
+- r1 — без PyMuPDF; r2 — CI hardening; r3 — версія/backup warning; r4 — version UI + Win7 Setup, але superseded через macOS startup issue; **r5 — поточна stable з виправленим запуском macOS**.
 
 ## Мови публічного опису
 
@@ -67,7 +66,7 @@
 - [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
 - GitHub Issue #61 — append-only live development ledger.
 
-Наступний кодовий крок — **10.10-r4** від актуального `main`. Уже видані revision не перевикористовуються.
+Наступний кодовий крок — **10.10-r6** від актуального `main`. Уже видані revision не перевикористовуються.
 
 ## Дані користувача
 

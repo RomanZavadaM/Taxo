@@ -1,25 +1,23 @@
 # Taxo — поточна контрольна точка
 
-**Дата:** 05.10.2026
-**Stable:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10) — immutable; перевірено власником на реальних даних
-**Previous stable / rollback:** Taxo 10.3 / `v10.3`
-**Тестова лінія в `main`:** 10.10-r3 (`v10.10-r1`…`r3` — prerelease, перевіряються на реальних даних)
-**Next code revision:** `10.10-r4`
-**Recovery:** `START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61
+**Дата:** 05.11.2026  
+**Stable / Latest:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)  
+**Superseded:** `v10.10-r4` — проблема запуску на macOS  
+**Rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)  
+**Next code revision:** `10.10-r6`  
+**Recovery:** `START_HERE.md` → `HANDOFF_CURRENT.md` → private Taxo-profile → live GitHub → `PROJECT_STATE.md`
 
-## Stable 10.9-r10
+## Stable 10.10-r5
 
-- Код: main merge `5e179eabccc35afa984be04208e2e4d96094a2fb` (PR #132); exact PR head `ff56519da35e03204bdaf77f7187cddd692f79d4` (ідентичне git tree).
-- Пакети — оригінальні CI-збірки exact head: Windows `37018721703`, Windows 7 `37018721695`, macOS `37018722335`, START `37018715592`; SHA-256 збігаються з CI.
-- Перевірено власником на реальних даних (3 дні роботи) і промотовано в stable 05.10.2026.
+- Виправлено запуск macOS у навігації «Працівники».
+- Власник перевірив виправлення на Apple Silicon Mac mini 04.11.2026.
+- Код інтегровано через PR #151.
+- Повні збірки Windows, Windows 7, macOS ARM64, macOS Intel і START пройшли успішно.
+- Release `v10.10-r5` містить Windows Setup/Portable, Windows 7 Setup/Portable, macOS ARM64/Intel, START і SHA-256.
+- Міграцій робочих БД немає.
 
-## Тестова лінія 10.10 (prerelease)
+Release notes: [../releases/RELEASE_NOTES_v10.10-r5.md](../releases/RELEASE_NOTES_v10.10-r5.md).
 
-| Ревізія | PR | Зміст |
-|---|---|---|
-| 10.10-r1 | #136 | без PyMuPDF (AGPL-3.0) |
-| 10.10-r2 | #137 | CI hardening; ізоляція тестів |
-| 10.10-r3 | #138 | правильна версія у вікні; попередження «лише БД» |
+## Далі
 
-Release notes stable: [../releases/RELEASE_NOTES_v10.9-r10.md](../releases/RELEASE_NOTES_v10.9-r10.md).
-Повний аудит: [AUDIT_FULL_2026-10-05.md](AUDIT_FULL_2026-10-05.md).
+CI optimization лишається окремим етапом. Старий PR #152 не інтегрувати автоматично: спершу звірити його з актуальним `main` r5.

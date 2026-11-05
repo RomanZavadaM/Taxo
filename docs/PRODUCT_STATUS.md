@@ -1,14 +1,13 @@
 # Taxo — стан продукту
 
-**Актуально:** 03.11.2026
+**Актуально:** 05.11.2026
 
 ## Поточний статус
 
-- **Stable:** Taxo 10.9-r10 / `v10.9-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10); перевірено власником на реальних даних.
-- **Previous stable / rollback:** Taxo 10.3 / `v10.3`.
-- **Поточний кандидат:** 10.10-r4 у PR #144; Windows 10/11, Windows 7, macOS Intel та macOS ARM успішно зібрані. Ще не опубліковано.
-- **Опублікована тестова лінія:** `v10.10-r1`…`v10.10-r3`.
-- **Next code revision after merge:** `10.10-r5`.
+- **Stable / Latest:** Taxo 10.10-r5 / `v10.10-r5` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5); виправлено запуск macOS, повний комплект платформ перевірено.
+- **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
+- **Safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
+- **Next code revision:** `10.10-r6`.
 
 ## Відомі обмеження попередньої stable 10.9-r10
 
@@ -21,7 +20,8 @@
 - **10.10-r1:** PyMuPDF прибрано; PDF/JPG бланка, дата №340 і перегляд PDF — pypdfium2 + reportlab + pypdf.
 - **10.10-r2:** застарілі публікаційні workflow вимкнено; тести ізольовано від робочого сховища.
 - **10.10-r3:** правильна версія у головному вікні; попередження «лише БД».
-- **10.10-r4 (STABLE):** правильна версія у всіх вікнах і пізніше відкритих діалогах; повернено Windows 7 Setup; Windows 10/11, Windows 7, macOS Intel та ARM успішно перевірені; реліз прийнято власником як stable.
+- **10.10-r4:** правильна версія у всіх вікнах і Windows 7 Setup; superseded через проблему запуску на macOS.
+- **10.10-r5 (STABLE):** виправлено запуск macOS у навігації «Працівники»; власник перевірив Apple Silicon; повні Windows/Win7/macOS/START перевірки успішні.
 
 ## Функціональний стан
 
@@ -63,11 +63,11 @@ Taxo — настільна система для одного автотран�
 
 ## Recovery / джерело істини
 
-`START_HERE.md` → `PROJECT_RULES.md` → `PROJECT_STATE.md` → `WORKLOG.md` → Issue #61.
+`START_HERE.md` → `HANDOFF_CURRENT.md` → private Taxo-profile → live GitHub → `PROJECT_STATE.md`; `WORKLOG.md` та Issue #61 — для деталей.
 
 Додатково:
 - [Індекс релізів](releases/RELEASE_INDEX.md)
-- [Release notes 10.10-r4](releases/RELEASE_NOTES_v10.10-r4.md)
+- [Release notes 10.10-r5](releases/RELEASE_NOTES_v10.10-r5.md)
 - [Release notes 10.9-r10](releases/RELEASE_NOTES_v10.9-r10.md)
 - [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
 

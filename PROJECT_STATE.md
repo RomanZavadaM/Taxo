@@ -1,14 +1,15 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 03.11.2026  
+**Дата:** 05.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## Поточний підтверджений стан
 
-- **Stable / Latest:** Taxo 10.10-r4 / `v10.10-r4` — прийнято власником 03.11.2026.
-- **Previous stable / rollback:** Taxo 10.9-r10 / `v10.9-r10`.
+- **Stable / Latest:** Taxo 10.10-r5 / `v10.10-r5` — виправлення запуску macOS; прийнято власником 05.11.2026.
+- **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
+- **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Next code revision:** **10.10-r5**.
+- **Next code revision:** **10.10-r6**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Google Drive backup:** повний запасний stable-комплект + current-main snapshot у папці `Taxo — Розробка — резервний комплект`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
@@ -22,12 +23,13 @@
 - license gate: `tests/test_v10_10_r1.py` + `scripts/check_bundle_licenses.py` у всіх збірках;
 - без міграцій робочих БД і змін даних користувача.
 
-## Поточна stable 10.10-r4
+## Поточна stable 10.10-r5
 
 - виправлено показ версії у всіх вікнах і діалогах;
 - повернено Windows 7 Setup поруч із Portable;
 - опубліковано повний комплект Windows, Windows 7, macOS Intel/ARM, START і SHA256;
-- універсальний механізм публікації замінив окремі publish-файли під кожну ревізію.
+- універсальний механізм публікації замінив окремі publish-файли під кожну ревізію;
+- виправлено macOS startup crash у навігації «Працівники»; виправлення перевірено власником на Apple Silicon.
 
 ## Що додано в 10.9-r10
 
@@ -69,7 +71,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.10-r4`; наступна кодова ревізія — `10.10-r5`; наступна stable змінюється лише рішенням власника;
+- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; наступна кодова ревізія — `10.10-r6`; наступна stable змінюється лише рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 
