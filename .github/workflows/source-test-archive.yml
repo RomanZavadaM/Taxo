@@ -6,6 +6,11 @@ on:
       - main
       - 'work/v9.*'
       - 'work/v10.*'
+    paths:
+      - '**'
+      - '!docs/**'
+      - '!**/*.md'
+      - 'docs/releases/**'
   workflow_dispatch:
 
 permissions:
