@@ -16,10 +16,12 @@ class _Var:
 
 
 class TestR97MonthlyShiftDetailOpen(unittest.TestCase):
-    def test_monthly_shift_window_exposes_open_detail_button(self):
+    def test_monthly_shift_window_exposes_unified_report_preview(self):
         source = inspect.getsource(main.App.show_monthly_shift_schedule)
-        self.assertIn('text="Відкрити деталізацію"', source)
-        self.assertIn("command=self.open_monthly_shift_detail_pdf", source)
+        self.assertIn('"Деталізація змін (PDF)"', source)
+        self.assertIn("command=self.preview_monthly_shift_document", source)
+        dispatch = inspect.getsource(main.App.preview_monthly_shift_document)
+        self.assertIn("return self.open_monthly_shift_detail_pdf()", dispatch)
 
     def test_open_detail_regenerates_current_pdf_and_opens_it(self):
         app = object.__new__(main.App)
