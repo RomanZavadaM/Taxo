@@ -1,9 +1,25 @@
 # WORKLOG — Taxo
 
-**Оновлено:** 03.11.2026  
+**Оновлено:** 05.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## CURRENT
+
+## CI OPTIMIZATION — 05.11.2026 (draft PR #152, not integrated)
+
+- Base: `main` `1f6a397fdd7b218a21ffc10f3fd87d5aad566d36`.
+- Branch: `ci/docs-only-optimization-20261105`.
+- Stable remains `v10.10-r4`; no product revision change.
+- Reconciled live GitHub first: separate draft PR #151 exists for the macOS hotfix; it is not mixed into this CI slice.
+- Old PR #142 reviewed only as historical evidence; not reused/merged.
+- Updated Windows / Windows 7 / macOS / START workflow triggers so ordinary docs-only changes do not run expensive builds.
+- Conservative rule: non-documentation changes run full CI; `docs/releases/**` is release-sensitive and explicitly re-included.
+- Windows required check remains present for docs-only PRs, but heavy steps are skipped after fail-closed diff classification.
+- Docs-only smoke PR #153: only Windows run `41988510150`; Windows 7/macOS absent; lightweight Windows job SUCCESS; all heavy build/regression/package steps skipped.
+- PR #152 workflow-change validation correctly started Windows, Windows 7 and macOS.
+- Detailed record: `docs/maintenance/CI_OPTIMIZATION_2026-11-05.md`.
+- NEXT: wait for final #152 checks on latest head, close #153 without merge, then decide integration separately.
+
 
 **Stable release:** **Taxo 10.10-r4 / `v10.10-r4`** — прийнято власником 03.11.2026; Windows 10/11, Windows 7, macOS Intel/ARM, START і SHA256 опубліковані
 **Previous stable / rollback:** **v10.9-r10**; older rollback — `v10.3`
