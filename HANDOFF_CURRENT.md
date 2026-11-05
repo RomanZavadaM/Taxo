@@ -17,12 +17,12 @@
 
 ## Перевірка
 - PR #160: Windows, Windows 7, macOS ARM64/Intel — SUCCESS.
-- Exact-main r9: перевірки запущено після merge; звірити фінальні статуси GitHub перед видачею.
+- Exact-main r9: START #42041201788, Windows #42041201831, Windows 7 #42041202075, macOS #42041201978 — **SUCCESS**. Windows Portable/Installer та macOS/Win7 artifacts наявні.
 - Збірки r9 не є новим stable. Ручне приймання на реальних даних ще не проведене.
 - Виданий стабільний r5 залишається rollback.
 
 ## Єдина наступна дія
-Звірити exact-main START/Windows/Windows 7/macOS, опублікувати доступні тестові архіви r9 і вручити власнику для звірки графіка та звіту; окремо відновити Drive current-main snapshot.
+Передати власнику зібраний Windows Portable r9 та прийняти ручну звірку основного водійського табеля з новим графіком/PDF (зокрема 02.11 і 14–16.11); зафіксувати результати, окремо оновити Drive current-main snapshot.
 
 ## Recovery
 `START_HERE.md` → цей HANDOFF → private Taxo-profile → live GitHub → `PROJECT_STATE.md`.
