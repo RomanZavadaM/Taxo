@@ -84,7 +84,7 @@ def install(core, base_app):
                 body,
                 text=("Один реєстр для ручних документів і реквізитів, отриманих з державних XLSX. "
                       "Відсутність документа у наступному державному витягу не видаляє і не архівує запис Taxo. "
-                      "Стан строку є інформаційним контролем; «закінчується» означає ≤30 днів."),
+                      "Обов'язковість і контроль строку задаються окремо для конкретного працівника; «закінчується» означає ≤30 днів."),
                 style="Muted.TLabel", wraplength=1280, justify="left",
             ).pack(anchor="w", pady=(3, 10))
 
@@ -107,7 +107,8 @@ def install(core, base_app):
             core.ttk.Label(filters, text="Стан").grid(row=0, column=4, sticky="w", padx=(0, 6))
             state_values = ["Усі стани"] + [docreg.STATE_LABELS[key] for key in (
                 docreg.STATE_VALID, docreg.STATE_EXPIRING, docreg.STATE_EXPIRED,
-                docreg.STATE_NO_EXPIRY, docreg.STATE_DATE_REVIEW, docreg.STATE_ARCHIVED,
+                docreg.STATE_NO_EXPIRY, docreg.STATE_DATE_REVIEW, docreg.STATE_NOT_CONTROLLED,
+                docreg.STATE_DATE_REQUIRED, docreg.STATE_ARCHIVED,
             )]
             state_box = core.ttk.Combobox(filters, textvariable=state_var, values=state_values, state="readonly", width=27)
             state_box.grid(row=0, column=5, sticky="ew", padx=(0, 10))
@@ -131,10 +132,11 @@ def install(core, base_app):
             table.pack(fill="both", expand=True)
             table.rowconfigure(0, weight=1)
             table.columnconfigure(0, weight=1)
-            cols = ("employee", "type", "series", "number", "issue", "expiry", "issuer", "source", "state")
+            cols = ("employee", "type", "required", "control", "series", "number", "issue", "expiry", "issuer", "source", "state")
             tree = core.ttk.Treeview(table, columns=cols, show="headings", selectmode="browse")
             for key, label, width in (
                 ("employee", "Працівник", 240), ("type", "Тип документа", 215),
+                ("required", "Обов'язк.", 80), ("control", "Строк", 70),
                 ("series", "Серія", 75), ("number", "Номер", 125),
                 ("issue", "Виданий", 95), ("expiry", "Чинний до", 105),
                 ("issuer", "Ким виданий", 180), ("source", "Джерело", 190),
@@ -190,8 +192,10 @@ def install(core, base_app):
                     tree.insert(
                         "", "end", iid=str(row["id"]),
                         values=(
-                            row["employee_name"], row["doc_type"], row["series"] or "",
-                            row["number"] or "", personnel.display_date(row["issue_date"]),
+                            row["employee_name"], row["doc_type"],
+                            ("Так" if row.get("requirement_required") else "Ні") if row.get("requirement_present") else "—",
+                            ("Так" if row.get("requirement_expiry_control") else "Ні") if row.get("requirement_present") else "—",
+                            row["series"] or "", row["number"] or "", personnel.display_date(row["issue_date"]),
                             personnel.display_date(row["expiry_date"]), row["issuer"] or "",
                             row["source_display"], row["state_label"],
                         ), tags=(row["state"],),
