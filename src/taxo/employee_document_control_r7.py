@@ -148,6 +148,16 @@ def _is_url(value):
     return text.startswith("http://") or text.startswith("https://")
 
 
+def _portable_workspace_path(core, path):
+    resolved = Path(path).resolve()
+    base = Path(core.DATA_ROOT).expanduser().resolve()
+    try:
+        relative = resolved.relative_to(base)
+    except ValueError:
+        return core.db_stored_path(resolved)
+    return "workspace://" + relative.as_posix()
+
+
 def stored_document_path(core, employee_id, source_value):
     """Copy a local document into Taxo workspace and return a portable DB path.
 
@@ -171,7 +181,7 @@ def stored_document_path(core, employee_id, source_value):
     root = employee_document_storage_root(core).resolve()
     try:
         source.relative_to(root)
-        return core.db_stored_path(source), True
+        return _portable_workspace_path(core, source), True
     except ValueError:
         pass
 
@@ -182,7 +192,7 @@ def stored_document_path(core, employee_id, source_value):
         "%s_%s_%s" % (stamp, uuid.uuid4().hex[:8], _safe_filename(source.name))
     )
     shutil.copy2(source, target)
-    return core.db_stored_path(target), True
+    return _portable_workspace_path(core, target), True
 
 
 def is_workspace_document(core, value):
