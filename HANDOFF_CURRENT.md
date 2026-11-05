@@ -1,59 +1,30 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 03.11.2026
-
-Це короткий recovery-знімок для нового чату або нового виконавця. Він замінюється при критичній зміні стану й не використовується як довгий журнал.
+**Оновлено:** 05.11.2026
 
 ## База
 - Repository: `RomanZavadaM/Taxo`
-- Stable / Latest: `v10.10-r4`
+- Поточний stable: `v10.10-r4`
+- Наступна виправлена ревізія: `10.10-r5`
 - Previous stable / rollback: `v10.9-r10`
-- Наступна кодова ревізія: `10.10-r5`
-- Загальна методологія: private `RomanZavadaM/dev-strategy`, branch `profile/taxo`, файл `TAXO_PROFILE.md`
-- Google Drive backup: `Taxo — Розробка — резервний комплект`
+- Private profile: `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`
 
-## Завершено
-- `v10.10-r4` прийнято власником як Stable / Latest.
-- Windows 10/11: Setup + Portable.
-- Windows 7: Setup + Portable.
-- macOS: ARM64 + Intel.
-- START/source + SHA256 опубліковані.
-- README та релізні документи синхронізовані.
-- Додано універсальний механізм публікації.
-- На Google Drive є повний запасний stable-комплект і snapshot current main.
+## Що сталося
+Опублікована `10.10-r4` має підтверджену проблему запуску на macOS. Вчорашня правка в PR #151 її усуває.
 
-## Поточний стан continuity
+04.11.2026 власник перевірив виправлення на Apple Silicon Mac mini: Taxo запускається з Finder, база підключається, «Працівники» відкриваються.
 
-Adoption dev-strategy v2 continuity **завершено та інтегровано в main**. Незалежний аудит `dev-strategy` розглянуто; рішення Taxo зафіксовані:
-- новий чат не відновлює роботу з пам'яті;
-- після критичної зміни одразу оновлюється цей HANDOFF;
-- довгі технічні деталі лишаються у WORKLOG / GitHub;
-- після зависання або обриву наступник спершу звіряє GitHub і HANDOFF;
-- process/security/release деталі Taxo зберігаються у private Taxo-profile.
+05.11.2026 власник прямо доручив перенести цю правку в основну версію, бо опублікована Mac-версія не працює.
 
-## Межа з dev-strategy
-
-Розробники `dev-strategy` можуть проводити **read-only аналіз Taxo**: читати код і документацію, звіряти процеси та рекомендувати зміни. Вони не вносять зміни в продукт без окремого доручення власника.
-
-Їхні рекомендації не застосовуються автоматично: власник сам вирішує, що корисне для методології, private Taxo-profile і самого Taxo.
+## Активна робота
+- PR #151 — виправлення macOS.
+- Код правки вже проходив Windows / Windows 7 / macOS перевірки.
+- Оскільки r4 вже видана, офіційно правка оформлюється як **10.10-r5**.
+- Номер версії, збірки, тести та release notes синхронізовані на r5; тепер потрібна нова повна перевірка.
+- PR #152 з оптимізацією CI — окремий етап і зараз не інтегрується.
 
 ## Єдина наступна дія
+Якщо повна перевірка правильно промаркованої `10.10-r5` успішна — інтегрувати PR #151 у `main`, випустити повний комплект r5 і зробити його новою stable/Latest замість непрацюючої Mac-збірки r4.
 
-Почати окремий CI-slice для documentation-only змін:
-- виходити тільки з актуального `main`;
-- не зливати старий PR #142 автоматично;
-- прибрати важкі Windows / Windows 7 / macOS збірки для звичайних docs-only змін;
-- зберегти повні перевірки для коду, dependencies, packaging, workflow, security і release;
-- не змінювати stable `v10.10-r4`.
-
-Після цього окремо виконати build/release security audit і незалежний continuity recovery trial.
-
-## Recovery після обриву
-1. Відкрити `START_HERE.md`.
-2. Відкрити цей `HANDOFF_CURRENT.md`.
-3. Відкрити private Taxo-profile у `dev-strategy`.
-4. Звірити live GitHub.
-5. Якщо HANDOFF суперечить GitHub — GitHub має пріоритет, HANDOFF одразу виправити.
-6. Продовжити лише з пункту «Єдина наступна дія».
-
-Не читати старі чати для відновлення стану, якщо потрібний факт уже є у GitHub або HANDOFF.
+## Recovery
+`START_HERE.md` → цей HANDOFF → private Taxo-profile → live GitHub → `PROJECT_STATE.md`.
