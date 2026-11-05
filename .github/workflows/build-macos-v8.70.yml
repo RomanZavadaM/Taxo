@@ -55,8 +55,8 @@ jobs:
         shell: bash
         run: |
           test "$(uname -m)" = "${{ matrix.arch }}"
-          grep -Fxq 'Version: 10.11-r1' VERSION.txt
-          grep -Fq 'APP_VERSION = "10.11-r1"' main.py
+          grep -Fxq 'Version: 10.11-r2' VERSION.txt
+          grep -Fq 'APP_VERSION = "10.11-r2"' main.py
           test -f src/taxo/application_context.py
           test -f assets/attestation_visual_template.pdf
           test -f packaging/Taxo_macos.spec
@@ -121,7 +121,7 @@ jobs:
       - name: Upload macOS candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.11-r1-macOS-${{ matrix.arch }}
+          name: Taxo-v10.11-r2-macOS-${{ matrix.arch }}
           path: |
             Taxo_v10_11_candidate_r1_macOS_${{ matrix.arch }}_Portable.zip
             SHA256SUMS_v10_11_r1_macOS_${{ matrix.arch }}.txt

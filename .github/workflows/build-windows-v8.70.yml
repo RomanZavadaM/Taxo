@@ -47,8 +47,8 @@ jobs:
           foreach ($file in $required) {
             if (!(Test-Path $file)) { throw "Required r10 layout file missing: $file" }
           }
-          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.11-r1') { throw 'VERSION.txt is not 10.11-r1' }
-          if (!(Select-String -Path main.py -Pattern 'APP_VERSION = "10.11-r1"' -SimpleMatch)) { throw 'main.APP_VERSION is not 10.11-r1' }
+          if ((Get-Content VERSION.txt -Raw).Trim() -ne 'Version: 10.11-r2') { throw 'VERSION.txt is not 10.11-r2' }
+          if (!(Select-String -Path main.py -Pattern 'APP_VERSION = "10.11-r2"' -SimpleMatch)) { throw 'main.APP_VERSION is not 10.11-r2' }
 
       - name: Verify multilingual documentation
         shell: pwsh
@@ -99,7 +99,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.11-r1-regression-log
+          name: Taxo-v10.11-r2-regression-log
           path: unittest-r1.log
           if-no-files-found: ignore
           retention-days: 7
@@ -173,7 +173,7 @@ jobs:
       - name: Upload Windows test executables
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.11-r1-Windows-x64
+          name: Taxo-v10.11-r2-Windows-x64
           path: |
             Taxo_v10_11_candidate_r1_Windows_x64_Portable.zip
             release_out/Taxo_v10_11_candidate_r1_Setup_Windows_x64.exe
