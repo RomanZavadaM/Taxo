@@ -1,5 +1,17 @@
 # WORKLOG — Taxo
 
+## 10.11-r2 — офіційний prerelease, build-name incident і завершення checkpoint — 05.11.2026
+
+- Функціональний PR #169 злитий у main `defbc33245e6fc984eb1a280f7e9c1ab8f05ccbd`: змістовні імена простого графіка працівників; колонка «Роль» прибрана лише з PDF; XLSX/БД/plan-fact незмінні.
+- Перший exact-main функціонального стану пройшов START/Windows/Win7/macOS, але publisher #42084574084 **відмовився створювати release**: build artifacts ще містили hardcoded `candidate_r1` у внутрішніх іменах файлів.
+- Окремий build-only PR #171 виправив активні `packaging/installer/Taxo.iss`, Windows, Win7 і macOS workflows. Код функціоналу не змінювався.
+- Після #171 exact issued source = `68d7459b28e4ae68d97b6dd43cc92ead695a80bb`.
+- Exact-main SUCCESS: START #42085643768; Windows #42085643914; Windows 7 #42085644022; macOS ARM64/Intel #42085643987. Логи підтвердили `candidate_r2` та відсутність активних `candidate_r1`.
+- Release-trigger PR #172 merged; publisher #42086984364 — **SUCCESS**.
+- GitHub prerelease `v10.11-r2` опублікований з 8 assets; tag target = `68d7459b28e4ae68d97b6dd43cc92ead695a80bb`; stable `v10.10-r5` без змін.
+- Google Drive: підтверджено `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r2_2026-11-05_START.zip`.
+- Виданий r2 immutable. Наступна кодова ревізія — **10.11-r3**; подальший UX — Issue #164.
+
 ## 10.11-r2 — простий графік працівників: назва PDF і друк — 05.11.2026
 
 - Старт від `main` `03df7bffeb1d46e3f51d9788f070292a0cec44df`; гілка `fix/v10.11-r2-personnel-report-20261105`.
@@ -7,7 +19,7 @@
 - Лише в PDF простого графіка прибрано колонку «Роль»; Excel її зберігає. Ролі в БД, кадрова картка, plan/fact, графік водіїв та історія не змінюються.
 - Додано `tests/test_v10_11_r2.py`: 30/31 день, довгі ПІБ, одна/кілька/всі вибірки, різні групи, PDF landscape A4, збереження ролі в XLSX.
 - Candidate identity синхронізовано на `10.11-r2`; stable `v10.10-r5` і prerelease `v10.11-r1` незмінні.
-- Статус: IN PROGRESS до PR CI та ручного приймання.
+- Статус: **PUBLISHED PRERELEASE**; ручне приймання r2 триває, наступні зміни — 10.11-r3.
 
 **Оновлено:** 05.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
