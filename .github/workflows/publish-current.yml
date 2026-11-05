@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Publish checkpoint: candidate 10.11-r2, only after exact-main START/Windows/Windows 7/macOS checks pass.
+# Publish checkpoint: candidate 10.11-r2 retry after verified r2 asset names; exact source 68d7459b.
 
 on:
   workflow_dispatch:
