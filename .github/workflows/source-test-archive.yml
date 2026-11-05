@@ -133,6 +133,7 @@ jobs:
             src/taxo/v1096_personnel_balance.py src/taxo/v1097_stoir_odometer.py
             src/taxo/v1098_orders_immutability.py src/taxo/v1099_schema_compatibility.py
             src/taxo/personnel_data_center_r6.py src/taxo/employee_document_control_r7.py
+            src/taxo/personnel_month_schedule_r8.py
             src/taxo/workspace.py src/taxo/vehicle_documents.py src/taxo/vehicle_maintenance.py
             src/taxo/vehicle_maintenance_ui.py src/taxo/document_viewer.py src/taxo/release_naming.py
             "assets/Бланк підтвердження.docx" assets/attestation_visual_template.pdf
