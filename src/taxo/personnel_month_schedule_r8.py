@@ -113,6 +113,10 @@ def simple_plan_role(row):
     specialized driver schedule, so the simple planner never duplicates their
     route/worklog plan.
     """
+    # Linked drivers use the dedicated driver schedule, not a parallel bulk plan.
+    # The position title can differ from the historical role name.
+    if row["driver_id"] is not None:
+        return "", "Водій — робочі зміни беруться з графіка водіїв"
     roles = _roles(row)
     non_driver = [role for role in roles if role != "Водій"]
     if len(non_driver) == 1:
