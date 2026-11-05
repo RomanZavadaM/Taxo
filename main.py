@@ -11501,7 +11501,7 @@ class App(tk.Tk):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
         path=OUTPUT_DIR / monthly_shift_report_filename(
-            y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx",driver_names=self.monthly_shift_report_driver_names
+            y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx",driver_names=getattr(self,"monthly_shift_report_driver_names",{})
         )
         try:
             actual=write_output_file(
@@ -11595,7 +11595,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти редагований графік змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx",driver_names=self.monthly_shift_report_driver_names),
+            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"xlsx",driver_names=getattr(self,"monthly_shift_report_driver_names",{})),
             defaultextension=".xlsx",
             filetypes=[("Excel","*.xlsx")]
         )
@@ -11630,7 +11630,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти деталізацію графіка змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf",driver_names=self.monthly_shift_report_driver_names),
+            initialfile=monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf",driver_names=getattr(self,"monthly_shift_report_driver_names",{})),
             defaultextension=".pdf",
             filetypes=[("PDF","*.pdf")]
         )
@@ -11658,7 +11658,7 @@ class App(tk.Tk):
     def _monthly_shift_default_detail_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
-        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf",driver_names=self.monthly_shift_report_driver_names)
+        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"detail",self.monthly_shift_report_driver_ids,"pdf",driver_names=getattr(self,"monthly_shift_report_driver_names",{}))
 
     def open_monthly_shift_detail_pdf(self):
         """Сформувати актуальну деталізацію місячного графіка і одразу відкрити PDF."""
@@ -11690,7 +11690,7 @@ class App(tk.Tk):
     def _monthly_shift_default_pdf(self):
         y=int(self.monthly_shift_year.get())
         m=int(self.monthly_shift_month.get())
-        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf",driver_names=self.monthly_shift_report_driver_names)
+        return OUTPUT_DIR / monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf",driver_names=getattr(self,"monthly_shift_report_driver_names",{}))
 
     def _monthly_shift_pdf_key(self):
         return (
@@ -11707,7 +11707,7 @@ class App(tk.Tk):
             parent=self.monthly_shift_win,
             title="Зберегти місячний графік змінності",
             initialdir=str(OUTPUT_DIR),
-            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf",driver_names=self.monthly_shift_report_driver_names),
+            initialfile=monthly_shift_report_filename(y,m,"graph",self.monthly_shift_report_driver_ids,"pdf",driver_names=getattr(self,"monthly_shift_report_driver_names",{})),
             defaultextension=".pdf",
             filetypes=[("PDF","*.pdf")]
         )
