@@ -52,6 +52,7 @@ class EmployeeDocumentRequirementR7Tests(unittest.TestCase):
                 "doc_type": "Посвідчення водія",
                 "number": "DRV",
                 "expiry_date": "01.01.2028",
+                "file_path": "workspace://Data/EmployeeDocuments/employee_000001/drv.pdf",
             }
         )
         self.con.commit()
