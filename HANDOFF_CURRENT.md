@@ -38,14 +38,16 @@
 - Прочитані `START_HERE.md`, цей HANDOFF, private Taxo-profile, `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md`, Issue #61.
 - PR #142 переглянуто лише як історичну довідку; його зміни не копіюються без звірки з актуальним `main`.
 
-## Єдина наступна дія
-Завершити і перевірити нові CI-фільтри на branch `ci/docs-only-optimization-20261105`, відкрити окремий draft PR і підтвердити матрицю:
-1. docs-only PR — без важких платформних збірок;
-2. code/workflow/security/release change — повний набір відповідних перевірок;
-3. main docs-only push — без зайвих платформних/START збірок;
-4. release checkpoint — повний контроль збережено.
+## Поточний доказ
+- Draft PR #152: `CI: skip heavy platform builds for ordinary docs-only changes`.
+- Workflow-change PR #152 запустив Windows, Windows 7 і macOS — повний контроль для workflow-змін збережено.
+- Тимчасовий docs-only PR #153 запустив лише Windows workflow.
+- Windows run `41988510150` — SUCCESS; heavy Python/regression/PyInstaller/package steps — SKIPPED.
+- Windows 7 і macOS для #153 не запускалися.
+- Деталі: `docs/maintenance/CI_OPTIMIZATION_2026-11-05.md`.
 
-Після підтвердження — оновити WORKLOG / Issue #61 і вирішувати інтеграцію окремо. Не змішувати з PR #151.
+## Єдина наступна дія
+Дочекатися завершення фінальних Windows / Windows 7 / macOS checks PR #152 на його останньому head, закрити PR #153 без merge, звірити фінальний diff і лише після цього приймати окреме рішення про інтеграцію PR #152. Не змішувати з PR #151.
 
 ## Recovery після обриву
 1. Відкрити `START_HERE.md`.
