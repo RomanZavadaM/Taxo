@@ -58,6 +58,10 @@ jobs:
           python -m py_compile main.py taxo_app.py sitecustomize.py
           Get-ChildItem src/taxo -Filter *.py | ForEach-Object { python -m py_compile $_.FullName }
 
+      - name: Stage legacy layout for historical regression only
+        shell: pwsh
+        run: python tests/stage_legacy_layout.py
+
       - name: Run full regression suite on Python 3.8
         shell: pwsh
         run: |
