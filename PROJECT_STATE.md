@@ -9,13 +9,13 @@
 - **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Current main candidate:** Taxo **10.11-r8** — централізоване build/release naming без revision hardcoding. Офіційний [prerelease v10.11-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r8) опубліковано 06.11.2026; 8 assets і SHA256; exact tag source `f3e846c50e75bdc59560d10916cec90a7587cdac`. Stable не змінено.
-- **Next code revision:** **10.11-r9**.
+- **Current main candidate:** Taxo **10.11-r9** — workflow supply-chain hardening з immutable GitHub Action pins. Офіційний [prerelease v10.11-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r9) опубліковано 06.11.2026; 8 assets і SHA256; exact tag source `8f97218927b3ba6bc14aca465de4a196e2b19ba2`. Stable не змінено.
+- **Next code revision:** **10.11-r10**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** повний stable-комплект + `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r8_2026-11-06_START.zip` (1 538 476 байт) у папці `Taxo — Розробка — резервний комплект`.
+- **Google Drive backup:** повний stable-комплект + `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r9_2026-11-06_START.zip` (1 542 152 байт) у папці `Taxo — Розробка — резервний комплект`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
-## Поточний main 10.11-r8 — стабілізація та release engineering
+## Поточний main 10.11-r9 — стабілізація та supply-chain hardening
 
 - **r6:** єдиний центр «Дані / Дія / документи» та масове поновлення державних даних для вибраних працівників.
 - **r7:** вимоги до документів на рівні конкретного працівника; незалежний контроль строку; копії документів у workspace; employee documents завжди входять у повний backup.
@@ -30,6 +30,7 @@
 - **10.11-r6:** PR #185 — atomic output через sibling temp + `os.replace`, composite restore failure reporting із шляхом до safety backup, явний disclosure `Data/EmployeeDocuments` у backup UI/name/docs. Exact issued source `558158a9777b18a05a224136fec4deeef55b5950`; START #42268068367 — **872 tests / OK**; Windows #42268068515, Win7 #42268068378, macOS #42268068403 — SUCCESS. Release-trigger PR #186; publisher #42269285656 — SUCCESS; immutable prerelease `v10.11-r6` має 8 assets. Google Drive START backup підтверджений.
 - **10.11-r7:** PR #188 — Win7 workflow тепер перед packaging відновлює legacy layout для історичних regression-тестів і запускає **повний** `python -m unittest discover -s tests -v` на CPython 3.8.10. Під час переходу виправлено лише test-contract сумісність Python 3.8 (`removeprefix`, історичний r6 version anchor), runtime-логіку не змінено. Exact issued source `3f3b28366ce7d453a70f5a2573eb676c0b503d2c`; START #42273303324 — **876 tests / OK**; Windows #42273303147, Win7 #42273303116, macOS #42273303128 — SUCCESS. Release-trigger PR #189; publisher #42274663207 — SUCCESS; immutable prerelease `v10.11-r7` має 8 assets. Google Drive START backup підтверджений. Наступна ревізія — 10.11-r8.
 - **10.11-r8:** PR #192 — `VERSION.txt` + `src/taxo/release_naming.py` стали єдиним джерелом package naming для Windows/Win7/macOS; Inno Setup більше не має revision defaults; stable promotion формує required assets з marker/version замість hardcoded r5. Exact issued source `f3e846c50e75bdc59560d10916cec90a7587cdac`; START #42283491422 — **881 tests / OK**; Windows #42283491587, Win7 #42283491399, macOS #42283491541 — SUCCESS. Release-trigger PR #193; publisher #42284631762 — SUCCESS; immutable prerelease `v10.11-r8` має 8 assets. Google Drive START backup підтверджений. Наступна ревізія — 10.11-r9.
+- **10.11-r9:** PR #195 — усі official GitHub Actions у п'яти active workflows pinned до immutable commit SHA; current major refs звірені 06.11.2026, historical workflows не переписувались. Exact issued source `8f97218927b3ba6bc14aca465de4a196e2b19ba2`; START #42286505119 — **885 tests / OK**; Windows #42286505164, Win7 #42286505171, macOS #42286505215 — SUCCESS. Release-trigger PR #196; publisher #42287707654 — SUCCESS; immutable prerelease `v10.11-r9` має 8 assets. Google Drive START backup підтверджений. Наступна ревізія — 10.11-r10.
 - **Публікація:** docs PR #165/#166 та release trigger PR #167 merged; publish workflow #42063810115 SUCCESS. 10.11-r1 = immutable prerelease, не stable.
 - **Зауваження власника до r1 закриті в r2:** неоднозначне ім'я `Графік_працівників_2026_11.pdf` замінено на змістовну схему, зайву колонку «Роль» прибрано лише з PDF. Подальший UX — Issue #164; власник тестує r2.
 - Водійський план не дублюється у загальному плануванні персоналу.
@@ -95,7 +96,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.11-r8`; наступна кодова ревізія — `10.11-r9`; наступна stable змінюється лише рішенням власника;
+- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.11-r9`; наступна кодова ревізія — `10.11-r10`; наступна stable змінюється лише рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 

@@ -1,5 +1,21 @@
 # WORKLOG — Taxo
 
+## 10.11-r9 — immutable GitHub Action pins та офіційний prerelease — 06.11.2026
+
+- Окремий workflow supply-chain hardening slice за Issue #175 finding #11; runtime/business logic, UX #164, build naming і CI optimization #142/#152 не змішувались.
+- 06.11.2026 звірено current official major refs GitHub: `actions/checkout@v4 → 11d5960a326750d5838078e36cf38b85af677262`; `actions/setup-python@v5 → a26af69be951a213d495a4c3e4e4022e16d87065`; `actions/upload-artifact@v4 → ea165f8d65b6e75b540449e92b4886f43607fa02`.
+- П'ять active workflows переведені з рухомих `@v4/@v5` на ці immutable commit SHA з human-readable коментарем major line. Historical workflows не переписувались.
+- Додано `tests/test_v10_11_r9.py`: 40-char SHA requirement, exact allowlist, заборона moving major refs, збереження maintenance comments.
+- r8 exact-current regression переведений на historical anchor, щоб не блокувати наступні ревізії.
+- PR #195 head `371f63d3b8955cc697cf612f1bca3f4c23b64467`: Windows #42285971115, Win7 #42285971130, macOS #42285971196 — SUCCESS; CI фактично виконував pinned checkout по SHA.
+- PR #195 merged; exact issued source / exact-main = `8f97218927b3ba6bc14aca465de4a196e2b19ba2`.
+- Exact-main SUCCESS: START #42286505119 — **885 tests / OK**; Windows #42286505164; Windows 7 #42286505171 (full CPython 3.8 regression); macOS ARM64/Intel #42286505215.
+- Автоматичний publisher після merge PR #195 безпечно зупинився на immutable r8 overwrite guard; release не змінено.
+- Release-trigger PR #196 merged; trigger main `14d6a615f06ebb23254c46ef291c34f0f9fcc795`.
+- Publisher #42287707654 — **SUCCESS**. Опубліковано immutable prerelease `v10.11-r9`; tag target = `8f97218927b3ba6bc14aca465de4a196e2b19ba2`; 8 assets, усі r9. Stable/Latest лишається `v10.10-r5`.
+- Google Drive підтверджено: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r9_2026-11-06_START.zip`, 1 542 152 байт.
+- Наступна кодова ревізія — **10.11-r10**. Перед новим кодом повторно звірити Issue #175 та UX Issue #164; не починати великий cleanup автоматично.
+
 ## 10.11-r8 — централізоване build/release naming та офіційний prerelease — 06.11.2026
 
 - Окремий release-engineering slice за Issue #175 finding #10; runtime/business logic, UX #164, supply-chain action pinning і CI optimization #142/#152 не змішувались.
