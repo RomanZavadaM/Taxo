@@ -119,11 +119,13 @@ class BackupDisclosureR6Tests(unittest.TestCase):
         self.assertIn('label="full" if extras else "core_with_employee_documents"', section)
         self.assertNotIn('label="full" if extras else "db"', section)
 
-    def test_r6_version_identity_is_synchronized(self):
-        self.assertEqual(main.APP_VERSION, "10.11-r6")
+    def test_r6_version_identity_is_historical_anchor(self):
+        self.assertGreaterEqual(version_key(main.APP_VERSION), (10, 11, 6, 0))
+        current = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+        self.assertTrue(current.startswith("Version: "))
         self.assertEqual(
-            (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(),
-            "Version: 10.11-r6",
+            version_key(current[len("Version: "):]),
+            version_key(main.APP_VERSION),
         )
 
 
