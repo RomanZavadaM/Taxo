@@ -9,13 +9,13 @@
 - **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Current main candidate:** Taxo **10.11-r5** — security/dependency update Pillow/pypdf + Win7 mitigation. Офіційний [prerelease v10.11-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r5) опубліковано 06.11.2026; 8 assets і SHA256; exact tag source `f2614caf60380c4898c1d042bd6c8d402edc38da`. Stable не змінено.
-- **Next code revision:** **10.11-r6**.
+- **Current main candidate:** Taxo **10.11-r6** — atomic output / restore failure reporting / backup disclosure hardening. Офіційний [prerelease v10.11-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r6) опубліковано 06.11.2026; 8 assets і SHA256; exact tag source `558158a9777b18a05a224136fec4deeef55b5950`. Stable не змінено.
+- **Next code revision:** **10.11-r7**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** повний stable-комплект + `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r5_2026-11-06_START.zip` (1 525 891 байт) у папці `Taxo — Розробка — резервний комплект`.
+- **Google Drive backup:** повний stable-комплект + `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r6_2026-11-06_START.zip` (1 531 200 байт) у папці `Taxo — Розробка — резервний комплект`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
-## Поточний main 10.11-r5 — стабілізація та dependency security
+## Поточний main 10.11-r6 — стабілізація та hardening
 
 - **r6:** єдиний центр «Дані / Дія / документи» та масове поновлення державних даних для вибраних працівників.
 - **r7:** вимоги до документів на рівні конкретного працівника; незалежний контроль строку; копії документів у workspace; employee documents завжди входять у повний backup.
@@ -26,7 +26,8 @@
 - **10.11-r2:** PR #169 — інформативні назви простого графіка працівників і вилучення «Роль» лише з PDF; PR #171 — виправлення залишкових r1-імен у активному packaging; exact-main `68d7459b` START/Windows/Win7/macOS SUCCESS; prerelease `v10.11-r2` опублікований workflow #42086984364. Stable залишається r5.
 - **10.11-r3:** повний code-review Issue #175 виявив два критичні дефекти цілісності даних; PR #176 закрив їх: «План → факт» більше не перезаписує існуючий факт, а детальне перепланування стало атомарним. Exact issued source `a82a3dc6`; START #42219595152, Windows #42219595132, Win7 #42219595055, macOS #42219595074 — SUCCESS; publisher #42220584720 опублікував immutable prerelease `v10.11-r3` з 8 assets. Google Drive START backup підтверджений. Наступна ревізія — 10.11-r4.
 - **10.11-r4:** PR #179 — DB-level захист `control_protocols` від каскадного видалення через `discs`, UI guard і behavioral SQLite regression. Exact issued source `c4e70158`; START #42223328213, Windows #42223328267, Win7 #42223328554, macOS #42223328239 — SUCCESS; publisher #42224658087 опублікував immutable prerelease `v10.11-r4` з 8 assets. Google Drive START backup підтверджений. Наступна ревізія — 10.11-r5.
-- **10.11-r5:** PR #182 — основна лінія Pillow 13.0.0 / pypdf 6.21.4; Win7 лишається на Python 3.8-сумісних Pillow 10.4.0 / pypdf 5.9.0 з Taxo page-tree security preflight і окремим Win7 security-smoke. Exact issued source `f2614caf`; START #42230454712, Windows #42230454659, Win7 #42230454846, macOS #42230454687 — SUCCESS; publisher #42231569758 опублікував immutable prerelease `v10.11-r5` з 8 assets. Google Drive START backup підтверджений. Наступна ревізія — 10.11-r6.
+- **10.11-r5:** PR #182 — основна лінія Pillow 13.0.0 / pypdf 6.21.4; Win7 лишається на Python 3.8-сумісних Pillow 10.4.0 / pypdf 5.9.0 з Taxo page-tree security preflight і окремим Win7 security-smoke. Exact issued source `f2614caf`; START #42230454712, Windows #42230454659, Win7 #42230454846, macOS #42230454687 — SUCCESS; publisher #42231569758 опублікував immutable prerelease `v10.11-r5` з 8 assets. Google Drive START backup підтверджений.
+- **10.11-r6:** PR #185 — atomic output через sibling temp + `os.replace`, composite restore failure reporting із шляхом до safety backup, явний disclosure `Data/EmployeeDocuments` у backup UI/name/docs. Exact issued source `558158a9777b18a05a224136fec4deeef55b5950`; START #42268068367 — **872 tests / OK**; Windows #42268068515, Win7 #42268068378, macOS #42268068403 — SUCCESS. Release-trigger PR #186; publisher #42269285656 — SUCCESS; immutable prerelease `v10.11-r6` має 8 assets. Google Drive START backup підтверджений. Наступна ревізія — 10.11-r7.
 - **Публікація:** docs PR #165/#166 та release trigger PR #167 merged; publish workflow #42063810115 SUCCESS. 10.11-r1 = immutable prerelease, не stable.
 - **Зауваження власника до r1 закриті в r2:** неоднозначне ім'я `Графік_працівників_2026_11.pdf` замінено на змістовну схему, зайву колонку «Роль» прибрано лише з PDF. Подальший UX — Issue #164; власник тестує r2.
 - Водійський план не дублюється у загальному плануванні персоналу.
@@ -92,7 +93,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.11-r5`; наступна кодова ревізія — `10.11-r6`; наступна stable змінюється лише рішенням власника;
+- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.11-r6`; наступна кодова ревізія — `10.11-r7`; наступна stable змінюється лише рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 
