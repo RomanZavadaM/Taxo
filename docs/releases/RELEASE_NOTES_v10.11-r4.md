@@ -1,9 +1,13 @@
 # Taxo 10.11-r4 — захист історії контрольних протоколів тахографа
 
 **Дата:** 06.11.2026  
-**Статус:** **PRERELEASE / кандидат для користувацького тестування**.  
+**Статус:** **PRERELEASE / кандидат для користувацького тестування — опубліковано**.  
 **Stable:** без змін, `v10.10-r5`.  
-**Попередній immutable candidate:** `v10.11-r3`.
+**Exact issued source:** `c4e701585d5ba5e06401002842f235ed3c363816`.  
+**Publisher:** workflow #42224658087 — **SUCCESS**.  
+**Assets:** 8 (Windows Setup/Portable, Windows 7 Setup/Portable, macOS ARM64/Intel, START, SHA256SUMS).  
+**Попередній immutable candidate:** `v10.11-r3`.  
+**Наступна кодова ревізія:** `10.11-r5`.
 
 ## Зміни
 
@@ -28,3 +32,22 @@
 - Stable `v10.10-r5` не змінюється.
 - Dependency/security findings Issue #175, UX Issue #164 та CI optimization PR #142/#152 залишаються окремими напрямками.
 - Основний worklog/графік/табель водіїв і персоналу не змінюються.
+
+
+## Перевірки та публікація
+
+PR-head `ac9e6162`:
+- START #42222773677 — **SUCCESS**, 862 tests / OK;
+- Windows #42222825203 — **SUCCESS**;
+- Windows 7 #42222825057 — **SUCCESS**;
+- macOS ARM64 + Intel #42222825065 — **SUCCESS**.
+
+Exact-main `c4e70158`:
+- START #42223328213 — **SUCCESS**;
+- Windows #42223328267 — **SUCCESS**;
+- Windows 7 #42223328554 — **SUCCESS**;
+- macOS ARM64 + Intel #42223328239 — **SUCCESS**.
+
+Release-trigger PR #180 merged; publisher #42224658087 — **SUCCESS**. Immutable prerelease `v10.11-r4` виданий саме з exact source `c4e701585d5ba5e06401002842f235ed3c363816`.
+
+Google Drive recovery copy підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r4_2026-11-06_START.zip` (1 519 882 байт).
