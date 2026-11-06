@@ -2299,6 +2299,11 @@ def install(core, base_app):
                 command=self.show_general_personnel_shift_planner
             ).pack(anchor="w", pady=4)
             core.ttk.Button(
+                primary, text="Простий місячний графік…",
+                style="Accent.TButton",
+                command=lambda: self.open_simple_month_schedule_r8()
+            ).pack(anchor="w", pady=4)
+            core.ttk.Button(
                 primary, text="Оперативний день випуску…",
                 command=self.show_dispatch_staff_schedule
             ).pack(anchor="w", pady=4)

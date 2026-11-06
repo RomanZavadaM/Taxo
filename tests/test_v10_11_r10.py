@@ -8,12 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class PersonnelReportFlowR10Tests(unittest.TestCase):
-    def test_r10_identity_is_current(self):
-        self.assertEqual(main.APP_VERSION, "10.11-r10")
-        self.assertEqual(
-            (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(),
-            "Version: 10.11-r10",
-        )
+    def test_r10_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 11, 10))
+        current = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+        self.assertTrue(current.startswith("Version: "))
+        self.assertEqual(key(current[len("Version: "):]), key(main.APP_VERSION))
 
     def test_all_personnel_report_uses_one_format_selector_and_one_save_action(self):
         source = (ROOT / "main.py").read_text(encoding="utf-8")

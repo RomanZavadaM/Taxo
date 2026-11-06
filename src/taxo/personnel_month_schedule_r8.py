@@ -635,11 +635,9 @@ def install(core, base_app):
             self._install_simple_schedule_action_r8()
 
         def _install_simple_schedule_action_r8(self):
-            root = getattr(self, "personnel_planning_page", None)
-            if root is None:
-                # Older composition keeps a reference only to the main personnel page.
-                root = getattr(self, "personnel_overview_page", None)
-            if root is None or getattr(self, "_simple_schedule_r8_installed", False):
+            # Current UI exposes this action permanently from personnel_v91.
+            # Keep a compatibility fallback for older compositions only.
+            if getattr(self, "_simple_schedule_r8_installed", False):
                 return
 
             def walk(widget):
@@ -647,27 +645,25 @@ def install(core, base_app):
                     yield child
                     yield from walk(child)
 
-            anchor = None
-            for widget in walk(root):
+            for widget in walk(self):
                 try:
-                    if widget.winfo_class() in ("TButton", "Button") and str(widget.cget("text")) == "Робочі зміни персоналу — масово…":
-                        anchor = widget
-                        break
+                    if (
+                        widget.winfo_class() in ("TButton", "Button")
+                        and str(widget.cget("text")) == "Простий місячний графік…"
+                    ):
+                        self._simple_schedule_r8_installed = True
+                        return
                 except Exception:
                     pass
-            if anchor is None:
-                # The planning tab may not be reachable from the overview widget tree.
-                for widget in walk(self):
-                    try:
-                        if widget.winfo_class() in ("TButton", "Button") and str(widget.cget("text")) == "Робочі зміни персоналу — масово…":
-                            anchor = widget
-                            break
-                    except Exception:
-                        pass
-            if anchor is None:
+
+            root = getattr(self, "personnel_planning_page", None)
+            if root is None:
+                root = getattr(self, "personnel_overview_page", None)
+            if root is None:
                 return
+
             core.ttk.Button(
-                anchor.master,
+                root,
                 text="Простий місячний графік…",
                 style="Accent.TButton",
                 command=self.open_simple_month_schedule_r8,
