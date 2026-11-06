@@ -1,5 +1,21 @@
 # WORKLOG — Taxo
 
+## 10.11-r5 — dependency security, Win7 mitigation та офіційний prerelease — 06.11.2026
+
+- Окремий security/dependency slice за Issue #175; UX #164 і CI optimization #142/#152 не змішувались.
+- Основна Windows/macOS лінія: Pillow `11.3.0 → 13.0.0`; pypdf `6.19.0 → 6.21.4`.
+- Win7 / CPython 3.8.10 лишено на сумісних `Pillow 10.4.0` та `pypdf 5.9.0`. Для pypdf 5.9 Taxo додає runtime preflight page-tree budget перед flattening: entry budget 2 000 000, max nodes/depth та cycle guard.
+- `attestation_render.py` більше не обходить захищений reader; PDF stamping теж використовує security preflight.
+- Додано `tests/test_v10_11_r5.py`; Win7 workflow запускає цей security regression на CPython 3.8.10 до packaging.
+- PR-head `76bd192359b30f3ae631c5a5fc2ff840dce059a1`: START #42229760772 — **867 tests / OK**; Windows #42229820841, Win7 #42229820773, macOS #42229820779 — SUCCESS. Win7 security-smoke — SUCCESS.
+- PR #182 merged; exact issued source / exact-main = `f2614caf60380c4898c1d042bd6c8d402edc38da`.
+- Exact-main SUCCESS: START #42230454712; Windows #42230454659; Windows 7 #42230454846 (incl. r5 security regression); macOS ARM64/Intel #42230454687.
+- Release-trigger PR #183 merged; trigger main `fae431708a66664b238b37bf979aa84481c33898`.
+- Publisher #42231569758 — **SUCCESS**. Опубліковано immutable prerelease `v10.11-r5`; tag target = `f2614caf60380c4898c1d042bd6c8d402edc38da`; 8 assets, усі r5.
+- Google Drive підтверджено: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r5_2026-11-06_START.zip`, 1 525 891 байт.
+- Наступна кодова ревізія — **10.11-r6**. Наступний рекомендований окремий slice з Issue #175 — output/restore/backup disclosure hardening.
+
+
 ## 10.11-r4 — захист історії тахографа та офіційний prerelease — 06.11.2026
 
 - Продовження стабілізації за повним code-review Issue #175: окремим slice взято ризик каскадного видалення `control_protocols` через видалення вихідного `discs`.
