@@ -1,5 +1,20 @@
 # WORKLOG — Taxo
 
+## 10.11-r3 — захист plan/fact, атомарне перепланування та офіційний prerelease — 06.11.2026
+
+- Повний read-only code-review зафіксовано в Issue #175. Найкритичніші знайдені дефекти: дія «План → факт» могла переписати існуючий факт; detailed personnel planner міг видалити старий план, не записати новий і закомітити стан.
+- Робоча гілка `work/v10.11-r3-correctness`; PR #176. «План → факт» тепер працює лише для днів без факту, вимагає явного підтвердження й не переписує інші ручні поля.
+- Детальна заміна `employee_shifts` переведена на SAVEPOINT: delete+insert атомарні; при DB/constraint error старий план відновлюється, batch rollback, користувач бачить помилку.
+- Додано `tests/test_v10_11_r3.py`: 4 поведінкові regression tests. Перший CI виявив лише старий source-string contract; логіку не відкочували, сумісність збережено нейтральним коментарем.
+- PR-head `e80fe0499c775b9e46625519847e7becfceadbd1`: START #42219058157 — 858 tests / OK; Windows #42219065224, Win7 #42219065321, macOS #42219065277 — SUCCESS.
+- PR #176 squash-merged; exact issued source / exact-main = `a82a3dc6f7ce63a62d7318c7f423b17599360797`.
+- Повторний exact-main CI: START #42219595152, Windows #42219595132, Windows 7 #42219595055, macOS ARM64/Intel #42219595074 — **SUCCESS**.
+- Release-trigger PR #177 змінював лише checkpoint-коментар publisher. Required `build-windows` спочатку заблокував merge, після SUCCESS #42220118059 PR злитий без обходу ruleset; trigger main `0b2173ccc3f0942c2a364ddd95626f87e9ff2a2a`.
+- Publisher #42220584720 — **SUCCESS**. Опубліковано immutable prerelease `v10.11-r3`; tag target = `a82a3dc6f7ce63a62d7318c7f423b17599360797`; 8 assets, усі з r3-іменами. Stable `v10.10-r5` без змін.
+- Google Drive підтверджено: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r3_2026-11-06_START.zip`, 1 514 730 байт.
+- Issue #175 залишається відкритим: наступні окремі slices — захист історії тахографічних протоколів, dependency/security, output/restore/backup hardening та інше. Наступна кодова ревізія — **10.11-r4**.
+
+
 ## 10.11-r2 — офіційний prerelease, build-name incident і завершення checkpoint — 05.11.2026
 
 - Функціональний PR #169 злитий у main `defbc33245e6fc984eb1a280f7e9c1ab8f05ccbd`: змістовні імена простого графіка працівників; колонка «Роль» прибрана лише з PDF; XLSX/БД/plan-fact незмінні.
@@ -21,7 +36,7 @@
 - Candidate identity синхронізовано на `10.11-r2`; stable `v10.10-r5` і prerelease `v10.11-r1` незмінні.
 - Статус: **PUBLISHED PRERELEASE**; ручне приймання r2 триває, наступні зміни — 10.11-r3.
 
-**Оновлено:** 05.11.2026  
+**Оновлено:** 06.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## CURRENT

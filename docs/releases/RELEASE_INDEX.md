@@ -1,11 +1,11 @@
 # Індекс релізів Taxo
 
-**Стан:** 05.11.2026
+**Стан:** 06.11.2026
 **Stable:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — виправлена macOS-версія, stable 05.11.2026
 **Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-**Current published candidate:** [**Taxo 10.11-r2**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r2) — **PRERELEASE** 05.11.2026; exact source `68d7459b`; 8 files incl. START and SHA256. Stable remains 10.10-r5.  
-**Next code revision:** **10.11-r3**.
+**Current published candidate:** [**Taxo 10.11-r3**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r3) — **PRERELEASE** 06.11.2026; exact source `a82a3dc6`; 8 files incl. START and SHA256. Stable remains 10.10-r5.  
+**Next code revision:** **10.11-r4**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
 
@@ -13,12 +13,13 @@
 
 | Версія | PR | Стан |
 |---|---|---|
+| [**10.11-r3**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r3) | #176, release #177 | **PRERELEASE 06.11.2026**; exact source `a82a3dc6`; START/Windows/Win7/macOS SUCCESS; 8 assets. Захист існуючого факту та атомарне перепланування. Stable — r5. |
 | [**10.11-r2**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r2) | #169, build-fix #171, release #172 | **PRERELEASE 05.11.2026**; exact source `68d7459b`; START/Windows/Win7/macOS SUCCESS; 8 assets. Назви простого графіка працівників + PDF без «Роль». Stable — r5. |
 | [**10.11-r1**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r1) | #163, #165, #166, #167 | **PRERELEASE 05.11.2026**; CI START/Windows/Win7/macOS SUCCESS; 8 assets, SHA256. UX звітів, назви файлів водійського графіка. Stable — r5. |
 | **10.10-r10** | #162 | Integrated; вибір водіїв для звіту, «част.» |
 | **10.10-r9** | #160 | Integrated; графік водіїв + коригування відсутностей |
 
-Зауваження r1 до друкованого графіка працівників (назва файлу і колонка «Роль») закриті в 10.11-r2. Подальше системне спрощення інтерфейсу залишається в Issue #164.
+Зауваження r1 до друкованого графіка працівників (назва файлу і колонка «Роль») закриті в 10.11-r2. Два критичні дефекти цілісності даних із code-review 06.11 закриті в 10.11-r3. Подальше системне спрощення інтерфейсу залишається в Issue #164; інші findings — Issue #175.
 
 ## Лінія 10.10
 
@@ -100,4 +101,4 @@
 4. БД, SQLite, скани, кеші та персональні документи не публікуються.
 5. Новий код починається тільки від актуального `main`.
 6. Historical work/candidate branches and stacked PRs are never reused as current development bases.
-7. Після stable `10.10-r4` наступна кодова зміна — `10.10-r5`.
+7. Після виданого `10.11-r3` наступна кодова зміна — `10.11-r4`; stable змінюється лише окремим рішенням власника.

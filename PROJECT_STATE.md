@@ -1,6 +1,6 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 05.11.2026  
+**Дата:** 06.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## Поточний підтверджений стан
@@ -9,13 +9,13 @@
 - **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Current main candidate:** Taxo **10.11-r2** — виправлення простого графіка працівників і release/build asset naming. Офіційний [prerelease v10.11-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r2) опубліковано 05.11.2026; 8 assets і SHA256; tag source `68d7459b28e4ae68d97b6dd43cc92ead695a80bb`. Stable не змінено.
-- **Next code revision:** **10.11-r3**.
+- **Current main candidate:** Taxo **10.11-r3** — захист plan/fact і атомарне перепланування персоналу. Офіційний [prerelease v10.11-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r3) опубліковано 06.11.2026; 8 assets і SHA256; exact tag source `a82a3dc6f7ce63a62d7318c7f423b17599360797`. Stable не змінено.
+- **Next code revision:** **10.11-r4**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** повний stable-комплект + `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r2_2026-11-05_START.zip` у папці `Taxo — Розробка — резервний комплект`.
+- **Google Drive backup:** повний stable-комплект + `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r3_2026-11-06_START.zip` (1 514 730 байт) у папці `Taxo — Розробка — резервний комплект`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
-## Поточний main 10.11-r2 — «Працівники 2.0» та очищення інтерфейсу
+## Поточний main 10.11-r3 — «Працівники 2.0» та стабілізація
 
 - **r6:** єдиний центр «Дані / Дія / документи» та масове поновлення державних даних для вибраних працівників.
 - **r7:** вимоги до документів на рівні конкретного працівника; незалежний контроль строку; копії документів у workspace; employee documents завжди входять у повний backup.
@@ -24,6 +24,7 @@
 - **r10:** українське «част.»; вибір водіїв у деталізованому водійському PDF/Excel, PR #162 merged.
 - **10.11-r1:** спрощення до вибору документа та двох дій; читабельні імена файлів; PR #163 merged. Exact-main START/Windows/Win7/macOS SUCCESS. Issue #164 — подальша системна UX робота.
 - **10.11-r2:** PR #169 — інформативні назви простого графіка працівників і вилучення «Роль» лише з PDF; PR #171 — виправлення залишкових r1-імен у активному packaging; exact-main `68d7459b` START/Windows/Win7/macOS SUCCESS; prerelease `v10.11-r2` опублікований workflow #42086984364. Stable залишається r5.
+- **10.11-r3:** повний code-review Issue #175 виявив два критичні дефекти цілісності даних; PR #176 закрив їх: «План → факт» більше не перезаписує існуючий факт, а детальне перепланування стало атомарним. Exact issued source `a82a3dc6`; START #42219595152, Windows #42219595132, Win7 #42219595055, macOS #42219595074 — SUCCESS; publisher #42220584720 опублікував immutable prerelease `v10.11-r3` з 8 assets. Google Drive START backup підтверджений. Наступна ревізія — 10.11-r4.
 - **Публікація:** docs PR #165/#166 та release trigger PR #167 merged; publish workflow #42063810115 SUCCESS. 10.11-r1 = immutable prerelease, не stable.
 - **Зауваження власника до r1 закриті в r2:** неоднозначне ім'я `Графік_працівників_2026_11.pdf` замінено на змістовну схему, зайву колонку «Роль» прибрано лише з PDF. Подальший UX — Issue #164; власник тестує r2.
 - Водійський план не дублюється у загальному плануванні персоналу.
@@ -89,7 +90,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.11-r2`; наступна кодова ревізія — `10.11-r3`; наступна stable змінюється лише рішенням власника;
+- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.11-r3`; наступна кодова ревізія — `10.11-r4`; наступна stable змінюється лише рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 
