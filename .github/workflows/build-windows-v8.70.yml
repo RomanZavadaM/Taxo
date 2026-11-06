@@ -140,13 +140,13 @@ jobs:
         shell: pwsh
         run: |
           python -m PyInstaller --noconfirm --clean packaging/Taxo.spec
-          $bundleName = "$env:TAXO_CANDIDATE_STEM_Windows_x64"
+          $bundleName = "${env:TAXO_CANDIDATE_STEM}_Windows_x64"
           Move-Item 'dist/Taxo' ("dist/" + $bundleName)
 
       - name: Verify portable bundle
         shell: pwsh
         run: |
-          $bundle = "dist/$env:TAXO_CANDIDATE_STEM_Windows_x64"
+          $bundle = "dist/${env:TAXO_CANDIDATE_STEM}_Windows_x64"
           if (!(Test-Path "$bundle/Taxo.exe")) { throw 'Taxo.exe not found' }
           if (!(Test-Path "$bundle/_internal/assets/Бланк підтвердження.docx")) { throw 'DOCX template not found' }
           if (!(Test-Path "$bundle/_internal/assets/attestation_visual_template.pdf")) { throw 'PDF template not found' }
@@ -157,7 +157,7 @@ jobs:
 
       - name: Create Windows portable ZIP
         shell: pwsh
-        run: Compress-Archive -Path "dist/$env:TAXO_CANDIDATE_STEM_Windows_x64" -DestinationPath "$env:TAXO_CANDIDATE_STEM_Windows_x64_Portable.zip" -Force
+        run: Compress-Archive -Path "dist/${env:TAXO_CANDIDATE_STEM}_Windows_x64" -DestinationPath "${env:TAXO_CANDIDATE_STEM}_Windows_x64_Portable.zip" -Force
 
       - name: Build Windows installer
         shell: pwsh
@@ -165,8 +165,8 @@ jobs:
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (!(Test-Path $iscc)) { choco install innosetup --no-progress -y; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           if (!(Test-Path $iscc)) { throw 'Inno Setup compiler not found' }
-          $sourceBundle = "$env:TAXO_CANDIDATE_STEM_Windows_x64"
-          $outputBase = "$env:TAXO_CANDIDATE_STEM_Setup_Windows_x64"
+          $sourceBundle = "${env:TAXO_CANDIDATE_STEM}_Windows_x64"
+          $outputBase = "${env:TAXO_CANDIDATE_STEM}_Setup_Windows_x64"
           & $iscc /DMyAppVersion=$env:TAXO_VERSION /DSourceBundle=$sourceBundle /DOutputBase=$outputBase 'packaging/installer/Taxo.iss'
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed: $LASTEXITCODE" }
           if (!(Test-Path ("release_out/" + $outputBase + ".exe"))) { throw 'Installer not found' }
@@ -174,9 +174,9 @@ jobs:
       - name: Create checksums
         shell: pwsh
         run: |
-          $files = @("$env:TAXO_CANDIDATE_STEM_Windows_x64_Portable.zip","release_out/$env:TAXO_CANDIDATE_STEM_Setup_Windows_x64.exe")
+          $files = @("${env:TAXO_CANDIDATE_STEM}_Windows_x64_Portable.zip","release_out/${env:TAXO_CANDIDATE_STEM}_Setup_Windows_x64.exe")
           $lines = foreach ($file in $files) { "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))" }
-          $lines | Set-Content -Encoding ascii "SHA256SUMS_v$env:TAXO_CHECKSUM_STEM_Windows_x64.txt"
+          $lines | Set-Content -Encoding ascii "SHA256SUMS_v${env:TAXO_CHECKSUM_STEM}_Windows_x64.txt"
 
       - name: Upload Windows test executables
         uses: actions/upload-artifact@v4
