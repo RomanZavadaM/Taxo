@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Publish checkpoint: candidate 10.11-r6 after verified output/restore/backup exact-main CI; exact source 558158a.
+# Publish checkpoint: candidate 10.11-r7 after verified Win7 full-regression exact-main CI; exact source 3f3b283.
 
 on:
   workflow_dispatch:
