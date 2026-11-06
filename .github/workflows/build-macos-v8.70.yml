@@ -55,8 +55,9 @@ jobs:
         shell: bash
         run: |
           test "$(uname -m)" = "${{ matrix.arch }}"
-          grep -Fxq 'Version: 10.11-r7' VERSION.txt
-          grep -Fq 'APP_VERSION = "10.11-r7"' main.py
+          version="$(sed -n 's/^Version:[[:space:]]*//p' VERSION.txt | tr -d '\r')"
+          test -n "$version"
+          grep -Fq "APP_VERSION = \"$version\"" main.py
           test -f src/taxo/application_context.py
           test -f assets/attestation_visual_template.pdf
           test -f packaging/Taxo_macos.spec
@@ -68,6 +69,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-build-macos.txt
+
+      - name: Resolve release naming from VERSION.txt
+        run: python src/taxo/release_naming.py --github-env "$GITHUB_ENV"
 
       - name: Compile structured source
         shell: bash
@@ -111,19 +115,19 @@ jobs:
       - name: Create portable ZIP and checksum
         shell: bash
         run: |
-          bundle_dir="Taxo_v10_11_candidate_r7_macOS_${{ matrix.arch }}"
+          bundle_dir="${TAXO_CANDIDATE_STEM}_macOS_${{ matrix.arch }}"
           zip_name="${bundle_dir}_Portable.zip"
           mkdir "$bundle_dir"
           mv 'dist/Taxo.app' "$bundle_dir/Taxo.app"
           /usr/bin/ditto -c -k --sequesterRsrc --keepParent "$bundle_dir" "$zip_name"
-          shasum -a 256 "$zip_name" > "SHA256SUMS_v10_11_r7_macOS_${{ matrix.arch }}.txt"
+          shasum -a 256 "$zip_name" > "SHA256SUMS_v${TAXO_CHECKSUM_STEM}_macOS_${{ matrix.arch }}.txt"
 
       - name: Upload macOS candidate
         uses: actions/upload-artifact@v4
         with:
-          name: Taxo-v10.11-r7-macOS-${{ matrix.arch }}
+          name: Taxo-current-macOS-${{ matrix.arch }}
           path: |
-            Taxo_v10_11_candidate_r7_macOS_${{ matrix.arch }}_Portable.zip
-            SHA256SUMS_v10_11_r7_macOS_${{ matrix.arch }}.txt
+            Taxo_v*_macOS_${{ matrix.arch }}_Portable.zip
+            SHA256SUMS_v*_macOS_${{ matrix.arch }}.txt
           if-no-files-found: error
           retention-days: 30

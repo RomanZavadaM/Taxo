@@ -17,11 +17,13 @@ def version_key(value: str):
 
 
 class Win7GeneralRegressionR7Tests(unittest.TestCase):
-    def test_r7_identity_is_current(self):
-        self.assertEqual(main.APP_VERSION, "10.11-r7")
+    def test_r7_identity_is_historical_anchor(self):
+        self.assertGreaterEqual(version_key(main.APP_VERSION), (10, 11, 7, 0))
+        current = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+        self.assertTrue(current.startswith("Version: "))
         self.assertEqual(
-            (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(),
-            "Version: 10.11-r7",
+            version_key(current[len("Version: "):]),
+            version_key(main.APP_VERSION),
         )
 
     def test_win7_runs_full_unittest_discovery_before_packaging(self):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import re
 from pathlib import Path
 from typing import Union
@@ -13,6 +14,37 @@ def version_from_file(path: Union[str, Path] = "VERSION.txt") -> str:
     return "candidate"
 
 
+
+
+_CANDIDATE_RE = re.compile(r"^(\d+)\.(\d+)-r(\d+)$", re.I)
+
+
+def candidate_stem(version: str) -> str:
+    """Canonical release filename prefix for a candidate version."""
+    match = _CANDIDATE_RE.fullmatch(str(version).strip())
+    if not match:
+        raise ValueError(f"Некоректна candidate-версія: {version}")
+    major, minor, revision = match.groups()
+    return f"Taxo_v{major}_{minor}_candidate_r{revision}"
+
+
+def checksum_stem(version: str) -> str:
+    """Canonical version token used in SHA256SUMS filenames."""
+    match = _CANDIDATE_RE.fullmatch(str(version).strip())
+    if not match:
+        raise ValueError(f"Некоректна candidate-версія: {version}")
+    major, minor, revision = match.groups()
+    return f"{major}_{minor}_r{revision}"
+
+
+def github_env_lines(version: str):
+    """Environment lines shared by active build workflows."""
+    version = str(version).strip()
+    return (
+        f"TAXO_VERSION={version}",
+        f"TAXO_CANDIDATE_STEM={candidate_stem(version)}",
+        f"TAXO_CHECKSUM_STEM={checksum_stem(version)}",
+    )
 
 def next_candidate_version(version: str) -> str:
     """Return the next development revision using the Taxo project rule.
@@ -48,4 +80,24 @@ def start_archive_stem(version: str) -> str:
 
 
 if __name__ == "__main__":
-    print(start_archive_stem(version_from_file()))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--github-env", metavar="PATH")
+    parser.add_argument(
+        "--field",
+        choices=("version", "candidate_stem", "checksum_stem", "start_archive_stem"),
+    )
+    args = parser.parse_args()
+    version = version_from_file()
+    if args.github_env:
+        path = Path(args.github_env)
+        with path.open("a", encoding="utf-8", newline="\n") as handle:
+            for line in github_env_lines(version):
+                handle.write(line + "\n")
+    elif args.field == "version":
+        print(version)
+    elif args.field == "candidate_stem":
+        print(candidate_stem(version))
+    elif args.field == "checksum_stem":
+        print(checksum_stem(version))
+    else:
+        print(start_archive_stem(version))
