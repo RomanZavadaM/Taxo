@@ -9754,7 +9754,7 @@ class App(tk.Tk):
                     tree.insert("","end",values=[employee_row["personnel_no"],employee_row["name"],employee_row["roles"],*employee_row["cells"],employee_row["work_days"],minutes_hhmm(employee_row["planned_min"]),minutes_hhmm(employee_row["actual_min"]),signed_hours_hhmm(employee_row["difference_min"]/60),employee_row["missing_days"]])
                 status.set(f"{month_name_ua(start.month)} {start.year}: працівників {len(data['employees'])}; без факту загалом {sum(e['missing_days'] for e in data['employees'])}")
             def save_balance(kind):
-                suffix=".xlsx" if kind=="xlsx" else ".pdf"; path=filedialog.asksaveasfilename(parent=dialog,title="Зберегти табель усього персоналу",initialdir=str(OUTPUT_DIR),initialfile=f"Табель_робочого_часу_{start.year}-{start.month:02d}_усі-працівники{suffix}",defaultextension=suffix,filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")])
+                suffix=".xlsx" if kind=="xlsx" else ".pdf"; path=filedialog.asksaveasfilename(parent=dialog,title="Зберегти табель усього персоналу",initialdir=str(OUTPUT_DIR),initialfile=f"Табель_усього_персоналу_{start.year}_{start.month:02d}{suffix}",defaultextension=suffix,filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")])
                 if not path: return
                 writer=(lambda out:export_personnel_monthly_balance_xlsx(start.year,start.month,out,active_only.get())) if kind=="xlsx" else (lambda out:export_personnel_monthly_balance_pdf(start.year,start.month,out,active_only.get()))
                 actual=write_output_file(writer,path,parent=dialog,kind="Excel-файл місячного табеля" if kind=="xlsx" else "PDF місячного табеля",error_title="Помилка Excel" if kind=="xlsx" else "Помилка PDF")
@@ -9796,7 +9796,7 @@ class App(tk.Tk):
                 parent=win,
                 title="Зберегти звіт по всьому персоналу",
                 initialdir=str(OUTPUT_DIR),
-                initialfile=f"Табель_усього_персоналу_{start.year}_{start.month:02d}{suffix}",
+                initialfile=f"Табель_робочого_часу_{start.year}-{start.month:02d}_усі-працівники{suffix}",
                 defaultextension=suffix,
                 filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")],
             )
