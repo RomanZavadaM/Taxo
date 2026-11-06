@@ -4,8 +4,8 @@
 **Stable:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — виправлена macOS-версія, stable 05.11.2026
 **Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-**Current published candidate:** [**Taxo 10.11-r9**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r9) — **PRERELEASE** 06.11.2026; exact source `8f97218`; 8 files incl. START and SHA256. Stable remains 10.10-r5.  
-**Next code revision:** **10.11-r10**.
+**Current published candidate:** [**Taxo 10.11-r10**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **PRERELEASE 06.11.2026**; exact source `b239bb0`; 8 canonical assets via guarded publisher; stable remains 10.10-r5.  
+**Next code revision:** **10.12-r1**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
 
@@ -13,6 +13,7 @@
 
 | Версія | PR | Стан |
 |---|---|---|
+| [**10.11-r10**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) | #198, docs #199, release #200 | **PRERELEASE 06.11.2026**; exact source `b239bb0`; START/Windows/Win7/macOS exact-source gate PASS; 8 canonical assets. UX: один selector PDF/Excel + «Зберегти…» для загального табеля персоналу. Stable — r5. |
 | [**10.11-r9**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r9) | #195, release #196 | **PRERELEASE 06.11.2026**; exact source `8f97218`; START 885 tests + Windows/Win7/macOS SUCCESS; 8 assets. Active GitHub Actions pinned to immutable SHAs. Stable — r5. |
 | [**10.11-r8**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r8) | #192, release #193 | **PRERELEASE 06.11.2026**; exact source `f3e846c`; START 881 tests + Windows/Win7/macOS SUCCESS; 8 assets. Centralized build/release naming; stable-promotion assets derived from version. Stable — r5. |
 | [**10.11-r7**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r7) | #188, release #189 | **PRERELEASE 06.11.2026**; exact source `3f3b283`; START 876 tests + Windows/Win7/macOS SUCCESS; Win7 full CPython 3.8.10 suite before packaging; 8 assets. Stable — r5. |
@@ -25,7 +26,7 @@
 | **10.10-r10** | #162 | Integrated; вибір водіїв для звіту, «част.» |
 | **10.10-r9** | #160 | Integrated; графік водіїв + коригування відсутностей |
 
-Зауваження r1 до друкованого графіка працівників (назва файлу і колонка «Роль») закриті в 10.11-r2. Два критичні дефекти цілісності даних із code-review 06.11 закриті в 10.11-r3; захист історії тахографічних контрольних протоколів — у 10.11-r4; dependency security Pillow/pypdf + Win7 mitigation — у 10.11-r5; atomic output / restore error reporting / backup disclosure — у 10.11-r6; повний Win7 regression gate — у 10.11-r7; build/release hardcoding cleanup — у 10.11-r8; workflow supply-chain hardening — у 10.11-r9. Подальше системне спрощення інтерфейсу залишається в Issue #164; інші findings — Issue #175.
+Зауваження r1 до друкованого графіка працівників (назва файлу і колонка «Роль») закриті в 10.11-r2. Два критичні дефекти цілісності даних із code-review 06.11 закриті в 10.11-r3; захист історії тахографічних контрольних протоколів — у 10.11-r4; dependency security Pillow/pypdf + Win7 mitigation — у 10.11-r5; atomic output / restore error reporting / backup disclosure — у 10.11-r6; повний Win7 regression gate — у 10.11-r7; build/release hardcoding cleanup — у 10.11-r8; workflow supply-chain hardening — у 10.11-r9; перший наступний UX slice загального табеля — у 10.11-r10. Подальше системне спрощення інтерфейсу залишається в Issue #164; інші findings — Issue #175.
 
 ## Лінія 10.10
 
@@ -107,4 +108,4 @@
 4. БД, SQLite, скани, кеші та персональні документи не публікуються.
 5. Новий код починається тільки від актуального `main`.
 6. Historical work/candidate branches and stacked PRs are never reused as current development bases.
-7. Після виданого `10.11-r9` наступна кодова зміна — `10.11-r10`; stable змінюється лише окремим рішенням власника.
+7. Після виданого `10.11-r10` наступна кодова зміна — `10.12-r1`; stable змінюється лише окремим рішенням власника.
