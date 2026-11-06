@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import uuid
 from datetime import datetime
 from pathlib import Path
 import tkinter as tk
@@ -163,11 +164,26 @@ def write_output_file(
     """Run writer(path) with the shared locked-file recovery flow."""
     current = Path(target_path)
     while True:
+        temp_path = None
         try:
             current.parent.mkdir(parents=True, exist_ok=True)
-            writer(current)
+            temp_path = current.with_name(
+                f".{current.stem}.{uuid.uuid4().hex}.tmp{current.suffix}"
+            )
+            writer(temp_path)
+            if not temp_path.exists() or not temp_path.is_file():
+                raise FileNotFoundError(
+                    f"Writer не створив тимчасовий файл: {temp_path}"
+                )
+            os.replace(temp_path, current)
             return current
         except Exception as exc:
+            if temp_path is not None:
+                try:
+                    if temp_path.exists():
+                        temp_path.unlink()
+                except OSError:
+                    pass
             locked_existing = current.exists() and is_file_access_error(exc, current)
             if locked_existing:
                 action = ask_locked_file_action(parent, current, kind)
