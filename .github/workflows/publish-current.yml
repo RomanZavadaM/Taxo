@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Publish checkpoint: candidate 10.11-r4 after verified exact-main multi-platform CI; exact source c4e70158.
+# Publish checkpoint: candidate 10.11-r5 after verified security/dependency exact-main CI; exact source f2614caf.
 
 on:
   workflow_dispatch:
