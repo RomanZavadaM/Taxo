@@ -1,5 +1,21 @@
 # WORKLOG — Taxo
 
+## 10.11-r4 — захист історії тахографа та офіційний prerelease — 06.11.2026
+
+- Продовження стабілізації за повним code-review Issue #175: окремим slice взято ризик каскадного видалення `control_protocols` через видалення вихідного `discs`.
+- Робоча гілка `work/v10.11-r4-tachograph-history`; PR #179.
+- У `src/taxo/tachograph.py` додано DB-level trigger `trg_tachograph_control_protocol_history`, який блокує видалення тахокарти, якщо для неї існує збережений контрольний протокол.
+- UI-видалення використовує окрему перевірку та пояснює користувачу, чому історичний запис захищений. Чернеткова тахокарта без протоколу видаляється як раніше.
+- Додано `tests/test_v10_11_r4.py`: helper guard, direct SQL DELETE guard, збереження snapshot, штатне видалення unprotected disc, наявність trigger після init. Повний PR-head START: **862 tests / OK**.
+- PR-head `ac9e61626777487874f657731ba84d6744dac989`: START #42222773677, Windows #42222825203, Win7 #42222825057, macOS #42222825065 — SUCCESS.
+- PR #179 merged; exact issued source / exact-main = `c4e701585d5ba5e06401002842f235ed3c363816`.
+- Exact-main SUCCESS: START #42223328213; Windows #42223328267; Windows 7 #42223328554; macOS ARM64/Intel #42223328239.
+- Release-trigger PR #180 merged; trigger main `51b17bc51986aa7cdf19092f538ad089e540e6c9`.
+- Publisher #42224658087 — **SUCCESS**. Опубліковано immutable prerelease `v10.11-r4`; tag target = `c4e701585d5ba5e06401002842f235ed3c363816`; 8 assets, усі з r4-іменами. Stable `v10.10-r5` без змін.
+- Google Drive підтверджено: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r4_2026-11-06_START.zip`, 1 519 882 байт. Зайвий повторний дубль видалено, у папці залишено одну підтверджену копію.
+- Наступна кодова ревізія — **10.11-r5**. Наступний рекомендований окремий slice з Issue #175 — dependency/security; UX #164 і CI #142/#152 не змішувати.
+
+
 ## 10.11-r3 — захист plan/fact, атомарне перепланування та офіційний prerelease — 06.11.2026
 
 - Повний read-only code-review зафіксовано в Issue #175. Найкритичніші знайдені дефекти: дія «План → факт» могла переписати існуючий факт; detailed personnel planner міг видалити старий план, не записати новий і закомітити стан.
