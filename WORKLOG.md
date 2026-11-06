@@ -1,5 +1,20 @@
 # WORKLOG — Taxo
 
+## 10.11-r7 — повний Win7 regression gate та офіційний prerelease — 06.11.2026
+
+- Окремий CI hardening-slice за Issue #175; UX #164, supply-chain hardening і CI optimization #142/#152 не змішувались.
+- До r7 Win7 workflow запускав лише `test_v10_11_r5` і `test_v10_11_r6`. У r7 він запускає весь `python -m unittest discover -s tests -v` на реальному CPython 3.8.10 **до** PyInstaller packaging.
+- Перший повний Win7 прогін виявив 129 помилок через відсутність legacy root-layout. Додано `python tests/stage_legacy_layout.py` перед suite — той самий механізм, який уже використовують Windows/macOS.
+- Після staging залишилися лише test-only несумісності Python 3.8: три історичні тести використовували `str.removeprefix()`, а r6-тест помилково фіксував r6 як вічно поточну версію. Контракти виправлено без зміни runtime.
+- Додано `tests/test_v10_11_r7.py`, який фіксує порядок: compile → legacy staging → full suite → packaging і забороняє повернення до вузького r5/r6-only gate.
+- PR #188 фінальний head `284f0694971ddb5cff33ee91b5756362b18a6faa`: Windows #42272564664, Win7 #42272564632, macOS #42272564625 — SUCCESS; Win7 повний Python 3.8 suite — SUCCESS.
+- PR #188 merged; exact issued source / exact-main = `3f3b28366ce7d453a70f5a2573eb676c0b503d2c`.
+- Exact-main SUCCESS: START #42273303324 — **876 tests / OK**; Windows #42273303147; Windows 7 #42273303116 (full CPython 3.8.10 regression before packaging); macOS ARM64/Intel #42273303128.
+- Release-trigger PR #189 merged; trigger main `0192e9c083c4a92ca6c5b9ec8b2df0609fce9dd9`.
+- Publisher #42274663207 — **SUCCESS**. Опубліковано immutable prerelease `v10.11-r7`; tag target = `3f3b28366ce7d453a70f5a2573eb676c0b503d2c`; 8 assets, усі r7. Stable/Latest лишається `v10.10-r5`.
+- Google Drive підтверджено: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r7_2026-11-06_START.zip`, 1 534 531 байт.
+- Наступна кодова ревізія — **10.11-r8**. Наступний окремий finding Issue #175 — build/release hardcoding cleanup.
+
 ## 10.11-r6 — atomic output, restore/backup hardening та офіційний prerelease — 06.11.2026
 
 - Окремий hardening-slice за Issue #175; UX #164 і CI optimization #142/#152 не змішувались.
