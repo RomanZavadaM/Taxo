@@ -106,6 +106,43 @@ def tdb():
     return con
 
 
+def ensure_control_protocol_history_guard(con):
+    """Prevent a source disc deletion from cascading into saved control history."""
+    con.execute(
+        """
+        CREATE TRIGGER IF NOT EXISTS trg_tachograph_control_protocol_history
+        BEFORE DELETE ON discs
+        FOR EACH ROW
+        WHEN EXISTS (
+            SELECT 1 FROM control_protocols WHERE disc_id=OLD.id
+        )
+        BEGIN
+            SELECT RAISE(
+                ABORT,
+                'Збережений протокол контролю тахокарти забороняє видалення джерела'
+            );
+        END
+        """
+    )
+
+
+def delete_disc_preserving_control_history(con, disc_id):
+    """Delete only an unprotected disc; saved control protocols are immutable history."""
+    count=int(
+        con.execute(
+            "SELECT COUNT(*) FROM control_protocols WHERE disc_id=?",
+            (int(disc_id),),
+        ).fetchone()[0]
+    )
+    if count:
+        raise ValueError(
+            "Для цієї тахокарти вже збережено контрольний протокол. "
+            "Тахокарту не можна видалити, бо це видалило б історію контролю."
+        )
+    con.execute("DELETE FROM discs WHERE id=?",(int(disc_id),))
+    return True
+
+
 def init_tacho_db():
     ensure_workspace(DATA_ROOT)
     con = tdb()
@@ -159,6 +196,7 @@ def init_tacho_db():
     CREATE INDEX IF NOT EXISTS idx_control_protocols_disc
         ON control_protocols(disc_id);
     """)
+    ensure_control_protocol_history_guard(con)
     con.commit(); con.close()
     normalize_database_paths(TACHO_DB,DATA_ROOT,{"discs":("source_path",)})
 
@@ -1006,8 +1044,39 @@ class TachographModule:
     def delete_selected(self):
         r=self._selected()
         if not r:return
-        if not messagebox.askyesno("Підтвердження","Видалити цей тестовий запис?",parent=self.parent):return
-        con=tdb();con.execute("DELETE FROM discs WHERE id=?",(r["id"],));con.commit();con.close();self.current_id=None;self.load()
+        if not messagebox.askyesno(
+            "Підтвердження",
+            "Видалити цю тахокарту?\n\n"
+            "Якщо для неї вже збережено контрольний протокол, Taxo збереже історію "
+            "і не дозволить видалення.",
+            parent=self.parent,
+        ):
+            return
+        con=tdb()
+        try:
+            delete_disc_preserving_control_history(con,r["id"])
+            con.commit()
+        except ValueError as exc:
+            con.rollback()
+            messagebox.showwarning(
+                "Історія контролю захищена",
+                str(exc),
+                parent=self.parent,
+            )
+            return
+        except sqlite3.IntegrityError as exc:
+            con.rollback()
+            messagebox.showerror(
+                "Історія контролю захищена",
+                "Taxo зупинив видалення, щоб не втратити збережений протокол контролю.\n\n"
+                f"{exc}",
+                parent=self.parent,
+            )
+            return
+        finally:
+            con.close()
+        self.current_id=None
+        self.load()
 
     def open_scan(self):
         """Відкрити скан в окремому вікні, не замінюючи поле розпізнавання."""
