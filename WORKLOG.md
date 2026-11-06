@@ -1,5 +1,20 @@
 # WORKLOG — Taxo
 
+## 10.11-r6 — atomic output, restore/backup hardening та офіційний prerelease — 06.11.2026
+
+- Окремий hardening-slice за Issue #175; UX #164 і CI optimization #142/#152 не змішувались.
+- `src/taxo/output_files.py::write_output_file()`: writer працює через sibling temp із тим самим suffix; успіх завершується `os.replace()`; при помилці temp прибирається, попередній правильний output не пошкоджується.
+- `src/taxo/backup_migration.py::restore_database_from_file()`: подвійна помилка restore + safety rollback більше не ковтається; composite failure містить обидві помилки і шлях до safety backup; rollback після копіювання перевіряється валідатором.
+- Backup UI та ADMIN_GUIDE прямо показують, що `Data/EmployeeDocuments` входить завжди; базове ім'я змінено з `Taxo_backup_db_...` на `Taxo_backup_core_with_employee_documents_...`.
+- Додано `tests/test_v10_11_r6.py`; оновлено історичний backup-disclosure regression, що перевіряв старе формулювання.
+- Перший PR CI виявив два застарілі contract-тести (START ще r5 і старий текст «лише БД»); обидва виправлено до merge.
+- PR #185 merged; exact issued source / exact-main = `558158a9777b18a05a224136fec4deeef55b5950`.
+- Exact-main SUCCESS: START #42268068367 (**872 tests / OK**); Windows #42268068515; Windows 7 #42268068378; macOS ARM64/Intel #42268068403.
+- Release-trigger PR #186 merged; trigger main `7a0eb9fa47bdea341854959376b473b214d00475`.
+- Publisher #42269285656 — **SUCCESS**. Опубліковано immutable prerelease `v10.11-r6`; tag target = `558158a9777b18a05a224136fec4deeef55b5950`; 8 assets, усі r6. Stable/Latest лишається `v10.10-r5`.
+- Google Drive підтверджено: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r6_2026-11-06_START.zip`, 1 531 200 байт.
+- Наступна кодова ревізія — **10.11-r7**. Наступний рекомендований окремий slice з Issue #175 — Win7 загальний regression gate.
+
 ## 10.11-r5 — dependency security, Win7 mitigation та офіційний prerelease — 06.11.2026
 
 - Окремий security/dependency slice за Issue #175; UX #164 і CI optimization #142/#152 не змішувались.
