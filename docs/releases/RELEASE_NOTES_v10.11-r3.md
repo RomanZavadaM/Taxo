@@ -1,9 +1,13 @@
 # Taxo 10.11-r3 — захист факту та безпечне перепланування персоналу
 
 **Дата:** 06.11.2026  
-**Статус:** **PRERELEASE / кандидат для користувацького тестування**.  
+**Статус:** **PRERELEASE / кандидат для користувацького тестування — опубліковано**.  
 **Stable:** без змін, `v10.10-r5`.  
-**Попередній immutable candidate:** `v10.11-r2`.
+**Exact issued source:** `a82a3dc6f7ce63a62d7318c7f423b17599360797`.  
+**Publisher:** workflow #42220584720 — **SUCCESS**.  
+**Assets:** 8 (Windows Setup/Portable, Windows 7 Setup/Portable, macOS ARM64/Intel, START, SHA256SUMS).  
+**Попередній immutable candidate:** `v10.11-r2`.  
+**Наступна кодова ревізія:** `10.11-r4`.
 
 ## Зміни
 
@@ -24,14 +28,15 @@
 
 ## Перевірки
 
-До публікації кандидата обов'язкові:
-- повний START regression suite;
-- Windows x64;
-- Windows 7 x64;
-- macOS ARM64;
-- macOS Intel x86_64;
-- перевірка r3 package naming;
-- immutable publisher gate на exact source.
+Exact-main `a82a3dc6`:
+- START #42219595152 — **SUCCESS**, 858 tests / OK;
+- Windows #42219595132 — **SUCCESS**;
+- Windows 7 #42219595055 — **SUCCESS**;
+- macOS ARM64 + Intel #42219595074 — **SUCCESS**.
+
+Release-trigger PR #177 пройшов required `build-windows` #42220118059 без обходу ruleset. Publisher #42220584720 видав immutable prerelease `v10.11-r3` саме з exact source `a82a3dc6`. Усі 8 release assets мають r3-назви.
+
+Google Drive recovery copy підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r3_2026-11-06_START.zip` (1 514 730 байт).
 
 Нові r3 regression tests перевіряють:
 - існуючий факт не змінюється дією «План → факт»;
