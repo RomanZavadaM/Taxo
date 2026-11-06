@@ -7,13 +7,20 @@ from release_naming import candidate_stem, checksum_stem, github_env_lines
 
 ROOT = Path(__file__).resolve().parents[1]
 
+def version_key(value):
+    base, sep, revision = str(value or "").strip().partition("-r")
+    major, minor = (int(part) for part in base.split(".", 1))
+    return major, minor, int(revision) if sep else 0
+
 
 class ReleaseNamingR8Tests(unittest.TestCase):
-    def test_r8_identity_is_current(self):
-        self.assertEqual(main.APP_VERSION, "10.11-r8")
+    def test_r8_identity_is_historical_anchor(self):
+        self.assertGreaterEqual(version_key(main.APP_VERSION), (10, 11, 8))
+        current = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+        self.assertTrue(current.startswith("Version: "))
         self.assertEqual(
-            (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(),
-            "Version: 10.11-r8",
+            version_key(current[len("Version: "):]),
+            version_key(main.APP_VERSION),
         )
 
     def test_release_naming_tokens_come_from_version(self):
