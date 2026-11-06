@@ -196,7 +196,7 @@ def restore_database_from_file(
 
         return safety_backup, final_details
 
-    except Exception:
+    except Exception as restore_exc:
         try:
             if temp_target.exists():
                 temp_target.unlink()
@@ -207,6 +207,18 @@ def restore_database_from_file(
             try:
                 shutil.copy2(safety_backup, db_path)
                 init_db()
-            except Exception:
-                pass
+                rollback_ok, rollback_details = validate_database_file(db_path)
+                if not rollback_ok:
+                    raise RuntimeError(
+                        "Страхову копію повернуто, але вона не пройшла перевірку: "
+                        + rollback_details
+                    )
+            except Exception as rollback_exc:
+                raise RuntimeError(
+                    "Відновлення нової бази не вдалося, і аварійне повернення "
+                    "страхової копії також завершилося помилкою. "
+                    f"Страхова копія збережена тут: {safety_backup}\n"
+                    f"Помилка відновлення: {type(restore_exc).__name__}: {restore_exc}\n"
+                    f"Помилка аварійного повернення: {type(rollback_exc).__name__}: {rollback_exc}"
+                ) from rollback_exc
         raise

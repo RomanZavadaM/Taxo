@@ -98,7 +98,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.11-r5"
+APP_VERSION = "10.11-r6"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -8066,8 +8066,9 @@ class App(tk.Tk):
         ttk.Label(
             body,
             text=(
-                "Основна БД і тахографічна БД копіюються завжди. "
-                "Великі файлові каталоги додавайте лише коли це потрібно."
+                "Основна БД, тахографічна БД і копії документів працівників "
+                "копіюються завжди. Інші великі файлові каталоги додавайте лише "
+                "коли це потрібно."
             ),
             foreground=PALETTE["muted"],wraplength=660,justify="left",
         ).pack(anchor="w",pady=(5,12))
@@ -8076,7 +8077,11 @@ class App(tk.Tk):
         mandatory.pack(fill="x")
         ttk.Label(
             mandatory,
-            text="✓ Основна база Taxo\n✓ Тахографічна база",
+            text=(
+                "✓ Основна база Taxo\n"
+                "✓ Тахографічна база\n"
+                "✓ Копії документів працівників (Data/EmployeeDocuments)"
+            ),
             justify="left",
         ).pack(anchor="w",padx=10,pady=8)
 
@@ -8104,8 +8109,9 @@ class App(tk.Tk):
         ttk.Label(
             body,
             text=(
-                "Оригінальні копії документів і скани завжди лишаються у робочій папці. "
-                "Ці галочки визначають лише, чи дублювати їх у цей конкретний ZIP."
+                "Документи працівників входять у ZIP завжди. Оригінальні файли у робочій "
+                "папці не видаляються. Галочки нижче керують лише додатковими копіями "
+                "документів ТЗ, сканів тахографів і Output."
             ),
             foreground="#7A4E00",wraplength=660,justify="left",
         ).pack(anchor="w",pady=(12,4))
@@ -8140,7 +8146,7 @@ class App(tk.Tk):
             extras.append("скани тахографів")
         if include_output:
             extras.append("Output")
-        label="full" if extras else "db"
+        label="full" if extras else "core_with_employee_documents"
         path=filedialog.asksaveasfilename(
             parent=self,
             title="Зберегти резервну копію Taxo",
@@ -8159,18 +8165,18 @@ class App(tk.Tk):
                 include_output=include_output,
             )
             size_mb=actual.stat().st_size/(1024*1024)
-            extra_text=", ".join(extras) if extras else "без великих файлових вкладень"
+            extra_text=", ".join(extras) if extras else "без додаткових файлових вкладень"
             messagebox.showinfo(
                 "Резервна копія",
                 "Резервну копію створено й перевірено.\n\n"
                 f"{actual}\n\nРозмір: {size_mb:.2f} МБ\n"
-                f"Склад: обидві БД; {extra_text}."
+                f"Склад: обидві БД; документи працівників — завжди; {extra_text}."
                 + (
                     "" if extras else
-                    "\n\n⚠ УВАГА: ця копія містить лише бази даних і службові файли з Data. "
-                    "Копії документів ТЗ, скани тахографів і файли Output (шляхівки, бланки, звіти) "
-                    "у неї НЕ входять. Для повного відновлення позначайте їх у діалозі "
-                    "резервної копії або зберігайте робочу папку окремо."
+                    "\n\n⚠ УВАГА: ця копія вже містить обидві БД і копії документів "
+                    "працівників. Копії документів ТЗ, скани тахографів і файли Output "
+                    "(шляхівки, бланки, звіти) у неї НЕ входять. Для повного відновлення "
+                    "позначайте їх у діалозі резервної копії або зберігайте робочу папку окремо."
                 ),
                 parent=self,
             )
