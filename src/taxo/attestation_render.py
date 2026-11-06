@@ -144,8 +144,7 @@ def _stamp_attestation_visual(context, out_path, template_path):
     Drawing uses reportlab + pypdf (permissive licenses); the draw order is
     significant because white erase rectangles cover previously drawn text.
     """
-    from pypdf import PdfReader
-    from pdf_engine import register_ttf, stamp_pdf, text_width
+    from pdf_engine import register_ttf, secure_pypdf_reader, stamp_pdf, text_width
 
     template_path = Path(template_path)
     out_path = Path(out_path)
@@ -153,7 +152,13 @@ def _stamp_attestation_visual(context, out_path, template_path):
         raise FileNotFoundError(f"Не знайдено візуальний шаблон PDF: {template_path}")
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    page_total = len(PdfReader(str(template_path)).pages)
+    template_reader = secure_pypdf_reader(str(template_path))
+    try:
+        page_total = len(template_reader.pages)
+    finally:
+        close = getattr(template_reader, "close", None)
+        if callable(close):
+            close()
     if page_total != 2:
         raise RuntimeError(f"Візуальний шаблон Бланка має містити 2 сторінки, отримано: {page_total}")
 
