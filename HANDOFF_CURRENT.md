@@ -1,27 +1,26 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 06.11.2026 (після офіційного prerelease 10.11-r9)
+**Оновлено:** 06.11.2026 (після офіційного prerelease 10.11-r10)
 
 ## База
 - **Stable / Latest:** [v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — підтверджена stable/rollback; без змін.
-- **Поточний виданий кандидат:** [v10.11-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r9) — **prerelease**, exact issued source `8f97218927b3ba6bc14aca465de4a196e2b19ba2`.
+- **Поточний виданий кандидат:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **prerelease**, exact issued source `b239bb0dda6a49878f5f06a0edd791710b62df9b`.
 - Release містить **8 assets**: Windows Setup/Portable, Windows 7 Setup/Portable, macOS ARM64/Intel, START і SHA256SUMS.
-- Tag/release `v10.11-r9` immutable: не пересувати, не переписувати і не перевикористовувати номер.
-- Exact-main перед випуском: START #42286505119, Windows #42286505164, Windows 7 #42286505171, macOS #42286505215 — **SUCCESS**.
-- START на exact source: **885 tests / OK**.
-- Publisher #42287707654 — **SUCCESS**. Release-trigger PR #196 merged; trigger main `14d6a615f06ebb23254c46ef291c34f0f9fcc795`.
-- **Наступна кодова ревізія:** **10.11-r10**.
-- Google Drive backup підтверджений: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r9_2026-11-06_START.zip` (1 542 152 байт).
+- Tag/release `v10.11-r10` immutable: не пересувати, не переписувати і не перевикористовувати номер.
+- Exact-source gate перед випуском: START + Windows + Windows 7 + macOS ARM64/Intel — **SUCCESS**; publisher відмовився б створити tag без усіх чотирьох successful runs для exact SHA.
+- START/regression line на r10: **888 tests / OK**.
+- Release-trigger PR #200 merged; trigger main `500a1ee559a02e39bb1b8e5874688749fd84aaa4`; tag target перевірено як exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`.
+- **Наступна кодова ревізія:** **10.12-r1**.
+- Google Drive: остання підтверджена recovery-copy наразі r9; r10 START recovery-copy ще треба додати окремим backup-кроком.
 - CI optimization PR #142/#152 — окремий напрямок; не змішувати з UX/функціоналом/security.
 
-## Що виправлено в 10.11-r9
-- У п'яти active GitHub Actions workflows `actions/checkout`, `actions/setup-python`, `actions/upload-artifact` більше не використовують рухомі `@v4/@v5`.
-- Action refs pinned до конкретних 40-символьних commit SHA, звірених з офіційними major refs GitHub 06.11.2026.
-- Поруч із SHA лишено коментарі `# v4` / `# v5` для контрольованого maintenance.
-- `tests/test_v10_11_r9.py` забороняє повернення moving refs і перевіряє allowlist pinned SHA.
-- Historical workflows у `docs/history/workflows/` не переписуються.
-- Runtime/business logic, БД, UX і build naming не змінювались.
-- PR-head і exact-main пройшли Windows, Win7 із повним Python 3.8 suite, macOS ARM64/Intel та START.
+## Що виправлено в 10.11-r10
+- У «Табелі робочого часу всіх працівників» дві паралельні кнопки PDF/Excel зведено до одного вибору формату.
+- Формати пояснюють призначення: «PDF — для друку» та «Excel — для редагування».
+- Є одна дія «Зберегти…».
+- Загальний звіт отримує однозначне ім'я `Табель_робочого_часу_YYYY-MM_усі-працівники.*`.
+- Plan/fact, БД, маршрути, графіки та розрахунки табеля не змінювались.
+- PR #198 та pre-release PR #199 пройшли Windows, Win7, macOS ARM64/Intel; exact-source release gate також пройдено.
 
 ## Стан аудиту Issue #175
 Закрито:
@@ -40,7 +39,7 @@
 - інші non-critical findings/maintenance — лише після повторної звірки Issue #175 і фактичного GitHub.
 
 ## Наступна безпечна дія
-Перед **10.11-r10** повторно прочитати Issue #175 та UX Issue #164 і вибрати один вузький slice. Не починати автоматично великий architecture cleanup. Пріоритет після stabilization — системний UX Issue #164, якщо власник не задасть інший напрямок.
+Після завершення r10 checkpoint наступний номер за правилом ревізій — **10.12-r1**. Перед новим кодом повторно звірити UX Issue #164 та фактичний GitHub і вибрати один вузький UX slice. Не змішувати з CI optimization #142/#152 або великим architecture cleanup.
 
 ## Recovery
 `START_HERE.md` → цей HANDOFF → `dev-strategy/profile/taxo/TAXO_PROFILE.md` → фактичний GitHub → `PROJECT_STATE.md`. Деталі: `WORKLOG.md`, Issue #61, audit Issue #175, UX Issue #164.
