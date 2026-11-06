@@ -98,7 +98,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.11-r9"
+APP_VERSION = "10.11-r10"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -9754,7 +9754,7 @@ class App(tk.Tk):
                     tree.insert("","end",values=[employee_row["personnel_no"],employee_row["name"],employee_row["roles"],*employee_row["cells"],employee_row["work_days"],minutes_hhmm(employee_row["planned_min"]),minutes_hhmm(employee_row["actual_min"]),signed_hours_hhmm(employee_row["difference_min"]/60),employee_row["missing_days"]])
                 status.set(f"{month_name_ua(start.month)} {start.year}: працівників {len(data['employees'])}; без факту загалом {sum(e['missing_days'] for e in data['employees'])}")
             def save_balance(kind):
-                suffix=".xlsx" if kind=="xlsx" else ".pdf"; path=filedialog.asksaveasfilename(parent=dialog,title="Зберегти табель усього персоналу",initialdir=str(OUTPUT_DIR),initialfile=f"Табель_усього_персоналу_{start.year}_{start.month:02d}{suffix}",defaultextension=suffix,filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")])
+                suffix=".xlsx" if kind=="xlsx" else ".pdf"; path=filedialog.asksaveasfilename(parent=dialog,title="Зберегти табель усього персоналу",initialdir=str(OUTPUT_DIR),initialfile=f"Табель_робочого_часу_{start.year}-{start.month:02d}_усі-працівники{suffix}",defaultextension=suffix,filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")])
                 if not path: return
                 writer=(lambda out:export_personnel_monthly_balance_xlsx(start.year,start.month,out,active_only.get())) if kind=="xlsx" else (lambda out:export_personnel_monthly_balance_pdf(start.year,start.month,out,active_only.get()))
                 actual=write_output_file(writer,path,parent=dialog,kind="Excel-файл місячного табеля" if kind=="xlsx" else "PDF місячного табеля",error_title="Помилка Excel" if kind=="xlsx" else "Помилка PDF")
@@ -9849,11 +9849,19 @@ class App(tk.Tk):
         ttk.Label(
             toolbar_reports,text="Звіти та друк:",font=("TkDefaultFont",9,"bold")
         ).pack(side="left",padx=(0,6))
-        ttk.Button(
-            toolbar_reports,text="PDF звіт — весь персонал",command=lambda:export_all("pdf")
+        all_report_kind=tk.StringVar(value="PDF — для друку")
+        ttk.Label(toolbar_reports,text="Формат:").pack(side="left",padx=(0,4))
+        ttk.Combobox(
+            toolbar_reports,
+            textvariable=all_report_kind,
+            values=("PDF — для друку","Excel — для редагування"),
+            state="readonly",
+            width=22,
         ).pack(side="left",padx=(0,4))
         ttk.Button(
-            toolbar_reports,text="Excel звіт — весь персонал",command=lambda:export_all("xlsx")
+            toolbar_reports,
+            text="Зберегти…",
+            command=lambda:export_all("xlsx" if all_report_kind.get().startswith("Excel") else "pdf"),
         ).pack(side="left",padx=4)
         ttk.Button(
             toolbar_reports,text="Місячний табель / баланс",command=show_personnel_balance
