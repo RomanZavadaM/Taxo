@@ -114,7 +114,7 @@ class TestEntrypointPinsVersion(unittest.TestCase):
 class TestDatabaseOnlyBackupWarning(unittest.TestCase):
     def test_success_message_warns_when_no_file_attachments(self):
         source = (ROOT / "main.py").read_text("utf-8")
-        self.assertIn("ця копія містить лише бази даних", source)
+        self.assertIn("ця копія вже містить обидві БД і копії документів", source)
         self.assertIn('"" if extras else', source)
         # historical wording of the composition line is kept
         self.assertIn('f"Склад: обидві БД; {extra_text}."', source)
