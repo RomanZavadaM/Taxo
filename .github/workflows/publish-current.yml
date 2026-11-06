@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Publish checkpoint: candidate 10.11-r8 after verified centralized-naming exact-main CI; exact source f3e846c.
+# Publish checkpoint: candidate 10.11-r9 after verified action-pinning exact-main CI; exact source 8f97218.
 
 on:
   workflow_dispatch:
