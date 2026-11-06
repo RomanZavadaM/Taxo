@@ -26,6 +26,115 @@ class PdfEngineUnavailable(RuntimeError):
     """The PDF rendering engine cannot be loaded on this system."""
 
 
+class PdfSecurityLimitError(RuntimeError):
+    """PDF structure exceeded Taxo's safe processing limits."""
+
+
+_PDF_INHERITABLE_PAGE_KEYS = ("/Resources", "/MediaBox", "/CropBox", "/Rotate")
+_PDF_PAGE_ENTRY_BUDGET = 2_000_000
+_PDF_PAGE_NODE_BUDGET = 100_000
+_PDF_PAGE_TREE_MAX_DEPTH = 100
+
+
+def _resolve_pdf_object(value):
+    getter = getattr(value, "get_object", None)
+    return getter() if callable(getter) else value
+
+
+def _pdf_object_key(value, resolved):
+    """Stable-enough identity for cycle detection without dereferencing children twice."""
+    idnum = getattr(value, "idnum", None)
+    generation = getattr(value, "generation", None)
+    if idnum is not None:
+        return ("indirect", int(idnum), int(generation or 0))
+    return ("inline", id(resolved))
+
+
+def validate_pypdf_page_tree(
+    reader,
+    *,
+    max_page_entries=_PDF_PAGE_ENTRY_BUDGET,
+    max_nodes=_PDF_PAGE_NODE_BUDGET,
+    max_depth=_PDF_PAGE_TREE_MAX_DEPTH,
+):
+    """Bound pypdf page-tree flattening before reader.pages is accessed.
+
+    pypdf versions before 6.21.4 can copy a very large number of page
+    dictionary attributes while flattening a malicious page tree. Taxo's
+    Windows 7 line is pinned to Python 3.8 and therefore cannot use pypdf
+    6.21.4. This preflight mirrors the upstream page-entry budget concept and
+    additionally rejects cycles/depth bombs before flattening.
+    """
+    root = _resolve_pdf_object(reader.root_object)
+    pages_ref = root.get("/Pages") if hasattr(root, "get") else None
+    if pages_ref is None:
+        raise PdfSecurityLimitError("PDF не містить коректного дерева сторінок.")
+
+    remaining_entries = int(max_page_entries)
+    visited_nodes = 0
+    stack = [(pages_ref, {}, 0, frozenset())]
+
+    while stack:
+        ref, inherited, depth, ancestors = stack.pop()
+        if depth > int(max_depth):
+            raise PdfSecurityLimitError("PDF має надто глибоке дерево сторінок.")
+
+        node = _resolve_pdf_object(ref)
+        if not hasattr(node, "get"):
+            raise PdfSecurityLimitError("PDF містить некоректний вузол дерева сторінок.")
+
+        key = _pdf_object_key(ref, node)
+        if key in ancestors:
+            raise PdfSecurityLimitError("PDF містить циклічне дерево сторінок.")
+
+        visited_nodes += 1
+        if visited_nodes > int(max_nodes):
+            raise PdfSecurityLimitError("PDF містить надто багато вузлів дерева сторінок.")
+
+        node_type = node.get("/Type")
+        is_pages = node_type == "/Pages" or (node_type is None and "/Kids" in node)
+        if is_pages:
+            next_inherited = dict(inherited)
+            for attr in _PDF_INHERITABLE_PAGE_KEYS:
+                if attr in node:
+                    next_inherited[attr] = node[attr]
+
+            kids = node.get("/Kids")
+            if kids is None:
+                raise PdfSecurityLimitError("PDF містить некоректний вузол /Pages без /Kids.")
+            try:
+                children = list(kids)
+            except Exception as exc:
+                raise PdfSecurityLimitError("PDF містить некоректний список сторінок.") from exc
+
+            next_ancestors = ancestors | {key}
+            for child in reversed(children):
+                stack.append((child, next_inherited, depth + 1, next_ancestors))
+            continue
+
+        try:
+            entry_count = len(node)
+        except Exception as exc:
+            raise PdfSecurityLimitError("PDF містить некоректний опис сторінки.") from exc
+        entry_count += sum(attr not in node for attr in inherited)
+        remaining_entries -= int(entry_count)
+        if remaining_entries < 0:
+            raise PdfSecurityLimitError(
+                "PDF перевищує безпечний ліміт структури сторінок і не буде оброблений."
+            )
+
+    return True
+
+
+def secure_pypdf_reader(source, **limits):
+    """Create a PdfReader and validate its page tree before flattening."""
+    from pypdf import PdfReader
+
+    reader = PdfReader(source, strict=False)
+    validate_pypdf_page_tree(reader, **limits)
+    return reader
+
+
 def _pdfium():
     try:
         import pypdfium2 as pdfium
@@ -155,7 +264,7 @@ def stamp_pdf(source_path, out_path, draw_page):
 
     source_path = Path(source_path)
     out_path = Path(out_path)
-    reader = PdfReader(str(source_path))
+    reader = secure_pypdf_reader(str(source_path))
     sizes = []
     for page in reader.pages:
         box = page.mediabox
