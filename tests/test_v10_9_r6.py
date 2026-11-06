@@ -24,7 +24,7 @@ class PersonnelBalanceR6Tests(unittest.TestCase):
         ids = feature_layer_ids()
         self.assertIn("v1096-personnel-balance", ids)
         self.assertGreaterEqual(ids.index("v1096-personnel-balance"), 0)
-        current = version.removeprefix("Version: ")
+        current = version[len("Version: "):] if version.startswith("Version: ") else version
         main = (root / "main.py").read_text("utf-8")
         self.assertIn(f'APP_VERSION = "{current}"', main)
 

@@ -1,12 +1,12 @@
 #define MyAppName "Taxo"
 #ifndef MyAppVersion
-  #define MyAppVersion "10.11-r6"
+  #define MyAppVersion "10.11-r7"
 #endif
 #ifndef SourceBundle
-  #define SourceBundle "Taxo_v10_11_candidate_r6_Windows_x64"
+  #define SourceBundle "Taxo_v10_11_candidate_r7_Windows_x64"
 #endif
 #ifndef OutputBase
-  #define OutputBase "Taxo_v10_11_candidate_r6_Setup_Windows_x64"
+  #define OutputBase "Taxo_v10_11_candidate_r7_Setup_Windows_x64"
 #endif
 #define MyAppPublisher "Roman Zavada"
 #define MyAppExeName "Taxo.exe"

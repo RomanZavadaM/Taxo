@@ -13,7 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _revision_tuple(version):
-    text = str(version or "").strip().removeprefix("Version: ")
+    text = str(version or "").strip()
+    prefix = "Version: "
+    if text.startswith(prefix):
+        text = text[len(prefix):]
     base, sep, rev = text.partition("-r")
     major, minor = (int(part) for part in base.split(".", 1))
     return major, minor, int(rev) if sep else 0
