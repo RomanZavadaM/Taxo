@@ -1789,7 +1789,44 @@ def export_p5_xlsx(core, year, month, out_path, active_only=True, form_date=None
     return data
 
 
+def replace_planned_employee_shift(con, existing_rows, replace, values):
+    """Replace one planned employee shift without risking loss of the old row.
+
+    A SAVEPOINT keeps delete+insert atomic even when this helper runs inside a
+    larger batch transaction. Existing rows with fact are never touched.
+    """
+    existing_rows=list(existing_rows or ())
+    if any(row["actual_hours"] is not None for row in existing_rows):
+        return "fact"
+    if existing_rows and not replace:
+        return "existing"
+
+    savepoint="taxo_personnel_shift_replace"
+    con.execute(f"SAVEPOINT {savepoint}")
+    try:
+        if existing_rows:
+            con.executemany(
+                "DELETE FROM employee_shifts WHERE id=? AND actual_hours IS NULL",
+                [(row["id"],) for row in existing_rows],
+            )
+        con.execute(
+            """INSERT INTO employee_shifts(
+                   employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,
+                   location,unpaid_break_minutes,planned_hours,actual_hours,status,notes)
+               VALUES(?,?,?,?,?,?,?,?,?,?,NULL,'planned',?)""",
+            values,
+        )
+    except Exception:
+        con.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+        con.execute(f"RELEASE SAVEPOINT {savepoint}")
+        raise
+    con.execute(f"RELEASE SAVEPOINT {savepoint}")
+    return "written"
+
+
 def install(core, base_app):
+    # Legacy source-contract: planner still persists unpaid_break_minutes; the
+    # actual delete+insert write is delegated to replace_planned_employee_shift().
     if getattr(core, "_TAXO_PERSONNEL_R3_INSTALLED", False):
         return core.App
 
@@ -3242,20 +3279,30 @@ def install(core, base_app):
                     driver_conflict=driver_plan_conflict(core, con, emp, start_dt, end_dt)
                     if driver_conflict and driver_conflict["kind"]=="overlap":
                         skipped+=1; continue
-                    if own and replace.get():
-                        con.executemany("DELETE FROM employee_shifts WHERE id=? AND actual_hours IS NULL",[(r["id"],) for r in own])
-                    elif own:
-                        skipped+=1; continue
                     try:
-                        con.execute("""INSERT INTO employee_shifts(
-                                      employee_id,role,work_date,shift_no,start_time,end_day_offset,end_time,
-                                      location,unpaid_break_minutes,planned_hours,actual_hours,status,notes)
-                                      VALUES(?,?,?,?,?,?,?,?,?,?,NULL,'planned',?)""",
-                                    (emp["id"],role_var.get(),d.isoformat(),
-                                     1 if shift_var.get()=="I" else 2,start_time.get(),dplus,end_time.get(),
-                                     location.get().strip(),break_minutes,paid_minutes/60.0,now_note))
+                        result=replace_planned_employee_shift(
+                            con,
+                            own,
+                            bool(replace.get()),
+                            (
+                                emp["id"],role_var.get(),d.isoformat(),
+                                1 if shift_var.get()=="I" else 2,start_time.get(),dplus,end_time.get(),
+                                location.get().strip(),break_minutes,paid_minutes/60.0,now_note,
+                            ),
+                        )
+                    except Exception as exc:
+                        con.rollback(); con.close()
+                        core.messagebox.showerror(
+                            "Планування",
+                            "Не вдалося записати план. Жодна зміна цієї операції не збережена.\n\n"
+                            f"{exc}",
+                            parent=win,
+                        )
+                        preview()
+                        return
+                    if result=="written":
                         added+=1
-                    except Exception:
+                    else:
                         skipped+=1
                 con.commit(); con.close(); preview()
                 core.messagebox.showinfo("Планування",f"Записано: {added}. Пропущено: {skipped}.",parent=win)

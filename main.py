@@ -98,7 +98,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.11-r2"
+APP_VERSION = "10.11-r3"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -2102,6 +2102,45 @@ def _employee_shift_minutes_for_day(con, employee_id, target_date):
             actual+=hours_value_to_minutes(row["actual_hours"])*overlap/duration
     return int(round(planned)),(int(round(actual)) if found and actual_known else None),found
 
+
+
+def copy_missing_plan_to_fact(con, employee, work_dates, now=None):
+    """Copy plan into fact only where no fact exists.
+
+    Existing fact from any source is immutable here: this helper never overwrites it.
+    It is intentionally transaction-neutral; the caller owns commit/rollback.
+    """
+    stamp=now or datetime.now().isoformat(timespec="seconds")
+    stats={"written":0,"protected_fact":0,"no_plan":0,"outside_employment":0}
+    for work_date in work_dates:
+        if isinstance(work_date,str):
+            work_date=date.fromisoformat(work_date)
+        if not employee_employed_on(employee,work_date):
+            stats["outside_employment"]+=1
+            continue
+        current=employee_day_time(con,employee["id"],work_date)
+        if current["actual_minutes"] is not None:
+            stats["protected_fact"]+=1
+            continue
+        planned_minutes=int(current["planned_minutes"] or 0)
+        if planned_minutes<=0:
+            stats["no_plan"]+=1
+            continue
+        con.execute(
+            """INSERT INTO employee_time_entries(
+                   employee_id,work_date,day_type,actual_hours,notes,created_at,updated_at
+               ) VALUES(?,?,?,?,?,?,?)
+               ON CONFLICT(employee_id,work_date) DO UPDATE SET
+                   actual_hours=excluded.actual_hours,
+                   updated_at=excluded.updated_at
+               WHERE employee_time_entries.actual_hours IS NULL""",
+            (
+                employee["id"],work_date.isoformat(),current["day_type"],
+                minutes_to_db_hours(planned_minutes),current["notes"],stamp,stamp,
+            ),
+        )
+        stats["written"]+=1
+    return stats
 
 
 def employee_day_time(con, employee_id, target_date):
@@ -9535,14 +9574,40 @@ class App(tk.Tk):
             employee=employee_map.get(employee_choice.get()); days=selected_days()
             if not employee or not days:
                 messagebox.showwarning("Табель","Виберіть одну або кілька дат.",parent=win); return
-            con=db(); now=datetime.now().isoformat(timespec="seconds")
-            for work_date in days:
-                if not employee_employed_on(employee,work_date): continue
-                current=employee_day_time(con,employee["id"],work_date)
-                con.execute("""INSERT INTO employee_time_entries(employee_id,work_date,day_type,actual_hours,notes,created_at,updated_at)
-                    VALUES(?,?,?,?,?,?,?) ON CONFLICT(employee_id,work_date) DO UPDATE SET actual_hours=excluded.actual_hours,updated_at=excluded.updated_at""",
-                    (employee["id"],work_date.isoformat(),current["day_type"],minutes_to_db_hours(current["planned_minutes"]),current["notes"],now,now))
-            con.commit(); con.close(); refresh_summary()
+            if not messagebox.askyesno(
+                "План → факт",
+                "Записати план як факт лише для вибраних днів, де факт ще відсутній?\n\n"
+                "Уже наявний факт Taxo не змінюватиме.",
+                parent=win,
+            ):
+                return
+            con=db()
+            try:
+                stats=copy_missing_plan_to_fact(con,employee,days)
+                con.commit()
+            except Exception as exc:
+                con.rollback()
+                messagebox.showerror(
+                    "План → факт",
+                    "Не вдалося записати факт. Жодна зміна цієї операції не збережена.\n\n"
+                    f"{exc}",
+                    parent=win,
+                )
+                return
+            finally:
+                con.close()
+            refresh_summary()
+            messagebox.showinfo(
+                "План → факт",
+                "Записано: {written}. Захищено існуючий факт: {protected}. "
+                "Без плану: {no_plan}. Поза періодом роботи: {outside}.".format(
+                    written=stats["written"],
+                    protected=stats["protected_fact"],
+                    no_plan=stats["no_plan"],
+                    outside=stats["outside_employment"],
+                ),
+                parent=win,
+            )
 
         def clear_manual():
             employee=employee_map.get(employee_choice.get()); days=selected_days()
