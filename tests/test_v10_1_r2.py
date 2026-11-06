@@ -18,8 +18,9 @@ class TestTaxo101R2UiRefresh(unittest.TestCase):
         source = inspect.getsource(main.App.show_employee_timesheet)
         for marker in (
             "Відкрити деталізацію",
-            "PDF звіт",
-            "Excel звіт",
+            "PDF — для друку",
+            "Excel — для редагування",
+            'text="Зберегти…"',
             "Підсумки / контроль",
             "Місячний табель / баланс",
             'text="П-5"',
