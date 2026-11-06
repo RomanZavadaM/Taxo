@@ -32,7 +32,7 @@ from personnel_v91 import (
 )
 from output_files import report_font_candidates
 
-APP_VERSION = "10.11-r3"
+APP_VERSION = "10.11-r4"
 
 PATTERN_3_3 = "3/3"
 SIMPLE_PATTERNS = (
