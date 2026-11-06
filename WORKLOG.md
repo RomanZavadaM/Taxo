@@ -1,5 +1,22 @@
 # WORKLOG — Taxo
 
+## 10.11-r8 — централізоване build/release naming та офіційний prerelease — 06.11.2026
+
+- Окремий release-engineering slice за Issue #175 finding #10; runtime/business logic, UX #164, supply-chain action pinning і CI optimization #142/#152 не змішувались.
+- `src/taxo/release_naming.py` розширено canonical helpers для `TAXO_VERSION`, `TAXO_CANDIDATE_STEM`, `TAXO_CHECKSUM_STEM`, що читаються з `VERSION.txt`.
+- Active Windows, Win7 і macOS workflows більше не містять revision-specific r7 package names; Portable/Setup/checksum назви формуються з canonical tokens.
+- `packaging/installer/Taxo.iss` більше не має hardcoded revision defaults: `MyAppVersion`, `SourceBundle`, `OutputBase` обов'язково передає workflow.
+- promotion-to-stable у `publish-current.yml` формує required 8-asset list із marker/version, а не з hardcoded `v10.10-r5`.
+- Перший r8 CI виявив test-only exact-version lock у r7 regression; переведено на historical anchor. Другий прогін виявив PowerShell interpolation `$env:TAXO_CANDIDATE_STEM_Windows_x64`; виправлено на braced env-variable syntax. Runtime не змінювався.
+- Фінальний PR #192 head `0ba61c0f397af9f4dbc2ceefb02101c68b61aec5`: Windows #42282648349, Win7 #42282648375, macOS #42282648592 — SUCCESS. Artifact ZIP вручну перевірені: файли мають саме r8 names.
+- PR #192 merged; exact issued source / exact-main = `f3e846c50e75bdc59560d10916cec90a7587cdac`.
+- Exact-main SUCCESS: START #42283491422 — **881 tests / OK**; Windows #42283491587; Windows 7 #42283491399; macOS ARM64/Intel #42283491541.
+- Автоматичний publisher на merge PR #192 безпечно зупинився на immutable r7 overwrite guard; release не змінено.
+- Release-trigger PR #193 merged; trigger main `cbe1e06552dc94ae78519072b3a2e57fb1ec25e3`.
+- Publisher #42284631762 — **SUCCESS**. Опубліковано immutable prerelease `v10.11-r8`; tag target = `f3e846c50e75bdc59560d10916cec90a7587cdac`; 8 assets, усі r8. Stable/Latest лишається `v10.10-r5`.
+- Google Drive підтверджено: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.11-r8_2026-11-06_START.zip`, 1 538 476 байт.
+- Наступна кодова ревізія — **10.11-r9**. Наступний окремий finding Issue #175 — workflow supply-chain hardening.
+
 ## 10.11-r7 — повний Win7 regression gate та офіційний prerelease — 06.11.2026
 
 - Окремий CI hardening-slice за Issue #175; UX #164, supply-chain hardening і CI optimization #142/#152 не змішувались.
