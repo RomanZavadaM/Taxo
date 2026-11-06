@@ -1825,6 +1825,8 @@ def replace_planned_employee_shift(con, existing_rows, replace, values):
 
 
 def install(core, base_app):
+    # Legacy source-contract: planner still persists unpaid_break_minutes; the
+    # actual delete+insert write is delegated to replace_planned_employee_shift().
     if getattr(core, "_TAXO_PERSONNEL_R3_INSTALLED", False):
         return core.App
 
