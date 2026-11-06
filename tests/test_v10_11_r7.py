@@ -36,6 +36,16 @@ class Win7GeneralRegressionR7Tests(unittest.TestCase):
         self.assertIn("Set up CPython 3.8.10 x64", source)
         self.assertIn("Run full regression suite on Python 3.8", source)
 
+    def test_win7_stages_legacy_layout_before_full_suite(self):
+        source = (ROOT / ".github/workflows/build-win7-current.yml").read_text(
+            encoding="utf-8"
+        )
+        stage = "python tests/stage_legacy_layout.py"
+        full_suite = "python -m unittest discover -s tests -v"
+        self.assertIn(stage, source)
+        self.assertIn(full_suite, source)
+        self.assertLess(source.index(stage), source.index(full_suite))
+
     def test_win7_gate_is_not_limited_to_only_recent_security_modules(self):
         source = (ROOT / ".github/workflows/build-win7-current.yml").read_text(
             encoding="utf-8"
