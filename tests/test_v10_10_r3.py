@@ -116,8 +116,7 @@ class TestDatabaseOnlyBackupWarning(unittest.TestCase):
         source = (ROOT / "main.py").read_text("utf-8")
         self.assertIn("ця копія вже містить обидві БД і копії документів", source)
         self.assertIn('"" if extras else', source)
-        # historical wording of the composition line is kept
-        self.assertIn('f"Склад: обидві БД; {extra_text}."', source)
+        self.assertIn('f"Склад: обидві БД; документи працівників — завжди; {extra_text}."', source)
 
 
 if __name__ == "__main__":
