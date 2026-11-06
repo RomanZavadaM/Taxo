@@ -98,7 +98,7 @@ from vehicle_documents import (
     display_date,
 )
 
-APP_VERSION = "10.11-r9"
+APP_VERSION = "10.11-r10"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -9796,7 +9796,7 @@ class App(tk.Tk):
                 parent=win,
                 title="Зберегти звіт по всьому персоналу",
                 initialdir=str(OUTPUT_DIR),
-                initialfile=f"Табель_усього_персоналу_{start.year}_{start.month:02d}{suffix}",
+                initialfile=f"Табель_робочого_часу_{start.year}-{start.month:02d}_усі-працівники{suffix}",
                 defaultextension=suffix,
                 filetypes=[("Excel","*.xlsx")] if kind=="xlsx" else [("PDF","*.pdf")],
             )
@@ -9849,11 +9849,19 @@ class App(tk.Tk):
         ttk.Label(
             toolbar_reports,text="Звіти та друк:",font=("TkDefaultFont",9,"bold")
         ).pack(side="left",padx=(0,6))
-        ttk.Button(
-            toolbar_reports,text="PDF звіт — весь персонал",command=lambda:export_all("pdf")
+        all_report_kind=tk.StringVar(value="PDF — для друку")
+        ttk.Label(toolbar_reports,text="Формат:").pack(side="left",padx=(0,4))
+        ttk.Combobox(
+            toolbar_reports,
+            textvariable=all_report_kind,
+            values=("PDF — для друку","Excel — для редагування"),
+            state="readonly",
+            width=22,
         ).pack(side="left",padx=(0,4))
         ttk.Button(
-            toolbar_reports,text="Excel звіт — весь персонал",command=lambda:export_all("xlsx")
+            toolbar_reports,
+            text="Зберегти…",
+            command=lambda:export_all("xlsx" if all_report_kind.get().startswith("Excel") else "pdf"),
         ).pack(side="left",padx=4)
         ttk.Button(
             toolbar_reports,text="Місячний табель / баланс",command=show_personnel_balance

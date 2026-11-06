@@ -20,12 +20,20 @@ EXPECTED_PINS = {
 }
 
 
+def version_key(value):
+    base, sep, revision = str(value or "").strip().partition("-r")
+    major, minor = (int(part) for part in base.split(".", 1))
+    return major, minor, int(revision) if sep else 0
+
+
 class WorkflowSupplyChainR9Tests(unittest.TestCase):
-    def test_r9_identity_is_current(self):
-        self.assertEqual(main.APP_VERSION, '10.11-r9')
+    def test_r9_identity_is_historical_anchor(self):
+        self.assertGreaterEqual(version_key(main.APP_VERSION), (10, 11, 9))
+        current = (ROOT / 'VERSION.txt').read_text(encoding='utf-8').strip()
+        self.assertTrue(current.startswith('Version: '))
         self.assertEqual(
-            (ROOT / 'VERSION.txt').read_text(encoding='utf-8').strip(),
-            'Version: 10.11-r9',
+            version_key(current[len('Version: '):]),
+            version_key(main.APP_VERSION),
         )
 
     def test_official_actions_are_pinned_to_expected_commit_shas(self):
