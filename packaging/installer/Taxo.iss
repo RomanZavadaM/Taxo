@@ -1,12 +1,12 @@
 #define MyAppName "Taxo"
 #ifndef MyAppVersion
-  #define MyAppVersion "10.11-r7"
+  #error "MyAppVersion must be supplied by the build workflow"
 #endif
 #ifndef SourceBundle
-  #define SourceBundle "Taxo_v10_11_candidate_r7_Windows_x64"
+  #error "SourceBundle must be supplied by the build workflow"
 #endif
 #ifndef OutputBase
-  #define OutputBase "Taxo_v10_11_candidate_r7_Setup_Windows_x64"
+  #error "OutputBase must be supplied by the build workflow"
 #endif
 #define MyAppPublisher "Roman Zavada"
 #define MyAppExeName "Taxo.exe"
