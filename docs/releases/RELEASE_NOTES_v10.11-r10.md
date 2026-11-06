@@ -1,7 +1,7 @@
 # Taxo 10.11-r10 — спрощення звіту табеля персоналу
 
 **Дата:** 06.11.2026  
-**Статус:** candidate / prerelease checkpoint.  
+**Статус:** **офіційний immutable prerelease**.  
 **Stable:** без змін, `v10.10-r5`.  
 **Попередній immutable candidate:** `v10.11-r9`.
 
@@ -39,4 +39,4 @@ PR #198 пройшов:
 - macOS ARM64 — SUCCESS;
 - macOS Intel — SUCCESS.
 
-Офіційний prerelease `v10.11-r10` створюється лише після повторного exact-main START + platform checkpoint.
+Офіційний prerelease `v10.11-r10` опубліковано після guarded exact-source checkpoint; tag target — `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable залишається `v10.10-r5`.
