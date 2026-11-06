@@ -36,7 +36,7 @@
 - Candidate identity синхронізовано на `10.11-r2`; stable `v10.10-r5` і prerelease `v10.11-r1` незмінні.
 - Статус: **PUBLISHED PRERELEASE**; ручне приймання r2 триває, наступні зміни — 10.11-r3.
 
-**Оновлено:** 05.11.2026  
+**Оновлено:** 06.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## CURRENT
