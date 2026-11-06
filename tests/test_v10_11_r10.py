@@ -1,0 +1,35 @@
+import unittest
+from pathlib import Path
+
+import main
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class PersonnelReportFlowR10Tests(unittest.TestCase):
+    def test_r10_identity_is_current(self):
+        self.assertEqual(main.APP_VERSION, "10.11-r10")
+        self.assertEqual(
+            (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(),
+            "Version: 10.11-r10",
+        )
+
+    def test_all_personnel_report_uses_one_format_selector_and_one_save_action(self):
+        source = (ROOT / "main.py").read_text(encoding="utf-8")
+        self.assertIn('all_report_kind=tk.StringVar(value="PDF — для друку")', source)
+        self.assertIn('values=("PDF — для друку","Excel — для редагування")', source)
+        self.assertIn('text="Зберегти…"', source)
+        self.assertNotIn('text="PDF звіт — весь персонал"', source)
+        self.assertNotIn('text="Excel звіт — весь персонал"', source)
+
+    def test_all_personnel_report_filename_is_explicit(self):
+        source = (ROOT / "main.py").read_text(encoding="utf-8")
+        self.assertIn(
+            'Табель_робочого_часу_{start.year}-{start.month:02d}_усі-працівники{suffix}',
+            source,
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
