@@ -354,3 +354,17 @@
 - PR-head CI після виправлення: Windows #42289176738, Win7 #42289176886, macOS #42289176734 — SUCCESS; обидві macOS архітектури зелені; Win7 full regression PASS.
 - Pre-release docs checkpoint додає release notes і стає exact source для повторної main-перевірки перед immutable prerelease.
 - Stable залишається `v10.10-r5`.
+
+
+## 10.11-r10 — офіційний immutable prerelease — 06.11.2026
+
+- PR #198: вузький UX slice у загальному табелі персоналу; selector PDF/Excel + одна дія «Зберегти…»; однозначне ім'я файла.
+- Після першого CI падіння виправлено три точні причини: START identity r10, два історичні UX-contract тести та помилково зачеплений filename окремого balance-звіту.
+- Повторний PR-head CI: Windows #42289176738 — SUCCESS; Win7 #42289176886 — SUCCESS; macOS #42289176734 — SUCCESS (ARM64 + Intel); regression — 888 tests.
+- PR #198 merged: `15a04d0a383cc74a0ce8c1bd5e374d3948127a7a`.
+- PR #199 додав release notes + WORKLOG; exact issued source = `b239bb0dda6a49878f5f06a0edd791710b62df9b`.
+- Release-trigger PR #200 merged; trigger main = `500a1ee559a02e39bb1b8e5874688749fd84aaa4`.
+- Publisher exact-source guard вимагає successful START + Windows + Win7 + macOS саме для issued SHA до створення release; `v10.11-r10` створено і tag target перевірено як `b239bb0dda6a49878f5f06a0edd791710b62df9b`.
+- Publisher формує канонічний комплект 8 assets; stable marker лишився `10.10-r5`.
+- Google Drive r10 START recovery-copy ще не створена; остання підтверджена recovery-copy — r9.
+- За правилом версій після r10 наступна кодова ревізія — **10.12-r1**.
