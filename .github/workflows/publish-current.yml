@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Publish checkpoint: candidate 10.11-r2 retry after verified r2 asset names; exact source 68d7459b.
+# Publish checkpoint: candidate 10.11-r3 after verified exact-main multi-platform CI; exact source a82a3dc6.
 
 on:
   workflow_dispatch:
