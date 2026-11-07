@@ -3,14 +3,25 @@
 **Оновлено:** 07.11.2026 — після інтеграції, exact-product перевірок і recovery-copy Taxo 10.13-r1.
 
 ## База
-- **Stable / Latest:** [v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — без змін.
+- **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
 - **Останній офіційно виданий candidate:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; 8 assets.
 - **Поточний integrated product candidate:** **10.13-r1**, product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r10 і 10.13-r1 **ще не публікувались як GitHub prerelease**.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1 лишається integrated-only.
 - **Google Drive recovery-copy 10.13-r1:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r1_2026-11-07_START.zip`, 1 613 547 байт; Drive file `1XCfHkCdQUv8r0B0YyA3S2fCUsA126Z8F`; START #2316 artifact SHA256 `11780cd318c419b52b8316e2c1fbb0c36d2b6877f738130250993dfac84eec38`.
 - **Наступна кодова ревізія:** **10.13-r2**.
-- Stable не змінювати без окремого рішення власника.
+- Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
+
+## Stable promotion 10.12-r10 — 07.11.2026
+
+- Власник після ручного r10 acceptance дав пряму команду оновити stable до лінії 10.12.
+- Оскільки 10.12-r10 був integrated-only, а main уже містив 10.13-r1, додано guarded exact-checkpoint promoter замість відкату main.
+- PR #229 додав stable target і exact source; перший publisher run #42408835080 зупинився **до створення tag/release** через shell SIGPIPE у verification.
+- PR #230 виправив лише pipefail handling без послаблення gate.
+- Historical stable publisher #42409237532 — **SUCCESS**.
+- Release [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) → exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`, prerelease=false, draft=false, GitHub Latest, 8 canonical assets.
+- Вихідні r10 platform gates: Windows #1269, Win7 #262, macOS #1187 ARM64/Intel, START #2315 — SUCCESS; PR-head r10 Windows — **931 tests / OK**.
+- Попередня stable `v10.10-r5` лишається rollback. 10.13-r1 не публікувався і не став stable.
 
 ## 10.13-r1 — «Експлуатація» / СТОІР як цілісний робочий сценарій
 

@@ -5,17 +5,26 @@
 
 ## Поточний підтверджений стан
 
-- **Stable / Latest:** Taxo 10.10-r5 / `v10.10-r5` — виправлення запуску macOS; прийнято власником 05.11.2026.
-- **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
-- **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
+- **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — promoted 07.11.2026; exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
+- **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
+- **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Current published candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable не змінено.
-- **Current integrated product candidate:** Taxo **10.13-r1**, product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`. 10.12-r1…r10 і 10.13-r1 ще не опубліковані як prerelease.
+- **Last prerelease candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Новіша stable — 10.12-r10.
+- **Current integrated product candidate:** Taxo **10.13-r1**, product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`. 10.12-r10 уже stable; 10.13-r1 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
 - **Next code revision:** **10.13-r2**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Google Drive backup:** exact-source START recovery-copy для 10.13-r1 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r1_2026-11-07_START.zip`, 1 613 547 байт; Drive file `1XCfHkCdQUv8r0B0YyA3S2fCUsA126Z8F`; source artifact START #2316, SHA256 `11780cd318c419b52b8316e2c1fbb0c36d2b6877f738130250993dfac84eec38`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
+
+## Stable promotion 10.12-r10
+
+- Owner decision: stable → **10.12-r10**.
+- Release: `v10.12-r10`, exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+- Historical stable promoter run #42409237532 — SUCCESS; GitHub `/releases/latest` підтверджує `v10.12-r10`.
+- 8 canonical assets: Windows Setup/Portable, Win7 Setup/Portable, macOS ARM64/Intel, START, SHA256SUMS.
+- Stable release використав уже перевірені exact-r10 packages; 10.13-r1 у release не потрапив.
+- Rollback stable: `v10.10-r5`.
 
 ## Поточний product main 10.13-r1 — Експлуатація / СТОІР usability consolidation
 

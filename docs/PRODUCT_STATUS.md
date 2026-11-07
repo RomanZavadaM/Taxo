@@ -1,13 +1,14 @@
 # Taxo — стан продукту
 
-**Актуально:** 05.11.2026
+**Актуально:** 07.11.2026
 
 ## Поточний статус
 
-- **Stable / Latest:** Taxo 10.10-r5 / `v10.10-r5` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5); виправлено запуск macOS, повний комплект платформ перевірено.
-- **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
-- **Safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Next code revision:** `10.10-r6`.
+- **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
+- **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
+- **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
+- **Current integrated candidate:** Taxo 10.13-r1 — не stable.
+- **Next code revision:** `10.13-r2`.
 
 ## Відомі обмеження попередньої stable 10.9-r10
 
@@ -21,7 +22,16 @@
 - **10.10-r2:** застарілі публікаційні workflow вимкнено; тести ізольовано від робочого сховища.
 - **10.10-r3:** правильна версія у головному вікні; попередження «лише БД».
 - **10.10-r4:** правильна версія у всіх вікнах і Windows 7 Setup; superseded через проблему запуску на macOS.
-- **10.10-r5 (STABLE):** виправлено запуск macOS у навігації «Працівники»; власник перевірив Apple Silicon; повні Windows/Win7/macOS/START перевірки успішні.
+- **10.10-r5 (previous stable):** виправлено запуск macOS у навігації «Працівники»; власник перевірив Apple Silicon; повні Windows/Win7/macOS/START перевірки успішні.
+
+## Stable 10.12-r10
+
+- завершено Feature Loss cycle 10.12-r1…r10;
+- 23/23 критичних маршрутів мають runtime-smoke requirement;
+- «План → факт» перевіряється реальною дією на ізольованій SQLite-БД без перезапису наявного факту;
+- exact r10 Windows/Win7/macOS/START gates — SUCCESS;
+- owner manual r10 acceptance — без блокера;
+- stable promotion 07.11.2026 з exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 
 ## Функціональний стан
 
@@ -67,7 +77,7 @@ Taxo — настільна система для одного автотран�
 
 Додатково:
 - [Індекс релізів](releases/RELEASE_INDEX.md)
-- [Release notes 10.10-r5](releases/RELEASE_NOTES_v10.10-r5.md)
+- [Release notes 10.12-r10](releases/RELEASE_NOTES_v10.12-r10.md)
 - [Release notes 10.9-r10](releases/RELEASE_NOTES_v10.9-r10.md)
 - [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
 
