@@ -10,14 +10,14 @@
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Current published candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable не змінено.
-- **Current integrated product candidate:** Taxo **10.12-r9**, product commit `a445f01d1d1c00408ee3f064088de4ddc1637c86`. 10.12-r1…r9 ще не опубліковані як prerelease.
+- **Current integrated product candidate:** Taxo **10.12-r10**, product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`. 10.12-r1…r10 ще не опубліковані як prerelease.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.12-r10**.
+- **Next code revision:** **10.13-r1**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** остання підтверджена candidate recovery-copy — r9; r10 START recovery-copy ще треба додати окремим backup-кроком.
+- **Google Drive backup:** остання підтверджена recovery-copy — r9; для r10 START #2315 успішно створив source artifact, окрема Drive recovery-copy ще не зафіксована.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
-## Поточний main 10.12-r9 — Feature Loss hardening
+## Поточний product main 10.12-r10 — Feature Loss hardening
 
 - **10.12-r1 / PR #202:** повернуто постійний вхід `Працівники → Планування → Простий місячний графік…`; код мультивибору працівників і PDF/XLSX був живий, але старий runtime-injector був ненадійним.
 - **Feature Loss Audit / PR #203:** зафіксовано підтверджені історичні UI-entry regressions, крихкі runtime routes і чернетку реєстру функцій.
@@ -29,8 +29,10 @@
 - **10.12-r7 / PR #214:** live UI-gate для Центру документів і всіх 8 ключових дій/переходів; Windows **917 tests / OK**, Win7/macOS SUCCESS.
 - **10.12-r8 / PR #216:** live UI-gate для «Тахограф», «Звіти», «Налаштування»; Windows **920 tests / OK**, Win7/macOS SUCCESS. Перший test-harness був виправлений після зависання/не-mapped контролу; продуктова логіка не змінювалась.
 - **10.12-r9 / PR #218:** live UI-gate для «Водії для звіту…»; реальний selector відкривається, список водіїв і «Застосувати» доступні. Фінальний head `08a2ef6d`; Windows **923 tests / OK**, Win7/macOS SUCCESS. План/факт, БД і звітна логіка не змінювались.
+- **10.12-r10 / PR #224:** live behavioral gate для «План → факт» на тимчасовій SQLite-БД: справжня кнопка реально копіює план лише у відсутній факт, а наявний підтверджений факт, планові поля та примітки лишаються недоторканими. Product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; PR-head Windows **931 tests / OK**, Win7/macOS SUCCESS; post-merge Windows #1269, Win7 #262, macOS #1187, START #2315 — SUCCESS. Product logic/schema не змінювались.
+- **Feature Loss reachability cycle r1…r10:** executable registry тепер має runtime-smoke requirement для **23/23** критичних маршрутів. Подальші UX-зміни вести окремими вузькими slices через Issue #164, не як продовження цього audit-cycle.
 - CI-дефект, підтверджений під час r9, закрито окремим process-only PR #220: superseded Windows/Win7/macOS PR runs скасовуються; ordinary docs-only PR лишає lightweight required Windows check; ordinary docs-only main push не запускає platform/START. PR #142/#152 закриті як superseded.
-- Основний виявлений клас ризику: feature code може залишитися живим, але стати недоступним після UI feature-layer composition. Подальші reachability slices — Issue #164.
+- Основний виявлений клас ризику: feature code може залишитися живим, але стати недоступним після UI feature-layer composition. Reachability-cycle r1…r10 закрито; подальший UX/backlog — Issue #164 окремими вузькими slices.
 
 ## Попередня інтегрована лінія 10.10-r6 → 10.11-r10
 
