@@ -62,7 +62,7 @@ class MainNavigationR8Tests(unittest.TestCase):
             app = _ShellHarness()
             app.geometry("1000x700")
             app.deiconify()
-            app.update_idletasks()
+            app.update()
 
         try:
             for label in ("Тахограф", "Звіти", "Налаштування"):
