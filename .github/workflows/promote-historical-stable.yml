@@ -43,7 +43,8 @@ jobs:
 
           source_version="$(git show "${source}:VERSION.txt" | sed -n 's/^Version:[[:space:]]*//p' | tr -d '\r')"
           test "${source_version}" = "${version}"
-          git show "${source}:main.py" | grep -Fq "APP_VERSION = \"${version}\""
+          main_source="$(git show "${source}:main.py")"
+          grep -Fq "APP_VERSION = \"${version}\"" <<< "${main_source}"
           git cat-file -e "${source}:docs/releases/RELEASE_NOTES_v${version}.md"
 
           current_stable="$(tr -d '\r\n' < .release/stable-current)"
@@ -141,7 +142,8 @@ jobs:
           start="Taxo_v${candidate}_START"
           git archive --format=zip --prefix="${start}/" --output="release_files/${start}.zip" "${source}"
 
-          if unzip -l "release_files/${start}.zip" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+          archive_list="$(unzip -l "release_files/${start}.zip")"
+          if grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)' <<< "${archive_list}"; then
             echo 'Database/cache unexpectedly included in START archive' >&2
             exit 1
           fi
