@@ -5,6 +5,16 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**'
+      - '!README.md'
+      - '!START_HERE.md'
+      - '!HANDOFF_CURRENT.md'
+      - '!PROJECT_RULES.md'
+      - '!PROJECT_STATE.md'
+      - '!WORKLOG.md'
+      - '!docs/**'
+      - 'docs/releases/**'
   pull_request:
     paths:
       - 'main.py'
@@ -14,17 +24,23 @@ on:
       - 'assets/**'
       - 'packaging/**'
       - 'requirements*.txt'
+      - 'scripts/**'
       - 'tests/**'
+      - 'START.bat'
       - 'VERSION.txt'
-      - 'WORKLOG.md'
-      - '.github/workflows/build-macos-v8.70.yml'
+      - 'LICENSE.md'
+      - 'COPYRIGHT.md'
+      - 'THIRD_PARTY_NOTICES.md'
+      - '.release/**'
+      - 'docs/releases/**'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-macos:
