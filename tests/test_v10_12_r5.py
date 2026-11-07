@@ -50,8 +50,13 @@ class _Messages:
 
 
 class FragileLayoutR5Tests(unittest.TestCase):
-    def test_identity_is_10_12_r5(self):
-        self.assertEqual(main.APP_VERSION, "10.12-r5")
+    def test_r5_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 12, 5))
 
     def test_registry_requires_runtime_smoke_for_historically_fragile_controls(self):
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
