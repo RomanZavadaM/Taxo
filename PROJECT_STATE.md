@@ -10,7 +10,8 @@
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Current published candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable не змінено.
-- **Current main / integrated candidate:** Taxo **10.12-r9**, commit `a445f01d1d1c00408ee3f064088de4ddc1637c86`. 10.12-r1…r9 ще не опубліковані як prerelease.
+- **Current integrated product candidate:** Taxo **10.12-r9**, product commit `a445f01d1d1c00408ee3f064088de4ddc1637c86`. 10.12-r1…r9 ще не опубліковані як prerelease.
+- **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
 - **Next code revision:** **10.12-r10**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Google Drive backup:** остання підтверджена candidate recovery-copy — r9; r10 START recovery-copy ще треба додати окремим backup-кроком.
@@ -28,7 +29,7 @@
 - **10.12-r7 / PR #214:** live UI-gate для Центру документів і всіх 8 ключових дій/переходів; Windows **917 tests / OK**, Win7/macOS SUCCESS.
 - **10.12-r8 / PR #216:** live UI-gate для «Тахограф», «Звіти», «Налаштування»; Windows **920 tests / OK**, Win7/macOS SUCCESS. Перший test-harness був виправлений після зависання/не-mapped контролу; продуктова логіка не змінювалась.
 - **10.12-r9 / PR #218:** live UI-gate для «Водії для звіту…»; реальний selector відкривається, список водіїв і «Застосувати» доступні. Фінальний head `08a2ef6d`; Windows **923 tests / OK**, Win7/macOS SUCCESS. План/факт, БД і звітна логіка не змінювались.
-- Під час r9 підтверджено окремий CI-дефект процесу: старі runs попереднього PR head не скасовуються після нового commit; виправляти окремим process-only slice від актуального main, не через застарілі PR #142/#152 як є.
+- CI-дефект, підтверджений під час r9, закрито окремим process-only PR #220: superseded Windows/Win7/macOS PR runs скасовуються; ordinary docs-only PR лишає lightweight required Windows check; ordinary docs-only main push не запускає platform/START. PR #142/#152 закриті як superseded.
 - Основний виявлений клас ризику: feature code може залишитися живим, але стати недоступним після UI feature-layer composition. Подальші reachability slices — Issue #164.
 
 ## Попередня інтегрована лінія 10.10-r6 → 10.11-r10

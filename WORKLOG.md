@@ -1,3 +1,16 @@
+## CI maintenance — process-only — 07.11.2026
+
+- Recovery виконано строго: START_HERE → HANDOFF → private Taxo profile → live GitHub → PROJECT_STATE.
+- Старі draft PR #142/#152 використані лише як історична довідка; replacement створено чисто від main `387b909bdabfa5df1a4a08d859f2993632a05db5`.
+- PR #220 інтегровано як `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; `VERSION.txt` лишився 10.12-r9, `publish-current.yml` не змінено.
+- Superseded-run cancellation підтверджено live: старі Windows #1262 / Win7 #258 скасовані після нового PR head; macOS попереднього head також перервано.
+- Фінальний PR #220 head `0db456281f84f22d62e55b599b66abc35edc1be2`: Windows #1263, Win7 #259, macOS #1184 ARM64/Intel — SUCCESS.
+- Branch rules окремо звірено: `main` і далі вимагає exact status `build-windows`.
+- Docs-only smoke #221: тільки Windows #1264 — SUCCESS; heavy regression/packaging steps skipped; Win7/macOS не стартували; PR закрито без merge.
+- Workflow-sensitive post-merge #220: Windows #1265, Win7 #260, macOS #1185, START #2314 — SUCCESS; publisher не стартував.
+- Post-merge docs-only PR #222: тільки lightweight Windows #1266 — SUCCESS. Після merge commit `bc32daa1b63c20aa4398fa35262d32456b62088c` отримав 0 Actions runs — platform/START/publisher не запускались.
+- Після повної перевірки PR #142 і #152 закриті як superseded.
+- Наступна кодова ревізія — **10.12-r10**: окремий live gate «План → факт» з обережною перевіркою зміни фактичних даних. Великий UX cleanup не починати.
 ## 10.12-r9 — «Водії для звіту…» reachability — 07.11.2026
 
 - Recovery виконано за START_HERE → HANDOFF → private Taxo profile → live GitHub → PROJECT_STATE.
