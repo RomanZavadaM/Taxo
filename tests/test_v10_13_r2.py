@@ -206,8 +206,10 @@ class OperationsStoirUsabilityR2Tests(unittest.TestCase):
         finally:
             app.destroy()
 
-    def test_document_desk_has_direct_new_order_action(self):
-        self.assertIn("Оформити новий наказ…", open(v10710_features.__file__, "r", encoding="utf-8").read())
+    def test_document_desk_adds_new_order_action_without_losing_catalog_route(self):
+        source = open(v10710_features.__file__, "r", encoding="utf-8").read()
+        self.assertIn("Оформити новий наказ…", source)
+        self.assertIn("Каталог типів наказів", source)
 
 
 if __name__ == "__main__":
