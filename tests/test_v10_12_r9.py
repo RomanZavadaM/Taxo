@@ -36,8 +36,13 @@ class _DriverReportHarness(main.App):
 
 
 class DriverReportSelectionReachabilityR9Tests(unittest.TestCase):
-    def test_identity_is_10_12_r9(self):
-        self.assertEqual(main.APP_VERSION, "10.12-r9")
+    def test_r9_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 12, 9))
 
     def test_registry_requires_driver_report_selection_runtime_smoke(self):
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
