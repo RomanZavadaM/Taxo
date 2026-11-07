@@ -1,3 +1,18 @@
+## 10.12-r9 — «Водії для звіту…» reachability — 07.11.2026
+
+- Recovery виконано за START_HERE → HANDOFF → private Taxo profile → live GitHub → PROJECT_STATE.
+- Із двох залишкових маршрутів Feature Loss Audit першим обрано «Водії для звіту…»: це report-only маршрут без зміни plan/fact або БД. «План → факт» залишено окремим наступним кодовим slice.
+- PR #218 створено чисто від main `49d19e47fd53d6709bf94f81b2602983c065301f`.
+- Додано live Tk gate: кнопка «Водії для звіту…» видима, відкриває selector, список водіїв формується, дія «Застосувати» доступна.
+- Function registry тепер вимагає runtime-smoke для `drivers.report_selection`.
+- Перший test-harness на head `a5800066` помилково шукав popup лише серед прямих children root; macOS ARM64 правильно зафіксував 1 test failure. Продуктовий код не змінювався; harness виправлено рекурсивним пошуком.
+- Фінальний head `08a2ef6d1c80d94c5fa6b124d1ef7986272a1196`: Windows #42394538014 — **923 tests / OK**; Win7 #42394537977 — SUCCESS; macOS ARM64/Intel #42394537997 — SUCCESS.
+- PR #218 merged → main `a445f01d1d1c00408ee3f064088de4ddc1637c86`.
+- Stable лишається `v10.10-r5`; останній published candidate — `v10.11-r10`; 10.12-r1…r9 integrated-only.
+- Під час виправлення test-harness фактично підтверджено зайві Actions: runs попереднього PR head продовжили виконання після нового commit, одночасно стартували нові runs.
+- CI maintenance не змішано з r9. Наступний process-only етап: чистий актуальний CI PR від нового main; PR #142/#152 використовувати лише як довідку і після replacement закрити як superseded.
+- Наступна кодова ревізія після CI maintenance — **10.12-r10**, вузький live gate для «План → факт».
+
 ## 10.12-r8 — головна навігація — 07.11.2026
 
 - Після recovery завершено docs-checkpoint r7: PR #215 merged; під час перевірки виправлено застарілі next-version markers.

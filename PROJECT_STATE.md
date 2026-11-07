@@ -10,13 +10,13 @@
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Current published candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable не змінено.
-- **Current main / integrated candidate:** Taxo **10.12-r8**, commit `30d53a2d62b7622e5ed6601aa951676aaf9697c7`. 10.12-r1…r8 ще не опубліковані як prerelease.
-- **Next code revision:** **10.12-r9**.
+- **Current main / integrated candidate:** Taxo **10.12-r9**, commit `a445f01d1d1c00408ee3f064088de4ddc1637c86`. 10.12-r1…r9 ще не опубліковані як prerelease.
+- **Next code revision:** **10.12-r10**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Google Drive backup:** остання підтверджена candidate recovery-copy — r9; r10 START recovery-copy ще треба додати окремим backup-кроком.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
-## Поточний main 10.12-r8 — Feature Loss hardening
+## Поточний main 10.12-r9 — Feature Loss hardening
 
 - **10.12-r1 / PR #202:** повернуто постійний вхід `Працівники → Планування → Простий місячний графік…`; код мультивибору працівників і PDF/XLSX був живий, але старий runtime-injector був ненадійним.
 - **Feature Loss Audit / PR #203:** зафіксовано підтверджені історичні UI-entry regressions, крихкі runtime routes і чернетку реєстру функцій.
@@ -27,6 +27,8 @@
 - **10.12-r6 / PR #210:** runtime-перевірка всіх 8 основних дій центру «Дані / Дія / документи…»; Windows/Win7/macOS SUCCESS.
 - **10.12-r7 / PR #214:** live UI-gate для Центру документів і всіх 8 ключових дій/переходів; Windows **917 tests / OK**, Win7/macOS SUCCESS.
 - **10.12-r8 / PR #216:** live UI-gate для «Тахограф», «Звіти», «Налаштування»; Windows **920 tests / OK**, Win7/macOS SUCCESS. Перший test-harness був виправлений після зависання/не-mapped контролу; продуктова логіка не змінювалась.
+- **10.12-r9 / PR #218:** live UI-gate для «Водії для звіту…»; реальний selector відкривається, список водіїв і «Застосувати» доступні. Фінальний head `08a2ef6d`; Windows **923 tests / OK**, Win7/macOS SUCCESS. План/факт, БД і звітна логіка не змінювались.
+- Під час r9 підтверджено окремий CI-дефект процесу: старі runs попереднього PR head не скасовуються після нового commit; виправляти окремим process-only slice від актуального main, не через застарілі PR #142/#152 як є.
 - Основний виявлений клас ризику: feature code може залишитися живим, але стати недоступним після UI feature-layer composition. Подальші reachability slices — Issue #164.
 
 ## Попередня інтегрована лінія 10.10-r6 → 10.11-r10
@@ -111,7 +113,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.12-r8`; наступна кодова ревізія — `10.12-r9`; наступна stable змінюється лише рішенням власника;
+- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.12-r9`; наступна кодова ревізія — `10.12-r10`; наступна stable змінюється лише рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 
