@@ -71,8 +71,13 @@ class _DataCenterHost(tk.Frame):
 
 
 class PersonnelDataCenterActionsR6Tests(unittest.TestCase):
-    def test_identity_is_10_12_r6(self):
-        self.assertEqual(main.APP_VERSION, "10.12-r6")
+    def test_r6_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 12, 6))
 
     def test_registry_marks_all_primary_data_center_actions_for_runtime_smoke(self):
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
