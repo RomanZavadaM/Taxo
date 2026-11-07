@@ -19,6 +19,7 @@ if not exist "src\taxo\pdf_engine.py" goto :package_incomplete
 if not exist "src\taxo\vehicle_documents.py" goto :package_incomplete
 if not exist "src\taxo\vehicle_maintenance.py" goto :package_incomplete
 if not exist "src\taxo\vehicle_maintenance_ui.py" goto :package_incomplete
+if not exist "src\taxo\safety_instructions_ui.py" goto :package_incomplete
 if not exist "src\taxo\v10710_features.py" goto :package_incomplete
 if not exist "src\taxo\v1081_features.py" goto :package_incomplete
 if not exist "src\taxo\v1082_features.py" goto :package_incomplete
