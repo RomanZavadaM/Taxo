@@ -178,6 +178,51 @@ def open_operations_center(app, core):
         core.ttk.Label(frm,text="Текст пунктів").grid(row=7,column=0,sticky="nw",pady=5)
         body_text=core.tk.Text(frm,height=7,wrap="word"); body_text.grid(row=7,column=1,sticky="nsew",pady=5)
         body_text.insert("1.0",str(existing["body_text"] if existing else ops.DEFAULT_BODY_TEMPLATES.get(initial_type,"")))
+
+        initial_vehicle_var=core.tk.StringVar(value="")
+        initial_driver_var=core.tk.StringVar(value="")
+        initial_vehicle_map={}
+        initial_driver_map={}
+        assignment_box=None
+        if existing is None:
+            con_choices=core.db()
+            try:
+                initial_vehicles=ops.list_vehicle_choices(con_choices,active_only=True)
+                initial_drivers=ops.list_driver_choices(con_choices,active_only=True)
+            finally:
+                con_choices.close()
+            initial_vehicle_map={row["label"]:row["id"] for row in initial_vehicles}
+            initial_driver_map={row["label"]:row["id"] for row in initial_drivers}
+            assignment_box=core.ttk.LabelFrame(frm,text="Перше закріплення з бази Taxo",padding=8)
+            assignment_box.grid(row=8,column=0,columnspan=2,sticky="ew",pady=(8,2))
+            assignment_box.columnconfigure(1,weight=1)
+            core.ttk.Label(assignment_box,text="Транспортний засіб").grid(row=0,column=0,sticky="w",padx=(0,8),pady=4)
+            core.ttk.Combobox(
+                assignment_box,textvariable=initial_vehicle_var,
+                values=list(initial_vehicle_map),state="readonly"
+            ).grid(row=0,column=1,sticky="ew",pady=4)
+            core.ttk.Label(assignment_box,text="Водій із бази водіїв").grid(row=1,column=0,sticky="w",padx=(0,8),pady=4)
+            core.ttk.Combobox(
+                assignment_box,textvariable=initial_driver_var,
+                values=list(initial_driver_map),state="readonly"
+            ).grid(row=1,column=1,sticky="ew",pady=4)
+            core.ttk.Label(
+                assignment_box,
+                text=("Початок дії — дата наказу. Після створення можна додати інші ТЗ/водіїв "
+                      "або змінити строк у вкладці «Закріплення водіїв». Обидва поля можна лишити "
+                      "порожніми й створити чернетку як раніше."),
+                style="Muted.TLabel",wraplength=650,justify="left",
+            ).grid(row=2,column=0,columnspan=2,sticky="w",pady=(4,0))
+
+        def show_assignment_box(order_type):
+            if assignment_box is None:
+                return
+            if order_type==ops.TYPE_VEHICLE_ASSIGNMENT:
+                assignment_box.grid()
+            else:
+                assignment_box.grid_remove()
+
+        show_assignment_box(initial_type)
         if existing and int(existing["paper_original_signed"] or 0):
             core.ttk.Label(frm,text="Увага: паперовий оригінал позначено як підписаний. Після змін звірте його і, за потреби, передрукуйте.",
                            style="Muted.TLabel",wraplength=620,justify="left").grid(row=8,column=0,columnspan=2,sticky="w",pady=(4,2))
@@ -187,6 +232,7 @@ def open_operations_center(app, core):
             subject_var.set(ops.DEFAULT_SUBJECTS.get(key,""))
             preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
             body_text.delete("1.0","end"); body_text.insert("1.0",ops.DEFAULT_BODY_TEMPLATES.get(key,""))
+            show_assignment_box(key)
         type_box.bind("<<ComboboxSelected>>",sync_type)
         def apply_template():
             key=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
@@ -197,13 +243,33 @@ def open_operations_center(app, core):
             if current and current != template and not core.messagebox.askyesno("Замінити текст?","Поточний текст пунктів буде замінено типовою заготовкою. Продовжити?",parent=dialog): return
             body_text.delete("1.0","end"); body_text.insert("1.0",template)
         def save():
-            order_type=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC); con3=core.db()
+            order_type=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
+            initial_vehicle_id=initial_vehicle_map.get(initial_vehicle_var.get()) if assignment_box is not None else None
+            initial_driver_id=initial_driver_map.get(initial_driver_var.get()) if assignment_box is not None else None
+            if existing is None and order_type==ops.TYPE_VEHICLE_ASSIGNMENT:
+                if (initial_vehicle_id is None) != (initial_driver_id is None):
+                    core.messagebox.showerror(
+                        "Наказ про закріплення",
+                        "Для першого закріплення виберіть і транспортний засіб, і водія. "
+                        "Або лишіть обидва поля порожніми та додайте рядки після створення.",
+                        parent=dialog,
+                    )
+                    return
+            con3=core.db()
             try:
                 if existing:
                     ops.update_order(con3,existing["id"],order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
                                      subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
                                      control_employee_id=emp_by_label.get(control_var.get()),history_note="Редагування через інтерфейс")
                     oid=int(existing["id"])
+                elif order_type==ops.TYPE_VEHICLE_ASSIGNMENT:
+                    oid=ops.create_vehicle_assignment_order(
+                        con3,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
+                        subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),
+                        body_text=body_text.get("1.0","end-1c"),
+                        control_employee_id=emp_by_label.get(control_var.get()),
+                        initial_vehicle_id=initial_vehicle_id,initial_employee_id=initial_driver_id,
+                    )
                 else:
                     oid=ops.create_order(con3,order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
                                          subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
@@ -474,12 +540,14 @@ def open_operations_center(app, core):
         if not require_mutable_order(order, "Закріплення"):
             return
         con2=core.db()
-        try: vehicles=ops.list_vehicle_choices(con2,active_only=False); emps=ops.list_employee_choices(con2,active_only=True)
+        try:
+            vehicles=ops.list_vehicle_choices(con2,active_only=existing is None)
+            emps=ops.list_driver_choices(con2,active_only=existing is None)
         finally: con2.close()
         vlabels=[x["label"] for x in vehicles]; elabels=[x["label"] for x in emps]; vmap={x["label"]:x["id"] for x in vehicles}; emap={x["label"]:x["id"] for x in emps}; vid_to_label={x["id"]:x["label"] for x in vehicles}; eid_to_label={x["id"]:x["label"] for x in emps}
         dlg=core.tk.Toplevel(win); dlg.title("Редагувати закріплення" if existing else "Додати закріплення"); frm=core.ttk.Frame(dlg,padding=14); frm.pack(fill="both",expand=True); frm.columnconfigure(1,weight=1)
         vv=core.tk.StringVar(value=vid_to_label.get(existing["vehicle_id"],"") if existing else ""); ev=core.tk.StringVar(value=eid_to_label.get(existing["employee_id"],"") if existing else ""); fv=core.tk.StringVar(value=ops.display_day(existing["valid_from"]) if existing else ops.display_day(order["order_date"])); uv=core.tk.StringVar(value=ops.display_day(existing["valid_until"]) if existing else "")
-        for r,(label,var,values) in enumerate((("Транспортний засіб",vv,vlabels),("Водій",ev,elabels),("Діє з",fv,None),("Діє до (необов'язково)",uv,None))):
+        for r,(label,var,values) in enumerate((("Транспортний засіб",vv,vlabels),("Водій із бази водіїв",ev,elabels),("Діє з",fv,None),("Діє до (необов'язково)",uv,None))):
             core.ttk.Label(frm,text=label).grid(row=r,column=0,sticky="w",padx=(0,8),pady=6); widget=core.ttk.Combobox(frm,textvariable=var,values=values,state="readonly") if values is not None else core.ttk.Entry(frm,textvariable=var); widget.grid(row=r,column=1,sticky="ew",pady=6)
         def save_assignment():
             if vv.get() not in vmap or ev.get() not in emap: core.messagebox.showerror("Закріплення","Виберіть ТЗ і водія.",parent=dlg); return
