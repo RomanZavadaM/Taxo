@@ -8,12 +8,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class PersonnelSelectedScheduleEntryR1Tests(unittest.TestCase):
-    def test_identity_is_10_12_r1(self):
-        self.assertEqual(main.APP_VERSION, "10.12-r1")
-        self.assertEqual(
-            (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(),
-            "Version: 10.12-r1",
-        )
+    def test_r1_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 12, 1))
+        current = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+        self.assertTrue(current.startswith("Version: "))
+        self.assertEqual(key(current[len("Version: "):]), key(main.APP_VERSION))
 
     def test_personnel_planning_has_permanent_selected_schedule_action(self):
         source = (ROOT / "src/taxo/personnel_v91.py").read_text(encoding="utf-8")
