@@ -36,6 +36,11 @@ def invoke_action(widget):
     widget.update()
 
 
+def show_root(root):
+    root.deiconify()
+    root.update()
+
+
 class _PlainApp:
     def __init__(self, root):
         self.root = root
@@ -120,7 +125,7 @@ class FunctionRegistryR2Tests(unittest.TestCase):
         root.geometry("900x600")
         app = App(root)
         try:
-            root.update_idletasks()
+            show_root(root)
             button = button_by_text(app.personnel_overview_page, "Дані / Дія / документи…")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
@@ -138,7 +143,7 @@ class FunctionRegistryR2Tests(unittest.TestCase):
         root.geometry("900x600")
         app = App(root)
         try:
-            root.update_idletasks()
+            show_root(root)
             button = button_by_text(app.personnel_planning_page, "Простий місячний графік…")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
@@ -163,7 +168,7 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             root.geometry("900x600")
             app = App(root)
         try:
-            root.update_idletasks()
+            show_root(root)
             button = button_by_text(app.tab_vehicles, "Військово-транспортний облік")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
@@ -188,7 +193,7 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             root.geometry("900x600")
             app = App(root)
         try:
-            root.update_idletasks()
+            show_root(root)
             button = app._nav_named_buttons.get("СТОІР")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
