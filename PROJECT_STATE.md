@@ -5,17 +5,17 @@
 
 ## Поточний підтверджений стан
 
-- **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — promoted 07.11.2026; exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
-- **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
-- **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Last prerelease candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Новіша stable — 10.12-r10.
-- **Current integrated product candidate:** Taxo **10.13-r1**, product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`. 10.12-r10 уже stable; 10.13-r1 integrated-only і не stable.
-- **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r2**.
-- **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** exact-source START recovery-copy для 10.13-r1 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r1_2026-11-07_START.zip`, 1 613 547 байт; Drive file `1XCfHkCdQUv8r0B0YyA3S2fCUsA126Z8F`; source artifact START #2316, SHA256 `11780cd318c419b52b8316e2c1fbb0c36d2b6877f738130250993dfac84eec38`.
-- **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
+- **Stable / Latest:** Taxo **10.12-r10**, [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10), exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`, 8 assets. Previous rollback stable: `v10.10-r5`.
+- **Current integrated product:** **10.13-r2**, PR #232 merged, product merge SHA `c6a2ad85b37019ab96fa32a0e597b625aea4815f`; integrated-only, not published/stable.
+- **Next code revision:** **10.13-r3**. Do not reuse 10.13-r2.
+- **Historical prerelease:** `v10.11-r10` is archival only; **not** an active maintenance/release target. Keep historical facts/links in release history, but direct all current work to 10.13.
+- **Testing:** 10.13-r1 exact-product Windows/Win7/macOS/START passed; for 10.13-r2 merged PR #232 does **not** by itself prove full exact-product CI/START. Recheck before calling r2 done.
+- **Drive backup:** confirmed exact-source START 10.13-r1 in `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r1_2026-11-07_START.zip` (Drive file `1XCfHkCdQUv8r0B0YyA3S2fCUsA126Z8F`). 10.13-r2 backup unverified.
+- **UX 10.13-r2:** visible vehicle-open button, Ukrainian STOIR labels/dates, direct new-order entry, adaptive order actions; no plan/fact or DB changes.
+- **Owner acceptance:** r2 usability still requires manual testing; issue #164 remains open.
+- **Release rule:** stable 10.12-r10 only changes on separate explicit owner decision.
+- **Next action:** verify 10.13-r2 exact-product CI/START and prepare owner test, then choose next narrow UX task.
+- **Continuity:** `HANDOFF_CURRENT.md` is canonical current quick checkpoint; Issue #61 is append-only ledger.
 
 ## Stable promotion 10.12-r10
 
