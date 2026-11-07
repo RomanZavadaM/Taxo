@@ -117,18 +117,25 @@ def _install_document_tab(app, core, win):
 
     internal = core.ttk.LabelFrame(shell, text="Накази та розпорядження", padding=10)
     internal.grid(row=row + 2, column=0, columnspan=2, sticky="ew", pady=(10, 4))
-    for col, (label, target) in enumerate((
+    for col in range(2):
+        internal.columnconfigure(col, weight=1)
+    for index, (label, target) in enumerate((
+        ("Оформити новий наказ…", "Каталог наказів"),
         ("Реєстр наказів", "Накази"),
         ("Закріплення водіїв", "Закріплення водіїв"),
         ("Відповідальні особи", "Відповідальні"),
-        ("Каталог типів наказів", "Каталог наказів"),
     )):
-        internal.columnconfigure(col, weight=1)
         core.ttk.Button(
             internal,
             text=label,
             command=lambda t=target: _select_tab(book, t),
-        ).grid(row=0, column=col, sticky="ew", padx=3)
+        ).grid(
+            row=index // 2,
+            column=index % 2,
+            sticky="ew",
+            padx=3,
+            pady=3,
+        )
 
     core.ttk.Label(
         shell,

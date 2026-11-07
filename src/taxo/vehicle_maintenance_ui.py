@@ -2,7 +2,7 @@
 """СТОІР: цілісний робочий цикл технічної готовності, ТО, ремонтів і заявок."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 
 import vehicle_maintenance as maint
 from vehicle_documents import best_current_document, document_status, display_date
@@ -20,10 +20,64 @@ PROFILE_SOURCE_LABELS = {
     "local": "Локально затверджено",
 }
 
+MAINTENANCE_EVENT_LABELS = {
+    maint.MAINTENANCE_TO1: "ТО-1",
+    maint.MAINTENANCE_TO2: "ТО-2",
+    maint.MAINTENANCE_SEASONAL: "Сезонне ТО",
+    maint.MAINTENANCE_REPAIR: "Ремонт",
+}
+
+ODOMETER_SOURCE_LABELS = {
+    "manual": "Ручний запис",
+    "waybill": "Шляховий лист",
+    "waybill_start": "Шляховий лист — виїзд",
+    "waybill_end": "Шляховий лист — повернення",
+    "import": "Імпорт",
+    "tachograph": "Тахограф",
+}
+
 
 def _maintenance_status_label(value):
     return MAINTENANCE_STATUS_LABELS.get(str(value or ""), str(value or "—"))
 
+
+def _maintenance_event_label(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return "—"
+    return MAINTENANCE_EVENT_LABELS.get(raw, f"Інший запис ({raw})")
+
+
+def _odometer_source_label(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return "—"
+    return ODOMETER_SOURCE_LABELS.get(raw, f"Інше джерело ({raw})")
+
+
+def _display_day(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return "—"
+    if "." in raw and len(raw) >= 10:
+        return raw[:10]
+    try:
+        return date.fromisoformat(raw[:10]).strftime("%d.%m.%Y")
+    except (TypeError, ValueError):
+        return raw
+
+
+def _display_timestamp(value):
+    raw = str(value or "").strip()
+    if not raw:
+        return "—"
+    if "." in raw and len(raw) >= 10:
+        return raw
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        return parsed.strftime("%d.%m.%Y %H:%M")
+    except (TypeError, ValueError):
+        return _display_day(raw)
 
 
 def _vehicle_rows(con):
@@ -134,7 +188,15 @@ def open_maintenance_center(app, core):
          ("assignee", "Виконавець", 150), ("resolution", "Результат", 260)),
     )
 
-    report_frame = core.ttk.Frame(report, padding=10); report_frame.pack(fill="both", expand=True)
+    report_actions = core.ttk.Frame(report, padding=(10, 10, 10, 4))
+    report_actions.pack(fill="x")
+    core.ttk.Label(
+        report_actions,
+        text="Виберіть транспортний засіб у таблиці та відкрийте його робочий огляд.",
+        style="Muted.TLabel",
+    ).pack(side="left")
+
+    report_frame = core.ttk.Frame(report, padding=(10, 0, 10, 10)); report_frame.pack(fill="both", expand=True)
     report_tree = _tree_with_scrollbars(
         core, report_frame, ("vehicle", "odometer", "avg", "to1", "to2", "requests"),
         (("vehicle", "ТЗ", 220), ("odometer", "Одометр", 110), ("avg", "Сер. км/день", 110),
@@ -517,18 +579,36 @@ def open_maintenance_center(app, core):
             for iid in tree.get_children():
                 tree.delete(iid)
         for row in rows:
-            mileage_tree.insert("", "end", values=(row["reading_at"], row["reading_km"], row["source_type"], row["notes"]))
+            mileage_tree.insert(
+                "", "end",
+                values=(
+                    _display_timestamp(row["reading_at"]),
+                    row["reading_km"],
+                    _odometer_source_label(row["source_type"]),
+                    row["notes"],
+                ),
+            )
         for row in events:
             service_tree.insert(
                 "", "end",
                 values=(
-                    row["event_date"], row["event_type"], row["odometer_km"] or "",
+                    _display_day(row["event_date"]),
+                    _maintenance_event_label(row["event_type"]),
+                    row["odometer_km"] or "",
                     row["description"], row["performer"], row["document_ref"], row["notes"],
                 ),
             )
         for row in reqs:
-            request_tree.insert("", "end", values=(row["id"], row["reported_at"], maint.REQUEST_PRIORITY_LABELS.get(row["priority"], row["priority"]),
-                                                       maint.REQUEST_STATUS_LABELS.get(row["status"], row["status"]), row["defect"], row["assignee"], row["resolution"]))
+            request_tree.insert(
+                "", "end",
+                values=(
+                    row["id"],
+                    _display_timestamp(row["reported_at"]),
+                    maint.REQUEST_PRIORITY_LABELS.get(row["priority"], row["priority"]),
+                    maint.REQUEST_STATUS_LABELS.get(row["status"], row["status"]),
+                    row["defect"], row["assignee"], row["resolution"],
+                ),
+            )
         for item in fleet:
             vehicle = item["vehicle"]; fplan = item["plan"]
             label = " — ".join(x for x in (str(vehicle["plate"] or "").strip(), str(vehicle["name"] or vehicle["make_model"] or "").strip()) if x)
@@ -559,6 +639,12 @@ def open_maintenance_center(app, core):
         refresh()
 
     report_tree.bind("<Double-1>", open_fleet_vehicle)
+    core.ttk.Button(
+        report_actions,
+        text="Відкрити вибране ТЗ",
+        style="Accent.TButton",
+        command=open_fleet_vehicle,
+    ).pack(side="right")
 
     def open_vehicle_documents():
         callback = getattr(app, "vehicle_document_control", None)

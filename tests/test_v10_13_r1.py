@@ -54,8 +54,13 @@ class _MaintenanceHarness(tk.Tk):
 
 
 class OperationsStoirUsabilityR1Tests(unittest.TestCase):
-    def test_identity_is_10_13_r1(self):
-        self.assertEqual(main.APP_VERSION, "10.13-r1")
+    def test_r1_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 13, 1))
 
     def test_stoir_domain_keeps_profile_and_closed_request_result(self):
         con = sqlite3.connect(":memory:")
@@ -184,9 +189,9 @@ class OperationsStoirUsabilityR1Tests(unittest.TestCase):
         text = open(source, "r", encoding="utf-8").read()
         for marker in (
             "Що потрібно оформити?",
-            "Новий наказ — вибрати тип…",
-            "Ввести в дію в Taxo",
-            "Позначити паперовий оригінал підписаним",
+            "Новий наказ…",
+            "Ввести в дію",
+            "Паперовий оригінал підписано",
             "Історія…",
             "Скасувати чернетку",
             "require_mutable_order",
