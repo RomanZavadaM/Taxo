@@ -19,11 +19,15 @@ class FunctionRoute:
 
 FUNCTION_ROUTES = (
     FunctionRoute("personnel.data_center", "Працівники", "Дані / Дія / документи…", "open_personnel_data_center_r6", runtime_smoke=True),
+    FunctionRoute("personnel.registry_import", "Дані / Дія / документи", "Завантажити XLSX / звірити…", "import_personnel_registry_xlsx", runtime_smoke=True),
+    FunctionRoute("personnel.working_data", "Дані / Дія / документи", "Робочі дані з реєстрів", "open_employee_military_working_data", runtime_smoke=True),
+    FunctionRoute("personnel.card_documents", "Дані / Дія / документи", "Картка та документи", "open_personnel_data_center", runtime_smoke=True),
+    FunctionRoute("personnel.document_register", "Дані / Дія / документи", "Відкрити реєстр документів", "open_employee_document_register", runtime_smoke=True),
     FunctionRoute("personnel.simple_month_schedule", "Працівники → Планування", "Простий місячний графік…", "open_simple_month_schedule_r8", runtime_smoke=True),
     FunctionRoute("personnel.document_control", "Дані / Дія / документи", "Контроль обов'язкових документів…", "open_required_employee_documents_r7"),
-    FunctionRoute("personnel.registry_bulk", "Дані / Дія / документи", "Масові дії з останнього імпорту…", "open_personnel_registry_bulk_actions_r6"),
-    FunctionRoute("personnel.diia_cycle", "Дані / Дія / документи", "Офіційний цикл Дії…", "open_diia_reconciliation_cycle"),
-    FunctionRoute("personnel.military", "Дані / Дія / документи", "Військовий облік / строки…", "open_military_accounting_overview"),
+    FunctionRoute("personnel.registry_bulk", "Дані / Дія / документи", "Масові дії з останнього імпорту…", "open_personnel_registry_bulk_actions_r6", runtime_smoke=True),
+    FunctionRoute("personnel.diia_cycle", "Дані / Дія / документи", "Офіційний цикл Дії…", "open_diia_reconciliation_cycle", runtime_smoke=True),
+    FunctionRoute("personnel.military", "Дані / Дія / документи", "Військовий облік / строки…", "open_military_accounting_overview", runtime_smoke=True),
     FunctionRoute("personnel.bulk_replan", "Працівники → Планування", "Перепланувати: замінити існуючий ПЛАН", "show_general_personnel_shift_planner", runtime_smoke=True),
     FunctionRoute("drivers.report_selection", "Графіки", "Водії для звіту…", "choose_monthly_shift_report_drivers"),
     FunctionRoute("timesheet.plan_to_fact", "Табель", "План → факт", "show_employee_timesheet"),
