@@ -32,8 +32,8 @@ def invoke_action(widget):
     invoke = getattr(widget, "invoke", None)
     if callable(invoke):
         return invoke()
-    widget.event_generate("<Button-1>")
-    widget.update_idletasks()
+    widget.event_generate("<Button-1>", x=1, y=1)
+    widget.update()
 
 
 class _BasePersonnel(tk.Tk):
