@@ -36,46 +36,48 @@ def invoke_action(widget):
     widget.update()
 
 
-class _FrameApp(ttk.Frame):
-    def __init__(self, master):
-        super().__init__(master)
-        self.pack(fill="both", expand=True)
+class _PlainApp:
+    def __init__(self, root):
+        self.root = root
 
     def title(self, *_args):
         return "Taxo test"
 
+    def winfo_children(self):
+        return self.root.winfo_children()
 
-class _BasePersonnel(_FrameApp):
-    def __init__(self, master):
-        super().__init__(master)
-        self.personnel_overview_page = ttk.Frame(self)
+
+class _BasePersonnel(_PlainApp):
+    def __init__(self, root):
+        super().__init__(root)
+        self.personnel_overview_page = ttk.Frame(root)
         self.personnel_overview_page.pack(fill="both", expand=True)
         bar = ttk.Frame(self.personnel_overview_page)
         bar.pack(fill="x")
         ttk.Button(bar, text="Новий працівник").pack(side="right")
 
 
-class _BaseSchedule(_FrameApp):
-    def __init__(self, master):
-        super().__init__(master)
-        self.personnel_planning_page = ttk.Frame(self)
+class _BaseSchedule(_PlainApp):
+    def __init__(self, root):
+        super().__init__(root)
+        self.personnel_planning_page = ttk.Frame(root)
         self.personnel_planning_page.pack(fill="both", expand=True)
 
 
-class _BaseVehicles(_FrameApp):
-    def __init__(self, master):
-        super().__init__(master)
-        self.tab_vehicles = ttk.Frame(self)
+class _BaseVehicles(_PlainApp):
+    def __init__(self, root):
+        super().__init__(root)
+        self.tab_vehicles = ttk.Frame(root)
         self.tab_vehicles.pack(fill="both", expand=True)
         bar = ttk.Frame(self.tab_vehicles)
         bar.pack(fill="x")
         ttk.Button(bar, text="Контроль документів").pack(side="left")
 
 
-class _BaseNav(_FrameApp):
-    def __init__(self, master):
-        super().__init__(master)
-        nav = tk.Frame(self)
+class _BaseNav(_PlainApp):
+    def __init__(self, root):
+        super().__init__(root)
+        nav = tk.Frame(root)
         nav.pack(fill="x")
         self._nav_icons = {}
         self._nav_named_buttons = {}
