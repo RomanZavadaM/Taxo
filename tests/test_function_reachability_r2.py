@@ -36,10 +36,18 @@ def invoke_action(widget):
     widget.update()
 
 
-class _BasePersonnel(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.geometry("900x600")
+class _FrameApp(ttk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.pack(fill="both", expand=True)
+
+    def title(self, *_args):
+        return "Taxo test"
+
+
+class _BasePersonnel(_FrameApp):
+    def __init__(self, master):
+        super().__init__(master)
         self.personnel_overview_page = ttk.Frame(self)
         self.personnel_overview_page.pack(fill="both", expand=True)
         bar = ttk.Frame(self.personnel_overview_page)
@@ -47,18 +55,16 @@ class _BasePersonnel(tk.Tk):
         ttk.Button(bar, text="Новий працівник").pack(side="right")
 
 
-class _BaseSchedule(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.geometry("900x600")
+class _BaseSchedule(_FrameApp):
+    def __init__(self, master):
+        super().__init__(master)
         self.personnel_planning_page = ttk.Frame(self)
         self.personnel_planning_page.pack(fill="both", expand=True)
 
 
-class _BaseVehicles(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.geometry("900x600")
+class _BaseVehicles(_FrameApp):
+    def __init__(self, master):
+        super().__init__(master)
         self.tab_vehicles = ttk.Frame(self)
         self.tab_vehicles.pack(fill="both", expand=True)
         bar = ttk.Frame(self.tab_vehicles)
@@ -66,10 +72,9 @@ class _BaseVehicles(tk.Tk):
         ttk.Button(bar, text="Контроль документів").pack(side="left")
 
 
-class _BaseNav(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.geometry("900x600")
+class _BaseNav(_FrameApp):
+    def __init__(self, master):
+        super().__init__(master)
         nav = tk.Frame(self)
         nav.pack(fill="x")
         self._nav_icons = {}
@@ -109,32 +114,36 @@ class FunctionRegistryR2Tests(unittest.TestCase):
         core = SimpleNamespace(tk=tk, ttk=ttk, APP_VERSION="10.12-r2")
         App = personnel_data_center_r6.install(core, _BasePersonnel)
         App.open_personnel_data_center_r6 = lambda self: calls.append("data-center")
-        app = App()
+        root = tk.Tk()
+        root.geometry("900x600")
+        app = App(root)
         try:
-            app.update_idletasks()
+            root.update_idletasks()
             button = button_by_text(app.personnel_overview_page, "Дані / Дія / документи…")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
             button.invoke()
             self.assertEqual(calls, ["data-center"])
         finally:
-            app.destroy()
+            root.destroy()
 
     def test_simple_month_schedule_fallback_is_mapped_and_invokes_callback(self):
         calls = []
         core = SimpleNamespace(tk=tk, ttk=ttk, APP_VERSION="10.12-r2")
         App = personnel_month_schedule_r8.install(core, _BaseSchedule)
         App.open_simple_month_schedule_r8 = lambda self: calls.append("simple-month")
-        app = App()
+        root = tk.Tk()
+        root.geometry("900x600")
+        app = App(root)
         try:
-            app.update_idletasks()
+            root.update_idletasks()
             button = button_by_text(app.personnel_planning_page, "Простий місячний графік…")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
             button.invoke()
             self.assertEqual(calls, ["simple-month"])
         finally:
-            app.destroy()
+            root.destroy()
 
     def test_military_transport_entry_is_mapped_and_invokes_callback(self):
         calls = []
@@ -148,16 +157,18 @@ class FunctionRegistryR2Tests(unittest.TestCase):
              mock.patch.object(military_transport_ui.mt, "ensure_next_reporting_action"):
             App = military_transport_ui.install(core, _BaseVehicles)
             App.open_military_transport_dashboard = lambda self: calls.append("military-transport")
-            app = App()
+            root = tk.Tk()
+            root.geometry("900x600")
+            app = App(root)
         try:
-            app.update_idletasks()
+            root.update_idletasks()
             button = button_by_text(app.tab_vehicles, "Військово-транспортний облік")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
             button.invoke()
             self.assertEqual(calls, ["military-transport"])
         finally:
-            app.destroy()
+            root.destroy()
 
     def test_stoir_navigation_is_mapped_and_invokes_callback(self):
         calls = []
@@ -171,9 +182,11 @@ class FunctionRegistryR2Tests(unittest.TestCase):
         with mock.patch.object(v1084_features.maintenance, "ensure_schema"), \
              mock.patch.object(v1084_features.maintenance_ui, "open_maintenance_center", side_effect=lambda app, core: calls.append("stoir")):
             App = v1084_features.install(core, _BaseNav)
-            app = App()
+            root = tk.Tk()
+            root.geometry("900x600")
+            app = App(root)
         try:
-            app.update_idletasks()
+            root.update_idletasks()
             button = app._nav_named_buttons.get("СТОІР")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
@@ -183,7 +196,7 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             else:
                 self.assertTrue(button.bind("<Button-1>"))
         finally:
-            app.destroy()
+            root.destroy()
 
 
 if __name__ == "__main__":
