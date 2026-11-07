@@ -174,12 +174,14 @@ class AssignmentOrderBaseSelectorsR3Tests(unittest.TestCase):
                  }), \
                  mock.patch.object(operations_orders_ui.ops, "list_employee_choices", return_value=[]), \
                  mock.patch.object(operations_orders_ui.ops, "list_orders", return_value=[]), \
-                 mock.patch.object(operations_orders_ui.ops, "list_vehicle_choices", return_value=[
-                     {"id": 10, "label": vehicle_label, "name": "MAN", "plate": "BC0010AA"}
-                 ]), \
-                 mock.patch.object(operations_orders_ui.ops, "list_driver_choices", return_value=[
-                     {"id": 1, "label": driver_label, "name": "Іваненко Іван", "position": "Водій"}
-                 ]):
+                 mock.patch.object(
+                     operations_orders_ui.ops, "list_vehicle_choices",
+                     return_value=[{"id": 10, "label": vehicle_label, "name": "MAN", "plate": "BC0010AA"}],
+                 ) as vehicle_choices, \
+                 mock.patch.object(
+                     operations_orders_ui.ops, "list_driver_choices",
+                     return_value=[{"id": 1, "label": driver_label, "name": "Іваненко Іван", "position": "Водій"}],
+                 ) as driver_choices:
                 win = operations_orders_ui.open_operations_center(app, core)
                 app.update_idletasks()
                 button = button_by_text(win, "Закріпити ТЗ за водіями")
@@ -194,13 +196,19 @@ class AssignmentOrderBaseSelectorsR3Tests(unittest.TestCase):
                     and str(w.title()) == "Створити наказ"
                 ]
                 self.assertTrue(dialogs)
-                values = [
-                    tuple(str(v) for v in w.cget("values"))
-                    for w in walk(win)
-                    if isinstance(w, ttk.Combobox)
-                ]
-                self.assertIn((vehicle_label,), values)
-                self.assertIn((driver_label,), values)
+                texts = []
+                for widget in walk(win):
+                    try:
+                        text = str(widget.cget("text"))
+                    except Exception:
+                        continue
+                    if text:
+                        texts.append(text)
+                self.assertIn("Перше закріплення з бази Taxo", texts)
+                self.assertIn("Транспортний засіб", texts)
+                self.assertIn("Водій із бази водіїв", texts)
+                vehicle_choices.assert_called_with(mock.ANY, active_only=True)
+                driver_choices.assert_called_with(mock.ANY, active_only=True)
         finally:
             app.destroy()
 
