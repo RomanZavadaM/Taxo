@@ -216,8 +216,48 @@ def install(core, base_app):
             if not _alive(root) or getattr(self, "_personnel_data_center_r6_installed", False):
                 return
 
-            # Historical layers added separate buttons for parts of one workflow.
-            # Keep their methods, but remove the clutter from the primary employee toolbar.
+            # Current Personnel UI exposes the Data Center as a permanent action.
+            # Historical compositions may still need the compatibility fallback.
+            route_button = None
+            anchor = None
+            for widget in _walk(root):
+                try:
+                    if widget.winfo_class() not in ("TButton", "Button"):
+                        continue
+                    label = _text(widget.cget("text"))
+                except Exception:
+                    continue
+                if label == "Дані / Дія / документи…":
+                    route_button = widget
+                    break
+                if label == "Новий працівник":
+                    anchor = widget
+
+            if route_button is None:
+                if anchor is None:
+                    # Fail safe: never hide historical entry points unless the
+                    # replacement route can actually be installed.
+                    return
+                try:
+                    route_button = core.ttk.Button(
+                        anchor.master,
+                        text="Дані / Дія / документи…",
+                        style="Accent.TButton",
+                        command=self.open_personnel_data_center_r6,
+                    )
+                    route_button.pack(side="right", padx=(8, 0))
+                except Exception:
+                    try:
+                        route_button.destroy()
+                    except Exception:
+                        pass
+                    return
+
+            self._personnel_data_center_r6_button = route_button
+            self._personnel_data_center_r6_installed = True
+
+            # Only after a replacement route is guaranteed do we remove the
+            # historical clutter from the primary employee toolbar.
             for widget in list(_walk(root)):
                 try:
                     if widget.winfo_class() not in ("TButton", "Button"):
@@ -250,24 +290,6 @@ def install(core, base_app):
                             getattr(widget, forget)()
                         except Exception:
                             pass
-
-            anchor = None
-            for widget in _walk(root):
-                try:
-                    if widget.winfo_class() in ("TButton", "Button") and _text(widget.cget("text")) == "Новий працівник":
-                        anchor = widget
-                        break
-                except Exception:
-                    pass
-            if anchor is None:
-                return
-            core.ttk.Button(
-                anchor.master,
-                text="Дані / Дія / документи…",
-                style="Accent.TButton",
-                command=self.open_personnel_data_center_r6,
-            ).pack(side="right", padx=(8, 0))
-            self._personnel_data_center_r6_installed = True
 
         def open_personnel_data_center_r6(self):
             existing = getattr(self, "_personnel_data_center_r6_window", None)
