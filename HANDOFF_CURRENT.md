@@ -1,11 +1,12 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 07.11.2026 — після інтеграції Feature Loss hardening 10.12-r9.
+**Оновлено:** 07.11.2026 — після завершення окремого CI-maintenance slice.
 
 ## База
 - **Stable / Latest:** [v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — без змін.
 - **Останній офіційно виданий candidate:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; 8 assets.
-- **Поточний main / integrated candidate:** **10.12-r9**, commit `a445f01d1d1c00408ee3f064088de4ddc1637c86`.
+- **Поточний integrated product candidate:** **10.12-r9**, product commit `a445f01d1d1c00408ee3f064088de4ddc1637c86`.
+- **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
 - 10.12-r1…r9 **ще не публікувались як GitHub prerelease**.
 - **Наступна кодова ревізія:** **10.12-r10**.
 - Stable не змінювати без окремого рішення власника.
@@ -139,20 +140,30 @@ PR #218 merged → current main `a445f01d1d1c00408ee3f064088de4ddc1637c86`.
 
 Прямого масового видалення функціонального коду після v10.10-r5 аудит не показав. Основний клас ризику — **live code becomes unreachable in composed UI**.
 
+## CI maintenance — завершено 07.11.2026
+
+- Старі draft PR #142 і #152 прочитані лише як історична довідка; **не зливались** і після перевірки replacement-рішення закриті як superseded.
+- PR #220 перебудовано чисто від актуального `main` без зміни `VERSION.txt`, продуктової логіки чи `publish-current.yml`.
+- Superseded PR runs тепер скасовуються для Windows / Win7 / macOS. Live-доказ: старі Windows #1262 і Win7 #258 завершились `cancelled`; macOS jobs попереднього head також були перервані після нового commit.
+- Фінальний PR #220 head `0db456281f84f22d62e55b599b66abc35edc1be2`: Windows #1263 — SUCCESS; Win7 #259 — SUCCESS; macOS #1184 ARM64/Intel — SUCCESS.
+- Required branch-protection check лишився **`build-windows`** і далі запускається на кожен PR.
+- Docs-only smoke PR #221: тільки Windows #1264; documentation check — SUCCESS; Python/regression/START/PyInstaller/installer/artifacts — skipped; Win7/macOS не стартували.
+- Workflow-sensitive merge #220: post-merge Windows #1265, Win7 #260, macOS #1185, START #2314 — усі SUCCESS; publisher не стартував.
+- Post-merge docs-only PR #222: тільки lightweight Windows #1266 — SUCCESS. Після merge у `main` commit `bc32daa1b63c20aa4398fa35262d32456b62088c` мав **0 GitHub Actions runs**: важкі platform/START/publisher workflow не запускались.
+- `VERSION.txt` лишився **10.12-r9**. `publish-current.yml` не змінено; exact-source release gates не послаблено.
+- Деталі: `docs/maintenance/CI_MAINTENANCE_2026-11-07.md`.
+
 ## Наступна безпечна дія
 
-**Не починати 10.12-r10 у цій довгій сесії.**
+**Не починати 10.12-r10 у цій довгій сесії. Перейти в новий чат.**
 
-Наступний окремий етап — **CI optimization / process-only, без зміни продуктової ревізії**:
-1. почати чисто від актуального `main`;
-2. використати PR #142 і #152 лише як історичну довідку, **не зливати їх як є**;
-3. додати скасування superseded PR runs для Windows / Win7 / macOS;
-4. консервативно не запускати важкі platform/START збірки для звичайних docs-only змін;
-5. повні перевірки зберегти для коду, workflow, dependencies, packaging, security та release-sensitive змін;
-6. окремо перевірити, що post-merge docs-only push не марнує runners, але release checkpoint не послаблений;
-7. після нового актуального CI PR старі #142/#152 закрити як superseded.
+Наступний **кодовий** slice — **10.12-r10**: один вузький live reachability gate для **«План → факт»**.
 
-Після завершення CI maintenance наступна **кодова** ревізія — **10.12-r10**: один вузький Feature Loss slice для **«План → факт»**. Не починати великий UX cleanup.
+Оскільки «План → факт» змінює фактичні дані:
+- тестувати окремо від решти Feature Loss маршрутів;
+- використовувати ізольовані/тимчасові тестові дані, не реальне робоче сховище;
+- перевірити не лише відкриття маршруту, а й чітке розділення plan/fact та відсутність тихого перезапису факту;
+- великий UX cleanup не починати.
 
 ## Recovery
 
