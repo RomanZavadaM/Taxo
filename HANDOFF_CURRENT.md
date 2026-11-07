@@ -1,14 +1,14 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 07.11.2026 — після завершення окремого CI-maintenance slice.
+**Оновлено:** 07.11.2026 — після інтеграції та post-merge перевірки Taxo 10.12-r10.
 
 ## База
 - **Stable / Latest:** [v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — без змін.
 - **Останній офіційно виданий candidate:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; 8 assets.
-- **Поточний integrated product candidate:** **10.12-r9**, product commit `a445f01d1d1c00408ee3f064088de4ddc1637c86`.
+- **Поточний integrated product candidate:** **10.12-r10**, product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 **ще не публікувались як GitHub prerelease**.
-- **Наступна кодова ревізія:** **10.12-r10**.
+- 10.12-r1…r10 **ще не публікувались як GitHub prerelease**.
+- **Наступна кодова ревізія:** **10.13-r1**.
 - Stable не змінювати без окремого рішення власника.
 
 ## Чому почалась лінія 10.12
@@ -126,6 +126,21 @@ PR #218 merged → current main `a445f01d1d1c00408ee3f064088de4ddc1637c86`.
 - План/факт, БД, планування водіїв та формування PDF/Excel не змінювались.
 - Під час r9 фактично підтверджено CI-втрати: runs старого PR head не скасувались після нового commit і паралельно зайняли runners.
 
+## 10.12-r10 — «План → факт» reachability та інваріант даних
+
+PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+
+- Додано живу перевірку реального маршруту **«План → факт»** у щоденному табелі.
+- Тест відкриває справжнє вікно табеля, переходить на щоденну вкладку, вибирає дві дати й натискає справжню кнопку.
+- Вся зміна даних відбувається лише у тимчасовій ізольованій SQLite-БД; робоче сховище користувача не відкривається.
+- Перевірено реальну дію: день без факту отримує план як факт.
+- Одночасно перевірено інваріант: уже наявний підтверджений факт не змінюється; планові поля й примітки не переписуються побічно.
+- Продуктову реалізацію `copy_missing_plan_to_fact` не переписували: r10 додає live regression gate навколо захисту, виправленого ще у 10.11-r3.
+- Function registry тепер має `runtime_smoke=True` для **всіх 23 критичних маршрутів**.
+- PR-head `8da128be181ea7b01a7d4927c4c5236a3966109a`: Windows #1268 — **931 tests / OK**; Win7 #261 — SUCCESS; macOS #1186 ARM64/Intel — SUCCESS.
+- Post-merge exact product commit: Windows #1269 — SUCCESS; Win7 #262 — SUCCESS; macOS #1187 ARM64/Intel — SUCCESS; START #2315 — SUCCESS.
+- Stable лишається `v10.10-r5`; останній published candidate — `v10.11-r10`; 10.12-r1…r10 integrated-only.
+
 ## Підтверджені висновки Feature Loss Audit
 
 **Підтверджені втрати/регресії:**
@@ -155,15 +170,13 @@ PR #218 merged → current main `a445f01d1d1c00408ee3f064088de4ddc1637c86`.
 
 ## Наступна безпечна дія
 
-**Не починати 10.12-r10 у цій довгій сесії. Перейти в новий чат.**
+Feature Loss reachability cycle **10.12-r1…r10 завершено**: executable registry має 23/23 критичних routes із live-smoke requirement, а «План → факт» додатково перевірений реальною дією на ізольованих даних.
 
-Наступний **кодовий** slice — **10.12-r10**: один вузький live reachability gate для **«План → факт»**.
-
-Оскільки «План → факт» змінює фактичні дані:
-- тестувати окремо від решти Feature Loss маршрутів;
-- використовувати ізольовані/тимчасові тестові дані, не реальне робоче сховище;
-- перевірити не лише відкриття маршруту, а й чітке розділення plan/fact та відсутність тихого перезапису факту;
-- великий UX cleanup не починати.
+- наступний дозволений номер кодової ревізії — **10.13-r1**;
+- не починати великий UX cleanup автоматично;
+- після recovery окремо вибрати один наступний пріоритет із Issue #164 / backlog або за прямою вказівкою власника;
+- CI-maintenance не переробляти без нової фактичної причини;
+- рішення про публікацію 10.12 як prerelease/stable — окремий release-крок, не частина r10.
 
 ## Recovery
 
