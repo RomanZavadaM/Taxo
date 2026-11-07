@@ -2166,6 +2166,10 @@ def install(core, base_app):
             core.ttk.Button(
                 hero, text="Відкрити картку", command=self._open_personnel_overview_employee
             ).pack(side="right")
+            core.ttk.Button(
+                hero, text="Дані / Дія / документи…",
+                command=lambda: self.open_personnel_data_center_r6()
+            ).pack(side="right", padx=(0,8))
 
             stats = core.ttk.Frame(overview, padding=(16,0,16,8))
             stats.pack(fill="x")
