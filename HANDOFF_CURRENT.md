@@ -1,45 +1,93 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 06.11.2026 (після офіційного prerelease 10.11-r10)
+**Оновлено:** 07.11.2026 — після Feature Loss Audit та інтеграції 10.12-r3.
 
 ## База
-- **Stable / Latest:** [v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — підтверджена stable/rollback; без змін.
-- **Поточний виданий кандидат:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **prerelease**, exact issued source `b239bb0dda6a49878f5f06a0edd791710b62df9b`.
-- Release містить **8 assets**: Windows Setup/Portable, Windows 7 Setup/Portable, macOS ARM64/Intel, START і SHA256SUMS.
-- Tag/release `v10.11-r10` immutable: не пересувати, не переписувати і не перевикористовувати номер.
-- Exact-source gate перед випуском: START + Windows + Windows 7 + macOS ARM64/Intel — **SUCCESS**; publisher відмовився б створити tag без усіх чотирьох successful runs для exact SHA.
-- START/regression line на r10: **888 tests / OK**.
-- Release-trigger PR #200 merged; trigger main `500a1ee559a02e39bb1b8e5874688749fd84aaa4`; tag target перевірено як exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`.
-- **Наступна кодова ревізія:** **10.12-r1**.
-- Google Drive: остання підтверджена recovery-copy наразі r9; r10 START recovery-copy ще треба додати окремим backup-кроком.
-- CI optimization PR #142/#152 — окремий напрямок; не змішувати з UX/функціоналом/security.
+- **Stable / Latest:** [v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — без змін.
+- **Останній офіційно виданий candidate:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; 8 assets.
+- **Поточний main / integrated candidate:** **10.12-r3**, commit `28a84c9b44c7ac526acb09c6258e227d760cc762`.
+- 10.12-r1/r2/r3 **ще не публікувались як GitHub prerelease**.
+- **Наступна кодова ревізія:** **10.12-r4**.
+- Stable не змінювати без окремого рішення власника.
 
-## Що виправлено в 10.11-r10
-- У «Табелі робочого часу всіх працівників» дві паралельні кнопки PDF/Excel зведено до одного вибору формату.
-- Формати пояснюють призначення: «PDF — для друку» та «Excel — для редагування».
-- Є одна дія «Зберегти…».
-- Загальний звіт отримує однозначне ім'я `Табель_робочого_часу_YYYY-MM_усі-працівники.*`.
-- Plan/fact, БД, маршрути, графіки та розрахунки табеля не змінювались.
-- PR #198 та pre-release PR #199 пройшли Windows, Win7, macOS ARM64/Intel; exact-source release gate також пройдено.
+## Чому почалась лінія 10.12
 
-## Стан аудиту Issue #175
-Закрито:
-- r3: захист існуючого факту від «План → факт»;
-- r3: атомарне перепланування персоналу;
-- r4: захист історії тахографічних контрольних протоколів;
-- r5: dependency/security slice Pillow/pypdf + окрема Win7 mitigation;
-- r6: atomic output / restore error reporting / backup disclosure;
-- r7: загальний Win7 regression gate на CPython 3.8.10 перед packaging;
-- r8: build/release hardcoding cleanup;
-- r9: workflow supply-chain hardening / immutable action pins.
+Власник виявив, що прийнятий раніше **«Простий місячний графік…»** з вибором працівників, PDF/XLSX фактично зник з `Працівники → Планування`, хоча сам код і бізнес-тести залишались.
 
-З основних findings повного code-review Issue #175 критичні stabilization/release-engineering пункти закриті. Залишаються:
-- системний UX — Issue #164;
-- архітектурний cleanup — поступово, окремими доменними slice;
-- інші non-critical findings/maintenance — лише після повторної звірки Issue #175 і фактичного GitHub.
+Ретроспективний Feature Loss Audit підтвердив системну проблему: у Taxo історично були випадки, коли функція залишалась реалізованою, але її UI-entry або control ставав невидимим через composition feature layers / layout.
+
+Документи:
+- `docs/maintenance/FEATURE_LOSS_AUDIT_2026-11-06.md`
+- `docs/maintenance/FUNCTION_REGISTRY_DRAFT.md`
+- UX tracking: Issue #164.
+
+## 10.12-r1 — повернення вибіркового графіка
+
+PR #202 merged → `893ce87ed7d333e4867982c879a12c294763e7df`.
+
+- `Працівники → Планування → Простий місячний графік…` знову має постійний штатний вхід.
+- Мультивибір працівників, PDF та Excel не були видалені; проблема була у крихкому runtime-injector.
+- Legacy injector лишений лише як non-duplicating fallback.
+- Windows / Win7 / macOS ARM64/Intel PR gate — SUCCESS.
+
+## 10.12-r2 — function reachability gate
+
+PR #204 merged → `33fa572b7e621c8adeea05165a017c29434bf0c9`.
+
+- Додано executable registry: `src/taxo/function_registry.py`.
+- Додано реальні Tk/Xvfb reachability smoke: mapped route + callback/binding для найбільш крихких входів.
+- Gate покриває Personnel Data Center, simple-month fallback, military transport, STOIR.
+- Фінальний PR head `da7ca95566372e612f27be65705e590e9cbd9b74`.
+- Windows #42352276336 — SUCCESS.
+- Windows 7 #42352276288 — SUCCESS, full CPython 3.8 regression.
+- macOS ARM64/Intel #42352276292 — SUCCESS.
+- Бізнес-логіка й DB schema не змінювались.
+
+## 10.12-r3 — Personnel Data Center fail-safe
+
+PR #205 merged → current main `28a84c9b44c7ac526acb09c6258e227d760cc762`.
+
+Проблема: старий installer спочатку ховав окремі registry/Diia/document buttons, а лише потім намагався знайти `Новий працівник` і створити replacement `Дані / Дія / документи…`. При майбутньому UI-refactor це могло сховати цілий блок функцій.
+
+Виправлено:
+- `Дані / Дія / документи…` тепер постійна штатна action у Personnel UI;
+- compatibility layer спочатку гарантує replacement route;
+- legacy entries ховаються тільки після успішного replacement;
+- якщо replacement/anchor відсутній — legacy entries залишаються доступними;
+- runtime tests покривають permanent / fallback / missing-anchor сценарії.
+- PR-head Windows #42352755797 — SUCCESS, **903 tests / OK**;
+- Win7 #42352755837 — SUCCESS, full CPython 3.8;
+- macOS ARM64/Intel #42352755821 — SUCCESS.
+
+## Підтверджені висновки Feature Loss Audit
+
+**Підтверджені втрати/регресії:**
+- simple-month schedule UI-entry — знайдено й виправлено r1;
+- історично vehicle core actions зникали через pack/grid conflict — виправлено ще у 10.8-r1/r2.
+
+**Високий ризик / наступні кандидати на runtime gate:**
+- STOIR navigation;
+- military-transport route;
+- nested `Відомість (додаток 1)`;
+- bulk personnel replanning checkbox, який уже історично перекривався layout;
+- дев'ять waybill actions, які вже історично могли виходити за межі вузького вікна;
+- інші dynamic navigation/feature-layer entries.
+
+Прямого масового видалення функціонального коду після v10.10-r5 аудит не показав. Основний клас ризику — **live code becomes unreachable in composed UI**.
 
 ## Наступна безпечна дія
-Після завершення r10 checkpoint наступний номер за правилом ревізій — **10.12-r1**. Перед новим кодом повторно звірити UX Issue #164 та фактичний GitHub і вибрати один вузький UX slice. Не змішувати з CI optimization #142/#152 або великим architecture cleanup.
+
+Не починати великий UX cleanup.
+
+Наступний номер — **10.12-r4**. Перед кодом:
+1. прочитати цей HANDOFF;
+2. звірити private Taxo profile;
+3. звірити factual GitHub;
+4. перечитати `FEATURE_LOSS_AUDIT_2026-11-06.md`, function registry, Issue #164;
+5. вибрати один вузький reachability slice.
+
+Пріоритет: розширити runtime gate на **STOIR / military transport / nested statement / historically fragile layout controls**, по одному slice.
 
 ## Recovery
-`START_HERE.md` → цей HANDOFF → `dev-strategy/profile/taxo/TAXO_PROFILE.md` → фактичний GitHub → `PROJECT_STATE.md`. Деталі: `WORKLOG.md`, Issue #61, audit Issue #175, UX Issue #164.
+
+`START_HERE.md` → цей HANDOFF → `dev-strategy/profile/taxo/TAXO_PROFILE.md` → фактичний GitHub → `PROJECT_STATE.md` → `WORKLOG.md` / Issue #61 / #164 / #175.
