@@ -323,6 +323,13 @@ def open_operations_center(app, core):
                 parent=win,
             )
             return
+        if int(row["paper_original_signed"] or 0):
+            core.messagebox.showinfo(
+                "Скасувати чернетку",
+                "Паперовий оригінал уже позначено як підписаний. Такий запис не змінюється; оформіть новий наказ.",
+                parent=win,
+            )
+            return
         if not core.messagebox.askyesno(
             "Скасувати чернетку?",
             "Чернетка залишиться в історії зі станом «Скасовано». Продовжити?",

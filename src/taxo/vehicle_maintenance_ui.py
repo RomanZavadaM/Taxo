@@ -14,6 +14,12 @@ MAINTENANCE_STATUS_LABELS = {
     "ok": "у нормі",
 }
 
+PROFILE_SOURCE_LABELS = {
+    "regulation_102": "Базове Положення №102",
+    "manufacturer": "Документація виробника",
+    "local": "Локально затверджено",
+}
+
 
 def _maintenance_status_label(value):
     return MAINTENANCE_STATUS_LABELS.get(str(value or ""), str(value or "—"))
@@ -112,9 +118,11 @@ def open_maintenance_center(app, core):
     service_top = core.ttk.Frame(service, padding=10); service_top.pack(fill="x")
     service_frame = core.ttk.Frame(service, padding=(10, 0, 10, 10)); service_frame.pack(fill="both", expand=True)
     service_tree = _tree_with_scrollbars(
-        core, service_frame, ("date", "type", "km", "description", "document"),
+        core, service_frame,
+        ("date", "type", "km", "description", "performer", "document", "note"),
         (("date", "Дата", 100), ("type", "Подія", 110), ("km", "Одометр", 110),
-         ("description", "Роботи / опис", 420), ("document", "Документ", 220)),
+         ("description", "Роботи / опис", 360), ("performer", "Виконавець", 180),
+         ("document", "Документ", 200), ("note", "Примітка", 260)),
     )
 
     request_top = core.ttk.Frame(requests, padding=10); request_top.pack(fill="x")
@@ -173,7 +181,13 @@ def open_maintenance_center(app, core):
         to1_var = core.tk.StringVar(value=str(profile["to1_interval_km"] or ""))
         to2_var = core.tk.StringVar(value=str(profile["to2_interval_km"] or ""))
         warning_var = core.tk.StringVar(value=str(profile["warning_km"] or 0))
-        source_var = core.tk.StringVar(value=str(profile["source_kind"] or ""))
+        source_kind = str(profile["source_kind"] or "local")
+        source_labels = list(PROFILE_SOURCE_LABELS.values())
+        current_source_label = PROFILE_SOURCE_LABELS.get(source_kind, source_kind)
+        if current_source_label not in source_labels:
+            source_labels.append(current_source_label)
+        source_by_label = {label: key for key, label in PROFILE_SOURCE_LABELS.items()}
+        source_var = core.tk.StringVar(value=current_source_label)
         note_var = core.tk.StringVar(value=str(profile["source_note"] or ""))
 
         core.ttk.Label(frm, text="Профіль ТЗ").grid(
@@ -188,8 +202,6 @@ def open_maintenance_center(app, core):
             ("ТО-1, км", to1_var),
             ("ТО-2, км", to2_var),
             ("Попереджати за, км", warning_var),
-            ("Джерело профілю", source_var),
-            ("Примітка / документ виробника", note_var),
         ), start=1):
             core.ttk.Label(frm, text=label).grid(
                 row=row, column=0, sticky="w", padx=(0, 8), pady=5
@@ -197,6 +209,18 @@ def open_maintenance_center(app, core):
             core.ttk.Entry(frm, textvariable=var).grid(
                 row=row, column=1, sticky="ew", pady=5
             )
+        core.ttk.Label(frm, text="Джерело профілю").grid(
+            row=4, column=0, sticky="w", padx=(0, 8), pady=5
+        )
+        core.ttk.Combobox(
+            frm, textvariable=source_var, values=source_labels, state="readonly"
+        ).grid(row=4, column=1, sticky="ew", pady=5)
+        core.ttk.Label(frm, text="Примітка / документ виробника").grid(
+            row=5, column=0, sticky="w", padx=(0, 8), pady=5
+        )
+        core.ttk.Entry(frm, textvariable=note_var).grid(
+            row=5, column=1, sticky="ew", pady=5
+        )
 
         core.ttk.Label(
             frm,
@@ -211,7 +235,7 @@ def open_maintenance_center(app, core):
             if defaults:
                 to1_var.set(str(defaults["to1"]))
                 to2_var.set(str(defaults["to2"]))
-                source_var.set("regulation_102")
+                source_var.set(PROFILE_SOURCE_LABELS["regulation_102"])
 
         profile_box.bind("<<ComboboxSelected>>", sync_profile)
 
@@ -233,7 +257,9 @@ def open_maintenance_center(app, core):
                 maint.save_profile(
                     con3, vehicle_id, profile_kind=key,
                     to1_interval_km=to1, to2_interval_km=to2,
-                    source_kind=source_var.get().strip() or "local",
+                    source_kind=source_by_label.get(
+                        source_var.get(), source_var.get().strip() or "local"
+                    ),
                     source_note=note_var.get().strip(), warning_km=warning,
                 )
                 con3.commit()
@@ -493,7 +519,13 @@ def open_maintenance_center(app, core):
         for row in rows:
             mileage_tree.insert("", "end", values=(row["reading_at"], row["reading_km"], row["source_type"], row["notes"]))
         for row in events:
-            service_tree.insert("", "end", values=(row["event_date"], row["event_type"], row["odometer_km"] or "", row["description"], row["document_ref"]))
+            service_tree.insert(
+                "", "end",
+                values=(
+                    row["event_date"], row["event_type"], row["odometer_km"] or "",
+                    row["description"], row["performer"], row["document_ref"], row["notes"],
+                ),
+            )
         for row in reqs:
             request_tree.insert("", "end", values=(row["id"], row["reported_at"], maint.REQUEST_PRIORITY_LABELS.get(row["priority"], row["priority"]),
                                                        maint.REQUEST_STATUS_LABELS.get(row["status"], row["status"]), row["defect"], row["assignee"], row["resolution"]))
