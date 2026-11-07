@@ -29,7 +29,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("personnel.diia_cycle", "Дані / Дія / документи", "Офіційний цикл Дії…", "open_diia_reconciliation_cycle", runtime_smoke=True),
     FunctionRoute("personnel.military", "Дані / Дія / документи", "Військовий облік / строки…", "open_military_accounting_overview", runtime_smoke=True),
     FunctionRoute("personnel.bulk_replan", "Працівники → Планування", "Перепланувати: замінити існуючий ПЛАН", "show_general_personnel_shift_planner", runtime_smoke=True),
-    FunctionRoute("drivers.report_selection", "Графіки", "Водії для звіту…", "choose_monthly_shift_report_drivers"),
+    FunctionRoute("drivers.report_selection", "Графіки", "Водії для звіту…", "choose_monthly_shift_report_drivers", runtime_smoke=True),
     FunctionRoute("timesheet.plan_to_fact", "Табель", "План → факт", "show_employee_timesheet"),
     FunctionRoute("vehicles.core", "Транспорт", "Картка транспортного засобу", "vehicle_core_toolbar", runtime_smoke=True),
     FunctionRoute("vehicles.military", "Транспорт", "Військово-транспортний облік", "open_military_transport_dashboard", runtime_smoke=True),
