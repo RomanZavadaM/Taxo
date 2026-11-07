@@ -312,6 +312,61 @@ def list_employee_choices(con, active_only=True):
     return result
 
 
+def _is_driver_role_label(value):
+    text = str(value or "").strip().lower()
+    return text == "водій" or text.startswith("водій ") or "водій автотранспорт" in text
+
+
+def _table_exists(con, name):
+    return con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (str(name),),
+    ).fetchone() is not None
+
+
+def _table_columns(con, name):
+    if not _table_exists(con, name):
+        return set()
+    return {str(row[1]) for row in con.execute("PRAGMA table_info(%s)" % str(name)).fetchall()}
+
+
+def list_driver_choices(con, active_only=True):
+    """Return employees who are actually present in the Taxo driver base."""
+    employee_rows = list_employee_choices(con, active_only=active_only)
+    if not employee_rows:
+        return []
+
+    driver_employee_ids = set()
+    if _table_exists(con, "employee_roles"):
+        for row in con.execute("SELECT employee_id,role FROM employee_roles").fetchall():
+            if _is_driver_role_label(row["role"]):
+                driver_employee_ids.add(int(row["employee_id"]))
+
+    employee_columns = _table_columns(con, "employees")
+    if "driver_id" in employee_columns:
+        linked = con.execute(
+            "SELECT id,driver_id FROM employees WHERE driver_id IS NOT NULL"
+        ).fetchall()
+        if active_only and _table_exists(con, "drivers"):
+            driver_columns = _table_columns(con, "drivers")
+            clauses = []
+            if "active" in driver_columns:
+                clauses.append("COALESCE(active,1)=1")
+            if "driver_end_date" in driver_columns:
+                clauses.append("COALESCE(driver_end_date,'')=''")
+            sql = "SELECT id FROM drivers"
+            if clauses:
+                sql += " WHERE " + " AND ".join(clauses)
+            current_driver_ids = {int(row["id"]) for row in con.execute(sql).fetchall()}
+            for row in linked:
+                if int(row["driver_id"]) in current_driver_ids:
+                    driver_employee_ids.add(int(row["id"]))
+        else:
+            driver_employee_ids.update(int(row["id"]) for row in linked)
+
+    return [row for row in employee_rows if int(row["id"]) in driver_employee_ids]
+
+
 def list_vehicle_choices(con, active_only=False):
     sql = "SELECT id,name,plate,make_model,active FROM vehicles"
     if active_only:
@@ -352,6 +407,35 @@ def create_order(con, *, order_type, order_no, order_date, place="", subject="",
     )
     oid = int(cur.lastrowid)
     _write_history(con, "order", oid, "create", after=dict(get_order(con, oid)))
+    return oid
+
+
+def create_vehicle_assignment_order(
+        con, *, order_no, order_date, place="", subject="", preamble="", body_text="",
+        control_employee_id=None, note="", initial_vehicle_id=None,
+        initial_employee_id=None):
+    """Create an assignment-order draft and optionally its first TЗ/driver pair."""
+    has_vehicle = initial_vehicle_id is not None
+    has_driver = initial_employee_id is not None
+    if has_vehicle != has_driver:
+        raise ValueError("Для першого закріплення виберіть і транспортний засіб, і водія.")
+    oid = create_order(
+        con,
+        order_type=TYPE_VEHICLE_ASSIGNMENT,
+        order_no=order_no,
+        order_date=order_date,
+        place=place,
+        subject=subject,
+        preamble=preamble,
+        body_text=body_text,
+        control_employee_id=control_employee_id,
+        note=note,
+    )
+    if has_vehicle:
+        add_vehicle_assignment(
+            con, oid, int(initial_vehicle_id), int(initial_employee_id),
+            valid_from=order_date,
+        )
     return oid
 
 
