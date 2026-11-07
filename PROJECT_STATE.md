@@ -10,11 +10,11 @@
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Last prerelease candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Новіша stable — 10.12-r10.
-- **Current integrated product candidate:** Taxo **10.13-r1**, product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`. 10.12-r10 уже stable; 10.13-r1 integrated-only і не stable.
+- **Current integrated product candidate:** Taxo **10.13-r2**, product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f`. Stable лишається 10.12-r10; 10.13-r1/r2 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r2**.
+- **Next code revision:** **10.13-r3**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** exact-source START recovery-copy для 10.13-r1 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r1_2026-11-07_START.zip`, 1 613 547 байт; Drive file `1XCfHkCdQUv8r0B0YyA3S2fCUsA126Z8F`; source artifact START #2316, SHA256 `11780cd318c419b52b8316e2c1fbb0c36d2b6877f738130250993dfac84eec38`.
+- **Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
 ## Stable promotion 10.12-r10
@@ -26,7 +26,20 @@
 - Stable release використав уже перевірені exact-r10 packages; 10.13-r1 у release не потрапив.
 - Rollback stable: `v10.10-r5`.
 
-## Поточний product main 10.13-r1 — Експлуатація / СТОІР usability consolidation
+## Поточний product main 10.13-r2 — presentation/usability consolidation
+
+- **PR #232 → product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f`.**
+- Явна кнопка «Відкрити вибране ТЗ» прибрала залежність від прихованого double-click; старий double-click збережено.
+- Технічні коди СТОІР/одометра та ISO timestamps у робочих таблицях замінені людськими українськими підписами/датами.
+- На робочому столі додано «Оформити новий наказ…»; дії наказів перебудовані у багаторядкові сітки для мінімальної ширини.
+- Перший PR-head видалив старий «Каталог типів наказів»; Feature Loss gate `test_v10_12_r7` зловив регресію. Фінальний r2 зберігає і старий маршрут, і новий рекомендований маршрут.
+- Plan/fact, DB schema, факти ТО/ремонтів/одометра, immutability наказів, нормативні тексти й release/security не змінено.
+- PR-head: Windows #1287 — **941 tests / OK**; Win7 #278 — SUCCESS; macOS #1203 ARM64/Intel — SUCCESS.
+- Exact-product: Windows #1288 — **941 tests / OK**; Win7 #279 — SUCCESS; macOS #1204 ARM64/Intel — SUCCESS; START #2321 — SUCCESS.
+- Drive recovery-copy підтверджена.
+- Stable = **10.12-r10**; r2 не опублікований; наступний code revision = **10.13-r3**.
+
+## Попередній product main 10.13-r1 — Експлуатація / СТОІР usability consolidation
 
 - **PR #227 → product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`.**
 - Перед змінами повторно прочитано чинну dev-strategy, включно з mandatory Functional Loss Prevention rule; робота виконана як цілісний operational workflow, а не як окрема кнопка.

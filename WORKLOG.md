@@ -1,3 +1,18 @@
+## 10.13-r2 — Експлуатація / СТОІР presentation/usability — 07.11.2026
+
+- Recovery виконано строго за START_HERE → HANDOFF_CURRENT → private profile/taxo → live GitHub → PROJECT_STATE; перед кодом перечитано методологію dev-strategy.
+- Повторний UX-аудит r1: hidden double-click у «Стан автопарку», сирі STO/REPAIR/source_type/ISO dates, 7 order actions в один ряд, неочевидний старт нового наказу.
+- PR #232; final PR head `1b3d846a99dcb2c275562421fb5baabe61504f7e`.
+- Додано «Відкрити вибране ТЗ», human labels/dates, «Оформити новий наказ…», responsive action grids.
+- Перший head `ea676a3...` замінив legacy «Каталог типів наказів»; historical live gate r7 правильно зупинив macOS CI. Product logic не ламалась. Старий маршрут відновлено, новий додано поруч.
+- Фінальний PR-head: Windows #1287 — **941 tests / OK**; Win7 #278; macOS #1203 ARM64/Intel — SUCCESS.
+- PR #232 merged → exact product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f`.
+- Exact-product checks: Windows #1288 — **941 tests / OK**; Win7 #279; macOS #1204 ARM64/Intel; START #2321 — SUCCESS.
+- START artifact ID `13589299601`, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
+- Drive backup: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`; file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; size 1 624 847 bytes; private readback PASS.
+- Stable remains **v10.12-r10**; 10.13-r2 integrated-only.
+- Next code revision: **10.13-r3**, only after owner manual acceptance of r2.
+
 ## Stable promotion — Taxo 10.12-r10 — 07.11.2026
 
 - Owner command: оновити stable до 10.12; interpreted as completed line endpoint **10.12-r10**.

@@ -1,15 +1,15 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 07.11.2026 — після інтеграції, exact-product перевірок і recovery-copy Taxo 10.13-r1.
+**Оновлено:** 07.11.2026 — після інтеграції, exact-product перевірок і recovery-copy Taxo 10.13-r2.
 
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
 - **Останній офіційно виданий candidate:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; 8 assets.
-- **Поточний integrated product candidate:** **10.13-r1**, product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`.
+- **Поточний integrated product candidate:** **10.13-r2**, product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1 лишається integrated-only.
-- **Google Drive recovery-copy 10.13-r1:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r1_2026-11-07_START.zip`, 1 613 547 байт; Drive file `1XCfHkCdQUv8r0B0YyA3S2fCUsA126Z8F`; START #2316 artifact SHA256 `11780cd318c419b52b8316e2c1fbb0c36d2b6877f738130250993dfac84eec38`.
-- **Наступна кодова ревізія:** **10.13-r2**.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2 лишаються integrated-only.
+- **Google Drive recovery-copy 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
+- **Наступна кодова ревізія:** **10.13-r3**.
 - Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
 
 ## Stable promotion 10.12-r10 — 07.11.2026
@@ -22,6 +22,23 @@
 - Release [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) → exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`, prerelease=false, draft=false, GitHub Latest, 8 canonical assets.
 - Вихідні r10 platform gates: Windows #1269, Win7 #262, macOS #1187 ARM64/Intel, START #2315 — SUCCESS; PR-head r10 Windows — **931 tests / OK**.
 - Попередня stable `v10.10-r5` лишається rollback. 10.13-r1 не публікувався і не став stable.
+
+## 10.13-r2 — зрозуміліша щоденна Експлуатація / СТОІР / накази
+
+PR #232 merged → product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f`.
+
+- Повторний UX-аудит підтвердив: r1 уже мав функціональний workflow, але частина щоденних дій залишалась неочевидною або показувала внутрішні технічні значення.
+- «Стан автопарку» отримав явну дію **«Відкрити вибране ТЗ»**; подвійний клік збережено як швидкий шлях.
+- У таблицях СТОІР `STO`, `REPAIR`, `waybill_end` та інші source codes замінені на зрозумілі українські підписи; дати/час показуються у звичному форматі.
+- На робочому столі є прямий старт **«Оформити новий наказ…»**.
+- Дії реєстру наказів переведені з одного довгого рядка у багаторядкову сітку; «Найчастіші дії» — у 2-колонкову сітку.
+- Перший PR-head випадково замінив старий вхід **«Каталог типів наказів»** новим. Historical Feature Loss live-gate r7 зупинив CI. Старий маршрут повернуто, новий маршрут лишено поруч. Це підтвердило працездатність циклу «нічого не загубити».
+- Бізнес-логіка, DB schema, plan/fact, факти ТО/ремонтів/одометра, незмінність наказів і release/security не змінювались.
+- Фінальний PR-head `1b3d846a99dcb2c275562421fb5baabe61504f7e`: Windows #1287 — **941 tests / OK**; Win7 #278 — SUCCESS; macOS #1203 ARM64/Intel — SUCCESS.
+- Exact-product post-merge: Windows #1288 — **941 tests / OK**; Win7 #279 — SUCCESS; macOS #1204 ARM64/Intel — SUCCESS; START #2321 — SUCCESS.
+- Exact-source recovery-copy на Google Drive підтверджена; файл і SHA256 наведені вище.
+- Stable лишається **v10.12-r10**. 10.13-r2 не публікувався.
+- Наступна code revision — **10.13-r3**; перед новими змінами потрібне ручне приймання r2 власником.
 
 ## 10.13-r1 — «Експлуатація» / СТОІР як цілісний робочий сценарій
 
