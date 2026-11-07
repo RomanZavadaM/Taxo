@@ -9,7 +9,7 @@
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Last prerelease candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Новіша stable — 10.12-r10.
+- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r2; історичний тег зберігається.
 - **Current integrated product candidate:** Taxo **10.13-r2**, product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f`. Stable лишається 10.12-r10; 10.13-r1/r2 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
 - **Next code revision:** **10.13-r3**.
