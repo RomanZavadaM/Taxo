@@ -1,13 +1,24 @@
 # Індекс релізів Taxo
 
-**Стан:** 06.11.2026
+**Стан:** 07.11.2026
 **Stable:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — виправлена macOS-версія, stable 05.11.2026
 **Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
 **Current published candidate:** [**Taxo 10.11-r10**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **PRERELEASE 06.11.2026**; exact source `b239bb0`; 8 canonical assets via guarded publisher; stable remains 10.10-r5.  
-**Next code revision:** **10.12-r1**.
+**Current integrated main:** **10.12-r3** (`28a84c9`) — Feature Loss hardening; r1/r2/r3 ще не видані як prerelease.  
+**Next code revision:** **10.12-r4**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
+
+## Інтегрована лінія 10.12 — ще не видана як prerelease
+
+| Версія | PR | Стан |
+|---|---|---|
+| **10.12-r3** | #205 | Integrated 07.11.2026; permanent/fail-safe Personnel Data Center route; Windows **903 tests / OK**, Win7/macOS SUCCESS. |
+| **10.12-r2** | #204 | Integrated 07.11.2026; executable function registry + cross-platform Tk/Xvfb reachability smoke; Windows/Win7/macOS SUCCESS. |
+| **10.12-r1** | #202 | Integrated 07.11.2026; permanent `Простий місячний графік…` entry; selected employees + PDF/XLSX route restored. |
+
+> Ці ревізії інтегровані в `main`, але GitHub tag/release для них ще не створювався. Останній офіційно виданий candidate — `v10.11-r10`.
 
 ## Кандидатна лінія 10.11
 
