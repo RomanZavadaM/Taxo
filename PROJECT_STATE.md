@@ -1,6 +1,6 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 06.11.2026  
+**Дата:** 07.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## Поточний підтверджений стан
@@ -9,13 +9,22 @@
 - **Superseded:** Taxo 10.10-r4 / `v10.10-r4` — підтверджена проблема запуску на macOS.
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Current main candidate:** Taxo **10.11-r10** — перший post-stabilization UX slice: спрощений вибір формату загального табеля персоналу. Офіційний [prerelease v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) опубліковано 06.11.2026; exact tag source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable не змінено.
-- **Next code revision:** **10.12-r1**.
+- **Current published candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable не змінено.
+- **Current main / integrated candidate:** Taxo **10.12-r3**, commit `28a84c9b44c7ac526acb09c6258e227d760cc762`. 10.12-r1/r2/r3 ще не опубліковані як prerelease.
+- **Next code revision:** **10.12-r4**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Google Drive backup:** остання підтверджена candidate recovery-copy — r9; r10 START recovery-copy ще треба додати окремим backup-кроком.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
-## Поточний main 10.11-r10 — UX simplification після stabilization
+## Поточний main 10.12-r3 — Feature Loss hardening
+
+- **10.12-r1 / PR #202:** повернуто постійний вхід `Працівники → Планування → Простий місячний графік…`; код мультивибору працівників і PDF/XLSX був живий, але старий runtime-injector був ненадійним.
+- **Feature Loss Audit / PR #203:** зафіксовано підтверджені історичні UI-entry regressions, крихкі runtime routes і чернетку реєстру функцій.
+- **10.12-r2 / PR #204:** додано executable `function_registry.py` та cross-platform Tk/Xvfb reachability smoke; Windows #42352276336, Win7 #42352276288, macOS #42352276292 — SUCCESS.
+- **10.12-r3 / PR #205:** Personnel Data Center став постійним штатним route; historical registry/Diia/document entries ховаються лише після гарантії replacement. Missing-anchor сценарій тепер fail-safe. PR-head Windows #42352755797 — **903 tests / OK**; Win7 #42352755837; macOS #42352755821 — SUCCESS.
+- Основний виявлений клас ризику: feature code може залишитися живим, але стати недоступним після UI feature-layer composition. Подальші reachability slices — Issue #164.
+
+## Попередня інтегрована лінія 10.10-r6 → 10.11-r10
 
 - **r6:** єдиний центр «Дані / Дія / документи» та масове поновлення державних даних для вибраних працівників.
 - **r7:** вимоги до документів на рівні конкретного працівника; незалежний контроль строку; копії документів у workspace; employee documents завжди входять у повний backup.
