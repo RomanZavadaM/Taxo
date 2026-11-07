@@ -85,9 +85,12 @@ def prepare_list(direction, kind, day_text, topic, people, reason=""):
 
 
 def preparation_filename(prepared):
-    return "Список_інструктаж_%s_%s.csv" % (
+    kind = prepared["kind"].split(" ", 1)[0].lower().replace("(", "")
+    return "Список_інструктажу_%s_%s_%s_%d-осіб.csv" % (
         "БДР" if prepared["direction"] == "БДР" else "ОП",
+        kind,
         prepared["day"].isoformat(),
+        len(prepared["people"]),
     )
 
 
