@@ -7,8 +7,9 @@
   historical releases on a push to ``main``.
 * The four active validation gates stay in ``.github/workflows/`` and none of
   them may write repository contents or releases.
-* One universal publisher, ``publish-current.yml``, may write releases. It replaces
-  the historical one-file-per-revision publishers and must not rewrite old tags.
+* The current-version publisher, ``publish-current.yml``, and the guarded
+  exact-checkpoint stable promoter, ``promote-historical-stable.yml``, may write
+  releases. Neither may move an existing tag to different source.
 * The required ``build-windows`` check runs on every pull request, so
   documentation-only PRs can be integrated.
 
@@ -29,8 +30,11 @@ ACTIVE_GATES = {
     "build-macos-v8.70.yml",
     "source-test-archive.yml",
 }
-PUBLISHER = "publish-current.yml"
-ACTIVE = ACTIVE_GATES | {PUBLISHER}
+PUBLISHERS = {
+    "publish-current.yml",
+    "promote-historical-stable.yml",
+}
+ACTIVE = ACTIVE_GATES | PUBLISHERS
 ARCHIVE = ROOT / "docs" / "history" / "workflows"
 
 
@@ -63,12 +67,17 @@ class TestWorkflowInventory(unittest.TestCase):
             self.assertNotIn("gh release", text, name)
             self.assertNotIn("softprops/action-gh-release", text, name)
 
-    def test_single_universal_publisher_is_allowed(self):
-        text = (ROOT / ".github" / "workflows" / PUBLISHER).read_text("utf-8")
-        self.assertRegex(text, r"contents:\s*write")
-        self.assertIn("gh release create", text)
-        self.assertIn("already exists; refusing", text)
-        self.assertNotRegex(PUBLISHER, r"publish-v\d")
+    def test_only_guarded_publishers_can_write_releases(self):
+        for name in sorted(PUBLISHERS):
+            text = (ROOT / ".github" / "workflows" / name).read_text("utf-8")
+            self.assertRegex(text, r"contents:\s*write", name)
+            self.assertIn("gh release create", text, name)
+        current = (ROOT / ".github" / "workflows" / "publish-current.yml").read_text("utf-8")
+        historical = (ROOT / ".github" / "workflows" / "promote-historical-stable.yml").read_text("utf-8")
+        self.assertIn("already exists; refusing", current)
+        self.assertIn("Source:", historical)
+        self.assertIn("git merge-base --is-ancestor", historical)
+        self.assertIn("releases/latest", historical)
 
     def test_dangerous_historical_publishers_are_archived(self):
         for name in ("publish-v10.3.yml", "update-release-description-v9.yml"):
@@ -78,7 +87,7 @@ class TestWorkflowInventory(unittest.TestCase):
             forbidden = []
             for p in tracked:
                 name = Path(p).name
-                if name == PUBLISHER:
+                if name in PUBLISHERS:
                     continue
                 if name.startswith(("publish-", "apply-", "repair-", "restore-",
                                     "backfill-", "update-release-")):
