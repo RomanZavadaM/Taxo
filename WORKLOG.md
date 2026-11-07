@@ -1,5 +1,22 @@
 # WORKLOG — Taxo
 
+## 10.12-r1 → r3 — Feature Loss Audit і захист досяжності функцій — 07.11.2026
+
+- Власник повідомив, що прийнятий раніше «Простий місячний графік…» з вибором працівників зник із Personnel UI. Аналіз підтвердив: код, мультивибір і PDF/XLSX лишались, але UI-entry додавався крихким runtime-injector.
+- **10.12-r1 / PR #202:** дія перенесена у штатний `Працівники → Планування`; injector лишено лише fallback.
+- Проведено ретроспективний Feature Loss Audit від stable `v10.10-r5` до current line. Підтверджено історичний аналогічний інцидент 10.8-r1 із vehicle core actions; знайдено історично ламкі controls/layouts і dynamic routes.
+- PR #203 додав `FEATURE_LOSS_AUDIT_2026-11-06.md` та `FUNCTION_REGISTRY_DRAFT.md`.
+- Виявлено, що до цієї роботи майже весь UI regression suite був source/static; реальний `winfo_ismapped()` + callback smoke фактично існував тільки для vehicle core toolbar.
+- **10.12-r2 / PR #204:** додано executable `src/taxo/function_registry.py` і cross-platform Tk reachability smoke. Під час розробки test harness окремо адаптовано до macOS Label navigation та Windows Tk mapping lifecycle; product logic не змінювалась.
+- Фінальний r2 gate: Windows #42352276336 SUCCESS; Win7 #42352276288 SUCCESS (full CPython 3.8); macOS #42352276292 SUCCESS.
+- Аудит знайшов cascade-risk у Personnel Data Center: historical buttons ховались до перевірки, що replacement route вдалося створити.
+- **10.12-r3 / PR #205:** `Дані / Дія / документи…` став постійним Personnel action; legacy buttons ховаються тільки після гарантії replacement; missing-anchor залишає старі routes доступними.
+- r3 runtime regression покриває permanent / compatibility fallback / missing-anchor. PR-head Windows #42352755797 — **903 tests / OK**; Win7 #42352755837 SUCCESS; macOS #42352755821 SUCCESS.
+- PR #205 merged; current main = `28a84c9b44c7ac526acb09c6258e227d760cc762`.
+- Stable лишається `v10.10-r5`; останній **виданий** candidate лишається `v10.11-r10`. 10.12-r1/r2/r3 не публікувались.
+- Наступна кодова ревізія — **10.12-r4**. Наступний slice не змішувати з великим UX cleanup; пріоритет — подальший runtime reachability gate за Issue #164.
+
+
 ## 10.11-r9 — immutable GitHub Action pins та офіційний prerelease — 06.11.2026
 
 - Окремий workflow supply-chain hardening slice за Issue #175 finding #11; runtime/business logic, UX #164, build naming і CI optimization #142/#152 не змішувались.
