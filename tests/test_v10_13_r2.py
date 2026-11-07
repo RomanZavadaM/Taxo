@@ -60,8 +60,10 @@ class _AppHarness(tk.Tk):
 
 
 class OperationsStoirUsabilityR2Tests(unittest.TestCase):
-    def test_identity_is_10_13_r2(self):
-        self.assertEqual(main.APP_VERSION, "10.13-r2")
+    def test_r2_identity_is_historical_anchor(self):
+        base, _, revision = main.APP_VERSION.partition("-r")
+        major, minor = (int(value) for value in base.split(".", 1))
+        self.assertGreaterEqual((major, minor, int(revision)), (10, 13, 2))
 
     def test_stoir_humanizes_internal_values(self):
         self.assertEqual(
