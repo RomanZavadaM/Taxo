@@ -6,6 +6,16 @@ on:
       - main
       - 'work/v9.*'
       - 'work/v10.*'
+    paths:
+      - '**'
+      - '!README.md'
+      - '!START_HERE.md'
+      - '!HANDOFF_CURRENT.md'
+      - '!PROJECT_RULES.md'
+      - '!PROJECT_STATE.md'
+      - '!WORKLOG.md'
+      - '!docs/**'
+      - 'docs/releases/**'
   workflow_dispatch:
 
 permissions:
