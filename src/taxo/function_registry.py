@@ -36,7 +36,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("vehicles.military.statement", "Військово-транспортний облік", "Відомість (додаток 1)", "open_military_transport_statement", runtime_smoke=True),
     FunctionRoute("operations.center", "Ліве меню", "Експлуатація", "open_operations_center", runtime_smoke=True),
     FunctionRoute("maintenance.stoir", "Ліве меню", "СТОІР", "open_vehicle_maintenance", runtime_smoke=True),
-    FunctionRoute("documents.center", "Експлуатація → Документи", "Документи підприємства", "DOCUMENT_CENTER_GROUPS"),
+    FunctionRoute("documents.center", "Експлуатація → Документи", "Документи підприємства", "DOCUMENT_CENTER_GROUPS", runtime_smoke=True),
     FunctionRoute("waybills.actions", "Шляхові листи", "Повна панель дій", "WAYBILL_ACTION_LABELS", runtime_smoke=True),
     FunctionRoute("tachograph.main", "Ліве меню", "Тахограф", "tab_tacho"),
     FunctionRoute("reports.home", "Ліве меню", "Звіти", "show_reports_home"),
