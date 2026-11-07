@@ -177,9 +177,14 @@ jobs:
               --repo "${GITHUB_REPOSITORY}" \
               --target "${source}" \
               --title "Taxo ${version} — Stable" \
-              --notes-file release_notes.md \
-              --latest
+              --notes-file release_notes.md
           fi
+
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.id')"
+          body="$(cat release_notes.md)"
+          jq -n --arg name "Taxo ${version} — Stable" --arg body "${body}" \
+            '{name:$name,body:$body,prerelease:false,make_latest:"true"}' \
+            | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --input -
 
       - name: Verify stable/latest release
         shell: bash
