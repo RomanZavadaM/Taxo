@@ -9,7 +9,7 @@ Taxo は単一の運送会社向けデスクトップシステムです：従業
 > **さらに以前のロールバック:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 > **旧ロールバック:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
 
-## ダウンロード — Taxo 10.9-r10（以前の安定版 / ロールバック）
+## ダウンロード — Taxo 10.9-r10（さらに以前のロールバック）
 
 **Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Windows_x64_Portable.zip)
 

@@ -10,7 +10,7 @@ Taxo is a desktop system for a single transport company: personnel and drivers, 
 > **Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 > **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
 
-## Downloads — Taxo 10.9-r10 (previous stable / rollback)
+## Downloads — Taxo 10.9-r10 (older rollback)
 
 **Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Windows_x64_Portable.zip)
 
