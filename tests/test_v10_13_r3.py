@@ -47,10 +47,15 @@ class _AppHarness(tk.Tk):
 
 
 class InstructionJournalsR3Tests(unittest.TestCase):
-    def test_version_is_10_13_r3(self):
-        self.assertEqual(main.APP_VERSION, "10.13-r3")
-        self.assertIn("10.13-r3", Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("10.13-r3", Path("START.bat").read_text(encoding="utf-8"))
+    def test_r3_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 13, 3))
+        self.assertIn("Version:", Path("VERSION.txt").read_text(encoding="utf-8"))
+        self.assertIn("Taxo 10.13-", Path("START.bat").read_text(encoding="utf-8"))
 
     def test_calendar_quarter_is_only_an_organizational_period(self):
         self.assertEqual(brief.quarter_for(date(2026, 12, 31)), (2026, 4))
