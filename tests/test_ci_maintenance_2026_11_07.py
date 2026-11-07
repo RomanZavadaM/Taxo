@@ -68,7 +68,7 @@ class TestCiMaintenance20261107(unittest.TestCase):
         text = self._read("build-windows-v8.70.yml")
         self.assertIn("Detect ordinary documentation-only PR", text)
         self.assertIn("steps.scope.outputs.docs_only != 'true'", text)
-        self.assertIn("-not ($file -match '^docs/releases/')", text)
+        self.assertIn("-not $file.StartsWith('docs/releases/')", text)
         self.assertIn("Verify multilingual documentation", text)
 
 
