@@ -40,8 +40,9 @@ def open_operations_center(app, core):
     core.ttk.Label(body, text="Експлуатація", style="HeroTitle.TLabel").pack(anchor="w")
     core.ttk.Label(
         body,
-        text=("Накази, закріплення водіїв за транспортними засобами та відповідальні особи. "
-              "Цей розділ є основою для подальших модулів ТО, ремонтів та інших експлуатаційних документів."),
+        text=("Робочий центр експлуатації: щоденні документи, технічна готовність, накази, "
+              "закріплення ТЗ і відповідальні особи. Починайте з вкладки «Документи» — "
+              "там зібрані найчастіші дії; реєстри нижче зберігають історію та деталі."),
         style="Muted.TLabel", wraplength=1180, justify="left",
     ).pack(anchor="w", pady=(2, 8))
 
@@ -87,8 +88,13 @@ def open_operations_center(app, core):
 
     # Orders register
     order_top = core.ttk.Frame(orders_tab,padding=(10,10,10,4)); order_top.pack(fill="x")
-    order_hint = core.ttk.Label(orders_tab, text="Створіть наказ → заповніть реквізити → для наказу про закріплення додайте ТЗ / водія.",
-                                style="Muted.TLabel")
+    order_hint = core.ttk.Label(
+        orders_tab,
+        text=("Робочий порядок: виберіть, що потрібно оформити → створіть чернетку → "
+              "перевірте реквізити → за потреби додайте ТЗ/водія → введіть наказ у дію в Taxo → "
+              "після фактичного підписання позначте паперовий оригінал."),
+        style="Muted.TLabel", wraplength=1100, justify="left",
+    )
     order_hint.pack(anchor="w", padx=12, pady=(0,4))
     order_frame = core.ttk.Frame(orders_tab); order_frame.pack(fill="both",expand=True,padx=10,pady=(0,10)); order_frame.rowconfigure(0,weight=1); order_frame.columnconfigure(0,weight=1)
     cols=("date","no","group","type","subject","status","paper","control")
@@ -122,7 +128,8 @@ def open_operations_center(app, core):
             group_key=ops.ORDER_TYPE_GROUP.get(order_type,ops.ORDER_GROUP_OTHER)
             order_tree.insert("","end",iid=str(oid),values=(ops.display_day(row["order_date"]),row["order_no"],
                 ops.ORDER_GROUP_LABELS.get(group_key,group_key),ops.ORDER_TYPE_LABELS.get(order_type,order_type),row["subject"],
-                ops.ORDER_STATUS_LABELS.get(row["status"],row["status"]),paper,control or "—"),tags=(row["status"],))
+                ("Діє в Taxo" if row["status"]==ops.ORDER_APPROVED else ops.ORDER_STATUS_LABELS.get(row["status"],row["status"])),
+                paper,control or "—"),tags=(row["status"],))
         order_tree.tag_configure(ops.ORDER_APPROVED,foreground="#0B5D1E"); order_tree.tag_configure(ops.ORDER_CANCELLED,foreground="#777777")
         if rows: order_hint.pack_forget()
         elif not order_hint.winfo_manager(): order_hint.pack(anchor="w",padx=12,pady=(0,4),before=order_frame)
@@ -206,31 +213,187 @@ def open_operations_center(app, core):
         core.ttk.Button(bar,text="Типовий текст",command=apply_template).pack(side="left")
         core.ttk.Button(bar,text="Зберегти" if existing else "Створити",style="Accent.TButton",command=save).pack(side="right",padx=(0,6)); dialog.transient(win)
 
-    def new_order(): order_dialog()
+    def order_mutability_message(row):
+        if row is None:
+            return "Наказ не вибрано."
+        if str(row["status"] or "") == ops.ORDER_CANCELLED:
+            return "Скасований наказ зберігається в історії та не редагується. Оформіть нову чернетку."
+        if str(row["status"] or "") == ops.ORDER_APPROVED:
+            return "Наказ уже діє в Taxo і є незмінним. Для зміни оформіть новий наказ."
+        if int(row["paper_original_signed"] or 0):
+            return "Паперовий оригінал позначено як підписаний. Для зміни оформіть новий наказ."
+        return ""
+
+    def require_mutable_order(row, title="Накази"):
+        message = order_mutability_message(row)
+        if message:
+            core.messagebox.showinfo(title, message, parent=win)
+            return False
+        return True
+
+    def new_order():
+        book.select(maintenance_tab)
+
     def edit_order():
-        row=selected_order();
-        if row is not None: order_dialog(row)
-    def create_assignment_order(): order_dialog(force_type=ops.TYPE_VEHICLE_ASSIGNMENT)
+        row=selected_order()
+        if row is not None and require_mutable_order(row):
+            order_dialog(row)
+
+    def create_assignment_order():
+        order_dialog(force_type=ops.TYPE_VEHICLE_ASSIGNMENT)
 
     def mark_paper_signed():
         row=selected_order()
-        if row is None: return
-        signed=not bool(int(row["paper_original_signed"] or 0)); con2=core.db()
-        try: ops.set_paper_original_signed(con2,row["id"],signed,history_note="Зміна позначки паперового оригіналу через UI"); con2.commit()
-        except Exception as exc: con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
-        finally: con2.close()
+        if row is None:
+            return
+        if int(row["paper_original_signed"] or 0):
+            core.messagebox.showinfo(
+                "Паперовий оригінал",
+                "Цей наказ уже позначено як підписаний. Позначка незворотна; зміни оформлюються новим наказом.",
+                parent=win,
+            )
+            return
+        if str(row["status"] or "") == ops.ORDER_CANCELLED:
+            core.messagebox.showinfo(
+                "Паперовий оригінал",
+                "Скасований наказ не можна позначити як підписаний.",
+                parent=win,
+            )
+            return
+        if not core.messagebox.askyesno(
+            "Підписаний паперовий оригінал?",
+            "Підтвердити, що паперовий оригінал цього наказу фактично підписано?\n\n"
+            "Після цього Taxo не дозволятиме зняти позначку або редагувати цей запис. "
+            "Виправлення оформлюються новим наказом.",
+            parent=win,
+        ):
+            return
+        con2=core.db()
+        try:
+            ops.set_paper_original_signed(
+                con2,row["id"],True,
+                history_note="Паперовий оригінал позначено як підписаний через UI"
+            )
+            con2.commit()
+        except Exception as exc:
+            con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
+        finally:
+            con2.close()
         refresh_orders(row["id"])
 
     def approve_selected():
-        row=selected_order();
-        if row is None:return
-        if row["status"]==ops.ORDER_APPROVED: core.messagebox.showinfo("Накази","Наказ уже затверджено.",parent=win); return
-        if not core.messagebox.askyesno("Затвердити наказ?","Після затвердження закріплення почне діяти як структурований факт Taxo.",parent=win): return
+        row=selected_order()
+        if row is None:
+            return
+        if row["status"]==ops.ORDER_APPROVED:
+            core.messagebox.showinfo(
+                "Накази","Наказ уже діє в Taxo.",parent=win
+            )
+            return
+        if row["status"]==ops.ORDER_CANCELLED:
+            core.messagebox.showinfo(
+                "Накази","Скасований наказ не можна ввести в дію повторно. Створіть новий наказ.",parent=win
+            )
+            return
+        if not core.messagebox.askyesno(
+            "Ввести наказ у дію в Taxo?",
+            "Після цієї дії структуровані дані наказу почнуть діяти в Taxo. "
+            "Наприклад, закріплення ТЗ/водія стане чинним для системи.\n\n"
+            "Це НЕ означає юридичне підписання документа і не замінює паперовий оригінал.",
+            parent=win,
+        ):
+            return
         con2=core.db()
-        try: ops.approve_order(con2,row["id"]); con2.commit()
-        except Exception as exc: con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
-        finally: con2.close()
+        try:
+            ops.approve_order(con2,row["id"]); con2.commit()
+        except Exception as exc:
+            con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
+        finally:
+            con2.close()
         refresh_orders(row["id"])
+
+    def cancel_draft():
+        row=selected_order()
+        if row is None:
+            return
+        if row["status"] != ops.ORDER_DRAFT:
+            core.messagebox.showinfo(
+                "Скасувати чернетку",
+                "Тут можна скасувати тільки чернетку. Чинний наказ не змінюйте заднім числом — оформіть новий наказ про зміну.",
+                parent=win,
+            )
+            return
+        if int(row["paper_original_signed"] or 0):
+            core.messagebox.showinfo(
+                "Скасувати чернетку",
+                "Паперовий оригінал уже позначено як підписаний. Такий запис не змінюється; оформіть новий наказ.",
+                parent=win,
+            )
+            return
+        if not core.messagebox.askyesno(
+            "Скасувати чернетку?",
+            "Чернетка залишиться в історії зі станом «Скасовано». Продовжити?",
+            parent=win,
+        ):
+            return
+        con2=core.db()
+        try:
+            ops.cancel_order(con2,row["id"]); con2.commit()
+        except Exception as exc:
+            con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
+        finally:
+            con2.close()
+        refresh_orders(row["id"])
+
+    def show_history():
+        row=selected_order()
+        if row is None:
+            return
+        con2=core.db()
+        try:
+            history=list(ops.order_history(con2,row["id"]))
+        finally:
+            con2.close()
+        dlg=core.tk.Toplevel(win)
+        dlg.title("Історія наказу №%s" % row["order_no"])
+        try:
+            core.configure_toplevel(dlg,title=dlg.title(),minsize=(760,420))
+        except Exception:
+            dlg.geometry("900x520")
+        frm=core.ttk.Frame(dlg,padding=12); frm.pack(fill="both",expand=True)
+        core.ttk.Label(
+            frm,
+            text="Історія змін наказу та пов'язаних закріплень. Старі записи не переписуються.",
+            style="Muted.TLabel",
+        ).pack(anchor="w",pady=(0,8))
+        tree_frame=core.ttk.Frame(frm); tree_frame.pack(fill="both",expand=True)
+        tree_frame.rowconfigure(0,weight=1); tree_frame.columnconfigure(0,weight=1)
+        htree=core.ttk.Treeview(
+            tree_frame,columns=("at","entity","action","note"),show="headings"
+        )
+        for key,label,width in (
+            ("at","Коли",170),("entity","Об'єкт",120),
+            ("action","Дія",150),("note","Примітка",420)
+        ):
+            htree.heading(key,text=label); htree.column(key,width=width,anchor="w")
+        hy=core.ttk.Scrollbar(tree_frame,orient="vertical",command=htree.yview)
+        hx=core.ttk.Scrollbar(tree_frame,orient="horizontal",command=htree.xview)
+        htree.configure(yscrollcommand=hy.set,xscrollcommand=hx.set)
+        htree.grid(row=0,column=0,sticky="nsew"); hy.grid(row=0,column=1,sticky="ns"); hx.grid(row=1,column=0,sticky="ew")
+        action_labels={
+            "create":"Створено","update":"Змінено","approve":"Введено в дію",
+            "cancel":"Скасовано","paper_signed":"Паперовий оригінал підписано",
+            "paper_unmarked":"Знято позначку","delete":"Видалено",
+            "superseded":"Замінено новим наказом",
+        }
+        entity_labels={"order":"Наказ","assignment":"Закріплення"}
+        for item in history:
+            htree.insert("", "end", values=(
+                item["changed_at"], entity_labels.get(item["entity_type"],item["entity_type"]),
+                action_labels.get(item["action"],item["action"]), item["note"] or "—"
+            ))
+        if not history:
+            core.ttk.Label(frm,text="Історії змін ще немає.").pack(anchor="w",pady=8)
 
     def export_selected():
         row=selected_order();
@@ -246,11 +409,18 @@ def open_operations_center(app, core):
         try: core.open_external(out)
         except Exception: pass
 
-    core.ttk.Button(order_top,text="Створити наказ",style="Accent.TButton",command=new_order).pack(side="left")
-    core.ttk.Button(order_top,text="Редагувати наказ",command=edit_order).pack(side="left",padx=6)
-    core.ttk.Button(order_top,text="Затвердити",command=approve_selected).pack(side="left",padx=6)
-    core.ttk.Button(order_top,text="Паперовий оригінал",command=mark_paper_signed).pack(side="left",padx=6)
+    core.ttk.Button(
+        order_top,text="Новий наказ — вибрати тип…",style="Accent.TButton",command=new_order
+    ).pack(side="left")
+    core.ttk.Button(order_top,text="Редагувати чернетку",command=edit_order).pack(side="left",padx=6)
+    core.ttk.Button(order_top,text="Ввести в дію в Taxo",command=approve_selected).pack(side="left",padx=6)
+    core.ttk.Button(order_top,text="Історія…",command=show_history).pack(side="left",padx=6)
+    core.ttk.Button(order_top,text="Скасувати чернетку",command=cancel_draft).pack(side="left",padx=6)
     core.ttk.Button(order_top,text="Сформувати PDF",command=export_selected).pack(side="left",padx=6)
+    core.ttk.Button(
+        order_top,text="Позначити паперовий оригінал підписаним",
+        command=mark_paper_signed
+    ).pack(side="left",padx=6)
 
     # Assignments
     at=core.ttk.Frame(assignments_tab,padding=(10,10,10,4)); at.pack(fill="x")
@@ -272,7 +442,8 @@ def open_operations_center(app, core):
         for iid in atree.get_children(): atree.delete(iid)
         assignment_cache.clear(); row=current_assignment_order()
         if row is None: selected_order_var.set("Виберіть наказ про закріплення або створіть новий."); return
-        selected_order_var.set("Наказ №%s від %s — %s"%(row["order_no"],ops.display_day(row["order_date"]),ops.ORDER_STATUS_LABELS.get(row["status"],row["status"])))
+        state_label = "Діє в Taxo" if row["status"]==ops.ORDER_APPROVED else ops.ORDER_STATUS_LABELS.get(row["status"],row["status"])
+        selected_order_var.set("Наказ №%s від %s — %s"%(row["order_no"],ops.display_day(row["order_date"]),state_label))
         con2=core.db()
         try: items=ops.order_assignments(con2,row["id"])
         finally: con2.close()
@@ -284,8 +455,8 @@ def open_operations_center(app, core):
     def assignment_dialog(existing=None):
         order=current_assignment_order()
         if order is None: core.messagebox.showinfo("Закріплення","Спочатку виберіть або створіть наказ про закріплення.",parent=win); return
-        if int(order["paper_original_signed"] or 0):
-            if not core.messagebox.askyesno("Паперовий оригінал підписано","Зміни будуть записані в історію. Після редагування звірте та, за потреби, передрукуйте паперовий примірник. Продовжити?",parent=win): return
+        if not require_mutable_order(order, "Закріплення"):
+            return
         con2=core.db()
         try: vehicles=ops.list_vehicle_choices(con2,active_only=False); emps=ops.list_employee_choices(con2,active_only=True)
         finally: con2.close()
@@ -313,7 +484,8 @@ def open_operations_center(app, core):
     def remove_assignment():
         order=current_assignment_order(); sel=atree.selection()
         if order is None or not sel:return
-        if int(order["paper_original_signed"] or 0) and not core.messagebox.askyesno("Паперовий оригінал підписано","Видалення буде записане в історію. Продовжити?",parent=win): return
+        if not require_mutable_order(order, "Закріплення"):
+            return
         con2=core.db()
         try: ops.delete_vehicle_assignment(con2,int(sel[0]),history_note="Видалення через інтерфейс"); con2.commit()
         except Exception as exc: con2.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=win); return
@@ -325,10 +497,31 @@ def open_operations_center(app, core):
     core.ttk.Button(abar,text="Прибрати",command=remove_assignment).pack(side="left",padx=6)
 
     mbody=core.ttk.Frame(maintenance_tab,padding=14); mbody.pack(fill="both",expand=True)
-    core.ttk.Label(mbody,text="Каталог наказів з експлуатації",style="Title.TLabel").pack(anchor="w")
-    core.ttk.Label(mbody,text=("Єдиний каталог типів наказів. Тут зведені накази по водіях, транспорту, технічній експлуатації, БДР, охороні праці, пожежній безпеці та ДТП. "
-                               "Виберіть тип і створіть наказ; усі створені документи залишаються в загальному реєстрі «Накази»."),
-                   style="Muted.TLabel",wraplength=1040,justify="left").pack(anchor="w",pady=(4,10))
+    core.ttk.Label(mbody,text="Що потрібно оформити?",style="Title.TLabel").pack(anchor="w")
+    core.ttk.Label(
+        mbody,
+        text=("Почніть не з порожнього бланка, а з потрібної дії. Taxo підставить типову тему, вступ і редаговану заготовку пунктів. "
+              "Це робоча заготовка, а не юридичне твердження: перед підписанням перевірте фактичні реквізити й зміст."),
+        style="Muted.TLabel",wraplength=1040,justify="left"
+    ).pack(anchor="w",pady=(4,8))
+    quick=core.ttk.LabelFrame(mbody,text="Найчастіші дії",padding=8); quick.pack(fill="x",pady=(0,10))
+    quick_types=[
+        ("Закріпити ТЗ за водіями", ops.TYPE_VEHICLE_ASSIGNMENT),
+        ("Організувати ТО / ремонти", ops.TYPE_MAINTENANCE_REPAIR),
+    ]
+    if hasattr(ops,"TYPE_RESPONSIBLE_PERSONS"):
+        quick_types.append(("Призначити відповідальних",ops.TYPE_RESPONSIBLE_PERSONS))
+    if hasattr(ops,"TYPE_VEHICLE_RELEASE_RETURN"):
+        quick_types.append(("Порядок випуску / повернення ТЗ",ops.TYPE_VEHICLE_RELEASE_RETURN))
+    for label,order_type in quick_types:
+        core.ttk.Button(
+            quick,text=label,command=lambda t=order_type:order_dialog(force_type=t)
+        ).pack(side="left",padx=(0,6))
+    core.ttk.Label(
+        mbody,
+        text="Повний каталог типів наказів",
+        style="Subtitle.TLabel",
+    ).pack(anchor="w",pady=(2,4))
     catalog_frame=core.ttk.Frame(mbody); catalog_frame.pack(fill="both",expand=True); catalog_frame.rowconfigure(0,weight=1); catalog_frame.columnconfigure(0,weight=1)
     catalog_tree=core.ttk.Treeview(catalog_frame,columns=("group","type","subject"),show="headings",selectmode="browse")
     for key,label,width in (("group","Група",250),("type","Тип наказу",320),("subject","Типова тема",430)):
