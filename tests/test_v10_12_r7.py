@@ -49,8 +49,13 @@ class _App:
 
 
 class DocumentCenterReachabilityR7Tests(unittest.TestCase):
-    def test_identity_is_10_12_r7(self):
-        self.assertEqual(main.APP_VERSION, "10.12-r7")
+    def test_r7_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 12, 7))
 
     def test_registry_requires_document_center_runtime_smoke(self):
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
