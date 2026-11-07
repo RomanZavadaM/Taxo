@@ -9,8 +9,9 @@ from __future__ import annotations
 APP_VERSION = "10.7-r10"
 
 DOCUMENT_CENTER_GROUPS = (
-    ("Операційні документи", (
+    ("Щоденна експлуатація", (
         ("Шляхові листи на день", "show_waybills_for_schedule"),
+        ("СТОІР — стан автопарку", "open_vehicle_maintenance"),
     )),
     ("Транспорт", (
         ("Контроль документів ТЗ", "vehicle_document_control"),
@@ -90,13 +91,13 @@ def _install_document_tab(app, core, win):
 
     core.ttk.Label(
         shell,
-        text="Документи підприємства",
+        text="Робочий стіл експлуатації",
         style="HeroTitle.TLabel",
     ).grid(row=0, column=0, columnspan=2, sticky="w")
     core.ttk.Label(
         shell,
-        text=("Єдина точка входу до форм і реєстрів. Старі кнопки та меню залишені, "
-              "щоб не ламати звичні сценарії роботи."),
+        text=("Починайте звідси: щоденні шляхівки, технічний стан автопарку, документи ТЗ, "
+              "військовий облік, персонал і накази. Старі входи залишені, щоб не ламати звичні сценарії."),
         style="Muted.TLabel",
         wraplength=980,
         justify="left",
@@ -138,6 +139,10 @@ def _install_document_tab(app, core, win):
         justify="left",
     ).grid(row=row + 3, column=0, columnspan=2, sticky="ew", pady=(10, 0))
 
+    try:
+        book.select(tab)
+    except Exception:
+        pass
     win._taxo_v10710_documents = True
     return win
 
