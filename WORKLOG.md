@@ -1,3 +1,11 @@
+## Exact-product closure 10.13-r3 — 07.11.2026
+
+- PR #239 integration exact product SHA `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`.
+- Post-merge gates: Windows #42414412641 SUCCESS, Win7 #42414412482 SUCCESS, macOS #42414412631 ARM64/Intel SUCCESS, START #42414412635 SUCCESS.
+- START artifact #13591181251, name `Taxo_v10_13_candidate_r3_START`, 584 files, 1 636 456 bytes, SHA256 `5ec905fa91289a369ccde51a2cc3bd6bbc3a5232371e0b0185274f8b1f3a66d2`.
+- Drive recovery-copy підтверджено: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
+- Stable `v10.12-r10` не змінено. 10.13-r3 integrated-only + START for manual owner acceptance, no separate release tag; next code revision 10.13-r4.
+
 ## 10.13-r3 — інструктажі БДР/ОП, перший паперовий підготовчий екран — 07.11.2026
 
 - Звірено нормативні вимоги: БДР наказ №975 (види інструктажів, строки затверджує керівник, сезонні події), ОП НПАОП 0.00-4.12-05 (повторні інструктажі 3/6 міс залежно від робіт). Квартал не підміняє нормативний строк.

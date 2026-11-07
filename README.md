@@ -59,7 +59,7 @@
 
 ## Для розробки
 
-Точка входу: [`START_HERE.md`](START_HERE.md). Далі — `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61. Поточна stable — `10.12-r10`; у `main` уже інтегровано новішу `10.13-r2`, але вона не stable. Наступна кодова ревізія — `10.13-r3`.
+Точка входу: [`START_HERE.md`](START_HERE.md). Далі — `PROJECT_RULES.md`, `PROJECT_STATE.md`, `WORKLOG.md` та Issue #61. Поточна stable — `10.12-r10`; у `main` уже інтегровано новішу `10.13-r3`, але вона не stable. Наступна кодова ревізія — `10.13-r4`.
 
 ## Ліцензія
 

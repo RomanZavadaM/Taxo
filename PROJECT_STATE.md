@@ -12,9 +12,10 @@
 - **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r3; історичний тег зберігається.
 - **Current integrated product candidate:** Taxo **10.13-r3**, product commit `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`. Stable лишається 10.12-r10; 10.13-r1/r2/r3 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r4**. Exact post-merge START/Drive r3 ще не підтверджені.
+- **Next code revision:** **10.13-r4**. Для r3 exact-source CI/START і Google Drive PASS; потрібне ручне приймання.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Last confirmed Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
+- **Previous Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
+- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`; source START artifact SHA256 `5ec905fa91289a369ccde51a2cc3bd6bbc3a5232371e0b0185274f8b1f3a66d2`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
 ## Інтегрована розробка 10.13-r3 — паперова підготовка інструктажів
@@ -23,7 +24,7 @@
 - Окрема вкладка у «Експлуатації»; БДР/ОП, вид/дата/тема/підстава, активні працівники, квартал як організаційний орієнтир.
 - Допоміжний CSV-список із видимою позначкою «НЕ Є ЖУРНАЛОМ», без підписів, статусу проведення, перезапису файлів і DB/schema змін.
 - PR-head Windows #42414118500, Win7 #42414118532, macOS #42414118493 (Intel/ARM) — SUCCESS; live regression та ізольовані тести.
-- Exact-main START/recovery-copy r3 **очікують перевірки**, попередній підтверджений резерв — r2.
+- Exact-product post-merge: Windows #42414412641, Win7 #42414412482, macOS #42414412631 Intel/ARM, START #42414412635 — **SUCCESS**. 584 files, exact SHA256 above. Drive recovery-copy r3 підтверджена.
 - Наступний code revision 10.13-r4; stable 10.12-r10 незмінна. Manual acceptance ще потрібне.
 
 ## Stable promotion 10.12-r10
