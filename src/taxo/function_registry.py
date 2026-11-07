@@ -38,9 +38,9 @@ FUNCTION_ROUTES = (
     FunctionRoute("maintenance.stoir", "Ліве меню", "СТОІР", "open_vehicle_maintenance", runtime_smoke=True),
     FunctionRoute("documents.center", "Експлуатація → Документи", "Документи підприємства", "DOCUMENT_CENTER_GROUPS"),
     FunctionRoute("waybills.actions", "Шляхові листи", "Повна панель дій", "WAYBILL_ACTION_LABELS", runtime_smoke=True),
-    FunctionRoute("tachograph.main", "Ліве меню", "Тахограф", "tab_tacho"),
-    FunctionRoute("reports.home", "Ліве меню", "Звіти", "show_reports_home"),
-    FunctionRoute("settings.main", "Ліве меню", "Налаштування", "tab_company"),
+    FunctionRoute("tachograph.main", "Ліве меню", "Тахограф", "tab_tacho", runtime_smoke=True),
+    FunctionRoute("reports.home", "Ліве меню", "Звіти", "show_reports_home", runtime_smoke=True),
+    FunctionRoute("settings.main", "Ліве меню", "Налаштування", "tab_company", runtime_smoke=True),
 )
 
 
