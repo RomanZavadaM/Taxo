@@ -9,7 +9,7 @@ from __future__ import annotations
 APP_VERSION = "10.7-r10"
 
 DOCUMENT_CENTER_GROUPS = (
-    ("Щоденна експлуатація", (
+    ("Операційні документи", (
         ("Шляхові листи на день", "show_waybills_for_schedule"),
         ("СТОІР — стан автопарку", "open_vehicle_maintenance"),
     )),
