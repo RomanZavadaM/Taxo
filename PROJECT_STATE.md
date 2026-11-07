@@ -10,14 +10,27 @@
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Current published candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable не змінено.
-- **Current integrated product candidate:** Taxo **10.12-r10**, product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`. 10.12-r1…r10 ще не опубліковані як prerelease.
+- **Current integrated product candidate:** Taxo **10.13-r1**, product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`. 10.12-r1…r10 і 10.13-r1 ще не опубліковані як prerelease.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r1**.
+- **Next code revision:** **10.13-r2**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** exact-source START recovery-copy для 10.12-r10 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.12-r10_2026-11-07_START.zip`, 1 598 952 байти; Drive file `1bzL2PomOIhNcQDB6pxRnBES6bgVlC214`; source artifact START #2315, SHA256 `395834c0c2247129d280fb08bff5cb7c27ac118cfc1d6ceae67092d413f0afa3`.
+- **Google Drive backup:** exact-source START recovery-copy для 10.13-r1 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r1_2026-11-07_START.zip`, 1 613 547 байт; Drive file `1XCfHkCdQUv8r0B0YyA3S2fCUsA126Z8F`; source artifact START #2316, SHA256 `11780cd318c419b52b8316e2c1fbb0c36d2b6877f738130250993dfac84eec38`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
-## Поточний product main 10.12-r10 — Feature Loss hardening
+## Поточний product main 10.13-r1 — Експлуатація / СТОІР usability consolidation
+
+- **PR #227 → product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`.**
+- Перед змінами повторно прочитано чинну dev-strategy, включно з mandatory Functional Loss Prevention rule; робота виконана як цілісний operational workflow, а не як окрема кнопка.
+- «Експлуатація → Документи» стала робочим столом із прямим входом до СТОІР; старі маршрути збережені.
+- СТОІР: стан автопарку перший; вибір ТЗ; UI профілю ТО; факт ТО/ремонту з виконавцем/приміткою; заявка «нова → у роботу → закрити з результатом»; прямий перехід ОТК → документи ТЗ; локалізовані статуси/пріоритети.
+- Накази: старт «Що потрібно оформити?»; «Ввести в дію в Taxo» окремо від паперового підписання; early immutability guard; історія; однозначна незворотна позначка підписаного оригіналу; UI-скасування лише чернетки.
+- Plan/fact, DB schema, нормативні типові тексти наказів, історичні факти та release/build workflows не змінено.
+- PR-head: Windows #1274 — **936 tests / OK**; Win7 #265 — SUCCESS; macOS #1190 ARM64/Intel — SUCCESS.
+- Exact-product post-merge: Windows #1275 — SUCCESS; Win7 #266 — SUCCESS; macOS #1191 ARM64/Intel — SUCCESS; START #2316 — SUCCESS.
+- Google Drive exact-source recovery-copy підтверджена.
+- Ручне приймання власником — наступний UX gate; наступний code revision — **10.13-r2**.
+
+## Попередній product cycle 10.12-r10 — Feature Loss hardening
 
 - **10.12-r1 / PR #202:** повернуто постійний вхід `Працівники → Планування → Простий місячний графік…`; код мультивибору працівників і PDF/XLSX був живий, але старий runtime-injector був ненадійним.
 - **Feature Loss Audit / PR #203:** зафіксовано підтверджені історичні UI-entry regressions, крихкі runtime routes і чернетку реєстру функцій.
