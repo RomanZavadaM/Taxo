@@ -1,43 +1,37 @@
 # Taxo — поточна контрольна точка
 
-**Дата:** 05.11.2026  
-**Stable / Latest:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)  
-**Поточний main:** **Taxo 10.10-r8** — «Працівники 2.0»  
-**Superseded:** `v10.10-r4` — проблема запуску на macOS  
-**Rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)  
-**Next code revision:** `10.10-r9`  
+**Дата:** 07.11.2026  
+**Stable / Latest:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10)  
+**Stable exact source:** `6d0f32bc45323d4085bb165b2ec050dae7b378ee`  
+**Поточний integrated main product:** **Taxo 10.13-r1** — не stable  
+**Previous stable / rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)  
+**Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)  
+**Next code revision:** `10.13-r2`  
 **Recovery:** `START_HERE.md` → `HANDOFF_CURRENT.md` → private Taxo-profile → live GitHub → `PROJECT_STATE.md`
 
-## Stable 10.10-r5
+## Stable 10.12-r10
 
-- Виправлено запуск macOS у навігації «Працівники».
-- Власник перевірив виправлення на Apple Silicon Mac mini 04.11.2026.
-- Опубліковано Windows, Windows 7, macOS ARM64/Intel, START і SHA-256.
-- Stable не змінювався під час робіт r6–r8.
+- Owner approved promotion 07.11.2026 after manual r10 acceptance without a blocking defect.
+- Tag/release `v10.12-r10` points exactly to product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+- GitHub Latest verified; release is not draft and not prerelease.
+- 8 canonical assets: Windows Setup/Portable, Windows 7 Setup/Portable, macOS ARM64/Intel, START, SHA256SUMS.
+- Exact r10 checks: Windows #1269, Win7 #262, macOS #1187, START #2315 — SUCCESS.
+- PR-head r10 Windows regression: **931 tests / OK**.
+- Google Drive recovery copy already exists: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.12-r10_2026-11-07_START.zip`.
 
-## Поточний main 10.10-r8
+## Що закрила лінія 10.12
 
-### r6 — дані працівників
-- один центр «Дані / Дія / документи»;
-- обидва види державних XLSX видно в одному місці;
-- масове доповнення/оновлення для вибраних працівників;
-- РНОКПП та ідентифікатор у Реєстрі масово не перезаписуються.
+- повернення загубленого штатного входу до простого місячного графіка;
+- executable registry критичних функцій;
+- fail-safe для центру даних працівників;
+- live reachability для вкладених маршрутів, layout-контролів, шляхівок, центру документів, основної навігації та вибору водіїв;
+- **23/23 критичних маршрутів** мають runtime-smoke requirement;
+- «План → факт» додатково має behavioral gate на ізольованих даних: відсутній факт заповнюється, наявний підтверджений факт не перезаписується.
 
-### r7 — документи
-- обов'язковість задається для конкретного працівника й типу документа;
-- контроль строку вмикається незалежно;
-- локальні файли копіюються до workspace Taxo;
-- копії документів працівників завжди входять у повний backup.
+## Поточний main після stable
 
-### r8 — простий графік
-- місячний графік формується для вибраних працівників;
-- шаблони Пн–Пт, 2/2, 3/3, щодня та вибрані дні;
-- факт, відсутності та конфліктний план не перезаписуються;
-- driver-only працівники залишаються у спеціалізованому графіку водіїв;
-- PDF/Excel для працівників не розкриває службові проблеми інших ролей.
-
-Перед інтеграцією r8 весь комплект перевірок пройшов успішно. Після інтеграції exact-main повторно підтверджено: START, Windows, Windows 7, macOS ARM64 та Intel — SUCCESS.
+У `main` уже інтегровано **10.13-r1** (Експлуатація / СТОІР / накази). Це новіша розробка, але вона **не входить у stable 10.12-r10** і не повинна підміняти exact stable source.
 
 ## Далі
 
-Exact-main r8 підтверджено; видати START r8 власнику для перевірки нового інтерфейсу. Наступна кодова ревізія — 10.10-r9. CI optimization залишається окремою роботою.
+Спочатку ручне приймання 10.13-r1. Наступний дозволений code revision — **10.13-r2**. Stable змінювати лише окремим рішенням власника.

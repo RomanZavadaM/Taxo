@@ -1,3 +1,17 @@
+## Stable promotion — Taxo 10.12-r10 — 07.11.2026
+
+- Owner command: оновити stable до 10.12; interpreted as completed line endpoint **10.12-r10**.
+- Stable exact product source: `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+- Existing r10 gates reused: Windows #1269, Win7 #262, macOS #1187 ARM64/Intel, START #2315 — SUCCESS; PR-head Windows **931 tests / OK**; owner manual acceptance — без блокера.
+- r10 had not previously been published, while main already contained 10.13-r1. To avoid moving main backward or releasing 10.13 by mistake, added guarded exact historical stable promoter.
+- PR #229 merged with `[skip-publish]`: normal current publisher #18 correctly skipped; first historical promoter #42408835080 failed **before tag/release creation** on shell SIGPIPE/pipefail.
+- PR #230 fixed only pipe handling; no release gate weakened.
+- Historical stable promoter #42409237532 — **SUCCESS**.
+- GitHub release `v10.12-r10`: prerelease=false, draft=false, **Latest**, exact tag target `6d0f32bc...`, 8 canonical assets.
+- `.release/stable-current` = `10.12-r10`.
+- Previous stable `v10.10-r5` remains rollback. Current main product 10.13-r1 remains integrated-only, not stable.
+- Next code revision remains **10.13-r2**, after manual acceptance of 10.13-r1.
+
 ## 10.13-r1 — Експлуатація / СТОІР usability consolidation — 07.11.2026
 
 - Recovery виконано за START_HERE → HANDOFF_CURRENT → private profile/taxo → live GitHub → PROJECT_STATE; Issue #61/#164/#175 звірені.

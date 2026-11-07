@@ -2,9 +2,9 @@
 
 Цей розділ — основна точка входу до експлуатаційної та технічної документації Taxo.
 
-**Stable / Latest:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — виправлена macOS-версія; повний multi-platform checkpoint
-**Superseded:** Taxo 10.10-r4 / `v10.10-r4` — проблема запуску на macOS
-**Safe rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
+**Stable / Latest:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — exact r10 checkpoint; повний multi-platform комплект; GitHub Latest
+**Previous stable / safe rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)
+**Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Current integrated candidate:** **Taxo 10.13-r1** (`4ed9530`) — не опублікований; «Експлуатація / СТОІР / накази».
 **Next code revision:** `10.13-r2`
 
@@ -42,17 +42,17 @@
 - [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
 - [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-## Stable — 10.10-r5
+## Stable — 10.12-r10
 
-- [GitHub Release v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START/source, SHA-256.
-- [Release notes 10.10-r5](releases/RELEASE_NOTES_v10.10-r5.md)
+- [GitHub Release v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START/source, SHA-256.
+- [Release notes 10.12-r10](releases/RELEASE_NOTES_v10.12-r10.md)
 - [Індекс релізів](releases/RELEASE_INDEX.md)
 - [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
 - [Повний аудит 05.10.2026](maintenance/AUDIT_FULL_2026-10-05.md)
 
 ## Лінія 10.10
 
-- r1 — без PyMuPDF; r2 — CI hardening; r3 — версія/backup warning; r4 — version UI + Win7 Setup, але superseded через macOS startup issue; **r5 — поточна stable з виправленим запуском macOS**.
+- r1 — без PyMuPDF; r2 — CI hardening; r3 — версія/backup warning; r4 — version UI + Win7 Setup, але superseded через macOS startup issue; **r5 — попередня stable / rollback**.
 
 ## Мови публічного опису
 
