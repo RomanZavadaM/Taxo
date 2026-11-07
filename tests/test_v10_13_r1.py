@@ -190,8 +190,8 @@ class OperationsStoirUsabilityR1Tests(unittest.TestCase):
         for marker in (
             "Що потрібно оформити?",
             "Новий наказ…",
-            "Ввести в дію",
-            "Паперовий оригінал підписано",
+            "Ввести в дію в Taxo",
+            "Позначити оригінал підписаним",
             "Історія…",
             "Скасувати чернетку",
             "require_mutable_order",

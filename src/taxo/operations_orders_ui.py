@@ -416,11 +416,11 @@ def open_operations_center(app, core):
     order_actions = (
         ("Новий наказ…", new_order, "Accent.TButton"),
         ("Редагувати чернетку", edit_order, None),
-        ("Ввести в дію", approve_selected, None),
+        ("Ввести в дію в Taxo", approve_selected, None),
         ("Історія…", show_history, None),
         ("Скасувати чернетку", cancel_draft, None),
         ("Сформувати PDF", export_selected, None),
-        ("Паперовий оригінал підписано", mark_paper_signed, None),
+        ("Позначити оригінал підписаним", mark_paper_signed, None),
     )
     for col in range(3):
         order_action_bar.columnconfigure(col, weight=1)
