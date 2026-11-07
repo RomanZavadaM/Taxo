@@ -1,16 +1,25 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 07.11.2026 — після інтеграції, exact-product перевірок і recovery-copy Taxo 10.13-r2.
+**Оновлено:** 07.11.2026 — після інтеграції Taxo 10.13-r3 та PR-head Windows/Win7/macOS перевірок; exact-main START ще звіряється.
 
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
-- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r2.
-- **Поточний integrated product candidate:** **10.13-r2**, product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f`.
+- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r3.
+- **Поточний integrated product candidate:** **10.13-r3**, PR #239, product commit `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2 лишаються integrated-only.
-- **Google Drive recovery-copy 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
-- **Наступна кодова ревізія:** **10.13-r3**.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3 лишаються integrated-only.
+- **Остання підтверджена Google Drive recovery-copy — 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
+- **Наступна кодова ревізія:** **10.13-r4**. Для r3 точний post-merge START/recovery-copy ще не підтверджені.
 - Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
+
+## 10.13-r3 — окрема вкладка «Інструктажі та журнали»
+
+- PR #239 merged → exact product commit `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`. Stable не змінювалась.
+- Створено доступний із «Експлуатації» новий розділ: БДР/охорона праці, квартал для орієнтації, дата, вид, тема, підстава позапланового, вибір активних працівників.
+- Дія «Зберегти підготовчий список…» створює лише CSV для інженера з явним написом «НЕ Є ЖУРНАЛОМ». Не пише в робочу БД, не фіксує проведення, не моделює підпис, не перезаписує існуючий файл.
+- PR-head gates: Windows #42414118500 — SUCCESS, Win7 #42414118532 — SUCCESS, macOS #42414118493 Intel/ARM — SUCCESS; нові live UI та ізольовані CSV-тести пройшли.
+- **Залишилось:** перевірити post-merge exact product START, забезпечити резерв r3, ручне приймання; далі — сховище затверджених програм і справжній квартальний план.
+- Issue #237 і `docs/planning/INSTRUCTION_JOURNALS_FOUNDATION_2026-11-07.md` — єдина планова тема. Історична 10.11 не розробляється.
 
 ## Stable promotion 10.12-r10 — 07.11.2026
 
@@ -218,13 +227,7 @@ PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 
 ## Наступна безпечна дія
 
-Feature Loss reachability cycle 10.12 завершено; перший великий, але контрольований UX-зріз 10.13-r1 для «Експлуатації / СТОІР / наказів» інтегровано й автоматично перевірено.
-
-- наступний дозволений номер кодової ревізії — **10.13-r2**;
-- спочатку провести ручне приймання власником 10.13-r1 на реальному інтерфейсі;
-- наступний UX-зріз обирати за фактичним результатом цього приймання / Issue #164, а не відкривати ще одну велику тему автоматично;
-- CI-maintenance не переробляти без нової фактичної причини;
-- рішення про публікацію 10.13-r1 чи будь-яку stable promotion — окремий release-крок і потребує рішення власника.
+Звірити exact-source post-merge CI/START для 10.13-r3 та забезпечити recovery-copy. Після цього дати власнику версію для ручної перевірки нової вкладки. Не називати перший підготовчий CSV повноцінним журналом і не починати r4, доки checkpoint r3 не завершений.
 
 ## Recovery
 
