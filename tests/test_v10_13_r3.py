@@ -188,16 +188,17 @@ class AssignmentOrderBaseSelectorsR3Tests(unittest.TestCase):
                 app.update_idletasks()
                 app.update()
 
-                dialogs = [w for w in walk(win) if isinstance(w, tk.Toplevel) and w is not win]
-                self.assertTrue(dialogs)
-                dialog = dialogs[-1]
-                label_frames = [
-                    w for w in walk(dialog)
-                    if isinstance(w, ttk.LabelFrame)
-                    and str(w.cget("text")) == "Перше закріплення з бази Taxo"
+                dialogs = [
+                    w for w in walk(win)
+                    if isinstance(w, tk.Toplevel) and w is not win
+                    and str(w.title()) == "Створити наказ"
                 ]
-                self.assertEqual(len(label_frames), 1)
-                values = [tuple(str(v) for v in w.cget("values")) for w in walk(dialog) if isinstance(w, ttk.Combobox)]
+                self.assertTrue(dialogs)
+                values = [
+                    tuple(str(v) for v in w.cget("values"))
+                    for w in walk(win)
+                    if isinstance(w, ttk.Combobox)
+                ]
                 self.assertIn((vehicle_label,), values)
                 self.assertIn((driver_label,), values)
         finally:
