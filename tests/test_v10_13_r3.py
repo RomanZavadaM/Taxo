@@ -80,7 +80,7 @@ class InstructionJournalsR3Tests(unittest.TestCase):
             brief.prepare_list("Охорона праці", "Повторний", "32.11.2026", "Тема", ["Один"])
         with self.assertRaisesRegex(ValueError, "працівника"):
             brief.prepare_list("Охорона праці", "Повторний", "07.11.2026", "Тема", [])
-        with self.assertRaisesRegex(ValueError, "Тема"):
+        with self.assertRaisesRegex(ValueError, "тему"):
             brief.prepare_list("Охорона праці", "Повторний", "07.11.2026", "", ["Один"])
 
     def test_export_is_draft_list_and_does_not_overwrite(self):
