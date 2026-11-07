@@ -186,9 +186,9 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             PALETTE={"sidebar":"#000000","blue_dark":"#111111"},
             nav_photo=lambda parent, *_args: tk.PhotoImage(master=parent, width=1, height=1),
         )
-        with mock.patch.object(v1084_features.maintenance, "ensure_schema"), \
-             mock.patch.object(v1084_features.maintenance_ui, "open_maintenance_center", side_effect=lambda app, core: calls.append("stoir")):
+        with mock.patch.object(v1084_features.maintenance, "ensure_schema"):
             App = v1084_features.install(core, _BaseNav)
+            App.open_vehicle_maintenance = lambda self: calls.append("stoir")
             root = tk.Tk()
             root.geometry("900x600")
             app = App(root)
