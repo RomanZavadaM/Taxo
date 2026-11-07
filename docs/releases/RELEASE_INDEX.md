@@ -5,15 +5,24 @@
 **Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
 **Current published candidate:** [**Taxo 10.11-r10**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **PRERELEASE 06.11.2026**; exact source `b239bb0`; 8 canonical assets via guarded publisher; stable remains 10.10-r5.  
-**Current integrated main:** **10.12-r9** (`a445f01`) — Feature Loss hardening; r1…r9 ще не видані як prerelease.  
-**Next code revision:** **10.12-r10**.
+**Current integrated main:** **10.13-r1** (`4ed9530`) — цілісний UX-зріз «Експлуатація / СТОІР / накази»; не виданий як prerelease.  
+**Next code revision:** **10.13-r2**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
+
+## Інтегрована лінія 10.13 — ще не видана як prerelease
+
+| Версія | PR | Стан |
+|---|---|---|
+| **10.13-r1** | #227 | Integrated 07.11.2026; «Експлуатація» як робочий стіл, завершений STOIR workflow, зрозумілий lifecycle наказів; Windows **936 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |
+
+> 10.13-r1 інтегровано в `main`, але tag/release не створювався. Останній офіційно виданий candidate — `v10.11-r10`.
 
 ## Інтегрована лінія 10.12 — ще не видана як prerelease
 
 | Версія | PR | Стан |
 |---|---|---|
+| **10.12-r10** | #224 | Integrated 07.11.2026; live behavioral gate «План → факт» на ізольованій SQLite; Windows **931 tests / OK**, Win7/macOS/START SUCCESS. |
 | **10.12-r9** | #218 | Integrated 07.11.2026; live reachability для «Водії для звіту…»; Windows **923 tests / OK**, Win7/macOS SUCCESS. |
 | **10.12-r8** | #216 | Integrated 07.11.2026; live reachability для «Тахограф», «Звіти», «Налаштування»; Windows **920 tests / OK**, Win7/macOS SUCCESS. |
 | **10.12-r4** | #207 | Integrated 07.11.2026; runtime reachability для «Експлуатація» + nested «Відомість (додаток 1)»; Windows **907 tests / OK**, Win7/macOS SUCCESS. |
@@ -21,7 +30,7 @@
 | **10.12-r2** | #204 | Integrated 07.11.2026; executable function registry + cross-platform Tk/Xvfb reachability smoke; Windows/Win7/macOS SUCCESS. |
 | **10.12-r1** | #202 | Integrated 07.11.2026; permanent `Простий місячний графік…` entry; selected employees + PDF/XLSX route restored. |
 
-> Ці ревізії інтегровані в `main`, але GitHub tag/release для них ще не створювався. Останній офіційно виданий candidate — `v10.11-r10`.
+> 10.12-r1…r10 інтегровані в `main`, але GitHub tag/release для них не створювався. Останній офіційно виданий candidate — `v10.11-r10`.
 
 ## Integrated 10.12 hardening
 
@@ -36,7 +45,7 @@
 | 10.12-r2 | Integrated; реєстр критичних функцій і перший live UI gate |
 | 10.12-r1 | Integrated; повернення постійного входу до простого місячного графіка |
 
-10.12-r1…r9 ще не публікувались як GitHub prerelease. Stable лишається v10.10-r5; останній виданий candidate — v10.11-r10.
+10.12-r1…r10 ще не публікувались як GitHub prerelease. Stable лишається v10.10-r5; останній виданий candidate — v10.11-r10.
 
 ## Кандидатна лінія 10.11
 

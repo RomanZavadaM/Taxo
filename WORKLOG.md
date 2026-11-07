@@ -1,3 +1,21 @@
+## 10.13-r1 — Експлуатація / СТОІР usability consolidation — 07.11.2026
+
+- Recovery виконано за START_HERE → HANDOFF_CURRENT → private profile/taxo → live GitHub → PROJECT_STATE; Issue #61/#164/#175 звірені.
+- Перед кодом повторно прочитано PRINCIPLES / METHODOLOGY / QUALITY_AND_RELEASES / CONTINUITY / AI_COLLABORATION / GOVERNANCE; застосовано новий mandatory Functional Loss Prevention rule.
+- Підтверджено не косметичний, а структурний UX-розрив: Operations/STOIR були сусідніми системами; STOIR profile не мав UI; maintenance event не питав performer/notes; repair request закривався без result; orders UI не відповідав актуальній immutability-моделі.
+- PR #227 створено від main `992de59bbb471f95740a46033873e4c38dc4d153`; фінальний PR head `f4ee7315eaef4237553055d480f0bdc7914e33d4`.
+- СТОІР перетворено на workflow «стан автопарку → ТЗ → профіль ТО → факт ТО/ремонту → заявка → у роботу → закрити з результатом»; ОТК має прямий шлях до документів ТЗ.
+- «Експлуатація → Документи» стала робочим столом із прямим STOIR-route; старі входи не видалені.
+- Накази отримали старт «Що потрібно оформити?», чітке «Ввести в дію в Taxo» окремо від паперового підписання, history UI, early immutability guard і draft-only cancellation.
+- Historical compatibility contract для групи «Операційні документи» збережено після окремої pre-CI звірки.
+- PR-head gates: Windows #1274 — **936 tests / OK**; Win7 #265 — SUCCESS; macOS #1190 ARM64/Intel — SUCCESS.
+- PR #227 merged → exact product commit `4ed9530b57a4e67fdca49c81da43602df074ebb0`.
+- Exact-product gates: Windows #1275 — SUCCESS; Win7 #266 — SUCCESS; macOS #1191 ARM64/Intel — SUCCESS; START #2316 — SUCCESS.
+- Exact-source START artifact #13588245649: 1 613 547 байт; SHA256 `11780cd318c419b52b8316e2c1fbb0c36d2b6877f738130250993dfac84eec38`.
+- Google Drive recovery-copy: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r1_2026-11-07_START.zip`; Drive file `1XCfHkCdQUv8r0B0YyA3S2fCUsA126Z8F`.
+- Stable лишається `v10.10-r5`; last published candidate — `v10.11-r10`; 10.13-r1 integrated-only.
+- Наступний code revision — **10.13-r2**, але спочатку ручне приймання власником r1.
+
 ## 10.12-r10 — «План → факт» live reachability — 07.11.2026
 
 - Recovery виконано строго: START_HERE → HANDOFF_CURRENT → private Taxo profile → live GitHub → PROJECT_STATE; Issue #61/#164/#175 звірені до змін.
