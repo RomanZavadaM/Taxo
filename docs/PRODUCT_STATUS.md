@@ -7,8 +7,8 @@
 - **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Current integrated candidate:** Taxo 10.13-r1 — не stable.
-- **Next code revision:** `10.13-r2`.
+- **Current integrated candidate:** Taxo 10.13-r2 / exact product `c6a2ad85` — не stable; usability-подовження Експлуатації / СТОІР / наказів.
+- **Next code revision:** `10.13-r3`.
 
 ## Відомі обмеження попередньої stable 10.9-r10
 
@@ -32,6 +32,16 @@
 - exact r10 Windows/Win7/macOS/START gates — SUCCESS;
 - owner manual r10 acceptance — без блокера;
 - stable promotion 07.11.2026 з exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+
+## Integrated 10.13-r2
+
+- СТОІР має явний «Відкрити вибране ТЗ» замість залежності від знання про double-click;
+- внутрішні коди ТО/ремонту, джерел пробігу та ISO timestamps у робочих таблицях показуються людською українською;
+- робочий стіл має прямий старт «Оформити новий наказ…»;
+- order actions адаптовані до меншої ширини;
+- Feature Loss gate не дозволив видалити старий «Каталог типів наказів»: фінальний r2 зберігає обидва маршрути;
+- exact-product Windows **941 tests / OK**, Win7/macOS/START SUCCESS;
+- stable не змінено: **10.12-r10**.
 
 ## Функціональний стан
 
