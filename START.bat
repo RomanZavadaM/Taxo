@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ==============================================
-echo   Taxo 10.12-r9 - START
+echo   Taxo 10.12-r10 - START
 echo ==============================================
 echo.
 
@@ -48,7 +48,7 @@ py -3.13 -m pip install -r "requirements.txt"
 if errorlevel 1 goto :install_failed
 
 echo.
-echo Starting Taxo 10.12-r9...
+echo Starting Taxo 10.12-r10...
 py -3.13 "taxo_app.py"
 if errorlevel 1 goto :app_failed
 exit /b 0
