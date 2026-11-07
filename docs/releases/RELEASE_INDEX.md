@@ -5,8 +5,8 @@
 **Previous stable / rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
 **Current published candidate:** [**Taxo 10.11-r10**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **PRERELEASE 06.11.2026**; exact source `b239bb0`; 8 canonical assets via guarded publisher; stable remains 10.10-r5.  
-**Current integrated main:** **10.12-r8** (`30d53a2`) — Feature Loss hardening; r1…r8 ще не видані як prerelease.  
-**Next code revision:** **10.12-r9**.
+**Current integrated main:** **10.12-r9** (`a445f01`) — Feature Loss hardening; r1…r9 ще не видані як prerelease.  
+**Next code revision:** **10.12-r10**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
 
@@ -14,6 +14,7 @@
 
 | Версія | PR | Стан |
 |---|---|---|
+| **10.12-r9** | #218 | Integrated 07.11.2026; live reachability для «Водії для звіту…»; Windows **923 tests / OK**, Win7/macOS SUCCESS. |
 | **10.12-r8** | #216 | Integrated 07.11.2026; live reachability для «Тахограф», «Звіти», «Налаштування»; Windows **920 tests / OK**, Win7/macOS SUCCESS. |
 | **10.12-r4** | #207 | Integrated 07.11.2026; runtime reachability для «Експлуатація» + nested «Відомість (додаток 1)»; Windows **907 tests / OK**, Win7/macOS SUCCESS. |
 | **10.12-r3** | #205 | Integrated 07.11.2026; permanent/fail-safe Personnel Data Center route; Windows **903 tests / OK**, Win7/macOS SUCCESS. |
@@ -26,6 +27,7 @@
 
 | Ревізія | Стан |
 |---|---|
+| 10.12-r9 | Integrated; live gate для «Водії для звіту…», 923 tests / OK на Windows, Win7/macOS SUCCESS |
 | 10.12-r7 | Integrated; live gate для Центру документів, 917 tests / OK на Windows, Win7/macOS SUCCESS |
 | 10.12-r6 | Integrated; live gate для 8 основних дій центру даних працівників |
 | 10.12-r5 | Integrated; live gate для перепланування і 9 дій шляхівок |
@@ -34,7 +36,7 @@
 | 10.12-r2 | Integrated; реєстр критичних функцій і перший live UI gate |
 | 10.12-r1 | Integrated; повернення постійного входу до простого місячного графіка |
 
-10.12-r1…r8 ще не публікувались як GitHub prerelease. Stable лишається v10.10-r5; останній виданий candidate — v10.11-r10.
+10.12-r1…r9 ще не публікувались як GitHub prerelease. Stable лишається v10.10-r5; останній виданий candidate — v10.11-r10.
 
 ## Кандидатна лінія 10.11
 
