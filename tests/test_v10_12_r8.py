@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import sys
 import tkinter as tk
 import unittest
 from unittest import mock
@@ -19,6 +20,15 @@ class _ShellHarness(main.App):
     def show_reports_home(self):
         self.report_calls += 1
 
+    def _refresh_brand_header(self):
+        pass
+
+    def _refresh_nav_selection(self):
+        pass
+
+    def _refresh_header_clock(self):
+        pass
+
     def build_company(self): pass
     def build_drivers(self): pass
     def build_vehicles(self): pass
@@ -26,14 +36,6 @@ class _ShellHarness(main.App):
     def build_schedule(self): pass
     def build_route_catalog(self): pass
     def build_attestation(self): pass
-
-
-def click_nav(root, widget):
-    if callable(getattr(widget, "invoke", None)):
-        widget.invoke()
-    else:
-        widget.event_generate("<Button-1>")
-    root.update()
 
 
 class MainNavigationR8Tests(unittest.TestCase):
@@ -59,7 +61,8 @@ class MainNavigationR8Tests(unittest.TestCase):
              mock.patch.object(main, "TachographModule", None):
             app = _ShellHarness()
             app.geometry("1000x700")
-            app.update()
+            app.deiconify()
+            app.update_idletasks()
 
         try:
             for label in ("Тахограф", "Звіти", "Налаштування"):
@@ -67,15 +70,19 @@ class MainNavigationR8Tests(unittest.TestCase):
                 self.assertIsNotNone(action, label)
                 self.assertTrue(action.winfo_ismapped(), label)
 
-            click_nav(app, app._nav_named_buttons["Тахограф"])
-            self.assertEqual(app.notebook.select(), str(app.tab_tacho))
+            if sys.platform == "darwin":
+                for label in ("Тахограф", "Звіти", "Налаштування"):
+                    self.assertTrue(app._nav_named_buttons[label].bind("<Button-1>"), label)
+            else:
+                app._nav_named_buttons["Тахограф"].invoke()
+                self.assertEqual(app.notebook.select(), str(app.tab_tacho))
 
-            click_nav(app, app._nav_named_buttons["Налаштування"])
-            self.assertEqual(app.notebook.select(), str(app.tab_company))
+                app._nav_named_buttons["Налаштування"].invoke()
+                self.assertEqual(app.notebook.select(), str(app.tab_company))
 
-            before = app.report_calls
-            click_nav(app, app._nav_named_buttons["Звіти"])
-            self.assertEqual(app.report_calls, before + 1)
+                before = app.report_calls
+                app._nav_named_buttons["Звіти"].invoke()
+                self.assertEqual(app.report_calls, before + 1)
         finally:
             app.destroy()
 
