@@ -10,8 +10,8 @@
 - **Previous safe rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Current published candidate:** Taxo **10.11-r10** / `v10.11-r10` — prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Stable не змінено.
-- **Current main / integrated candidate:** Taxo **10.12-r7**, commit `232d7b54fd8aea61883acece2063741ea477bb0c`. 10.12-r1/r2/r3/r4 ще не опубліковані як prerelease.
-- **Next code revision:** **10.12-r5**.
+- **Current main / integrated candidate:** Taxo **10.12-r7**, commit `232d7b54fd8aea61883acece2063741ea477bb0c`. 10.12-r1…r7 ще не опубліковані як prerelease.
+- **Next code revision:** **10.12-r8**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Google Drive backup:** остання підтверджена candidate recovery-copy — r9; r10 START recovery-copy ще треба додати окремим backup-кроком.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
@@ -110,7 +110,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.11-r10`; наступна кодова ревізія — `10.12-r1`; наступна stable змінюється лише рішенням власника;
+- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.12-r7`; наступна кодова ревізія — `10.12-r8`; наступна stable змінюється лише рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 
