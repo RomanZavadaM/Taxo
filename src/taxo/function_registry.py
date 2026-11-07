@@ -24,7 +24,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("personnel.card_documents", "Дані / Дія / документи", "Картка та документи", "open_personnel_data_center", runtime_smoke=True),
     FunctionRoute("personnel.document_register", "Дані / Дія / документи", "Відкрити реєстр документів", "open_employee_document_register", runtime_smoke=True),
     FunctionRoute("personnel.simple_month_schedule", "Працівники → Планування", "Простий місячний графік…", "open_simple_month_schedule_r8", runtime_smoke=True),
-    FunctionRoute("personnel.document_control", "Дані / Дія / документи", "Контроль обов'язкових документів…", "open_required_employee_documents_r7"),
+    FunctionRoute("personnel.document_control", "Дані / Дія / документи", "Контроль обов'язкових документів…", "open_required_employee_documents_r7", runtime_smoke=True),
     FunctionRoute("personnel.registry_bulk", "Дані / Дія / документи", "Масові дії з останнього імпорту…", "open_personnel_registry_bulk_actions_r6", runtime_smoke=True),
     FunctionRoute("personnel.diia_cycle", "Дані / Дія / документи", "Офіційний цикл Дії…", "open_diia_reconciliation_cycle", runtime_smoke=True),
     FunctionRoute("personnel.military", "Дані / Дія / документи", "Військовий облік / строки…", "open_military_accounting_overview", runtime_smoke=True),
