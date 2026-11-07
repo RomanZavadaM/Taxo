@@ -72,8 +72,13 @@ class _BaseMilitaryStatement:
 
 
 class ReachabilityR4Tests(unittest.TestCase):
-    def test_identity_is_10_12_r4(self):
-        self.assertEqual(main.APP_VERSION, "10.12-r4")
+    def test_r4_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 12, 4))
 
     def test_registry_requires_runtime_smoke_for_nested_statement(self):
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
