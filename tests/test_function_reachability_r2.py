@@ -28,6 +28,14 @@ def button_by_text(root, text):
     return None
 
 
+def invoke_action(widget):
+    invoke = getattr(widget, "invoke", None)
+    if callable(invoke):
+        return invoke()
+    widget.event_generate("<Button-1>")
+    widget.update_idletasks()
+
+
 class _BasePersonnel(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -169,7 +177,7 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             button = app._nav_named_buttons.get("СТОІР")
             self.assertIsNotNone(button)
             self.assertTrue(button.winfo_ismapped())
-            button.invoke()
+            invoke_action(button)
             self.assertEqual(calls, ["stoir"])
         finally:
             app.destroy()
