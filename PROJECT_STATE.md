@@ -9,13 +9,22 @@
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r2; історичний тег зберігається.
-- **Current integrated product candidate:** Taxo **10.13-r2**, product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f`. Stable лишається 10.12-r10; 10.13-r1/r2 integrated-only і не stable.
+- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r3; історичний тег зберігається.
+- **Current integrated product candidate:** Taxo **10.13-r3**, product commit `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`. Stable лишається 10.12-r10; 10.13-r1/r2/r3 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r3**.
+- **Next code revision:** **10.13-r4**. Exact post-merge START/Drive r3 ще не підтверджені.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
+- **Last confirmed Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
+
+## Інтегрована розробка 10.13-r3 — паперова підготовка інструктажів
+
+- PR #239 merged → exact product `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`.
+- Окрема вкладка у «Експлуатації»; БДР/ОП, вид/дата/тема/підстава, активні працівники, квартал як організаційний орієнтир.
+- Допоміжний CSV-список із видимою позначкою «НЕ Є ЖУРНАЛОМ», без підписів, статусу проведення, перезапису файлів і DB/schema змін.
+- PR-head Windows #42414118500, Win7 #42414118532, macOS #42414118493 (Intel/ARM) — SUCCESS; live regression та ізольовані тести.
+- Exact-main START/recovery-copy r3 **очікують перевірки**, попередній підтверджений резерв — r2.
+- Наступний code revision 10.13-r4; stable 10.12-r10 незмінна. Manual acceptance ще потрібне.
 
 ## Stable promotion 10.12-r10
 
