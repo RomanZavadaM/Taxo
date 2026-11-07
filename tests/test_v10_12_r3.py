@@ -80,12 +80,16 @@ class _FallbackApp(_PlainApp):
 
 
 class PersonnelDataCenterRouteR3Tests(unittest.TestCase):
-    def test_identity_is_10_12_r3(self):
-        self.assertEqual(main.APP_VERSION, "10.12-r3")
-        self.assertEqual(
-            (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip(),
-            "Version: 10.12-r3",
-        )
+    def test_r3_identity_is_historical_anchor(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        current = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
+        self.assertTrue(current.startswith("Version: "))
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 12, 3))
+        self.assertEqual(key(current[len("Version: "):]), key(main.APP_VERSION))
 
     def test_personnel_ui_owns_permanent_data_center_action(self):
         source = (ROOT / "src/taxo/personnel_v91.py").read_text(encoding="utf-8")
