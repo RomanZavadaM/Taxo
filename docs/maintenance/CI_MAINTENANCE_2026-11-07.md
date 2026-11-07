@@ -30,3 +30,9 @@ Historical drafts #142 and #152 are reference-only and must not be merged.
 - post-merge docs-only main push: platform and START heavy workflows do not launch;
 - release-sensitive smoke remains full path;
 - only after those checks: close #142/#152 as superseded and update recovery docs.
+
+## Live superseded-run evidence
+
+- PR #220 first valid platform head reached full Windows CI (run #1262 / id 42398097195), Win7 and macOS also started.
+- Earlier Win7/macOS runs from superseded heads were already observed as `cancelled` after newer commits.
+- This documentation checkpoint is intentionally a newer PR head to verify that the currently running Windows/Win7/macOS jobs are all cancelled by PR-number concurrency.
