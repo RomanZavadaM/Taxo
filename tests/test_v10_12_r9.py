@@ -67,7 +67,7 @@ class DriverReportSelectionReachabilityR9Tests(unittest.TestCase):
                 app.update()
 
                 selectors = [
-                    widget for widget in app.winfo_children()
+                    widget for widget in walk(app)
                     if isinstance(widget, tk.Toplevel)
                     and widget.winfo_exists()
                     and widget.title() == "Вибір водіїв для звіту"
