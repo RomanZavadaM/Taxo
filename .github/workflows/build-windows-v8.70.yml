@@ -54,8 +54,13 @@ jobs:
           $files = @(git diff --name-only --no-renames $env:BASE_SHA $env:HEAD_SHA)
           if ($LASTEXITCODE -ne 0 -or $files.Count -eq 0) { throw 'Cannot classify PR changes' }
           $docsOnly = $true
+          $rootDocs = @('README.md','START_HERE.md','HANDOFF_CURRENT.md','PROJECT_RULES.md','PROJECT_STATE.md','WORKLOG.md')
           foreach ($file in $files) {
-            $isRootDoc = $file -match '^(README\.md|START_HERE\.md|HANDOFF_CURRENT\.md|PROJECT_RULES\.md|PROJECT_STATE\.md|WORKLOG\.md)
+            $isRootDoc = $file -in $rootDocs
+            $isOrdinaryDocsTree = $file.StartsWith('docs/') -and -not $file.StartsWith('docs/releases/')
+            if (-not ($isRootDoc -or $isOrdinaryDocsTree)) { $docsOnly = $false; break }
+          }
+          "docs_only=$($docsOnly.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
       - name: Verify repository layout and version
         if: steps.scope.outputs.docs_only != 'true'
         shell: pwsh
