@@ -88,6 +88,10 @@ def open_operations_center(app, core):
 
     # Orders register
     order_top = core.ttk.Frame(orders_tab,padding=(10,10,10,4)); order_top.pack(fill="x")
+    order_filter_bar = core.ttk.Frame(order_top)
+    order_filter_bar.pack(fill="x")
+    order_action_bar = core.ttk.Frame(order_top)
+    order_action_bar.pack(fill="x", pady=(6, 0))
     order_hint = core.ttk.Label(
         orders_tab,
         text=("Робочий порядок: виберіть, що потрібно оформити → створіть чернетку → "
@@ -108,8 +112,8 @@ def open_operations_center(app, core):
     group_filter_var=core.tk.StringVar(value="Усі групи")
     group_filter_labels=["Усі групи"]+list(ops.ORDER_GROUP_LABELS.values())
     group_filter_by_label={label:key for key,label in ops.ORDER_GROUP_LABELS.items()}
-    core.ttk.Label(order_top,text="Група:").pack(side="right",padx=(8,4))
-    group_filter_box=core.ttk.Combobox(order_top,textvariable=group_filter_var,values=group_filter_labels,state="readonly",width=31)
+    core.ttk.Label(order_filter_bar,text="Група:").pack(side="right",padx=(8,4))
+    group_filter_box=core.ttk.Combobox(order_filter_bar,textvariable=group_filter_var,values=group_filter_labels,state="readonly",width=31)
     group_filter_box.pack(side="right")
 
     def refresh_orders(select_id=None):
@@ -409,18 +413,28 @@ def open_operations_center(app, core):
         try: core.open_external(out)
         except Exception: pass
 
-    core.ttk.Button(
-        order_top,text="Новий наказ — вибрати тип…",style="Accent.TButton",command=new_order
-    ).pack(side="left")
-    core.ttk.Button(order_top,text="Редагувати чернетку",command=edit_order).pack(side="left",padx=6)
-    core.ttk.Button(order_top,text="Ввести в дію в Taxo",command=approve_selected).pack(side="left",padx=6)
-    core.ttk.Button(order_top,text="Історія…",command=show_history).pack(side="left",padx=6)
-    core.ttk.Button(order_top,text="Скасувати чернетку",command=cancel_draft).pack(side="left",padx=6)
-    core.ttk.Button(order_top,text="Сформувати PDF",command=export_selected).pack(side="left",padx=6)
-    core.ttk.Button(
-        order_top,text="Позначити паперовий оригінал підписаним",
-        command=mark_paper_signed
-    ).pack(side="left",padx=6)
+    order_actions = (
+        ("Новий наказ…", new_order, "Accent.TButton"),
+        ("Редагувати чернетку", edit_order, None),
+        ("Ввести в дію в Taxo", approve_selected, None),
+        ("Історія…", show_history, None),
+        ("Скасувати чернетку", cancel_draft, None),
+        ("Сформувати PDF", export_selected, None),
+        ("Позначити оригінал підписаним", mark_paper_signed, None),
+    )
+    for col in range(3):
+        order_action_bar.columnconfigure(col, weight=1)
+    for index, (label, command, style) in enumerate(order_actions):
+        kwargs = {"text": label, "command": command}
+        if style:
+            kwargs["style"] = style
+        core.ttk.Button(order_action_bar, **kwargs).grid(
+            row=index // 3,
+            column=index % 3,
+            sticky="ew",
+            padx=(0 if index % 3 == 0 else 4, 4 if index % 3 != 2 else 0),
+            pady=3,
+        )
 
     # Assignments
     at=core.ttk.Frame(assignments_tab,padding=(10,10,10,4)); at.pack(fill="x")
@@ -513,10 +527,18 @@ def open_operations_center(app, core):
         quick_types.append(("Призначити відповідальних",ops.TYPE_RESPONSIBLE_PERSONS))
     if hasattr(ops,"TYPE_VEHICLE_RELEASE_RETURN"):
         quick_types.append(("Порядок випуску / повернення ТЗ",ops.TYPE_VEHICLE_RELEASE_RETURN))
-    for label,order_type in quick_types:
+    for col in range(2):
+        quick.columnconfigure(col, weight=1)
+    for index,(label,order_type) in enumerate(quick_types):
         core.ttk.Button(
             quick,text=label,command=lambda t=order_type:order_dialog(force_type=t)
-        ).pack(side="left",padx=(0,6))
+        ).grid(
+            row=index // 2,
+            column=index % 2,
+            sticky="ew",
+            padx=(0 if index % 2 == 0 else 4, 4 if index % 2 == 1 else 0),
+            pady=3,
+        )
     core.ttk.Label(
         mbody,
         text="Повний каталог типів наказів",
