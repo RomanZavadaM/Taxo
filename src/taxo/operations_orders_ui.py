@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 import operations_orders as ops
+from safety_instructions_ui import install_instruction_tab
 
 
 def _alive(widget):
@@ -60,6 +61,7 @@ def open_operations_center(app, core):
     finally:
         con.close()
     employee_labels = [row["label"] for row in employees]
+    install_instruction_tab(app, core, book)
     operations_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["operations_responsible_employee_id"], "") if cfg else "")
     military_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["military_transport_responsible_employee_id"], "") if cfg else "")
     place_var = core.tk.StringVar(value=(cfg["order_place"] if cfg else "") or "")
