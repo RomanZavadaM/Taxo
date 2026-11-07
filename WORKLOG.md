@@ -1,3 +1,11 @@
+## Current-line reconciliation — 07.11.2026
+
+- Власник підтвердив: не вести роботи в історичній 10.11, коли stable вже 10.12, а актуальна розробка 10.13.
+- Live GitHub: PR #232 merged, product commit `c6a2ad85b37019ab96fa32a0e597b625aea4815f` (10.13-r2). Попередній `HANDOFF_CURRENT.md` та верхній статус `PROJECT_STATE.md` відставали на одну ревізію.
+- Stable `v10.12-r10` лишено без змін. Історичний `v10.11-r10` не видаляється й не підміняється активною версією.
+- Для r2 exact-product CI/START і Drive backup ще треба перевірити; жодного непідтвердженого SUCCESS не записано.
+- Наступна робота — перевірки й тестова видача 10.13-r2; наступна кодова ревізія 10.13-r3.
+
 ## Stable promotion — Taxo 10.12-r10 — 07.11.2026
 
 - Owner command: оновити stable до 10.12; interpreted as completed line endpoint **10.12-r10**.
