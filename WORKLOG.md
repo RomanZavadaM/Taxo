@@ -1,3 +1,15 @@
+## 10.12-r8 — головна навігація — 07.11.2026
+
+- Після recovery завершено docs-checkpoint r7: PR #215 merged; під час перевірки виправлено застарілі next-version markers.
+- Старий PR #211 закрито як superseded, бо був створений як r7 від старої бази.
+- PR #216 створено чисто від актуального main як 10.12-r8.
+- Додано live UI gate для «Тахограф», «Звіти», «Налаштування» і runtime-smoke markers у function registry.
+- Перший test harness зависав у Tk event-loop; другий варіант завершувався, але Windows показав unmapped control. Обидві проблеми були лише в тесті й виправлені без зміни продуктового коду.
+- Фінальний PR head `6b01f4068dd83a58f98b801186f363bce8601b20`: Windows #42362821426 — **920 tests / OK**; Win7 #42362821600 — SUCCESS; macOS ARM64/Intel #42362821506 — SUCCESS.
+- PR #216 merged → main `30d53a2d62b7622e5ed6601aa951676aaf9697c7`.
+- Stable лишається `v10.10-r5`; останній published candidate — `v10.11-r10`; 10.12-r1…r8 integrated-only.
+- Наступна кодова ревізія — **10.12-r9**. Наступний вузький Feature Loss slice: «Водії для звіту…» + «План → факт» (або один із них окремо, якщо обсяг виявиться більшим).
+
 ## 10.12-r7 — Центр документів — 07.11.2026
 
 - PR #214 інтегровано в main: `232d7b54fd8aea61883acece2063741ea477bb0c`.
