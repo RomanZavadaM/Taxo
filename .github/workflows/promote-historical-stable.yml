@@ -1,0 +1,201 @@
+name: Promote verified historical Taxo checkpoint to stable
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/promote-historical-stable.yml'
+      - '.release/stable-promote'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Read and verify promotion target
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          marker=".release/stable-promote"
+          test -f "${marker}"
+
+          version="$(sed -n 's/^Version:[[:space:]]*//p' "${marker}" | tr -d '\r')"
+          source="$(sed -n 's/^Source:[[:space:]]*//p' "${marker}" | tr -d '\r')"
+          test -n "${version}" && test -n "${source}"
+          printf '%s' "${version}" | grep -Eq '^[0-9]+\.[0-9]+-r[0-9]+$'
+          printf '%s' "${source}" | grep -Eq '^[0-9a-f]{40}$'
+
+          git cat-file -e "${source}^{commit}"
+          git merge-base --is-ancestor "${source}" HEAD
+
+          source_version="$(git show "${source}:VERSION.txt" | sed -n 's/^Version:[[:space:]]*//p' | tr -d '\r')"
+          test "${source_version}" = "${version}"
+          git show "${source}:main.py" | grep -Fq "APP_VERSION = \"${version}\""
+          git cat-file -e "${source}:docs/releases/RELEASE_NOTES_v${version}.md"
+
+          current_stable="$(tr -d '\r\n' < .release/stable-current)"
+          test "${current_stable}" = "${version}"
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "source=${source}" >> "${GITHUB_OUTPUT}"
+
+      - name: Refuse conflicting tag or release
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="v${{ steps.target.outputs.version }}"
+          source="${{ steps.target.outputs.source }}"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            target="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" --jq '.object.sha')"
+            test "${target}" = "${source}" || {
+              echo "Tag ${tag} already points to a different source." >&2
+              exit 1
+            }
+          fi
+
+          if gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            target="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" --jq '.object.sha')"
+            test "${target}" = "${source}" || {
+              echo "Release ${tag} exists on a different source." >&2
+              exit 1
+            }
+          fi
+
+      - name: Find successful exact-source build runs
+        id: runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="${{ steps.target.outputs.source }}"
+          runs_json="$(gh run list --repo "${GITHUB_REPOSITORY}" --commit "${sha}" --status success --limit 100 --json databaseId,workflowName,headSha)"
+
+          find_run() {
+            printf '%s' "${runs_json}" | jq -r --arg name "$1" --arg sha "${sha}" \
+              '[.[] | select(.workflowName == $name and .headSha == $sha)] | first | .databaseId // empty'
+          }
+
+          win="$(find_run 'Test Taxo source / build Windows on demand')"
+          win7="$(find_run 'Test Taxo Windows 7 compatibility')"
+          mac="$(find_run 'Test Taxo source / build macOS on demand')"
+          start="$(find_run 'Package Taxo START source')"
+
+          test -n "${win}" && test -n "${win7}" && test -n "${mac}" && test -n "${start}"
+          echo "win=${win}" >> "${GITHUB_OUTPUT}"
+          echo "win7=${win7}" >> "${GITHUB_OUTPUT}"
+          echo "mac=${mac}" >> "${GITHUB_OUTPUT}"
+          echo "start=${start}" >> "${GITHUB_OUTPUT}"
+
+      - name: Download verified exact-source platform packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p collected
+          gh run download "${{ steps.runs.outputs.win }}" --repo "${GITHUB_REPOSITORY}" --dir collected/windows
+          gh run download "${{ steps.runs.outputs.win7 }}" --repo "${GITHUB_REPOSITORY}" --dir collected/win7
+          gh run download "${{ steps.runs.outputs.mac }}" --repo "${GITHUB_REPOSITORY}" --dir collected/macos
+
+      - name: Assemble canonical stable assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.target.outputs.version }}"
+          source="${{ steps.target.outputs.source }}"
+          candidate="$(printf '%s' "${version}" | sed -E 's/^([0-9]+)\.([0-9]+)-r([0-9]+)$/\1_\2_candidate_r\3/')"
+          sumstem="$(printf '%s' "${version}" | sed -E 's/^([0-9]+)\.([0-9]+)-r([0-9]+)$/\1_\2_r\3/')"
+
+          mkdir -p release_files
+
+          copy_one() {
+            pattern="$1"
+            dest="$2"
+            mapfile -t files < <(find collected -type f -name "${pattern}")
+            if [ "${#files[@]}" -ne 1 ]; then
+              echo "Expected exactly one file matching ${pattern}, found ${#files[@]}" >&2
+              printf '%s\n' "${files[@]}" >&2
+              exit 1
+            fi
+            cp "${files[0]}" "release_files/${dest}"
+          }
+
+          copy_one "Taxo_v${candidate}_Windows_x64_Portable.zip" "Taxo_v${candidate}_Windows_x64_Portable.zip"
+          copy_one "Taxo_v${candidate}_Setup_Windows_x64.exe" "Taxo_v${candidate}_Setup_Windows_x64.exe"
+          copy_one "Taxo_v${candidate}_Windows7_x64_Portable.zip" "Taxo_v${candidate}_Windows7_x64_Portable.zip"
+          copy_one "Taxo_v${candidate}_Setup_Windows7_x64.exe" "Taxo_v${candidate}_Setup_Windows7_x64.exe"
+          copy_one "Taxo_v${candidate}_macOS_arm64_Portable.zip" "Taxo_v${candidate}_macOS_arm64_Portable.zip"
+          copy_one "Taxo_v${candidate}_macOS_x86_64_Portable.zip" "Taxo_v${candidate}_macOS_x86_64_Portable.zip"
+
+          start="Taxo_v${candidate}_START"
+          git archive --format=zip --prefix="${start}/" --output="release_files/${start}.zip" "${source}"
+
+          if unzip -l "release_files/${start}.zip" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo 'Database/cache unexpectedly included in START archive' >&2
+            exit 1
+          fi
+
+          git show "${source}:docs/releases/RELEASE_NOTES_v${version}.md" > release_notes.md
+
+          (
+            cd release_files
+            sha256sum Taxo_* > "SHA256SUMS_v${sumstem}.txt"
+          )
+
+          test "$(find release_files -maxdepth 1 -type f | wc -l)" -eq 8
+
+      - name: Publish exact checkpoint as stable/latest
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.target.outputs.version }}"
+          source="${{ steps.target.outputs.source }}"
+          tag="v${version}"
+
+          if gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.id')"
+            assets="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" --paginate --jq '.[].name')"
+            expected="$(find release_files -maxdepth 1 -type f -printf '%f\n' | sort)"
+            test "$(printf '%s\n' "${assets}" | sort)" = "${expected}"
+            body="$(cat release_notes.md)"
+            jq -n --arg name "Taxo ${version} — Stable" --arg body "${body}" \
+              '{name:$name,body:$body,prerelease:false,make_latest:"true"}' \
+              | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --input -
+          else
+            gh release create "${tag}" release_files/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --target "${source}" \
+              --title "Taxo ${version} — Stable" \
+              --notes-file release_notes.md \
+              --latest
+          fi
+
+      - name: Verify stable/latest release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.target.outputs.version }}"
+          source="${{ steps.target.outputs.source }}"
+          tag="v${version}"
+
+          target="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" --jq '.object.sha')"
+          test "${target}" = "${source}"
+
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.id')"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --jq '.prerelease')" = "false"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --jq '.draft')" = "false"
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" --paginate --jq 'length' | awk '{s+=$1} END{print s}')" -eq 8
+          test "$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')" = "${tag}"
+
+          echo "Taxo ${version} is now stable/latest from exact source ${source}."
