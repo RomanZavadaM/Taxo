@@ -29,7 +29,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("timesheet.plan_to_fact", "Табель", "План → факт", "show_employee_timesheet"),
     FunctionRoute("vehicles.core", "Транспорт", "Картка транспортного засобу", "vehicle_core_toolbar", runtime_smoke=True),
     FunctionRoute("vehicles.military", "Транспорт", "Військово-транспортний облік", "open_military_transport_dashboard", runtime_smoke=True),
-    FunctionRoute("vehicles.military.statement", "Військово-транспортний облік", "Відомість (додаток 1)", "open_military_transport_statement"),
+    FunctionRoute("vehicles.military.statement", "Військово-транспортний облік", "Відомість (додаток 1)", "open_military_transport_statement", runtime_smoke=True),
     FunctionRoute("operations.center", "Ліве меню", "Експлуатація", "open_operations_center", runtime_smoke=True),
     FunctionRoute("maintenance.stoir", "Ліве меню", "СТОІР", "open_vehicle_maintenance", runtime_smoke=True),
     FunctionRoute("documents.center", "Експлуатація → Документи", "Документи підприємства", "DOCUMENT_CENTER_GROUPS"),
