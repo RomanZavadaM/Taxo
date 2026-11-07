@@ -139,6 +139,7 @@ PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 - Function registry тепер має `runtime_smoke=True` для **всіх 23 критичних маршрутів**.
 - PR-head `8da128be181ea7b01a7d4927c4c5236a3966109a`: Windows #1268 — **931 tests / OK**; Win7 #261 — SUCCESS; macOS #1186 ARM64/Intel — SUCCESS.
 - Post-merge exact product commit: Windows #1269 — SUCCESS; Win7 #262 — SUCCESS; macOS #1187 ARM64/Intel — SUCCESS; START #2315 — SUCCESS.
+- Google Drive exact-source recovery-copy: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.12-r10_2026-11-07_START.zip`, 1 598 952 байти; source artifact SHA256 `395834c0c2247129d280fb08bff5cb7c27ac118cfc1d6ceae67092d413f0afa3`.
 - Stable лишається `v10.10-r5`; останній published candidate — `v10.11-r10`; 10.12-r1…r10 integrated-only.
 
 ## Підтверджені висновки Feature Loss Audit
