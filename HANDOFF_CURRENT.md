@@ -1,13 +1,13 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 07.11.2026 — після Feature Loss Audit та інтеграції 10.12-r3.
+**Оновлено:** 07.11.2026 — після Feature Loss Audit та інтеграції 10.12-r4.
 
 ## База
 - **Stable / Latest:** [v10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) — без змін.
 - **Останній офіційно виданий candidate:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), prerelease; exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; 8 assets.
-- **Поточний main / integrated candidate:** **10.12-r3**, commit `28a84c9b44c7ac526acb09c6258e227d760cc762`.
-- 10.12-r1/r2/r3 **ще не публікувались як GitHub prerelease**.
-- **Наступна кодова ревізія:** **10.12-r4**.
+- **Поточний main / integrated candidate:** **10.12-r4**, commit `816e386647575763074e9106b6f75ef431fadcb9`.
+- 10.12-r1/r2/r3/r4 **ще не публікувались як GitHub prerelease**.
+- **Наступна кодова ревізія:** **10.12-r5**.
 - Stable не змінювати без окремого рішення власника.
 
 ## Чому почалась лінія 10.12
@@ -45,7 +45,7 @@ PR #204 merged → `33fa572b7e621c8adeea05165a017c29434bf0c9`.
 
 ## 10.12-r3 — Personnel Data Center fail-safe
 
-PR #205 merged → current main `28a84c9b44c7ac526acb09c6258e227d760cc762`.
+PR #205 merged → `28a84c9b44c7ac526acb09c6258e227d760cc762`.
 
 Проблема: старий installer спочатку ховав окремі registry/Diia/document buttons, а лише потім намагався знайти `Новий працівник` і створити replacement `Дані / Дія / документи…`. При майбутньому UI-refactor це могло сховати цілий блок функцій.
 
@@ -59,6 +59,17 @@ PR #205 merged → current main `28a84c9b44c7ac526acb09c6258e227d760cc762`.
 - Win7 #42352755837 — SUCCESS, full CPython 3.8;
 - macOS ARM64/Intel #42352755821 — SUCCESS.
 
+
+## 10.12-r4 — захист вкладених маршрутів
+
+PR #207 merged → current main `816e386647575763074e9106b6f75ef431fadcb9`.
+
+- Додано живу перевірку, що пункт **«Експлуатація»** реально видимий і відкривається.
+- Додано живу перевірку вкладеної **«Відомість (додаток 1)»** у військово-транспортному обліку.
+- Реєстр функцій тепер вимагає runtime-smoke і для цієї вкладеної відомості.
+- PR-head: Windows #42354870979 — SUCCESS, **907 tests / OK**; Win7 #42354871043 — SUCCESS, full CPython 3.8; macOS ARM64/Intel #42354870938 — SUCCESS.
+- Бізнес-логіка, БД і формування документів не змінювались.
+
 ## Підтверджені висновки Feature Loss Audit
 
 **Підтверджені втрати/регресії:**
@@ -66,9 +77,7 @@ PR #205 merged → current main `28a84c9b44c7ac526acb09c6258e227d760cc762`.
 - історично vehicle core actions зникали через pack/grid conflict — виправлено ще у 10.8-r1/r2.
 
 **Високий ризик / наступні кандидати на runtime gate:**
-- STOIR navigation;
-- military-transport route;
-- nested `Відомість (додаток 1)`;
+- STOIR navigation, military-transport route і nested `Відомість (додаток 1)` — уже покриті runtime gate у r2/r4;
 - bulk personnel replanning checkbox, який уже історично перекривався layout;
 - дев'ять waybill actions, які вже історично могли виходити за межі вузького вікна;
 - інші dynamic navigation/feature-layer entries.
@@ -79,14 +88,14 @@ PR #205 merged → current main `28a84c9b44c7ac526acb09c6258e227d760cc762`.
 
 Не починати великий UX cleanup.
 
-Наступний номер — **10.12-r4**. Перед кодом:
+Наступний номер — **10.12-r5**. Перед кодом:
 1. прочитати цей HANDOFF;
 2. звірити private Taxo profile;
 3. звірити factual GitHub;
 4. перечитати `FEATURE_LOSS_AUDIT_2026-11-06.md`, function registry, Issue #164;
 5. вибрати один вузький reachability slice.
 
-Пріоритет: розширити runtime gate на **STOIR / military transport / nested statement / historically fragile layout controls**, по одному slice.
+Пріоритет: перевірити два історично ламкі layout-сценарії: **прапорець перепланування персоналу** та **9 дій шляхівок на вузькому вікні**.
 
 ## Recovery
 
