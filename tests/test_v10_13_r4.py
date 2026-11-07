@@ -158,6 +158,11 @@ class AssignmentOrderBaseSelectorsR4Tests(unittest.TestCase):
         app.withdraw()
         try:
             with mock.patch.object(operations_orders_ui.ops, "ensure_schema"), \
+                 mock.patch.object(
+                     operations_orders_ui.ops, "DEFAULT_BODY_TEMPLATES",
+                     {ops.TYPE_VEHICLE_ASSIGNMENT: "Закріпити вибраний транспорт за водієм."},
+                     create=True,
+                 ), \
                  mock.patch.object(operations_orders_ui.ops, "settings", return_value={
                      "operations_responsible_employee_id": None,
                      "military_transport_responsible_employee_id": None,
