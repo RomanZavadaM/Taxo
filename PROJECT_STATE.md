@@ -14,7 +14,7 @@
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
 - **Next code revision:** **10.13-r1**.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
-- **Google Drive backup:** остання підтверджена recovery-copy — r9; для r10 START #2315 успішно створив source artifact, окрема Drive recovery-copy ще не зафіксована.
+- **Google Drive backup:** exact-source START recovery-copy для 10.12-r10 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.12-r10_2026-11-07_START.zip`, 1 598 952 байти; Drive file `1bzL2PomOIhNcQDB6pxRnBES6bgVlC214`; source artifact START #2315, SHA256 `395834c0c2247129d280fb08bff5cb7c27ac118cfc1d6ceae67092d413f0afa3`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
 
 ## Поточний product main 10.12-r10 — Feature Loss hardening
