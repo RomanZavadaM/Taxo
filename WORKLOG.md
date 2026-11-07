@@ -1,3 +1,18 @@
+## 10.12-r10 — «План → факт» live reachability — 07.11.2026
+
+- Recovery виконано строго: START_HERE → HANDOFF_CURRENT → private Taxo profile → live GitHub → PROJECT_STATE; Issue #61/#164/#175 звірені до змін.
+- Preflight: main `4d1023c04a341379fa12549ede07292df977db27`, open PR = 0, `v10.12-r10`/r10 branch відсутні, stable `v10.10-r5`, published candidate `v10.11-r10`.
+- PR #224 створено як один вузький Feature Loss slice від актуального main.
+- Продуктову логіку «План → факт» не переписували; захист наявного факту лишається виправленням 10.11-r3.
+- Додано live Tk regression на тимчасовій SQLite-БД: тест відкриває табель, щоденну вкладку, вибирає дві дати й натискає реальну кнопку «План → факт».
+- Behavioral assertion: день без факту отримує план як факт; день із підтвердженим фактом лишається незмінним; planned_hours і notes не переписуються.
+- Function registry позначає `timesheet.plan_to_fact` як runtime-smoke; після r10 усі 23 критичні routes мають runtime-smoke requirement.
+- Фінальний PR head `8da128be181ea7b01a7d4927c4c5236a3966109a`: Windows #1268 — **931 tests / OK**; Win7 #261 — SUCCESS; macOS #1186 ARM64/Intel — SUCCESS.
+- PR #224 merged → product main `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+- Post-merge exact-product checks: Windows #1269 — SUCCESS; Win7 #262 — SUCCESS; macOS #1187 ARM64/Intel — SUCCESS; START #2315 — SUCCESS.
+- Stable лишається `v10.10-r5`; останній published candidate — `v10.11-r10`; 10.12-r1…r10 integrated-only.
+- Feature Loss reachability cycle 10.12-r1…r10 завершено. Наступний номер code revision — **10.13-r1**; великий UX cleanup автоматично не починати.
+
 ## CI maintenance — process-only — 07.11.2026
 
 - Recovery виконано строго: START_HERE → HANDOFF → private Taxo profile → live GitHub → PROJECT_STATE.
