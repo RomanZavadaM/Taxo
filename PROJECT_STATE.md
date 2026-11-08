@@ -9,14 +9,26 @@
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r3; історичний тег зберігається.
-- **Current integrated product candidate:** Taxo **10.13-r3**, product commit `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`. Stable лишається 10.12-r10; 10.13-r1/r2/r3 integrated-only і не stable.
+- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r4; історичний тег зберігається.
+- **Current integrated product candidate:** Taxo **10.13-r4**, product commit `67b4670fdb29a46d03f9d6462ae2bd19603a2a5c`. Stable лишається 10.12-r10; 10.13-r1/r2/r3/r4 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r4**. Для r3 exact-source CI/START і Google Drive PASS; потрібне ручне приймання.
+- **Next code revision:** **10.13-r5**. Для r4 exact-source CI/START і Google Drive PASS; потрібне ручне приймання.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Previous Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
-- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`; source START artifact SHA256 `5ec905fa91289a369ccde51a2cc3bd6bbc3a5232371e0b0185274f8b1f3a66d2`.
+- **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
+- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; START artifact SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
+
+## Інтегрована розробка 10.13-r4 — вибір водія й ТЗ у наказі про закріплення
+
+- PR #244 merged → exact product `67b4670fdb29a46d03f9d6462ae2bd19603a2a5c`.
+- Новий наказ про закріплення може одразу містити першу пару «активне ТЗ + чинний водій».
+- Водії беруться з фактичної driver-моделі Taxo, а не із загального списку активних працівників.
+- Частково заповнена пара блокується; порожня пара дозволяє старий draft-first workflow.
+- Подальше додавання закріплень пропонує активні ТЗ/водіїв; історичне редагування не втрачає старих записів.
+- Exact-product: Windows #1305 — **953 tests / OK**; Win7 #291 — SUCCESS; macOS #1216 ARM64/Intel — SUCCESS; START #2325 — SUCCESS.
+- Drive recovery-copy r4 підтверджена. Stable **10.12-r10** незмінна.
+- Наступний code revision — **10.13-r5** після ручного приймання.
 
 ## Інтегрована розробка 10.13-r3 — паперова підготовка інструктажів
 
