@@ -639,6 +639,76 @@ def order_entity_view(row):
     }
 
 
+def order_preview_text(order, assignments=(), entities=(), company=None, control_name=""):
+    """Plain-text preview of the order content before PDF/printing."""
+    company = company or {}
+    company_name = str(company.get("name") or "").strip() or "Підприємство"
+    lines = [
+        "Н А К А З",
+        "по %s" % company_name,
+        "",
+        "%s    № %s    %s" % (
+            display_day(order["order_date"]),
+            str(order["order_no"] or "").strip(),
+            str(order["place"] or "").strip(),
+        ),
+        "",
+    ]
+    subject = str(order["subject"] or "").strip()
+    if subject:
+        lines.extend([subject, ""])
+    preamble = str(order["preamble"] or "").strip()
+    if preamble:
+        lines.extend([preamble, ""])
+    lines.extend(["Н А К А З У Ю:", ""])
+
+    if str(order["order_type"]) == TYPE_VEHICLE_ASSIGNMENT:
+        first_from = display_day(assignments[0]["valid_from"]) if assignments else display_day(order["order_date"])
+        lines.append(
+            "1. Закріпити з %s транспортні засоби підприємства за водіями:" % first_from
+        )
+        if assignments:
+            for index, item in enumerate(assignments, 1):
+                driver = " ".join(
+                    str(item[key] or "").strip()
+                    for key in ("last_name", "first_name", "middle_name")
+                    if str(item[key] or "").strip()
+                )
+                vehicle = str(item["make_model"] or item["vehicle_name"] or "").strip()
+                plate = str(item["plate"] or "").strip()
+                lines.append("%d) %s; %s — %s" % (index, vehicle, plate, driver))
+        else:
+            lines.append("(закріплення ще не додані)")
+        control = str(control_name or "").strip()
+        if control:
+            lines.extend(["", "2. Контроль за виконанням даного наказу покласти на %s." % control])
+    else:
+        body = str(order["body_text"] or "").strip()
+        if body:
+            lines.extend([part.strip() for part in body.split("\n") if part.strip()])
+        else:
+            lines.append("(текст пунктів ще не заповнений)")
+        control = str(control_name or "").strip()
+        if control:
+            lines.extend(["", "Контроль за виконанням даного наказу покласти на %s." % control])
+
+    if entities:
+        lines.extend(["", "Учасники / ТЗ:"])
+        for index, item in enumerate(entities, 1):
+            view = order_entity_view(item)
+            role = (" — %s" % view["role"]) if view["role"] else ""
+            lines.append(
+                "%d) %s: %s (%s)%s" % (
+                    index, view["type_label"], view["display"], view["identifier"], role
+                )
+            )
+
+    signer_position = str(company.get("signer_position") or "").strip() or "Керівник"
+    signer_name = str(company.get("signer_name") or "").strip()
+    lines.extend(["", "%s    ________________    %s" % (signer_position, signer_name)])
+    return "\n".join(lines).strip() + "\n"
+
+
 def create_order(con, *, order_type, order_no="", order_date, place="", subject="",
                  preamble="", body_text="", control_employee_id=None, note="",
                  order_series=ORDER_SERIES_WORK):
