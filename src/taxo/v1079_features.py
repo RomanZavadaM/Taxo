@@ -125,15 +125,20 @@ def install(core, base_app):
 
     original_create_order = ops.create_order
     if not getattr(original_create_order, "_taxo_v1079_wrapped", False):
-        def create_order_with_template(con, *, order_type, order_no, order_date, place="", subject="",
-                                       preamble="", body_text="", control_employee_id=None, note=""):
+        def create_order_with_template(
+                con, *, order_type, order_no="", order_date, place="", subject="",
+                preamble="", body_text="", control_employee_id=None, note="",
+                order_series=None):
             if not str(body_text or "").strip():
                 body_text = ops.DEFAULT_BODY_TEMPLATES.get(order_type, "")
-            return original_create_order(
-                con, order_type=order_type, order_no=order_no, order_date=order_date,
+            kwargs = dict(
+                order_type=order_type, order_no=order_no, order_date=order_date,
                 place=place, subject=subject, preamble=preamble, body_text=body_text,
                 control_employee_id=control_employee_id, note=note,
             )
+            if order_series is not None:
+                kwargs["order_series"] = order_series
+            return original_create_order(con, **kwargs)
         create_order_with_template._taxo_v1079_wrapped = True
         ops.create_order = create_order_with_template
 

@@ -698,14 +698,22 @@ def build_assignment_pairs(vehicle_ids, employee_ids):
 def add_vehicle_assignments_bulk(con, order_id, pairs, *, valid_from, valid_until="", note=""):
     created = []
     seen = set()
+    start = _day(valid_from)
     for vehicle_id, employee_id in pairs:
         key = (int(vehicle_id), int(employee_id))
         if key in seen:
             continue
         seen.add(key)
+        duplicate = con.execute(
+            """SELECT id FROM vehicle_driver_assignments
+                 WHERE order_id=? AND vehicle_id=? AND employee_id=? AND valid_from=?""",
+            (int(order_id), key[0], key[1], start),
+        ).fetchone()
+        if duplicate:
+            continue
         created.append(add_vehicle_assignment(
             con, order_id, key[0], key[1],
-            valid_from=valid_from, valid_until=valid_until, note=note,
+            valid_from=start, valid_until=valid_until, note=note,
         ))
     return created
 
@@ -825,6 +833,16 @@ def add_vehicle_assignment(con, order_id, vehicle_id, employee_id, *, valid_from
     end = _day(valid_until) if valid_until else ""
     if end and end < start:
         raise ValueError("Дата завершення не може бути раніше дати початку.")
+    duplicate = con.execute(
+        """SELECT id FROM vehicle_driver_assignments
+             WHERE order_id=? AND vehicle_id=? AND employee_id=? AND valid_from=?""",
+        (int(order_id), int(vehicle_id), int(employee_id), start),
+    ).fetchone()
+    if duplicate:
+        raise ValueError(
+            "Таке закріплення вже є в цьому наказі: той самий ТЗ, водій і дата початку. "
+            "Виберіть іншу пару або відредагуйте наявний рядок."
+        )
     if sequence_no is None:
         row = con.execute(
             "SELECT COALESCE(MAX(sequence_no),0)+1 AS n FROM vehicle_driver_assignments WHERE order_id=?",
@@ -862,13 +880,25 @@ def update_vehicle_assignment(con, assignment_id, *, vehicle_id=None, employee_i
     end = _day(raw_end) if str(raw_end or "").strip() else ""
     if end and end < start:
         raise ValueError("Дата завершення не може бути раніше дати початку.")
+    target_vehicle = int(vehicle_id if vehicle_id is not None else row["vehicle_id"])
+    target_employee = int(employee_id if employee_id is not None else row["employee_id"])
+    duplicate = con.execute(
+        """SELECT id FROM vehicle_driver_assignments
+             WHERE order_id=? AND vehicle_id=? AND employee_id=? AND valid_from=? AND id<>?""",
+        (int(row["order_id"]), target_vehicle, target_employee, start, int(assignment_id)),
+    ).fetchone()
+    if duplicate:
+        raise ValueError(
+            "Таке закріплення вже є в цьому наказі: той самий ТЗ, водій і дата початку. "
+            "Відредагуйте наявний рядок замість створення дубліката."
+        )
     con.execute(
         """UPDATE vehicle_driver_assignments
               SET vehicle_id=?,employee_id=?,valid_from=?,valid_until=?,sequence_no=?,note=?,updated_at=?
             WHERE id=?""",
         (
-            int(vehicle_id if vehicle_id is not None else row["vehicle_id"]),
-            int(employee_id if employee_id is not None else row["employee_id"]),
+            target_vehicle,
+            target_employee,
             start, end,
             int(sequence_no if sequence_no is not None else row["sequence_no"]),
             str(note if note is not None else row["note"] or "").strip(),

@@ -146,6 +146,30 @@ App = install_feature_layers(core, services=SERVICES)
 pin_application_version(core, App, CANONICAL_APP_VERSION)
 
 
+def _bring_main_window_to_front(app):
+    """Raise the fully loaded main Taxo window once without keeping it always-on-top."""
+    try:
+        app.deiconify()
+    except Exception:
+        pass
+    try:
+        app.lift()
+    except Exception:
+        pass
+    try:
+        app.attributes("-topmost", True)
+        app.after(250, lambda: app.attributes("-topmost", False))
+    except Exception:
+        pass
+    try:
+        app.focus_force()
+    except Exception:
+        try:
+            app.focus_set()
+        except Exception:
+            pass
+
+
 def run():
     workspace_lock = core.prepare_workspace_interactively()
     if workspace_lock is None:
@@ -153,6 +177,7 @@ def run():
     try:
         migrated, old_db = core.init_db()
         app = App()
+        app.after(120, lambda: _bring_main_window_to_front(app))
         if migrated and old_db:
             app.after(300, lambda: core.messagebox.showinfo(
                 "Дані перенесено автоматично",
