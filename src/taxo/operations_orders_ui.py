@@ -348,7 +348,10 @@ def open_operations_center(app, core):
                 con3.rollback(); core.messagebox.showerror("Наказ",str(exc),parent=dialog); return
             finally: con3.close()
             dialog.destroy(); refresh_orders(oid)
-            if order_type==ops.TYPE_VEHICLE_ASSIGNMENT: book.select(assignments_tab)
+            book.select(orders_tab)
+            created_order=order_cache.get(int(oid))
+            if created_order is not None:
+                preview_order(created_order)
         bar=core.ttk.Frame(frm); bar.grid(row=10,column=0,columnspan=2,sticky="ew",pady=(10,0))
         core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")
         core.ttk.Button(bar,text="Типовий текст",command=apply_template).pack(side="left")
@@ -545,22 +548,87 @@ def open_operations_center(app, core):
         if not history:
             core.ttk.Label(frm,text="Історії змін ще немає.").pack(anchor="w",pady=8)
 
-    def export_selected():
-        row=selected_order();
-        if row is None:return
+    def _order_print_data(row):
         con2=core.db()
         try:
-            assignments=ops.order_assignments(con2,row["id"]); company_row=con2.execute("SELECT * FROM company WHERE id=1").fetchone(); company={key:company_row[key] for key in company_row.keys()} if company_row else {}; control=ops.employee_name(con2,row["control_employee_id"])
-        finally: con2.close()
-        out=core.OUTPUT_DIR/("Наказ_%s_%s.pdf"%(str(row["order_no"]).replace("/","-"),row["order_date"])); font=next((p for p in core.report_font_candidates() if core.Path(p).exists()),None)
-        try: ops.export_order_pdf(out,row,assignments,company,control,font_path=font)
-        except Exception as exc: core.messagebox.showerror("Наказ PDF",str(exc),parent=win); return
-        core.messagebox.showinfo("Наказ PDF","Сформовано:\n%s"%out,parent=win)
-        try: core.open_external(out)
-        except Exception: pass
+            assignments=ops.order_assignments(con2,row["id"])
+            entities=ops.list_order_entities(con2,row["id"]) if hasattr(ops,"list_order_entities") else []
+            company_row=con2.execute("SELECT * FROM company WHERE id=1").fetchone()
+            company={key:company_row[key] for key in company_row.keys()} if company_row else {}
+            control=ops.employee_name(con2,row["control_employee_id"])
+        finally:
+            con2.close()
+        return assignments,entities,company,control
+
+    def export_order(row,parent=None):
+        assignments,_entities,company,control=_order_print_data(row)
+        out=core.OUTPUT_DIR/("Наказ_%s_%s.pdf"%(str(row["order_no"]).replace("/","-"),row["order_date"]))
+        font=next((p for p in core.report_font_candidates() if core.Path(p).exists()),None)
+        try:
+            ops.export_order_pdf(out,row,assignments,company,control,font_path=font)
+        except Exception as exc:
+            core.messagebox.showerror("Наказ PDF",str(exc),parent=parent or win); return None
+        core.messagebox.showinfo("Наказ PDF","Сформовано і відкривається для перегляду / друку:\n%s"%out,parent=parent or win)
+        try:
+            core.open_external(out)
+        except Exception:
+            pass
+        return out
+
+    def export_selected():
+        row=selected_order()
+        if row is not None:
+            export_order(row,win)
+
+    def preview_order(row=None):
+        row=row or selected_order()
+        if row is None:
+            return
+        assignments,entities,company,control=_order_print_data(row)
+        preview=ops.order_preview_text(
+            row,assignments=assignments,entities=entities,company=company,control_name=control
+        )
+        dlg=core.tk.Toplevel(win)
+        dlg.title("Перегляд наказу №%s" % row["order_no"])
+        try:
+            core.configure_toplevel(dlg,title=dlg.title(),minsize=(760,560))
+        except Exception:
+            dlg.geometry("900x700")
+        frm=core.ttk.Frame(dlg,padding=12); frm.pack(fill="both",expand=True)
+        core.ttk.Label(
+            frm,
+            text=("Це зміст наказу перед друком. Перевірте текст і перелік. "
+                  "Кнопка нижче створить PDF та відкриє його для друку."),
+            style="Muted.TLabel",wraplength=820,justify="left",
+        ).pack(anchor="w",pady=(0,8))
+        text_frame=core.ttk.Frame(frm); text_frame.pack(fill="both",expand=True)
+        text_frame.rowconfigure(0,weight=1); text_frame.columnconfigure(0,weight=1)
+        viewer=core.tk.Text(text_frame,wrap="word",font=("TkDefaultFont",11),padx=12,pady=12)
+        sy=core.ttk.Scrollbar(text_frame,orient="vertical",command=viewer.yview)
+        viewer.configure(yscrollcommand=sy.set)
+        viewer.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns")
+        viewer.insert("1.0",preview); viewer.configure(state="disabled")
+        bar=core.ttk.Frame(frm); bar.pack(fill="x",pady=(10,0))
+        core.ttk.Button(bar,text="Закрити",command=dlg.destroy).pack(side="right")
+        core.ttk.Button(
+            bar,text="Сформувати PDF / друк",style="Accent.TButton",
+            command=lambda:export_order(row,dlg)
+        ).pack(side="right",padx=(0,6))
+        if not order_mutability_message(row):
+            core.ttk.Button(
+                bar,text="Редагувати чернетку",
+                command=lambda:(dlg.destroy(),order_dialog(row))
+            ).pack(side="left")
+        dlg.transient(win)
+        try:
+            dlg.lift(); dlg.focus_force()
+        except Exception:
+            pass
+        return dlg
 
     order_actions = (
         ("Новий наказ…", new_order, "Accent.TButton"),
+        ("Переглянути / друк", preview_order, "Accent.TButton"),
         ("Нумерація наказів…", open_numbering_settings, None),
         ("Редагувати чернетку", edit_order, None),
         ("Ввести в дію в Taxo", approve_selected, None),
@@ -582,6 +650,7 @@ def open_operations_center(app, core):
             padx=(0 if index % 3 == 0 else 4, 4 if index % 3 != 2 else 0),
             pady=3,
         )
+    order_tree.bind("<Double-1>",lambda _e:preview_order(),add="+")
 
     # Assignments
     at=core.ttk.Frame(assignments_tab,padding=(10,10,10,4)); at.pack(fill="x")

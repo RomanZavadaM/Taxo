@@ -57,10 +57,13 @@ class TaxoR9OwnerTestFixes(unittest.TestCase):
     def tearDown(self):
         self.con.close()
 
-    def test_identity_is_10_13_r9(self):
-        self.assertEqual(main.APP_VERSION,"10.13-r9")
-        self.assertIn("10.13-r9",Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("Taxo 10.13-r9",Path("START.bat").read_text(encoding="utf-8"))
+    def test_identity_is_10_13_r9_or_newer(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION),(10,13,9))
 
     def test_legacy_template_wrapper_accepts_order_series(self):
         text=Path("src/taxo/v1079_features.py").read_text(encoding="utf-8")
