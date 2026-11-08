@@ -1,13 +1,13 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 08.11.2026 — після інтеграції 10.13-r9, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
+**Оновлено:** 08.11.2026 — після інтеграції 10.13-r10, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
 
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
-- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r9.
-- **Поточний integrated product candidate:** **10.13-r9**, PR #256, exact product commit `c0497c2679978f0936e1a36df3ad97c7244f8d12`.
+- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r10.
+- **Поточний integrated product candidate:** **10.13-r10**, PR #258, exact product commit `46ef1b995cfc42e8a3195d2f654ad0a9d5e07bb4`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5/r6/r7/r8/r9 лишаються integrated-only.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5/r6/r7/r8/r9/r10 лишаються integrated-only.
 - **Попередня Google Drive recovery-copy — 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Попередня Google Drive recovery-copy — 10.13-r3:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; Drive file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
 - **Google Drive recovery-copy 10.13-r4:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; Drive file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; exact START artifact #13591576959 SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
@@ -16,8 +16,25 @@
 - **Google Drive recovery-copy 10.13-r7:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r7_2026-11-08_START.zip`, 1 680 167 байт; Drive file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`; exact START #2331 artifact SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
 - **Google Drive recovery-copy 10.13-r8:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r8_2026-11-08_START.zip`, 1 685 617 байт; Drive file `1rj63QCtxmw4laO1KOnoVlx2PJoNccb20`; exact START #2333 artifact SHA256 `19cc825561f367afaa84d75cbc621dbd4767aa8f7bf284bd1d60a1a5cc35b61f`.
 - **Google Drive recovery-copy 10.13-r9:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r9_2026-11-08_START.zip`, 1 691 957 байт; Drive file `1V1DNORZsku-LTl6UVqHlnfo5U5jFmJre`; exact START #2335 artifact SHA256 `83544cb6f0b5a1f34427051dfce11023f2861fd81fa0eb3d5051e95d2a3c201a`.
-- **Наступна кодова ревізія:** **10.13-r10** після ручного приймання r9.
+- **Google Drive recovery-copy 10.13-r10:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r10_2026-11-08_START.zip`, 1 699 549 байт; Drive file `1F5-tTsEqlH6o8xdeSKdQcRBPbZ3k_iVs`; exact START #2336 artifact SHA256 `9810df24b3a0ded29ec33ec8f804e18b29ef284853e47fe3763e22e994d2c0f3`.
+- **Наступна кодова ревізія:** **10.14-r1** після ручного приймання r10.
 - Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
+
+## 10.13-r10 — видимий текст наказу та прямий друк
+
+PR #258 merged → exact product commit `46ef1b995cfc42e8a3195d2f654ad0a9d5e07bb4`.
+
+- За owner feedback r9 закрито UX-проблему: створений наказ існував, але готовий текст і шлях до друку були неочевидні.
+- Додано **«Перегляд наказу»** з фактичним змістом перед друком: шапка, дата/номер/місце, тема, вступ, **«НАКАЗУЮ»**, усі ТЗ/водії, контроль і підписний блок.
+- У реєстрі є пряма дія **«Переглянути / друк»**; double-click по наказу відкриває той самий preview.
+- У preview є **«Сформувати PDF / друк»**; чинний PDF generator лишається джерелом друкованого документа.
+- Після створення наказу Taxo лишається на вкладці «Накази», виділяє новий запис і автоматично відкриває його текст замість прихованого переходу на «Закріплення водіїв».
+- Regression перевіряє реальний preview наказу з кількома водіями, реквізити, «НАКАЗУЮ», контроль, підписний блок і всі UI-входи.
+- PR-head: Windows #1335 — **997 tests / OK**; Win7 #320 — SUCCESS; macOS #1245 Intel/ARM — SUCCESS.
+- **Exact-main:** Windows #1336 — **997 tests / OK**; Win7 #321 — SUCCESS; macOS #1246 Intel/ARM — SUCCESS; START #2336 — SUCCESS.
+- Exact START recovery-copy r10 підтверджена на Google Drive: 1 699 549 байт, file `1F5-tTsEqlH6o8xdeSKdQcRBPbZ3k_iVs`, SHA256 `9810df24b3a0ded29ec33ec8f804e18b29ef284853e47fe3763e22e994d2c0f3`.
+- Stable лишається **v10.12-r10**. r10 integrated-only і є поточним owner manual-test candidate.
+- Цикл 10.13 закритий по ревізіях; наступна code revision після feedback — **10.14-r1**.
 
 ## 10.13-r9 — виправлення після ручного тестування r8
 
@@ -332,7 +349,7 @@ PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 
 ## Наступна безпечна дія
 
-Ручно прийняти **10.13-r9 START** через `START.bat`: створення наказу, duplicate handling, прямий вхід «Нумерація наказів…», стартові/наступні work/personnel номери та вихід головного вікна на передній план після запуску. Після feedback наступна code revision — **10.13-r10**. Stable лишається 10.12-r10.
+Ручно прийняти **10.13-r10 START** через `START.bat`: створити наказ про закріплення з кількома водіями, переконатися що одразу відкрився **«Перегляд наказу»**, звірити весь текст і сформувати PDF через **«Сформувати PDF / друк»**. Після feedback наступна code revision — **10.14-r1**. Stable лишається 10.12-r10.
 
 ## Recovery
 

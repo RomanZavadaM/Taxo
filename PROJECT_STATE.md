@@ -9,10 +9,10 @@
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r9; історичний тег зберігається.
-- **Current integrated product candidate:** Taxo **10.13-r9**, exact product commit `c0497c2679978f0936e1a36df3ad97c7244f8d12`, PR #256. Stable лишається 10.12-r10; 10.13-r1/r2/r3/r4/r5/r6/r7/r8/r9 integrated-only і не stable.
+- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r10; історичний тег зберігається.
+- **Current integrated product candidate:** Taxo **10.13-r10**, exact product commit `46ef1b995cfc42e8a3195d2f654ad0a9d5e07bb4`, PR #258. Stable лишається 10.12-r10; 10.13-r1…r10 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r10** після ручного приймання r9. Для r9 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS.
+- **Next code revision:** **10.14-r1** після ручного приймання r10. Для r10 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Previous Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
@@ -21,8 +21,22 @@
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт; file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`; exact START #2329 artifact SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r7_2026-11-08_START.zip`, 1 680 167 байт; file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`; exact START #2331 artifact SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r8_2026-11-08_START.zip`, 1 685 617 байт; file `1rj63QCtxmw4laO1KOnoVlx2PJoNccb20`; exact START #2333 artifact SHA256 `19cc825561f367afaa84d75cbc621dbd4767aa8f7bf284bd1d60a1a5cc35b61f`.
-- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r9_2026-11-08_START.zip`, 1 691 957 байт; file `1V1DNORZsku-LTl6UVqHlnfo5U5jFmJre`; exact START #2335 artifact SHA256 `83544cb6f0b5a1f34427051dfce11023f2861fd81fa0eb3d5051e95d2a3c201a`.
+- **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r9_2026-11-08_START.zip`, 1 691 957 байт; file `1V1DNORZsku-LTl6UVqHlnfo5U5jFmJre`; exact START #2335 artifact SHA256 `83544cb6f0b5a1f34427051dfce11023f2861fd81fa0eb3d5051e95d2a3c201a`.
+- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r10_2026-11-08_START.zip`, 1 699 549 байт; file `1F5-tTsEqlH6o8xdeSKdQcRBPbZ3k_iVs`; exact START #2336 artifact SHA256 `9810df24b3a0ded29ec33ec8f804e18b29ef284853e47fe3763e22e994d2c0f3`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
+
+## Інтегрована розробка 10.13-r10 — видимий наказ і прямий друк
+
+- PR #258 merged → exact product `46ef1b995cfc42e8a3195d2f654ad0a9d5e07bb4`.
+- Owner feedback r9: наказ створюється, але текст і друк неочевидні.
+- Додано read-only **«Перегляд наказу»** з фактичним змістом документа перед PDF; assignment preview містить усі ТЗ/водіїв, реквізити, «НАКАЗУЮ», контроль і підпис.
+- Orders register має **«Переглянути / друк»** та double-click preview; preview має **«Сформувати PDF / друк»**.
+- Після створення наказу UI залишається на «Накази», виділяє новий запис і автоматично відкриває preview.
+- PR-head Windows #1335 — **997 tests / OK**; Win7 #320 SUCCESS; macOS #1245 Intel/ARM SUCCESS.
+- Exact-main Windows #1336 — **997 tests / OK**; Win7 #321 SUCCESS; macOS #1246 Intel/ARM SUCCESS; START #2336 SUCCESS.
+- Drive recovery-copy r10: 1 699 549 bytes, file `1F5-tTsEqlH6o8xdeSKdQcRBPbZ3k_iVs`, SHA256 `9810df24b3a0ded29ec33ec8f804e18b29ef284853e47fe3763e22e994d2c0f3`.
+- Stable **10.12-r10** unchanged. r10 — owner manual-test candidate.
+- 10.13 revision cycle exhausted; next code revision is **10.14-r1** after feedback.
 
 ## Інтегрована розробка 10.13-r9 — owner-test fixes
 
