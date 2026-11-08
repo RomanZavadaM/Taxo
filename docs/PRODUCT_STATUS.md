@@ -7,8 +7,8 @@
 - **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Current integrated candidate:** Taxo 10.13-r5 / exact product `0b6e0b99` — не stable; спільний identity-aware вибір працівників/водіїв/ТЗ уже працює в наказах про закріплення та інструктажах; exact CI/START і резерв на Drive PASS.
-- **Next code revision:** `10.13-r6`.
+- **Current integrated candidate:** Taxo 10.13-r6 / exact product `a3f4e7e9` — не stable; звичайні накази мають структуровані працівники/ТЗ з mass-select, frozen snapshot і PDF-переліком; exact CI/START і резерв на Drive PASS.
+- **Next code revision:** `10.13-r7`.
 
 ## Відомі обмеження попередньої stable 10.9-r10
 
@@ -32,6 +32,20 @@
 - exact r10 Windows/Win7/macOS/START gates — SUCCESS;
 - owner manual r10 acceptance — без блокера;
 - stable promotion 07.11.2026 з exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+
+## Integrated 10.13-r6
+
+- вкладка «Учасники / ТЗ» у наказах з масовим вибором;
+- stable Taxo ID + роль + frozen snapshot працівника/ТЗ;
+- пошук за ПІБ/табельним №/ідентифікатором, держномером/VIN;
+- driver-only pool для водійських типів наказів;
+- inactive не додаються; після введення наказу в дію перелік immutable;
+- add/remove зберігаються в історії наказу;
+- PDF має окремий структурований перелік; RNOKPP автоматично не друкується, VIN друкується;
+- specialized vehicle assignment model не замінено загальним механізмом;
+- exact-main Windows **972 tests / OK**, Win7/macOS/START SUCCESS;
+- exact START зарезервовано на Google Drive;
+- stable не змінено: **10.12-r10**.
 
 ## Integrated 10.13-r5
 

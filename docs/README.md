@@ -5,8 +5,8 @@
 **Stable / Latest:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — exact r10 checkpoint; повний multi-platform комплект; GitHub Latest
 **Previous stable / safe rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)
 **Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
-**Current integrated candidate:** **Taxo 10.13-r5** (`0b6e0b99`) — не опублікований; спільний вибір працівників/водіїв/ТЗ за однозначними реквізитами працює в наказах про закріплення та інструктажах.
-**Next code revision:** `10.13-r6`
+**Current integrated candidate:** **Taxo 10.13-r6** (`a3f4e7e9`) — не опублікований; звичайні накази мають структурований mass-select працівників/ТЗ, frozen snapshot реквізитів і PDF-перелік.
+**Next code revision:** `10.13-r7`
 
 ## Керівництва
 
@@ -21,11 +21,11 @@
 
 ## Стан посібників
 
-Посібник **«Експлуатація, СТОІР і накази»** базується на лінії 10.13; r5 додав спільний identity-aware selector для працівників/водіїв/ТЗ. Решта старших посібників описують робочі сценарії попередніх ліній і в окремих місцях ще потребують актуалізації:
+Посібник **«Експлуатація, СТОІР і накази»** базується на лінії 10.13; r6 додав структурованих учасників/ТЗ до наказів поверх shared selector r5. Решта старших посібників описують робочі сценарії попередніх ліній і в окремих місцях ще потребують актуалізації:
 
 | Посібник | Написано для | Не описано |
 |---|---|---|
-| [Експлуатація, СТОІР і накази](guides/OPERATIONS_STOIR_GUIDE.md) | 10.13-r4 + r5 selector foundation | повне поширення structured links/snapshots на всі типи наказів ще попереду |
+| [Експлуатація, СТОІР і накази](guides/OPERATIONS_STOIR_GUIDE.md) | 10.13-r6 | structured employees/vehicles + frozen snapshots; ручне приймання r6 ще потрібне |
 | [Швидкий старт](guides/QUICK_START.md) | 10.4 | структура пакета 10.9-r10 (`src/taxo/`, `assets/`) |
 | [Інструкція для персоналу](guides/USER_MANUAL.md) | 10.4-r2 | СТОІР; накази й групи наказів; захист виданих шляхівок і номерів; контроль праці/відпочинку 10.9 |
 | [Робота з персоналом](guides/PERSONNEL_GUIDE.md) | 10.10-r8 | Дія/державні відомості, масове поновлення, документи й строки, backup копій, простий місячний графік, персональні PDF/Excel, П-5 |
@@ -69,7 +69,7 @@
 - [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
 - GitHub Issue #61 — append-only live development ledger.
 
-Наступний кодовий крок — **10.13-r6** від актуального `main`, після ручного приймання 10.13-r5. Уже видані revision не перевикористовуються.
+Наступний кодовий крок — **10.13-r7** від актуального `main`, після ручного приймання 10.13-r6. Уже видані revision не перевикористовуються.
 
 ## Дані користувача
 

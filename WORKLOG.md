@@ -1,3 +1,21 @@
+## 10.13-r6 — структуровані працівники й ТЗ у наказах — 08.11.2026
+
+- Після r5 shared-selector foundation реалізовано другий етап Issue #246: **персистентні structured links** працівників/ТЗ до наказу з frozen snapshot реквізитів.
+- PR #249 merged → exact product `a3f4e7e924f8d4c7389b28dc659c2f1e72e210da`.
+- Additive schema: `operations_order_entities(order_id, entity_type, entity_id, role, snapshot_json, sequence_no, note, timestamps)`; існуючі накази/дані не переписуються.
+- UI: окрема вкладка **«Учасники / ТЗ»**, mass-select, пошук за ПІБ/табельним №/ідентифікатором, держномером/VIN; роль і примітка для вибраної групи.
+- Driver-specific order types використовують driver-only employee pool; vehicle-assignment order лишається на спеціалізованій моделі `vehicle_driver_assignments`.
+- Frozen snapshot: зміна ПІБ/табельного №/RNOKPP або держномера/make-model/VIN у живій картці після додавання не переписує документний перелік.
+- Privacy: RNOKPP доступний для ідентифікації/пошуку, але PDF автоматично друкує табельний №/Taxo ID, не повний RNOKPP; для ТЗ — VIN.
+- Після введення наказу в дію структурований перелік immutable; inactive сутності не можна додати до нового наказу.
+- Історія add/remove прив'язана до order_id, тому видалений зі чернетки рядок не зникає з історії наказу.
+- PDF runtime layer `v1073_features.py` друкує окрему сторінку **«Структурований перелік працівників і транспортних засобів»** із frozen snapshot.
+- r6 regression suite: +12 тестів; PR-head Windows #1312 — **972 tests / OK**; Win7 #298 — SUCCESS; macOS #1223 Intel/ARM — SUCCESS. Перший ARM job впав до checkout через зламаний manifest стандартного `actions/checkout`; конкретний failed job повторено без зміни коду — SUCCESS.
+- Exact-main: Windows #1313 — **972 tests / OK**; Win7 #299 — SUCCESS; macOS #1224 Intel/ARM — SUCCESS; START #2329 — SUCCESS.
+- Exact START artifact: 1 669 795 байт, SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
+- Google Drive recovery-copy: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, Drive file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`; read-back підтверджений.
+- Stable не змінювалась: **v10.12-r10**. r6 integrated-only. Наступна code revision — **10.13-r7** після ручного приймання.
+
 ## 10.13-r5 — спільний вибір працівників, водіїв і ТЗ — 08.11.2026
 
 - Вимога власника: у багатьох наказах та інструктажах не переписувати людей/транспорт руками, а вибирати конкретні записи бази з однозначними реквізитами; зафіксовано Issue #246 і зв'язок з Issue #237.
