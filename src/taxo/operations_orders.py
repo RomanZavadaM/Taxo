@@ -465,6 +465,8 @@ def add_order_entity(con, order_id, entity_type, entity_id, *, role="", note="",
 
 def add_order_entities(con, order_id, entity_type, entity_ids, *, role="", note=""):
     """Atomically add a de-duplicated group of selected entities."""
+    ensure_schema_on_connection(con)
+    _require_order_entity_draft(con, order_id)
     created = []
     seen = set()
     for raw_id in entity_ids:
