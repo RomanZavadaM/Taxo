@@ -456,7 +456,7 @@ def add_order_entity(con, order_id, entity_type, entity_id, *, role="", note="",
     )
     link_id = int(cur.lastrowid)
     _write_history(
-        con, "order_entity", link_id, "create",
+        con, "order_entity", int(order_id), "entity_add",
         after=dict(get_order_entity(con, link_id)),
         note="Додано до структурованого переліку наказу",
     )
@@ -496,7 +496,7 @@ def delete_order_entity(con, entity_link_id, *, history_note=""):
     before = dict(row)
     con.execute("DELETE FROM operations_order_entities WHERE id=?", (int(entity_link_id),))
     _write_history(
-        con, "order_entity", entity_link_id, "delete", before=before,
+        con, "order_entity", int(row["order_id"]), "entity_remove", before=before,
         note=str(history_note or "Прибрано зі структурованого переліку наказу"),
     )
 
@@ -817,19 +817,15 @@ def order_history(con, order_id, limit=500):
     assignment_ids = [int(r[0]) for r in con.execute(
         "SELECT id FROM vehicle_driver_assignments WHERE order_id=?", (order_id,)
     ).fetchall()]
-    entity_ids = [int(r[0]) for r in con.execute(
-        "SELECT id FROM operations_order_entities WHERE order_id=?", (order_id,)
-    ).fetchall()]
-    clauses = ["(entity_type='order' AND entity_id=?)"]
-    params = [order_id]
+    clauses = [
+        "(entity_type='order' AND entity_id=?)",
+        "(entity_type='order_entity' AND entity_id=?)",
+    ]
+    params = [order_id, order_id]
     if assignment_ids:
         marks = ",".join("?" for _ in assignment_ids)
         clauses.append("(entity_type='assignment' AND entity_id IN (%s))" % marks)
         params.extend(assignment_ids)
-    if entity_ids:
-        marks = ",".join("?" for _ in entity_ids)
-        clauses.append("(entity_type='order_entity' AND entity_id IN (%s))" % marks)
-        params.extend(entity_ids)
     sql = "SELECT * FROM operations_change_log WHERE " + " OR ".join(clauses)
     sql += " ORDER BY id DESC LIMIT ?"
     params.append(int(limit))
