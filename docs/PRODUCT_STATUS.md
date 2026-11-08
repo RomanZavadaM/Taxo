@@ -7,7 +7,7 @@
 - **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Current integrated candidate:** Taxo 10.13-r6 / exact product `a3f4e7e9` — не stable; звичайні накази мають структуровані працівники/ТЗ з mass-select, frozen snapshot і PDF-переліком; exact CI/START і резерв на Drive PASS.
+- **Current integrated candidate:** Taxo **10.13-r7** / exact product `4c90082a` — integrated-only; bulk assignment orders + separate work/personnel numbering; exact CI/START/Drive PASS; відомий one-driver→many-vehicles режим має бути прибраний у r8 до owner package.
 - **Next code revision:** `10.13-r8`.
 
 ## Відомі обмеження попередньої stable 10.9-r10
