@@ -1,13 +1,13 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 08.11.2026 — після інтеграції 10.13-r8, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
+**Оновлено:** 08.11.2026 — після інтеграції 10.13-r9, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
 
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
-- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r8.
-- **Поточний integrated product candidate:** **10.13-r8**, PR #254, exact product commit `78112c03db5406a2e4d9e4e4452226f6c9a82d0f`.
+- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r9.
+- **Поточний integrated product candidate:** **10.13-r9**, PR #256, exact product commit `c0497c2679978f0936e1a36df3ad97c7244f8d12`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5/r6/r7/r8 лишаються integrated-only.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5/r6/r7/r8/r9 лишаються integrated-only.
 - **Попередня Google Drive recovery-copy — 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Попередня Google Drive recovery-copy — 10.13-r3:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; Drive file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
 - **Google Drive recovery-copy 10.13-r4:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; Drive file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; exact START artifact #13591576959 SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
@@ -15,8 +15,24 @@
 - **Google Drive recovery-copy 10.13-r6:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт; Drive file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`; exact START #2329 artifact SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
 - **Google Drive recovery-copy 10.13-r7:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r7_2026-11-08_START.zip`, 1 680 167 байт; Drive file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`; exact START #2331 artifact SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
 - **Google Drive recovery-copy 10.13-r8:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r8_2026-11-08_START.zip`, 1 685 617 байт; Drive file `1rj63QCtxmw4laO1KOnoVlx2PJoNccb20`; exact START #2333 artifact SHA256 `19cc825561f367afaa84d75cbc621dbd4767aa8f7bf284bd1d60a1a5cc35b61f`.
-- **Наступна кодова ревізія:** **10.13-r9**.
+- **Google Drive recovery-copy 10.13-r9:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r9_2026-11-08_START.zip`, 1 691 957 байт; Drive file `1V1DNORZsku-LTl6UVqHlnfo5U5jFmJre`; exact START #2335 artifact SHA256 `83544cb6f0b5a1f34427051dfce11023f2861fd81fa0eb3d5051e95d2a3c201a`.
+- **Наступна кодова ревізія:** **10.13-r10** після ручного приймання r9.
 - Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
+
+## 10.13-r9 — виправлення після ручного тестування r8
+
+PR #256 merged → exact product commit `c0497c2679978f0936e1a36df3ad97c7244f8d12`.
+
+- Виправлено падіння створення наказу: legacy template wrapper тепер передає `order_series` до актуального `create_order`.
+- Дублікат закріплення більше не показує сирий SQLite `UNIQUE constraint failed`: одиночний дубль отримує людське повідомлення; bulk-add пропускає вже наявні пари й додає нові.
+- Початкові/наступні номери наказів тепер мають прямий вхід **«Нумерація наказів…»** з реєстру наказів; у налаштуваннях є окремий видимий блок із work/personnel sequence.
+- Після завантаження Taxo головне вікно одноразово піднімається вперед і бере фокус; режим always-on-top автоматично вимикається.
+- Owner підтвердив: для швидкого функціонального приймання достатньо **START ZIP + START.bat**; Portable/installer лишаються більшими checkpoint/stable пакетами.
+- PR-head: Windows #1332 — **993 tests / OK**; Win7 #318 — SUCCESS; macOS #1243 Intel/ARM — SUCCESS.
+- **Exact-main:** Windows #1333 — **993 tests / OK**; Win7 #319 — SUCCESS; macOS #1244 Intel/ARM — SUCCESS; START #2335 — SUCCESS.
+- Exact START recovery-copy r9 підтверджена на Google Drive: 1 691 957 байт, file `1V1DNORZsku-LTl6UVqHlnfo5U5jFmJre`, SHA256 `83544cb6f0b5a1f34427051dfce11023f2861fd81fa0eb3d5051e95d2a3c201a`.
+- Stable лишається **v10.12-r10**. r9 integrated-only і є поточним owner manual-test candidate.
+- Наступна code revision — **10.13-r10** тільки після зворотного зв'язку з r9.
 
 ## 10.13-r8 — безпечне масове закріплення
 
@@ -316,7 +332,7 @@ PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 
 ## Наступна безпечна дія
 
-Ручно прийняти **10.13-r8 Windows Portable**: перевірити масовий наказ про закріплення, робочу автонумерацію, окрему кадрову серію `-К`, «Додати багато…», блокування одного водія на кілька ТЗ та успішне «Ввести в дію» для допустимих пар. Після feedback наступна code revision — **10.13-r9**. Stable лишається 10.12-r10.
+Ручно прийняти **10.13-r9 START** через `START.bat`: створення наказу, duplicate handling, прямий вхід «Нумерація наказів…», стартові/наступні work/personnel номери та вихід головного вікна на передній план після запуску. Після feedback наступна code revision — **10.13-r10**. Stable лишається 10.12-r10.
 
 ## Recovery
 
