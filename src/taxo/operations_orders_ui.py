@@ -262,8 +262,9 @@ def open_operations_center(app, core):
             ).grid(row=1,column=0,columnspan=2,sticky="w",pady=(6,2))
             core.ttk.Label(
                 assignment_box,
-                text=("Правило пар: 1 ТЗ + кілька водіїв → усі водії до цього ТЗ; кілька ТЗ + 1 водій → "
-                      "цей водій до всіх ТЗ; однакова кількість → пари за порядком вибору. "
+                text=("Правило пар: 1 ТЗ + кілька водіїв → усі водії до цього ТЗ; "
+                      "однакова кількість ТЗ і водіїв → пари за порядком вибору. "
+                      "Один водій не закріплюється одночасно за кількома ТЗ. "
                       "Якщо кількість різна з обох боків — Taxo попросить уточнити. Можна лишити обидва списки порожніми."),
                 style="Muted.TLabel",wraplength=700,justify="left",
             ).grid(row=2,column=0,columnspan=2,sticky="w",pady=(2,0))
@@ -658,8 +659,9 @@ def open_operations_center(app, core):
         core.ttk.Label(frm,textvariable=count_var,style="Subtitle.TLabel").grid(row=2,column=0,columnspan=2,sticky="w",pady=(4,2))
         core.ttk.Label(
             frm,
-            text=("1 ТЗ + кілька водіїв, 1 водій + кілька ТЗ або однакова кількість з обох боків. "
-                  "При однаковій кількості пари формуються за порядком вибору."),
+            text=("1 ТЗ + кілька водіїв або однакова кількість ТЗ і водіїв. "
+                  "При однаковій кількості пари формуються за порядком вибору. "
+                  "Один водій не закріплюється одночасно за кількома ТЗ."),
             style="Muted.TLabel",wraplength=760,justify="left",
         ).grid(row=3,column=0,columnspan=2,sticky="w",pady=(0,6))
         dates=core.ttk.Frame(frm); dates.grid(row=4,column=0,columnspan=2,sticky="ew"); dates.columnconfigure(1,weight=1); dates.columnconfigure(3,weight=1)

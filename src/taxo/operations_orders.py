@@ -682,13 +682,16 @@ def build_assignment_pairs(vehicle_ids, employee_ids):
         raise ValueError("Виберіть і транспортні засоби, і водіїв.")
     if len(vehicles) == 1:
         return [(vehicles[0], employee_id) for employee_id in employees]
-    if len(employees) == 1:
-        return [(vehicle_id, employees[0]) for vehicle_id in vehicles]
+    if len(employees) == 1 and len(vehicles) > 1:
+        raise ValueError(
+            "Один водій не може бути одночасно закріплений за кількома ТЗ. "
+            "Виберіть для кожного ТЗ окремого водія або оформіть різні періоди окремими рядками."
+        )
     if len(vehicles) == len(employees):
         return list(zip(vehicles, employees))
     raise ValueError(
-        "Для масового закріплення виберіть один ТЗ і кількох водіїв, "
-        "одного водія і кілька ТЗ або однакову кількість ТЗ та водіїв."
+        "Для масового закріплення виберіть один ТЗ і кількох водіїв "
+        "або однакову кількість ТЗ та різних водіїв."
     )
 
 
