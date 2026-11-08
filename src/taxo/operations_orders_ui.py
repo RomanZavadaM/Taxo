@@ -67,8 +67,13 @@ def open_operations_center(app, core):
     operations_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["operations_responsible_employee_id"], "") if cfg else "")
     military_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["military_transport_responsible_employee_id"], "") if cfg else "")
     place_var = core.tk.StringVar(value=(cfg["order_place"] if cfg else "") or "")
-    work_order_next_var = core.tk.StringVar(value=str((cfg["work_order_next_no"] if cfg else 1) or 1))
-    personnel_order_next_var = core.tk.StringVar(value=str((cfg["personnel_order_next_no"] if cfg else 1) or 1))
+    cfg_keys = set(cfg.keys()) if cfg is not None and hasattr(cfg, "keys") else set()
+    work_order_next_var = core.tk.StringVar(
+        value=str((cfg["work_order_next_no"] if "work_order_next_no" in cfg_keys else 1) or 1)
+    )
+    personnel_order_next_var = core.tk.StringVar(
+        value=str((cfg["personnel_order_next_no"] if "personnel_order_next_no" in cfg_keys else 1) or 1)
+    )
     for row, (label, var) in enumerate((("Відповідальний за експлуатацію", operations_resp_var),
                                         ("Відповідальний за військово-транспортний обов'язок", military_resp_var))):
         core.ttk.Label(settings_box, text=label).grid(row=row, column=0, sticky="w", padx=(0,10), pady=7)
