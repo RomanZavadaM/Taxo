@@ -690,8 +690,8 @@ def build_assignment_pairs(vehicle_ids, employee_ids):
     if len(vehicles) == len(employees):
         return list(zip(vehicles, employees))
     raise ValueError(
-        "Для масового закріплення виберіть один ТЗ і кількох водіїв, "
-        "одного водія і кілька ТЗ або однакову кількість ТЗ та водіїв."
+        "Для масового закріплення виберіть один ТЗ і кількох водіїв "
+        "або однакову кількість ТЗ та різних водіїв."
     )
 
 
