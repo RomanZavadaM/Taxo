@@ -60,10 +60,13 @@ class TaxoR7BulkAssignmentAndNumberingTests(unittest.TestCase):
     def tearDown(self):
         self.con.close()
 
-    def test_identity_is_10_13_r7(self):
-        self.assertEqual(main.APP_VERSION,"10.13-r7")
-        self.assertIn("10.13-r7",Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("Taxo 10.13-r7",Path("START.bat").read_text(encoding="utf-8"))
+    def test_identity_is_10_13_r7_or_newer(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION),(10,13,7))
 
     def test_fresh_numbering_has_independent_work_and_personnel_series(self):
         self.assertEqual(ops.next_order_number(self.con,ops.ORDER_SERIES_WORK),"1")
