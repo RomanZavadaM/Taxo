@@ -1,6 +1,7 @@
 # Taxo 10.13-r6 — структуровані працівники й ТЗ у наказах
 
-**Статус:** candidate / у перевірці.  
+**Статус:** integrated у `main`; exact-main перевірки PASS; не stable і не окремий release.  
+**Exact product:** `a3f4e7e924f8d4c7389b28dc659c2f1e72e210da` (PR #249).  
 **Stable не змінюється:** v10.12-r10.
 
 ## Мета
@@ -68,4 +69,17 @@ Additive table `operations_order_entities`:
 - PDF structured-list layer;
 - VERSION/START identity.
 
-До інтеграції потрібні Windows, Win7, macOS та START.
+PR-head:
+- Windows #1312 — **972 tests / OK**;
+- Win7 #298 — SUCCESS;
+- macOS #1223 Intel/ARM — SUCCESS. Перший ARM job зупинився до checkout через пошкоджений manifest стандартного actions/checkout; повтор failed job без зміни коду — SUCCESS.
+
+Exact-main після merge:
+- Windows #1313 — **972 tests / OK**;
+- Win7 #299 — SUCCESS;
+- macOS #1224 Intel/ARM — SUCCESS;
+- START #2329 — SUCCESS.
+
+Exact START recovery-copy: `Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт, SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`, Google Drive file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`.
+
+Наступна кодова ревізія після ручного приймання — **10.13-r7**.
