@@ -194,9 +194,11 @@ def open_operations_center(app, core):
         if existing:
             initial_number=str(existing["order_no"])
         else:
-            con_num=core.db()
-            try: initial_number=ops.next_order_number(con_num,initial_series)
-            finally: con_num.close()
+            try:
+                counter = personnel_order_next_var.get() if initial_series==ops.ORDER_SERIES_PERSONNEL else work_order_next_var.get()
+                initial_number=ops.format_order_number(initial_series,int(counter))
+            except Exception:
+                initial_number=""
         no_var=core.tk.StringVar(value=initial_number)
         date_var=core.tk.StringVar(value=ops.display_day(existing["order_date"]) if existing else date.today().strftime("%d.%m.%Y"))
         place_local=core.tk.StringVar(value=str(existing["place"] if existing else place_var.get()))
@@ -239,11 +241,11 @@ def open_operations_center(app, core):
 
             left=core.ttk.Frame(assignment_box); left.grid(row=0,column=0,sticky="nsew",padx=(0,4))
             right=core.ttk.Frame(assignment_box); right.grid(row=0,column=1,sticky="nsew",padx=(4,0))
-            core.ttk.Label(left,text="Транспортні засоби — можна вибрати кілька").pack(anchor="w")
+            core.ttk.Label(left,text="Транспортний засіб — можна вибрати кілька").pack(anchor="w")
             initial_vehicle_list=core.tk.Listbox(left,selectmode="extended",exportselection=False,height=6)
             initial_vehicle_list.pack(fill="both",expand=True,pady=(3,0))
             for row in initial_vehicles: initial_vehicle_list.insert("end",row["label"])
-            core.ttk.Label(right,text="Водії — можна вибрати кількох").pack(anchor="w")
+            core.ttk.Label(right,text="Водій із бази водіїв — можна вибрати кількох").pack(anchor="w")
             initial_driver_list=core.tk.Listbox(right,selectmode="extended",exportselection=False,height=6)
             initial_driver_list.pack(fill="both",expand=True,pady=(3,0))
             for row in initial_drivers: initial_driver_list.insert("end",row["label"])
@@ -290,9 +292,11 @@ def open_operations_center(app, core):
             if existing:
                 return
             series_key=next((key for key,label in ops.ORDER_SERIES_LABELS.items() if label==series_var.get()),ops.ORDER_SERIES_WORK)
-            con_num=core.db()
-            try: no_var.set(ops.next_order_number(con_num,series_key))
-            finally: con_num.close()
+            try:
+                counter = personnel_order_next_var.get() if series_key==ops.ORDER_SERIES_PERSONNEL else work_order_next_var.get()
+                no_var.set(ops.format_order_number(series_key,int(counter)))
+            except Exception:
+                no_var.set("")
         series_box.bind("<<ComboboxSelected>>",sync_series)
         def apply_template():
             key=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
