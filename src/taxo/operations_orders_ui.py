@@ -241,11 +241,11 @@ def open_operations_center(app, core):
 
             left=core.ttk.Frame(assignment_box); left.grid(row=0,column=0,sticky="nsew",padx=(0,4))
             right=core.ttk.Frame(assignment_box); right.grid(row=0,column=1,sticky="nsew",padx=(4,0))
-            core.ttk.Label(left,text="Транспортний засіб — можна вибрати кілька").pack(anchor="w")
+            core.ttk.Label(left,text="Транспортний засіб").pack(anchor="w")
             initial_vehicle_list=core.tk.Listbox(left,selectmode="extended",exportselection=False,height=6)
             initial_vehicle_list.pack(fill="both",expand=True,pady=(3,0))
             for row in initial_vehicles: initial_vehicle_list.insert("end",row["label"])
-            core.ttk.Label(right,text="Водій із бази водіїв — можна вибрати кількох").pack(anchor="w")
+            core.ttk.Label(right,text="Водій із бази водіїв").pack(anchor="w")
             initial_driver_list=core.tk.Listbox(right,selectmode="extended",exportselection=False,height=6)
             initial_driver_list.pack(fill="both",expand=True,pady=(3,0))
             for row in initial_drivers: initial_driver_list.insert("end",row["label"])
