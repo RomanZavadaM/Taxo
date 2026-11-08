@@ -69,7 +69,7 @@
 - [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
 - GitHub Issue #61 — append-only live development ledger.
 
-Наступний кодовий крок — **10.13-r8**: safety alignment bulk assignment ↔ approval invariant.13-r6. Уже видані revision не перевикористовуються.
+Наступний кодовий крок — **10.13-r8**: узгодити bulk assignment із чинним approval invariant; після exact-main дати owner Windows Portable для ручного приймання. Уже видані revision не перевикористовуються.
 
 ## Дані користувача
 
