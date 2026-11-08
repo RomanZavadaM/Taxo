@@ -460,8 +460,10 @@ def open_operations_center(app, core):
             "cancel":"Скасовано","paper_signed":"Паперовий оригінал підписано",
             "paper_unmarked":"Знято позначку","delete":"Видалено",
             "superseded":"Замінено новим наказом",
+            "entity_add":"Додано учасника / ТЗ",
+            "entity_remove":"Прибрано учасника / ТЗ",
         }
-        entity_labels={"order":"Наказ","assignment":"Закріплення"}
+        entity_labels={"order":"Наказ","assignment":"Закріплення","order_entity":"Учасник / ТЗ"}
         for item in history:
             htree.insert("", "end", values=(
                 item["changed_at"], entity_labels.get(item["entity_type"],item["entity_type"]),
