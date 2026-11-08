@@ -1,6 +1,7 @@
 # Taxo 10.13-r8 — безпечне масове закріплення
 
-**Статус:** candidate / у перевірці.  
+**Статус:** integrated у `main`; exact-main PASS; owner manual-test candidate; не stable і не окремий release.  
+**Exact product:** `78112c03db5406a2e4d9e4e4452226f6c9a82d0f` (PR #254).  
 **Stable не змінюється:** v10.12-r10.
 
 ## Що виправлено
@@ -33,4 +34,19 @@
 - історія та immutability чинних наказів лишаються;
 - stable/release/security не змінюються.
 
-До інтеграції потрібні Windows / Win7 / macOS. Після merge — exact-main + START + Drive recovery-copy.
+PR-head:
+- Windows #1328 — **987 tests / OK**;
+- Win7 #314 — SUCCESS;
+- macOS #1239 Intel/ARM — SUCCESS.
+
+Exact-main:
+- Windows #1329 — **987 tests / OK**;
+- Win7 #315 — SUCCESS;
+- macOS #1240 Intel/ARM — SUCCESS;
+- START #2333 — SUCCESS.
+
+Exact START recovery-copy: `Taxo_CURRENT_MAIN_v10.13-r8_2026-11-08_START.zip`, 1 685 617 байт, SHA256 `19cc825561f367afaa84d75cbc621dbd4767aa8f7bf284bd1d60a1a5cc35b61f`, Google Drive file `1rj63QCtxmw4laO1KOnoVlx2PJoNccb20`.
+
+Windows Portable exact-main checksum: `31f179abc8a6562a196d02168690d0f7888fec6c209592a1308129be650a7daa`.
+
+Наступна кодова ревізія — **10.13-r9** тільки після ручного приймання r8 власником.
