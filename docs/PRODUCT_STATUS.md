@@ -7,8 +7,8 @@
 - **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Current integrated candidate:** Taxo 10.13-r3 / exact product `a7b13a92` — не stable; «Експлуатація → Інструктажі та журнали», допоміжний CSV без юридичних підписів, exact CI/START і резерв на Drive PASS.
-- **Next code revision:** `10.13-r4`.
+- **Current integrated candidate:** Taxo 10.13-r4 / exact product `67b4670f` — не stable; наказ про закріплення вибирає активний ТЗ і фактичного водія з бази Taxo; exact CI/START і резерв на Drive PASS.
+- **Next code revision:** `10.13-r5`.
 
 ## Відомі обмеження попередньої stable 10.9-r10
 
@@ -32,6 +32,15 @@
 - exact r10 Windows/Win7/macOS/START gates — SUCCESS;
 - owner manual r10 acceptance — без блокера;
 - stable promotion 07.11.2026 з exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+
+## Integrated 10.13-r4
+
+- наказ про закріплення дозволяє одразу вибрати активний транспорт і водія з бази Taxo;
+- список водіїв не містить довільних активних працівників;
+- перша пара ТЗ/водій створюється разом із чернеткою наказу;
+- неповна пара блокується, а порожня зберігає старий сценарій;
+- exact-product Windows **953 tests / OK**, Win7/macOS/START SUCCESS;
+- stable не змінено: **10.12-r10**.
 
 ## Integrated 10.13-r2
 

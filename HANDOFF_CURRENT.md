@@ -1,17 +1,34 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 07.11.2026 — після exact-product Windows/Win7/macOS/START і Google Drive recovery-copy 10.13-r3.
+**Оновлено:** 08.11.2026 — після reconciliation паралельної роботи, exact-product перевірок і Google Drive recovery-copy 10.13-r4.
 
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
-- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r3.
-- **Поточний integrated product candidate:** **10.13-r3**, PR #239, product commit `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`.
+- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r4.
+- **Поточний integrated product candidate:** **10.13-r4**, PR #244, product commit `67b4670fdb29a46d03f9d6462ae2bd19603a2a5c`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3 лишаються integrated-only.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4 лишаються integrated-only.
 - **Попередня Google Drive recovery-copy — 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
-- **Google Drive recovery-copy 10.13-r3:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; Drive file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`. Exact-source START #42414412635 SHA256 `5ec905fa91289a369ccde51a2cc3bd6bbc3a5232371e0b0185274f8b1f3a66d2`.
-- **Наступна кодова ревізія:** **10.13-r4**.
+- **Попередня Google Drive recovery-copy — 10.13-r3:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; Drive file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
+- **Google Drive recovery-copy 10.13-r4:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; Drive file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; exact START artifact #13591576959 SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
+- **Наступна кодова ревізія:** **10.13-r5**.
 - Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
+
+## 10.13-r4 — наказ про закріплення з бази водіїв і транспорту
+
+PR #244 merged → exact product commit `67b4670fdb29a46d03f9d6462ae2bd19603a2a5c`.
+
+- Під час створення наказу про закріплення можна одразу вибрати **активний транспортний засіб** із реєстру ТЗ і **водія з фактичної бази водіїв**.
+- Список водіїв не є загальним списком працівників: використовуються роль «Водій» та зв'язок з таблицею `drivers`; завершені/неактивні водії не пропонуються для нового закріплення.
+- Перша пара **ТЗ + водій** створюється разом із чернеткою наказу; початок дії за замовчуванням — дата наказу.
+- Якщо вибрано лише ТЗ або лише водія, створення блокується.
+- Старий сценарій збережено: обидва поля можна лишити порожніми й створити чернетку, після чого додавати рядки у вкладці «Закріплення водіїв».
+- При редагуванні історичної чернетки старі ТЗ/водії лишаються доступними, щоб не втрачати історію.
+- DB schema, plan/fact, immutability чинних/підписаних наказів, stable/release/security не змінювались.
+- Exact-product після merge: Windows #1305 — **953 tests / OK**; Win7 #291 — SUCCESS; macOS #1216 ARM64/Intel — SUCCESS; START #2325 — SUCCESS.
+- Exact-source recovery-copy r4 на Google Drive підтверджена; файл і SHA256 наведені вище.
+- Stable лишається **v10.12-r10**. r4 не опублікований.
+- Наступна code revision — **10.13-r5**; перед новою кодовою роботою потрібне ручне приймання r4 власником.
 
 ## 10.13-r3 — окрема вкладка «Інструктажі та журнали»
 

@@ -6,8 +6,8 @@
 **Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
 **Last prerelease candidate:** [**Taxo 10.11-r10**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **PRERELEASE 06.11.2026**; exact source `b239bb0`; 8 canonical assets.  
-**Current integrated main:** **10.13-r3** (`a7b13a9`) — окремий розділ «Інструктажі та журнали» з підготовчим CSV; не виданий як prerelease.  
-**Next code revision:** **10.13-r4**.
+**Current integrated main:** **10.13-r4** (`67b4670`) — наказ про закріплення з вибором водія й ТЗ із бази; не виданий як prerelease.  
+**Next code revision:** **10.13-r5**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
 
@@ -15,6 +15,7 @@
 
 | Версія | PR | Стан |
 |---|---|---|
+| **10.13-r4** | #244 | Integrated 07.11.2026; active ТЗ + driver-only selector у наказі про закріплення, перша пара створюється разом з наказом; Windows **953 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |
 | **10.13-r3** | #239 | Integrated 07.11.2026; БДР/ОП підготовчі списки, без е-підпису та змін БД; exact Windows/Win7/macOS/START SUCCESS; Drive recovery-copy confirmed; не є офіційним журналом. |
 | **10.13-r2** | #232 | Integrated 07.11.2026; явний open-selected-TЗ, human STOIR labels/dates, direct new-order route, responsive order actions; Feature Loss gate зловив і не дозволив втратити legacy «Каталог типів наказів»; Windows **941 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |
 | **10.13-r1** | #227 | Integrated 07.11.2026; «Експлуатація» як робочий стіл, завершений STOIR workflow, зрозумілий lifecycle наказів; Windows **936 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |

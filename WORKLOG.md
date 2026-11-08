@@ -1,3 +1,17 @@
+## 10.13-r4 — наказ про закріплення: водій і ТЗ з бази — 08.11.2026
+
+- Після команди власника на вибір водіїв/транспорту виконано reconciliation: паралельна сесія вже інтегрувала PR #244; дублюючу кодову роботу не починали.
+- Exact product commit: `67b4670fdb29a46d03f9d6462ae2bd19603a2a5c`; VERSION = 10.13-r4.
+- `list_driver_choices()` відбирає фактичних водіїв через `employee_roles` і зв'язок `employees.driver_id → drivers`; механіки/диспетчери не потрапляють у новий список водіїв.
+- У створенні наказу про закріплення є active ТЗ + active driver selectors і можливість одразу записати першу пару.
+- Неповна пара блокується; порожня пара зберігає legacy draft workflow.
+- Вкладка «Закріплення водіїв» також використовує driver-only choices для нових рядків; історичне редагування дозволяє старі записи.
+- Exact-product checks: Windows #1305 — **953 tests / OK**; Win7 #291; macOS #1216 ARM64/Intel; START #2325 — SUCCESS.
+- START artifact #13591576959, SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
+- Drive recovery-copy: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`, 1 648 645 bytes, private readback PASS.
+- Stable remains `v10.12-r10`; r4 integrated-only.
+- Next code revision = **10.13-r5**, after owner manual acceptance.
+
 ## Exact-product closure 10.13-r3 — 07.11.2026
 
 - PR #239 integration exact product SHA `a7b13a920302fb1dbfb441bf6ba097953cc3f71b`.
