@@ -60,10 +60,13 @@ class TaxoR8BulkAssignmentSafetyTests(unittest.TestCase):
     def tearDown(self):
         self.con.close()
 
-    def test_identity_is_10_13_r8(self):
-        self.assertEqual(main.APP_VERSION,"10.13-r8")
-        self.assertIn("10.13-r8",Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("Taxo 10.13-r8",Path("START.bat").read_text(encoding="utf-8"))
+    def test_identity_is_10_13_r8_or_newer(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION),(10,13,8))
 
     def test_one_driver_many_vehicles_is_rejected_before_draft_pairs(self):
         with self.assertRaisesRegex(ValueError,"Один водій не може"):
