@@ -6,8 +6,8 @@
 **Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
 **Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
 **Last prerelease candidate:** [**Taxo 10.11-r10**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **PRERELEASE 06.11.2026**; exact source `b239bb0`; 8 canonical assets.  
-**Current integrated main:** **10.13-r6** (`a3f4e7e9`) — структуровані працівники/ТЗ у наказах з frozen snapshot та PDF-переліком; не виданий як prerelease.  
-**Next code revision:** **10.13-r7**.
+**Current integrated main:** **10.13-r7** (`4c90082a`) — bulk assignment orders + separate work/personnel numbering; exact-main/START/Drive PASS; r8 safety follow-up required before owner package.  
+**Next code revision:** **10.13-r8**.
 
 > Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
 
@@ -15,6 +15,7 @@
 
 | Версія | PR | Стан |
 |---|---|---|
+| **10.13-r7** | #252 | Integrated 08.11.2026; bulk assignment + work/personnel autonumbering; Windows **981 tests / OK**, Win7/macOS/START exact-main SUCCESS; Drive backup confirmed; r8 safety follow-up before owner delivery. |
 | **10.13-r6** | #249 | Integrated 08.11.2026; mass-select працівників/ТЗ, stable ID + role + frozen snapshot, history add/remove, structured PDF; Windows **972 tests / OK**, Win7/macOS/START exact-main SUCCESS; Drive recovery-copy підтверджена. |
 | **10.13-r5** | #247 | Integrated 08.11.2026; shared employee/driver/vehicle selector зі stable ID, табельним №/RNOKPP metadata і VIN; інструктажі використовують structured employee choice; Windows **960 tests / OK**, Win7/macOS/START exact-main SUCCESS; Drive recovery-copy підтверджена. |
 | **10.13-r4** | #244 | Integrated 07.11.2026; active ТЗ + driver-only selector у наказі про закріплення, перша пара створюється разом з наказом; Windows **953 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |
@@ -22,7 +23,7 @@
 | **10.13-r2** | #232 | Integrated 07.11.2026; явний open-selected-TЗ, human STOIR labels/dates, direct new-order route, responsive order actions; Feature Loss gate зловив і не дозволив втратити legacy «Каталог типів наказів»; Windows **941 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |
 | **10.13-r1** | #227 | Integrated 07.11.2026; «Експлуатація» як робочий стіл, завершений STOIR workflow, зрозумілий lifecycle наказів; Windows **936 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |
 
-> 10.13-r1/r2/r3/r4/r5/r6 інтегровано в `main`, але tag/release для них не створювався. Останній офіційно виданий candidate — `v10.11-r10`; stable — `v10.12-r10`.
+> 10.13-r1/r2/r3/r4/r5/r6/r7 інтегровано в `main`, але tag/release для них не створювався. Останній офіційно виданий candidate — `v10.11-r10`; stable — `v10.12-r10`.
 
 ## Лінія 10.12 — r10 видано як stable
 

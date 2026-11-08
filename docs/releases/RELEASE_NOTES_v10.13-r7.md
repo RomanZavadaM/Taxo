@@ -1,6 +1,7 @@
 # Taxo 10.13-r7 — масові закріплення та автоматична нумерація наказів
 
-**Статус:** candidate / у перевірці.  
+**Статус:** integrated у `main`; exact-main PASS; не stable і не окремий release.  
+**Exact product:** `4c90082aba0aa3f1c7f4636466ceaa08aa541ecf` (PR #252).  
 **Stable не змінюється:** v10.12-r10.
 
 ## Наказ про закріплення
@@ -9,7 +10,7 @@
 
 У вікні створення можна масово вибрати:
 - один ТЗ + кількох водіїв;
-- одного водія + кілька ТЗ;
+- одного водія + кілька ТЗ — **технічно створюється в r7, але не видавати як робочий режим: approval guard блокує одночасне закріплення; буде прибрано в r8**;
 - однакову кількість ТЗ і водіїв — пари формуються за порядком вибору.
 
 Якщо з обох боків вибрано різну кількість більше одного (наприклад, 3 ТЗ і 2 водії), Taxo не вгадує відповідність і просить уточнити.
@@ -63,4 +64,10 @@
 - live UI controls;
 - VERSION/START identity.
 
-Перед merge потрібні Windows / Win7 / macOS. Після merge — exact-main + START + Drive recovery-copy.
+PR-head: Windows #1320 — **981 tests / OK**; Win7 #306 — SUCCESS; macOS #1231 Intel/ARM — SUCCESS.
+
+Exact-main: Windows #1321 — **981 tests / OK**; Win7 #307 — SUCCESS; macOS #1232 Intel/ARM — SUCCESS; START #2331 — SUCCESS.
+
+Drive recovery-copy: 1 680 167 bytes, SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`, Drive file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`.
+
+**Known before owner delivery:** r7 draft helper permits 1 driver → many vehicles with the same validity window, while the existing approval invariant rejects that simultaneous assignment. Do not present this mode as accepted. Next code revision **10.13-r8** must reject it before draft creation and add an approval regression.

@@ -1,3 +1,16 @@
+## 10.13-r7 — масові закріплення та автонумерація — 08.11.2026
+
+- Owner feedback після r6: один наказ має охоплювати багато водіїв/ТЗ; накази потребують автонумерації, бажано окремо кадрові та робочі.
+- PR #252 merged → exact product `4c90082aba0aa3f1c7f4636466ceaa08aa541ecf`.
+- Додано bulk pairing у наказі про закріплення та «Додати багато…» у чернетці; single-pair сценарій збережено.
+- Додано work/personnel numbering series, конфігурований next number, personnel suffix `-К`, legacy migration work-counter.
+- Feature-loss gate двічі зловив старі UI contracts: legacy settings mocks без нових полів та точні labels r4; обидва виправлено без відмови від r7 функцій.
+- PR-head: Windows #1320 — **981 tests / OK**; Win7 #306 — SUCCESS; macOS #1231 Intel/ARM — SUCCESS.
+- Exact-main: Windows #1321 — **981 tests / OK**; Win7 #307 — SUCCESS; macOS #1232 Intel/ARM — SUCCESS; START #2331 — SUCCESS.
+- Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.13-r7_2026-11-08_START.zip`, 1 680 167 bytes, file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`, SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
+- Self-audit before owner delivery found semantic mismatch: helper permits 1 driver→many vehicles with same dates, but approval invariant correctly rejects one driver simultaneously on different vehicles. r7 is recovery-safe but **not the package to hand to owner**; next revision r8 must reject this mode at selection time and add approval regression.
+- Stable remains **v10.12-r10**.
+
 ## 10.13-r6 — структуровані працівники й ТЗ у наказах — 08.11.2026
 
 - Після r5 shared-selector foundation реалізовано другий етап Issue #246: **персистентні structured links** працівників/ТЗ до наказу з frozen snapshot реквізитів.

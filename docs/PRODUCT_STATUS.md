@@ -7,8 +7,8 @@
 - **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Current integrated candidate:** Taxo 10.13-r6 / exact product `a3f4e7e9` — не stable; звичайні накази мають структуровані працівники/ТЗ з mass-select, frozen snapshot і PDF-переліком; exact CI/START і резерв на Drive PASS.
-- **Next code revision:** `10.13-r7`.
+- **Current integrated candidate:** Taxo **10.13-r7** / exact product `4c90082a` — integrated-only; bulk assignment orders + separate work/personnel numbering; exact CI/START/Drive PASS; відомий one-driver→many-vehicles режим має бути прибраний у r8 до owner package.
+- **Next code revision:** `10.13-r8`.
 
 ## Відомі обмеження попередньої stable 10.9-r10
 
@@ -32,6 +32,16 @@
 - exact r10 Windows/Win7/macOS/START gates — SUCCESS;
 - owner manual r10 acceptance — без блокера;
 - stable promotion 07.11.2026 з exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+
+## Integrated 10.13-r7
+
+- Наказ про закріплення: масовий вибір пар ТЗ/водій; у draft є «Додати багато…», single-pair сценарій збережено.
+- Нумерація: окремі work/personnel series, personnel suffix `-К`, configurable next number, legacy work counter continuation.
+- PR-head: Windows #1320 — **981 tests / OK**; Win7 #306 — SUCCESS; macOS #1231 Intel/ARM — SUCCESS.
+- Exact-main: Windows #1321 — **981 tests / OK**; Win7 #307 — SUCCESS; macOS #1232 Intel/ARM — SUCCESS; START #2331 — SUCCESS.
+- Drive recovery-copy confirmed: 1 680 167 bytes, `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`, SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
+- Known pre-delivery safety mismatch: r7 draft-helper permits 1 driver→many vehicles while approval guard rejects simultaneous multi-vehicle assignment. Next code revision **10.13-r8** must reject this mode earlier and add approval regression.
+- Stable remains **10.12-r10**.
 
 ## Integrated 10.13-r6
 
