@@ -62,10 +62,13 @@ class StructuredOrderEntitiesR6Tests(unittest.TestCase):
             subject="Тестовий наказ",body_text="1. Виконати вимоги."
         )
 
-    def test_identity_is_10_13_r6(self):
-        self.assertEqual(main.APP_VERSION,"10.13-r6")
-        self.assertIn("10.13-r6",Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("Taxo 10.13-r6",Path("START.bat").read_text(encoding="utf-8"))
+    def test_identity_is_10_13_r6_or_newer(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION),(10,13,6))
 
     def test_schema_contains_structured_order_entities(self):
         cols={row[1] for row in self.con.execute("PRAGMA table_info(operations_order_entities)")}

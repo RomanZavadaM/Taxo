@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import date, datetime
 from pathlib import Path
 from xml.sax.saxutils import escape
@@ -66,6 +67,18 @@ ORDER_GROUP_OTHER = "other"
 ORDER_ENTITY_EMPLOYEE = "employee"
 ORDER_ENTITY_VEHICLE = "vehicle"
 ORDER_ENTITY_TYPES = (ORDER_ENTITY_EMPLOYEE, ORDER_ENTITY_VEHICLE)
+
+
+ORDER_SERIES_WORK = "work"
+ORDER_SERIES_PERSONNEL = "personnel"
+ORDER_SERIES_LABELS = {
+    ORDER_SERIES_WORK: "Робочі / експлуатаційні",
+    ORDER_SERIES_PERSONNEL: "Кадрові",
+}
+ORDER_SERIES_SUFFIX = {
+    ORDER_SERIES_WORK: "",
+    ORDER_SERIES_PERSONNEL: "К",
+}
 
 
 ORDER_GROUP_LABELS = {
@@ -164,6 +177,28 @@ def _json_value(value):
     return str(value)
 
 
+def _leading_order_number(value):
+    match = re.match(r"^\s*(\d+)", str(value or ""))
+    return int(match.group(1)) if match else None
+
+
+def format_order_number(series, number):
+    series = str(series or ORDER_SERIES_WORK)
+    value = int(number)
+    suffix = ORDER_SERIES_SUFFIX.get(series, "")
+    return ("%d-%s" % (value, suffix)) if suffix else str(value)
+
+
+def normalize_order_number(series, value):
+    series = str(series or ORDER_SERIES_WORK)
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if text.isdigit():
+        return format_order_number(series, int(text))
+    return text
+
+
 def _write_history(con, entity_type, entity_id, action, before=None, after=None, note=""):
     con.execute(
         """INSERT INTO operations_change_log(
@@ -185,12 +220,15 @@ def ensure_schema_on_connection(con):
             operations_responsible_employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
             military_transport_responsible_employee_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
             order_place TEXT DEFAULT '',
+            work_order_next_no INTEGER NOT NULL DEFAULT 1,
+            personnel_order_next_no INTEGER NOT NULL DEFAULT 1,
             updated_at TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS operations_orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             order_type TEXT NOT NULL,
+            order_series TEXT NOT NULL DEFAULT 'work',
             order_no TEXT NOT NULL,
             order_date TEXT NOT NULL,
             place TEXT DEFAULT '',
@@ -265,8 +303,17 @@ def ensure_schema_on_connection(con):
         CREATE INDEX IF NOT EXISTS idx_operations_change_log_entity
             ON operations_change_log(entity_type,entity_id,id DESC);
     """)
-    # Safe additive migrations for databases created by r2/r3.
+    # Safe additive migrations for databases created by earlier releases.
+    settings_cols = {row[1] for row in con.execute("PRAGMA table_info(operations_settings)").fetchall()}
+    added_work_counter = "work_order_next_no" not in settings_cols
+    if added_work_counter:
+        con.execute("ALTER TABLE operations_settings ADD COLUMN work_order_next_no INTEGER NOT NULL DEFAULT 1")
+    if "personnel_order_next_no" not in settings_cols:
+        con.execute("ALTER TABLE operations_settings ADD COLUMN personnel_order_next_no INTEGER NOT NULL DEFAULT 1")
+
     cols = {row[1] for row in con.execute("PRAGMA table_info(operations_orders)").fetchall()}
+    if "order_series" not in cols:
+        con.execute("ALTER TABLE operations_orders ADD COLUMN order_series TEXT NOT NULL DEFAULT 'work'")
     if "paper_original_signed" not in cols:
         con.execute("ALTER TABLE operations_orders ADD COLUMN paper_original_signed INTEGER NOT NULL DEFAULT 0")
     if "paper_original_signed_at" not in cols:
@@ -276,6 +323,16 @@ def ensure_schema_on_connection(con):
         con.execute("ALTER TABLE vehicle_driver_assignments ADD COLUMN updated_at TEXT DEFAULT ''")
     now = datetime.now().isoformat(timespec="seconds")
     con.execute("INSERT OR IGNORE INTO operations_settings(id,updated_at) VALUES(1,?)", (now,))
+    if added_work_counter:
+        numbers = [
+            _leading_order_number(row[0])
+            for row in con.execute("SELECT order_no FROM operations_orders").fetchall()
+        ]
+        numbers = [value for value in numbers if value is not None]
+        con.execute(
+            "UPDATE operations_settings SET work_order_next_no=? WHERE id=1",
+            ((max(numbers) + 1) if numbers else 1,),
+        )
 
 
 def ensure_schema(core):
@@ -293,21 +350,61 @@ def settings(con):
 
 
 def save_settings(con, *, operations_responsible_employee_id=None,
-                  military_transport_responsible_employee_id=None, order_place=""):
+                  military_transport_responsible_employee_id=None, order_place="",
+                  work_order_next_no=None, personnel_order_next_no=None):
     ensure_schema_on_connection(con)
+    current = settings(con)
+    work_next = int(
+        work_order_next_no if work_order_next_no is not None
+        else (current["work_order_next_no"] if current else 1)
+    )
+    personnel_next = int(
+        personnel_order_next_no if personnel_order_next_no is not None
+        else (current["personnel_order_next_no"] if current else 1)
+    )
+    if work_next < 1 or personnel_next < 1:
+        raise ValueError("Наступний номер наказу має бути не менше 1.")
     now = datetime.now().isoformat(timespec="seconds")
     con.execute(
         """UPDATE operations_settings
               SET operations_responsible_employee_id=?,
                   military_transport_responsible_employee_id=?,
-                  order_place=?,updated_at=?
+                  order_place=?,
+                  work_order_next_no=?,
+                  personnel_order_next_no=?,
+                  updated_at=?
             WHERE id=1""",
         (
             int(operations_responsible_employee_id) if operations_responsible_employee_id else None,
             int(military_transport_responsible_employee_id) if military_transport_responsible_employee_id else None,
-            str(order_place or "").strip(), now,
+            str(order_place or "").strip(), work_next, personnel_next, now,
         ),
     )
+
+
+def next_order_number(con, series=ORDER_SERIES_WORK):
+    ensure_schema_on_connection(con)
+    series = str(series or ORDER_SERIES_WORK)
+    if series not in ORDER_SERIES_LABELS:
+        raise ValueError("Невідома серія нумерації наказів.")
+    row = settings(con)
+    field = "personnel_order_next_no" if series == ORDER_SERIES_PERSONNEL else "work_order_next_no"
+    return format_order_number(series, int(row[field] if row else 1))
+
+
+def _advance_order_counter(con, series, used_number):
+    series = str(series or ORDER_SERIES_WORK)
+    raw = _leading_order_number(used_number)
+    if raw is None:
+        return
+    row = settings(con)
+    field = "personnel_order_next_no" if series == ORDER_SERIES_PERSONNEL else "work_order_next_no"
+    current = int(row[field] if row else 1)
+    if raw >= current:
+        con.execute(
+            "UPDATE operations_settings SET %s=?,updated_at=? WHERE id=1" % field,
+            (raw + 1, datetime.now().isoformat(timespec="seconds")),
+        )
 
 
 def employee_name(con, employee_id):
@@ -542,23 +639,27 @@ def order_entity_view(row):
     }
 
 
-def create_order(con, *, order_type, order_no, order_date, place="", subject="",
-                 preamble="", body_text="", control_employee_id=None, note=""):
+def create_order(con, *, order_type, order_no="", order_date, place="", subject="",
+                 preamble="", body_text="", control_employee_id=None, note="",
+                 order_series=ORDER_SERIES_WORK):
     ensure_schema_on_connection(con)
     if order_type not in ORDER_TYPE_LABELS:
         raise ValueError("Невідомий тип наказу.")
-    number = str(order_no or "").strip()
+    series = str(order_series or ORDER_SERIES_WORK)
+    if series not in ORDER_SERIES_LABELS:
+        raise ValueError("Невідома серія нумерації наказів.")
+    number = normalize_order_number(series, order_no)
     if not number:
-        raise ValueError("Вкажіть номер наказу.")
+        number = next_order_number(con, series)
     day = _day(order_date)
     now = datetime.now().isoformat(timespec="seconds")
     cur = con.execute(
         """INSERT INTO operations_orders(
-               order_type,order_no,order_date,place,subject,preamble,body_text,
+               order_type,order_series,order_no,order_date,place,subject,preamble,body_text,
                control_employee_id,status,note,created_at,updated_at
-           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+           ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
-            order_type, number, day, str(place or "").strip(),
+            order_type, series, number, day, str(place or "").strip(),
             str(subject or DEFAULT_SUBJECTS.get(order_type, "")).strip(),
             str(preamble or DEFAULT_PREAMBLES.get(order_type, "")).strip(),
             str(body_text or "").strip(),
@@ -567,19 +668,57 @@ def create_order(con, *, order_type, order_no, order_date, place="", subject="",
         ),
     )
     oid = int(cur.lastrowid)
+    _advance_order_counter(con, series, number)
     _write_history(con, "order", oid, "create", after=dict(get_order(con, oid)))
     return oid
 
 
+def build_assignment_pairs(vehicle_ids, employee_ids):
+    vehicles = list(dict.fromkeys(int(value) for value in vehicle_ids))
+    employees = list(dict.fromkeys(int(value) for value in employee_ids))
+    if not vehicles and not employees:
+        return []
+    if not vehicles or not employees:
+        raise ValueError("Виберіть і транспортні засоби, і водіїв.")
+    if len(vehicles) == 1:
+        return [(vehicles[0], employee_id) for employee_id in employees]
+    if len(employees) == 1:
+        return [(vehicle_id, employees[0]) for vehicle_id in vehicles]
+    if len(vehicles) == len(employees):
+        return list(zip(vehicles, employees))
+    raise ValueError(
+        "Для масового закріплення виберіть один ТЗ і кількох водіїв, "
+        "одного водія і кілька ТЗ або однакову кількість ТЗ та водіїв."
+    )
+
+
+def add_vehicle_assignments_bulk(con, order_id, pairs, *, valid_from, valid_until="", note=""):
+    created = []
+    seen = set()
+    for vehicle_id, employee_id in pairs:
+        key = (int(vehicle_id), int(employee_id))
+        if key in seen:
+            continue
+        seen.add(key)
+        created.append(add_vehicle_assignment(
+            con, order_id, key[0], key[1],
+            valid_from=valid_from, valid_until=valid_until, note=note,
+        ))
+    return created
+
+
 def create_vehicle_assignment_order(
-        con, *, order_no, order_date, place="", subject="", preamble="", body_text="",
+        con, *, order_no="", order_date, place="", subject="", preamble="", body_text="",
         control_employee_id=None, note="", initial_vehicle_id=None,
-        initial_employee_id=None):
-    """Create an assignment-order draft and optionally its first TЗ/driver pair."""
+        initial_employee_id=None, initial_pairs=None, order_series=ORDER_SERIES_WORK):
+    """Create one assignment-order draft with zero, one or many vehicle/driver pairs."""
+    pairs = list(initial_pairs or [])
     has_vehicle = initial_vehicle_id is not None
     has_driver = initial_employee_id is not None
     if has_vehicle != has_driver:
         raise ValueError("Для першого закріплення виберіть і транспортний засіб, і водія.")
+    if has_vehicle:
+        pairs.append((int(initial_vehicle_id), int(initial_employee_id)))
     oid = create_order(
         con,
         order_type=TYPE_VEHICLE_ASSIGNMENT,
@@ -591,11 +730,11 @@ def create_vehicle_assignment_order(
         body_text=body_text,
         control_employee_id=control_employee_id,
         note=note,
+        order_series=order_series,
     )
-    if has_vehicle:
-        add_vehicle_assignment(
-            con, oid, int(initial_vehicle_id), int(initial_employee_id),
-            valid_from=order_date,
+    if pairs:
+        add_vehicle_assignments_bulk(
+            con, oid, pairs, valid_from=order_date,
         )
     return oid
 
