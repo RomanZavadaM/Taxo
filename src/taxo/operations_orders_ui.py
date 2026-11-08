@@ -80,20 +80,25 @@ def open_operations_center(app, core):
         core.ttk.Combobox(settings_box, textvariable=var, values=employee_labels, state="readonly").grid(row=row, column=1, sticky="ew", pady=7)
     core.ttk.Label(settings_box, text="Місце складання наказів").grid(row=2,column=0,sticky="w",padx=(0,10),pady=7)
     core.ttk.Entry(settings_box, textvariable=place_var).grid(row=2,column=1,sticky="ew",pady=7)
-    core.ttk.Label(settings_box, text="Наступний № робочого / експлуатаційного наказу").grid(row=3,column=0,sticky="w",padx=(0,10),pady=7)
-    core.ttk.Entry(settings_box, textvariable=work_order_next_var, width=12).grid(row=3,column=1,sticky="w",pady=7)
-    core.ttk.Label(settings_box, text="Наступний № кадрового наказу").grid(row=4,column=0,sticky="w",padx=(0,10),pady=7)
-    core.ttk.Entry(settings_box, textvariable=personnel_order_next_var, width=12).grid(row=4,column=1,sticky="w",pady=7)
+
+    core.ttk.Separator(settings_box,orient="horizontal").grid(row=3,column=0,columnspan=2,sticky="ew",pady=(12,8))
+    core.ttk.Label(settings_box, text="Нумерація наказів", style="Title.TLabel").grid(row=4,column=0,columnspan=2,sticky="w",pady=(0,4))
+    core.ttk.Label(settings_box, text="Наступний № робочого / експлуатаційного наказу").grid(row=5,column=0,sticky="w",padx=(0,10),pady=7)
+    work_order_next_entry=core.ttk.Entry(settings_box, textvariable=work_order_next_var, width=12)
+    work_order_next_entry.grid(row=5,column=1,sticky="w",pady=7)
+    core.ttk.Label(settings_box, text="Наступний № кадрового наказу").grid(row=6,column=0,sticky="w",padx=(0,10),pady=7)
+    personnel_order_next_entry=core.ttk.Entry(settings_box, textvariable=personnel_order_next_var, width=12)
+    personnel_order_next_entry.grid(row=6,column=1,sticky="w",pady=7)
     core.ttk.Label(
         settings_box,
-        text=("Taxo веде дві незалежні послідовності. Робочі накази мають звичайний номер (1, 2, 3…), "
-              "кадрові — окремий номер із суфіксом «К» (1-К, 2-К…). Початковий/наступний номер можна "
-              "задати тут перед початком або продовженням журналу."),
+        text=("Це початок / наступний номер для двох незалежних журналів. "
+              "Робочі накази: 1, 2, 3…; кадрові: 1-К, 2-К, 3-К…. "
+              "Якщо паперовий журнал уже ведеться, введіть тут номер, з якого Taxo має продовжити."),
         style="Muted.TLabel",wraplength=900,justify="left",
-    ).grid(row=5,column=0,columnspan=2,sticky="w",pady=(4,8))
+    ).grid(row=7,column=0,columnspan=2,sticky="w",pady=(4,8))
     core.ttk.Label(settings_box, text=("Відомість ТЦК перед друком затверджується відповідальним у Taxo. "
                                       "Службові позначки про джерело імпорту у затверджену форму не друкуються."),
-                   style="Muted.TLabel", wraplength=900, justify="left").grid(row=6,column=0,columnspan=2,sticky="w",pady=(8,12))
+                   style="Muted.TLabel", wraplength=900, justify="left").grid(row=8,column=0,columnspan=2,sticky="w",pady=(8,12))
 
     def save_settings():
         con2 = core.db()
@@ -110,8 +115,8 @@ def open_operations_center(app, core):
             con2.rollback(); core.messagebox.showerror("Експлуатація", str(exc), parent=win); return
         finally:
             con2.close()
-        core.messagebox.showinfo("Експлуатація", "Відповідальних збережено.", parent=win)
-    core.ttk.Button(settings_box,text="Зберегти",style="Accent.TButton",command=save_settings).grid(row=7,column=1,sticky="e")
+        core.messagebox.showinfo("Експлуатація", "Налаштування експлуатації та нумерації наказів збережено.", parent=win)
+    core.ttk.Button(settings_box,text="Зберегти",style="Accent.TButton",command=save_settings).grid(row=9,column=1,sticky="e")
 
     # Orders register
     order_top = core.ttk.Frame(orders_tab,padding=(10,10,10,4)); order_top.pack(fill="x")
@@ -370,6 +375,13 @@ def open_operations_center(app, core):
     def new_order():
         book.select(maintenance_tab)
 
+    def open_numbering_settings():
+        book.select(settings_tab)
+        try:
+            win.after_idle(work_order_next_entry.focus_set)
+        except Exception:
+            pass
+
     def edit_order():
         row=selected_order()
         if row is not None and require_mutable_order(row):
@@ -549,6 +561,7 @@ def open_operations_center(app, core):
 
     order_actions = (
         ("Новий наказ…", new_order, "Accent.TButton"),
+        ("Нумерація наказів…", open_numbering_settings, None),
         ("Редагувати чернетку", edit_order, None),
         ("Ввести в дію в Taxo", approve_selected, None),
         ("Історія…", show_history, None),
