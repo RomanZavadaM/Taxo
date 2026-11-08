@@ -5,8 +5,8 @@
 **Stable / Latest:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — exact r10 checkpoint; повний multi-platform комплект; GitHub Latest
 **Previous stable / safe rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)
 **Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
-**Current integrated candidate:** **Taxo 10.13-r6** (`a3f4e7e9`) — не опублікований; звичайні накази мають структурований mass-select працівників/ТЗ, frozen snapshot реквізитів і PDF-перелік.
-**Next code revision:** `10.13-r7`
+**Current integrated candidate:** **Taxo 10.13-r7** (`4c90082a`) — integrated-only; bulk assignment + work/personnel autonumbering; exact checks PASS; r8 safety follow-up required before owner package.
+**Next code revision:** `10.13-r8`
 
 ## Керівництва
 
@@ -69,7 +69,7 @@
 - [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
 - GitHub Issue #61 — append-only live development ledger.
 
-Наступний кодовий крок — **10.13-r7** від актуального `main`, після ручного приймання 10.13-r6. Уже видані revision не перевикористовуються.
+Наступний кодовий крок — **10.13-r8**: safety alignment bulk assignment ↔ approval invariant.13-r6. Уже видані revision не перевикористовуються.
 
 ## Дані користувача
 
