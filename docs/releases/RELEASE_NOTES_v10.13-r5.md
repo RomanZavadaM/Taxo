@@ -1,6 +1,7 @@
 # Taxo 10.13-r5 — спільний вибір працівників, водіїв і ТЗ
 
-**Статус:** candidate / у перевірці.  
+**Статус:** integrated у `main`; exact-main перевірки PASS; не stable і не окремий release.  
+**Exact product:** `0b6e0b99dedcfcdbfe25df1460f483d197e623c9` (PR #247).  
 **Stable не змінюється:** v10.12-r10.
 
 ## Що змінено
@@ -59,4 +60,17 @@
 - підготовчий CSV без автоматичного друку РНОКПП;
 - синхронізацію версії та START-пакета.
 
-Повний Windows / Win7 / macOS / START CI має пройти до інтеграції.
+PR-head:
+- Windows #1308 — **960 tests / OK**;
+- Win7 #294 — SUCCESS;
+- macOS #1219 Intel/ARM — SUCCESS.
+
+Exact-main після merge:
+- Windows #1309 — **960 tests / OK**;
+- Win7 #295 — SUCCESS;
+- macOS #1220 Intel/ARM — SUCCESS;
+- START #2327 — SUCCESS.
+
+Exact START recovery-copy: `Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, 1 656 837 байт, SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`, Google Drive file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`.
+
+Наступна кодова ревізія після ручного приймання — **10.13-r6**.
