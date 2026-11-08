@@ -9,10 +9,10 @@
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r8; історичний тег зберігається.
-- **Current integrated product candidate:** Taxo **10.13-r8**, exact product commit `78112c03db5406a2e4d9e4e4452226f6c9a82d0f`, PR #254. Stable лишається 10.12-r10; 10.13-r1/r2/r3/r4/r5/r6/r7/r8 integrated-only і не stable.
+- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r9; історичний тег зберігається.
+- **Current integrated product candidate:** Taxo **10.13-r9**, exact product commit `c0497c2679978f0936e1a36df3ad97c7244f8d12`, PR #256. Stable лишається 10.12-r10; 10.13-r1/r2/r3/r4/r5/r6/r7/r8/r9 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r9** після ручного приймання r8. Для r8 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS; відомий bulk-пар конфлікт r7 закрито.
+- **Next code revision:** **10.13-r10** після ручного приймання r9. Для r9 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Previous Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
@@ -20,8 +20,22 @@
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, 1 656 837 байт; file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`; exact START #2327 artifact SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт; file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`; exact START #2329 artifact SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r7_2026-11-08_START.zip`, 1 680 167 байт; file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`; exact START #2331 artifact SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
-- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r8_2026-11-08_START.zip`, 1 685 617 байт; file `1rj63QCtxmw4laO1KOnoVlx2PJoNccb20`; exact START #2333 artifact SHA256 `19cc825561f367afaa84d75cbc621dbd4767aa8f7bf284bd1d60a1a5cc35b61f`.
+- **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r8_2026-11-08_START.zip`, 1 685 617 байт; file `1rj63QCtxmw4laO1KOnoVlx2PJoNccb20`; exact START #2333 artifact SHA256 `19cc825561f367afaa84d75cbc621dbd4767aa8f7bf284bd1d60a1a5cc35b61f`.
+- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r9_2026-11-08_START.zip`, 1 691 957 байт; file `1V1DNORZsku-LTl6UVqHlnfo5U5jFmJre`; exact START #2335 artifact SHA256 `83544cb6f0b5a1f34427051dfce11023f2861fd81fa0eb3d5051e95d2a3c201a`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
+
+## Інтегрована розробка 10.13-r9 — owner-test fixes
+
+- PR #256 merged → exact product `c0497c2679978f0936e1a36df3ad97c7244f8d12`.
+- Закрито owner-reported crash `order_series` у legacy order template wrapper.
+- Duplicate assignment UX: single duplicate → людське повідомлення; bulk-add → existing pairs skipped, new pairs preserved; edit-to-duplicate blocked.
+- У реєстрі наказів додано прямий **«Нумерація наказів…»**; стартові/наступні work/personnel номери більше не заховані лише у «Відповідальні».
+- Головне вікно після повного старту одноразово виходить на передній план і бере focus; permanent topmost не лишається.
+- Fast functional acceptance package = **START ZIP + START.bat** за рішенням owner.
+- PR-head: Windows #1332 — **993 tests / OK**; Win7 #318 — SUCCESS; macOS #1243 Intel/ARM — SUCCESS.
+- Exact-main: Windows #1333 — **993 tests / OK**; Win7 #319 — SUCCESS; macOS #1244 Intel/ARM — SUCCESS; START #2335 — SUCCESS.
+- Drive recovery-copy r9: 1 691 957 bytes, file `1V1DNORZsku-LTl6UVqHlnfo5U5jFmJre`, SHA256 `83544cb6f0b5a1f34427051dfce11023f2861fd81fa0eb3d5051e95d2a3c201a`.
+- Stable **10.12-r10** unchanged. r9 — owner manual-test candidate. Next revision **10.13-r10** after feedback.
 
 ## Інтегрована розробка 10.13-r8 — safety alignment bulk assignment
 
@@ -229,7 +243,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.12-r10`; rollback checkpoint — `10.10-r5`; поточний integrated main candidate — `10.13-r8`; наступна кодова ревізія — `10.13-r9`; stable змінюється лише окремим рішенням власника;
+- поточна stable — `10.12-r10`; rollback checkpoint — `10.10-r5`; поточний integrated main candidate — `10.13-r9`; наступна кодова ревізія — `10.13-r10`; stable змінюється лише окремим рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 

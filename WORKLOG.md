@@ -1,3 +1,18 @@
+## 10.13-r9 — виправлення після ручного тестування r8 — 08.11.2026
+
+- Owner screenshots r8: raw SQLite duplicate error, crash `create_order_with_template(... order_series=...)`, нумерація непомітна у «Відповідальні», головне вікно не виходить на передній план.
+- PR #256 merged → exact product `c0497c2679978f0936e1a36df3ad97c7244f8d12`.
+- Legacy v1079 template wrapper тепер forwards `order_series`; створення наказу більше не падає на цьому параметрі.
+- Duplicate assignment: single add/edit отримують human message; bulk add пропускає existing pairs і не валить нові.
+- Реєстр наказів має пряму кнопку **«Нумерація наказів…»**; окремий видимий блок work/personnel next numbers пояснює продовження паперового журналу.
+- Після повного старту root window одноразово deiconify/lift/topmost/focus і через 250 ms знімає topmost.
+- Owner підтвердив fast-test policy: для функціонального приймання достатньо **START ZIP через START.bat**; Portable/installer — більші checkpoints/stable.
+- PR-head: Windows #1332 — **993 tests / OK**; Win7 #318 — SUCCESS; macOS #1243 Intel/ARM — SUCCESS.
+- Exact-main: Windows #1333 — **993 tests / OK**; Win7 #319 — SUCCESS; macOS #1244 Intel/ARM — SUCCESS; START #2335 — SUCCESS.
+- Exact START: 1 691 957 bytes; SHA256 `83544cb6f0b5a1f34427051dfce11023f2861fd81fa0eb3d5051e95d2a3c201a`.
+- Google Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.13-r9_2026-11-08_START.zip`, file `1V1DNORZsku-LTl6UVqHlnfo5U5jFmJre`; read-back PASS.
+- Stable remains **v10.12-r10**. r9 integrated-only, owner manual-test candidate. Next revision **10.13-r10** after feedback.
+
 ## 10.13-r8 — безпечне масове закріплення — 08.11.2026
 
 - Після r7 self-audit виявлено: draft-helper допускав 1 водій→кілька ТЗ з одним validity window, але чинний approval invariant правильно блокує одночасне закріплення одного водія за різними ТЗ.
