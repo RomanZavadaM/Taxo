@@ -54,7 +54,7 @@ def quarter_caption(year, quarter):
     return "%d квартал %d року" % (int(quarter), int(year))
 
 
-def prepare_list(direction, kind, day_text, topic, people, reason=""):
+def prepare_list(direction, kind, day_text, topic, people, reason="", people_records=None):
     direction = str(direction or "").strip()
     if direction not in BRIEFING_KINDS:
         raise ValueError("Виберіть напрям інструктажу")
@@ -74,6 +74,25 @@ def prepare_list(direction, kind, day_text, topic, people, reason=""):
     names = tuple(dict.fromkeys(str(person).strip() for person in people if str(person).strip()))
     if not names:
         raise ValueError("Виберіть хоча б одного працівника")
+
+    records = []
+    seen_ids = set()
+    for record in people_records or ():
+        if not isinstance(record, dict):
+            continue
+        try:
+            employee_id = int(record.get("id"))
+        except (TypeError, ValueError):
+            continue
+        if employee_id in seen_ids:
+            continue
+        seen_ids.add(employee_id)
+        records.append({
+            "id": employee_id,
+            "name": str(record.get("name") or record.get("label") or "").strip(),
+            "personnel_no": str(record.get("personnel_no") or "").strip(),
+        })
+
     return {
         "direction": direction,
         "kind": kind,
@@ -81,6 +100,7 @@ def prepare_list(direction, kind, day_text, topic, people, reason=""):
         "topic": topic,
         "reason": reason,
         "people": names,
+        "people_records": tuple(records),
     }
 
 
@@ -106,9 +126,20 @@ def write_preparation_csv(path, prepared):
         writer.writerow(["Тема / програма", prepared["topic"]])
         writer.writerow(["Підстава", prepared["reason"]])
         writer.writerow([])
-        writer.writerow(["№", "Працівник"])
-        for number, name in enumerate(prepared["people"], 1):
-            writer.writerow([number, name])
+        records = tuple(prepared.get("people_records") or ())
+        if records:
+            writer.writerow(["№", "Працівник", "Табельний №", "Код Taxo"])
+            for number, record in enumerate(records, 1):
+                writer.writerow([
+                    number,
+                    record.get("name", ""),
+                    record.get("personnel_no", ""),
+                    record.get("id", ""),
+                ])
+        else:
+            writer.writerow(["№", "Працівник"])
+            for number, name in enumerate(prepared["people"], 1):
+                writer.writerow([number, name])
     return target
 
 
@@ -226,12 +257,14 @@ def install_instruction_tab(app, core, book):
     people.grid(row=0, column=0, sticky="nsew")
     scroll.grid(row=0, column=1, sticky="ns")
     people_frame.rowconfigure(0, weight=1)
+    choice_rows = []
     try:
         con = core.db()
         try:
             choices = ops.list_employee_choices(con, active_only=True)
         finally:
             con.close()
+        choice_rows.extend(choices)
         for row in choices:
             people.insert("end", str(row["label"]))
     except Exception:
@@ -251,9 +284,19 @@ def install_instruction_tab(app, core, book):
 
     def save_draft_list():
         try:
+            selected_indexes = tuple(int(index) for index in people.curselection())
+            selected_records = [
+                choice_rows[index] for index in selected_indexes
+                if 0 <= index < len(choice_rows)
+            ]
             prepared = prepare_list(
                 track_var.get(), kind_var.get(), date_var.get(), topic_var.get(),
-                (people.get(index) for index in people.curselection()), reason_var.get()
+                (
+                    str(record.get("name") or record.get("label") or "").strip()
+                    for record in selected_records
+                ),
+                reason_var.get(),
+                people_records=selected_records,
             )
         except ValueError as exc:
             core.messagebox.showerror("Підготовка інструктажу", str(exc), parent=tab)
