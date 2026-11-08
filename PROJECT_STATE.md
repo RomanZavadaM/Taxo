@@ -9,17 +9,29 @@
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r6; історичний тег зберігається.
-- **Current integrated product candidate:** Taxo **10.13-r6**, exact product commit `a3f4e7e924f8d4c7389b28dc659c2f1e72e210da`, PR #249. Stable лишається 10.12-r10; 10.13-r1/r2/r3/r4/r5/r6 integrated-only і не stable.
+- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r7; історичний тег зберігається.
+- **Current integrated product candidate:** Taxo **10.13-r7**, exact product commit `4c90082aba0aa3f1c7f4636466ceaa08aa541ecf`, PR #252. Stable лишається 10.12-r10; 10.13-r1/r2/r3/r4/r5/r6/r7 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r7**. Для r6 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS; потрібне ручне приймання.
+- **Next code revision:** **10.13-r8**. Для r7 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS; перед видачею власнику потрібен вузький r8 safety-fix відомого конфлікту bulk-пар.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Previous Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; START artifact SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, 1 656 837 байт; file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`; exact START #2327 artifact SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
-- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт; file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`; exact START #2329 artifact SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
+- **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт; file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`; exact START #2329 artifact SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
+- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r7_2026-11-08_START.zip`, 1 680 167 байт; file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`; exact START #2331 artifact SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
+
+## Інтегрована розробка 10.13-r7 — масові закріплення й автонумерація
+
+- PR #252 merged → exact product `4c90082aba0aa3f1c7f4636466ceaa08aa541ecf`.
+- Assignment order: bulk select; 1 ТЗ→кілька водіїв, equal-size N↔N pairing; «Додати багато…» у draft; single-pair workflow збережено.
+- Дві numbering series: work `1,2,3…`, personnel `1-К,2-К,3-К…`; next values конфігуруються, legacy work counter продовжується з наявної історії.
+- PR-head: Windows #1320 — **981 tests / OK**; Win7 #306 — SUCCESS; macOS #1231 Intel/ARM — SUCCESS.
+- Exact-main: Windows #1321 — **981 tests / OK**; Win7 #307 — SUCCESS; macOS #1232 Intel/ARM — SUCCESS; START #2331 — SUCCESS.
+- Drive: 1 680 167 bytes, file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`, SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
+- Known follow-up before user delivery: r7 helper still allows 1 driver→many vehicles in draft while approval guard rejects simultaneous multi-vehicle assignment. Next revision **10.13-r8** must reject it earlier and add approval regression.
+- Stable **10.12-r10** unchanged.
 
 ## Інтегрована розробка 10.13-r6 — структуровані працівники й ТЗ у наказах
 
