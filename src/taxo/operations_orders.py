@@ -15,6 +15,8 @@ from datetime import date, datetime
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+import entity_choices as shared_choices
+
 APP_VERSION = "10.7-r4"
 
 ORDER_DRAFT = "draft"
@@ -299,86 +301,18 @@ def employee_name(con, employee_id):
 
 
 def list_employee_choices(con, active_only=True):
-    sql = "SELECT id,last_name,first_name,middle_name,position,active FROM employees"
-    if active_only:
-        sql += " WHERE COALESCE(active,1)=1"
-    sql += " ORDER BY last_name,first_name,middle_name,id"
-    result = []
-    for row in con.execute(sql).fetchall():
-        name = " ".join(str(row[k] or "").strip() for k in ("last_name", "first_name", "middle_name") if str(row[k] or "").strip())
-        position = str(row["position"] or "").strip()
-        result.append({"id": int(row["id"]), "name": name, "position": position,
-                       "label": name + ((" — " + position) if position else "")})
-    return result
-
-
-def _is_driver_role_label(value):
-    text = str(value or "").strip().lower()
-    return text == "водій" or text.startswith("водій ") or "водій автотранспорт" in text
-
-
-def _table_exists(con, name):
-    return con.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-        (str(name),),
-    ).fetchone() is not None
-
-
-def _table_columns(con, name):
-    if not _table_exists(con, name):
-        return set()
-    return {str(row[1]) for row in con.execute("PRAGMA table_info(%s)" % str(name)).fetchall()}
+    """Shared employee selector contract used by orders and briefings."""
+    return shared_choices.list_employee_choices(con, active_only=active_only)
 
 
 def list_driver_choices(con, active_only=True):
-    """Return employees who are actually present in the Taxo driver base."""
-    employee_rows = list_employee_choices(con, active_only=active_only)
-    if not employee_rows:
-        return []
-
-    driver_employee_ids = set()
-    if _table_exists(con, "employee_roles"):
-        for row in con.execute("SELECT employee_id,role FROM employee_roles").fetchall():
-            if _is_driver_role_label(row["role"]):
-                driver_employee_ids.add(int(row["employee_id"]))
-
-    employee_columns = _table_columns(con, "employees")
-    if "driver_id" in employee_columns:
-        linked = con.execute(
-            "SELECT id,driver_id FROM employees WHERE driver_id IS NOT NULL"
-        ).fetchall()
-        if active_only and _table_exists(con, "drivers"):
-            driver_columns = _table_columns(con, "drivers")
-            clauses = []
-            if "active" in driver_columns:
-                clauses.append("COALESCE(active,1)=1")
-            if "driver_end_date" in driver_columns:
-                clauses.append("COALESCE(driver_end_date,'')=''")
-            sql = "SELECT id FROM drivers"
-            if clauses:
-                sql += " WHERE " + " AND ".join(clauses)
-            current_driver_ids = {int(row["id"]) for row in con.execute(sql).fetchall()}
-            for row in linked:
-                if int(row["driver_id"]) in current_driver_ids:
-                    driver_employee_ids.add(int(row["id"]))
-        else:
-            driver_employee_ids.update(int(row["id"]) for row in linked)
-
-    return [row for row in employee_rows if int(row["id"]) in driver_employee_ids]
+    """Shared driver-only selector contract."""
+    return shared_choices.list_driver_choices(con, active_only=active_only)
 
 
 def list_vehicle_choices(con, active_only=False):
-    sql = "SELECT id,name,plate,make_model,active FROM vehicles"
-    if active_only:
-        sql += " WHERE COALESCE(active,1)=1"
-    sql += " ORDER BY COALESCE(plate,''),name,id"
-    result = []
-    for row in con.execute(sql).fetchall():
-        plate = str(row["plate"] or "").strip()
-        name = str(row["make_model"] or row["name"] or "").strip()
-        label = " · ".join(x for x in (plate, name) if x) or ("ТЗ #%d" % int(row["id"]))
-        result.append({"id": int(row["id"]), "name": name, "plate": plate, "label": label})
-    return result
+    """Shared vehicle selector contract with VIN/plate identity metadata."""
+    return shared_choices.list_vehicle_choices(con, active_only=active_only)
 
 
 def create_order(con, *, order_type, order_no, order_date, place="", subject="",
