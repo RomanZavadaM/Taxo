@@ -2,6 +2,15 @@
 
 **Оновлено:** 08.11.2026 — після інтеграції 10.13-r10, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
 
+## Контрольна точка після обриву чату — 08.11.2026
+
+Окремий повний запис: [RECOVERY_CHECKPOINT_2026-11-08_PRINT_WORKFLOW.md](docs/maintenance/RECOVERY_CHECKPOINT_2026-11-08_PRINT_WORKFLOW.md).
+
+- Фактично integrated: **10.13-r10** (PR #258); stable **10.12-r10**. Windows 997 tests OK / Win7 / macOS Intel+ARM / START: SUCCESS. Open PR: 0 на час звірки. Owner manual acceptance: **PENDING**.
+- **Нове рішення власника щодо друку:** не вигадувати окремий текстовий/друкарський сценарій наказів; взяти за зразок наявне **формування і друк Бланків підтвердження діяльності**, його форми та робочий шлях. Не роздувати один програмний файл — відокремлювати логічні фрагменти, не гублячи старі функції.
+- Це рішення **зафіксовано, але ще не реалізовано в коді**. Наступна кодова ревізія — **10.14-r1**, не повторювати r10.
+- **Одна наступна дія:** прочитати код поточного сценарію Бланків підтвердження діяльності, зіставити його з preview/PDF наказів r10 та зафіксувати конкретні відмінності **перед** реалізацією 10.14-r1. Жодного нового релізу або stable promotion цією документацією не робиться.
+
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
 - **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r10.
