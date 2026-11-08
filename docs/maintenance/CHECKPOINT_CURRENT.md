@@ -3,10 +3,10 @@
 **Дата:** 08.11.2026  
 **Stable / Latest:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10)  
 **Stable exact source:** `6d0f32bc45323d4085bb165b2ec050dae7b378ee`  
-**Поточний integrated main product:** **Taxo 10.13-r5** — не stable; exact product `0b6e0b99dedcfcdbfe25df1460f483d197e623c9`  
+**Поточний integrated main product:** **Taxo 10.13-r6** — не stable; exact product `a3f4e7e924f8d4c7389b28dc659c2f1e72e210da`  
 **Previous stable / rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)  
 **Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)  
-**Next code revision:** `10.13-r6`  
+**Next code revision:** `10.13-r7`  
 **Recovery:** `START_HERE.md` → `HANDOFF_CURRENT.md` → private Taxo-profile → live GitHub → `PROJECT_STATE.md`
 
 ## Stable 10.12-r10
@@ -30,22 +30,23 @@
 
 ## Поточний main після stable
 
-У `main` інтегровано **10.13-r5**. Після r4, який дав вибір водія й ТЗ для наказу про закріплення, r5 виніс цей підхід у спільний механізм:
+У `main` інтегровано **10.13-r6**. Після r5 shared selector foundation r6 додав реальні структуровані зв'язки наказу:
 
-- працівники, водії та ТЗ вибираються як конкретні записи бази зі стабільним Taxo ID;
-- працівник показується з ПІБ, табельним № і посадою; RNOKPP/registry ID доступні для точного зіставлення без автоматичного друку повного RNOKPP;
-- водій — driver-only фільтр спільної employee-моделі;
-- ТЗ показується з держномером, маркою/моделлю та VIN;
-- інструктажі використовують той самий structured employee selector і формують CSV з ПІБ, табельним № та Кодом Taxo;
-- active/historical режим не губить старі деактивовані записи;
-- shared choices вже мають snapshot реквізитів, але збереження immutable snapshot у всіх наказах — ще наступний етап.
+- вкладка **«Учасники / ТЗ»** з масовим вибором працівників і транспортних засобів;
+- пошук за ПІБ/табельним №/ідентифікатором і держномером/VIN;
+- stable Taxo ID + роль + frozen snapshot реквізитів;
+- зміна живої картки не переписує історичний документний перелік;
+- inactive не додаються до нового наказу; після введення наказу в дію перелік immutable;
+- add/remove лишаються в історії наказу;
+- PDF друкує окремий структурований перелік із табельним №/Taxo ID та VIN;
+- наказ про закріплення ТЗ/водіїв лишається на своїй спеціалізованій моделі.
 
-Exact product `0b6e0b99dedcfcdbfe25df1460f483d197e623c9`: Windows #1309 — **960 tests / OK**, Win7 #295 — SUCCESS, macOS #1220 Intel/ARM — SUCCESS, START #2327 — SUCCESS.
+Exact product `a3f4e7e924f8d4c7389b28dc659c2f1e72e210da`: Windows #1313 — **972 tests / OK**, Win7 #299 — SUCCESS, macOS #1224 Intel/ARM — SUCCESS, START #2329 — SUCCESS.
 
-Recovery-copy exact START: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, 1 656 837 байт, Drive file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`, SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
+Recovery-copy exact START: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт, Drive file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`, SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
 
 Це новіша розробка, але вона **не входить у stable 10.12-r10**.
 
 ## Далі
 
-Ручне приймання 10.13-r5: перевірити однозначний вибір водія/працівника й ТЗ (табельний №, VIN), а також масовий вибір працівників у підготовці інструктажу. Наступний code revision — **10.13-r6**: поширення спільного механізму на наступні типи наказів та історичні snapshots. Stable змінювати лише окремим рішенням власника.
+Ручне приймання 10.13-r6: створити звичайний наказ, у вкладці «Учасники / ТЗ» масово додати працівників/ТЗ, перевірити табельний № / VIN, PDF і незмінність після введення наказу в дію. Наступний code revision — **10.13-r7**. Stable змінювати лише окремим рішенням власника.
