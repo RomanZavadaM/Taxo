@@ -617,6 +617,73 @@ def open_operations_center(app, core):
             dlg.destroy(); refresh_assignments()
         bar=core.ttk.Frame(frm); bar.grid(row=4,column=0,columnspan=2,sticky="ew",pady=(10,0)); core.ttk.Button(bar,text="Скасувати",command=dlg.destroy).pack(side="right"); core.ttk.Button(bar,text="Зберегти" if existing else "Додати",style="Accent.TButton",command=save_assignment).pack(side="right",padx=(0,6)); dlg.transient(win)
     def add_assignment(): assignment_dialog()
+
+    def add_assignments_bulk():
+        order=current_assignment_order()
+        if order is None:
+            core.messagebox.showinfo("Закріплення","Спочатку виберіть або створіть наказ про закріплення.",parent=win); return
+        if not require_mutable_order(order,"Закріплення"):
+            return
+        con2=core.db()
+        try:
+            vehicles=ops.list_vehicle_choices(con2,active_only=True)
+            drivers=ops.list_driver_choices(con2,active_only=True)
+        finally: con2.close()
+        dlg=core.tk.Toplevel(win); dlg.title("Додати кілька закріплень")
+        try: core.configure_toplevel(dlg,title=dlg.title(),minsize=(820,560))
+        except Exception: dlg.geometry("900x620")
+        frm=core.ttk.Frame(dlg,padding=14); frm.pack(fill="both",expand=True)
+        frm.columnconfigure(0,weight=1); frm.columnconfigure(1,weight=1); frm.rowconfigure(1,weight=1)
+        core.ttk.Label(frm,text="Транспортні засоби").grid(row=0,column=0,sticky="w")
+        core.ttk.Label(frm,text="Водії").grid(row=0,column=1,sticky="w")
+        vlist=core.tk.Listbox(frm,selectmode="extended",exportselection=False,height=14)
+        dlist=core.tk.Listbox(frm,selectmode="extended",exportselection=False,height=14)
+        vlist.grid(row=1,column=0,sticky="nsew",padx=(0,4),pady=4)
+        dlist.grid(row=1,column=1,sticky="nsew",padx=(4,0),pady=4)
+        for item in vehicles: vlist.insert("end",item["label"])
+        for item in drivers: dlist.insert("end",item["label"])
+        count_var=core.tk.StringVar(value="Вибрано: ТЗ — 0; водіїв — 0")
+        def update_count(_event=None):
+            count_var.set("Вибрано: ТЗ — %d; водіїв — %d" % (len(vlist.curselection()),len(dlist.curselection())))
+        vlist.bind("<<ListboxSelect>>",update_count); dlist.bind("<<ListboxSelect>>",update_count)
+        core.ttk.Label(frm,textvariable=count_var,style="Subtitle.TLabel").grid(row=2,column=0,columnspan=2,sticky="w",pady=(4,2))
+        core.ttk.Label(
+            frm,
+            text=("1 ТЗ + кілька водіїв, 1 водій + кілька ТЗ або однакова кількість з обох боків. "
+                  "При однаковій кількості пари формуються за порядком вибору."),
+            style="Muted.TLabel",wraplength=760,justify="left",
+        ).grid(row=3,column=0,columnspan=2,sticky="w",pady=(0,6))
+        dates=core.ttk.Frame(frm); dates.grid(row=4,column=0,columnspan=2,sticky="ew"); dates.columnconfigure(1,weight=1); dates.columnconfigure(3,weight=1)
+        from_var=core.tk.StringVar(value=ops.display_day(order["order_date"]))
+        until_var=core.tk.StringVar(value="")
+        core.ttk.Label(dates,text="Діє з").grid(row=0,column=0,sticky="w",padx=(0,6))
+        core.ttk.Entry(dates,textvariable=from_var).grid(row=0,column=1,sticky="ew",padx=(0,10))
+        core.ttk.Label(dates,text="Діє до (необов'язково)").grid(row=0,column=2,sticky="w",padx=(0,6))
+        core.ttk.Entry(dates,textvariable=until_var).grid(row=0,column=3,sticky="ew")
+        bar=core.ttk.Frame(frm); bar.grid(row=5,column=0,columnspan=2,sticky="ew",pady=(10,0))
+        def save_bulk():
+            vehicle_ids=[vehicles[int(i)]["id"] for i in vlist.curselection()]
+            driver_ids=[drivers[int(i)]["id"] for i in dlist.curselection()]
+            try:
+                pairs=ops.build_assignment_pairs(vehicle_ids,driver_ids)
+                if not pairs:
+                    raise ValueError("Виберіть транспорт і водіїв.")
+            except Exception as exc:
+                core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
+            con3=core.db()
+            try:
+                ops.add_vehicle_assignments_bulk(
+                    con3,order["id"],pairs,valid_from=from_var.get(),valid_until=until_var.get()
+                )
+                con3.commit()
+            except Exception as exc:
+                con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
+            finally: con3.close()
+            dlg.destroy(); refresh_assignments()
+        core.ttk.Button(bar,text="Скасувати",command=dlg.destroy).pack(side="right")
+        core.ttk.Button(bar,text="Додати вибрані пари",style="Accent.TButton",command=save_bulk).pack(side="right",padx=(0,6))
+        dlg.transient(win)
+
     def edit_assignment():
         sel=atree.selection()
         if not sel: core.messagebox.showinfo("Закріплення","Виберіть рядок ТЗ / водія.",parent=win); return
@@ -632,7 +699,8 @@ def open_operations_center(app, core):
         finally: con2.close()
         refresh_assignments()
     abar=core.ttk.Frame(assignments_tab,padding=(10,0,10,10)); abar.pack(fill="x")
-    core.ttk.Button(abar,text="Додати ТЗ / водія",style="Accent.TButton",command=add_assignment).pack(side="left")
+    core.ttk.Button(abar,text="Додати багато…",style="Accent.TButton",command=add_assignments_bulk).pack(side="left")
+    core.ttk.Button(abar,text="Додати одну пару",command=add_assignment).pack(side="left",padx=6)
     core.ttk.Button(abar,text="Редагувати",command=edit_assignment).pack(side="left",padx=6)
     core.ttk.Button(abar,text="Прибрати",command=remove_assignment).pack(side="left",padx=6)
 
