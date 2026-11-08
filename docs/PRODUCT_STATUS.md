@@ -7,8 +7,8 @@
 - **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Current integrated candidate:** Taxo **10.13-r7** / exact product `4c90082a` — integrated-only; bulk assignment orders + separate work/personnel numbering; exact CI/START/Drive PASS; відомий one-driver→many-vehicles режим має бути прибраний у r8 до owner package.
-- **Next code revision:** `10.13-r8`.
+- **Current integrated candidate:** Taxo **10.13-r8** / exact product `78112c03` — integrated-only owner manual-test candidate; safe bulk assignment + separate work/personnel numbering; exact CI/START/Drive PASS.
+- **Next code revision:** `10.13-r9` only after owner feedback.
 
 ## Відомі обмеження попередньої stable 10.9-r10
 
@@ -32,6 +32,17 @@
 - exact r10 Windows/Win7/macOS/START gates — SUCCESS;
 - owner manual r10 acceptance — без блокера;
 - stable promotion 07.11.2026 з exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+
+## Integrated 10.13-r8
+
+- r7 bulk safety mismatch закрито: 1 driver→many vehicles більше не створюється через bulk selector/helper;
+- valid modes: 1 vehicle→many drivers; equal N vehicles↔N distinct drivers; single pair;
+- real approval-regression: valid bulk orders approve PASS; conflicting one-driver/many-vehicles rows reject PASS;
+- autonumbering r7 unchanged: work sequence + personnel `-К` sequence + configurable next number;
+- exact-main Windows **987 tests / OK**, Win7/macOS/START SUCCESS;
+- Drive recovery-copy confirmed;
+- stable не змінено: **10.12-r10**;
+- r8 — owner manual-test candidate; next code revision **10.13-r9** after feedback.
 
 ## Integrated 10.13-r7
 
