@@ -63,6 +63,11 @@ ORDER_GROUP_VEHICLES = "vehicles"
 ORDER_GROUP_SAFETY = "safety"
 ORDER_GROUP_OTHER = "other"
 
+ORDER_ENTITY_EMPLOYEE = "employee"
+ORDER_ENTITY_VEHICLE = "vehicle"
+ORDER_ENTITY_TYPES = (ORDER_ENTITY_EMPLOYEE, ORDER_ENTITY_VEHICLE)
+
+
 ORDER_GROUP_LABELS = {
     ORDER_GROUP_DRIVERS: "Водії та організація роботи",
     ORDER_GROUP_VEHICLES: "Транспорт і технічна експлуатація",
@@ -222,6 +227,22 @@ def ensure_schema_on_connection(con):
         CREATE INDEX IF NOT EXISTS idx_vehicle_driver_assignments_active
             ON vehicle_driver_assignments(vehicle_id,valid_from,valid_until,employee_id);
 
+        CREATE TABLE IF NOT EXISTS operations_order_entities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL REFERENCES operations_orders(id) ON DELETE CASCADE,
+            entity_type TEXT NOT NULL,
+            entity_id INTEGER NOT NULL,
+            role TEXT NOT NULL DEFAULT '',
+            snapshot_json TEXT NOT NULL DEFAULT '{}',
+            sequence_no INTEGER NOT NULL DEFAULT 1,
+            note TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(order_id,entity_type,entity_id,role)
+        );
+        CREATE INDEX IF NOT EXISTS idx_operations_order_entities_order
+            ON operations_order_entities(order_id,sequence_no,id);
+
         CREATE TABLE IF NOT EXISTS military_statement_approvals (
             report_date TEXT PRIMARY KEY,
             responsible_employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE RESTRICT,
@@ -313,6 +334,212 @@ def list_driver_choices(con, active_only=True):
 def list_vehicle_choices(con, active_only=False):
     """Shared vehicle selector contract with VIN/plate identity metadata."""
     return shared_choices.list_vehicle_choices(con, active_only=active_only)
+
+
+def order_employee_choices(con, order_type, active_only=True):
+    """Return the appropriate employee pool for one order type."""
+    driver_types = {TYPE_DRIVER_TRAINING, TYPE_REST_PLACES}
+    if str(order_type) in driver_types:
+        return list_driver_choices(con, active_only=active_only)
+    return list_employee_choices(con, active_only=active_only)
+
+
+def default_order_entity_role(order_type, entity_type):
+    order_type = str(order_type or "")
+    entity_type = str(entity_type or "")
+    if entity_type == ORDER_ENTITY_EMPLOYEE:
+        return {
+            TYPE_DRIVER_TRAINING: "Водій / стажист",
+            TYPE_REST_PLACES: "Водій",
+            TYPE_WORKTIME: "Працівник",
+            TYPE_SAFETY_TRAINING: "Учасник навчання",
+            TYPE_ROAD_SAFETY: "Працівник",
+            TYPE_ACCIDENT_COMMISSION: "Член комісії / учасник",
+            TYPE_OCCUPATIONAL_SAFETY: "Працівник",
+            TYPE_FIRE_SAFETY: "Працівник",
+            TYPE_TECHNICAL_CONTROL: "Відповідальний / виконавець",
+            TYPE_MAINTENANCE_REPAIR: "Відповідальний / виконавець",
+        }.get(order_type, "Працівник")
+    if entity_type == ORDER_ENTITY_VEHICLE:
+        return {
+            TYPE_STORAGE: "Транспортний засіб",
+            TYPE_REST_PLACES: "Транспортний засіб",
+            TYPE_TECHNICAL_CONTROL: "Транспортний засіб",
+            TYPE_MAINTENANCE_REPAIR: "Транспортний засіб",
+            TYPE_ACCIDENT_COMMISSION: "Пов'язаний транспортний засіб",
+            TYPE_ROAD_SAFETY: "Транспортний засіб",
+        }.get(order_type, "Транспортний засіб")
+    return ""
+
+
+def _require_order_entity_draft(con, order_id):
+    order = get_order(con, order_id)
+    if order is None:
+        raise ValueError("Наказ не знайдено.")
+    if str(order["order_type"]) == TYPE_VEHICLE_ASSIGNMENT:
+        raise ValueError("Для наказу про закріплення використовуйте спеціальну вкладку «Закріплення водіїв».")
+    if str(order["status"]) != ORDER_DRAFT or int(order["paper_original_signed"] or 0):
+        raise ValueError("Учасників і ТЗ можна змінювати лише в чернетці наказу.")
+    return order
+
+
+def _order_entity_choice(con, entity_type, entity_id, *, active_only=True, order_type=""):
+    entity_type = str(entity_type or "")
+    entity_id = int(entity_id)
+    if entity_type == ORDER_ENTITY_EMPLOYEE:
+        rows = order_employee_choices(con, order_type, active_only=active_only)
+    elif entity_type == ORDER_ENTITY_VEHICLE:
+        rows = list_vehicle_choices(con, active_only=active_only)
+    else:
+        raise ValueError("Невідомий тип об'єкта наказу.")
+    for row in rows:
+        if int(row["id"]) == entity_id:
+            return row
+    raise ValueError("Вибраний запис не знайдено серед доступних активних даних Taxo.")
+
+
+def get_order_entity(con, entity_link_id):
+    ensure_schema_on_connection(con)
+    return con.execute(
+        "SELECT * FROM operations_order_entities WHERE id=?",
+        (int(entity_link_id),),
+    ).fetchone()
+
+
+def list_order_entities(con, order_id):
+    ensure_schema_on_connection(con)
+    return con.execute(
+        """SELECT * FROM operations_order_entities
+            WHERE order_id=?
+            ORDER BY sequence_no,id""",
+        (int(order_id),),
+    ).fetchall()
+
+
+def add_order_entity(con, order_id, entity_type, entity_id, *, role="", note="",
+                     sequence_no=None, snapshot=None, active_only=True):
+    ensure_schema_on_connection(con)
+    order = _require_order_entity_draft(con, order_id)
+    entity_type = str(entity_type or "")
+    role = str(role or "").strip()
+    choice = _order_entity_choice(
+        con, entity_type, entity_id,
+        active_only=active_only,
+        order_type=str(order["order_type"]),
+    )
+    snapshot_data = dict(snapshot or shared_choices.choice_snapshot(choice))
+    snapshot_data.setdefault("entity_type", entity_type)
+    snapshot_data.setdefault("id", int(entity_id))
+    if sequence_no is None:
+        row = con.execute(
+            "SELECT COALESCE(MAX(sequence_no),0)+1 AS n FROM operations_order_entities WHERE order_id=?",
+            (int(order_id),),
+        ).fetchone()
+        sequence_no = int(row["n"])
+    exists = con.execute(
+        """SELECT id FROM operations_order_entities
+            WHERE order_id=? AND entity_type=? AND entity_id=? AND role=?""",
+        (int(order_id), entity_type, int(entity_id), role),
+    ).fetchone()
+    if exists is not None:
+        return int(exists["id"])
+    now = datetime.now().isoformat(timespec="seconds")
+    cur = con.execute(
+        """INSERT INTO operations_order_entities(
+               order_id,entity_type,entity_id,role,snapshot_json,sequence_no,note,created_at,updated_at
+           ) VALUES(?,?,?,?,?,?,?,?,?)""",
+        (
+            int(order_id), entity_type, int(entity_id), role,
+            json.dumps(snapshot_data, ensure_ascii=False, sort_keys=True, default=_json_value),
+            int(sequence_no), str(note or "").strip(), now, now,
+        ),
+    )
+    link_id = int(cur.lastrowid)
+    _write_history(
+        con, "order_entity", int(order_id), "entity_add",
+        after=dict(get_order_entity(con, link_id)),
+        note="Додано до структурованого переліку наказу",
+    )
+    return link_id
+
+
+def add_order_entities(con, order_id, entity_type, entity_ids, *, role="", note=""):
+    """Atomically add a de-duplicated group of selected entities."""
+    ensure_schema_on_connection(con)
+    _require_order_entity_draft(con, order_id)
+    created = []
+    seen = set()
+    for raw_id in entity_ids:
+        entity_id = int(raw_id)
+        if entity_id in seen:
+            continue
+        seen.add(entity_id)
+        before = con.execute(
+            """SELECT id FROM operations_order_entities
+                WHERE order_id=? AND entity_type=? AND entity_id=? AND role=?""",
+            (int(order_id), str(entity_type), entity_id, str(role or "").strip()),
+        ).fetchone()
+        link_id = add_order_entity(
+            con, order_id, entity_type, entity_id, role=role, note=note,
+        )
+        if before is None:
+            created.append(link_id)
+    return created
+
+
+def delete_order_entity(con, entity_link_id, *, history_note=""):
+    ensure_schema_on_connection(con)
+    row = get_order_entity(con, entity_link_id)
+    if row is None:
+        return
+    _require_order_entity_draft(con, row["order_id"])
+    before = dict(row)
+    con.execute("DELETE FROM operations_order_entities WHERE id=?", (int(entity_link_id),))
+    _write_history(
+        con, "order_entity", int(row["order_id"]), "entity_remove", before=before,
+        note=str(history_note or "Прибрано зі структурованого переліку наказу"),
+    )
+
+
+def order_entity_view(row):
+    """Human-readable view based on the frozen snapshot, not the live card."""
+    try:
+        snapshot = json.loads(str(row["snapshot_json"] or "{}"))
+    except Exception:
+        snapshot = {}
+    entity_type = str(row["entity_type"] or snapshot.get("entity_type") or "")
+    entity_id = int(row["entity_id"])
+    if entity_type == ORDER_ENTITY_EMPLOYEE:
+        name = str(snapshot.get("name") or "").strip() or ("Працівник Taxo #%d" % entity_id)
+        personnel = str(snapshot.get("personnel_no") or "").strip()
+        identifier = ("таб. № %s" % personnel) if personnel else ("Taxo ID %d" % entity_id)
+        return {
+            "type_label": "Працівник",
+            "display": name,
+            "identifier": identifier,
+            "role": str(row["role"] or "").strip(),
+            "snapshot": snapshot,
+        }
+    if entity_type == ORDER_ENTITY_VEHICLE:
+        plate = str(snapshot.get("plate") or "").strip()
+        name = str(snapshot.get("name") or "").strip()
+        vin = str(snapshot.get("vin") or "").strip()
+        display = " · ".join(x for x in (plate, name) if x) or ("ТЗ Taxo #%d" % entity_id)
+        identifier = ("VIN %s" % vin) if vin else ("Taxo ID %d" % entity_id)
+        return {
+            "type_label": "ТЗ",
+            "display": display,
+            "identifier": identifier,
+            "role": str(row["role"] or "").strip(),
+            "snapshot": snapshot,
+        }
+    return {
+        "type_label": entity_type or "Об'єкт",
+        "display": "Taxo ID %d" % entity_id,
+        "identifier": "Taxo ID %d" % entity_id,
+        "role": str(row["role"] or "").strip(),
+        "snapshot": snapshot,
+    }
 
 
 def create_order(con, *, order_type, order_no, order_date, place="", subject="",
@@ -590,20 +817,19 @@ def order_history(con, order_id, limit=500):
     assignment_ids = [int(r[0]) for r in con.execute(
         "SELECT id FROM vehicle_driver_assignments WHERE order_id=?", (order_id,)
     ).fetchall()]
+    clauses = [
+        "(entity_type='order' AND entity_id=?)",
+        "(entity_type='order_entity' AND entity_id=?)",
+    ]
+    params = [order_id, order_id]
     if assignment_ids:
         marks = ",".join("?" for _ in assignment_ids)
-        sql = (
-            "SELECT * FROM operations_change_log WHERE "
-            "(entity_type='order' AND entity_id=?) OR "
-            f"(entity_type='assignment' AND entity_id IN ({marks})) "
-            "ORDER BY id DESC LIMIT ?"
-        )
-        return con.execute(sql, [order_id] + assignment_ids + [int(limit)]).fetchall()
-    return con.execute(
-        """SELECT * FROM operations_change_log
-            WHERE entity_type='order' AND entity_id=?
-            ORDER BY id DESC LIMIT ?""", (order_id, int(limit))
-    ).fetchall()
+        clauses.append("(entity_type='assignment' AND entity_id IN (%s))" % marks)
+        params.extend(assignment_ids)
+    sql = "SELECT * FROM operations_change_log WHERE " + " OR ".join(clauses)
+    sql += " ORDER BY id DESC LIMIT ?"
+    params.append(int(limit))
+    return con.execute(sql, params).fetchall()
 
 
 def statement_fingerprint(report_date, company, rows):

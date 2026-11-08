@@ -120,9 +120,10 @@ def export_order_pdf_with_appendices(core, path, order, assignments=(), company=
     con = core.db()
     try:
         appendices = list_appendices(con, int(order["id"]))
+        entities = ops.list_order_entities(con, int(order["id"])) if hasattr(ops, "list_order_entities") else []
     finally:
         con.close()
-    if not appendices:
+    if not appendices and not entities:
         return _BASE_EXPORT(path, order, assignments, company, control_name, font_path=font_path)
 
     from reportlab.lib import colors
@@ -197,6 +198,49 @@ def export_order_pdf_with_appendices(core, path, order, assignments=(), company=
         ("ALIGN",(0,0),(0,0),"LEFT"),("ALIGN",(1,0),(1,0),"CENTER"),("ALIGN",(2,0),(2,0),"RIGHT"),
     ]))
     story.append(signature)
+
+    if entities:
+        story += [PageBreak()]
+        story += [Paragraph(
+            "<b>Структурований перелік працівників і транспортних засобів</b>",
+            bold_center,
+        ), Spacer(1, 3*mm)]
+        story += [Paragraph(
+            "до наказу від %s № %s" % (
+                ops._ptext(ops.display_day(order["order_date"])),
+                ops._ptext(str(order["order_no"] or "")),
+            ),
+            center,
+        ), Spacer(1, 7*mm)]
+        data = [["№", "Тип", "Роль / призначення", "Працівник / ТЗ", "Однозначний реквізит"]]
+        for idx, item in enumerate(entities, 1):
+            view = ops.order_entity_view(item)
+            data.append([
+                str(idx),
+                str(view["type_label"] or ""),
+                str(view["role"] or ""),
+                str(view["display"] or ""),
+                str(view["identifier"] or ""),
+            ])
+        entity_table = Table(
+            data,
+            colWidths=[10*mm, 18*mm, 38*mm, 54*mm, 45*mm],
+            repeatRows=1,
+        )
+        entity_table.setStyle(TableStyle([
+            ("FONTNAME",(0,0),(-1,-1),font_name),("FONTSIZE",(0,0),(-1,-1),9.5),
+            ("GRID",(0,0),(-1,-1),0.4,colors.black),
+            ("ALIGN",(0,0),(-1,0),"CENTER"),
+            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+            ("LEFTPADDING",(0,0),(-1,-1),3),("RIGHTPADDING",(0,0),(-1,-1),3),
+            ("TOPPADDING",(0,0),(-1,-1),3),("BOTTOMPADDING",(0,0),(-1,-1),3),
+        ]))
+        story.append(entity_table)
+        story += [Spacer(1, 4*mm), Paragraph(
+            "Перелік сформовано зі структурованих записів Taxo. Ідентифікаційні реквізити "
+            "зафіксовано на момент додавання до чернетки наказу.",
+            normal,
+        )]
 
     for idx, appendix in enumerate(appendices, 1):
         story += [PageBreak()]

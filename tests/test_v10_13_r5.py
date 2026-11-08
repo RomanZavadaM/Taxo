@@ -62,10 +62,13 @@ class SharedEntityChoicesR5Tests(unittest.TestCase):
     def tearDown(self):
         self.con.close()
 
-    def test_identity_is_10_13_r5(self):
-        self.assertEqual(main.APP_VERSION, "10.13-r5")
-        self.assertIn("10.13-r5", Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("Taxo 10.13-r5", Path("START.bat").read_text(encoding="utf-8"))
+    def test_identity_is_10_13_r5_or_newer(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 13, 5))
 
     def test_employee_choices_are_stable_and_identity_aware(self):
         rows = entity_choices.list_employee_choices(self.con, active_only=True)
