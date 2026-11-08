@@ -1,3 +1,19 @@
+## 10.13-r10 — видимий наказ і прямий друк — 08.11.2026
+
+- Owner feedback після r9: помилки зникли, але готовий текст наказу та шлях до друку неочевидні.
+- PR #258 merged → exact product `46ef1b995cfc42e8a3195d2f654ad0a9d5e07bb4`.
+- Додано `order_preview_text()` та read-only **«Перегляд наказу»**: шапка, реквізити, тема, вступ, «НАКАЗУЮ», assignment rows, контроль, підписний блок.
+- У реєстрі наказів є **«Переглянути / друк»**; double-click відкриває preview; у preview є **«Сформувати PDF / друк»**.
+- Після створення наказу Taxo більше не ховає результат переходом на assignment tab: лишається на «Накази», виділяє створений запис і автоматично показує текст.
+- Existing PDF generator не замінено; r10 робить його доступним із зрозумілого preview workflow.
+- Новий regression перевіряє реальний текст наказу з кількома водіями та всі UI-входи.
+- PR-head: Windows #1335 — **997 tests / OK**; Win7 #320 SUCCESS; macOS #1245 Intel/ARM SUCCESS.
+- Exact-main: Windows #1336 — **997 tests / OK**; Win7 #321 SUCCESS; macOS #1246 Intel/ARM SUCCESS; START #2336 SUCCESS.
+- Exact START: 1 699 549 bytes, SHA256 `9810df24b3a0ded29ec33ec8f804e18b29ef284853e47fe3763e22e994d2c0f3`.
+- Google Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.13-r10_2026-11-08_START.zip`, file `1F5-tTsEqlH6o8xdeSKdQcRBPbZ3k_iVs`; read-back PASS.
+- Stable remains **v10.12-r10**. r10 integrated-only, owner manual-test candidate.
+- Цикл 10.13 завершено по ревізіях; наступна code revision — **10.14-r1** після feedback.
+
 ## 10.13-r9 — виправлення після ручного тестування r8 — 08.11.2026
 
 - Owner screenshots r8: raw SQLite duplicate error, crash `create_order_with_template(... order_series=...)`, нумерація непомітна у «Відповідальні», головне вікно не виходить на передній план.
