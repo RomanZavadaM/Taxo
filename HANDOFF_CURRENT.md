@@ -1,19 +1,39 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 08.11.2026 — після інтеграції 10.13-r5, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
+**Оновлено:** 08.11.2026 — після інтеграції 10.13-r6, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
 
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
-- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r5.
-- **Поточний integrated product candidate:** **10.13-r5**, PR #247, exact product commit `0b6e0b99dedcfcdbfe25df1460f483d197e623c9`.
+- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r6.
+- **Поточний integrated product candidate:** **10.13-r6**, PR #249, exact product commit `a3f4e7e924f8d4c7389b28dc659c2f1e72e210da`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5 лишаються integrated-only.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5/r6 лишаються integrated-only.
 - **Попередня Google Drive recovery-copy — 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Попередня Google Drive recovery-copy — 10.13-r3:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; Drive file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
 - **Google Drive recovery-copy 10.13-r4:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; Drive file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; exact START artifact #13591576959 SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
 - **Google Drive recovery-copy 10.13-r5:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, 1 656 837 байт; Drive file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`; exact START #2327 artifact SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
-- **Наступна кодова ревізія:** **10.13-r6**.
+- **Google Drive recovery-copy 10.13-r6:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт; Drive file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`; exact START #2329 artifact SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
+- **Наступна кодова ревізія:** **10.13-r7**.
 - Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
+
+## 10.13-r6 — структуровані працівники й ТЗ у наказах
+
+PR #249 merged → exact product commit `a3f4e7e924f8d4c7389b28dc659c2f1e72e210da`.
+
+- Для наказів (крім спеціалізованого наказу про закріплення) додано окрему вкладку **«Учасники / ТЗ»**.
+- Можна масово вибрати кількох працівників або кілька ТЗ, шукати за ПІБ/табельним №/ідентифікатором або держномером/VIN і задати роль/призначення.
+- Для водійських типів наказів employee-selector використовує саме driver-only базу.
+- Кожний структурований зв'язок зберігає stable Taxo ID та **frozen snapshot** реквізитів. Подальша зміна ПІБ, табельного №, держномера, моделі чи VIN у живій картці не переписує історичний перелік наказу.
+- Неактивні записи не можна додавати до нового наказу; після введення наказу в дію структурований перелік не редагується.
+- Додавання/видалення учасника або ТЗ лишається в історії наказу навіть після видалення рядка з чернетки.
+- PDF наказу з таким переліком отримує окрему сторінку **«Структурований перелік працівників і транспортних засобів»**; для працівника друкується табельний №/Taxo ID, для ТЗ — VIN; повний РНОКПП автоматично не друкується.
+- Наказ про закріплення ТЗ за водіями зберігає спеціалізовану модель `vehicle_driver_assignments` і окрему вкладку.
+- Schema change additive: нова `operations_order_entities`; існуючі накази/дані не переписуються. Plan/fact, юридичні підписи, stable/release/security не змінювались.
+- PR-head: Windows #1312 — **972 tests / OK**; Win7 #298 — SUCCESS; macOS #1223 Intel/ARM — SUCCESS. Перший ARM runner впав до checkout через пошкоджений manifest `actions/checkout`; повтор того самого job без зміни коду — SUCCESS.
+- **Exact-main після merge:** Windows #1313 — **972 tests / OK**; Win7 #299 — SUCCESS; macOS #1224 Intel/ARM — SUCCESS; START #2329 — SUCCESS.
+- Exact START recovery-copy r6 підтверджена на Google Drive; файл, розмір і SHA256 наведені вище.
+- Stable лишається **v10.12-r10**. r6 integrated-only, не окремий release.
+- Наступна code revision — **10.13-r7** після ручного приймання r6.
 
 ## 10.13-r5 — спільний вибір працівників, водіїв і ТЗ
 
@@ -265,7 +285,7 @@ PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 
 ## Наступна безпечна дія
 
-Ручно прийняти 10.13-r5 у звичайному сценарії «Експлуатація»: перевірити, що в наказі про закріплення ТЗ показується VIN, водій однозначно відрізняється за табельним №/ідентифікатором, а в інструктажі масовий вибір працівників формує зрозумілий підготовчий список. Після приймання наступний кодовий крок — **10.13-r6**: поширити спільний selector на наступні типи наказів і почати зберігати структуровані зв'язки + історичний snapshot там, де документ повинен пережити зміну картки. Stable лишається 10.12-r10.
+Ручно прийняти 10.13-r6 у «Експлуатація → Накази»: створити звичайну чернетку наказу (не «Закріплення ТЗ за водіями»), відкрити **«Учасники / ТЗ»**, масово додати працівників і/або ТЗ, перевірити роль, табельний № / VIN, PDF-перелік та блокування редагування після введення наказу в дію. Після приймання наступний кодовий крок — **10.13-r7**. Stable лишається 10.12-r10.
 
 ## Recovery
 
