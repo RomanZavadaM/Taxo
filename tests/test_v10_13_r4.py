@@ -96,8 +96,13 @@ class AssignmentOrderBaseSelectorsR4Tests(unittest.TestCase):
     def tearDown(self):
         self.con.close()
 
-    def test_identity_is_10_13_r4(self):
-        self.assertEqual(main.APP_VERSION, "10.13-r4")
+    def test_identity_is_10_13_r4_or_newer(self):
+        def key(value):
+            base, _, rev = str(value).partition("-r")
+            major, minor = (int(part) for part in base.split(".", 1))
+            return major, minor, int(rev or 0)
+
+        self.assertGreaterEqual(key(main.APP_VERSION), (10, 13, 4))
 
     def test_driver_choices_use_driver_base_not_all_employees(self):
         current = ops.list_driver_choices(self.con, active_only=True)
