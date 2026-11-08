@@ -1,21 +1,38 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 08.11.2026 — після інтеграції 10.13-r7, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
+**Оновлено:** 08.11.2026 — після інтеграції 10.13-r8, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
 
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
-- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r7.
-- **Поточний integrated product candidate:** **10.13-r7**, PR #252, exact product commit `4c90082aba0aa3f1c7f4636466ceaa08aa541ecf`.
+- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r8.
+- **Поточний integrated product candidate:** **10.13-r8**, PR #254, exact product commit `78112c03db5406a2e4d9e4e4452226f6c9a82d0f`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5/r6/r7 лишаються integrated-only.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5/r6/r7/r8 лишаються integrated-only.
 - **Попередня Google Drive recovery-copy — 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Попередня Google Drive recovery-copy — 10.13-r3:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; Drive file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
 - **Google Drive recovery-copy 10.13-r4:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; Drive file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; exact START artifact #13591576959 SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
 - **Google Drive recovery-copy 10.13-r5:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, 1 656 837 байт; Drive file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`; exact START #2327 artifact SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
 - **Google Drive recovery-copy 10.13-r6:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r6_2026-11-08_START.zip`, 1 669 795 байт; Drive file `1MXbWM_ppcKBGhRRtPJtq8V1Y226_4YKK`; exact START #2329 artifact SHA256 `6b362f065190b708f27c11cb1f8d08cd70fe57a9b2d5e72d0b2b247736392e36`.
 - **Google Drive recovery-copy 10.13-r7:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r7_2026-11-08_START.zip`, 1 680 167 байт; Drive file `1lVmLFCqToh_9Bqhxrdd1e9Yuzz8Ol5r2`; exact START #2331 artifact SHA256 `09e0185d52dfbfd31c6745cf2afa31910be6a88645b18678eb95f683a8dbfea0`.
-- **Наступна кодова ревізія:** **10.13-r8**.
+- **Google Drive recovery-copy 10.13-r8:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r8_2026-11-08_START.zip`, 1 685 617 байт; Drive file `1rj63QCtxmw4laO1KOnoVlx2PJoNccb20`; exact START #2333 artifact SHA256 `19cc825561f367afaa84d75cbc621dbd4767aa8f7bf284bd1d60a1a5cc35b61f`.
+- **Наступна кодова ревізія:** **10.13-r9**.
 - Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
+
+## 10.13-r8 — безпечне масове закріплення
+
+PR #254 merged → exact product commit `78112c03db5406a2e4d9e4e4452226f6c9a82d0f`.
+
+- Закрито self-audit r7: масовий selector більше **не дозволяє «1 водій → кілька ТЗ»** з одним періодом, бо чинний approval invariant правильно забороняє одночасне закріплення одного водія за різними ТЗ.
+- Дозволені робочі схеми: **1 ТЗ → кілька водіїв**, **N ТЗ ↔ N різних водіїв** за порядком вибору, або одна пара.
+- Неоднозначна різна кількість ТЗ/водіїв і one-driver/many-vehicles блокуються ще до створення масових пар.
+- UI більше не рекламує невалідний режим.
+- Behavioral regression проходить через реальний «Ввести в дію»: 1 ТЗ + кілька водіїв — PASS; N різних пар — PASS; вручну створений конфлікт одного водія на кілька ТЗ — правильно блокується, наказ лишається чернеткою.
+- Автонумерація r7 збережена: робоча серія `1,2,3…`, кадрова `1-К,2-К,3-К…`, next number конфігурується.
+- PR-head: Windows #1328 — **987 tests / OK**; Win7 #314 — SUCCESS; macOS #1239 Intel/ARM — SUCCESS.
+- **Exact-main:** Windows #1329 — **987 tests / OK**; Win7 #315 — SUCCESS; macOS #1240 Intel/ARM — SUCCESS; START #2333 — SUCCESS.
+- Exact START recovery-copy r8 підтверджена на Google Drive; реквізити наведені вище.
+- Stable лишається **v10.12-r10**. r8 integrated-only, не окремий release.
+- **r8 — версія для ручного приймання власником.** Наступна code revision — **10.13-r9** тільки після зворотного зв'язку з цього тесту.
 
 ## 10.13-r7 — масові закріплення та автонумерація
 
@@ -299,7 +316,7 @@ PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 
 ## Наступна безпечна дія
 
-**10.13-r8**: узгодити масове закріплення з чинним правилом введення наказу в дію — залишити «1 ТЗ → кілька водіїв» і «N ТЗ ↔ N різних водіїв», а «1 водій → кілька ТЗ» блокувати ще на етапі вибору. Додати approval-regression. Після exact-main r8 дати власнику Windows Portable для ручної перевірки масового наказу та автонумерації. Stable лишається 10.12-r10.
+Ручно прийняти **10.13-r8 Windows Portable**: перевірити масовий наказ про закріплення, робочу автонумерацію, окрему кадрову серію `-К`, «Додати багато…», блокування одного водія на кілька ТЗ та успішне «Ввести в дію» для допустимих пар. Після feedback наступна code revision — **10.13-r9**. Stable лишається 10.12-r10.
 
 ## Recovery
 
