@@ -1,3 +1,20 @@
+## 10.13-r5 — спільний вибір працівників, водіїв і ТЗ — 08.11.2026
+
+- Вимога власника: у багатьох наказах та інструктажах не переписувати людей/транспорт руками, а вибирати конкретні записи бази з однозначними реквізитами; зафіксовано Issue #246 і зв'язок з Issue #237.
+- Від exact r4 checkpoint `f0521691...` створено r5; PR #247 merged → exact product `0b6e0b99dedcfcdbfe25df1460f483d197e623c9`.
+- Додано спільний `entity_choices.py`; старі окремі employee/driver/vehicle selector-и в Operations переведено на один контракт.
+- Працівник: stable Taxo ID, ПІБ, табельний №, посада, RNOKPP/registry ID для точного зіставлення. Повний RNOKPP не друкується автоматично; за відсутності табельного № UI показує лише маскований хвіст.
+- Водії: driver-only фільтрація спільної employee-моделі; inactive не пропонуються для нового документа, historical режим їх не губить.
+- ТЗ: stable Taxo ID, держномер, make/model, VIN, garage №; новий вибір показує VIN і підтримує пошук за ним.
+- «Інструктажі та журнали» переведено на structured employee choice; підготовчий CSV містить ПІБ, табельний №, Код Taxo й надалі **не є журналом/підтвердженням проведення**.
+- Choice records містять snapshot ідентифікаційних реквізитів як основу наступного кроку; персистентний historical snapshot для багатьох типів наказів ще не реалізований.
+- Нові r5 regression checks: однакові ПІБ, табельний №/RNOKPP/registry ID, driver-only, VIN/plate, active/historical, CSV privacy, VERSION/START identity.
+- PR-head: Windows #1308 — **960 tests / OK**; Win7 #294 — SUCCESS; macOS #1219 Intel/ARM — SUCCESS.
+- Exact-main після merge: Windows #1309 — **960 tests / OK**; Win7 #295 — SUCCESS; macOS #1220 Intel/ARM — SUCCESS; START #2327 — SUCCESS.
+- Exact START artifact: 1 656 837 байт, SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
+- Google Drive recovery-copy: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`; read-back підтверджений.
+- Stable не змінювалась: **v10.12-r10**. r5 integrated-only. Наступна code revision — **10.13-r6** після ручного приймання.
+
 ## 10.13-r4 — наказ про закріплення: водій і ТЗ з бази — 08.11.2026
 
 - Після команди власника на вибір водіїв/транспорту виконано reconciliation: паралельна сесія вже інтегрувала PR #244; дублюючу кодову роботу не починали.

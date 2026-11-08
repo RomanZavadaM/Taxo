@@ -1,18 +1,37 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 08.11.2026 — після reconciliation паралельної роботи, exact-product перевірок і Google Drive recovery-copy 10.13-r4.
+**Оновлено:** 08.11.2026 — після інтеграції 10.13-r5, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
 
 ## База
 - **Stable / Latest:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — promoted 07.11.2026 з exact product source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`; 8 assets; GitHub Latest.
-- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r4.
-- **Поточний integrated product candidate:** **10.13-r4**, PR #244, product commit `67b4670fdb29a46d03f9d6462ae2bd19603a2a5c`.
+- **Історичний prerelease:** [v10.11-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10), exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`; **архівний, не активна лінія розробки**. Актуальна stable — 10.12-r10; активний код — 10.13-r5.
+- **Поточний integrated product candidate:** **10.13-r5**, PR #247, exact product commit `0b6e0b99dedcfcdbfe25df1460f483d197e623c9`.
 - **CI integration checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; post-merge docs-only smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Подальший docs-only recovery checkpoint може змінити repository HEAD без зміни продуктової ревізії.
-- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4 лишаються integrated-only.
+- 10.12-r1…r9 лишаються integrated-only; **10.12-r10 опубліковано як stable/latest**; 10.13-r1/r2/r3/r4/r5 лишаються integrated-only.
 - **Попередня Google Drive recovery-copy — 10.13-r2:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; START #2321 artifact SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Попередня Google Drive recovery-copy — 10.13-r3:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; Drive file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
 - **Google Drive recovery-copy 10.13-r4:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; Drive file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; exact START artifact #13591576959 SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
-- **Наступна кодова ревізія:** **10.13-r5**.
+- **Google Drive recovery-copy 10.13-r5:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, 1 656 837 байт; Drive file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`; exact START #2327 artifact SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
+- **Наступна кодова ревізія:** **10.13-r6**.
 - Stable не змінювати без окремого рішення власника. Поточне рішення власника 07.11.2026 — stable = 10.12-r10.
+
+## 10.13-r5 — спільний вибір працівників, водіїв і ТЗ
+
+PR #247 merged → exact product commit `0b6e0b99dedcfcdbfe25df1460f483d197e623c9`.
+
+- Створено **одне спільне джерело вибору** сутностей для наказів, інструктажів та наступних документів замість окремих несумісних списків.
+- Працівник визначається стабільним ID Taxo; для людини показуються ПІБ, табельний № і посада. РНОКПП та реєстровий ID доступні для точного зіставлення/пошуку, але РНОКПП **не друкується автоматично** у підготовчий список.
+- Водії є відфільтрованою підмножиною того самого списку; механіки/інші працівники не потрапляють у driver-only вибір.
+- ТЗ визначається стабільним ID, держномером та VIN; у виборі показуються держномер + марка/модель + VIN.
+- Нові документи пропонують активні сутності; історичний режим не втрачає деактивовані записи.
+- «Інструктажі та журнали» тепер використовують структурований вибір працівників; підготовчий CSV містить ПІБ, табельний № і Код Taxo, але не повний РНОКПП.
+- Choice-row вже містить snapshot ідентифікаційних реквізитів як основу для наступного етапу. **Збереження immutable snapshot у всіх типах наказів ще не реалізовано** — це окрема робота.
+- DB schema, plan/fact, юридичне підписання/проведення інструктажів, stable/release/security у r5 не змінювались.
+- PR-head: Windows #1308 — **960 tests / OK**; Win7 #294 — SUCCESS; macOS #1219 ARM64/Intel — SUCCESS.
+- **Exact-main після merge:** Windows #1309 — **960 tests / OK**; Win7 #295 — SUCCESS; macOS #1220 ARM64/Intel — SUCCESS; START #2327 — SUCCESS.
+- Exact START recovery-copy r5 підтверджена на Google Drive; файл, розмір і SHA256 наведені вище.
+- Stable лишається **v10.12-r10**. r5 не опублікований як окремий release.
+- Наступна code revision — **10.13-r6**; перед новою кодовою роботою бажане ручне приймання r5 власником.
 
 ## 10.13-r4 — наказ про закріплення з бази водіїв і транспорту
 
@@ -246,7 +265,7 @@ PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 
 ## Наступна безпечна дія
 
-Надати власнику готовий START 10.13-r3 для ручного приймання нового розділу. Після його перевірки — обрати один вузький наступний етап 10.13-r4: довідник затверджених програм і контрольний квартальний план, без юридичної імітації паперових підписів. Stable лишається 10.12-r10.
+Ручно прийняти 10.13-r5 у звичайному сценарії «Експлуатація»: перевірити, що в наказі про закріплення ТЗ показується VIN, водій однозначно відрізняється за табельним №/ідентифікатором, а в інструктажі масовий вибір працівників формує зрозумілий підготовчий список. Після приймання наступний кодовий крок — **10.13-r6**: поширити спільний selector на наступні типи наказів і почати зберігати структуровані зв'язки + історичний snapshot там, де документ повинен пережити зміну картки. Stable лишається 10.12-r10.
 
 ## Recovery
 

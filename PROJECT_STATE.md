@@ -1,6 +1,6 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 07.11.2026  
+**Дата:** 08.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
 
 ## Поточний підтверджений стан
@@ -9,15 +9,30 @@
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r4; історичний тег зберігається.
-- **Current integrated product candidate:** Taxo **10.13-r4**, product commit `67b4670fdb29a46d03f9d6462ae2bd19603a2a5c`. Stable лишається 10.12-r10; 10.13-r1/r2/r3/r4 integrated-only і не stable.
+- **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r5; історичний тег зберігається.
+- **Current integrated product candidate:** Taxo **10.13-r5**, exact product commit `0b6e0b99dedcfcdbfe25df1460f483d197e623c9`, PR #247. Stable лишається 10.12-r10; 10.13-r1/r2/r3/r4/r5 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.13-r5**. Для r4 exact-source CI/START і Google Drive PASS; потрібне ручне приймання.
+- **Next code revision:** **10.13-r6**. Для r5 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS; потрібне ручне приймання.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Previous Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
-- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; START artifact SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
+- **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r4_2026-11-07_START.zip`, 1 648 645 байт; file `1_861lkkVbBzhxiBlDbhKexG2jLcE6WAN`; START artifact SHA256 `6fd45b64748df00506dcae1420d48db5959f847f1e884d3040b0f0eb6eea4555`.
+- **Current Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r5_2026-11-08_START.zip`, 1 656 837 байт; file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`; exact START #2327 artifact SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
 - **Live ledger:** Issue #61 — історія, не перша сторінка recovery.
+
+## Інтегрована розробка 10.13-r5 — спільні identity-aware selectors
+
+- PR #247 merged → exact product `0b6e0b99dedcfcdbfe25df1460f483d197e623c9`.
+- Працівники, водії та ТЗ для «Експлуатації» тепер походять зі спільного selector-контракту зі стабільним ID і реквізитами однозначної ідентифікації.
+- Працівник: ПІБ, табельний №, посада; РНОКПП/registry ID доступні для точного зіставлення, але не виводяться автоматично у паперовий підготовчий список.
+- Водій: driver-only фільтр спільної employee-моделі; механіки та інші ролі не змішуються з водіями.
+- ТЗ: держномер + марка/модель + VIN; active для нового документа, historical для збереження старих зв'язків.
+- «Інструктажі та журнали» використовують той самий структурований список працівників; CSV містить ПІБ, табельний № та Код Taxo.
+- Shared choice містить snapshot реквізитів як технічну основу; персистентні immutable snapshots у всіх типах наказів — **ще наступний етап**, не заявляти як готове.
+- PR-head: Windows #1308 — **960 tests / OK**; Win7 #294 — SUCCESS; macOS #1219 Intel/ARM — SUCCESS.
+- Exact-main: Windows #1309 — **960 tests / OK**; Win7 #295 — SUCCESS; macOS #1220 Intel/ARM — SUCCESS; START #2327 — SUCCESS.
+- Drive recovery-copy r5 підтверджена: 1 656 837 байт, file `12xjT-MYyacorZVroEesvEicwR7Z17nPP`, SHA256 `c4d3f8cdbfa1d6c911f74bddc6682f18dc71a55699896ffbc5142d14c1c37107`.
+- Stable **10.12-r10** незмінна; r5 не опублікований. Наступний code revision — **10.13-r6** після ручного приймання.
 
 ## Інтегрована розробка 10.13-r4 — вибір водія й ТЗ у наказі про закріплення
 
@@ -173,7 +188,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.10-r5`; `10.10-r4` superseded через macOS startup issue; поточний main candidate — `10.12-r9`; наступна кодова ревізія — `10.12-r10`; наступна stable змінюється лише рішенням власника;
+- поточна stable — `10.12-r10`; rollback checkpoint — `10.10-r5`; поточний integrated main candidate — `10.13-r5`; наступна кодова ревізія — `10.13-r6`; stable змінюється лише окремим рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 

@@ -1,14 +1,14 @@
 # Taxo — стан продукту
 
-**Актуально:** 07.11.2026
+**Актуально:** 08.11.2026
 
 ## Поточний статус
 
 - **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
 - **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Current integrated candidate:** Taxo 10.13-r4 / exact product `67b4670f` — не stable; наказ про закріплення вибирає активний ТЗ і фактичного водія з бази Taxo; exact CI/START і резерв на Drive PASS.
-- **Next code revision:** `10.13-r5`.
+- **Current integrated candidate:** Taxo 10.13-r5 / exact product `0b6e0b99` — не stable; спільний identity-aware вибір працівників/водіїв/ТЗ уже працює в наказах про закріплення та інструктажах; exact CI/START і резерв на Drive PASS.
+- **Next code revision:** `10.13-r6`.
 
 ## Відомі обмеження попередньої stable 10.9-r10
 
@@ -32,6 +32,19 @@
 - exact r10 Windows/Win7/macOS/START gates — SUCCESS;
 - owner manual r10 acceptance — без блокера;
 - stable promotion 07.11.2026 з exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
+
+## Integrated 10.13-r5
+
+- спільний selector для працівників, водіїв і ТЗ зі стабільними Taxo ID;
+- працівники розрізняються за табельним №/ідентифікаційними реквізитами, ТЗ — за держномером/VIN;
+- driver-only вибір не змішує водіїв з іншими працівниками;
+- інструктажі використовують той самий structured employee choice;
+- підготовчий CSV інструктажу містить ПІБ, табельний № і Код Taxo без автоматичного друку RNOKPP;
+- active/historical режим зберігає історичні записи;
+- shared snapshot підготовлено як основу наступного етапу; повне збереження snapshot у багатьох типах наказів ще не завершене;
+- exact-main Windows **960 tests / OK**, Win7/macOS/START SUCCESS;
+- exact START зарезервовано на Google Drive;
+- stable не змінено: **10.12-r10**.
 
 ## Integrated 10.13-r4
 
