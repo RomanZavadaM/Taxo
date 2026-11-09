@@ -44,18 +44,21 @@ def list_appendices(con, order_id):
     ).fetchall()
 
 
-def _require_draft(con, order_id):
+def _require_order(con, order_id):
+    """Require only that the order exists.
+
+    Taxo prepares auxiliary paperwork. Order status and the paper-signature
+    marker are informational and must not lock editing of order appendices.
+    """
     row = ops.get_order(con, order_id)
     if row is None:
         raise ValueError("Наказ не знайдено.")
-    if str(row["status"]) != ops.ORDER_DRAFT:
-        raise ValueError("Додатки затвердженого або скасованого наказу не редагуються. Оформіть новий наказ.")
     return row
 
 
 def save_appendix(con, order_id, *, title, content, note="", appendix_id=None, sequence_no=None):
     ensure_appendix_schema_on_connection(con)
-    _require_draft(con, order_id)
+    _require_order(con, order_id)
     title = str(title or "").strip()
     content = str(content or "").strip()
     if not title:
@@ -95,7 +98,7 @@ def save_appendix(con, order_id, *, title, content, note="", appendix_id=None, s
 
 def delete_appendix(con, order_id, appendix_id):
     ensure_appendix_schema_on_connection(con)
-    _require_draft(con, order_id)
+    _require_order(con, order_id)
     con.execute(
         "DELETE FROM operations_order_appendices WHERE id=? AND order_id=?",
         (int(appendix_id), int(order_id)),
@@ -235,7 +238,7 @@ def _install_appendix_tab(app, core, win):
     order_var = core.tk.StringVar(value="")
     order_box = core.ttk.Combobox(top, textvariable=order_var, state="readonly", width=72)
     order_box.pack(side="left", fill="x", expand=True, padx=(8,0))
-    hint = core.ttk.Label(tab, text="Додатки зберігаються структуровано. Після затвердження наказу вони не редагуються.", style="Muted.TLabel")
+    hint = core.ttk.Label(tab, text="Додатки зберігаються структуровано. Статус наказу або паперовий підпис не блокують їх редагування.", style="Muted.TLabel")
     hint.pack(fill="x", padx=10, pady=(2,6))
     frame = core.ttk.Frame(tab); frame.pack(fill="both", expand=True, padx=10, pady=(0,10)); frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
     tree = core.ttk.Treeview(frame, columns=("seq","title","note"), show="headings", selectmode="browse")
@@ -281,8 +284,8 @@ def _install_appendix_tab(app, core, win):
         try:
             order=ops.get_order(con,oid)
         finally: con.close()
-        if order is None or order["status"] != ops.ORDER_DRAFT:
-            core.messagebox.showinfo("Додатки","Редагувати додатки можна лише у чернетці наказу.",parent=win); return
+        if order is None:
+            core.messagebox.showinfo("Додатки","Наказ не знайдено.",parent=win); return
         dlg=core.tk.Toplevel(win); dlg.title("Додаток до наказу");
         try: core.configure_toplevel(dlg,title="Додаток до наказу",minsize=(760,520))
         except Exception: pass
@@ -315,7 +318,7 @@ def _install_appendix_tab(app, core, win):
     def delete_selected():
         sel=tree.selection(); oid=selected_order_id()
         if not sel or not oid: core.messagebox.showinfo("Додатки","Виберіть додаток.",parent=win); return
-        if not core.messagebox.askyesno("Видалити додаток?","Видалити вибраний додаток з чернетки наказу?",parent=win): return
+        if not core.messagebox.askyesno("Видалити додаток?","Видалити вибраний додаток з наказу?",parent=win): return
         con=core.db()
         try: delete_appendix(con,oid,int(sel[0])); con.commit()
         except Exception as exc: con.rollback(); core.messagebox.showerror("Додатки",str(exc),parent=win); return

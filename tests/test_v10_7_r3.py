@@ -63,16 +63,29 @@ class OrderAppendixR3Tests(unittest.TestCase):
         finally:
             con.close()
 
-    def test_approved_order_appendices_are_immutable(self):
+    def test_order_status_does_not_lock_appendix_editing(self):
         con = self._con()
         try:
             appendix_id = r3.save_appendix(con, self.order_id, title="Додаток", content="Зміст")
             ops.approve_order(con, self.order_id)
+            r3.save_appendix(
+                con, self.order_id, title="Змінено", content="Інший зміст",
+                appendix_id=appendix_id,
+            )
+            self.assertEqual(
+                r3.list_appendices(con, self.order_id)[0]["title"],
+                "Змінено",
+            )
+            ops.cancel_order(con, self.order_id)
+            second = r3.save_appendix(
+                con, self.order_id, title="Після скасування", content="Робоча редакція"
+            )
+            r3.delete_appendix(con, self.order_id, appendix_id)
             con.commit()
-            with self.assertRaises(ValueError):
-                r3.save_appendix(con, self.order_id, title="Змінено", content="Інший зміст", appendix_id=appendix_id)
-            with self.assertRaises(ValueError):
-                r3.delete_appendix(con, self.order_id, appendix_id)
+            self.assertEqual(
+                [row["id"] for row in r3.list_appendices(con, self.order_id)],
+                [second],
+            )
         finally:
             con.close()
 

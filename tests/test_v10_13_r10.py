@@ -58,7 +58,7 @@ class TaxoR10OrderPreviewTests(unittest.TestCase):
         self.con.close()
 
     def test_identity_is_10_13_r10_or_newer(self):
-        self.assertIn(main.APP_VERSION, ("10.13-r10", "10.14-r1", "10.14-r2", "10.14-r3", "10.14-r4"))
+        self.assertIn(main.APP_VERSION, ("10.13-r10", "10.14-r1", "10.14-r2", "10.14-r3", "10.14-r4", "10.14-r5"))
         self.assertIn(main.APP_VERSION,Path("VERSION.txt").read_text(encoding="utf-8"))
         self.assertIn("Taxo " + main.APP_VERSION,Path("START.bat").read_text(encoding="utf-8"))
 

@@ -30,10 +30,21 @@ def delete_order(con, order_id, *, note="Видалено користуваче
         "SELECT * FROM operations_order_entities WHERE order_id=? ORDER BY id",
         (oid,),
     ).fetchall()]
+    has_appendices = con.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' "
+        "AND name='operations_order_appendices'"
+    ).fetchone() is not None
+    appendices = [
+        dict(r) for r in con.execute(
+            "SELECT * FROM operations_order_appendices WHERE order_id=? ORDER BY sequence_no,id",
+            (oid,),
+        ).fetchall()
+    ] if has_appendices else []
     before = {
         "order": dict(row),
         "assignments": assignments,
         "entities": entities,
+        "appendices": appendices,
     }
     # Assignment endings may refer either to rows owned by the removed order
     # or to rows ended by the removed order. Remove those relations as well.
@@ -57,6 +68,8 @@ def delete_order(con, order_id, *, note="Видалено користуваче
             )
     con.execute("DELETE FROM vehicle_driver_assignments WHERE order_id=?", (oid,))
     con.execute("DELETE FROM operations_order_entities WHERE order_id=?", (oid,))
+    if has_appendices:
+        con.execute("DELETE FROM operations_order_appendices WHERE order_id=?", (oid,))
     con.execute("DELETE FROM operations_orders WHERE id=?", (oid,))
     ops._write_history(
         con, "order", oid, "delete",
