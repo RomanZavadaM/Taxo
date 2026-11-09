@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import json
 import tempfile
+import tkinter as tk
+from tkinter import ttk
+from types import SimpleNamespace
+from unittest import mock
 import unittest
 import zipfile
 from datetime import date
@@ -13,6 +17,8 @@ import main
 import safety_instructions_ui as brief
 import paper_documents as paper
 import workspace
+import driver_internship_ui
+from runtime_reachability import runtime_routes, assert_widget_reachable, activate_widget
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -112,6 +118,95 @@ class PaperDocumentsR3Tests(unittest.TestCase):
             self.assertRaises(ValueError, paper.document_path, directory,
                               {"file": "/absolute.docx"})
             self.assertEqual(paper.list_documents(directory), [])
+
+
+
+class _DummyCon:
+    def close(self):
+        pass
+
+
+def _walk(widget):
+    for child in widget.winfo_children():
+        yield child
+        yield from _walk(child)
+
+
+def _button(widget, label):
+    for child in _walk(widget):
+        if child.winfo_class() in ("TButton", "Button") and str(child.cget("text")) == label:
+            return child
+    return None
+
+
+class PaperworkLiveRouteR3Tests(unittest.TestCase):
+    def setUp(self):
+        self.root = tk.Tk()
+        self.root.geometry("1100x750")
+        self.book = ttk.Notebook(self.root)
+        self.book.pack(fill="both", expand=True)
+        self.core = SimpleNamespace(
+            tk=tk, ttk=ttk, db=lambda: _DummyCon(),
+            messagebox=SimpleNamespace(
+                showinfo=lambda *a, **k: None,
+                showerror=lambda *a, **k: self.fail("Unexpected UI error: %r" % (a,)),
+            ),
+        )
+
+    def tearDown(self):
+        self.root.destroy()
+
+    @runtime_routes("operations.printable_briefing")
+    def test_live_briefing_print_action_is_reachable_and_saves_file(self):
+        with tempfile.TemporaryDirectory() as directory, \\
+             mock.patch.object(brief, "load_workspace_root", return_value=directory), \\
+             mock.patch.object(brief.paperwork, "open_file"), \\
+             mock.patch.object(brief.ops, "list_employee_choices", return_value=[
+                 {"id": 1, "label": "Водій Один", "name": "Водій Один", "personnel_no": "001"},
+                 {"id": 2, "label": "Водій Два", "name": "Водій Два", "personnel_no": "002"},
+             ]):
+            tab = brief.install_instruction_tab(SimpleNamespace(), self.core, self.book)
+            self.book.select(tab)
+            self.root.update()
+            select_all = _button(tab, "Вибрати всіх")
+            select_all.invoke()
+            control = _button(tab, "Створити комплект DOCX для друку")
+            assert_widget_reachable(control, "operations.printable_briefing")
+            activate_widget(control, "operations.printable_briefing")
+            entries = paper.list_documents(directory)
+            self.assertEqual(len(entries), 1)
+            self.assertTrue(paper.document_path(directory, entries[0]).is_file())
+
+    @runtime_routes("operations.driver_internship")
+    def test_live_driver_internship_action_is_reachable_and_saves_file(self):
+        with tempfile.TemporaryDirectory() as directory, \\
+             mock.patch.object(driver_internship_ui, "load_workspace_root", return_value=directory), \\
+             mock.patch.object(driver_internship_ui.paperwork, "open_file"), \\
+             mock.patch.object(driver_internship_ui.ops, "list_driver_choices", return_value=[
+                 {"id": 1, "label": "Стажист Один", "name": "Стажист Один", "personnel_no": "001"},
+                 {"id": 2, "label": "Наставник Два", "name": "Наставник Два", "personnel_no": "002"},
+             ]), \\
+             mock.patch.object(driver_internship_ui.ops, "list_vehicle_choices", return_value=[
+                 {"id": 5, "label": "Автобус AA0000AA"},
+             ]):
+            tab = driver_internship_ui.install_internship_tab(
+                SimpleNamespace(), self.core, self.book)
+            self.book.select(tab)
+            self.root.update()
+            controls = {
+                int(widget.grid_info().get("row")): widget
+                for widget in tab.winfo_children()
+                if isinstance(widget, ttk.Combobox)
+            }
+            controls[2].set("Стажист Один")
+            controls[3].set("Наставник Два")
+            controls[4].set("Автобус AA0000AA")
+            control = _button(tab, "Створити лист стажування DOCX")
+            assert_widget_reachable(control, "operations.driver_internship")
+            activate_widget(control, "operations.driver_internship")
+            entries = paper.list_documents(directory)
+            self.assertEqual(len(entries), 1)
+            self.assertEqual(entries[0]["kind"], "Стажування")
 
 
 if __name__ == "__main__":
