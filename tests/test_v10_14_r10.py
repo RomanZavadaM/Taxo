@@ -59,6 +59,10 @@ faulthandler.enable(file=sys.stdout)
 faulthandler.dump_traceback_later(15, repeat=False, file=sys.stdout)
 print("COLD_START_STEP: import main", flush=True)
 import main
+# A normal existing Taxo workspace already has its directory layout before
+# the candidate is launched.  Create only directories here; do not initialize
+# schema until all feature layers are installed.
+main.ensure_workspace(main.DATA_ROOT)
 # Real START imports taxo_app first.  Feature-layer installation wraps
 # core.init_db with historical schema migrations (for example company EDRPOU).
 print("COLD_START_STEP: import taxo_app", flush=True)
