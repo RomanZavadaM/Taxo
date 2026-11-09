@@ -5,6 +5,7 @@ import unittest
 
 import v1081_features as r1
 import v1082_features as r2
+from runtime_reachability import runtime_routes, activate_widget
 
 
 class _DummyApp:
@@ -57,11 +58,13 @@ class RuntimeVehicleToolbarSmokeTests(unittest.TestCase):
         for button in self.app.vehicle_core_action_buttons:
             self.assertTrue(button.winfo_ismapped(), button.cget("text"))
 
+    @runtime_routes("vehicles.core")
     def test_every_vehicle_core_button_executes_its_original_callback(self):
         r1._install_stable_vehicle_toolbar(self.app, type("Core", (), {"ttk": ttk}))
         self.root.update_idletasks()
+        self.root.update()
         for button in self.app.vehicle_core_action_buttons:
-            button.invoke()
+            activate_widget(button, "vehicles.core", container=self.root)
         self.assertEqual(
             self.app.calls,
             ["vehicle_form", "edit_vehicle", "vehicle_documents", "vehicle_document_control", "delete_vehicle", "load_vehicles"],
