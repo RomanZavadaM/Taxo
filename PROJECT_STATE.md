@@ -3,6 +3,20 @@
 **Дата:** 09.11.2026
 **Repository:** RomanZavadaM/Taxo
 
+## Integrated candidate: 10.14-r6 — Feature Loss: масове закріплення ТЗ/водіїв
+
+- **Stable / Latest лишається v10.14-r4**.
+- **Product integrated:** PR #276 → `e9cec1662b7fb36f0a5345f77345b4c57e2f35fb`; VERSION/START = 10.14-r6.
+- Реальний owner-test виявив, що раніше перевірений масовий вибір ТЗ/водіїв фактично став недоступним у формі наказу: блок залишився в коді, але опинився за видимою областю.
+- UI виправлено: блок закріплення перенесено вище великих текстових полів; багатовибір і «Додати багато…» збережені.
+- Feature Loss registry розширено окремим route `operations.assignment_bulk`; це вже не ховається під загальним `operations.center`.
+- Новий live regression перевіряє фактичну видимість, розміри та геометричну досяжність списків, а не лише наявність тексту у widget tree.
+- **Exact-main:** Windows #1380, Win7 #356, macOS Intel/ARM #1281, START #2441 — SUCCESS; **1026 tests OK**.
+- **Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r6_2026-11-09_START.zip`, 1 733 853 байти, file `1scF68cCRkIf8187k38Qw1TiDQWqkR7qY`, SHA256 `245c72302966e43b6ca6c0b3d82517780a3e428c9b2da25a11be817b2d2d02c1`.
+- Issue #275 лишається OPEN: загальний meta-gate ще треба посилити для майбутніх нових критичних UI-елементів.
+- **Manual operational acceptance r6:** PENDING.
+- **Next code revision:** 10.14-r7.
+
 ## Integrated candidate: 10.14-r5 — експлуатаційна стабілізація
 
 - **Stable / Latest лишається v10.14-r4**; release/tag r4 не змінювався.
