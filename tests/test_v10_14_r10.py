@@ -53,15 +53,27 @@ class ColdStartupR10Tests(unittest.TestCase):
             src = str(ROOT / "src" / "taxo")
             env["PYTHONPATH"] = src + os.pathsep + env.get("PYTHONPATH", "")
             code = r"""
+import faulthandler
+import sys
+faulthandler.enable(file=sys.stdout)
+faulthandler.dump_traceback_later(15, repeat=False, file=sys.stdout)
+print("COLD_START_STEP: import main", flush=True)
 import main
+print("COLD_START_STEP: init_db", flush=True)
 main.init_db()
+print("COLD_START_STEP: import taxo_app", flush=True)
 import taxo_app
+print("COLD_START_STEP: App()", flush=True)
 app = None
 try:
     app = taxo_app.App()
+    print("COLD_START_STEP: App constructed", flush=True)
     app.withdraw()
+    print("COLD_START_STEP: update_idletasks", flush=True)
     app.update_idletasks()
+    print("COLD_START_STEP: update", flush=True)
     app.update()
+    print("COLD_START_STEP: update returned", flush=True)
     assert app.winfo_exists()
     registry_bar = getattr(app, "vehicle_registry_toolbar", None)
     assert registry_bar is not None and registry_bar.winfo_exists()
@@ -81,15 +93,21 @@ finally:
     if app is not None:
         app.destroy()
 """
-            completed = subprocess.run(
-                [sys.executable, "-c", code],
-                cwd=str(ROOT),
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                timeout=90,
-            )
+            try:
+                completed = subprocess.run(
+                    [sys.executable, "-c", code],
+                    cwd=str(ROOT),
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    timeout=35,
+                )
+            except subprocess.TimeoutExpired as exc:
+                output = exc.stdout or ""
+                if isinstance(output, bytes):
+                    output = output.decode("utf-8", errors="replace")
+                self.fail("Cold-start child timed out. Partial output:\n" + output)
             self.assertEqual(completed.returncode, 0, completed.stdout)
             self.assertIn("TAXO_COLD_START_OK", completed.stdout)
 
