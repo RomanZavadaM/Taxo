@@ -14,6 +14,10 @@ from order_pdf_workflow import generate_order_formats, open_order_format
 
 
 class FakeOrders:
+    TYPE_VEHICLE_ASSIGNMENT = "vehicle_assignment"
+    @staticmethod
+    def display_day(value):
+        return str(value)
     @staticmethod
     def order_preview_text(order, assignments=(), entities=(), company=None, control_name=""):
         return (
@@ -57,11 +61,17 @@ class OrderFormatsR2Tests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.output = Path(self.temp.name)
-        self.order = {"order_no": "4-К", "order_date": "09.11.2026"}
+        self.order = {
+            "order_no":"4-К","order_date":"09.11.2026",
+            "order_type":"generic","place":"Львів",
+            "subject":"Про закріплення",
+            "preamble":"Для виконання виробничих завдань",
+            "body_text":"1. Закріпити автобус за двома водіями."
+        }
         self.core = fake_core(self.output)
 
     def test_current_version_and_start_guard(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r2", "10.14-r3"))
+        self.assertIn(main.APP_VERSION, ("10.14-r2", "10.14-r3", "10.14-r4"))
         self.assertIn(main.APP_VERSION, Path("VERSION.txt").read_text(encoding="utf-8"))
         start = Path("START.bat").read_text(encoding="utf-8")
         self.assertIn("order_pdf_workflow.py", start)

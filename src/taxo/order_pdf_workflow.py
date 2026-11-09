@@ -50,10 +50,20 @@ def generate_order_formats(core, ops, order, assignments=(), entities=(),
     base = _unique_order_base(core.OUTPUT_DIR, order)
     base.parent.mkdir(parents=True, exist_ok=True)
     saved = {}
+    appendices = ()
+    if "docx" in selected and hasattr(core, "db") and hasattr(order, "keys") and "id" in order.keys():
+        # The appendix-aware PDF renderer uses this same persisted list.
+        from v1073_features import list_appendices
+        con = core.db()
+        try:
+            appendices = tuple(list_appendices(con, int(order["id"])))
+        finally:
+            con.close()
     if "docx" in selected:
         result = core.write_output_file(
             lambda out: build_order_docx(
-                out, ops, order, assignments, entities, company, control
+                out, ops, order, assignments, entities, company, control,
+                appendices=appendices
             ), base.with_name(base.name + ".docx"), parent=parent,
             kind="DOCX наказу", error_title="Наказ Word",
         )

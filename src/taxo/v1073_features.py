@@ -147,58 +147,11 @@ def export_order_pdf_with_appendices(core, path, order, assignments=(), company=
     doc = SimpleDocTemplate(str(path), pagesize=A4,
                             leftMargin=20*mm, rightMargin=18*mm,
                             topMargin=17*mm, bottomMargin=17*mm)
-    company = company or {}
-    company_name = str(company.get("name") or "").strip() or "Підприємство"
-    signer_position = str(company.get("signer_position") or "").strip() or "Керівник"
-    signer_name = str(company.get("signer_name") or "").strip()
-    story = [Paragraph("<b>Н А К А З</b>", title), Paragraph("по %s" % company_name, center), Spacer(1, 7*mm)]
-    meta = Table([[ops.display_day(order["order_date"]), "<b>№ %s</b>" % str(order["order_no"] or ""), str(order["place"] or "")]],
-                 colWidths=[55*mm,55*mm,55*mm])
-    meta.setStyle(TableStyle([
-        ("FONTNAME",(0,0),(-1,-1),font_name),("FONTSIZE",(0,0),(-1,-1),11.5),
-        ("ALIGN",(0,0),(0,0),"LEFT"),("ALIGN",(1,0),(1,0),"CENTER"),("ALIGN",(2,0),(2,0),"RIGHT"),
-    ]))
-    story += [meta, Spacer(1,8*mm)]
-    subject = str(order["subject"] or "").strip()
-    if subject:
-        story += [Paragraph("<b>%s</b>" % subject, normal), Spacer(1,5*mm)]
-    preamble = str(order["preamble"] or "").strip()
-    if preamble:
-        story += [Paragraph(preamble, normal), Spacer(1,6*mm)]
-    story += [Paragraph("<b>Н А К А З У Ю:</b>", bold_center), Spacer(1,5*mm)]
-
-    if str(order["order_type"]) == ops.TYPE_VEHICLE_ASSIGNMENT:
-        first_from = ops.display_day(assignments[0]["valid_from"]) if assignments else ops.display_day(order["order_date"])
-        story.append(Paragraph("1. Закріпити з %s транспортні засоби підприємства за водіями згідно з наведеною таблицею:" % first_from, normal))
-        data = [["№","Транспортний засіб","Держ. номер","Водій"]]
-        for idx,item in enumerate(assignments,1):
-            name = " ".join(str(item[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(item[k] or "").strip())
-            vehicle = str(item["make_model"] or item["vehicle_name"] or "").strip()
-            data.append([idx,vehicle,str(item["plate"] or "").strip(),name])
-        table = Table(data,colWidths=[10*mm,52*mm,38*mm,65*mm],repeatRows=1)
-        table.setStyle(TableStyle([
-            ("FONTNAME",(0,0),(-1,-1),font_name),("FONTSIZE",(0,0),(-1,-1),10.5),
-            ("GRID",(0,0),(-1,-1),0.45,colors.black),("ALIGN",(0,0),(-1,0),"CENTER"),
-            ("VALIGN",(0,0),(-1,-1),"MIDDLE"),("LEFTPADDING",(0,0),(-1,-1),3),("RIGHTPADDING",(0,0),(-1,-1),3),
-            ("TOPPADDING",(0,0),(-1,-1),3),("BOTTOMPADDING",(0,0),(-1,-1),3),
-        ]))
-        story += [Spacer(1,3*mm),table,Spacer(1,5*mm)]
-        if str(control_name or "").strip():
-            story.append(Paragraph("2. Контроль за виконанням даного наказу покласти на %s." % str(control_name).strip(), normal))
-    else:
-        for paragraph in [p.strip() for p in str(order["body_text"] or "").splitlines() if p.strip()]:
-            story += [Paragraph(paragraph, normal), Spacer(1,2*mm)]
-        if str(control_name or "").strip():
-            story.append(Paragraph("Контроль за виконанням даного наказу покласти на %s." % str(control_name).strip(), normal))
-
-    story += [Spacer(1,15*mm)]
-    signature = Table([[signer_position,"________________",signer_name]],colWidths=[60*mm,45*mm,55*mm])
-    signature.setStyle(TableStyle([
-        ("FONTNAME",(0,0),(-1,-1),font_name),("FONTSIZE",(0,0),(-1,-1),11.5),
-        ("ALIGN",(0,0),(0,0),"LEFT"),("ALIGN",(1,0),(1,0),"CENTER"),("ALIGN",(2,0),(2,0),"RIGHT"),
-    ]))
-    story.append(signature)
-
+    from order_pdf_sections import build_order_story
+    story = build_order_story(
+        ops, order, assignments, company,
+        control_name, font_name, normal, center, right, title, bold_center,
+    )
     if entities:
         story += [PageBreak()]
         story += [Paragraph(

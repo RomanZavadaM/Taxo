@@ -9,9 +9,13 @@ class Taxo107R7Tests(unittest.TestCase):
         self.assertTrue(required.issubset(set(ops.ORDER_TYPE_LABELS)))
         for key in required: self.assertTrue(ops.DEFAULT_SUBJECTS[key]); self.assertTrue(ops.DEFAULT_PREAMBLES[key])
     def test_order_number_uses_paragraph(self):
-        source=(ROOT/'operations_orders.py').read_text(encoding='utf-8')
-        self.assertIn('Paragraph("<b>№ %s</b>" % _ptext(order["order_no"]), center)',source)
-        self.assertNotIn('"<b>№ %s</b>" % str(order["order_no"] or "")',source)
+        base=(ROOT/'operations_orders.py').read_text(encoding='utf-8')
+        renderer=(ROOT/'order_pdf_sections.py').read_text(encoding='utf-8')
+        layout=(ROOT/'order_layout.py').read_text(encoding='utf-8')
+        self.assertIn('build_order_story(',base)
+        self.assertIn('para(layout["number"], center, bold=True)',renderer)
+        self.assertIn('ops._ptext(value)',renderer)
+        self.assertIn('"number": "№ %s"',layout)
     def test_r7_identity(self):
         self.assertIn('APP_VERSION = "10.7-r7"',(ROOT/'v1077_features.py').read_text(encoding='utf-8'))
         self.assertIn('App = install_v1077(core, App)',(ROOT/'taxo_app.py').read_text(encoding='utf-8'))
