@@ -4,7 +4,7 @@
 **Stable / Latest:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) — **STABLE 09.11.2026**, власник підтвердив роботу; exact-source Windows/Win7/macOS/START SUCCESS; 8 канонічних файлів.
 **Previous stable / rollback:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
 **Older rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5).
-**Next code revision:** **10.14-r5** (не видано).
+**Next code revision:** **10.15-r4** (після завершення r3).
 **10.14-r4 product source:** 677458afa06893b4d221130db72de4045187e0c8; після приймання код не змінювали.
 
 ## Лінія 10.14 — включена в стабільну 10.14-r4
@@ -167,3 +167,15 @@
 5. Новий код починається тільки від актуального `main`.
 6. Historical work/candidate branches and stacked PRs are never reused as current development bases.
 7. Після виданого `10.11-r10` наступна кодова зміна — `10.12-r1`; stable змінюється лише окремим рішенням власника.
+
+
+## Кандидати 10.15 (після stable 10.14-r4)
+
+| Ревізія | PR | Зміст |
+|---|---|---|
+| **10.15-r3** | #292 | Інструктаж у DOCX з листом підписів, бланк стажування водія, початковий каталог Word у workspace; не є повним #289. |
+| **10.15-r2** | #288 | 17 редагованих програм інструктажів і 11 заготовок наказів. |
+| **10.15-r1** | #286 | Збереження кількох пар водій–ТЗ під час створення наказу. |
+
+**Наступна кодова ревізія після r3:** 10.15-r4 — окрема архітектурна модернізація за #290. Ієрархічний каталог та опційні скани #289 — наступний незалежний функціональний етап. Stable не змінюється без підтвердженого нового tag/release.
+
