@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 import operations_orders as ops
-from order_pdf_workflow import save_and_preview_order
+from order_pdf_workflow import (save_and_preview_order, generate_order_formats, open_order_format)
 from safety_instructions_ui import install_instruction_tab
 
 
@@ -589,8 +589,9 @@ def open_operations_center(app, core):
         frm=core.ttk.Frame(dlg,padding=12); frm.pack(fill="both",expand=True)
         core.ttk.Label(
             frm,
-            text=("Це зміст наказу перед друком. Перевірте текст і перелік. "
-                  "Кнопка нижче створить PDF та відкриє його для друку."),
+            text=("Перевірте зміст наказу. Оберіть формат: Word, PDF, JPG "
+                  "(для кожної сторінки) або створіть усі. "
+                  "Перегляд доступний у Taxo, відкриття — у програмі комп'ютера."),
             style="Muted.TLabel",wraplength=820,justify="left",
         ).pack(anchor="w",pady=(0,8))
         text_frame=core.ttk.Frame(frm); text_frame.pack(fill="both",expand=True)
@@ -600,11 +601,83 @@ def open_operations_center(app, core):
         viewer.configure(yscrollcommand=sy.set)
         viewer.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns")
         viewer.insert("1.0",preview); viewer.configure(state="disabled")
-        bar=core.ttk.Frame(frm); bar.pack(fill="x",pady=(10,0))
+
+        generated={}
+        status_var=core.tk.StringVar(value="Файли ще не створено.")
+        def make_formats(formats):
+            try:
+                results=generate_order_formats(
+                    core,ops,row,assignments,entities,company,control,
+                    formats=formats,parent=dlg,
+                )
+            except Exception as exc:
+                core.messagebox.showerror("Формування наказу",str(exc),parent=dlg)
+                return
+            generated.update(results)
+            if not results:
+                status_var.set("Файл не створено.")
+                return
+            summary=", ".join(
+                "%s: %d" % (kind.upper(), len(paths))
+                for kind,paths in results.items()
+            )
+            status_var.set("Збережено: "+summary)
+            preferred=next((kind for kind in ("pdf","docx","jpg") if kind in results),None)
+            if preferred:
+                view_format(preferred)
+
+        def view_format(kind,external=False):
+            paths=generated.get(kind,())
+            if not paths:
+                core.messagebox.showinfo(
+                    "Документи наказу",
+                    "Спочатку створіть %s для цього наказу." % kind.upper(),parent=dlg
+                )
+                return
+            try:
+                open_order_format(core,paths,dlg,external=external)
+                if external and len(paths)>1:
+                    core.messagebox.showinfo(
+                        "Сторінки JPG",
+                        "Відкрито першу сторінку. Інші JPG-сторінки збережено поруч:\n%s"
+                        % paths[0].parent,parent=dlg
+                    )
+            except Exception as exc:
+                core.messagebox.showwarning(
+                    "Відкриття документа",
+                    "Файл збережено, але його не вдалося відкрити:\n%s" % exc,
+                    parent=dlg
+                )
+
+        formats_box=core.ttk.LabelFrame(frm,text="Документи наказу",padding=(8,6))
+        formats_box.pack(fill="x",pady=(8,0))
+        for col in range(4):
+            formats_box.columnconfigure(col,weight=1)
+        for col,(title,kinds) in enumerate((
+            ("Створити DOCX",("docx",)),("Створити PDF",("pdf",)),
+            ("Створити JPG",("jpg",)),("Створити все",("docx","pdf","jpg"))
+        )):
+            core.ttk.Button(
+                formats_box,text=title,command=lambda f=kinds:make_formats(f)
+            ).grid(row=0,column=col,sticky="ew",padx=3,pady=3)
+        for col,kind in enumerate(("docx","pdf","jpg")):
+            core.ttk.Button(
+                formats_box,text="Перегляд "+kind.upper(),
+                command=lambda f=kind:view_format(f)
+            ).grid(row=1,column=col,sticky="ew",padx=3,pady=3)
+            core.ttk.Button(
+                formats_box,text="Відкрити у програмі: "+kind.upper(),
+                command=lambda f=kind:view_format(f,external=True)
+            ).grid(row=2,column=col,sticky="ew",padx=3,pady=3)
+        core.ttk.Label(
+            formats_box,textvariable=status_var,style="Muted.TLabel",
+            wraplength=810,justify="left"
+        ).grid(row=3,column=0,columnspan=4,sticky="w",padx=4,pady=(4,0))
+        bar=core.ttk.Frame(frm); bar.pack(fill="x",pady=(8,0))
         core.ttk.Button(bar,text="Закрити",command=dlg.destroy).pack(side="right")
         core.ttk.Button(
             bar,text="Сформувати PDF / друк",style="Accent.TButton",
-            command=lambda:export_order(row,dlg)
+            command=lambda:make_formats(("pdf",))
         ).pack(side="right",padx=(0,6))
         if not order_mutability_message(row):
             core.ttk.Button(
