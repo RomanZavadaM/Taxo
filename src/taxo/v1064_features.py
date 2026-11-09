@@ -88,6 +88,10 @@ def _grid_waybill_actions(frame, buttons, available_width=None):
         host_width = int(frame.winfo_toplevel().winfo_width() or 0)
         if host_width > 1:
             available_width = min(available_width, max(320, host_width - 20))
+        # Native themes (notably macOS) can draw button chrome a few pixels
+        # wider than the logical requested width. Keep a small real safety
+        # margin so the last action never clips at the right edge.
+        available_width = max(320, available_width - 12)
         # grid padx=3 consumes six horizontal pixels per control. Count that
         # real geometry instead of estimating only the text/button reqwidth.
         widths = [max(1, button.winfo_reqwidth() + 6) for button in buttons]
