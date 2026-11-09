@@ -3,7 +3,25 @@
 **Дата:** 09.11.2026
 **Repository:** RomanZavadaM/Taxo
 
-## Stable / Latest: 10.14-r4 — ОПУБЛІКОВАНО 09.11.2026
+## Integrated candidate: 10.14-r5 — експлуатаційна стабілізація
+
+- **Stable / Latest лишається v10.14-r4**; release/tag r4 не змінювався.
+- **Product integrated:** PR #273 → `df7c9c6d001445fa2ea5d0b0cd12c20a04d0c5e6`; `main.py`, `VERSION.txt`, START = 10.14-r5.
+- Виправлено залишковий draft-only lock у «Додатках до наказів»: статус/паперовий підпис не блокують додавання, редагування або видалення.
+- Видалення наказу тепер включає додатки у повний audit snapshot перед очищенням внутрішніх зв'язків.
+- **PR-head:** Windows #1368, Win7 #344, macOS #1269, START #2418 — SUCCESS.
+- **Exact-main:** Windows #1369, Win7 #345, macOS #1270, START #2419 — SUCCESS; START 1023 tests OK.
+- **Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r5_2026-11-09_START.zip`, 1 729 037 байт, file `1EsQ5pdJUEP9Fge0_Hiw41qCvtaxCNF9q`.
+- Issues #264 і #175 закриті як completed після фактичної звірки; не повторювати ці роботи.
+- **Manual operational acceptance r5:** PENDING — перевірити редагування/видалення додатка після зміни статусу наказу та повторний DOCX/PDF/JPG.
+- **Next code revision:** 10.14-r6.
+
+## Попередня stable-контрольна точка
+
+**Дата:** 09.11.2026
+**Repository:** RomanZavadaM/Taxo
+
+### Stable / Latest: 10.14-r4 — ОПУБЛІКОВАНО 09.11.2026
 
 - **GitHub Latest:** [v10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4), 8 canonical assets, `draft=false`, `prerelease=false`.
 - **Immutable tag source:** `214f714f4804cb284fdcbc5b5a26418cef40937a`; product 10.14-r4 implementation SHA `677458afa06893b4d221130db72de4045187e0c8`.

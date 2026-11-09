@@ -1,3 +1,15 @@
+## 09.11.2026 — 10.14-r5 integrated: appendix edit lock removed
+
+- Recovery виконано за START_HERE/HANDOFF/private profile/live GitHub; stable v10.14-r4 підтверджено й не змінено.
+- Експлуатаційна перевірка виявила один реальний залишковий дефект: додатки до наказів мали старе обмеження «лише чернетка».
+- PR #273 merged → main `df7c9c6d001445fa2ea5d0b0cd12c20a04d0c5e6`.
+- Додатки можна додавати/редагувати/видаляти незалежно від статусу наказу/паперового підпису; delete audit snapshot включає додатки.
+- PR-head CI: Windows #1368, Win7 #344, macOS #1269, START #2418 — SUCCESS.
+- Exact-main CI: Windows #1369, Win7 #345, macOS #1270, START #2419 — SUCCESS; 1023 tests OK.
+- Exact-main START artifact #13668314757, 1 729 037 B; Drive backup `Taxo_CURRENT_MAIN_v10.14-r5_2026-11-09_START.zip`, ID `1EsQ5pdJUEP9Fge0_Hiw41qCvtaxCNF9q`.
+- Issue #264 completed; старий audit #175 закрито як completed, щоб не дублювати виконану роботу.
+- Manual operational acceptance r5 — pending; next code revision 10.14-r6.
+
 ## 09.11.2026 — stable 10.14-r4 опубліковано, підтверджено GitHub Latest
 
 - Docs PR #270 merged, README українською + EN/DE/ES/FR/KO/JA, release index/notes, посібники і відновлення оновлено.
