@@ -20,6 +20,16 @@ class SafetyTemplateR2Tests(unittest.TestCase):
         self.assertIn("Taxo 10.15-r2", start)
         self.assertIn("safety_templates.py", start)
 
+    def test_template_ids_are_unique_and_stable(self):
+        briefing_ids=[row["id"] for row in templates.BRIEFING_TEMPLATES]
+        self.assertEqual(len(briefing_ids),len(set(briefing_ids)))
+        order_ids=[
+            row["id"]
+            for rows in templates.ORDER_TEXT_PRESETS.values()
+            for row in rows
+        ]
+        self.assertEqual(len(order_ids),len(set(order_ids)))
+
     def test_every_visible_briefing_kind_has_a_ready_editable_template(self):
         for direction,kinds in brief.BRIEFING_KINDS.items():
             for kind in kinds:
