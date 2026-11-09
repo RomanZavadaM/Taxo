@@ -63,8 +63,12 @@ import main
 # the candidate is launched.  Create only directories here; do not initialize
 # schema until all feature layers are installed.
 main.ensure_workspace(main.DATA_ROOT)
-# Real START imports taxo_app first.  Feature-layer installation wraps
-# core.init_db with historical schema migrations (for example company EDRPOU).
+# Model an upgrade of an existing Taxo workspace: the base schema already
+# exists before the new candidate is imported.  After feature layers are
+# installed we run the wrapped init_db again, exactly as run() does, so all
+# historical migrations for the new candidate are applied.
+print("COLD_START_STEP: prepare baseline DB", flush=True)
+main.init_db()
 print("COLD_START_STEP: import taxo_app", flush=True)
 import taxo_app
 # A brand-new isolated DB intentionally triggers informational startup
@@ -74,7 +78,7 @@ main.messagebox.showinfo = lambda *a, **k: "ok"
 main.messagebox.showwarning = lambda *a, **k: "ok"
 main.messagebox.showerror = lambda *a, **k: "ok"
 main.messagebox.askyesno = lambda *a, **k: False
-print("COLD_START_STEP: wrapped init_db", flush=True)
+print("COLD_START_STEP: apply wrapped migrations", flush=True)
 taxo_app.core.init_db()
 print("COLD_START_STEP: App()", flush=True)
 app = None
