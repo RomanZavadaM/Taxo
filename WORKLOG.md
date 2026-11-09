@@ -1,3 +1,17 @@
+## 09.11.2026 — 10.14-r6 integrated: Feature Loss regression in bulk assignment fixed
+
+- Owner operational test found that the previously tested multi-select driver/vehicle mechanism in assignment orders was no longer reachable in normal UI use.
+- Root cause: the widgets still existed in code, but after order-dialog growth the assignment block was below large text fields in a non-scrollable dialog.
+- Existing Feature Loss guard was insufficient: it protected the Operations screen as a whole and checked label existence, not real on-screen reachability.
+- Product fix: assignment block moved above large text fields; bulk rules unchanged; «Додати багато…» retained.
+- Guard fix: new protected route `operations.assignment_bulk`; live geometry test checks mapped state, real size and position inside dialog.
+- PR #276 merged → `e9cec1662b7fb36f0a5345f77345b4c57e2f35fb`.
+- Exact-main CI: Windows #1380, Win7 #356, macOS #1281, START #2441 — SUCCESS; 1026 tests OK.
+- Exact-main START artifact #13671129279, 1 733 853 bytes; SHA256 `245c72302966e43b6ca6c0b3d82517780a3e428c9b2da25a11be817b2d2d02c1`.
+- Drive recovery-copy confirmed: `Taxo_CURRENT_MAIN_v10.14-r6_2026-11-09_START.zip`, file `1scF68cCRkIf8187k38Qw1TiDQWqkR7qY`.
+- Issue #275 remains open for general Feature Loss meta-gate hardening.
+- Stable remains `v10.14-r4`; next code revision `10.14-r7`.
+
 ## 09.11.2026 — 10.14-r5 integrated: appendix edit lock removed
 
 - Recovery виконано за START_HERE/HANDOFF/private profile/live GitHub; stable v10.14-r4 підтверджено й не змінено.
