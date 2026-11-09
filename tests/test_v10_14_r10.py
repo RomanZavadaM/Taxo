@@ -59,8 +59,10 @@ faulthandler.enable(file=sys.stdout)
 faulthandler.dump_traceback_later(15, repeat=False, file=sys.stdout)
 print("COLD_START_STEP: import main", flush=True)
 import main
-print("COLD_START_STEP: init_db", flush=True)
-main.init_db()
+# Real START imports taxo_app first.  Feature-layer installation wraps
+# core.init_db with historical schema migrations (for example company EDRPOU).
+print("COLD_START_STEP: import taxo_app", flush=True)
+import taxo_app
 # A brand-new isolated DB intentionally triggers informational startup
 # warnings (for example tachograph sample recognition).  A CI child has no
 # human to click modal dialogs, so make only the dialog surface non-blocking.
@@ -68,8 +70,8 @@ main.messagebox.showinfo = lambda *a, **k: "ok"
 main.messagebox.showwarning = lambda *a, **k: "ok"
 main.messagebox.showerror = lambda *a, **k: "ok"
 main.messagebox.askyesno = lambda *a, **k: False
-print("COLD_START_STEP: import taxo_app", flush=True)
-import taxo_app
+print("COLD_START_STEP: wrapped init_db", flush=True)
+taxo_app.core.init_db()
 print("COLD_START_STEP: App()", flush=True)
 app = None
 try:
