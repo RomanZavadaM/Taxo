@@ -79,7 +79,7 @@ class DriverReportSelectionReachabilityR9Tests(unittest.TestCase):
                 ]
                 self.assertEqual(len(selectors), 1)
                 popup = selectors[0]
-                assert_widget_reachable(popup, "drivers.report_selection", container=app)
+                assert_widget_reachable(popup, "drivers.report_selection")
 
                 listboxes = [widget for widget in walk(popup) if isinstance(widget, tk.Listbox)]
                 self.assertEqual(len(listboxes), 1)
