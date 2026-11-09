@@ -1,80 +1,45 @@
 # Документація Taxo
 
-Цей розділ — основна точка входу до експлуатаційної та технічної документації Taxo.
+Головна мова документації — українська. Публічний короткий опис доступний ще шістьма мовами: [переклади](i18n/README.md).
 
-**Stable / Latest:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — exact r10 checkpoint; повний multi-platform комплект; GitHub Latest
-**Previous stable / safe rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)
-**Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
-**Current integrated candidate:** **Taxo 10.13-r8** (`78112c03`) — integrated-only owner manual-test candidate; safe bulk assignment + work/personnel autonumbering; exact checks PASS.
-**Next code revision:** `10.13-r9` after owner feedback
+**Стабільний випуск:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) — 09.11.2026, перевірені Windows 10/11, Windows 7, macOS Intel і Apple Silicon, START.
 
-## Керівництва
+**Попередня стабільна / rollback:** [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10). **Наступна кодова ревізія:** 10.14-r5.
 
-- [Швидкий старт](guides/QUICK_START.md) — перший запуск, робоче сховище, базове налаштування.
-- [Інструкція для персоналу](guides/USER_MANUAL.md) — щоденна робота диспетчера, кадрового працівника та працівника обліку робочого часу.
-- [Робота з персоналом](guides/PERSONNEL_GUIDE.md) — реєстр, планування, відпустки/лікарняні, табель і П-5.
-- [Робота з тахографом](guides/TACHOGRAPH_GUIDE.md) — скани тахокарт, інтервали, підтвердження та протоколи.
-- [Робота зі звітами](guides/REPORTS_GUIDE.md) — табелі, контроль №340, 60-денний реєстр, PDF/Excel.
-- [Експлуатація, СТОІР і накази](guides/OPERATIONS_STOIR_GUIDE.md) — стан автопарку, ТО/ремонти, заявки, документи та життєвий цикл наказу.
-- [Адміністрування, сховище і резервні копії](guides/ADMIN_GUIDE.md) — перенесення даних, резервування та відновлення.
-- [Типові проблеми](guides/TROUBLESHOOTING.md) — діагностика перед зверненням.
+## Робота з програмою
 
-## Стан посібників
+- [Швидкий старт і оновлення](guides/QUICK_START.md): архіви, встановлення, запуск через START.bat, робоче сховище, резервні копії.
+- [Експлуатація, СТОІР, накази, Word/PDF/JPG](guides/OPERATIONS_STOIR_GUIDE.md): водії/ТЗ, нумерація наказів, перевірка макета і друк, редагування та видалення.
+- [Керівництво користувача](guides/USER_MANUAL.md): загальна робота.
+- [Персонал і графіки](guides/PERSONNEL_GUIDE.md): працівники, табель та П-5.
+- [Тахограф](guides/TACHOGRAPH_GUIDE.md): скани тахокарт і протоколи.
+- [Звіти](guides/REPORTS_GUIDE.md): PDF/Excel, табелі, контроль, 60-денний реєстр.
+- [Адміністрування й резервні копії](guides/ADMIN_GUIDE.md): сховище і відновлення.
+- [Типові проблеми](guides/TROUBLESHOOTING.md): діагностика.
 
-Посібник **«Експлуатація, СТОІР і накази»** базується на лінії 10.13; r8 додає безпечне масове закріплення й автонумерацію поверх structured selector/snapshot foundation r5–r7. Решта старших посібників описують робочі сценарії попередніх ліній і в окремих місцях ще потребують актуалізації:
+## Актуальні правила наказів
 
-| Посібник | Написано для | Не описано |
-|---|---|---|
-| [Експлуатація, СТОІР і накази](guides/OPERATIONS_STOIR_GUIDE.md) | 10.13-r6 base | r8 bulk assignment/autonumbering ще потребують перенесення в посібник після ручного приймання |
-| [Швидкий старт](guides/QUICK_START.md) | 10.4 | структура пакета 10.9-r10 (`src/taxo/`, `assets/`) |
-| [Інструкція для персоналу](guides/USER_MANUAL.md) | 10.4-r2 | СТОІР; накази й групи наказів; захист виданих шляхівок і номерів; контроль праці/відпочинку 10.9 |
-| [Робота з персоналом](guides/PERSONNEL_GUIDE.md) | 10.10-r8 | Дія/державні відомості, масове поновлення, документи й строки, backup копій, простий місячний графік, персональні PDF/Excel, П-5 |
-| [Робота з тахографом](guides/TACHOGRAPH_GUIDE.md) | 9.0 | правила пріоритету фактичних джерел у 60-денному реєстрі (10.9) |
-| [Типові проблеми](guides/TROUBLESHOOTING.md) | 10.0 | контроль сумісності схеми БД (новіша схема блокується) |
-| [Дані та резервування](DATA_MODEL_AND_STORAGE.md) | 9.0 | склад повної резервної копії (документи ТЗ, скани, Output — за вибором) |
+Taxo **допомагає створювати і друкувати** накази. Контроль офіційних паперових оригіналів залишається за людиною. Позначка про паперовий підпис чи статус наказу **не забороняє** виправлення, скасування, редагування або видалення у Taxo.
 
-Оновлення посібників — окрема задача після перевірки інтерфейсу; до того орієнтуйтеся на [release notes](releases/RELEASE_INDEX.md).
+Можна створювати DOCX (редагований Word), PDF (макет друку), JPG (сторінки з PDF) або всі три формати. У Word та PDF однакові основні реквізити й таблиці, але перенесення рядків може залежати від локальних шрифтів.
 
-## Опис системи
+## Випуски та історія
 
-- [Огляд системи та функціоналу](SYSTEM_OVERVIEW.md)
-- [Поточний стан продукту](PRODUCT_STATUS.md)
-- [Дані, зберігання та резервування](DATA_MODEL_AND_STORAGE.md)
-- [Авторські права та ліцензія](LEGAL_AND_COPYRIGHT.md)
+- [Випуск 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
+- [Що нового у 10.14-r4](releases/RELEASE_NOTES_v10.14-r4.md)
+- [Індекс випусків і контрольних точок](releases/RELEASE_INDEX.md)
+- [Стан продукту](PRODUCT_STATUS.md)
+- [Модель даних і резервування](DATA_MODEL_AND_STORAGE.md)
+- [Ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-## Stable — 10.12-r10
+Старші посібники описують базові робочі сценарії і можуть відставати від нових полів; для наказів пріоритет має актуалізований посібник Експлуатації.
 
-- [GitHub Release v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — Windows x64 Setup/Portable, Windows 7 SP1 Setup/Portable, macOS ARM64/Intel, START/source, SHA-256.
-- [Release notes 10.12-r10](releases/RELEASE_NOTES_v10.12-r10.md)
-- [Індекс релізів](releases/RELEASE_INDEX.md)
-- [Поточна контрольна точка](maintenance/CHECKPOINT_CURRENT.md)
-- [Повний аудит 05.10.2026](maintenance/AUDIT_FULL_2026-10-05.md)
+## Для розробки та відновлення
 
-## Лінія 10.10
+- [START_HERE.md](../START_HERE.md) — початок будь-якого сеансу.
+- [HANDOFF_CURRENT.md](../HANDOFF_CURRENT.md) — остання контрольна точка.
+- [PROJECT_RULES.md](../PROJECT_RULES.md), [PROJECT_STATE.md](../PROJECT_STATE.md), [WORKLOG.md](../WORKLOG.md).
+- [Чекліст випуску](maintenance/RELEASE_CHECKLIST.md), [Політика main](maintenance/MAIN_BRANCH_POLICY.md).
+- Issue #61 — технічний хронологічний журнал.
 
-- r1 — без PyMuPDF; r2 — CI hardening; r3 — версія/backup warning; r4 — version UI + Win7 Setup, але superseded через macOS startup issue; **r5 — попередня stable / rollback**.
-
-## Мови публічного опису
-
-Короткий public README підтримується українською, англійською, німецькою, іспанською, французькою, корейською та японською: [індекс перекладів](i18n/README.md).
-
-## Для розробки
-
-- [START_HERE.md](../START_HERE.md) — перша точка входу для нового чату/сесії.
-- [PROJECT_RULES.md](../PROJECT_RULES.md) — постійні правила.
-- [PROJECT_STATE.md](../PROJECT_STATE.md) — канонічний інтегрований стан.
-- [WORKLOG.md](../WORKLOG.md) — оперативний поточний стан.
-- [Правила розробки](maintenance/DEVELOPMENT_RULES.md)
-- [Чекліст випуску](maintenance/RELEASE_CHECKLIST.md)
-- [Політика main](maintenance/MAIN_BRANCH_POLICY.md)
-- GitHub Issue #61 — append-only live development ledger.
-
-Наступний крок — **ручне приймання 10.13-r8 Windows Portable**. Після feedback наступна кодова ревізія — **10.13-r9**. Уже видані revision не перевикористовуються.
-
-## Дані користувача
-
-Робочі БД, SQLite, скани, кеші та персональні документи не публікуються в GitHub releases. Оновлення програми не повинно вимагати повторного введення робочої бази.
-
-## Історія
-
-Старі release/checkpoint-и залишаються immutable у GitHub tags/releases і не є базою нової розробки.
+Робочі бази даних, скани й особисті документи не публікуються разом із програмою. Перед оновленням робіть резервну копію, не перезаписуйте сховище даних.
