@@ -193,7 +193,8 @@ class OperationsStoirUsabilityR1Tests(unittest.TestCase):
             "Ввести в дію в Taxo",
             "Підпис на папері: так / ні",
             "Історія…",
-            "Скасувати наказ",\n            "Видалити наказ",
+            "Скасувати наказ",
+            "Видалити наказ",
             "require_mutable_order",
         ):
             self.assertIn(marker, text)
