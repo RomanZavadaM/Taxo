@@ -335,6 +335,20 @@
 
 # WORKLOG — Taxo
 
+## 09.11.2026 — 10.15-r1: реальна БД показала втрату пар під час створення наказу
+
+- Власник передав копію робочої `driver_worktime.sqlite3`; перевірка виконувалась лише локально на копії.
+- SQLite integrity — OK. Наказ №27 містить 12 закріплень; наступний №28 створився без жодного закріплення. Після створення №28 assignment-create записів немає.
+- Це відкинуло версію про втрату лише в Preview/DOCX/PDF: для №28 пари не дійшли до БД.
+- Старий create-flow читав `Listbox.curselection()` у момент натискання «Створити». r1 замінив цей крихкий стан на видимі staged pairs.
+- На копії реальної БД: 12×12 вибір → staged pairs → selection штучно очищено → «Створити» → усі 12 пар збережені й видимі у Preview.
+- Постійний regression `test_v10_15_r1.py` повторює сценарій і перевіряє справжні DOCX/PDF/JPG та reopen.
+- PR #286 → exact main `825a1994984aec6b47ce08224f2969735ee27d47`.
+- Exact-main START #2559, Windows #1418, Win7 #394, macOS #1319 — SUCCESS; Windows 1041 tests / OK.
+- START artifact #13695956407, 1 766 785 bytes, SHA256 `143cd4a662f4596e727d75a998944e4f6c3f1cd66d113756e64b48fc6bc1d054`.
+- Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.15-r1_2026-11-09_START.zip`, ID `1EwYuyv7nATjfmnDCQcpQVU9U-XRy9xZl`.
+- Stable лишається v10.14-r4. Наступна кодова ревізія — 10.15-r2 після ручного приймання r1.
+
 ## 10.12-r4 — вкладені UI-маршрути — 07.11.2026
 
 - Продовжено Feature Loss hardening без зміни бізнес-логіки.

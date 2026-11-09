@@ -3,6 +3,20 @@
 **Дата:** 09.11.2026
 **Repository:** RomanZavadaM/Taxo
 
+## Integrated candidate: 10.15-r1 — пари закріплення не залежать від UI selection
+
+- **Stable / Latest лишається v10.14-r4**; release/tag не змінювався.
+- **Product integrated:** PR #286 → exact main `825a1994984aec6b47ce08224f2969735ee27d47`; VERSION/START = 10.15-r1.
+- На копії реальної БД власника підтверджено дефект: наказ №28 існує, але має 0 assignment-записів; попередній №27 має 12 пар. Після створення №28 у журналі немає assignment-create — проблема виникала до Preview/друку.
+- Причина класу дефекту: новий наказ брав пари з поточного `Listbox.curselection()` саме під час «Створити»; втрачений selection міг дати порожній `initial_pairs`.
+- r1 вводить окремі видимі **підготовлені пари**, незалежні від підсвічування Listbox; порожній наказ вимагає явного підтвердження; перед commit звіряється точна кількість записаних пар.
+- Новий owner-regression: 12 ТЗ + 12 водіїв → staged pairs → примусове очищення selection перед «Створити» → SQLite → Preview → реальні DOCX/PDF/JPG → DB reopen.
+- **Exact-main:** START #2559, Windows #1418, Win7 #394, macOS Intel/ARM #1319 — SUCCESS; Windows **1041 tests / OK**; owner-scenario PASS.
+- **Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.15-r1_2026-11-09_START.zip`, file `1EwYuyv7nATjfmnDCQcpQVU9U-XRy9xZl`, 1 766 785 байт; SHA256 `143cd4a662f4596e727d75a998944e4f6c3f1cd66d113756e64b48fc6bc1d054`.
+- Реальна SQLite власника використовувалась тільки локально на копії й не потрапила в GitHub/Drive.
+- **Manual operational acceptance r1:** PENDING.
+- **Next code revision:** 10.15-r2.
+
 ## Integrated candidate: 10.14-r10 — cold-start стабілізація
 
 - **Stable / Latest лишається v10.14-r4**; release/tag не змінювався.
