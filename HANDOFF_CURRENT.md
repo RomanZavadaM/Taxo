@@ -1,6 +1,6 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 09.11.2026 — інтегровано 10.14-r1, exact-main перевірки тривають.
+**Оновлено:** 09.11.2026 — 10.14-r1 integrated; exact-main Windows/Win7/macOS/START PASS; Drive recovery-copy підтверджено.
 
 ## 10.14-r1 — безпечний друк наказів — 09.11.2026
 
@@ -11,10 +11,10 @@
 - Після успіху відкривається штатний переглядач PDF Taxo, як у Бланках підтвердження діяльності; скасування/помилка не відкриває старий файл як новий.
 - Логіку розділено на `src/taxo/order_pdf_workflow.py` і старі кнопки збережено; текст/макет PDF не переписували.
 - PR-head: Windows #1340 SUCCESS; Win7 #323 SUCCESS; macOS #1248 SUCCESS; START #2345 SUCCESS, **1002 tests OK**.
-- Після інтеграції exact-main: Windows #1341, Win7 #324, macOS #1249, START #2346 (START SUCCESS; решта перевіряються перед остаточним DONE).
-- Ручне приймання власником — PENDING. Google Drive recovery-copy саме r1 ще не підтверджена.
+- **Exact-main PASS:** Windows #1341, Win7 #324, macOS Intel/ARM #1249, START #2346; усі SUCCESS. START 1002 tests OK, ZIP перевірено.
+- **Google Drive recovery-copy підтверджено:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r1_2026-11-09_START.zip`, **1 708 502 байти**, Drive file `1BjwIIGIQVw8Ncekx0qojKQbA60mS5-RG`; SHA256 перевіреного GitHub START artifact `77fc9ab5aebe103dfb082e11ebc569d2d5d02a07c61ea2ec57c3e724c26bc65f`. Ручне приймання власником — **PENDING**.
 - Наступна **кодова** ревізія `10.14-r2`; не починати без завершення r1 checkpoint/feedback.
-- **Одна наступна дія:** звірити exact-main Windows/Win7/macOS, підтвердити recovery-copy/START, оновити status. Потім перевірити вручну: новий наказ → PDF/друк → повторний PDF не затирає попередній → вбудований перегляд.
+- **Одна наступна дія:** ручне приймання 10.14-r1 через `START.bat`: створити наказ, надрукувати PDF, повторити формування, звірити дві окремі копії й переглянути PDF у Taxo. Після feedback вирішити наступне вузьке завдання для 10.14-r2. Stable не змінювати.
 - Докладно: `docs/releases/RELEASE_NOTES_v10.14-r1.md`; рішення про друк: `docs/maintenance/RECOVERY_CHECKPOINT_2026-11-08_PRINT_WORKFLOW.md`.
 
 ## Попередня контрольна точка після обриву чату — 08.11.2026
