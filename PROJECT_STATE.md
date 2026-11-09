@@ -3,37 +3,21 @@
 **Дата:** 09.11.2026
 **Repository:** RomanZavadaM/Taxo
 
-## Integrated candidate: 10.14-r8 — збереження закріплень і актуальний друк
-
-- **Stable / Latest лишається v10.14-r4**; release/tag не змінювався.
-- **Product integrated:** PR #280 → exact main `98c9f2daea8398c1bf18b64e5f96163c6c02e4cc`; `main.py`, `VERSION.txt`, START = 10.14-r8.
-- Owner-test наказу №27 показав: після додавання водіїв/ТЗ вже відкрите вікно Preview могло друкувати старий порожній список.
-- r8 перед кожним DOCX/PDF/JPG перечитує наказ і закріплення з актуальної БД; Preview має «Оновити зміст».
-- Single/bulk save перевіряє фактичну наявність вибраних пар до commit; behavioral regression закриває БД, відкриває її знову й перевіряє всі пари.
-- Існуючий наказ про закріплення тепер показує поточні пари й дає прямий доступ до «Додати багато…» / «Керувати закріпленнями».
-- Порожній новий наказ переходить у вкладку закріплень, а не одразу в порожній друк.
-- `order_assignments()` більше не приховує raw запис через INNER JOIN.
-- **Feature Loss:** r7 strict UI contract доповнено висновком r8 — для state-changing критичних маршрутів одного reachability недостатньо; потрібен outcome/persistence regression.
-- **PR-head:** Windows #1395, Win7 #371, macOS #1296 — SUCCESS; Windows 1033 tests OK.
-- **Exact-main:** START #2511, Windows #1396, Win7 #372, macOS #1297 — SUCCESS; START 1033 tests OK.
-- **Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, file `1ObOoSjHZvMmOzMgkNDULCCnQ0M42B7F3`, 1 748 707 байт; SHA256 `e75beea340ea24088a05d90fcb37c7c96edbed7f6c2d41e81a586cf0494e7284`.
-- **Manual operational acceptance r8:** PENDING — реальна БД, single + bulk → reopen → `закріплень: N` → DOCX/PDF/JPG з усіма парами.
-- **Next code revision:** 10.14-r9.
-
-
-## Integrated candidate: 10.14-r8 — закріплення ТЗ/водіїв і свіжий друк
+## Integrated candidate: 10.14-r8 — закріплення ТЗ/водіїв і актуальний друк
 
 - **Stable / Latest лишається v10.14-r4**; release/tag r4 не змінювався.
-- **Product integrated:** PR #280 → `98c9f2daea8398c1bf18b64e5f96163c6c02e4cc`; VERSION/START = 10.14-r8.
-- Owner-test підтвердив: масовий picker існував, але в існуючому наказі через «Редагувати наказ» закріплення не були нормально доступні; крім того, вже відкритий preview міг друкувати старий порожній список після додавання пар.
-- r8 показує поточні закріплення прямо в редакторі існуючого наказу; «Додати багато…» та «Керувати закріпленнями» доступні без блокування за статусом/паперовим підписом.
-- Після одиночного/масового додавання виконується перевірка фактичного запису всіх вибраних пар; regression підтверджує їх після commit, закриття та повторного відкриття БД.
-- Перед кожним DOCX/PDF/JPG наказ і закріплення перечитуються з БД; preview має «Оновити зміст».
-- LEFT JOIN не дозволяє історичній/пошкодженій прив'язці тихо зникнути з документного списку.
+- **Product integrated:** PR #280 → exact main `98c9f2daea8398c1bf18b64e5f96163c6c02e4cc`; VERSION/START = 10.14-r8.
+- Owner-test наказу №27 підтвердив два defects: у вже створеному наказі не було нормального доступу до поточних закріплень; уже відкрите Preview могло друкувати старий порожній список після додавання пар.
+- У r8 існуючий наказ показує поточні ТЗ / держномер / водія; доступні «Додати багато…» та «Керувати закріпленнями» без блокування за статусом чи паперовим підписом.
+- Single/bulk save перевіряє фактичний запис усіх вибраних пар до commit. Behavioral regression: commit → close DB → reopen → усі пари збережені.
+- Перед кожним DOCX/PDF/JPG наказ і закріплення перечитуються з БД; Preview має «Оновити зміст».
+- Порожній новий наказ про закріплення переводить користувача у вкладку закріплень, а не одразу у порожній друк.
+- `order_assignments()` використовує LEFT JOIN, тому історичний/пошкоджений raw link не може мовчки зникнути з документа.
 - 10.14-r7 strict Feature Loss gate розширено до **26 critical routes**; новий route — `operations.assignment_existing`.
+- Висновок r8: для state-changing критичних маршрутів одного reachability недостатньо; потрібен outcome/persistence regression. Системне продовження цього контролю — Issue #275.
 - **PR-head final:** Windows #1395, Win7 #371, macOS #1296 — SUCCESS.
 - **Exact-main:** Windows #1396, Win7 #372, macOS #1297, START #2511 — SUCCESS; **1033 tests OK**.
-- **Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, file `1lC9JVUXd6X46zIeEzxxrJDHKsyGInJ6z`; SHA256 `e75beea340ea24088a05d90fcb37c7c96edbed7f6c2d41e81a586cf0494e7284`.
+- **Drive recovery-copy (канонічна):** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, file `1lC9JVUXd6X46zIeEzxxrJDHKsyGInJ6z`, 1 748 707 байт; SHA256 `e75beea340ea24088a05d90fcb37c7c96edbed7f6c2d41e81a586cf0494e7284`.
 - **Manual operational acceptance r8:** PENDING.
 - **Next code revision:** 10.14-r9.
 
