@@ -16,11 +16,12 @@
 - **Manual operational acceptance r5:** PENDING — перевірити редагування/видалення додатка після зміни статусу наказу та повторний DOCX/PDF/JPG.
 - **Next code revision:** 10.14-r6.
 
-## Історичні записи попередніх етапів
+## Попередня stable-контрольна точка
+
 **Дата:** 09.11.2026
 **Repository:** RomanZavadaM/Taxo
 
-## Stable / Latest: 10.14-r4 — ОПУБЛІКОВАНО 09.11.2026
+### Stable / Latest: 10.14-r4 — ОПУБЛІКОВАНО 09.11.2026
 
 - **GitHub Latest:** [v10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4), 8 canonical assets, `draft=false`, `prerelease=false`.
 - **Immutable tag source:** `214f714f4804cb284fdcbc5b5a26418cef40937a`; product 10.14-r4 implementation SHA `677458afa06893b4d221130db72de4045187e0c8`.
