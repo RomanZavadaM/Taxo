@@ -30,3 +30,7 @@ Taxo の命令書は業務支援文書です。状態や紙の署名マークに
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
+
+## テスト候補 10.15-r3 — 安全教育と運転手の研修書類
+
+安全教育では、散在する CSV の代わりに、教育内容全文と手書き署名用の別紙を含む編集可能な DOCX を作成できます。運転手の研修記録用紙と、作業領域に保存した Word 文書の検索一覧も追加しました（完全バックアップ対象）。ファイルの作成は教育実施、署名、乗務許可を意味しません。任意の署名済み原本スキャンと階層型文書一覧は別の課題 #289、Python のモジュール再編は #290 です。安定版は引き続き 10.14-r4 です。
