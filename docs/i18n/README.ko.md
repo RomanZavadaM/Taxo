@@ -2,55 +2,31 @@
 
 [Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-Taxo는 단일 운송 회사를 위한 데스크톱 시스템입니다: 직원 및 운전자, 근무표, 근무 시간 관리, 운행일지, 활동 확인서, 차량, 문서 관리, 정비, 보고서 및 아날로그 타코그래프 점검.
+> **안정 버전:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) · 09.11.2026 · Windows 10/11, Windows 7, macOS Intel / Apple Silicon, START verified.
+> **이전 안정 버전 / 롤백:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
 
-> **안정 버전:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — 소유자가 안정 버전으로 승인했으며 정확한 r10 체크포인트가 Windows 10/11, Windows 7, macOS Intel 및 Apple Silicon에서 검증되었습니다.
-> **이전 안정 버전 / 롤백:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)
-> **더 이전 롤백:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
-> **이전 롤백:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
+## 다운로드 — 10.14-r4
 
-## 다운로드 — Taxo 10.9-r10 (더 이전 롤백)
+**Windows 10/11 x64:** [설치 파일](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Setup_Windows_x64.exe) · [포터블](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Windows_x64_Portable.zip)
 
-**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Windows_x64_Portable.zip)
+**Windows 7 SP1 x64:** [설치 파일](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Setup_Windows7_x64.exe) · [포터블](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Windows7_x64_Portable.zip)
 
-**Windows 7 SP1 x64:** [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Windows7_x64_Portable.zip)
+**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_macOS_x86_64_Portable.zip)
 
-**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_x86_64_Portable.zip)
+**소스 / 체크섬:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/SHA256SUMS_v10_14_r4.txt) · [Release notes (UK)](../releases/RELEASE_NOTES_v10.14-r4.md).
 
-**Source/START:** [START 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/SHA256SUMS_v10_9_r10.txt) · [10.9-r10 릴리스 노트 (우크라이나어)](../releases/RELEASE_NOTES_v10.9-r10.md) · [릴리스 색인](../releases/RELEASE_INDEX.md)
+## 10.12-r10 이후 주요 변경 사항
 
-## 다운로드 — Taxo 10.12-r10 (안정 버전)
+운영 및 정비 화면 개선, 운전자·차량 복수 지정, 인사 및 업무 명령 번호 분리, 문서 미리보기, 편집 가능한 Word와 PDF/JPG, 일관된 표와 서식.
 
-**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_Windows_x64_Portable.zip)
+Taxo의 명령서는 업무 보조 문서입니다. 상태나 종이 서명 표시로 수정·삭제가 제한되지 않습니다. 공식 종이 원본은 사용자가 관리합니다.
 
-**Windows 7 SP1 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_Windows7_x64_Portable.zip)
+업무 데이터베이스, 스캔, 개인 문서, 캐시는 배포 파일에 포함되지 않습니다. 업데이트 전에 백업하세요.
 
-**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_macOS_x86_64_Portable.zip)
+## 문서 및 개발
 
-**Source/START:** [START 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/SHA256SUMS_v10_12_r10.txt)
+공식 운영 설명서는 우크라이나어로 제공됩니다. 빠른 시작과 운영·정비 안내서를 참조하세요. 다음 코드 개정은 10.14-r5입니다.
 
-업무 데이터베이스, SQLite 파일, 스캔, 캐시 및 개인 문서는 GitHub 릴리스에 포함되지 않습니다. 업데이트 시 업무 데이터를 다시 입력할 필요가 없습니다.
+[Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
-## 이전 안정 버전 10.9-r10 내용
-
-- 발행된 운행일지와 번호의 영구 이력; 보존 기간 정리가 연결된 사실을 삭제하지 않음
-- 계획된 운행 전체 기간의 차량 문서 유효성
-- 강화된 근무/휴식 통제: 중복, 3+9, 주간 및 2주 휴식
-- 가공된 휴식 없는 60일 등록부; 실제 출처 우선
-- 인력 균형 / P-5, 2/2 및 3/3 근무 체계
-- 정비: 주행거리 기록 순서와 정비 예측
-- 승인/서명된 명령과 운전자→차량 배정의 불변성
-- SQLite 스키마 호환성 관리
-- 업무 로직 변경 없는 코드 구조화
-
-## 테스트 버전
-
-**10.10-r5**는 macOS 시작 문제를 수정했으며 이제 이전 안정 버전 / 롤백입니다. **현재 안정 버전은 10.12-r10입니다.**
-
-[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) 은 실제 데이터 검증용 사전 릴리스입니다: PyMuPDF 제거, 창에 올바른 버전 표시, DB 전용 백업 경고, CI 강화. 소유자의 검증 후에만 안정 버전이 됩니다.
-
-## 개발
-
-공식 운영 문서는 우크라이나어로 관리됩니다. [`START_HERE.md`](../../START_HERE.md)에서 시작하세요. 현재 안정 버전은 `10.12-r10`입니다. 더 최신 `10.13-r1`은 `main`에 통합되어 있지만 안정 버전은 아닙니다. 다음 코드 리비전은 `10.13-r2`입니다.
-
-**Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo는 독점 소프트웨어입니다.
+**Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.

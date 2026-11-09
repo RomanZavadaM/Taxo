@@ -2,53 +2,31 @@
 
 [Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-Taxo es un sistema de escritorio para una sola empresa de transporte: personal y conductores, horarios, control del tiempo de trabajo, hojas de ruta, formularios de confirmación de actividad, vehículos, control documental, mantenimiento, informes y verificación de discos de tacógrafo analógico.
+> **Versión estable:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) · 09.11.2026 · Windows 10/11, Windows 7, macOS Intel / Apple Silicon, START verified.
+> **Estable anterior / reversión:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
 
-> **Estable:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — aprobada por el propietario como estable; checkpoint r10 exacto verificado en Windows 10/11, Windows 7, macOS Intel y Apple Silicon
-> **Estable anterior / reversión:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)
-> **Reversión anterior:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
-> **Reversión anterior:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
+## Descargas — 10.14-r4
 
-## Descargas — Taxo 10.9-r10 (reversión anterior)
+**Windows 10/11 x64:** [Instalador](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Windows_x64_Portable.zip)
 
-**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Windows_x64_Portable.zip)
+**Windows 7 SP1 x64:** [Instalador](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Windows7_x64_Portable.zip)
 
-**Windows 7 SP1 x64:** [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_Windows7_x64_Portable.zip)
+**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_macOS_x86_64_Portable.zip)
 
-**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_macOS_x86_64_Portable.zip)
+**Código fuente / sumas de verificación:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/SHA256SUMS_v10_14_r4.txt) · [Release notes (UK)](../releases/RELEASE_NOTES_v10.14-r4.md).
 
-**Source/START:** [START 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/Taxo_v10_9_candidate_r10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.9-r10/SHA256SUMS_v10_9_r10.txt) · [Notas de la versión 10.9-r10 (ucraniano)](../releases/RELEASE_NOTES_v10.9-r10.md) · [Índice de versiones](../releases/RELEASE_INDEX.md)
+## Novedades desde 10.12-r10
 
-## Descargas — Taxo 10.12-r10 (estable)
+Interfaz de operaciones y mantenimiento mejorada; asignación múltiple de conductores y vehículos; numeración separada de órdenes de personal y trabajo; vista previa; documentos Word editables, PDF y JPG con tablas coherentes.
 
-**Windows 10/11 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_Windows_x64_Portable.zip)
+Las órdenes son documentos de trabajo: el estado o la marca de firma en papel no impiden corregirlas o eliminarlas. Los originales en papel siguen bajo control del usuario.
 
-**Windows 7 SP1 x64:** [Setup](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_Windows7_x64_Portable.zip)
+Las bases de datos operativas, escaneos, documentos personales y cachés no se incluyen en las descargas. Haga una copia de seguridad antes de actualizar.
 
-**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_macOS_x86_64_Portable.zip)
+## Documentación y desarrollo
 
-**Source/START:** [START 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/Taxo_v10_12_candidate_r10_START.zip) · [SHA256SUMS](https://github.com/RomanZavadaM/Taxo/releases/download/v10.12-r10/SHA256SUMS_v10_12_r10.txt)
+La documentación operativa canónica está en ucraniano. Consulte el inicio rápido y la guía de operaciones/mantenimiento. Próxima revisión: 10.14-r5.
 
-Las bases de datos de trabajo, archivos SQLite, escaneos, cachés y documentos personales no se incluyen en las versiones de GitHub. La actualización no requiere volver a introducir los datos de trabajo.
+[Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
-## Contenido de la estable anterior 10.9-r10
-
-- historial permanente de hojas de ruta y números emitidos; la retención nunca borra hechos vinculados
-- validez de los documentos del vehículo durante todo el viaje planificado
-- control reforzado de trabajo/descanso: solapamientos, 3+9, descanso semanal y quincenal
-- registro de 60 días sin descanso inventado; prioridad de las fuentes reales
-- balance de personal / P-5, regímenes 2/2 y 3/3
-- mantenimiento: cronología del odómetro y previsión de servicio
-- órdenes aprobadas/firmadas y asignaciones conductor→vehículo inmutables
-- control de compatibilidad del esquema SQLite
-- código estructurado sin cambios en la lógica de negocio
-
-## Línea 10.10
-
-[10.10-r1 … r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r3) son versiones preliminares anteriores. **10.10-r5** corrigió el arranque de macOS y ahora es la versión estable anterior / reversión. **10.12-r10 es la versión estable actual**.
-
-## Desarrollo
-
-La documentación operativa canónica se mantiene en ucraniano. Empiece por [`START_HERE.md`](../../START_HERE.md). La estable actual es `10.12-r10`; la versión más nueva `10.13-r1` está integrada en `main`, pero no es estable. La próxima revisión es `10.13-r2`.
-
-**Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo es software propietario.
+**Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
