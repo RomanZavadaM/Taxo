@@ -5,12 +5,14 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import zipfile
 from datetime import date
 from pathlib import Path
 
 import main
 import safety_instructions_ui as brief
 import paper_documents as paper
+import workspace
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -86,6 +88,22 @@ class PaperDocumentsR3Tests(unittest.TestCase):
             rows = paper.list_documents(directory, "Стажист")
             self.assertEqual(len(rows), 1)
             self.assertEqual(rows[0]["kind"], "Стажування")
+
+    def test_full_backup_contains_paper_documents_and_index(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "work"
+            workspace.ensure_workspace(root)
+            document = paper.build_training_docx({
+                "driver": "Тест Стажист", "instructor": "Тест Наставник", "vehicle": "Автобус"
+            })
+            target = paper.save_document(root, document, "Стажування",
+                "Лист стажування", "2026-11-09", "Тест Стажист")
+            archive = workspace.create_workspace_backup_archive(
+                root, Path(directory) / "backup.zip", app_version="10.15-r3")
+            with zipfile.ZipFile(archive) as zf:
+                names = set(zf.namelist())
+                self.assertIn("Data/PaperDocuments/index.json", names)
+                self.assertIn("Data/PaperDocuments/" + target.name, names)
 
     def test_catalog_blocks_path_traversal_and_never_overwrites(self):
         with tempfile.TemporaryDirectory() as directory:
