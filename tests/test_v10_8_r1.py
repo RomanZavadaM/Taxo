@@ -2,8 +2,12 @@
 import re
 import unittest
 from pathlib import Path
+import tkinter as tk
+from tkinter import ttk
+from types import SimpleNamespace
 
 import v1081_features as r1
+import v1048_features as registry_r8
 import vehicle_documents
 import v1064_features as waybill_ui
 import v10710_features as document_center
@@ -67,15 +71,43 @@ class VehicleFunctionalityGuardTests(unittest.TestCase):
         self.assertIn("button = core.ttk.Button(frame", source)
         self.assertNotIn("anchor.master", source)
 
-    def test_known_legacy_geometry_conflict_remains_covered(self):
+    def test_legacy_geometry_conflict_is_removed_not_preserved(self):
         registry = (ROOT / "v1048_features.py").read_text("utf-8")
         legacy_layout = (ROOT / "v1066_features.py").read_text("utf-8")
-        # Regression signature: registry buttons were packed into the original
-        # toolbar while r6 later tried to grid only the core buttons there.
-        self.assertIn("parent = anchor.master", registry)
-        self.assertIn("self._shlyakh_button.pack", registry)
+        self.assertIn("def _ensure_vehicle_registry_toolbar", registry)
+        self.assertIn('app.vehicle_registry_toolbar = frame', registry)
+        self.assertNotIn(
+            'anchor = _find_button(getattr(self, "tab_vehicles", None), "Контроль документів")',
+            registry,
+        )
         self.assertIn("control.pack_forget()", legacy_layout)
         self.assertIn("controls[index].grid(", legacy_layout)
+
+        root = tk.Tk()
+        root.withdraw()
+        try:
+            tab = ttk.Frame(root)
+            tab.pack(fill="both", expand=True)
+            legacy = ttk.Frame(tab)
+            legacy.pack(fill="x")
+            anchor = ttk.Button(legacy, text="Контроль документів")
+            anchor.pack(side="left")
+            tree = ttk.Treeview(tab)
+            tree.pack(fill="both", expand=True)
+            app = SimpleNamespace(tab_vehicles=tab, vehicle_tree=tree)
+            core = SimpleNamespace(ttk=ttk)
+            registry_bar = registry_r8._ensure_vehicle_registry_toolbar(app, core)
+            self.assertIsNot(registry_bar, legacy)
+            self.assertEqual(registry_bar.master, tab)
+            # The legacy parent can now switch to grid without any packed
+            # registry/TCC sibling remaining in that same parent.
+            anchor.pack_forget()
+            anchor.grid(row=0, column=0)
+            root.update_idletasks()
+            self.assertEqual(anchor.winfo_manager(), "grid")
+        finally:
+            root.destroy()
+
         # 10.8-r1 must remain before every newer UI contract layer.
         entry = (ROOT / "taxo_app.py").read_text("utf-8")
         self.assertLess(entry.index("App = install_v10710(core, App)"), entry.index("App = install_v1081(core, App)"))
