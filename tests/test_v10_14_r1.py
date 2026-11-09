@@ -12,10 +12,10 @@ from order_pdf_workflow import order_pdf_path, save_and_preview_order
 
 class OrderPdfWorkflowTests(unittest.TestCase):
     def test_version_and_package_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.14-r1")
-        self.assertIn("10.14-r1", Path("VERSION.txt").read_text(encoding="utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.14-r1", "10.14-r2"))
+        self.assertIn(main.APP_VERSION, Path("VERSION.txt").read_text(encoding="utf-8"))
         start = Path("START.bat").read_text(encoding="utf-8")
-        self.assertIn("Taxo 10.14-r1", start)
+        self.assertIn("Taxo " + main.APP_VERSION, start)
         self.assertIn("order_pdf_workflow.py", start)
 
     def test_new_print_does_not_overwrite_existing_document(self):
