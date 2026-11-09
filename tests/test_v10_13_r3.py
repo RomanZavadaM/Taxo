@@ -55,7 +55,7 @@ class InstructionJournalsR3Tests(unittest.TestCase):
 
         self.assertGreaterEqual(key(main.APP_VERSION), (10, 13, 3))
         self.assertIn("Version:", Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("Taxo 10.13-", Path("START.bat").read_text(encoding="utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, Path("START.bat").read_text(encoding="utf-8"))
 
     def test_calendar_quarter_is_only_an_organizational_period(self):
         self.assertEqual(brief.quarter_for(date(2026, 12, 31)), (2026, 4))
