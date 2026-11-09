@@ -113,7 +113,10 @@ def _layout_toolbar(app, available_width=None):
         elif host_width > 1:
             width = min(width, max(420, host_width - 30))
         # grid padx=4 adds eight horizontal pixels to every control.
-        widths = [max(1, int(control.winfo_reqwidth()) + 8) for control in controls]
+        # Aqua/native themes may draw controls wider than the logical
+        # requested width. A per-control reserve makes the wrap decision
+        # conservative on macOS without hiding any actions.
+        widths = [max(1, int(control.winfo_reqwidth()) + 24) for control in controls]
         rows = []
         current = []
         used = 0
