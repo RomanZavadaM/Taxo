@@ -1,6 +1,6 @@
 # HANDOFF_CURRENT — Taxo
 
-**Дата:** 09.11.2026. **Стан:** 10.15-r3 інтегровано в main; exact-main verification PASS; release checkpoint триває.
+**Дата:** 09.11.2026. **Стан:** 10.15-r3 інтегровано в main; exact-main verification PASS; immutable prerelease опубліковано.
 
 ## Підтверджена база
 
@@ -8,7 +8,7 @@
 - **10.15-r3 merged:** PR #292 → product main `eb71c64d3627ad3d02524b1735a1b53f155ec347`.
 - PR-head exact revision `a7bf118bb41d9679f1725c3ea5ec077d660f413d`: Windows #1443, Win7 #417, macOS Intel/ARM #1342 **SUCCESS**.
 - **Exact-main PASS:** Windows #1444 / Win7 #418 / macOS Intel+ARM #1343 / START #2561 — **SUCCESS** на продукті `eb71c64d3627ad3d02524b1735a1b53f155ec347`. START artifact #13706675051, 1 813 312 bytes.
-- Release `v10.15-r3`: **NOT YET VERIFIED/PUBLISHED**. Не плутати з stable `v10.14-r4`.
+- **Published prerelease:** [v10.15-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r3), source/tag `eb71c64d3627ad3d02524b1735a1b53f155ec347`, publisher workflow #42690409737 **SUCCESS**, 8/8 assets: Windows Setup/Portable, Win7 Setup/Portable, macOS Intel/ARM, START ZIP, SHA256. GitHub Latest stable лишається `v10.14-r4`.
 - Наступна видана кодова ревізія після r3: **10.15-r4**; не починати до інтегрованого recovery checkpoint.
 - Ручне приймання власником r3: **PENDING**.
 
@@ -28,7 +28,7 @@
 
 ## Одна наступна безпечна дія
 
-Звірити завершення **exact-main** Windows/Win7/macOS/START за commit `eb71c64d3627ad3d02524b1735a1b53f155ec347`; сформувати/перевірити immutable **prerelease `v10.15-r3` з 8 assets**, резервну копію START; завершити інтеграцію цього recovery checkpoint у main. Далі дати власнику посилання на тестову збірку і підготувати незалежне завдання для аудиту.
+Завершити резервну копію START у Google Drive (якщо доступна), підтвердити інтеграцію цього recovery checkpoint у `main`; надати власнику посилання на перевірений v10.15-r3. **Після цього перед початком 10.15-r4 — незалежний read-only архітектурний аудит** за `docs/planning/INDEPENDENT_ARCHITECTURE_AUDIT_BRIEF_2026-11-09.md`, Issue #290. Новий код до висновку аудиту не починати.
 
 ## Recovery
 
