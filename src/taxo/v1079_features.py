@@ -6,6 +6,8 @@ avoid hard-coding article/paragraph numbers that can become obsolete.
 """
 from __future__ import annotations
 
+import safety_templates as safety_tpl
+
 APP_VERSION = "10.7-r9"
 
 TYPE_RESPONSIBLE_PERSONS = "responsible_persons"
@@ -85,6 +87,14 @@ DEFAULT_BODY_TEMPLATES = {
     ),
 }
 
+# Use the richest general preset as the default starting text for the safety
+# order types. Seasonal operation keeps its neutral default because the user
+# must explicitly choose winter or spring/summer.
+for _type in ("road_safety", "occupational_safety", "safety_training"):
+    _presets = safety_tpl.ORDER_TEXT_PRESETS.get(_type, ())
+    if _presets:
+        DEFAULT_BODY_TEMPLATES[_type] = str(_presets[0].get("body") or DEFAULT_BODY_TEMPLATES.get(_type, ""))
+
 
 def install(core, base_app):
     if getattr(core, "_TAXO_V1079_INSTALLED", False):
@@ -122,6 +132,10 @@ def install(core, base_app):
         TYPE_SEASONAL_OPERATION: "З метою підготовки транспортних засобів до сезонних умов експлуатації —",
     })
     ops.DEFAULT_BODY_TEMPLATES = dict(DEFAULT_BODY_TEMPLATES)
+    ops.ORDER_TEXT_PRESETS = {
+        key: tuple(dict(row) for row in rows)
+        for key, rows in safety_tpl.ORDER_TEXT_PRESETS.items()
+    }
 
     original_create_order = ops.create_order
     if not getattr(original_create_order, "_taxo_v1079_wrapped", False):
