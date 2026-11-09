@@ -49,3 +49,15 @@
 7. сценарій «перегляд уже відкритий порожнім → у БД з'явились пари → Створити DOCX» — генератор мусить отримати вже **свіжі** пари, а текст перегляду оновитися.
 
 Stable / Latest не пересувається без окремого рішення власника.
+## Фінальна перевірка після злиття
+
+- exact main: `98c9f2daea8398c1bf18b64e5f96163c6c02e4cc`;
+- START #2511 — SUCCESS, **1033 tests / OK**;
+- Windows #1396 — SUCCESS;
+- Windows 7 #372 — SUCCESS;
+- macOS Intel/ARM #1297 — SUCCESS;
+- exact-main START artifact #13677776040, 1 748 707 байт;
+- SHA256: `e75beea340ea24088a05d90fcb37c7c96edbed7f6c2d41e81a586cf0494e7284`;
+- Google Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, file ID `1ObOoSjHZvMmOzMgkNDULCCnQ0M42B7F3`.
+
+**Manual acceptance:** очікується на реальній робочій БД. **Stable / Latest залишається v10.14-r4.** Наступна кодова ревізія — **10.14-r9**.
