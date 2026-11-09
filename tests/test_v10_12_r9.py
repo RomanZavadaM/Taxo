@@ -5,6 +5,7 @@ from unittest import mock
 
 import function_registry
 import main
+from runtime_reachability import runtime_routes, assert_widget_reachable, activate_widget
 
 
 def walk(widget):
@@ -49,6 +50,7 @@ class DriverReportSelectionReachabilityR9Tests(unittest.TestCase):
         self.assertIn("drivers.report_selection", routes)
         self.assertTrue(routes["drivers.report_selection"].runtime_smoke)
 
+    @runtime_routes("drivers.report_selection")
     def test_driver_report_selection_is_visible_and_opens_selector(self):
         drivers = {
             "drivers": [
@@ -66,9 +68,7 @@ class DriverReportSelectionReachabilityR9Tests(unittest.TestCase):
 
                 button = button_by_text(app.monthly_shift_win, "Водії для звіту…")
                 self.assertIsNotNone(button)
-                self.assertTrue(button.winfo_ismapped())
-
-                button.invoke()
+                activate_widget(button, "drivers.report_selection", container=app.monthly_shift_win)
                 app.update()
 
                 selectors = [
@@ -79,7 +79,7 @@ class DriverReportSelectionReachabilityR9Tests(unittest.TestCase):
                 ]
                 self.assertEqual(len(selectors), 1)
                 popup = selectors[0]
-                self.assertTrue(popup.winfo_ismapped())
+                assert_widget_reachable(popup, "drivers.report_selection", container=app)
 
                 listboxes = [widget for widget in walk(popup) if isinstance(widget, tk.Listbox)]
                 self.assertEqual(len(listboxes), 1)
@@ -87,7 +87,7 @@ class DriverReportSelectionReachabilityR9Tests(unittest.TestCase):
 
                 apply_button = button_by_text(popup, "Застосувати")
                 self.assertIsNotNone(apply_button)
-                self.assertTrue(apply_button.winfo_ismapped())
+                assert_widget_reachable(apply_button, "drivers.report_selection", container=popup)
             finally:
                 app.destroy()
 
