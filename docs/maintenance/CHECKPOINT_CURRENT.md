@@ -1,26 +1,41 @@
 # Taxo — поточна контрольна точка
 
-**Дата:** 09.11.2026
-**Stable / Latest:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4).
-**Поточний інтегрований кандидат:** Taxo 10.14-r5, main `df7c9c6d001445fa2ea5d0b0cd12c20a04d0c5e6`.
-**Наступна кодова ревізія:** 10.14-r6.
+**Дата:** 09.11.2026  
+**Stable / Latest:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4).  
+**Поточний інтегрований кандидат:** Taxo **10.14-r10**, exact main `12d6ff9e49b9a9ac2753b29f63828531c66bd1c8`.  
+**Наступна кодова ревізія:** **10.15-r1**.
 
-## Що змінилось після stable
+## Що сталося
 
-Експлуатаційна перевірка знайшла старе обмеження у вкладці додатків до наказів: після зміни статусу наказу додаток не можна було виправити. У 10.14-r5 це виправлено. Статус наказу та відмітка паперового підпису — інформаційні й не блокують робочі виправлення. При видаленні наказу його додатки також зберігаються у технічному snapshot перед видаленням.
+Після owner-test r6–r9 послідовно виявилися:
+- втрачена видимість/доступність mass assignment;
+- stale Preview і порожній документ після додавання пар;
+- відсутність live sync уже відкритого Preview;
+- у r9 — критичний cold-start crash на Windows через змішаний `pack/grid`.
+
+## Що виправлено в r10
+
+- дії «Шлях» винесені з legacy vehicle toolbar в окрему панель «Реєстри та облік ТЗ»;
+- різні geometry manager тепер працюють у різних parent-контейнерах;
+- старий regression більше не вимагає збереження known geometry bug;
+- додано реальний cold-start smoke в окремому ізольованому процесі.
 
 ## Доказ перевірок
 
-- PR #273: Windows #1368, Win7 #344, macOS #1269, START #2418 — SUCCESS.
-- Exact main: Windows #1369, Win7 #345, macOS Intel/ARM #1270, START #2419 — SUCCESS.
-- Regression: 1023 tests OK.
-- Exact-main START: artifact #13668314757, 1 729 037 байт.
-- Google Drive backup: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r5_2026-11-09_START.zip`, file ID `1EsQ5pdJUEP9Fge0_Hiw41qCvtaxCNF9q`, 1 729 037 байт.
+- PR #283 merged.
+- Exact main: `12d6ff9e49b9a9ac2753b29f63828531c66bd1c8`.
+- START #2556 — SUCCESS, **1039 tests / OK**.
+- Windows #1413 — SUCCESS.
+- Win7 #389 — SUCCESS.
+- macOS Intel/ARM #1314 — SUCCESS.
+- Cold-start regression — PASS.
 
-## Backlog
+## Резерв
 
-#264 і #175 завершені/закриті. Чинні окремі напрями: #246, #237, #164, #251; #61 — live ledger. Не змішувати їх із завершеним r5.
+- Artifact #13682040160, 1 760 098 байт.
+- SHA256 `a8304385abe5e120a5802872909eb2bd892adbbf3ef6a1bd678244929e21671b`.
+- Drive: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r10_2026-11-09_START.zip`, ID `13aUUhV1yGawzaqdrujn_emPqyK999cey`.
 
 ## Далі
 
-Ручне експлуатаційне приймання r5: наказ із додатком → змінити статус → виправити/видалити додаток → повторно сформувати DOCX/PDF/JPG. Stable v10.14-r4 не змінювати без окремого рішення власника.
+Ручне приймання r10 на реальній БД. Stable v10.14-r4 не змінювати без окремої команди власника. Наступний код — **10.15-r1**.
