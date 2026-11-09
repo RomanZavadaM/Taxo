@@ -787,8 +787,12 @@ def add_vehicle_assignments_bulk(con, order_id, pairs, *, valid_from, valid_unti
 
 
 def vehicle_assignment_pairs(con, order_id):
-    """Return raw stored vehicle/employee pairs without JOIN filtering."""
-    ensure_schema_on_connection(con)
+    """Return raw stored vehicle/employee pairs without JOIN filtering.
+
+    This verification helper deliberately does not run schema migration:
+    callers use it inside an active save transaction, so validation must not
+    trigger any DDL/executescript side effect before the caller commits.
+    """
     rows = con.execute(
         """SELECT vehicle_id,employee_id
              FROM vehicle_driver_assignments
