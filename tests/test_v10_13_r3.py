@@ -152,10 +152,12 @@ class InstructionJournalsR3Tests(unittest.TestCase):
                 button = next(
                     w for w in walk(win)
                     if w.winfo_class() in ("TButton", "Button")
-                    and str(w.cget("text")) == "Зберегти підготовчий список…"
+                    and str(w.cget("text")) == "Зберегти підготовчий матеріал…"
                 )
                 self.assertTrue(button.winfo_ismapped())
-                button.invoke()  # no topic and no selected employees: show an error without file write
+                self.assertTrue(hasattr(book.nametowidget(instruction_tab), "_taxo_briefing_template_box"))
+                self.assertTrue(hasattr(book.nametowidget(instruction_tab), "_taxo_briefing_edit_program_button"))
+                button.invoke()  # no selected employees: show an error without file write
                 self.assertTrue(errors)
         finally:
             app.destroy()

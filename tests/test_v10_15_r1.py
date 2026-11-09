@@ -24,9 +24,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class AssignmentStagingR1Tests(unittest.TestCase):
     def test_r1_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.15-r1")
-        self.assertIn("10.15-r1", (ROOT / "VERSION.txt").read_text("utf-8"))
-        self.assertIn("Taxo 10.15-r1", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.15-r1", "10.15-r2"))
+        self.assertIn(main.APP_VERSION, (ROOT / "VERSION.txt").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_owner_scenario_pairs_survive_selection_loss_and_reach_docx_pdf(self):
         with tempfile.TemporaryDirectory(prefix="taxo_r15_owner_") as td:
