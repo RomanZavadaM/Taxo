@@ -94,7 +94,10 @@ def _grid_waybill_actions(frame, buttons, available_width=None):
         available_width = max(320, available_width - 12)
         # grid padx=3 consumes six horizontal pixels per control. Count that
         # real geometry instead of estimating only the text/button reqwidth.
-        widths = [max(1, button.winfo_reqwidth() + 6) for button in buttons]
+        # macOS Aqua can render the final button noticeably wider than
+        # winfo_reqwidth(). Reserve per-control chrome slack, not only one
+        # margin for the whole row, so wrapping remains safe cross-platform.
+        widths = [max(1, button.winfo_reqwidth() + 20) for button in buttons]
         rows = compute_wrapped_rows(widths, available_width, gap=0)
         for button in buttons:
             try:
