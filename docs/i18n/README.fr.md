@@ -25,7 +25,7 @@ Les bases de données, scans, documents personnels et caches ne sont pas inclus 
 
 ## Documentation et développement
 
-La documentation opérationnelle de référence est en ukrainien. Consultez le démarrage rapide et le guide d'exploitation. Prochaine révision : 10.14-r5.
+La documentation opérationnelle de référence est en ukrainien. Consultez le démarrage rapide et le guide d'exploitation. Prochaine révision : 10.15-r4.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 

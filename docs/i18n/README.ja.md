@@ -25,7 +25,7 @@ Taxo の命令書は業務支援文書です。状態や紙の署名マークに
 
 ## 文書と開発
 
-運用文書の正本はウクライナ語です。クイックスタートと運行・整備ガイドを参照してください。次のコード改訂は 10.14-r5 です。
+運用文書の正本はウクライナ語です。クイックスタートと運行・整備ガイドを参照してください。次のコード改訂は 10.15-r4 です。
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 

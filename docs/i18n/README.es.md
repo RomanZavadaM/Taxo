@@ -25,7 +25,7 @@ Las bases de datos operativas, escaneos, documentos personales y cachés no se i
 
 ## Documentación y desarrollo
 
-La documentación operativa canónica está en ucraniano. Consulte el inicio rápido y la guía de operaciones/mantenimiento. Próxima revisión: 10.14-r5.
+La documentación operativa canónica está en ucraniano. Consulte el inicio rápido y la guía de operaciones/mantenimiento. Próxima revisión: 10.15-r4.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 

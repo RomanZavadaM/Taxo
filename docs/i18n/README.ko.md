@@ -25,7 +25,7 @@ Taxo의 명령서는 업무 보조 문서입니다. 상태나 종이 서명 표�
 
 ## 문서 및 개발
 
-공식 운영 설명서는 우크라이나어로 제공됩니다. 빠른 시작과 운영·정비 안내서를 참조하세요. 다음 코드 개정은 10.14-r5입니다.
+공식 운영 설명서는 우크라이나어로 제공됩니다. 빠른 시작과 운영·정비 안내서를 참조하세요. 다음 코드 개정은 10.15-r4입니다.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
