@@ -10,6 +10,7 @@ import function_registry
 import main
 import operations_orders as ops
 import operations_orders_ui
+from runtime_reachability import runtime_routes, assert_widget_reachable, activate_widget
 
 
 def walk(widget):
@@ -52,7 +53,7 @@ class _AppHarness(tk.Tk):
 
 class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
     def test_r6_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.14-r6")
+        self.assertIn(main.APP_VERSION, ("10.14-r6", "10.14-r7"))
 
     def test_bulk_assignment_is_first_class_feature_loss_route(self):
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
@@ -61,6 +62,7 @@ class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
         self.assertTrue(routes["operations.assignment_bulk"].runtime_smoke)
         self.assertGreaterEqual(len(function_registry.required_route_ids()), 25)
 
+    @runtime_routes("operations.assignment_bulk")
     def test_assignment_lists_are_mapped_and_inside_minimum_dialog(self):
         def fit(win, width, height, min_width, min_height):
             if width == 900:
@@ -124,8 +126,7 @@ class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
 
                 quick = button_by_text(win, "Закріпити ТЗ за водіями")
                 self.assertIsNotNone(quick)
-                self.assertTrue(quick.winfo_ismapped())
-                quick.invoke()
+                activate_widget(quick, "operations.assignment_bulk", container=win)
                 app.update_idletasks()
                 app.update()
 
@@ -143,11 +144,9 @@ class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
                 self.assertEqual(vehicle_list.size(), 2)
                 self.assertEqual(driver_list.size(), 2)
                 for lb in (vehicle_list, driver_list):
-                    self.assertTrue(lb.winfo_ismapped())
-                    self.assertGreater(lb.winfo_width(), 1)
-                    self.assertGreater(lb.winfo_height(), 1)
-                    self.assertLessEqual(lb.winfo_rooty() + lb.winfo_height(),
-                                         dialog.winfo_rooty() + dialog.winfo_height())
+                    assert_widget_reachable(
+                        lb, "operations.assignment_bulk", container=dialog
+                    )
 
                 assignment_tab = next(
                     tab for tab in book.tabs()
@@ -158,7 +157,7 @@ class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
                 app.update()
                 bulk = button_by_text(win, "Додати багато…")
                 self.assertIsNotNone(bulk)
-                self.assertTrue(bulk.winfo_ismapped())
+                assert_widget_reachable(bulk, "operations.assignment_bulk", container=win)
         finally:
             app.destroy()
 
