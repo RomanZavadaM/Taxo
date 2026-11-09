@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import tempfile
 import tkinter as tk
 from tkinter import ttk
@@ -98,7 +99,9 @@ class PaperDocumentsR3Tests(unittest.TestCase):
     def test_full_backup_contains_paper_documents_and_index(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "work"
-            workspace.ensure_workspace(root)
+            paths = workspace.ensure_workspace(root)
+            with sqlite3.connect(str(paths["main_db"])) as con:
+                con.execute("CREATE TABLE backup_smoke(id INTEGER PRIMARY KEY)")
             document = paper.build_training_docx({
                 "driver": "Тест Стажист", "instructor": "Тест Наставник", "vehicle": "Автобус"
             })
