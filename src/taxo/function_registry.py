@@ -37,6 +37,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("operations.center", "Ліве меню", "Експлуатація", "open_operations_center", runtime_smoke=True),
     FunctionRoute("operations.assignment_bulk", "Експлуатація → Накази", "Закріпити ТЗ за водіями / Додати багато…", "operations_orders_ui.bulk_assignment_controls", runtime_smoke=True),
     FunctionRoute("operations.assignment_existing", "Експлуатація → Накази → Редагувати наказ", "Поточні закріплення / Додати багато… / Керувати закріпленнями", "operations_orders_ui.existing_assignment_controls", runtime_smoke=True),
+    FunctionRoute("operations.assignment_preview_sync", "Експлуатація → Накази → Перегляд наказу", "Автооновлення Preview після зміни закріплень", "operations_orders_ui.refresh_open_order_previews", runtime_smoke=True),
     FunctionRoute("operations.instructions", "Експлуатація", "Інструктажі та журнали", "open_operations_center", runtime_smoke=True),
     FunctionRoute("maintenance.stoir", "Ліве меню", "СТОІР", "open_vehicle_maintenance", runtime_smoke=True),
     FunctionRoute("documents.center", "Експлуатація → Документи", "Документи підприємства", "DOCUMENT_CENTER_GROUPS", runtime_smoke=True),

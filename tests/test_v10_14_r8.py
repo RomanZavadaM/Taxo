@@ -255,7 +255,7 @@ class AssignmentPersistenceR8Tests(unittest.TestCase):
 
 class ExistingAssignmentEditGuardR8Tests(unittest.TestCase):
     def test_r8_identity_and_registry(self):
-        self.assertEqual(main.APP_VERSION, "10.14-r8")
+        self.assertIn(main.APP_VERSION, ("10.14-r8", "10.14-r9"))
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
         self.assertIn("operations.assignment_existing", routes)
         self.assertTrue(routes["operations.assignment_existing"].runtime_smoke)

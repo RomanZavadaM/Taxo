@@ -142,6 +142,49 @@ def open_operations_center(app, core):
     sy=core.ttk.Scrollbar(order_frame,orient="vertical",command=order_tree.yview); sx=core.ttk.Scrollbar(order_frame,orient="horizontal",command=order_tree.xview)
     order_tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set); order_tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
     order_cache={}
+    preview_refreshers={}
+
+    def register_order_preview(order_id, dialog, callback):
+        oid=int(order_id)
+        preview_refreshers.setdefault(oid, []).append((dialog, callback))
+        def cleanup(event=None):
+            if event is not None and getattr(event, "widget", None) is not dialog:
+                return
+            current=preview_refreshers.get(oid, [])
+            current=[item for item in current if item[0] is not dialog]
+            if current:
+                preview_refreshers[oid]=current
+            else:
+                preview_refreshers.pop(oid, None)
+        try:
+            dialog.bind("<Destroy>", cleanup, add="+")
+        except Exception:
+            pass
+
+    def refresh_open_order_previews(order_id):
+        oid=int(order_id)
+        current=list(preview_refreshers.get(oid, []))
+        alive=[]
+        refreshed=0
+        for dialog,callback in current:
+            try:
+                if not dialog.winfo_exists():
+                    continue
+                callback()
+                alive.append((dialog,callback))
+                refreshed+=1
+            except Exception:
+                try:
+                    if dialog.winfo_exists():
+                        alive.append((dialog,callback))
+                except Exception:
+                    pass
+        if alive:
+            preview_refreshers[oid]=alive
+        else:
+            preview_refreshers.pop(oid, None)
+        return refreshed
+
     group_filter_var=core.tk.StringVar(value="Усі групи")
     group_filter_labels=["Усі групи"]+list(ops.ORDER_GROUP_LABELS.values())
     group_filter_by_label={label:key for key,label in ops.ORDER_GROUP_LABELS.items()}
@@ -428,6 +471,7 @@ def open_operations_center(app, core):
                 con3.rollback(); core.messagebox.showerror("Наказ",str(exc),parent=dialog); return
             finally: con3.close()
             dialog.destroy(); refresh_orders(oid)
+            refresh_open_order_previews(oid)
             created_order=order_cache.get(int(oid))
             if order_type==ops.TYPE_VEHICLE_ASSIGNMENT and not initial_pairs:
                 book.select(assignments_tab)
@@ -681,7 +725,11 @@ def open_operations_center(app, core):
             viewer.delete("1.0","end")
             viewer.insert("1.0",current_preview)
             viewer.configure(state="disabled")
+            status_var.set("Зміст актуальний. Закріплень: %d" % len(assignments))
             return len(assignments)
+
+        register_order_preview(row["id"], dlg, refresh_preview_content)
+        dlg._taxo_refresh_preview=refresh_preview_content
 
         def make_formats(formats):
             try:
@@ -870,7 +918,7 @@ def open_operations_center(app, core):
                 con3.commit()
             except Exception as exc: con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
             finally: con3.close()
-            dlg.destroy(); refresh_assignments()
+            dlg.destroy(); refresh_assignments(); refresh_open_order_previews(order["id"])
         bar=core.ttk.Frame(frm); bar.grid(row=4,column=0,columnspan=2,sticky="ew",pady=(10,0)); core.ttk.Button(bar,text="Скасувати",command=dlg.destroy).pack(side="right"); core.ttk.Button(bar,text="Зберегти" if existing else "Додати",style="Accent.TButton",command=save_assignment).pack(side="right",padx=(0,6)); dlg.transient(win)
     def add_assignment(): assignment_dialog()
 
@@ -937,7 +985,7 @@ def open_operations_center(app, core):
             except Exception as exc:
                 con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
             finally: con3.close()
-            dlg.destroy(); refresh_assignments()
+            dlg.destroy(); refresh_assignments(); refresh_open_order_previews(order["id"])
         core.ttk.Button(bar,text="Скасувати",command=dlg.destroy).pack(side="right")
         core.ttk.Button(bar,text="Додати вибрані пари",style="Accent.TButton",command=save_bulk).pack(side="right",padx=(0,6))
         dlg.transient(win)
@@ -955,7 +1003,7 @@ def open_operations_center(app, core):
         try: ops.delete_vehicle_assignment(con2,int(sel[0]),history_note="Видалення через інтерфейс"); con2.commit()
         except Exception as exc: con2.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=win); return
         finally: con2.close()
-        refresh_assignments()
+        refresh_assignments(); refresh_open_order_previews(order["id"])
     abar=core.ttk.Frame(assignments_tab,padding=(10,0,10,10)); abar.pack(fill="x")
     core.ttk.Button(abar,text="Додати багато…",style="Accent.TButton",command=add_assignments_bulk).pack(side="left")
     core.ttk.Button(abar,text="Додати одну пару",command=add_assignment).pack(side="left",padx=6)
