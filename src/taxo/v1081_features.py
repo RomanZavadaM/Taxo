@@ -176,6 +176,13 @@ def _install_stable_vehicle_toolbar(app, core):
     app._taxo_v1081_vehicle_toolbar = True
     _hide_legacy_core_actions(app)
 
+    # Do one deterministic layout immediately. after_idle reflow remains for
+    # later resizes, but the first visible frame must already be safe.
+    try:
+        _layout_toolbar(app, max(420, int(app.winfo_width()) - 30))
+    except Exception:
+        pass
+
     state = {"pending": False, "width": None}
     def reflow(event=None):
         try:
