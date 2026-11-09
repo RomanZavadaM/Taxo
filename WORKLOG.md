@@ -1,3 +1,11 @@
+## 09.11.2026 — stable 10.14-r4 опубліковано, підтверджено GitHub Latest
+
+- Docs PR #270 merged, README українською + EN/DE/ES/FR/KO/JA, release index/notes, посібники і відновлення оновлено.
+- Exact release source `214f714f4804cb284fdcbc5b5a26418cef40937a`, CI Windows #1364 / Win7 #341 / macOS #1266 / START #2404 SUCCESS.
+- Protected marker PR #271 merged (skip old current publisher); historical promoter run #3 SUCCESS.
+- Release https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4 ; 8/8 assets, SHA256, stable/latest; previous v10.12-r10 rollback.
+- Drive stable folder містить macOS ARM/Intel і START; Windows backup artifact ZIP >100MB відхилено конектором. Повний комплект офіційно збережений у GitHub Releases.
+- Наступна кодова ревізія 10.14-r5, не використовувати виданий r4 повторно.
 ## 09.11.2026 — схвалено стабільну 10.14-r4, синхронізація документації
 
 Власник повідомив, що основні сценарії загалом працюють; дав пряму команду видати стабільну 10.14-r4 та оновити README українською і EN/DE/ES/FR/KO/JA, release index, release notes, посібники, product status, recovery docs. Перевірена кодова база 677458afa06893b4d221130db72de4045187e0c8 (PR #268), Windows #1357 / Win7 #337 / macOS #1262 / START #2402 PASS. Код і підтримувані бібліотеки не змінювали. Для immutable release ще треба stable marker workflow, 8 assets, SHA256, latest confirmation. Наступна кодова версія — 10.14-r5.
