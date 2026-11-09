@@ -32,7 +32,7 @@ def _unique_order_base(output_dir, order):
         or list(candidate.parent.glob(candidate.stem + "_сторінка_*.jpg"))
     ):
         candidate = next_output_copy_path(candidate)
-    return candidate.with_suffix("")
+    return candidate.with_name(candidate.name[:-4])
 
 
 def generate_order_formats(core, ops, order, assignments=(), entities=(),
@@ -54,7 +54,7 @@ def generate_order_formats(core, ops, order, assignments=(), entities=(),
         result = core.write_output_file(
             lambda out: build_order_docx(
                 out, ops, order, assignments, entities, company, control
-            ), base.with_suffix(".docx"), parent=parent,
+            ), base.with_name(base.name + ".docx"), parent=parent,
             kind="DOCX наказу", error_title="Наказ Word",
         )
         if result is None:
@@ -72,7 +72,7 @@ def generate_order_formats(core, ops, order, assignments=(), entities=(),
             pdf_result = core.write_output_file(
                 lambda out: ops.export_order_pdf(
                     out, order, assignments, company, control, font_path=font
-                ), base.with_suffix(".pdf"), parent=parent,
+                ), base.with_name(base.name + ".pdf"), parent=parent,
                 kind="PDF наказу", error_title="Наказ PDF",
             )
             if pdf_result is None:
