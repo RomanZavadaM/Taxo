@@ -7,7 +7,7 @@
 - Updated README (Ukrainian), six translations, quick start, user manual, release index, product status, release notes.
 - Exact PR-head Windows #1443, Windows 7 #417, macOS #1342 — SUCCESS.
 - Exact product main Windows #1444, Windows 7 #418, macOS Intel+ARM #1343, START #2561 — **SUCCESS**. START source artifact #13706675051, 1 813 312 bytes.
-- PR #293 release trigger prepared to publish immutable `v10.15-r3` using existing publisher (without changing workflow logic). **Release status PENDING** until tag and eight downloadable assets confirmed.
+- PR #293 merged → `d93ae63660abfeeeb8ee7298724288f75aea92dd`; existing publisher workflow #42690409737 SUCCESS → immutable [prerelease `v10.15-r3`](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r3) with 8/8 verified assets and SHA256; tag source exactly `eb71c64d3627ad3d02524b1735a1b53f155ec347`. Stable Latest remains v10.14-r4.
 - Stable / Latest remains `v10.14-r4`; manual acceptance r3 pending.
 - Owner decision: independent read-only architecture audit required before module extraction for 2–3× future expansion, Issue #290; complete catalog with optional signed scans Issue #289.
 - Next: finish release/backup verification, merge recovery checkpoint; no r4 code until checkpoint.
