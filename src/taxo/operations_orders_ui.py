@@ -190,9 +190,11 @@ def open_operations_center(app, core):
 
     def order_dialog(existing=None, force_type=None):
         dialog=core.tk.Toplevel(win); dialog.title("Редагувати наказ" if existing else "Створити наказ")
-        try: core.configure_toplevel(dialog,title=dialog.title(),minsize=(760,540))
+        try:
+            core.fit_window_to_screen(dialog, 900, 760, 760, 560)
+            core.configure_toplevel(dialog,title=dialog.title(),minsize=(760,560))
         except Exception: pass
-        frm=core.ttk.Frame(dialog,padding=14); frm.pack(fill="both",expand=True); frm.columnconfigure(1,weight=1); frm.rowconfigure(8,weight=1)
+        frm=core.ttk.Frame(dialog,padding=14); frm.pack(fill="both",expand=True); frm.columnconfigure(1,weight=1); frm.rowconfigure(9,weight=1)
         initial_type=force_type or (existing["order_type"] if existing else ops.TYPE_VEHICLE_ASSIGNMENT)
         type_var=core.tk.StringVar(value=ops.ORDER_TYPE_LABELS.get(initial_type,ops.ORDER_TYPE_LABELS[ops.TYPE_GENERIC]))
         initial_series=(str(existing["order_series"] or ops.ORDER_SERIES_WORK) if existing and "order_series" in existing.keys() else ops.ORDER_SERIES_WORK)
@@ -221,11 +223,11 @@ def open_operations_center(app, core):
             core.ttk.Label(frm,text=label).grid(row=rr,column=0,sticky="nw",padx=(0,8),pady=5)
             widget=core.ttk.Combobox(frm,textvariable=var,values=employee_labels,state="readonly") if label=="Контроль" else core.ttk.Entry(frm,textvariable=var)
             widget.grid(row=rr,column=1,sticky="ew",pady=5)
-        core.ttk.Label(frm,text="Підстава / вступ").grid(row=7,column=0,sticky="nw",pady=5)
-        preamble=core.tk.Text(frm,height=4,wrap="word"); preamble.grid(row=7,column=1,sticky="nsew",pady=5)
+        core.ttk.Label(frm,text="Підстава / вступ").grid(row=8,column=0,sticky="nw",pady=5)
+        preamble=core.tk.Text(frm,height=3,wrap="word"); preamble.grid(row=8,column=1,sticky="nsew",pady=5)
         preamble.insert("1.0",str(existing["preamble"] if existing else ops.DEFAULT_PREAMBLES.get(initial_type,"")))
-        core.ttk.Label(frm,text="Текст пунктів").grid(row=8,column=0,sticky="nw",pady=5)
-        body_text=core.tk.Text(frm,height=7,wrap="word"); body_text.grid(row=8,column=1,sticky="nsew",pady=5)
+        core.ttk.Label(frm,text="Текст пунктів").grid(row=9,column=0,sticky="nw",pady=5)
+        body_text=core.tk.Text(frm,height=5,wrap="word"); body_text.grid(row=9,column=1,sticky="nsew",pady=5)
         body_text.insert("1.0",str(existing["body_text"] if existing else ops.DEFAULT_BODY_TEMPLATES.get(initial_type,"")))
 
         initial_vehicles=[]
@@ -242,17 +244,17 @@ def open_operations_center(app, core):
             finally:
                 con_choices.close()
             assignment_box=core.ttk.LabelFrame(frm,text="Закріплення в цьому наказі",padding=8)
-            assignment_box.grid(row=9,column=0,columnspan=2,sticky="ew",pady=(8,2))
+            assignment_box.grid(row=7,column=0,columnspan=2,sticky="ew",pady=(8,2))
             assignment_box.columnconfigure(0,weight=1); assignment_box.columnconfigure(1,weight=1)
 
             left=core.ttk.Frame(assignment_box); left.grid(row=0,column=0,sticky="nsew",padx=(0,4))
             right=core.ttk.Frame(assignment_box); right.grid(row=0,column=1,sticky="nsew",padx=(4,0))
             core.ttk.Label(left,text="Транспортний засіб").pack(anchor="w")
-            initial_vehicle_list=core.tk.Listbox(left,selectmode="extended",exportselection=False,height=6)
+            initial_vehicle_list=core.tk.Listbox(left,selectmode="extended",exportselection=False,height=5)
             initial_vehicle_list.pack(fill="both",expand=True,pady=(3,0))
             for row in initial_vehicles: initial_vehicle_list.insert("end",row["label"])
             core.ttk.Label(right,text="Водій із бази водіїв").pack(anchor="w")
-            initial_driver_list=core.tk.Listbox(right,selectmode="extended",exportselection=False,height=6)
+            initial_driver_list=core.tk.Listbox(right,selectmode="extended",exportselection=False,height=5)
             initial_driver_list.pack(fill="both",expand=True,pady=(3,0))
             for row in initial_drivers: initial_driver_list.insert("end",row["label"])
 
