@@ -85,8 +85,13 @@ def _grid_waybill_actions(frame, buttons, available_width=None):
         if not available_width or available_width <= 1:
             available_width = frame.winfo_toplevel().winfo_width() - 20
         available_width = max(320, int(available_width))
-        widths = [max(1, button.winfo_reqwidth()) for button in buttons]
-        rows = compute_wrapped_rows(widths, available_width, gap=6)
+        host_width = int(frame.winfo_toplevel().winfo_width() or 0)
+        if host_width > 1:
+            available_width = min(available_width, max(320, host_width - 20))
+        # grid padx=3 consumes six horizontal pixels per control. Count that
+        # real geometry instead of estimating only the text/button reqwidth.
+        widths = [max(1, button.winfo_reqwidth() + 6) for button in buttons]
+        rows = compute_wrapped_rows(widths, available_width, gap=0)
         for button in buttons:
             try:
                 button.pack_forget()
