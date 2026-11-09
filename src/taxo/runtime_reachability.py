@@ -145,13 +145,21 @@ def assert_widget_reachable(widget, route_id, container=None, tolerance=2):
         raise AssertionError("%s: widget has no usable size (%sx%s)" % (route_id, width, height))
     _record(route_id, "mapped")
 
-    boundary = container or widget.winfo_toplevel()
-    _update_geometry(boundary)
+    top = widget.winfo_toplevel()
+    boundary = container
     wx1, wy1 = int(widget.winfo_rootx()), int(widget.winfo_rooty())
     wx2, wy2 = wx1 + width, wy1 + height
-    bx1, by1 = int(boundary.winfo_rootx()), int(boundary.winfo_rooty())
-    bx2 = bx1 + int(boundary.winfo_width())
-    by2 = by1 + int(boundary.winfo_height())
+    if boundary is None and widget is top:
+        # A separate dialog only needs to be reachable on the screen; it does
+        # not have to stay inside the parent application's rectangle.
+        bx1, by1 = 0, 0
+        bx2, by2 = int(widget.winfo_screenwidth()), int(widget.winfo_screenheight())
+    else:
+        boundary = boundary or top
+        _update_geometry(boundary)
+        bx1, by1 = int(boundary.winfo_rootx()), int(boundary.winfo_rooty())
+        bx2 = bx1 + int(boundary.winfo_width())
+        by2 = by1 + int(boundary.winfo_height())
     if (wx1 < bx1 - tolerance or wy1 < by1 - tolerance or
             wx2 > bx2 + tolerance or wy2 > by2 + tolerance):
         raise AssertionError(
