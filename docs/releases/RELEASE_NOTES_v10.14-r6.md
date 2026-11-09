@@ -24,3 +24,17 @@
 Старий тест 10.13-r4 перевіряв, що підписи «Транспортний засіб» і «Водій із бази водіїв» існують у дереві Tk. Він не перевіряв `winfo_ismapped()` і фізичне розташування елемента в межах діалогу. Крім того, Feature Loss registry захищав загальний маршрут «Експлуатація», але не масове закріплення як окрему функцію.
 
 Це r6 виправляє для даного механізму. Загальне посилення meta-gate ведеться в Issue #275.
+
+
+## Інтеграція і перевірка
+
+- PR #276 merged to main: `e9cec1662b7fb36f0a5345f77345b4c57e2f35fb`.
+- Exact-main Windows #1380 — SUCCESS.
+- Exact-main Win7 #356 — SUCCESS.
+- Exact-main macOS #1281 — SUCCESS, Intel + ARM64.
+- Exact-main START #2441 — SUCCESS.
+- Regression: **1026 tests / OK**, включно з live visibility/geometry guard.
+- START artifact #13671129279: 1 733 853 байти.
+- SHA256: `245c72302966e43b6ca6c0b3d82517780a3e428c9b2da25a11be817b2d2d02c1`.
+- Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.14-r6_2026-11-09_START.zip`, file `1scF68cCRkIf8187k38Qw1TiDQWqkR7qY`, private readback PASS.
+- Stable / Latest лишається `v10.14-r4`. Наступна кодова ревізія — `10.14-r7`.
