@@ -128,6 +128,8 @@ class OrderLayoutR4Tests(unittest.TestCase):
         ui=Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
         self.assertIn("build_order_story(",base)
         self.assertIn("build_order_story(",advanced)
+        common=Path("src/taxo/order_pdf_sections.py").read_text(encoding="utf-8")
+        self.assertIn("order_layout(",common)
         self.assertIn("order_layout(",word)
         self.assertIn('matching_pdf=generated.get("pdf",())',ui)
         self.assertIn("open_order_format(core,paths,dlg,external=True)",ui)
