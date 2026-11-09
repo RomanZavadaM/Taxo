@@ -1,17 +1,27 @@
 # Індекс релізів Taxo
 
-**Стан:** 08.11.2026
-**Stable / Latest:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) — **STABLE 07.11.2026**; exact source `6d0f32bc`; 8 canonical assets; GitHub Latest.
-**Previous stable / rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5)
-**Older rollback:** [Taxo 10.9-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.9-r10)
-**Older rollback:** [Taxo 10.3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.3)
-**Last prerelease candidate:** [**Taxo 10.11-r10**](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.11-r10) — **PRERELEASE 06.11.2026**; exact source `b239bb0`; 8 canonical assets.  
-**Current integrated main:** **10.13-r8** (`78112c03`) — safe bulk assignment + separate work/personnel numbering; exact-main/START/Drive PASS; owner manual-test candidate.  
-**Next code revision:** **10.13-r9** after owner feedback.
+**Стан:** 09.11.2026
+**Stable / Latest:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) — **STABLE 09.11.2026**, власник підтвердив роботу; exact-source Windows/Win7/macOS/START SUCCESS; 8 канонічних файлів.
+**Previous stable / rollback:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
+**Older rollback:** [Taxo 10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5).
+**Next code revision:** **10.14-r5** (не видано).
+**10.14-r4 product source:** 677458afa06893b4d221130db72de4045187e0c8; після приймання код не змінювали.
 
-> Stable 10.10-r4 використовує ті самі перевірені пакети, що були випущені як candidate; перезбирання після рішення про stable не виконувалось. 10.9-r10 лишається попередньою stable для rollback.
+## Лінія 10.14 — включена в стабільну 10.14-r4
 
-## Інтегрована лінія 10.13 — ще не видана як prerelease
+| Версія | PR | Зміст |
+|---|---|---|
+| **10.14-r4** | #268, docs #269 | **STABLE 09.11**; єдиний вигляд DOCX/PDF/JPG, Word-таблиці, додатки; exact-platform CI PASS. |
+| **10.14-r3** | #266, docs #267 | Вільне редагування/скасування/видалення наказів; підпис і статус — інформаційні позначки. |
+| **10.14-r2** | #263, docs #265 | DOCX/PDF/JPG/«Створити все», багатосторінкові зображення, перевірені ліцензії. |
+| **10.14-r1** | #261, docs #262 | Безпечний PDF і внутрішній перегляд без перезапису попередніх файлів. |
+
+## Лінія 10.13 — інтегрована в stable 10.14-r4
+
+- **10.13-r9–r10:** виправлення створення, дублікати, нумерація, preview та друк наказу.
+- **10.13-r1–r8:** Експлуатація/СТОІР, спільний вибір людей/ТЗ, структуровані накази й окремі кадрові та робочі серії.
+- 10.13-r1…r10 інтегровані в main, але не видавалися окремо як stable.
+## Історичні етапи 10.13 (актуальний stable — 10.14-r4)
 
 | Версія | PR | Стан |
 |---|---|---|
@@ -24,7 +34,7 @@
 | **10.13-r2** | #232 | Integrated 07.11.2026; явний open-selected-TЗ, human STOIR labels/dates, direct new-order route, responsive order actions; Feature Loss gate зловив і не дозволив втратити legacy «Каталог типів наказів»; Windows **941 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |
 | **10.13-r1** | #227 | Integrated 07.11.2026; «Експлуатація» як робочий стіл, завершений STOIR workflow, зрозумілий lifecycle наказів; Windows **936 tests / OK**, Win7/macOS/START exact-product SUCCESS; Drive recovery-copy підтверджена. |
 
-> 10.13-r1/r2/r3/r4/r5/r6/r7/r8 інтегровано в `main`, але tag/release для них не створювався. Останній офіційно виданий candidate — `v10.11-r10`; stable — `v10.12-r10`.
+Це архівний стан до 10.14; актуальний стабільний випуск — 10.14-r4.
 
 ## Лінія 10.12 — r10 видано як stable
 
