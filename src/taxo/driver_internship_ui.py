@@ -96,9 +96,17 @@ def install_internship_tab(app, core, book):
                 load_workspace_root(), paperwork.build_training_docx(data),
                 "Стажування", kind_var.get() + ": " + data["driver"],
                 date.today().isoformat(), data["driver"])
-            paperwork.open_file(target)
         except Exception as exc:
             core.messagebox.showerror("Лист стажування", str(exc), parent=tab)
+            return
+        try:
+            paperwork.open_file(target)
+        except OSError as exc:
+            core.messagebox.showwarning(
+                "Лист стажування збережено",
+                "Файл створено, але його не вдалося відкрити автоматично.\n\n%s\n\n%s" % (target, exc),
+                parent=tab,
+            )
     buttons = core.ttk.Frame(tab)
     buttons.grid(row=11, column=0, columnspan=2, sticky="ew", pady=(14, 8))
     core.ttk.Button(buttons, text="Створити лист стажування DOCX",
