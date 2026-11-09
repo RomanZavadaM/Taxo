@@ -6275,7 +6275,12 @@ def fit_window_to_screen(win, width, height, min_width=420, min_height=260):
     max_h=max(360, screen_h-120)
     final_w=max(420, min(int(width), max_w))
     final_h=max(260, min(int(height), max_h))
-    win.geometry(f"{final_w}x{final_h}")
+    # Size alone is not enough: some window managers may place a new Toplevel
+    # partly outside the visible screen. Center the initial geometry inside the
+    # same screen bounds that were used for sizing.
+    pos_x=max(0, (screen_w-final_w)//2)
+    pos_y=max(0, (screen_h-final_h)//2)
+    win.geometry(f"{final_w}x{final_h}+{pos_x}+{pos_y}")
     win.minsize(min(int(min_width), final_w), min(int(min_height), final_h))
     win.resizable(True, True)
 
