@@ -1,21 +1,21 @@
 # Taxo — поточна контрольна точка
 
-**Дата:** 08.11.2026  
-**Stable / Latest:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10)  
-**Stable exact source:** `6d0f32bc45323d4085bb165b2ec050dae7b378ee`  
-**Поточний integrated main product:** **Taxo 10.13-r8** — owner manual-test candidate, не stable; exact product `78112c03db5406a2e4d9e4e4452226f6c9a82d0f`  
-**Next code revision:** `10.13-r9` після feedback
+**Дата:** 09.11.2026
+**Stable / Latest (підготовлено до публікації):** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4).
+**Попередня стабільна / rollback:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
+**Підтверджена кодова база 10.14-r4:** 677458afa06893b4d221130db72de4045187e0c8.
+**Наступна кодова ревізія:** 10.14-r5 (не починалася).
 
-## Поточний main після stable
+## Що прийнято
 
-У `main` інтегровано **10.13-r8**: безпечний масовий наказ про закріплення + автонумерація з r7. Exact-main: Windows #1329 — **987 tests / OK**, Win7 #315 — SUCCESS, macOS #1240 Intel/ARM — SUCCESS, START #2333 — SUCCESS.
+Власник 09.11.2026 повідомив, що основні сценарії 10.14 працюють, і дав команду оновити стабільну версію. Для наказів є формати DOCX/PDF/JPG, єдиний макет, таблиці, масові призначення, окремі серії номерів, редагування й видалення без заборон за статусом чи позначкою паперового підпису.
 
-Recovery-copy: `Taxo_CURRENT_MAIN_v10.13-r8_2026-11-08_START.zip`, 1 685 617 bytes, Drive file `1rj63QCtxmw4laO1KOnoVlx2PJoNccb20`, SHA256 `19cc825561f367afaa84d75cbc621dbd4767aa8f7bf284bd1d60a1a5cc35b61f`.
+## Доказ перевірок
 
-r7 safety mismatch закрито: one-driver→many-vehicles блокується ще до draft; допустимі bulk modes реально проходять чинний approval guard.
+10.14-r4 exact-product: Windows #1357, Windows 7 #337, macOS Intel/ARM #1262, START #2402 — SUCCESS.
 
-Це новіша розробка, але вона **не входить у stable 10.12-r10**.
+Архів перевірено та збережено у Google Drive: Taxo_CURRENT_MAIN_v10.14-r4_2026-11-09_START.zip, 1 735 775 байтів, Drive ID 13cu1dNOBcVAS8zFO0Z1JnBUy212wu3dp.
 
-## Далі
+## Наступна дія
 
-Наступний безпечний крок — **ручне приймання 10.13-r8 Windows Portable**: bulk assignment, autonumbering, personnel `-К`, valid approval і блокування one-driver→many-vehicles. Наступний code revision — **10.13-r9** тільки після feedback. Stable змінювати лише окремим рішенням власника.
+Опублікувати через захищений механізм стабільного випуску GitHub 10.14-r4, перевірити 8 assets, SHA256, Latest, direct links; після цього зафіксувати факт у HANDOFF_CURRENT/PROJECT_STATE/WORKLOG.
