@@ -107,13 +107,17 @@ def _layout_toolbar(app, available_width=None):
     try:
         frame.update_idletasks()
         width = int(available_width or frame.winfo_width() or 0)
+        host_width = int(app.winfo_width() or 0)
         if width <= 1:
-            width = max(420, int(app.winfo_width()) - 30)
-        widths = [max(1, int(control.winfo_reqwidth())) for control in controls]
+            width = max(420, host_width - 30)
+        elif host_width > 1:
+            width = min(width, max(420, host_width - 30))
+        # grid padx=4 adds eight horizontal pixels to every control.
+        widths = [max(1, int(control.winfo_reqwidth()) + 8) for control in controls]
         rows = []
         current = []
         used = 0
-        gap = 8
+        gap = 0
         for index, item_width in enumerate(widths):
             extra = item_width if not current else item_width + gap
             if current and used + extra > width:
