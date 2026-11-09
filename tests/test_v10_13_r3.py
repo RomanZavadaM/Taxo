@@ -152,7 +152,7 @@ class InstructionJournalsR3Tests(unittest.TestCase):
                 button = next(
                     w for w in walk(win)
                     if w.winfo_class() in ("TButton", "Button")
-                    and str(w.cget("text")) == "Зберегти підготовчий матеріал…"
+                    and str(w.cget("text")) == "Створити комплект DOCX для друку"
                 )
                 self.assertTrue(button.winfo_ismapped())
                 self.assertTrue(hasattr(book.nametowidget(instruction_tab), "_taxo_briefing_template_box"))
