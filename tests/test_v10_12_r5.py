@@ -9,6 +9,7 @@ import function_registry
 import main
 import personnel_v91
 import v1064_features as waybill_layout
+from runtime_reachability import runtime_routes, activate_widget
 
 
 def walk(widget):
@@ -63,6 +64,7 @@ class FragileLayoutR5Tests(unittest.TestCase):
         self.assertTrue(routes["personnel.bulk_replan"].runtime_smoke)
         self.assertTrue(routes["waybills.actions"].runtime_smoke)
 
+    @runtime_routes("personnel.bulk_replan")
     def test_bulk_replan_checkbox_is_visible_at_minimum_window_size(self):
         core = SimpleNamespace(
             tk=tk,
@@ -95,12 +97,11 @@ class FragileLayoutR5Tests(unittest.TestCase):
                 ("TCheckbutton", "Checkbutton"),
             )
             self.assertIsNotNone(control)
-            self.assertTrue(control.winfo_ismapped())
-            self.assertGreater(control.winfo_width(), 1)
-            self.assertGreater(control.winfo_height(), 1)
+            activate_widget(control, "personnel.bulk_replan", container=win)
         finally:
             root.destroy()
 
+    @runtime_routes("waybills.actions")
     def test_all_nine_waybill_actions_remain_visible_and_invokable_when_wrapped(self):
         calls = []
         root = tk.Tk()
@@ -126,9 +127,8 @@ class FragileLayoutR5Tests(unittest.TestCase):
             self.assertGreaterEqual(rows, 2)
             self.assertEqual(len(buttons), 9)
             for button in buttons:
-                self.assertTrue(button.winfo_ismapped(), button.cget("text"))
                 self.assertTrue(button.grid_info())
-                button.invoke()
+                activate_widget(button, "waybills.actions", container=root)
             self.assertEqual(calls, list(waybill_layout.WAYBILL_ACTION_LABELS))
             used_rows = {int(button.grid_info()["row"]) for button in buttons}
             self.assertGreaterEqual(len(used_rows), 2)

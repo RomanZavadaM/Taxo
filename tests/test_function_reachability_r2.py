@@ -10,6 +10,7 @@ import military_transport_ui
 import personnel_data_center_r6
 import personnel_month_schedule_r8
 import v1084_features
+from runtime_reachability import runtime_routes, activate_widget
 
 
 def walk(widget):
@@ -116,6 +117,7 @@ class FunctionRegistryR2Tests(unittest.TestCase):
         self.assertIn('primary, text="Простий місячний графік…"', source)
         self.assertIn("open_simple_month_schedule_r8", source)
 
+    @runtime_routes("personnel.data_center")
     def test_personnel_data_center_dynamic_entry_is_mapped_and_invokes_callback(self):
         calls = []
         core = SimpleNamespace(tk=tk, ttk=ttk, APP_VERSION="10.12-r2")
@@ -128,12 +130,12 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             show_root(root)
             button = button_by_text(app.personnel_overview_page, "Дані / Дія / документи…")
             self.assertIsNotNone(button)
-            self.assertTrue(button.winfo_ismapped())
-            button.invoke()
+            activate_widget(button, "personnel.data_center", container=root)
             self.assertEqual(calls, ["data-center"])
         finally:
             root.destroy()
 
+    @runtime_routes("personnel.simple_month_schedule")
     def test_simple_month_schedule_fallback_is_mapped_and_invokes_callback(self):
         calls = []
         core = SimpleNamespace(tk=tk, ttk=ttk, APP_VERSION="10.12-r2")
@@ -146,12 +148,12 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             show_root(root)
             button = button_by_text(app.personnel_planning_page, "Простий місячний графік…")
             self.assertIsNotNone(button)
-            self.assertTrue(button.winfo_ismapped())
-            button.invoke()
+            activate_widget(button, "personnel.simple_month_schedule", container=root)
             self.assertEqual(calls, ["simple-month"])
         finally:
             root.destroy()
 
+    @runtime_routes("vehicles.military")
     def test_military_transport_entry_is_mapped_and_invokes_callback(self):
         calls = []
         core = SimpleNamespace(
@@ -171,12 +173,12 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             show_root(root)
             button = button_by_text(app.tab_vehicles, "Військово-транспортний облік")
             self.assertIsNotNone(button)
-            self.assertTrue(button.winfo_ismapped())
-            button.invoke()
+            activate_widget(button, "vehicles.military", container=root)
             self.assertEqual(calls, ["military-transport"])
         finally:
             root.destroy()
 
+    @runtime_routes("maintenance.stoir")
     def test_stoir_navigation_is_mapped_and_invokes_callback(self):
         calls = []
         core = SimpleNamespace(
@@ -196,12 +198,8 @@ class FunctionRegistryR2Tests(unittest.TestCase):
             show_root(root)
             button = app._nav_named_buttons.get("СТОІР")
             self.assertIsNotNone(button)
-            self.assertTrue(button.winfo_ismapped())
-            if callable(getattr(button, "invoke", None)):
-                invoke_action(button)
-                self.assertEqual(calls, ["stoir"])
-            else:
-                self.assertTrue(button.bind("<Button-1>"))
+            activate_widget(button, "maintenance.stoir", container=root)
+            self.assertEqual(calls, ["stoir"])
         finally:
             root.destroy()
 

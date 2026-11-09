@@ -8,6 +8,7 @@ from unittest import mock
 import function_registry
 import main
 import personnel_data_center_r6
+from runtime_reachability import runtime_routes, activate_widget
 
 
 def walk(widget):
@@ -95,6 +96,16 @@ class PersonnelDataCenterActionsR6Tests(unittest.TestCase):
             self.assertIn(function_id, routes)
             self.assertTrue(routes[function_id].runtime_smoke, function_id)
 
+    @runtime_routes(
+        "personnel.registry_import",
+        "personnel.registry_bulk",
+        "personnel.working_data",
+        "personnel.card_documents",
+        "personnel.document_register",
+        "personnel.document_control",
+        "personnel.diia_cycle",
+        "personnel.military",
+    )
     def test_all_primary_data_center_actions_are_visible_and_invoke_expected_route(self):
         core = SimpleNamespace(
             tk=tk,
@@ -117,24 +128,23 @@ class PersonnelDataCenterActionsR6Tests(unittest.TestCase):
             root.update()
             win = app._personnel_data_center_r6_window
             labels = (
-                ("Завантажити XLSX / звірити…", "import"),
-                ("Масові дії з останнього імпорту…", "bulk"),
-                ("Робочі дані з реєстрів", "working-data"),
-                ("Картка та документи", "card-documents"),
-                ("Відкрити реєстр документів", "document-register"),
-                ("Контроль обов'язкових документів…", "document-control"),
-                ("Офіційний цикл Дії…", "diia"),
-                ("Військовий облік / строки…", "military"),
+                ("Завантажити XLSX / звірити…", "import", "personnel.registry_import"),
+                ("Масові дії з останнього імпорту…", "bulk", "personnel.registry_bulk"),
+                ("Робочі дані з реєстрів", "working-data", "personnel.working_data"),
+                ("Картка та документи", "card-documents", "personnel.card_documents"),
+                ("Відкрити реєстр документів", "document-register", "personnel.document_register"),
+                ("Контроль обов'язкових документів…", "document-control", "personnel.document_control"),
+                ("Офіційний цикл Дії…", "diia", "personnel.diia_cycle"),
+                ("Військовий облік / строки…", "military", "personnel.military"),
             )
-            for label, expected_call in labels:
+            for label, expected_call, route_id in labels:
                 button = button_by_text(win, label)
                 self.assertIsNotNone(button, label)
-                self.assertTrue(button.winfo_ismapped(), label)
-                button.invoke()
+                activate_widget(button, route_id, container=win)
                 self.assertEqual(app.calls[-1], expected_call)
             self.assertEqual(
                 app.calls,
-                [expected for _label, expected in labels],
+                [expected for _label, expected, _route_id in labels],
             )
         finally:
             root.destroy()

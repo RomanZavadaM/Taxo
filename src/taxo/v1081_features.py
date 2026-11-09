@@ -107,13 +107,20 @@ def _layout_toolbar(app, available_width=None):
     try:
         frame.update_idletasks()
         width = int(available_width or frame.winfo_width() or 0)
+        host_width = int(app.winfo_width() or 0)
         if width <= 1:
-            width = max(420, int(app.winfo_width()) - 30)
-        widths = [max(1, int(control.winfo_reqwidth())) for control in controls]
+            width = max(420, host_width - 30)
+        elif host_width > 1:
+            width = min(width, max(420, host_width - 30))
+        # grid padx=4 adds eight horizontal pixels to every control.
+        # Aqua/native themes may draw controls wider than the logical
+        # requested width. A per-control reserve makes the wrap decision
+        # conservative on macOS without hiding any actions.
+        widths = [max(1, int(control.winfo_reqwidth()) + 24) for control in controls]
         rows = []
         current = []
         used = 0
-        gap = 8
+        gap = 0
         for index, item_width in enumerate(widths):
             extra = item_width if not current else item_width + gap
             if current and used + extra > width:
@@ -171,6 +178,13 @@ def _install_stable_vehicle_toolbar(app, core):
     app.vehicle_core_inactive_check = inactive
     app._taxo_v1081_vehicle_toolbar = True
     _hide_legacy_core_actions(app)
+
+    # Do one deterministic layout immediately. after_idle reflow remains for
+    # later resizes, but the first visible frame must already be safe.
+    try:
+        _layout_toolbar(app, max(420, int(app.winfo_width()) - 30))
+    except Exception:
+        pass
 
     state = {"pending": False, "width": None}
     def reflow(event=None):

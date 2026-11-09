@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import function_registry
 import main
 import v10710_features as document_center
+from runtime_reachability import runtime_routes, activate_widget
 
 
 def walk(widget):
@@ -62,6 +63,7 @@ class DocumentCenterReachabilityR7Tests(unittest.TestCase):
         self.assertIn("documents.center", routes)
         self.assertTrue(routes["documents.center"].runtime_smoke)
 
+    @runtime_routes("documents.center")
     def test_document_center_actions_are_visible_and_invokable(self):
         root = tk.Tk()
         root.geometry("1050x760")
@@ -98,8 +100,7 @@ class DocumentCenterReachabilityR7Tests(unittest.TestCase):
             for label, expected in actions:
                 button = button_by_text(win, label)
                 self.assertIsNotNone(button, label)
-                self.assertTrue(button.winfo_ismapped(), label)
-                button.invoke()
+                activate_widget(button, "documents.center", container=win)
                 self.assertEqual(app.calls[-1], expected)
 
             self.assertEqual(
