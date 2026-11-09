@@ -618,7 +618,17 @@ def open_operations_center(app, core):
                 )
                 return
             try:
-                open_order_format(core,paths,dlg,external=external)
+                if kind=="docx" and not external:
+                    # Never present the plain-text DOCX reader as a page proof.
+                    # Prefer matching PDF already generated in this dialog,
+                    # otherwise let the installed Word-compatible app render it.
+                    matching_pdf=generated.get("pdf",())
+                    if matching_pdf:
+                        open_order_format(core,matching_pdf,dlg)
+                    else:
+                        open_order_format(core,paths,dlg,external=True)
+                else:
+                    open_order_format(core,paths,dlg,external=external)
                 if external and len(paths)>1:
                     core.messagebox.showinfo(
                         "Сторінки JPG",
