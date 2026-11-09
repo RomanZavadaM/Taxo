@@ -106,6 +106,17 @@ class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
                 app.update_idletasks()
                 app.update()
 
+                notebooks = [w for w in walk(win) if isinstance(w, ttk.Notebook)]
+                self.assertEqual(len(notebooks), 1)
+                book = notebooks[0]
+                catalog_tab = next(
+                    tab for tab in book.tabs()
+                    if str(book.tab(tab, "text")) == "Каталог наказів"
+                )
+                book.select(catalog_tab)
+                app.update_idletasks()
+                app.update()
+
                 quick = button_by_text(win, "Закріпити ТЗ за водіями")
                 self.assertIsNotNone(quick)
                 self.assertTrue(quick.winfo_ismapped())
@@ -129,9 +140,6 @@ class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
                     self.assertLessEqual(lb.winfo_rooty() + lb.winfo_height(),
                                          dialog.winfo_rooty() + dialog.winfo_height())
 
-                notebooks = [w for w in walk(win) if isinstance(w, ttk.Notebook)]
-                self.assertEqual(len(notebooks), 1)
-                book = notebooks[0]
                 assignment_tab = next(
                     tab for tab in book.tabs()
                     if str(book.tab(tab, "text")) == "Закріплення водіїв"
