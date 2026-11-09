@@ -1,15 +1,24 @@
 # Taxo — стан продукту
 
-**Актуально:** 08.11.2026
+**Актуально:** 09.11.2026
 
 ## Поточний статус
 
-- **Stable / Latest:** Taxo 10.12-r10 / `v10.12-r10` — [GitHub Release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10); exact source `6d0f32bc`, 8 assets, GitHub Latest.
-- **Previous stable / safe rollback:** Taxo 10.10-r5 / `v10.10-r5`.
-- **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
-- **Current integrated candidate:** Taxo **10.13-r8** / exact product `78112c03` — integrated-only owner manual-test candidate; safe bulk assignment + separate work/personnel numbering; exact CI/START/Drive PASS.
-- **Next code revision:** `10.13-r9` only after owner feedback.
+- **Stable / Latest:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4).
+- **Previous stable / rollback:** [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
+- **Older rollback:** [10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5).
+- **Product source:** `677458afa06893b4d221130db72de4045187e0c8`; Windows #1357, Win7 #337, macOS #1262, START #2402 — SUCCESS.
+- **Stable decision:** 09.11.2026, власник повідомив, що загалом працює, і дозволив stable publication.
+- **Next code revision:** 10.14-r5 (ще не починали).
 
+## Що увійшло до 10.14-r4
+
+- 10.13-r1…r10: робочий стіл Експлуатації, СТОІР, масове закріплення водіїв і ТЗ, окрема кадрова й робоча нумерація наказів.
+- 10.14-r1…r4: безпечний друк і перегляд наказів, DOCX/PDF/JPG, узгоджена структура з Word-таблицями, редагування й видалення без заборон за статусом/підписом.
+- Ніяких нових бібліотек, робочі БД і персональні файли до release не включаються.
+- Паперові накази та підписи залишаються під контролем людини, Taxo є допоміжним інструментом.
+
+## Архівна історія до 10.14-r4
 ## Відомі обмеження попередньої stable 10.9-r10
 
 - у вікні програми версія може показуватися як «10.8-r5» (виправлено в тестовій 10.10-r3);
@@ -33,7 +42,7 @@
 - owner manual r10 acceptance — без блокера;
 - stable promotion 07.11.2026 з exact source `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 
-## Integrated 10.13-r8
+## Архівний checkpoint 10.13-r8 (включений у 10.14-r4)
 
 - r7 bulk safety mismatch закрито: 1 driver→many vehicles більше не створюється через bulk selector/helper;
 - valid modes: 1 vehicle→many drivers; equal N vehicles↔N distinct drivers; single pair;
