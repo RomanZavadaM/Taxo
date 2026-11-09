@@ -44,3 +44,17 @@ Tkinter забороняє одночасно `pack` і `grid` в одному p
 Цей тест має запускатися в загальному regression suite на Windows, Windows 7 та macOS. Саме такий тест мав зловити r9 до видачі користувачу.
 
 Stable / Latest не пересувається без окремого рішення власника.
+## Фінальна інтеграція та exact-main перевірка
+
+- PR #283 merged;
+- exact main: `12d6ff9e49b9a9ac2753b29f63828531c66bd1c8`;
+- START #2556 — SUCCESS, **1039 tests / OK**;
+- Windows #1413 — SUCCESS;
+- Windows 7 #389 — SUCCESS;
+- macOS Intel/ARM #1314 — SUCCESS;
+- cold-start regression — PASS;
+- exact-main START artifact #13682040160, 1 760 098 байт;
+- SHA256: `a8304385abe5e120a5802872909eb2bd892adbbf3ef6a1bd678244929e21671b`;
+- Google Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.14-r10_2026-11-09_START.zip`, file ID `13aUUhV1yGawzaqdrujn_emPqyK999cey`.
+
+**Manual acceptance:** очікується на реальній робочій БД. **Stable / Latest залишається v10.14-r4.** Наступна кодова ревізія — **10.15-r1**.
