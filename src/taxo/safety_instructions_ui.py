@@ -452,7 +452,15 @@ def install_instruction_tab(app, core, book):
             "Підписів і позначки «проведено» автоматично немає.\n\n" + str(target),
             parent=tab,
         )
-        paperwork.open_file(target)
+        try:
+            paperwork.open_file(target)
+        except OSError as exc:
+            core.messagebox.showwarning(
+                "Документ збережено",
+                "Файл створено, але його не вдалося відкрити автоматично. "
+                "Відкрийте його в Word-сумісній програмі вручну.\n\n%s\n\n%s" % (target, exc),
+                parent=tab,
+            )
 
     def show_catalog():
         from paper_documents_ui import open_paper_document_catalog
