@@ -131,7 +131,7 @@ class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
                 ]
                 self.assertEqual(len(dialogs), 1)
                 dialog = dialogs[0]
-                listboxes = [w for w in walk(dialog) if isinstance(w, tk.Listbox)]
+                listboxes = [w for w in walk(dialog) if str(w.winfo_class()) == "Listbox"]
                 self.assertEqual(len(listboxes), 2)
                 for lb in listboxes:
                     self.assertTrue(lb.winfo_ismapped())
