@@ -228,7 +228,7 @@ def install_instruction_tab(app, core, book):
     frame = core.ttk.LabelFrame(tab, text="Підготувати матеріал для паперового інструктажу", padding=8)
     frame.grid(row=3, column=0, sticky="nsew")
     frame.columnconfigure(1, weight=1)
-    frame.rowconfigure(8, weight=1)
+    frame.rowconfigure(10, weight=1)
 
     track_var = core.tk.StringVar(value="БДР")
     kind_var = core.tk.StringVar(value=BRIEFING_KINDS["БДР"][0])
@@ -367,15 +367,24 @@ def install_instruction_tab(app, core, book):
     kind_box.bind("<<ComboboxSelected>>", kind_changed)
     template_box.bind("<<ComboboxSelected>>", template_changed)
 
+    controls = core.ttk.Frame(frame)
+    controls.grid(row=8, column=0, columnspan=2, sticky="ew", pady=(4, 4))
+    core.ttk.Button(
+        controls, text="Вибрати всіх", command=lambda: people.selection_set(0, "end")
+    ).pack(side="left", padx=(0, 6))
+    core.ttk.Button(
+        controls, text="Очистити вибір", command=lambda: people.selection_clear(0, "end")
+    ).pack(side="left")
+
     core.ttk.Label(
         frame,
         text="Працівники (Ctrl/Shift для вибору кількох):",
-    ).grid(row=8, column=0, columnspan=2, sticky="w", pady=(5, 2))
+    ).grid(row=9, column=0, columnspan=2, sticky="w", pady=(2, 2))
     people_frame = core.ttk.Frame(frame)
-    people_frame.grid(row=9, column=0, columnspan=2, sticky="nsew")
+    people_frame.grid(row=10, column=0, columnspan=2, sticky="nsew")
     people_frame.columnconfigure(0, weight=1)
     people_frame.rowconfigure(0, weight=1)
-    people = core.tk.Listbox(people_frame, selectmode="extended", height=4, exportselection=False)
+    people = core.tk.Listbox(people_frame, selectmode="extended", height=3, exportselection=False)
     scroll = core.ttk.Scrollbar(people_frame, orient="vertical", command=people.yview)
     people.configure(yscrollcommand=scroll.set)
     people.grid(row=0, column=0, sticky="nsew")
@@ -395,16 +404,7 @@ def install_instruction_tab(app, core, book):
         core.ttk.Label(
             frame, text="Не вдалося прочитати персонал. Перевірте дані перед формуванням.",
             style="Muted.TLabel"
-        ).grid(row=10, column=0, columnspan=2, sticky="w")
-
-    controls = core.ttk.Frame(frame)
-    controls.grid(row=11, column=0, columnspan=2, sticky="ew", pady=(5, 0))
-    core.ttk.Button(
-        controls, text="Вибрати всіх", command=lambda: people.selection_set(0, "end")
-    ).pack(side="left", padx=(0, 6))
-    core.ttk.Button(
-        controls, text="Очистити вибір", command=lambda: people.selection_clear(0, "end")
-    ).pack(side="left")
+        ).grid(row=11, column=0, columnspan=2, sticky="w")
 
     def save_draft_list():
         try:
