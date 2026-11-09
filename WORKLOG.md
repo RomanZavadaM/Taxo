@@ -1,3 +1,19 @@
+## 09.11.2026 — 10.14-r8 integrated: закріплення зберігаються і друк бере актуальні дані
+
+- Owner-test наказу №27 показав порожню таблицю в Preview/DOCX після додавання водіїв/ТЗ.
+- Підтверджена причина: Preview зберігав assignments, прочитані при відкритті, і не перечитував БД перед DOCX/PDF/JPG.
+- PR #280 merged → exact main `98c9f2daea8398c1bf18b64e5f96163c6c02e4cc`.
+- r8: fresh DB read перед кожним форматом; «Оновити зміст»; порожній новий assignment-order веде у вкладку закріплень; existing order показує поточні пари й дає bulk/manage actions.
+- Single/bulk save перевіряє raw stored pairs до commit; `order_assignments` використовує LEFT JOIN, щоб запис не міг мовчки зникнути.
+- Behavioral regression: single+bulk → commit → close DB → reopen → усі пари на місці → ті самі пари в `order_layout`.
+- Stale-preview regression: Preview відкритий без пар → у БД з’являється пара → «Створити DOCX» отримує свіжий список. PASS.
+- Feature Loss route `operations.assignment_existing` став 26-м critical route під strict mapped+onscreen+usable+activation gate.
+- PR-head: Windows #1395, Win7 #371, macOS #1296 — SUCCESS; 1033 tests OK.
+- Exact-main: START #2511, Windows #1396, Win7 #372, macOS #1297 — SUCCESS; 1033 tests OK.
+- START artifact #13677776040, 1 748 707 B; Drive `Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, ID `1ObOoSjHZvMmOzMgkNDULCCnQ0M42B7F3`; SHA256 `e75beea340ea24088a05d90fcb37c7c96edbed7f6c2d41e81a586cf0494e7284`.
+- Старий docs PR #278 (r6 checkpoint) закрито без merge як superseded.
+- Stable лишається v10.14-r4. Manual acceptance r8 pending. Next code revision 10.14-r9.
+
 ## 09.11.2026 — 10.14-r5 integrated: appendix edit lock removed
 
 - Recovery виконано за START_HERE/HANDOFF/private profile/live GitHub; stable v10.14-r4 підтверджено й не змінено.
