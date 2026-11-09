@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """Paper-first preparation of safety briefing lists for the operations center.
 
-No signature storage, no schema changes and no automatic completion status.
-A saved CSV is only a preparation list, not an official instruction journal.
+Taxo prepares editable topics/programs and employee lists. It does not store
+signatures and does not mark a briefing as actually completed. The paper journal
+and real signatures remain the user's source of confirmation.
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 import operations_orders as ops
+import safety_templates as safety_tpl
 
 
 BRIEFING_KINDS = {
@@ -31,7 +33,7 @@ BRIEFING_KINDS = {
 }
 
 PREPARATION_NOTICE = (
-    "ПІДГОТОВЧИЙ СПИСОК. НЕ Є ЖУРНАЛОМ ІНСТРУКТАЖІВ. "
+    "ПІДГОТОВЧИЙ МАТЕРІАЛ. НЕ Є ЖУРНАЛОМ ІНСТРУКТАЖІВ І НЕ ПІДТВЕРДЖУЄ ЙОГО ПРОВЕДЕННЯ. "
     "Паперові записи та особисті підписи оформлює відповідальна особа."
 )
 
@@ -54,7 +56,18 @@ def quarter_caption(year, quarter):
     return "%d квартал %d року" % (int(quarter), int(year))
 
 
-def prepare_list(direction, kind, day_text, topic, people, reason="", people_records=None):
+def prepare_list(
+    direction,
+    kind,
+    day_text,
+    topic,
+    people,
+    reason="",
+    people_records=None,
+    program_text="",
+    template_id="",
+    source_note="",
+):
     direction = str(direction or "").strip()
     if direction not in BRIEFING_KINDS:
         raise ValueError("Виберіть напрям інструктажу")
@@ -99,6 +112,9 @@ def prepare_list(direction, kind, day_text, topic, people, reason="", people_rec
         "day": parsed_date,
         "topic": topic,
         "reason": reason,
+        "program_text": str(program_text or "").strip(),
+        "template_id": str(template_id or "").strip(),
+        "source_note": str(source_note or "").strip(),
         "people": names,
         "people_records": tuple(records),
     }
@@ -125,6 +141,9 @@ def write_preparation_csv(path, prepared):
         writer.writerow(["Дата", prepared["day"].strftime("%d.%m.%Y")])
         writer.writerow(["Тема / програма", prepared["topic"]])
         writer.writerow(["Підстава", prepared["reason"]])
+        writer.writerow(["Шаблон", prepared.get("template_id", "")])
+        writer.writerow(["Нормативний орієнтир", prepared.get("source_note", "")])
+        writer.writerow(["Зміст програми", prepared.get("program_text", "")])
         writer.writerow([])
         records = tuple(prepared.get("people_records") or ())
         if records:
@@ -151,7 +170,7 @@ def _alive(widget):
 
 
 def install_instruction_tab(app, core, book):
-    """A separate visible operations tab; no writes to the operational DB."""
+    """Install the paper-first briefing preparation tab."""
     for tab_id in book.tabs():
         if str(book.tab(tab_id, "text")) == "Інструктажі та журнали":
             return book.nametowidget(tab_id)
@@ -166,11 +185,11 @@ def install_instruction_tab(app, core, book):
     ).grid(row=0, column=0, sticky="w")
     core.ttk.Label(
         tab, text=(
-            "Це підготовка списків для інженера, а не електронний журнал. "
-            "Проведення інструктажу та підписання на папері відбуваються окремо. "
-            "Заповнення цієї форми не означає, що інструктаж проведено."
+            "Taxo дає готові редаговані заготовки програм і списки працівників. "
+            "Це допоміжна підготовка: фактичне проведення та підписи залишаються у паперовому журналі. "
+            "Заготовку потрібно звірити з умовами підприємства, маршрутом, професією та чинними інструкціями."
         ),
-        style="Muted.TLabel", wraplength=860, justify="left",
+        style="Muted.TLabel", wraplength=920, justify="left",
     ).grid(row=1, column=0, sticky="ew", pady=(2, 8))
 
     quarter_box = core.ttk.LabelFrame(tab, text="Планування за кварталами", padding=8)
@@ -198,21 +217,30 @@ def install_instruction_tab(app, core, book):
     core.ttk.Label(
         quarter_box,
         text=(
-            "У цьому першому кроці автоматичного календаря та затверджених програм ще немає. "
-            "Дати й види визначає інженер за правилами підприємства. "
-            "Позапланові заходи не замінюють регулярних."
+            "Квартал тут — робочий календар Taxo, а не автоматично встановлений законом строк. "
+            "Для БДР програми/строки затверджує керівник; сезонні повторні інструктажі передбачають "
+            "перехід до осінньо-зимового та весняно-літнього періодів. Позапланові/цільові заходи "
+            "проводяться за фактичною підставою незалежно від квартального плану."
         ),
-        style="Muted.TLabel", wraplength=840, justify="left",
+        style="Muted.TLabel", wraplength=900, justify="left",
     ).grid(row=1, column=0, columnspan=3, sticky="ew", pady=(6, 0))
 
-    frame = core.ttk.LabelFrame(tab, text="Підготувати список для паперової роботи", padding=8)
+    frame = core.ttk.LabelFrame(tab, text="Підготувати матеріал для паперового інструктажу", padding=8)
     frame.grid(row=3, column=0, sticky="nsew")
     frame.columnconfigure(1, weight=1)
+    frame.rowconfigure(8, weight=1)
+
     track_var = core.tk.StringVar(value="БДР")
     kind_var = core.tk.StringVar(value=BRIEFING_KINDS["БДР"][0])
     date_var = core.tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
     topic_var = core.tk.StringVar(value="")
     reason_var = core.tk.StringVar(value="")
+    template_var = core.tk.StringVar(value="")
+    source_note_var = core.tk.StringVar(value="")
+    program_var = core.tk.StringVar(value="")
+    selected_template_id = core.tk.StringVar(value="")
+    template_rows = []
+
     core.ttk.Label(frame, text="Напрям").grid(row=0, column=0, sticky="w", pady=3)
     track_box = core.ttk.Combobox(
         frame, textvariable=track_var, values=tuple(BRIEFING_KINDS), state="readonly"
@@ -225,38 +253,134 @@ def install_instruction_tab(app, core, book):
     )
     kind_box.grid(row=1, column=1, sticky="ew", pady=3)
 
+    core.ttk.Label(frame, text="Дата").grid(row=2, column=0, sticky="w", padx=(0, 8), pady=3)
+    core.ttk.Entry(frame, textvariable=date_var).grid(row=2, column=1, sticky="ew", pady=3)
+
+    core.ttk.Label(frame, text="Типова заготовка").grid(row=3, column=0, sticky="w", padx=(0, 8), pady=3)
+    template_box = core.ttk.Combobox(
+        frame, textvariable=template_var, values=(), state="readonly"
+    )
+    template_box.grid(row=3, column=1, sticky="ew", pady=3)
+
+    core.ttk.Label(frame, text="Тема / програма").grid(row=4, column=0, sticky="w", padx=(0, 8), pady=3)
+    core.ttk.Entry(frame, textvariable=topic_var).grid(row=4, column=1, sticky="ew", pady=3)
+
+    core.ttk.Label(frame, text="Підстава (для позапланового)").grid(
+        row=5, column=0, sticky="w", padx=(0, 8), pady=3
+    )
+    core.ttk.Entry(frame, textvariable=reason_var).grid(row=5, column=1, sticky="ew", pady=3)
+
+    source_label = core.ttk.Label(
+        frame, textvariable=source_note_var, style="Muted.TLabel",
+        wraplength=820, justify="left",
+    )
+    source_label.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(3, 3))
+
+    program_bar = core.ttk.Frame(frame)
+    program_bar.grid(row=7, column=0, columnspan=2, sticky="ew", pady=(2, 5))
+    core.ttk.Label(
+        program_bar,
+        text="Зміст заготовки можна відкрити, змінити, скоротити або доповнити перед збереженням.",
+        style="Muted.TLabel",
+    ).pack(side="left")
+
+    def edit_program():
+        editor = core.tk.Toplevel(tab)
+        editor.title("Текст програми інструктажу")
+        try:
+            core.fit_window_to_screen(editor, 900, 650, 700, 480)
+            core.configure_toplevel(editor, title=editor.title(), minsize=(700, 480))
+        except Exception:
+            pass
+        body = core.ttk.Frame(editor, padding=12)
+        body.pack(fill="both", expand=True)
+        body.rowconfigure(1, weight=1)
+        body.columnconfigure(0, weight=1)
+        core.ttk.Label(
+            body,
+            text=topic_var.get() or "Текст програми",
+            style="Subtitle.TLabel",
+        ).grid(row=0, column=0, sticky="w", pady=(0, 6))
+        text_frame = core.ttk.Frame(body)
+        text_frame.grid(row=1, column=0, sticky="nsew")
+        text_frame.rowconfigure(0, weight=1)
+        text_frame.columnconfigure(0, weight=1)
+        editor_text = core.tk.Text(text_frame, wrap="word")
+        ybar = core.ttk.Scrollbar(text_frame, orient="vertical", command=editor_text.yview)
+        editor_text.configure(yscrollcommand=ybar.set)
+        editor_text.grid(row=0, column=0, sticky="nsew")
+        ybar.grid(row=0, column=1, sticky="ns")
+        editor_text.insert("1.0", program_var.get())
+
+        def accept():
+            program_var.set(editor_text.get("1.0", "end-1c").strip())
+            editor.destroy()
+
+        actions = core.ttk.Frame(body)
+        actions.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        core.ttk.Button(actions, text="Скасувати", command=editor.destroy).pack(side="right")
+        core.ttk.Button(
+            actions, text="Зберегти текст", style="Accent.TButton", command=accept
+        ).pack(side="right", padx=(0, 6))
+        editor.transient(tab.winfo_toplevel())
+
+    edit_button = core.ttk.Button(program_bar, text="Текст програми…", command=edit_program)
+    edit_button.pack(side="right")
+
+    def apply_template_by_title(title):
+        row = next((item for item in template_rows if item["title"] == title), None)
+        if not row:
+            selected_template_id.set("")
+            source_note_var.set("")
+            return
+        selected_template_id.set(row["id"])
+        topic_var.set(row["topic"])
+        program_var.set(row["program"])
+        source_note_var.set(row["source_note"])
+
+    def refresh_templates(select_first=True):
+        template_rows[:] = list(safety_tpl.templates_for(track_var.get(), kind_var.get()))
+        titles = [row["title"] for row in template_rows]
+        template_box.configure(values=titles)
+        if titles and select_first:
+            template_var.set(titles[0])
+            apply_template_by_title(titles[0])
+        elif not titles:
+            template_var.set("")
+            selected_template_id.set("")
+            source_note_var.set("")
+            program_var.set("")
+
     def direction_changed(_event=None):
         kinds = BRIEFING_KINDS[track_var.get()]
         kind_box.configure(values=kinds)
         kind_var.set(kinds[0])
+        refresh_templates(select_first=True)
+
+    def kind_changed(_event=None):
+        refresh_templates(select_first=True)
+
+    def template_changed(_event=None):
+        apply_template_by_title(template_var.get())
 
     track_box.bind("<<ComboboxSelected>>", direction_changed)
-    for row_index, title, var in (
-        (2, "Дата", date_var),
-        (3, "Тема / програма", topic_var),
-        (4, "Підстава (для позапланового)", reason_var),
-    ):
-        core.ttk.Label(frame, text=title).grid(
-            row=row_index, column=0, sticky="w", padx=(0, 8), pady=3
-        )
-        core.ttk.Entry(frame, textvariable=var).grid(
-            row=row_index, column=1, sticky="ew", pady=3
-        )
+    kind_box.bind("<<ComboboxSelected>>", kind_changed)
+    template_box.bind("<<ComboboxSelected>>", template_changed)
 
     core.ttk.Label(
         frame,
         text="Працівники (Ctrl/Shift для вибору кількох):",
-    ).grid(row=5, column=0, columnspan=2, sticky="w", pady=(6, 2))
+    ).grid(row=8, column=0, columnspan=2, sticky="w", pady=(5, 2))
     people_frame = core.ttk.Frame(frame)
-    people_frame.grid(row=6, column=0, columnspan=2, sticky="nsew")
+    people_frame.grid(row=9, column=0, columnspan=2, sticky="nsew")
     people_frame.columnconfigure(0, weight=1)
-    frame.rowconfigure(6, weight=1)
-    people = core.tk.Listbox(people_frame, selectmode="extended", height=5, exportselection=False)
+    people_frame.rowconfigure(0, weight=1)
+    people = core.tk.Listbox(people_frame, selectmode="extended", height=4, exportselection=False)
     scroll = core.ttk.Scrollbar(people_frame, orient="vertical", command=people.yview)
     people.configure(yscrollcommand=scroll.set)
     people.grid(row=0, column=0, sticky="nsew")
     scroll.grid(row=0, column=1, sticky="ns")
-    people_frame.rowconfigure(0, weight=1)
+
     choice_rows = []
     try:
         con = core.db()
@@ -271,10 +395,10 @@ def install_instruction_tab(app, core, book):
         core.ttk.Label(
             frame, text="Не вдалося прочитати персонал. Перевірте дані перед формуванням.",
             style="Muted.TLabel"
-        ).grid(row=7, column=0, columnspan=2, sticky="w")
+        ).grid(row=10, column=0, columnspan=2, sticky="w")
 
     controls = core.ttk.Frame(frame)
-    controls.grid(row=8, column=0, columnspan=2, sticky="ew", pady=(5, 0))
+    controls.grid(row=11, column=0, columnspan=2, sticky="ew", pady=(5, 0))
     core.ttk.Button(
         controls, text="Вибрати всіх", command=lambda: people.selection_set(0, "end")
     ).pack(side="left", padx=(0, 6))
@@ -297,12 +421,15 @@ def install_instruction_tab(app, core, book):
                 ),
                 reason_var.get(),
                 people_records=selected_records,
+                program_text=program_var.get(),
+                template_id=selected_template_id.get(),
+                source_note=source_note_var.get(),
             )
         except ValueError as exc:
             core.messagebox.showerror("Підготовка інструктажу", str(exc), parent=tab)
             return
         target = core.filedialog.asksaveasfilename(
-            parent=tab, title="Зберегти підготовчий список",
+            parent=tab, title="Зберегти підготовчий матеріал",
             defaultextension=".csv", filetypes=[("Таблиця CSV", "*.csv")],
             initialfile=preparation_filename(prepared)
         )
@@ -316,13 +443,22 @@ def install_instruction_tab(app, core, book):
             )
             return
         core.messagebox.showinfo(
-            "Підготовчий список",
-            "Список збережено. Це не журнал і не підтвердження проведення інструктажу.",
+            "Підготовчий матеріал",
+            "Збережено тему, редагований текст програми та список працівників. "
+            "Це не журнал і не підтвердження проведення інструктажу.",
             parent=tab
         )
 
     core.ttk.Button(
-        controls, text="Зберегти підготовчий список…",
+        controls, text="Зберегти підготовчий матеріал…",
         style="Accent.TButton", command=save_draft_list
     ).pack(side="right")
+
+    # Stable hooks for regression/feature-loss checks.
+    tab._taxo_briefing_template_box = template_box
+    tab._taxo_briefing_program_var = program_var
+    tab._taxo_briefing_template_id = selected_template_id
+    tab._taxo_briefing_edit_program_button = edit_button
+
+    refresh_templates(select_first=True)
     return tab
