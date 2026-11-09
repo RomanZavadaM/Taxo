@@ -359,22 +359,11 @@ def open_operations_center(app, core):
         core.ttk.Button(bar,text="Зберегти" if existing else "Створити",style="Accent.TButton",command=save).pack(side="right",padx=(0,6)); dialog.transient(win)
 
     def order_mutability_message(row):
-        if row is None:
-            return "Наказ не вибрано."
-        if str(row["status"] or "") == ops.ORDER_CANCELLED:
-            return "Скасований наказ зберігається в історії та не редагується. Оформіть нову чернетку."
-        if str(row["status"] or "") == ops.ORDER_APPROVED:
-            return "Наказ уже діє в Taxo і є незмінним. Для зміни оформіть новий наказ."
-        if int(row["paper_original_signed"] or 0):
-            return "Паперовий оригінал позначено як підписаний. Для зміни оформіть новий наказ."
-        return ""
+        # Status and paper signature are information, not edit restrictions.
+        return "" if row is not None else "Наказ не вибрано."
 
     def require_mutable_order(row, title="Накази"):
-        message = order_mutability_message(row)
-        if message:
-            core.messagebox.showinfo(title, message, parent=win)
-            return False
-        return True
+        return row is not None
 
     def new_order():
         book.select(maintenance_tab)
@@ -398,33 +387,20 @@ def open_operations_center(app, core):
         row=selected_order()
         if row is None:
             return
-        if int(row["paper_original_signed"] or 0):
-            core.messagebox.showinfo(
-                "Паперовий оригінал",
-                "Цей наказ уже позначено як підписаний. Позначка незворотна; зміни оформлюються новим наказом.",
-                parent=win,
-            )
-            return
-        if str(row["status"] or "") == ops.ORDER_CANCELLED:
-            core.messagebox.showinfo(
-                "Паперовий оригінал",
-                "Скасований наказ не можна позначити як підписаний.",
-                parent=win,
-            )
-            return
+        signed=not bool(int(row["paper_original_signed"] or 0))
         if not core.messagebox.askyesno(
-            "Підписаний паперовий оригінал?",
-            "Підтвердити, що паперовий оригінал цього наказу фактично підписано?\n\n"
-            "Після цього Taxo не дозволятиме зняти позначку або редагувати цей запис. "
-            "Виправлення оформлюються новим наказом.",
+            "Позначка про паперовий підпис",
+            ("Позначити цей наказ як підписаний на папері?"
+             if signed else "Зняти позначку про паперовий підпис?") +
+            "\\n\\nЦе лише допоміжна позначка Taxo; паперовий примірник контролює користувач.",
             parent=win,
         ):
             return
         con2=core.db()
         try:
             ops.set_paper_original_signed(
-                con2,row["id"],True,
-                history_note="Паперовий оригінал позначено як підписаний через UI"
+                con2,row["id"],signed,
+                history_note="Змінено позначку паперового підпису через UI"
             )
             con2.commit()
         except Exception as exc:
@@ -440,11 +416,6 @@ def open_operations_center(app, core):
         if row["status"]==ops.ORDER_APPROVED:
             core.messagebox.showinfo(
                 "Накази","Наказ уже діє в Taxo.",parent=win
-            )
-            return
-        if row["status"]==ops.ORDER_CANCELLED:
-            core.messagebox.showinfo(
-                "Накази","Скасований наказ не можна ввести в дію повторно. Створіть новий наказ.",parent=win
             )
             return
         if not core.messagebox.askyesno(
@@ -468,23 +439,10 @@ def open_operations_center(app, core):
         row=selected_order()
         if row is None:
             return
-        if row["status"] != ops.ORDER_DRAFT:
-            core.messagebox.showinfo(
-                "Скасувати чернетку",
-                "Тут можна скасувати тільки чернетку. Чинний наказ не змінюйте заднім числом — оформіть новий наказ про зміну.",
-                parent=win,
-            )
-            return
-        if int(row["paper_original_signed"] or 0):
-            core.messagebox.showinfo(
-                "Скасувати чернетку",
-                "Паперовий оригінал уже позначено як підписаний. Такий запис не змінюється; оформіть новий наказ.",
-                parent=win,
-            )
-            return
         if not core.messagebox.askyesno(
-            "Скасувати чернетку?",
-            "Чернетка залишиться в історії зі станом «Скасовано». Продовжити?",
+            "Скасувати наказ?",
+            "Позначити наказ №%s як скасований? Це не видаляє файл чи паперовий документ.\\n"
+            "Наказ можна буде знову відредагувати або ввести в дію." % row["order_no"],
             parent=win,
         ):
             return
@@ -496,6 +454,31 @@ def open_operations_center(app, core):
         finally:
             con2.close()
         refresh_orders(row["id"])
+
+    def delete_selected_order():
+        row=selected_order()
+        if row is None:
+            return
+        if not core.messagebox.askyesno(
+            "Видалити наказ?",
+            "Видалити наказ №%s від %s із робочого реєстру Taxo?\\n\\n"
+            "Пов'язані з ним закріплення та учасники теж будуть вилучені з обліку Taxo. "
+            "Паперові примірники й уже створені DOCX/PDF/JPG залишаться на диску. "
+            "Відомості про видалення зберігатимуться в журналі." %
+            (row["order_no"],ops.display_day(row["order_date"])),
+            parent=win,
+        ):
+            return
+        from order_edit_actions import delete_order
+        con2=core.db()
+        try:
+            delete_order(con2,row["id"])
+            con2.commit()
+        except Exception as exc:
+            con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
+        finally:
+            con2.close()
+        refresh_orders()
 
     def show_history():
         row=selected_order()
@@ -681,7 +664,7 @@ def open_operations_center(app, core):
         ).pack(side="right",padx=(0,6))
         if not order_mutability_message(row):
             core.ttk.Button(
-                bar,text="Редагувати чернетку",
+                bar,text="Редагувати наказ",
                 command=lambda:(dlg.destroy(),order_dialog(row))
             ).pack(side="left")
         dlg.transient(win)
@@ -695,12 +678,13 @@ def open_operations_center(app, core):
         ("Новий наказ…", new_order, "Accent.TButton"),
         ("Переглянути / друк", preview_order, "Accent.TButton"),
         ("Нумерація наказів…", open_numbering_settings, None),
-        ("Редагувати чернетку", edit_order, None),
+        ("Редагувати наказ", edit_order, None),
         ("Ввести в дію в Taxo", approve_selected, None),
         ("Історія…", show_history, None),
-        ("Скасувати чернетку", cancel_draft, None),
+        ("Скасувати наказ", cancel_draft, None),
+        ("Видалити наказ", delete_selected_order, None),
         ("Сформувати PDF", export_selected, None),
-        ("Позначити оригінал підписаним", mark_paper_signed, None),
+        ("Підпис на папері: так / ні", mark_paper_signed, None),
     )
     for col in range(3):
         order_action_bar.columnconfigure(col, weight=1)

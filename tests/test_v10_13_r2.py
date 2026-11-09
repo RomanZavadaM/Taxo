@@ -192,12 +192,13 @@ class OperationsStoirUsabilityR2Tests(unittest.TestCase):
                 app.update()
                 labels = (
                     "Новий наказ…",
-                    "Редагувати чернетку",
+                    "Редагувати наказ",
                     "Ввести в дію в Taxo",
                     "Історія…",
-                    "Скасувати чернетку",
+                    "Скасувати наказ",
+                    "Видалити наказ",
                     "Сформувати PDF",
-                    "Позначити оригінал підписаним",
+                    "Підпис на папері: так / ні",
                 )
                 buttons = [button_by_text(win, label) for label in labels]
                 self.assertTrue(all(button is not None for button in buttons))

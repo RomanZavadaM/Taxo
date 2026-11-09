@@ -81,36 +81,37 @@ class OrdersImmutabilityR8Tests(unittest.TestCase):
         cleared = update_order(self.con, oid, control_employee_id=None)
         self.assertIsNone(cleared["control_employee_id"])
 
-    def test_approved_order_is_immutable(self):
+    def test_approved_order_can_be_corrected(self):
         oid = self.order("2")
         approve_order(self.con, oid)
-        with self.assertRaisesRegex(ValueError, "незмінний"):
-            update_order(self.con, oid, subject="Не можна")
+        edited = update_order(self.con, oid, subject="Виправлений текст")
+        self.assertEqual(edited["subject"], "Виправлений текст")
+        self.assertEqual(edited["status"], ops.ORDER_APPROVED)
 
-    def test_signed_order_is_immutable_and_signature_cannot_be_removed(self):
+    def test_signed_order_can_be_corrected_and_mark_unset(self):
         oid = self.order("3")
         set_paper_original_signed(self.con, oid, True, signed_at="2026-10-01T10:00:00")
-        with self.assertRaisesRegex(ValueError, "незмінний"):
-            update_order(self.con, oid, body_text="Не можна")
-        with self.assertRaisesRegex(ValueError, "не можна знімати"):
-            set_paper_original_signed(self.con, oid, False)
+        edited = update_order(self.con, oid, body_text="Виправлений текст")
+        self.assertEqual(edited["body_text"], "Виправлений текст")
+        result = set_paper_original_signed(self.con, oid, False)
+        self.assertEqual(result["paper_original_signed"], 0)
 
-    def test_cancelled_order_cannot_be_reapproved(self):
+    def test_cancelled_order_can_be_reapproved(self):
         oid = self.order("4")
         cancel_order(self.con, oid)
-        with self.assertRaisesRegex(ValueError, "не можна повторно затвердити"):
-            approve_order(self.con, oid)
+        updated = approve_order(self.con, oid)
+        self.assertEqual(updated["status"], ops.ORDER_APPROVED)
 
-    def test_assignments_under_approved_order_cannot_be_changed(self):
+    def test_assignments_under_approved_order_can_be_changed(self):
         oid = self.assignment_order("5")
         aid = add_vehicle_assignment(self.con, oid, 10, 1, valid_from="2026-10-01")
         approve_order(self.con, oid)
-        with self.assertRaisesRegex(ValueError, "незмінний"):
-            update_vehicle_assignment(self.con, aid, vehicle_id=20)
-        with self.assertRaisesRegex(ValueError, "незмінний"):
-            delete_vehicle_assignment(self.con, aid)
-        with self.assertRaisesRegex(ValueError, "незмінний"):
-            add_vehicle_assignment(self.con, oid, 20, 1, valid_from="2026-10-10")
+        updated = update_vehicle_assignment(self.con, aid, vehicle_id=20)
+        self.assertIsNotNone(updated)
+        delete_vehicle_assignment(self.con, aid)
+        self.assertIsNone(ops.get_vehicle_assignment(self.con, aid))
+        newer = add_vehicle_assignment(self.con, oid, 20, 1, valid_from="2026-10-10")
+        self.assertIsNotNone(newer)
 
     def test_new_approved_assignment_ends_prior_without_rewriting_old_order(self):
         first = self.assignment_order("6")

@@ -191,13 +191,14 @@ class OperationsStoirUsabilityR1Tests(unittest.TestCase):
             "Що потрібно оформити?",
             "Новий наказ…",
             "Ввести в дію в Taxo",
-            "Позначити оригінал підписаним",
+            "Підпис на папері: так / ні",
             "Історія…",
-            "Скасувати чернетку",
+            "Скасувати наказ",
+            "Видалити наказ",
             "require_mutable_order",
         ):
             self.assertIn(marker, text)
-        self.assertIn("Тут можна скасувати тільки чернетку", text)
+        self.assertIn("def delete_selected_order():", text)
 
     def test_operations_document_desk_links_stoir(self):
         self.assertIn(

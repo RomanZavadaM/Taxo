@@ -137,15 +137,15 @@ class StructuredOrderEntitiesR6Tests(unittest.TestCase):
                 self.con,oid,ops.ORDER_ENTITY_VEHICLE,20,role="ТЗ"
             )
 
-    def test_approved_order_entities_are_immutable(self):
+    def test_approved_order_entities_can_be_corrected(self):
         oid=self._order()
         ops.add_order_entity(self.con,oid,ops.ORDER_ENTITY_EMPLOYEE,1,role="Працівник")
         ops.approve_order(self.con,oid)
-        with self.assertRaisesRegex(ValueError,"лише в чернетці"):
-            ops.add_order_entity(self.con,oid,ops.ORDER_ENTITY_EMPLOYEE,2,role="Працівник")
+        new_id=ops.add_order_entity(self.con,oid,ops.ORDER_ENTITY_EMPLOYEE,2,role="Працівник")
+        self.assertIsNotNone(new_id)
         row=ops.list_order_entities(self.con,oid)[0]
-        with self.assertRaisesRegex(ValueError,"лише в чернетці"):
-            ops.delete_order_entity(self.con,row["id"])
+        ops.delete_order_entity(self.con,row["id"])
+        self.assertEqual(len(ops.list_order_entities(self.con,oid)),1)
 
     def test_assignment_order_uses_specialized_assignment_model(self):
         oid=ops.create_order(

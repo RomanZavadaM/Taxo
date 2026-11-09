@@ -475,8 +475,6 @@ def _require_order_entity_draft(con, order_id):
         raise ValueError("Наказ не знайдено.")
     if str(order["order_type"]) == TYPE_VEHICLE_ASSIGNMENT:
         raise ValueError("Для наказу про закріплення використовуйте спеціальну вкладку «Закріплення водіїв».")
-    if str(order["status"]) != ORDER_DRAFT or int(order["paper_original_signed"] or 0):
-        raise ValueError("Учасників і ТЗ можна змінювати лише в чернетці наказу.")
     return order
 
 
