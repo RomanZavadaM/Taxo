@@ -65,11 +65,3 @@ def delete_order(con, order_id, *, note="Видалено користуваче
     )
     return before
 
-
-def restore_order_from_snapshot(con, snapshot):
-    """Restore a deleted order including its own links, for mistake recovery.
-
-    This function is not called automatically. The operator must choose it
-    explicitly in a future history/recovery interface.
-    """
-    raise NotImplementedError("Відновлення робіть із резервної копії Taxo.")
