@@ -199,7 +199,10 @@ class LivePreviewSyncR9Tests(unittest.TestCase):
                     widget for widget in walk(preview_dialog)
                     if str(widget.winfo_class()) == "Text"
                 )
-                assert_widget_reachable(viewer, route_id, container=preview_dialog)
+                assert_widget_reachable(preview_dialog, route_id)
+                self.assertTrue(viewer.winfo_ismapped())
+                self.assertGreater(viewer.winfo_width(), 1)
+                self.assertGreater(viewer.winfo_height(), 1)
                 self.assertIn("закріплення ще не додані", viewer.get("1.0", "end"))
 
                 notebooks = [widget for widget in walk(win) if isinstance(widget, ttk.Notebook)]
