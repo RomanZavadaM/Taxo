@@ -3,6 +3,24 @@
 **Дата:** 09.11.2026
 **Repository:** RomanZavadaM/Taxo
 
+## Integrated candidate: 10.14-r8 — збереження закріплень і актуальний друк
+
+- **Stable / Latest лишається v10.14-r4**; release/tag не змінювався.
+- **Product integrated:** PR #280 → exact main `98c9f2daea8398c1bf18b64e5f96163c6c02e4cc`; `main.py`, `VERSION.txt`, START = 10.14-r8.
+- Owner-test наказу №27 показав: після додавання водіїв/ТЗ вже відкрите вікно Preview могло друкувати старий порожній список.
+- r8 перед кожним DOCX/PDF/JPG перечитує наказ і закріплення з актуальної БД; Preview має «Оновити зміст».
+- Single/bulk save перевіряє фактичну наявність вибраних пар до commit; behavioral regression закриває БД, відкриває її знову й перевіряє всі пари.
+- Існуючий наказ про закріплення тепер показує поточні пари й дає прямий доступ до «Додати багато…» / «Керувати закріпленнями».
+- Порожній новий наказ переходить у вкладку закріплень, а не одразу в порожній друк.
+- `order_assignments()` більше не приховує raw запис через INNER JOIN.
+- **Feature Loss:** r7 strict UI contract доповнено висновком r8 — для state-changing критичних маршрутів одного reachability недостатньо; потрібен outcome/persistence regression.
+- **PR-head:** Windows #1395, Win7 #371, macOS #1296 — SUCCESS; Windows 1033 tests OK.
+- **Exact-main:** START #2511, Windows #1396, Win7 #372, macOS #1297 — SUCCESS; START 1033 tests OK.
+- **Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, file `1ObOoSjHZvMmOzMgkNDULCCnQ0M42B7F3`, 1 748 707 байт; SHA256 `e75beea340ea24088a05d90fcb37c7c96edbed7f6c2d41e81a586cf0494e7284`.
+- **Manual operational acceptance r8:** PENDING — реальна БД, single + bulk → reopen → `закріплень: N` → DOCX/PDF/JPG з усіма парами.
+- **Next code revision:** 10.14-r9.
+
+
 ## Integrated candidate: 10.14-r5 — експлуатаційна стабілізація
 
 - **Stable / Latest лишається v10.14-r4**; release/tag r4 не змінювався.
