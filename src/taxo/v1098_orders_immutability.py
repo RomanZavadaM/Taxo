@@ -56,10 +56,8 @@ def _require_order_mutable(con, order_id):
     row = _row(con, order_id)
     if row is None:
         raise ValueError("Наказ не знайдено.")
-    if _order_locked(row):
-        raise ValueError("Затверджений або підписаний наказ незмінний. Оформіть новий наказ про зміну.")
-    if str(row["status"] or "") == ops.ORDER_CANCELLED:
-        raise ValueError("Скасований наказ незмінний. Оформіть новий наказ.")
+    # Taxo is a paperwork helper: a status or paper signature does not prevent
+    # correcting the stored document. The operator controls paper originals.
     return row
 
 
@@ -107,12 +105,6 @@ def set_paper_original_signed(con, order_id, signed=True, *, signed_at=None, his
     row = _row(con, order_id)
     if row is None:
         raise ValueError("Наказ не знайдено.")
-    if int(row["paper_original_signed"] or 0):
-        if signed:
-            return row
-        raise ValueError("Позначку про підписаний паперовий оригінал не можна знімати. Оформіть новий наказ про зміну.")
-    if str(row["status"] or "") == ops.ORDER_CANCELLED:
-        raise ValueError("Скасований наказ не можна позначати як підписаний.")
     return _ORIGINAL_SET_PAPER_SIGNED(
         con, order_id, signed=signed, signed_at=signed_at, history_note=history_note
     )
