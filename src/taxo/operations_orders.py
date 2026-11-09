@@ -786,6 +786,36 @@ def add_vehicle_assignments_bulk(con, order_id, pairs, *, valid_from, valid_unti
     return created
 
 
+def vehicle_assignment_pairs(con, order_id):
+    """Return raw stored vehicle/employee pairs without JOIN filtering.
+
+    This verification helper deliberately does not run schema migration:
+    callers use it inside an active save transaction, so validation must not
+    trigger any DDL/executescript side effect before the caller commits.
+    """
+    rows = con.execute(
+        """SELECT vehicle_id,employee_id
+             FROM vehicle_driver_assignments
+            WHERE order_id=?
+            ORDER BY sequence_no,id""",
+        (int(order_id),),
+    ).fetchall()
+    return [(int(row["vehicle_id"]), int(row["employee_id"])) for row in rows]
+
+
+def verify_vehicle_assignment_pairs(con, order_id, expected_pairs):
+    """Fail the transaction if a UI save did not really persist its selected pairs."""
+    expected = {(int(vehicle_id), int(employee_id)) for vehicle_id, employee_id in expected_pairs}
+    stored = set(vehicle_assignment_pairs(con, order_id))
+    missing = sorted(expected - stored)
+    if missing:
+        raise RuntimeError(
+            "Не вдалося зберегти вибрані пари ТЗ/водій у наказі №%s: %s"
+            % (int(order_id), missing)
+        )
+    return len(stored)
+
+
 def create_vehicle_assignment_order(
         con, *, order_no="", order_date, place="", subject="", preamble="", body_text="",
         control_employee_id=None, note="", initial_vehicle_id=None,
@@ -991,12 +1021,20 @@ def delete_vehicle_assignment(con, assignment_id, *, history_note=""):
 
 def order_assignments(con, order_id):
     ensure_schema_on_connection(con)
+    # LEFT JOIN is deliberate: a legacy/orphaned link must stay visible instead
+    # of silently disappearing from the order and its printed document.
     return con.execute(
-        """SELECT a.*,v.name AS vehicle_name,v.plate,v.make_model,
-                  e.last_name,e.first_name,e.middle_name,e.position
+        """SELECT a.*,
+                  COALESCE(v.name,'ТЗ Taxo #'||a.vehicle_id) AS vehicle_name,
+                  COALESCE(v.plate,'') AS plate,
+                  COALESCE(v.make_model,'') AS make_model,
+                  COALESCE(e.last_name,'Працівник Taxo #'||a.employee_id) AS last_name,
+                  COALESCE(e.first_name,'') AS first_name,
+                  COALESCE(e.middle_name,'') AS middle_name,
+                  COALESCE(e.position,'') AS position
              FROM vehicle_driver_assignments a
-             JOIN vehicles v ON v.id=a.vehicle_id
-             JOIN employees e ON e.id=a.employee_id
+             LEFT JOIN vehicles v ON v.id=a.vehicle_id
+             LEFT JOIN employees e ON e.id=a.employee_id
             WHERE a.order_id=?
             ORDER BY a.sequence_no,a.id""", (int(order_id),)
     ).fetchall()

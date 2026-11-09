@@ -281,6 +281,76 @@ def open_operations_center(app, core):
                       "Якщо кількість різна з обох боків — Taxo попросить уточнити. Можна лишити обидва списки порожніми."),
                 style="Muted.TLabel",wraplength=700,justify="left",
             ).grid(row=2,column=0,columnspan=2,sticky="w",pady=(2,0))
+        elif initial_type==ops.TYPE_VEHICLE_ASSIGNMENT:
+            con_existing=core.db()
+            try:
+                existing_assignments=ops.order_assignments(con_existing,existing["id"])
+            finally:
+                con_existing.close()
+            assignment_box=core.ttk.LabelFrame(frm,text="Водії і ТЗ цього наказу",padding=8)
+            assignment_box.grid(row=7,column=0,columnspan=2,sticky="ew",pady=(8,2))
+            assignment_box.columnconfigure(0,weight=1)
+            core.ttk.Label(
+                assignment_box,
+                text="Поточні закріплення: %d" % len(existing_assignments),
+                style="Subtitle.TLabel",
+            ).grid(row=0,column=0,sticky="w",pady=(0,4))
+            existing_tree=core.ttk.Treeview(
+                assignment_box,columns=("vehicle","plate","driver"),show="headings",
+                height=max(1,min(4,len(existing_assignments))),selectmode="browse",
+            )
+            for key,label,width in (
+                ("vehicle","Транспортний засіб",300),
+                ("plate","Держ. номер",130),
+                ("driver","Водій",320),
+            ):
+                existing_tree.heading(key,text=label)
+                existing_tree.column(key,width=width,anchor="w")
+            existing_tree.grid(row=1,column=0,sticky="ew",pady=(0,6))
+            for item in existing_assignments:
+                driver=" ".join(
+                    str(item[k] or "").strip()
+                    for k in ("last_name","first_name","middle_name")
+                    if str(item[k] or "").strip()
+                )
+                existing_tree.insert(
+                    "","end",values=(
+                        item["make_model"] or item["vehicle_name"],
+                        item["plate"] or "—",
+                        driver or "—",
+                    )
+                )
+            existing_buttons=core.ttk.Frame(assignment_box)
+            existing_buttons.grid(row=2,column=0,sticky="ew")
+            def open_existing_assignment_manager(open_bulk=False):
+                dialog.destroy()
+                book.select(assignments_tab)
+                refresh_assignments()
+                if open_bulk:
+                    try:
+                        win.after_idle(add_assignments_bulk)
+                    except Exception:
+                        add_assignments_bulk()
+            bulk_button=core.ttk.Button(
+                existing_buttons,text="Додати багато…",style="Accent.TButton",
+                command=lambda:open_existing_assignment_manager(True),
+            )
+            bulk_button.pack(side="left")
+            manage_button=core.ttk.Button(
+                existing_buttons,text="Керувати закріпленнями",
+                command=lambda:open_existing_assignment_manager(False),
+            )
+            manage_button.pack(side="left",padx=6)
+            core.ttk.Label(
+                assignment_box,
+                text=("Закріплення є частиною цього наказу. Тут видно поточний перелік; "
+                      "для додавання кількох водіїв/ТЗ натисніть «Додати багато…», "
+                      "для редагування або видалення окремих пар — «Керувати закріпленнями»."),
+                style="Muted.TLabel",wraplength=700,justify="left",
+            ).grid(row=3,column=0,sticky="w",pady=(6,0))
+            dialog._taxo_existing_assignment_tree=existing_tree
+            dialog._taxo_existing_assignment_bulk_button=bulk_button
+            dialog._taxo_existing_assignment_manage_button=manage_button
 
         def show_assignment_box(order_type):
             if assignment_box is None:
@@ -293,7 +363,7 @@ def open_operations_center(app, core):
         show_assignment_box(initial_type)
         if existing and int(existing["paper_original_signed"] or 0):
             core.ttk.Label(frm,text="Увага: паперовий оригінал позначено як підписаний. Після змін звірте його і, за потреби, передрукуйте.",
-                           style="Muted.TLabel",wraplength=620,justify="left").grid(row=9,column=0,columnspan=2,sticky="w",pady=(4,2))
+                           style="Muted.TLabel",wraplength=620,justify="left").grid(row=10,column=0,columnspan=2,sticky="w",pady=(4,2))
         def sync_type(_event=None):
             if existing: return
             key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
@@ -347,6 +417,8 @@ def open_operations_center(app, core):
                         control_employee_id=emp_by_label.get(control_var.get()),
                         initial_pairs=initial_pairs,order_series=series_key,
                     )
+                    if initial_pairs:
+                        ops.verify_vehicle_assignment_pairs(con3,oid,initial_pairs)
                 else:
                     oid=ops.create_order(con3,order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
                                          subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
@@ -356,11 +428,15 @@ def open_operations_center(app, core):
                 con3.rollback(); core.messagebox.showerror("Наказ",str(exc),parent=dialog); return
             finally: con3.close()
             dialog.destroy(); refresh_orders(oid)
-            book.select(orders_tab)
             created_order=order_cache.get(int(oid))
-            if created_order is not None:
-                preview_order(created_order)
-        bar=core.ttk.Frame(frm); bar.grid(row=10,column=0,columnspan=2,sticky="ew",pady=(10,0))
+            if order_type==ops.TYPE_VEHICLE_ASSIGNMENT and not initial_pairs:
+                book.select(assignments_tab)
+                refresh_assignments()
+            else:
+                book.select(orders_tab)
+                if created_order is not None:
+                    preview_order(created_order)
+        bar=core.ttk.Frame(frm); bar.grid(row=11,column=0,columnspan=2,sticky="ew",pady=(10,0))
         core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")
         core.ttk.Button(bar,text="Типовий текст",command=apply_template).pack(side="left")
         core.ttk.Button(bar,text="Зберегти" if existing else "Створити",style="Accent.TButton",command=save).pack(side="right",padx=(0,6)); dialog.transient(win)
@@ -542,19 +618,20 @@ def open_operations_center(app, core):
     def _order_print_data(row):
         con2=core.db()
         try:
-            assignments=ops.order_assignments(con2,row["id"])
-            entities=ops.list_order_entities(con2,row["id"]) if hasattr(ops,"list_order_entities") else []
+            latest=ops.get_order(con2,row["id"]) or row
+            assignments=ops.order_assignments(con2,latest["id"])
+            entities=ops.list_order_entities(con2,latest["id"]) if hasattr(ops,"list_order_entities") else []
             company_row=con2.execute("SELECT * FROM company WHERE id=1").fetchone()
             company={key:company_row[key] for key in company_row.keys()} if company_row else {}
-            control=ops.employee_name(con2,row["control_employee_id"])
+            control=ops.employee_name(con2,latest["control_employee_id"])
         finally:
             con2.close()
-        return assignments,entities,company,control
+        return latest,assignments,entities,company,control
 
     def export_order(row,parent=None):
-        assignments,_entities,company,control=_order_print_data(row)
+        latest,assignments,_entities,company,control=_order_print_data(row)
         return save_and_preview_order(
-            core,ops,row,assignments,company,control,parent or win
+            core,ops,latest,assignments,company,control,parent or win
         )
 
     def export_selected():
@@ -566,7 +643,7 @@ def open_operations_center(app, core):
         row=row or selected_order()
         if row is None:
             return
-        assignments,entities,company,control=_order_print_data(row)
+        row,assignments,entities,company,control=_order_print_data(row)
         preview=ops.order_preview_text(
             row,assignments=assignments,entities=entities,company=company,control_name=control
         )
@@ -594,8 +671,21 @@ def open_operations_center(app, core):
 
         generated={}
         status_var=core.tk.StringVar(value="Файли ще не створено.")
+        def refresh_preview_content():
+            nonlocal row,assignments,entities,company,control
+            row,assignments,entities,company,control=_order_print_data(row)
+            current_preview=ops.order_preview_text(
+                row,assignments=assignments,entities=entities,company=company,control_name=control
+            )
+            viewer.configure(state="normal")
+            viewer.delete("1.0","end")
+            viewer.insert("1.0",current_preview)
+            viewer.configure(state="disabled")
+            return len(assignments)
+
         def make_formats(formats):
             try:
+                refresh_preview_content()
                 results=generate_order_formats(
                     core,ops,row,assignments,entities,company,control,
                     formats=formats,parent=dlg,
@@ -675,6 +765,7 @@ def open_operations_center(app, core):
         ).grid(row=3,column=0,columnspan=4,sticky="w",padx=4,pady=(4,0))
         bar=core.ttk.Frame(frm); bar.pack(fill="x",pady=(8,0))
         core.ttk.Button(bar,text="Закрити",command=dlg.destroy).pack(side="right")
+        core.ttk.Button(bar,text="Оновити зміст",command=refresh_preview_content).pack(side="left")
         core.ttk.Button(
             bar,text="Сформувати PDF / друк",style="Accent.TButton",
             command=lambda:make_formats(("pdf",))
@@ -739,10 +830,13 @@ def open_operations_center(app, core):
         assignment_cache.clear(); row=current_assignment_order()
         if row is None: selected_order_var.set("Виберіть наказ про закріплення або створіть новий."); return
         state_label = "Діє в Taxo" if row["status"]==ops.ORDER_APPROVED else ops.ORDER_STATUS_LABELS.get(row["status"],row["status"])
-        selected_order_var.set("Наказ №%s від %s — %s"%(row["order_no"],ops.display_day(row["order_date"]),state_label))
         con2=core.db()
         try: items=ops.order_assignments(con2,row["id"])
         finally: con2.close()
+        selected_order_var.set(
+            "Наказ №%s від %s — %s — закріплень: %d"
+            % (row["order_no"],ops.display_day(row["order_date"]),state_label,len(items))
+        )
         for item in items:
             aid=int(item["id"]); assignment_cache[aid]=item; driver=" ".join(str(item[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(item[k] or "").strip())
             atree.insert("","end",iid=str(aid),values=(item["sequence_no"],item["make_model"] or item["vehicle_name"],item["plate"],driver,ops.display_day(item["valid_from"]),ops.display_day(item["valid_until"])))
@@ -767,8 +861,12 @@ def open_operations_center(app, core):
             if vv.get() not in vmap or ev.get() not in emap: core.messagebox.showerror("Закріплення","Виберіть ТЗ і водія.",parent=dlg); return
             con3=core.db()
             try:
-                if existing: ops.update_vehicle_assignment(con3,existing["id"],vehicle_id=vmap[vv.get()],employee_id=emap[ev.get()],valid_from=fv.get(),valid_until=uv.get(),history_note="Редагування через інтерфейс")
-                else: ops.add_vehicle_assignment(con3,order["id"],vmap[vv.get()],emap[ev.get()],valid_from=fv.get(),valid_until=uv.get())
+                target_pair=(int(vmap[vv.get()]),int(emap[ev.get()]))
+                if existing:
+                    ops.update_vehicle_assignment(con3,existing["id"],vehicle_id=target_pair[0],employee_id=target_pair[1],valid_from=fv.get(),valid_until=uv.get(),history_note="Редагування через інтерфейс")
+                else:
+                    ops.add_vehicle_assignment(con3,order["id"],target_pair[0],target_pair[1],valid_from=fv.get(),valid_until=uv.get())
+                ops.verify_vehicle_assignment_pairs(con3,order["id"],[target_pair])
                 con3.commit()
             except Exception as exc: con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
             finally: con3.close()
@@ -834,6 +932,7 @@ def open_operations_center(app, core):
                 ops.add_vehicle_assignments_bulk(
                     con3,order["id"],pairs,valid_from=from_var.get(),valid_until=until_var.get()
                 )
+                ops.verify_vehicle_assignment_pairs(con3,order["id"],pairs)
                 con3.commit()
             except Exception as exc:
                 con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
