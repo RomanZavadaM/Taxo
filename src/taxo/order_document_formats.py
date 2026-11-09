@@ -111,6 +111,7 @@ def build_order_docx(path, ops, order, assignments=(), entities=(),
         for item in layout["paragraphs"]:
             para(item, after=6)
 
+    doc.add_paragraph().paragraph_format.space_after = Pt(36)
     sig=doc.add_table(rows=1, cols=3)
     sig.autofit=False
     for cell, width in zip(sig.rows[0].cells,(60,45,55)):
