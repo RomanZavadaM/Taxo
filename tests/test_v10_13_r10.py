@@ -57,10 +57,10 @@ class TaxoR10OrderPreviewTests(unittest.TestCase):
     def tearDown(self):
         self.con.close()
 
-    def test_identity_is_10_13_r10(self):
-        self.assertEqual(main.APP_VERSION,"10.13-r10")
-        self.assertIn("10.13-r10",Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("Taxo 10.13-r10",Path("START.bat").read_text(encoding="utf-8"))
+    def test_identity_is_10_13_r10_or_newer(self):
+        self.assertIn(main.APP_VERSION, ("10.13-r10", "10.14-r1"))
+        self.assertIn(main.APP_VERSION,Path("VERSION.txt").read_text(encoding="utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION,Path("START.bat").read_text(encoding="utf-8"))
 
     def test_assignment_order_preview_contains_printable_content_and_all_pairs(self):
         oid=ops.create_vehicle_assignment_order(

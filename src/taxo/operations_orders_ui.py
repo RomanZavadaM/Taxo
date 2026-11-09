@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 import operations_orders as ops
+from order_pdf_workflow import save_and_preview_order
 from safety_instructions_ui import install_instruction_tab
 
 
@@ -562,18 +563,9 @@ def open_operations_center(app, core):
 
     def export_order(row,parent=None):
         assignments,_entities,company,control=_order_print_data(row)
-        out=core.OUTPUT_DIR/("Наказ_%s_%s.pdf"%(str(row["order_no"]).replace("/","-"),row["order_date"]))
-        font=next((p for p in core.report_font_candidates() if core.Path(p).exists()),None)
-        try:
-            ops.export_order_pdf(out,row,assignments,company,control,font_path=font)
-        except Exception as exc:
-            core.messagebox.showerror("Наказ PDF",str(exc),parent=parent or win); return None
-        core.messagebox.showinfo("Наказ PDF","Сформовано і відкривається для перегляду / друку:\n%s"%out,parent=parent or win)
-        try:
-            core.open_external(out)
-        except Exception:
-            pass
-        return out
+        return save_and_preview_order(
+            core,ops,row,assignments,company,control,parent or win
+        )
 
     def export_selected():
         row=selected_order()
