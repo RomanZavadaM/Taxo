@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-"""DOCX and multipage JPG for orders, using Taxo's existing permissive libraries.
+"""Editable Word order from Taxo's shared printable layout; PDFium JPG export.
 
-DOCX is an editable text rendition of the same frozen order preview;
-JPG pages are rendered directly from the printable PDF via PDFium.
-No office application is required to *create* any output format.
+Word and PDF use exactly the same content sections, metadata and assignment
+table. Word's installed fonts/layout engine can still affect line wrapping.
+No Word or LibreOffice process is required for DOCX generation.
 """
 from pathlib import Path
 
+from order_layout import order_layout
+
 
 def build_order_docx(path, ops, order, assignments=(), entities=(),
-                     company=None, control_name=""):
+                     company=None, control_name="", appendices=()):
     from docx import Document
+    from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
     from docx.enum.text import WD_ALIGN_PARAGRAPH
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
     from docx.shared import Mm, Pt
 
+    layout = order_layout(ops, order, assignments, company, control_name)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     doc = Document()
@@ -24,22 +30,130 @@ def build_order_docx(path, ops, order, assignments=(), entities=(),
     section.right_margin = Mm(18)
     section.top_margin = Mm(17)
     section.bottom_margin = Mm(17)
-    base = doc.styles["Normal"]
-    base.font.name = "Times New Roman"
-    base.font.size = Pt(11)
-    text = ops.order_preview_text(
-        order, assignments=assignments, entities=entities,
-        company=company, control_name=control_name,
-    )
-    for index, line in enumerate(text.splitlines()):
-        paragraph = doc.add_paragraph()
-        if index in (0, 1) or line == "Н А К А З У Ю:":
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = paragraph.add_run(line)
-        if index == 0 or line == "Н А К А З У Ю:":
-            run.bold = True
-        if index == 0:
-            run.font.size = Pt(15)
+    style = doc.styles["Normal"]
+    style.font.name = "Times New Roman"
+    style.font.size = Pt(11.5)
+    style.paragraph_format.space_after = Pt(0)
+    style.paragraph_format.line_spacing = 1.15
+
+    def para(value, *, center=False, bold=False, before=0, after=0, size=None):
+        p = doc.add_paragraph()
+        if center:
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(before)
+        p.paragraph_format.space_after = Pt(after)
+        run = p.add_run(str(value))
+        run.bold = bold
+        if size:
+            run.font.size = Pt(size)
+        return p
+
+    def put_cell(cell, value, align=None, bold=False):
+        p = cell.paragraphs[0]
+        if align is not None:
+            p.alignment = align
+        run = p.add_run(str(value))
+        run.bold = bool(bold)
+        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+
+    def border_table(table):
+        tbl_pr = table._tbl.tblPr
+        borders = OxmlElement("w:tblBorders")
+        for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+            el = OxmlElement("w:" + edge)
+            el.set(qn("w:val"), "single")
+            el.set(qn("w:sz"), "4")
+            borders.append(el)
+        tbl_pr.append(borders)
+
+    para(layout["heading"], center=True, bold=True, after=2, size=15)
+    para(layout["company"], center=True, after=20)
+    meta = doc.add_table(rows=1, cols=3)
+    meta.autofit = False
+    for cell, width in zip(meta.rows[0].cells, (55, 55, 55)):
+        cell.width = Mm(width)
+    for cell, value, align in zip(
+        meta.rows[0].cells,
+        (layout["date"], layout["number"], layout["place"]),
+        (WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.RIGHT),
+    ):
+        put_cell(cell, value, align=align, bold=value == layout["number"])
+    doc.add_paragraph().paragraph_format.space_after = Pt(8)
+    if layout["subject"]:
+        para(layout["subject"], bold=True, after=14)
+    if layout["preamble"]:
+        para(layout["preamble"], after=18)
+    para(layout["instruction_heading"], center=True, bold=True, after=14, size=12.5)
+
+    if layout["is_assignment"]:
+        if layout["paragraphs"]:
+            para(layout["paragraphs"][0], after=9)
+        table = doc.add_table(rows=1, cols=4)
+        table.autofit = False
+        table.alignment = WD_TABLE_ALIGNMENT.CENTER
+        widths=(10,52,38,65)
+        for i, value in enumerate(layout["table_headers"]):
+            table.columns[i].width = Mm(widths[i])
+            put_cell(table.rows[0].cells[i], value,
+                     align=WD_ALIGN_PARAGRAPH.CENTER, bold=True)
+        for row in layout["assignment_rows"]:
+            cells=table.add_row().cells
+            for i, value in enumerate(row):
+                put_cell(cells[i], value)
+        # Repeat the table header on subsequent pages, like ReportLab.
+        header = table.rows[0]._tr.get_or_add_trPr()
+        header.append(OxmlElement("w:tblHeader"))
+        border_table(table)
+        doc.add_paragraph().paragraph_format.space_after=Pt(10)
+        for item in layout["paragraphs"][1:]:
+            para(item, after=3)
+    else:
+        for item in layout["paragraphs"]:
+            para(item, after=6)
+
+    sig=doc.add_table(rows=1, cols=3)
+    sig.autofit=False
+    for cell, width in zip(sig.rows[0].cells,(60,45,55)):
+        cell.width=Mm(width)
+    for cell, value, align in zip(
+        sig.rows[0].cells, layout["signature"],
+        (WD_ALIGN_PARAGRAPH.LEFT, WD_ALIGN_PARAGRAPH.CENTER, WD_ALIGN_PARAGRAPH.RIGHT)
+    ):
+        put_cell(cell,value,align=align)
+
+    if entities:
+        doc.add_page_break()
+        para("Структурований перелік працівників і транспортних засобів",
+             center=True,bold=True,after=8)
+        para("до наказу від %s %s" % (layout["date"],layout["number"]),
+             center=True,after=18)
+        entity_table=doc.add_table(rows=1,cols=5)
+        entity_table.autofit=False
+        for i,title in enumerate(("№","Тип","Роль / призначення","Працівник / ТЗ","Однозначний реквізит")):
+            put_cell(entity_table.rows[0].cells[i],title,align=WD_ALIGN_PARAGRAPH.CENTER,bold=True)
+        for index, entity in enumerate(entities,1):
+            view=ops.order_entity_view(entity)
+            values=(str(index),view["type_label"],view["role"],view["display"],view["identifier"])
+            cells=entity_table.add_row().cells
+            for i,value in enumerate(values):
+                put_cell(cells[i],value)
+        entity_table.rows[0]._tr.get_or_add_trPr().append(OxmlElement("w:tblHeader"))
+        border_table(entity_table)
+        para("Перелік сформовано зі структурованих записів Taxo. "
+             "Ідентифікаційні реквізити зафіксовано на момент додавання до чернетки наказу.",
+             before=8)
+
+    for index, appendix in enumerate(appendices,1):
+        doc.add_page_break()
+        seq = appendix["sequence_no"] or index
+        p=para("Додаток %s\nдо наказу від %s %s" % (seq,layout["date"],layout["number"]),
+               after=26)
+        p.alignment=WD_ALIGN_PARAGRAPH.RIGHT
+        para(appendix["title"] or "Додаток",center=True,bold=True,after=20)
+        for line in str(appendix["content"] or "").splitlines():
+            if line.strip():
+                para(line.strip(),after=7)
+
     doc.save(str(path))
     return path
 
