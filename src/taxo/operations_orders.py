@@ -1170,8 +1170,9 @@ def export_order_pdf(path, order, assignments=(), company=None, control_name="",
     doc = SimpleDocTemplate(str(path), pagesize=A4, leftMargin=20*mm, rightMargin=18*mm,
                             topMargin=17*mm, bottomMargin=17*mm)
     from order_pdf_sections import build_order_story
+    import operations_orders as order_module
     story = build_order_story(
-        __import__(__name__), order, assignments, company,
+        order_module, order, assignments, company,
         control_name, font_name, normal, center, right, title, bold_center,
     )
     doc.build(story)
