@@ -131,9 +131,13 @@ class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
                 ]
                 self.assertEqual(len(dialogs), 1)
                 dialog = dialogs[0]
-                listboxes = [w for w in walk(win) if callable(getattr(w, "curselection", None)) and str(w.cget("selectmode")) == "extended"]
-                self.assertEqual(len(listboxes), 2)
-                for lb in listboxes:
+                vehicle_list = getattr(dialog, "_taxo_assignment_vehicle_list", None)
+                driver_list = getattr(dialog, "_taxo_assignment_driver_list", None)
+                self.assertIsNotNone(vehicle_list)
+                self.assertIsNotNone(driver_list)
+                self.assertEqual(vehicle_list.size(), 2)
+                self.assertEqual(driver_list.size(), 2)
+                for lb in (vehicle_list, driver_list):
                     self.assertTrue(lb.winfo_ismapped())
                     self.assertGreater(lb.winfo_width(), 1)
                     self.assertGreater(lb.winfo_height(), 1)
