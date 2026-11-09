@@ -1,3 +1,19 @@
+## 09.11.2026 — 10.14-r8 integrated: existing assignments + durable data + fresh document generation
+
+- Owner screenshots/testing on 10.14-r6 showed the bulk picker itself was visible, but the existing-order edit path and document data flow were still incomplete.
+- Main had already advanced to 10.14-r7 strict Feature Loss gate; duplicate r7 work was stopped and the actual fix moved to 10.14-r8.
+- PR #280 merged → exact main `98c9f2daea8398c1bf18b64e5f96163c6c02e4cc`.
+- Existing assignment order editor now shows current vehicle/driver rows and direct «Додати багато…» / «Керувати закріпленнями».
+- Save path verifies selected pairs were actually stored; regression proves single+bulk pairs survive DB close/reopen and feed shared print layout.
+- Preview/document generation reloads current order + assignments from DB before DOCX/PDF/JPG; stale empty preview no longer produces an empty document after pairs were added.
+- Historical/orphaned links remain visible through LEFT JOIN instead of disappearing silently.
+- Strict route registry expanded to 26 with `operations.assignment_existing`.
+- Final PR-head: Windows #1395 / Win7 #371 / macOS #1296 — SUCCESS.
+- Exact-main: Windows #1396 / Win7 #372 / macOS #1297 / START #2511 — SUCCESS; 1033 tests OK.
+- Exact-main START artifact #13677776040, 1 748 707 B, SHA256 `e75beea340ea24088a05d90fcb37c7c96edbed7f6c2d41e81a586cf0494e7284`.
+- Drive backup: `Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, ID `1lC9JVUXd6X46zIeEzxxrJDHKsyGInJ6z`.
+- Stable remains v10.14-r4. Manual owner acceptance r8 pending. Next code revision 10.14-r9.
+
 ## 09.11.2026 — 10.14-r8 integrated: закріплення зберігаються і друк бере актуальні дані
 
 - Owner-test наказу №27 показав порожню таблицю в Preview/DOCX після додавання водіїв/ТЗ.
