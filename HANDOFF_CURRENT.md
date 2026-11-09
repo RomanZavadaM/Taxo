@@ -1,13 +1,13 @@
 # HANDOFF_CURRENT — Taxo
 
-**Дата:** 09.11.2026. **Стан:** 10.15-r3 інтегровано в main; exact-main verification та release checkpoint тривають.
+**Дата:** 09.11.2026. **Стан:** 10.15-r3 інтегровано в main; exact-main verification PASS; release checkpoint триває.
 
 ## Підтверджена база
 
 - Stable / GitHub Latest: **v10.14-r4** (не змінювати без окремого рішення власника).
 - **10.15-r3 merged:** PR #292 → product main `eb71c64d3627ad3d02524b1735a1b53f155ec347`.
 - PR-head exact revision `a7bf118bb41d9679f1725c3ea5ec077d660f413d`: Windows #1443, Win7 #417, macOS Intel/ARM #1342 **SUCCESS**.
-- Exact-main builds (product merge): Windows #? / Win7 #? / macOS #? / START #? — **PENDING**; звірити GitHub, перш ніж оголошувати DONE.
+- **Exact-main PASS:** Windows #1444 / Win7 #418 / macOS Intel+ARM #1343 / START #2561 — **SUCCESS** на продукті `eb71c64d3627ad3d02524b1735a1b53f155ec347`. START artifact #13706675051, 1 813 312 bytes.
 - Release `v10.15-r3`: **NOT YET VERIFIED/PUBLISHED**. Не плутати з stable `v10.14-r4`.
 - Наступна видана кодова ревізія після r3: **10.15-r4**; не починати до інтегрованого recovery checkpoint.
 - Ручне приймання власником r3: **PENDING**.
