@@ -257,6 +257,11 @@ def open_operations_center(app, core):
             initial_driver_list=core.tk.Listbox(right,selectmode="extended",exportselection=False,height=5)
             initial_driver_list.pack(fill="both",expand=True,pady=(3,0))
             for row in initial_drivers: initial_driver_list.insert("end",row["label"])
+            # Stable live-test hooks for the critical bulk assignment controls.
+            # These are widget references only; no business logic depends on them.
+            dialog._taxo_assignment_box = assignment_box
+            dialog._taxo_assignment_vehicle_list = initial_vehicle_list
+            dialog._taxo_assignment_driver_list = initial_driver_list
 
             def update_assignment_count(_event=None):
                 vc=len(initial_vehicle_list.curselection()) if initial_vehicle_list is not None else 0
