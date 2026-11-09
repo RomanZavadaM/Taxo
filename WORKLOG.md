@@ -1,3 +1,19 @@
+## 09.11.2026 — 10.15-r3 product merged, exact-main CI PASS, release checkpoint
+
+- Owner rejected scattered CSV as a practical briefing archive, requested printable instruction text + signature sheet, and separate driver internship sheets.
+- PR #292 merged into main: `eb71c64d3627ad3d02524b1735a1b53f155ec347`.
+- New paperwork engine `paper_documents.py`, searchable Word list, full workspace path `Data/PaperDocuments`, backup regression and live feature routes.
+- Driver internship UI based on driver/instructor/vehicle choices, printable field records for territory/route/control drive, paper-only signatures and admission decision.
+- Updated README (Ukrainian), six translations, quick start, user manual, release index, product status, release notes.
+- Exact PR-head Windows #1443, Windows 7 #417, macOS #1342 — SUCCESS.
+- Exact product main Windows #1444, Windows 7 #418, macOS Intel+ARM #1343, START #2561 — **SUCCESS**. START source artifact #13706675051, 1 813 312 bytes.
+- PR #293 merged → `d93ae63660abfeeeb8ee7298724288f75aea92dd`; existing publisher workflow #42690409737 SUCCESS → immutable [prerelease `v10.15-r3`](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r3) with 8/8 verified assets and SHA256; tag source exactly `eb71c64d3627ad3d02524b1735a1b53f155ec347`. Stable Latest remains v10.14-r4.
+- Stable / Latest remains `v10.14-r4`; manual acceptance r3 pending.
+- **Drive START recovery:** `Taxo_CURRENT_MAIN_v10.15-r3_2026-11-09_START.zip`, file `11T-KbkowXAVxKORUmDkl2VK6eq_-Txkt`, 1 813 312 bytes, SHA256 `6ec7ff84caf45822d9194905980d8f55faa16d92bfff99d36822ac1d5d8e20f1`; 640 ZIP entries, no nested ZIP, package check OK.
+
+- Owner decision: independent read-only architecture audit required before module extraction for 2–3× future expansion, Issue #290; complete catalog with optional signed scans Issue #289.
+- Next: finish release/backup verification, merge recovery checkpoint; no r4 code until checkpoint.
+
 ## 09.11.2026 — 10.14-r10 integrated: cold-start crash pack/grid
 
 - Owner exact-main r9 START на Windows впав до робочого вікна з `_tkinter.TclError: cannot use geometry manager pack ... already has slaves managed by grid`.

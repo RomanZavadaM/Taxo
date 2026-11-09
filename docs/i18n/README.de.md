@@ -25,7 +25,7 @@ Arbeitsdatenbanken, Scans, persönliche Dokumente und Caches sind nicht im Relea
 
 ## Dokumentation und Entwicklung
 
-Die maßgebliche Betriebsdokumentation ist auf Ukrainisch. Siehe Kurzanleitung und Betriebs-/Wartungsanleitung. Nächste Code-Revision: 10.14-r5.
+Die maßgebliche Betriebsdokumentation ist auf Ukrainisch. Siehe Kurzanleitung und Betriebs-/Wartungsanleitung. Nächste Code-Revision: 10.15-r4.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
