@@ -30,3 +30,7 @@ La documentación operativa canónica está en ucraniano. Consulte el inicio rá
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
+
+## Candidato de prueba 10.15-r3 — instrucciones y prácticas de conductores
+
+Las instrucciones ahora generan un DOCX editable con el programa completo y una hoja separada para firmas, en lugar de archivos CSV sueltos. También hay un formulario de prácticas del conductor y un catálogo de documentos Word guardados dentro del espacio de trabajo, incluido en la copia de seguridad completa. Crear un archivo no confirma la realización, la firma ni la autorización. Los escaneos opcionales y el catálogo jerárquico siguen pendientes (#289); la modularización de Python es #290. La versión estable sigue siendo 10.14-r4.
