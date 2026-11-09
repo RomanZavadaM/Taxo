@@ -1,7 +1,22 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 08.11.2026  
+**Дата:** 09.11.2026  
 **Repository:** `RomanZavadaM/Taxo`
+
+## 10.14-r1 — безпечний друк наказів — 09.11.2026
+
+**Фактично інтегровано:** PR #261, product `cc3ff5011298e2d287175ab39944012ba36a508d`; stable `v10.12-r10` **не змінювався**. Нова ревізія коду `10.14-r1` — integrated-only до окремого рішення про публікацію.
+
+- При повторному друці наказу попередній файл PDF зберігається; створюється нова копія.
+- Формування використовує наявний Taxo safe output із тимчасовим файлом, обробкою блокування/доступу та відмови.
+- Після успіху відкривається штатний переглядач PDF Taxo, як у Бланках підтвердження діяльності; скасування/помилка не відкриває старий файл як новий.
+- Логіку розділено на `src/taxo/order_pdf_workflow.py` і старі кнопки збережено; текст/макет PDF не переписували.
+- PR-head: Windows #1340 SUCCESS; Win7 #323 SUCCESS; macOS #1248 SUCCESS; START #2345 SUCCESS, **1002 tests OK**.
+- **Exact-main PASS:** Windows #1341, Win7 #324, macOS Intel/ARM #1249, START #2346; усі SUCCESS. START 1002 tests OK, ZIP перевірено.
+- **Google Drive recovery-copy підтверджено:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r1_2026-11-09_START.zip`, **1 708 502 байти**, Drive file `1BjwIIGIQVw8Ncekx0qojKQbA60mS5-RG`; SHA256 перевіреного GitHub START artifact `77fc9ab5aebe103dfb082e11ebc569d2d5d02a07c61ea2ec57c3e724c26bc65f`. Ручне приймання власником — **PENDING**.
+- Наступна **кодова** ревізія `10.14-r2`; не починати без завершення r1 checkpoint/feedback.
+- **Одна наступна дія:** ручне приймання 10.14-r1 через `START.bat`: створити наказ, надрукувати PDF, повторити формування, звірити дві окремі копії й переглянути PDF у Taxo. Після feedback вирішити наступне вузьке завдання для 10.14-r2. Stable не змінювати.
+- Докладно: `docs/releases/RELEASE_NOTES_v10.14-r1.md`; рішення про друк: `docs/maintenance/RECOVERY_CHECKPOINT_2026-11-08_PRINT_WORKFLOW.md`.
 
 ## Поточний підтверджений стан
 
@@ -10,9 +25,9 @@
 - **Older rollback:** Taxo 10.9-r10 / `v10.9-r10`.
 - **Older rollback:** Taxo 10.3 / `v10.3`; historical tag target `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
 - **Historical prerelease (archive only):** `v10.11-r10`, exact source `b239bb0dda6a49878f5f06a0edd791710b62df9b`. Ніяких поточних робіт із 10.11: stable — 10.12-r10, integrated development — 10.13-r10; історичний тег зберігається.
-- **Current integrated product candidate:** Taxo **10.13-r10**, exact product commit `46ef1b995cfc42e8a3195d2f654ad0a9d5e07bb4`, PR #258. Stable лишається 10.12-r10; 10.13-r1…r10 integrated-only і не stable.
+- **Previous integrated product candidate:** Taxo **10.13-r10**, exact product commit `46ef1b995cfc42e8a3195d2f654ad0a9d5e07bb4`, PR #258. Stable лишається 10.12-r10; 10.13-r1…r10 integrated-only і не stable.
 - **CI maintenance checkpoint:** PR #220 merged → `894fdbb235b2b91c2bb334b8fadfb99566671fc9`; docs-only post-merge smoke PR #222 merged → `bc32daa1b63c20aa4398fa35262d32456b62088c`. Product version unchanged.
-- **Next code revision:** **10.14-r1** після ручного приймання r10. Для r10 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS.
+- **Next code revision:** **10.14-r2** після ручного приймання r10. Для r10 exact-main Windows/Win7/macOS/START і Google Drive recovery-copy — PASS.
 - **Continuity:** `HANDOFF_CURRENT.md` — обов'язковий recovery-знімок; private process profile — `RomanZavadaM/dev-strategy` / `profile/taxo` / `TAXO_PROFILE.md`.
 - **Previous Google Drive backup:** exact-source START recovery-copy для 10.13-r2 підтверджена: `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r2_2026-11-07_START.zip`, 1 624 847 байт; Drive file `1f5z-jgnDwTEFSSexxoKA14G5mykUW1GV`; source artifact START #2321, SHA256 `b8fccfebbb906ed86854ba47a21f77d6884de9232594e16238bdaff0245223f0`.
 - **Previous Drive recovery-copy:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.13-r3_2026-11-07_START.zip`, 1 636 456 байт; file `1F8R4-qUukZQr86iaBp2PWSuvGow43Gnn`.
@@ -257,7 +272,7 @@
 - видана шляхівка та історично використаний номер захищені від тихого фізичного знищення/повторного використання;
 - робочі БД, SQLite, скани, кеші та персональні документи не входять у repository/release;
 - видані tags/releases immutable;
-- поточна stable — `10.12-r10`; rollback checkpoint — `10.10-r5`; поточний integrated main candidate — `10.13-r9`; наступна кодова ревізія — `10.13-r10`; stable змінюється лише окремим рішенням власника;
+- поточна stable — `10.12-r10`; rollback checkpoint — `10.10-r5`; поточний integrated main candidate — `10.14-r1`; наступна кодова ревізія — `10.14-r2`; stable змінюється лише окремим рішенням власника;
 - у програму й пакети входять лише залежності з permissive-ліцензіями; PyMuPDF заборонений назавжди;
 - regression-тести запускаються лише в CI або в ізольованому середовищі, ніколи — на машині з реальним робочим сховищем.
 

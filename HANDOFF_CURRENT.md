@@ -1,8 +1,23 @@
 # HANDOFF_CURRENT — Taxo
 
-**Оновлено:** 08.11.2026 — після інтеграції 10.13-r10, exact-main Windows/Win7/macOS/START перевірок і Google Drive recovery-copy.
+**Оновлено:** 09.11.2026 — 10.14-r1 integrated; exact-main Windows/Win7/macOS/START PASS; Drive recovery-copy підтверджено.
 
-## Контрольна точка після обриву чату — 08.11.2026
+## 10.14-r1 — безпечний друк наказів — 09.11.2026
+
+**Фактично інтегровано:** PR #261, product `cc3ff5011298e2d287175ab39944012ba36a508d`; stable `v10.12-r10` **не змінювався**. Нова ревізія коду `10.14-r1` — integrated-only до окремого рішення про публікацію.
+
+- При повторному друці наказу попередній файл PDF зберігається; створюється нова копія.
+- Формування використовує наявний Taxo safe output із тимчасовим файлом, обробкою блокування/доступу та відмови.
+- Після успіху відкривається штатний переглядач PDF Taxo, як у Бланках підтвердження діяльності; скасування/помилка не відкриває старий файл як новий.
+- Логіку розділено на `src/taxo/order_pdf_workflow.py` і старі кнопки збережено; текст/макет PDF не переписували.
+- PR-head: Windows #1340 SUCCESS; Win7 #323 SUCCESS; macOS #1248 SUCCESS; START #2345 SUCCESS, **1002 tests OK**.
+- **Exact-main PASS:** Windows #1341, Win7 #324, macOS Intel/ARM #1249, START #2346; усі SUCCESS. START 1002 tests OK, ZIP перевірено.
+- **Google Drive recovery-copy підтверджено:** `02_CURRENT_MAIN/Taxo_CURRENT_MAIN_v10.14-r1_2026-11-09_START.zip`, **1 708 502 байти**, Drive file `1BjwIIGIQVw8Ncekx0qojKQbA60mS5-RG`; SHA256 перевіреного GitHub START artifact `77fc9ab5aebe103dfb082e11ebc569d2d5d02a07c61ea2ec57c3e724c26bc65f`. Ручне приймання власником — **PENDING**.
+- Наступна **кодова** ревізія `10.14-r2`; не починати без завершення r1 checkpoint/feedback.
+- **Одна наступна дія:** ручне приймання 10.14-r1 через `START.bat`: створити наказ, надрукувати PDF, повторити формування, звірити дві окремі копії й переглянути PDF у Taxo. Після feedback вирішити наступне вузьке завдання для 10.14-r2. Stable не змінювати.
+- Докладно: `docs/releases/RELEASE_NOTES_v10.14-r1.md`; рішення про друк: `docs/maintenance/RECOVERY_CHECKPOINT_2026-11-08_PRINT_WORKFLOW.md`.
+
+## Попередня контрольна точка після обриву чату — 08.11.2026
 
 Окремий повний запис: [RECOVERY_CHECKPOINT_2026-11-08_PRINT_WORKFLOW.md](docs/maintenance/RECOVERY_CHECKPOINT_2026-11-08_PRINT_WORKFLOW.md).
 
@@ -356,7 +371,7 @@ PR #224 merged → product commit `6d0f32bc45323d4085bb165b2ec050dae7b378ee`.
 - `VERSION.txt` лишився **10.12-r9**. `publish-current.yml` не змінено; exact-source release gates не послаблено.
 - Деталі: `docs/maintenance/CI_MAINTENANCE_2026-11-07.md`.
 
-## Наступна безпечна дія
+## Попередня наступна дія (08.11, історія)
 
 Ручно прийняти **10.13-r10 START** через `START.bat`: створити наказ про закріплення з кількома водіями, переконатися що одразу відкрився **«Перегляд наказу»**, звірити весь текст і сформувати PDF через **«Сформувати PDF / друк»**. Після feedback наступна code revision — **10.14-r1**. Stable лишається 10.12-r10.
 
