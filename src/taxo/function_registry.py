@@ -35,6 +35,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("vehicles.military", "Транспорт", "Військово-транспортний облік", "open_military_transport_dashboard", runtime_smoke=True),
     FunctionRoute("vehicles.military.statement", "Військово-транспортний облік", "Відомість (додаток 1)", "open_military_transport_statement", runtime_smoke=True),
     FunctionRoute("operations.center", "Ліве меню", "Експлуатація", "open_operations_center", runtime_smoke=True),
+    FunctionRoute("operations.assignment_bulk", "Експлуатація → Накази", "Закріпити ТЗ за водіями / Додати багато…", "operations_orders_ui.bulk_assignment_controls", runtime_smoke=True),
     FunctionRoute("operations.instructions", "Експлуатація", "Інструктажі та журнали", "open_operations_center", runtime_smoke=True),
     FunctionRoute("maintenance.stoir", "Ліве меню", "СТОІР", "open_vehicle_maintenance", runtime_smoke=True),
     FunctionRoute("documents.center", "Експлуатація → Документи", "Документи підприємства", "DOCUMENT_CENTER_GROUPS", runtime_smoke=True),

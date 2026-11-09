@@ -44,9 +44,9 @@ class AppendixFreeEditingR5Tests(unittest.TestCase):
         self.con.close()
 
     def test_version_and_start_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.14-r5")
-        self.assertIn("Version: 10.14-r5", Path("VERSION.txt").read_text(encoding="utf-8"))
-        self.assertIn("Taxo 10.14-r5", Path("START.bat").read_text(encoding="utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.14-r5", "10.14-r6"))
+        self.assertIn("Version: " + main.APP_VERSION, Path("VERSION.txt").read_text(encoding="utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, Path("START.bat").read_text(encoding="utf-8"))
 
     def test_approved_and_cancelled_order_appendix_can_be_edited_and_deleted(self):
         aid = appendices.save_appendix(
