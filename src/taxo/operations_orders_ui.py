@@ -417,6 +417,8 @@ def open_operations_center(app, core):
                         control_employee_id=emp_by_label.get(control_var.get()),
                         initial_pairs=initial_pairs,order_series=series_key,
                     )
+                    if initial_pairs:
+                        ops.verify_vehicle_assignment_pairs(con3,oid,initial_pairs)
                 else:
                     oid=ops.create_order(con3,order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
                                          subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
@@ -426,10 +428,14 @@ def open_operations_center(app, core):
                 con3.rollback(); core.messagebox.showerror("Наказ",str(exc),parent=dialog); return
             finally: con3.close()
             dialog.destroy(); refresh_orders(oid)
-            book.select(orders_tab)
             created_order=order_cache.get(int(oid))
-            if created_order is not None:
-                preview_order(created_order)
+            if order_type==ops.TYPE_VEHICLE_ASSIGNMENT and not initial_pairs:
+                book.select(assignments_tab)
+                refresh_assignments()
+            else:
+                book.select(orders_tab)
+                if created_order is not None:
+                    preview_order(created_order)
         bar=core.ttk.Frame(frm); bar.grid(row=11,column=0,columnspan=2,sticky="ew",pady=(10,0))
         core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")
         core.ttk.Button(bar,text="Типовий текст",command=apply_template).pack(side="left")
@@ -612,19 +618,20 @@ def open_operations_center(app, core):
     def _order_print_data(row):
         con2=core.db()
         try:
-            assignments=ops.order_assignments(con2,row["id"])
-            entities=ops.list_order_entities(con2,row["id"]) if hasattr(ops,"list_order_entities") else []
+            latest=ops.get_order(con2,row["id"]) or row
+            assignments=ops.order_assignments(con2,latest["id"])
+            entities=ops.list_order_entities(con2,latest["id"]) if hasattr(ops,"list_order_entities") else []
             company_row=con2.execute("SELECT * FROM company WHERE id=1").fetchone()
             company={key:company_row[key] for key in company_row.keys()} if company_row else {}
-            control=ops.employee_name(con2,row["control_employee_id"])
+            control=ops.employee_name(con2,latest["control_employee_id"])
         finally:
             con2.close()
-        return assignments,entities,company,control
+        return latest,assignments,entities,company,control
 
     def export_order(row,parent=None):
-        assignments,_entities,company,control=_order_print_data(row)
+        latest,assignments,_entities,company,control=_order_print_data(row)
         return save_and_preview_order(
-            core,ops,row,assignments,company,control,parent or win
+            core,ops,latest,assignments,company,control,parent or win
         )
 
     def export_selected():
@@ -636,7 +643,7 @@ def open_operations_center(app, core):
         row=row or selected_order()
         if row is None:
             return
-        assignments,entities,company,control=_order_print_data(row)
+        row,assignments,entities,company,control=_order_print_data(row)
         preview=ops.order_preview_text(
             row,assignments=assignments,entities=entities,company=company,control_name=control
         )
@@ -664,8 +671,21 @@ def open_operations_center(app, core):
 
         generated={}
         status_var=core.tk.StringVar(value="Файли ще не створено.")
+        def refresh_preview_content():
+            nonlocal row,assignments,entities,company,control
+            row,assignments,entities,company,control=_order_print_data(row)
+            current_preview=ops.order_preview_text(
+                row,assignments=assignments,entities=entities,company=company,control_name=control
+            )
+            viewer.configure(state="normal")
+            viewer.delete("1.0","end")
+            viewer.insert("1.0",current_preview)
+            viewer.configure(state="disabled")
+            return len(assignments)
+
         def make_formats(formats):
             try:
+                refresh_preview_content()
                 results=generate_order_formats(
                     core,ops,row,assignments,entities,company,control,
                     formats=formats,parent=dlg,
@@ -745,6 +765,7 @@ def open_operations_center(app, core):
         ).grid(row=3,column=0,columnspan=4,sticky="w",padx=4,pady=(4,0))
         bar=core.ttk.Frame(frm); bar.pack(fill="x",pady=(8,0))
         core.ttk.Button(bar,text="Закрити",command=dlg.destroy).pack(side="right")
+        core.ttk.Button(bar,text="Оновити зміст",command=refresh_preview_content).pack(side="left")
         core.ttk.Button(
             bar,text="Сформувати PDF / друк",style="Accent.TButton",
             command=lambda:make_formats(("pdf",))
@@ -809,10 +830,13 @@ def open_operations_center(app, core):
         assignment_cache.clear(); row=current_assignment_order()
         if row is None: selected_order_var.set("Виберіть наказ про закріплення або створіть новий."); return
         state_label = "Діє в Taxo" if row["status"]==ops.ORDER_APPROVED else ops.ORDER_STATUS_LABELS.get(row["status"],row["status"])
-        selected_order_var.set("Наказ №%s від %s — %s"%(row["order_no"],ops.display_day(row["order_date"]),state_label))
         con2=core.db()
         try: items=ops.order_assignments(con2,row["id"])
         finally: con2.close()
+        selected_order_var.set(
+            "Наказ №%s від %s — %s — закріплень: %d"
+            % (row["order_no"],ops.display_day(row["order_date"]),state_label,len(items))
+        )
         for item in items:
             aid=int(item["id"]); assignment_cache[aid]=item; driver=" ".join(str(item[k] or "").strip() for k in ("last_name","first_name","middle_name") if str(item[k] or "").strip())
             atree.insert("","end",iid=str(aid),values=(item["sequence_no"],item["make_model"] or item["vehicle_name"],item["plate"],driver,ops.display_day(item["valid_from"]),ops.display_day(item["valid_until"])))
@@ -837,8 +861,12 @@ def open_operations_center(app, core):
             if vv.get() not in vmap or ev.get() not in emap: core.messagebox.showerror("Закріплення","Виберіть ТЗ і водія.",parent=dlg); return
             con3=core.db()
             try:
-                if existing: ops.update_vehicle_assignment(con3,existing["id"],vehicle_id=vmap[vv.get()],employee_id=emap[ev.get()],valid_from=fv.get(),valid_until=uv.get(),history_note="Редагування через інтерфейс")
-                else: ops.add_vehicle_assignment(con3,order["id"],vmap[vv.get()],emap[ev.get()],valid_from=fv.get(),valid_until=uv.get())
+                target_pair=(int(vmap[vv.get()]),int(emap[ev.get()]))
+                if existing:
+                    ops.update_vehicle_assignment(con3,existing["id"],vehicle_id=target_pair[0],employee_id=target_pair[1],valid_from=fv.get(),valid_until=uv.get(),history_note="Редагування через інтерфейс")
+                else:
+                    ops.add_vehicle_assignment(con3,order["id"],target_pair[0],target_pair[1],valid_from=fv.get(),valid_until=uv.get())
+                ops.verify_vehicle_assignment_pairs(con3,order["id"],[target_pair])
                 con3.commit()
             except Exception as exc: con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
             finally: con3.close()
@@ -904,6 +932,7 @@ def open_operations_center(app, core):
                 ops.add_vehicle_assignments_bulk(
                     con3,order["id"],pairs,valid_from=from_var.get(),valid_until=until_var.get()
                 )
+                ops.verify_vehicle_assignment_pairs(con3,order["id"],pairs)
                 con3.commit()
             except Exception as exc:
                 con3.rollback(); core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
