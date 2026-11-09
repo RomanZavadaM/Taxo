@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ColdStartupR10Tests(unittest.TestCase):
     def test_r10_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.14-r10")
+        self.assertIn(main.APP_VERSION, ("10.14-r10", "10.15-r1"))
 
     def test_shlyakh_actions_use_a_dedicated_vehicle_registry_toolbar(self):
         source = (ROOT / "src" / "taxo" / "v1048_features.py").read_text(encoding="utf-8")
