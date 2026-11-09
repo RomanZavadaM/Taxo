@@ -10,6 +10,7 @@ import function_registry
 import main
 import military_transport_statement_ui
 import v1072_features
+from runtime_reachability import runtime_routes, activate_widget
 
 
 def walk(widget):
@@ -87,6 +88,7 @@ class ReachabilityR4Tests(unittest.TestCase):
         self.assertTrue(routes["vehicles.military"].runtime_smoke)
         self.assertTrue(routes["vehicles.military.statement"].runtime_smoke)
 
+    @runtime_routes("operations.center")
     def test_operations_navigation_is_mapped_and_invokes(self):
         calls = []
         core = SimpleNamespace(
@@ -107,15 +109,12 @@ class ReachabilityR4Tests(unittest.TestCase):
             show_root(root)
             action = app._nav_named_buttons.get("Експлуатація")
             self.assertIsNotNone(action)
-            self.assertTrue(action.winfo_ismapped())
-            if callable(getattr(action, "invoke", None)):
-                action.invoke()
-                self.assertEqual(calls, ["operations"])
-            else:
-                self.assertTrue(action.bind("<Button-1>"))
+            activate_widget(action, "operations.center", container=root)
+            self.assertEqual(calls, ["operations"])
         finally:
             root.destroy()
 
+    @runtime_routes("vehicles.military.statement")
     def test_nested_statement_entry_is_mapped_and_invokes(self):
         calls = []
         core = SimpleNamespace(tk=tk, ttk=ttk, APP_VERSION="10.12-r4")
@@ -132,8 +131,7 @@ class ReachabilityR4Tests(unittest.TestCase):
             self.assertIsNotNone(win)
             action = button_by_text(win, "Відомість (додаток 1)")
             self.assertIsNotNone(action)
-            self.assertTrue(action.winfo_ismapped())
-            action.invoke()
+            activate_widget(action, "vehicles.military.statement", container=win)
             self.assertEqual(calls, ["statement"])
         finally:
             root.destroy()
