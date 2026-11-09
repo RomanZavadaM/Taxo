@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Publish checkpoint: candidate 10.11-r10 after verified personnel-report UX exact-main CI; exact source b239bb0.
+# Publish checkpoint: candidate 10.15-r3, exact product main eb71c64d3627ad3d02524b1735a1b53f155ec347; START #2561, Windows #1444, Win7 #418, macOS #1343 SUCCESS.
 
 on:
   workflow_dispatch:
