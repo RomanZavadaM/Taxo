@@ -98,12 +98,6 @@ class ExistingAssignmentEditGuardR8Tests(unittest.TestCase):
             },
         ]
 
-        def fit(win, width, height, min_width, min_height):
-            if width == 900:
-                win.geometry("900x760+40+40")
-            else:
-                win.geometry("1100x760+20+20")
-
         core = SimpleNamespace(
             tk=tk, ttk=ttk,
             messagebox=SimpleNamespace(
@@ -114,7 +108,7 @@ class ExistingAssignmentEditGuardR8Tests(unittest.TestCase):
             filedialog=SimpleNamespace(asksaveasfilename=lambda *a, **k: ""),
             db=lambda: _DummyConnection(),
             configure_toplevel=lambda *a, **k: None,
-            fit_window_to_screen=fit,
+            fit_window_to_screen=main.fit_window_to_screen,
             OUTPUT_DIR=__import__("pathlib").Path("."),
         )
         app = _AppHarness()
