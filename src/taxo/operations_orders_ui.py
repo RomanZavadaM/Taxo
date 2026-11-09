@@ -40,7 +40,13 @@ def open_operations_center(app, core):
     win.title("Taxo / %s — Експлуатація" % app._company_name_value())
 
     body = core.ttk.Frame(win, padding=12); body.pack(fill="both", expand=True)
-    core.ttk.Label(body, text="Експлуатація", style="HeroTitle.TLabel").pack(anchor="w")
+    header = core.ttk.Frame(body)
+    header.pack(fill="x")
+    core.ttk.Label(header, text="Експлуатація", style="HeroTitle.TLabel").pack(side="left")
+    core.ttk.Button(
+        header, text="Лист стажування…",
+        command=lambda: book.select(internship_tab)
+    ).pack(side="right")
     core.ttk.Label(
         body,
         text=("Робочий центр експлуатації: щоденні документи, технічна готовність, накази, "
@@ -66,7 +72,7 @@ def open_operations_center(app, core):
         con.close()
     employee_labels = [row["label"] for row in employees]
     install_instruction_tab(app, core, book)
-    install_internship_tab(app, core, book)
+    internship_tab = install_internship_tab(app, core, book)
     operations_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["operations_responsible_employee_id"], "") if cfg else "")
     military_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["military_transport_responsible_employee_id"], "") if cfg else "")
     place_var = core.tk.StringVar(value=(cfg["order_place"] if cfg else "") or "")
