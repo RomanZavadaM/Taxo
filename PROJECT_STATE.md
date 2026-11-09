@@ -3,16 +3,16 @@
 **Дата:** 09.11.2026
 **Repository:** RomanZavadaM/Taxo
 
-## Стабільний випуск 10.14-r4 — схвалено власником, публікація перевіряється
+## Stable / Latest: 10.14-r4 — ОПУБЛІКОВАНО 09.11.2026
 
-- **Ціль stable/latest:** v10.14-r4; на початку підготовки фактичний GitHub Latest був v10.12-r10. Не заявляти новий release виданим до перевірки GitHub.
-- **Точна продуктова база:** 677458afa06893b4d221130db72de4045187e0c8, PR #268; 10.14-r1–r4 і 10.13-r1–r10 включені.
-- **CI точного коду:** Windows #1357, Win7 #337, macOS #1262, START #2402 — PASS. Після docs PR потрібні перевірки exact release source.
-- **Рішення власника 09.11:** загалом програма працює; оновити стабільну версію, головний README, шість мов і документацію.
-- **Виправлено:** масові накази; окремі кадрові/робочі номери; безпечні DOCX/PDF/JPG та однакові таблиці; статус/паперовий підпис не блокують редагування чи видалення.
-- **Rollback:** v10.12-r10; наступна кодова ревізія — 10.14-r5 (не розпочинати під час стабільної публікації).
-- **Завершити:** публікація/tag/8 assets/checksums/latest через перевірений GitHub workflow, оновлення HANDOFF після факту.
-
+- **GitHub Latest:** [v10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4), 8 canonical assets, `draft=false`, `prerelease=false`.
+- **Immutable tag source:** `214f714f4804cb284fdcbc5b5a26418cef40937a`; product 10.14-r4 implementation SHA `677458afa06893b4d221130db72de4045187e0c8`.
+- **CI точної бази випуску:** Windows #1364, Win7 #341, macOS #1266, START #2404 — SUCCESS; stable promoter workflow #3 — SUCCESS.
+- **Owner acceptance:** 09.11.2026, «вроді загалом нормально все працює», пряма команда оновити stable і документацію.
+- **Previous stable/rollback:** [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10). Наступна кодова ревізія — 10.14-r5.
+- **Склад:** 10.13 Експлуатація/СТОІР/масові накази/дві серії номерів; 10.14 DOCX/PDF/JPG, узгоджені таблиці й додатки, редагування і видалення без заборон за статусом/підписом.
+- **Документи й локалізації:** README українською, EN/DE/ES/FR/KO/JA, посібники, індекс і notes актуалізовано.
+- **Резерв:** Google Drive має START і два macOS artifacts; великий Windows artifacts не скопійовано через 100 МБ ліміт конектора. GitHub Release — повний офіційний комплект. Докладно в `docs/maintenance/STABLE_BACKUP_MANIFEST_10.14-r4_2026-11-09.md`.
 ## Історичні записи попередніх етапів
 # PROJECT_STATE — Taxo
 
