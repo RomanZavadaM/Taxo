@@ -14,10 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SafetyTemplateR2Tests(unittest.TestCase):
     def test_r2_identity_and_start_guard(self):
-        self.assertEqual(main.APP_VERSION, "10.15-r2")
-        self.assertIn("Version: 10.15-r2", (ROOT / "VERSION.txt").read_text("utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.15-r2", "10.15-r3"))
+        self.assertIn("Version: " + main.APP_VERSION, (ROOT / "VERSION.txt").read_text("utf-8"))
         start=(ROOT / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.15-r2", start)
+        self.assertIn("Taxo " + main.APP_VERSION, start)
         self.assertIn("safety_templates.py", start)
 
     def test_template_ids_are_unique_and_stable(self):
