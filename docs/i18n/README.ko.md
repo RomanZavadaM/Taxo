@@ -30,3 +30,7 @@ Taxo의 명령서는 업무 보조 문서입니다. 상태나 종이 서명 표�
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
+
+## 시험 후보 10.15-r3 — 안전교육 및 운전자 실습 문서
+
+안전교육은 여러 CSV 파일 대신 전체 교육 내용과 별도 자필 서명지가 포함된 편집 가능한 DOCX를 생성합니다. 운전자 실습 기록지와 작업 공간에 저장된 Word 문서를 검색하는 목록도 추가되었습니다(전체 백업에 포함). 문서 생성은 교육 실시, 서명 또는 운행 승인으로 간주하지 않습니다. 선택적 서명본 스캔과 계층형 문서 목록은 별도 작업(#289), Python 모듈 분리는 #290입니다. 안정 버전은 여전히 10.14-r4입니다.
