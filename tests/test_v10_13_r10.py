@@ -58,7 +58,7 @@ class TaxoR10OrderPreviewTests(unittest.TestCase):
         self.con.close()
 
     def test_identity_is_10_13_r10_or_newer(self):
-        self.assertIn(main.APP_VERSION, ("10.13-r10", "10.14-r1"))
+        self.assertIn(main.APP_VERSION, ("10.13-r10", "10.14-r1", "10.14-r2"))
         self.assertIn(main.APP_VERSION,Path("VERSION.txt").read_text(encoding="utf-8"))
         self.assertIn("Taxo " + main.APP_VERSION,Path("START.bat").read_text(encoding="utf-8"))
 
@@ -113,7 +113,7 @@ class TaxoR10OrderPreviewTests(unittest.TestCase):
             "preview_order(created_order)",
             "book.select(orders_tab)",
             'order_tree.bind("<Double-1>",lambda _e:preview_order()',
-            "Це зміст наказу перед друком",
+            "Перевірте зміст наказу.",
         ):
             self.assertIn(marker,text)
 
