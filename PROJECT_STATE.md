@@ -16,6 +16,8 @@
 - Feature Loss: додані runtime-smoke routes для друку інструктажу і листа стажування; попередні маршрути наказів та масових закріплень збережені й перевірені regression suite.
 - **GitHub prerelease v10.15-r3:** [опубліковано](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r3), тег незмінно вказує на exact product source `eb71c64d3627ad3d02524b1735a1b53f155ec347`; publisher #42690409737 SUCCESS, 8/8 assets + SHA256. Stable Latest лишається v10.14-r4.
 - **Manual acceptance r3:** PENDING.
+- **Drive START recovery:** `Taxo_CURRENT_MAIN_v10.15-r3_2026-11-09_START.zip`, file `11T-KbkowXAVxKORUmDkl2VK6eq_-Txkt`, 1 813 312 bytes, SHA256 `6ec7ff84caf45822d9194905980d8f55faa16d92bfff99d36822ac1d5d8e20f1`; 640 ZIP entries, no nested ZIP, package check OK.
+
 - **Рішення власника:** перед модульною перебудовою Taxo для масштабування 2–3× потрібен незалежний read-only аудит (Issue #290); тільки після його критичної перевірки почати перенос великих Python-модулів. Повний ієрархічний каталог документів зі сканами — Issue #289.
 - **Наступна безпечна дія:** закінчити release checkpoint, оновити recovery/Drive, передати точне завдання незалежному аудитору. Новий код заборонено до інтеграції checkpoint.
 
