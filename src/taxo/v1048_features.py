@@ -53,6 +53,37 @@ def _configure_window(core, win, title, width=1100, height=720):
         pass
 
 
+def _ensure_vehicle_registry_toolbar(app, core):
+    """Keep registry/TCC vehicle actions away from the legacy core toolbar.
+
+    The core vehicle toolbar is reflowed from pack to grid by v1066.  Adding
+    registry buttons into that same parent with pack makes a later grid call
+    crash Tk with "cannot use geometry manager pack ... already managed by
+    grid".  A dedicated packed child of tab_vehicles keeps the two geometry
+    systems in different parents.
+    """
+    existing = getattr(app, "vehicle_registry_toolbar", None)
+    if _alive(existing):
+        return existing
+    tab = getattr(app, "tab_vehicles", None)
+    if not _alive(tab):
+        return None
+    frame = core.ttk.LabelFrame(
+        tab, text="Реєстри та облік ТЗ", padding=(6, 4)
+    )
+    pack_args = {"fill": "x", "padx": 10, "pady": (0, 5)}
+    tree = getattr(app, "vehicle_tree", None)
+    if _alive(tree):
+        try:
+            if tree.winfo_manager() == "pack":
+                pack_args["before"] = tree
+        except Exception:
+            pass
+    frame.pack(**pack_args)
+    app.vehicle_registry_toolbar = frame
+    return frame
+
+
 def _vehicle_status_label(status):
     return {
         "no_changes": "Відповідає",
@@ -177,9 +208,8 @@ def install(core, base_app):
         # ------------------------------------------------------------------
         def _install_r8_actions(self):
             if not getattr(self, "_r8_vehicle_actions_installed", False):
-                anchor = _find_button(getattr(self, "tab_vehicles", None), "Контроль документів")
-                if anchor is not None:
-                    parent = anchor.master
+                parent = _ensure_vehicle_registry_toolbar(self, core)
+                if parent is not None:
                     self._shlyakh_button = core.ttk.Button(
                         parent, text="Реєстр «Шлях»: потрібне звіряння…",
                         command=self.import_shlyakh_registry,
