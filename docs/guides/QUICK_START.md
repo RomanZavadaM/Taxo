@@ -1,14 +1,14 @@
-# Короткий старт — Taxo 10.4
+# Короткий старт — Taxo 10.14-r4
 
 ## Варіанти запуску
 
 ### Windows — встановлена версія
-1. Завантажте актуальний `Taxo_*_Setup_Windows_x64.exe` з GitHub Releases.
+1. Завантажте **10.14-r4** з [GitHub Releases](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4): `Taxo_v10_14_candidate_r4_Setup_Windows_x64.exe`.
 2. Встановіть програму.
 3. Запустіть Taxo з ярлика.
 
 ### Windows — portable
-1. Завантажте актуальний `Taxo_*_Windows_x64_Portable.zip`.
+1. Завантажте `Taxo_v10_14_candidate_r4_Windows_x64_Portable.zip`.
 2. Розпакуйте в окрему папку.
 3. Запустіть `Taxo.exe`.
 
@@ -17,7 +17,7 @@
 
 **Не запускайте `START.bat` прямо з відкритого ZIP.** Архіватор може тимчасово витягнути лише BAT-файл без `requirements.txt` та решти програми.
 
-1. Завантажте актуальний START ZIP з GitHub Release.
+1. Завантажте [START ZIP 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_START.zip) з GitHub Release.
 2. Виберіть **«Видобути все / Extract all»** або в 7-Zip — **«Extract to…»**.
 3. Відкрийте саме розпаковану папку.
 4. Переконайтеся, що поруч із `START.bat` є `requirements.txt` і `taxo_app.py`.
@@ -62,3 +62,7 @@
 
 Після початкового налаштування зробіть резервну копію робочої бази. Надалі резервування має бути регулярним, особливо перед масовими виправленнями або оновленням програми.
 
+
+## Накази та друк
+
+У «Експлуатація → Накази» доступні DOCX (редагований Word), PDF та JPG, а також «Створити все». Перегляд DOCX відкриває реальну програму Word або PDF того самого наказу, якщо він уже створений. Подробиці — у [посібнику Експлуатації](OPERATIONS_STOIR_GUIDE.md). Статус і відмітка підпису не забороняють змінювати чи видаляти робочий наказ у Taxo.
