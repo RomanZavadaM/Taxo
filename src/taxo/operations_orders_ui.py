@@ -279,6 +279,8 @@ def open_operations_center(app, core):
         initial_driver_list=None
         assignment_box=None
         assignment_count_var=core.tk.StringVar(value="")
+        staged_initial_pairs=[]
+        staged_pair_tree=None
         if existing is None:
             con_choices=core.db()
             try:
@@ -306,24 +308,89 @@ def open_operations_center(app, core):
             dialog._taxo_assignment_vehicle_list = initial_vehicle_list
             dialog._taxo_assignment_driver_list = initial_driver_list
 
-            def update_assignment_count(_event=None):
-                vc=len(initial_vehicle_list.curselection()) if initial_vehicle_list is not None else 0
-                dc=len(initial_driver_list.curselection()) if initial_driver_list is not None else 0
-                assignment_count_var.set("Вибрано: ТЗ — %d; водіїв — %d" % (vc,dc))
-            initial_vehicle_list.bind("<<ListboxSelect>>",update_assignment_count)
-            initial_driver_list.bind("<<ListboxSelect>>",update_assignment_count)
-            update_assignment_count()
+            staged_pair_tree=core.ttk.Treeview(
+                assignment_box,columns=("vehicle","driver"),show="headings",height=3,selectmode="none"
+            )
+            staged_pair_tree.heading("vehicle",text="Підготовлений ТЗ")
+            staged_pair_tree.heading("driver",text="Підготовлений водій")
+            staged_pair_tree.column("vehicle",width=350,anchor="w")
+            staged_pair_tree.column("driver",width=350,anchor="w")
+            staged_pair_tree.grid(row=2,column=0,columnspan=2,sticky="ew",pady=(4,2))
+            dialog._taxo_staged_assignment_tree = staged_pair_tree
+            dialog._taxo_staged_assignment_pairs = staged_initial_pairs
+
+            def render_staged_pairs():
+                for iid in staged_pair_tree.get_children():
+                    staged_pair_tree.delete(iid)
+                vehicle_by_id={int(row["id"]):row for row in initial_vehicles}
+                driver_by_id={int(row["id"]):row for row in initial_drivers}
+                for seq,(vehicle_id,driver_id) in enumerate(staged_initial_pairs,1):
+                    vehicle=vehicle_by_id.get(int(vehicle_id),{})
+                    driver=driver_by_id.get(int(driver_id),{})
+                    staged_pair_tree.insert(
+                        "","end",iid=str(seq),values=(
+                            vehicle.get("label") or ("ТЗ #%s" % vehicle_id),
+                            driver.get("label") or ("Працівник #%s" % driver_id),
+                        )
+                    )
+
+            def stage_current_selection(_event=None, *, show_error=False):
+                vehicle_ids=[initial_vehicles[int(index)]["id"] for index in initial_vehicle_list.curselection()]
+                driver_ids=[initial_drivers[int(index)]["id"] for index in initial_driver_list.curselection()]
+                if not vehicle_ids and not driver_ids:
+                    assignment_count_var.set(
+                        "Підготовлено пар: %d. Поточне виділення порожнє." % len(staged_initial_pairs)
+                    )
+                    return list(staged_initial_pairs)
+                try:
+                    pairs=ops.build_assignment_pairs(vehicle_ids,driver_ids)
+                except Exception as exc:
+                    assignment_count_var.set(
+                        "Підготовлено пар: %d. Поточний вибір потребує уточнення." % len(staged_initial_pairs)
+                    )
+                    if show_error:
+                        core.messagebox.showerror("Наказ про закріплення",str(exc),parent=dialog)
+                    return None
+                staged_initial_pairs[:]=[(int(vehicle_id),int(driver_id)) for vehicle_id,driver_id in pairs]
+                render_staged_pairs()
+                assignment_count_var.set(
+                    "Вибрано: ТЗ — %d; водіїв — %d. Підготовлено пар: %d."
+                    % (len(vehicle_ids),len(driver_ids),len(staged_initial_pairs))
+                )
+                return list(staged_initial_pairs)
+
+            def clear_staged_pairs():
+                staged_initial_pairs.clear()
+                try:
+                    initial_vehicle_list.selection_clear(0,"end")
+                    initial_driver_list.selection_clear(0,"end")
+                except Exception:
+                    pass
+                render_staged_pairs()
+                assignment_count_var.set("Підготовлено пар: 0.")
+
+            initial_vehicle_list.bind("<<ListboxSelect>>",stage_current_selection)
+            initial_driver_list.bind("<<ListboxSelect>>",stage_current_selection)
             core.ttk.Label(
                 assignment_box,textvariable=assignment_count_var,style="Subtitle.TLabel"
             ).grid(row=1,column=0,columnspan=2,sticky="w",pady=(6,2))
+            controls=core.ttk.Frame(assignment_box)
+            controls.grid(row=3,column=0,columnspan=2,sticky="ew",pady=(2,0))
+            core.ttk.Button(
+                controls,text="Зафіксувати поточний вибір",
+                command=lambda:stage_current_selection(show_error=True),
+            ).pack(side="left")
+            core.ttk.Button(
+                controls,text="Очистити підготовлені пари",command=clear_staged_pairs
+            ).pack(side="left",padx=6)
+            assignment_count_var.set("Підготовлено пар: 0.")
             core.ttk.Label(
                 assignment_box,
-                text=("Правило пар: 1 ТЗ + кілька водіїв → усі водії до цього ТЗ; "
-                      "однакова кількість ТЗ і водіїв → пари за порядком вибору. "
-                      "Один водій не закріплюється одночасно за кількома ТЗ. "
-                      "Якщо кількість різна з обох боків — Taxo попросить уточнити. Можна лишити обидва списки порожніми."),
+                text=("Пари, які реально підуть у наказ, показані в таблиці вище. "
+                      "Вибір зберігається окремо від підсвічування списків, тому не зникає при зміні фокусу. "
+                      "Правило: 1 ТЗ + кілька водіїв або однакова кількість ТЗ і водіїв."),
                 style="Muted.TLabel",wraplength=700,justify="left",
-            ).grid(row=2,column=0,columnspan=2,sticky="w",pady=(2,0))
+            ).grid(row=4,column=0,columnspan=2,sticky="w",pady=(4,0))
         elif initial_type==ops.TYPE_VEHICLE_ASSIGNMENT:
             con_existing=core.db()
             try:
@@ -438,13 +505,20 @@ def open_operations_center(app, core):
             series_key=next((key for key,label in ops.ORDER_SERIES_LABELS.items() if label==series_var.get()),ops.ORDER_SERIES_WORK)
             initial_pairs=[]
             if existing is None and order_type==ops.TYPE_VEHICLE_ASSIGNMENT and assignment_box is not None:
-                vehicle_ids=[initial_vehicles[int(index)]["id"] for index in initial_vehicle_list.curselection()]
-                driver_ids=[initial_drivers[int(index)]["id"] for index in initial_driver_list.curselection()]
-                try:
-                    initial_pairs=ops.build_assignment_pairs(vehicle_ids,driver_ids)
-                except Exception as exc:
-                    core.messagebox.showerror("Наказ про закріплення",str(exc),parent=dialog)
-                    return
+                current_vehicle_ids=[initial_vehicles[int(index)]["id"] for index in initial_vehicle_list.curselection()]
+                current_driver_ids=[initial_drivers[int(index)]["id"] for index in initial_driver_list.curselection()]
+                if current_vehicle_ids or current_driver_ids:
+                    staged=stage_current_selection(show_error=True)
+                    if staged is None:
+                        return
+                initial_pairs=list(staged_initial_pairs)
+                if not initial_pairs:
+                    if not core.messagebox.askyesno(
+                        "Порожній наказ про закріплення?",
+                        "Жодної пари ТЗ / водій не підготовлено. Створити порожній наказ без закріплень?",
+                        parent=dialog,
+                    ):
+                        return
             con3=core.db()
             try:
                 if existing:
@@ -461,7 +535,13 @@ def open_operations_center(app, core):
                         initial_pairs=initial_pairs,order_series=series_key,
                     )
                     if initial_pairs:
-                        ops.verify_vehicle_assignment_pairs(con3,oid,initial_pairs)
+                        stored_count=ops.verify_vehicle_assignment_pairs(con3,oid,initial_pairs)
+                        expected_count=len({(int(v),int(e)) for v,e in initial_pairs})
+                        if stored_count != expected_count:
+                            raise RuntimeError(
+                                "Taxo не підтвердив повний запис пар у новому наказі: "
+                                "очікувалось %d, у наказі %d." % (expected_count,stored_count)
+                            )
                 else:
                     oid=ops.create_order(con3,order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
                                          subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
