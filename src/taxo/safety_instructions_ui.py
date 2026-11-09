@@ -13,6 +13,8 @@ from pathlib import Path
 
 import operations_orders as ops
 import safety_templates as safety_tpl
+import paper_documents as paperwork
+from workspace import load_workspace_root
 
 
 BRIEFING_KINDS = {
@@ -428,31 +430,50 @@ def install_instruction_tab(app, core, book):
         except ValueError as exc:
             core.messagebox.showerror("Підготовка інструктажу", str(exc), parent=tab)
             return
-        target = core.filedialog.asksaveasfilename(
-            parent=tab, title="Зберегти підготовчий матеріал",
-            defaultextension=".csv", filetypes=[("Таблиця CSV", "*.csv")],
-            initialfile=preparation_filename(prepared)
-        )
-        if not target:
-            return
-        try:
-            write_preparation_csv(target, prepared)
-        except (OSError, ValueError) as exc:
+        if not prepared["program_text"]:
             core.messagebox.showerror(
-                "Файл не збережено", str(exc), parent=tab
+                "Інструктаж", "Текст програми порожній. Відкрийте «Текст програми…» та перевірте його.",
+                parent=tab
             )
             return
+        try:
+            target = paperwork.save_document(
+                load_workspace_root(), paperwork.build_briefing_docx(prepared),
+                "Інструктаж", prepared["topic"], prepared["day"].isoformat(),
+                ", ".join(prepared["people"]),
+            )
+        except Exception as exc:
+            core.messagebox.showerror("Файл не збережено", str(exc), parent=tab)
+            return
         core.messagebox.showinfo(
-            "Підготовчий матеріал",
-            "Збережено тему, редагований текст програми та список працівників. "
-            "Це не журнал і не підтвердження проведення інструктажу.",
-            parent=tab
+            "Друкований комплект",
+            "Створено Word із повною програмою та окремим листом для підписів. "
+            "Документ збережено в каталозі Taxo і входить у повну резервну копію. "
+            "Підписів і позначки «проведено» автоматично немає.\n\n" + str(target),
+            parent=tab,
         )
+        try:
+            paperwork.open_file(target)
+        except OSError as exc:
+            core.messagebox.showwarning(
+                "Документ збережено",
+                "Файл створено, але його не вдалося відкрити автоматично. "
+                "Відкрийте його в Word-сумісній програмі вручну.\n\n%s\n\n%s" % (target, exc),
+                parent=tab,
+            )
+
+    def show_catalog():
+        from paper_documents_ui import open_paper_document_catalog
+        open_paper_document_catalog(tab, core, load_workspace_root())
 
     core.ttk.Button(
-        controls, text="Зберегти підготовчий матеріал…",
+        controls, text="Створити комплект DOCX для друку",
         style="Accent.TButton", command=save_draft_list
     ).pack(side="right")
+
+    core.ttk.Button(
+        controls, text="Каталог документів…", command=show_catalog
+    ).pack(side="right", padx=(0, 8))
 
     # Stable hooks for regression/feature-loss checks.
     tab._taxo_briefing_template_box = template_box

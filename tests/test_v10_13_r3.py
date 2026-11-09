@@ -145,6 +145,15 @@ class InstructionJournalsR3Tests(unittest.TestCase):
                 self.assertIn("Інструктажі та журнали", labels)
                 self.assertIn("Накази", labels)
                 self.assertIn("Каталог наказів", labels)
+                self.assertIn("Стажування водіїв", labels)
+                internship_button = next(
+                    w for w in walk(win)
+                    if w.winfo_class() in ("TButton", "Button")
+                    and str(w.cget("text")) == "Лист стажування…"
+                )
+                self.assertTrue(internship_button.winfo_ismapped())
+                internship_button.invoke()
+                self.assertEqual(book.tab(book.select(), "text"), "Стажування водіїв")
                 instruction_tab = next(t for t in book.tabs() if book.tab(t, "text") == "Інструктажі та журнали")
                 book.select(instruction_tab)
                 app.update_idletasks()
@@ -152,7 +161,7 @@ class InstructionJournalsR3Tests(unittest.TestCase):
                 button = next(
                     w for w in walk(win)
                     if w.winfo_class() in ("TButton", "Button")
-                    and str(w.cget("text")) == "Зберегти підготовчий матеріал…"
+                    and str(w.cget("text")) == "Створити комплект DOCX для друку"
                 )
                 self.assertTrue(button.winfo_ismapped())
                 self.assertTrue(hasattr(book.nametowidget(instruction_tab), "_taxo_briefing_template_box"))

@@ -30,3 +30,7 @@ Die maßgebliche Betriebsdokumentation ist auf Ukrainisch. Siehe Kurzanleitung u
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
+
+## Testkandidat 10.15-r3 — Unterweisungen und Fahrerpraktikum
+
+Unterweisungen erzeugen jetzt ein bearbeitbares DOCX mit vollständigem Programm und einem getrennten Unterschriftenblatt statt einzelner CSV-Dateien. Es gibt außerdem ein Formular für das Fahrerpraktikum und ein durchsuchbares Verzeichnis gespeicherter Word-Dokumente im Arbeitsbereich (in der vollständigen Sicherung enthalten). Das Erstellen bestätigt weder Durchführung noch Unterschrift oder Zulassung. Optionale Scans und der hierarchische Dokumentenkatalog folgen separat (#289); die Python-Modularisierung ist #290. Die stabile Version bleibt 10.14-r4.
