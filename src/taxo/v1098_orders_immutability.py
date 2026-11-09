@@ -218,8 +218,6 @@ def approve_order(con, order_id):
     if row is None:
         raise ValueError("Наказ не знайдено.")
     status = str(row["status"] or "")
-    if status == ops.ORDER_CANCELLED:
-        raise ValueError("Скасований наказ не можна повторно затвердити. Оформіть новий наказ.")
     if status == ops.ORDER_APPROVED:
         return row
     if row["order_type"] == ops.TYPE_VEHICLE_ASSIGNMENT:
