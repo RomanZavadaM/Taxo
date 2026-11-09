@@ -25,8 +25,12 @@ Work databases, scans, personal documents and caches are excluded from release f
 
 ## Documentation and development
 
-The canonical operational documentation is in Ukrainian. Read the quick start and the operations/maintenance guide. The next code revision is 10.14-r5.
+The canonical operational documentation is in Ukrainian. Read the quick start and the operations/maintenance guide. The next planned code revision after 10.15-r3 is 10.15-r4.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
+
+## Test candidate 10.15-r3 — briefing and internship documents
+
+Operations → Briefings now produces an editable DOCX with the full program and a separate paper signature sheet, rather than a loose CSV as the primary output. Operations also offers a driver's internship/training sheet and a searchable catalog of saved Word documents inside the workspace (included in full backup). Generating a file never confirms attendance, a signature, or authorization to drive. The optional scanned originals and hierarchical catalog are planned separately (#289); modular Python restructuring for 2–3× growth is #290. Stable release remains 10.14-r4.
