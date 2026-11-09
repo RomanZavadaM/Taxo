@@ -204,3 +204,15 @@ def document_path(root, record):
     if not isinstance(filename, str) or Path(filename).name != filename or not filename.endswith(".docx"):
         raise ValueError("Небезпечне ім'я файла у реєстрі")
     return catalog_dir(root) / filename
+
+def open_file(path):
+    """Open the actual editable DOCX using the OS default document handler."""
+    import subprocess
+    import sys
+    path = str(Path(path).resolve())
+    if sys.platform.startswith("win"):
+        os.startfile(path)
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
