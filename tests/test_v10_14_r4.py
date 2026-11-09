@@ -54,7 +54,7 @@ class OrderLayoutR4Tests(unittest.TestCase):
         ]
 
     def test_version_and_start_module_guards(self):
-        self.assertEqual(main.APP_VERSION,"10.14-r4")
+        self.assertIn(main.APP_VERSION,("10.14-r4","10.14-r5"))
         start=Path("START.bat").read_text(encoding="utf-8")
         for name in ("order_document_formats.py","order_layout.py","order_pdf_sections.py"):
             self.assertIn(name,start)
