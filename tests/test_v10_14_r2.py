@@ -78,7 +78,7 @@ class OrderFormatsR2Tests(unittest.TestCase):
         word = Document(first["docx"][0])
         body = "\n".join(p.text for p in word.paragraphs)
         self.assertIn("Н А К А З У Ю", body)
-        self.assertIn("декільком", body.replace("двома", "декільком"))
+        self.assertIn("двома водіями", body)
         self.assertTrue(first["pdf"][0].read_bytes().startswith(b"%PDF"))
         from PIL import Image
         for jpg in first["jpg"]:
