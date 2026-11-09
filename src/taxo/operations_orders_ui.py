@@ -664,7 +664,7 @@ def open_operations_center(app, core):
         ).pack(side="right",padx=(0,6))
         if not order_mutability_message(row):
             core.ttk.Button(
-                bar,text="Редагувати чернетку",
+                bar,text="Редагувати наказ",
                 command=lambda:(dlg.destroy(),order_dialog(row))
             ).pack(side="left")
         dlg.transient(win)
@@ -678,10 +678,11 @@ def open_operations_center(app, core):
         ("Новий наказ…", new_order, "Accent.TButton"),
         ("Переглянути / друк", preview_order, "Accent.TButton"),
         ("Нумерація наказів…", open_numbering_settings, None),
-        ("Редагувати чернетку", edit_order, None),
+        ("Редагувати наказ", edit_order, None),
         ("Ввести в дію в Taxo", approve_selected, None),
         ("Історія…", show_history, None),
-        ("Скасувати наказ", cancel_draft, None),\n        ("Видалити наказ", delete_selected_order, None),
+        ("Скасувати наказ", cancel_draft, None),
+        ("Видалити наказ", delete_selected_order, None),
         ("Сформувати PDF", export_selected, None),
         ("Підпис на папері: так / ні", mark_paper_signed, None),
     )
