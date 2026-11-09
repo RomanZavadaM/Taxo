@@ -100,8 +100,12 @@ class PaperDocumentsR3Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "work"
             paths = workspace.ensure_workspace(root)
-            with sqlite3.connect(str(paths["main_db"])) as con:
+            con = sqlite3.connect(str(paths["main_db"]))
+            try:
                 con.execute("CREATE TABLE backup_smoke(id INTEGER PRIMARY KEY)")
+                con.commit()
+            finally:
+                con.close()
             document = paper.build_training_docx({
                 "driver": "Тест Стажист", "instructor": "Тест Наставник", "vehicle": "Автобус"
             })
