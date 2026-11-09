@@ -63,7 +63,7 @@ class _AppHarness(tk.Tk):
 
 class LivePreviewSyncR9Tests(unittest.TestCase):
     def test_r9_identity_and_registry(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r9", "10.14-r10"))
+        self.assertIn(main.APP_VERSION, ("10.14-r9", "10.14-r10", "10.15-r1"))
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
         self.assertIn("operations.assignment_preview_sync", routes)
         self.assertTrue(routes["operations.assignment_preview_sync"].required)
