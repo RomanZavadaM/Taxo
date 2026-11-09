@@ -281,6 +281,76 @@ def open_operations_center(app, core):
                       "Якщо кількість різна з обох боків — Taxo попросить уточнити. Можна лишити обидва списки порожніми."),
                 style="Muted.TLabel",wraplength=700,justify="left",
             ).grid(row=2,column=0,columnspan=2,sticky="w",pady=(2,0))
+        elif initial_type==ops.TYPE_VEHICLE_ASSIGNMENT:
+            con_existing=core.db()
+            try:
+                existing_assignments=ops.order_assignments(con_existing,existing["id"])
+            finally:
+                con_existing.close()
+            assignment_box=core.ttk.LabelFrame(frm,text="Водії і ТЗ цього наказу",padding=8)
+            assignment_box.grid(row=7,column=0,columnspan=2,sticky="ew",pady=(8,2))
+            assignment_box.columnconfigure(0,weight=1)
+            core.ttk.Label(
+                assignment_box,
+                text="Поточні закріплення: %d" % len(existing_assignments),
+                style="Subtitle.TLabel",
+            ).grid(row=0,column=0,sticky="w",pady=(0,4))
+            existing_tree=core.ttk.Treeview(
+                assignment_box,columns=("vehicle","plate","driver"),show="headings",
+                height=max(1,min(4,len(existing_assignments))),selectmode="browse",
+            )
+            for key,label,width in (
+                ("vehicle","Транспортний засіб",300),
+                ("plate","Держ. номер",130),
+                ("driver","Водій",320),
+            ):
+                existing_tree.heading(key,text=label)
+                existing_tree.column(key,width=width,anchor="w")
+            existing_tree.grid(row=1,column=0,sticky="ew",pady=(0,6))
+            for item in existing_assignments:
+                driver=" ".join(
+                    str(item[k] or "").strip()
+                    for k in ("last_name","first_name","middle_name")
+                    if str(item[k] or "").strip()
+                )
+                existing_tree.insert(
+                    "","end",values=(
+                        item["make_model"] or item["vehicle_name"],
+                        item["plate"] or "—",
+                        driver or "—",
+                    )
+                )
+            existing_buttons=core.ttk.Frame(assignment_box)
+            existing_buttons.grid(row=2,column=0,sticky="ew")
+            def open_existing_assignment_manager(open_bulk=False):
+                dialog.destroy()
+                book.select(assignments_tab)
+                refresh_assignments()
+                if open_bulk:
+                    try:
+                        win.after_idle(add_assignments_bulk)
+                    except Exception:
+                        add_assignments_bulk()
+            bulk_button=core.ttk.Button(
+                existing_buttons,text="Додати багато…",style="Accent.TButton",
+                command=lambda:open_existing_assignment_manager(True),
+            )
+            bulk_button.pack(side="left")
+            manage_button=core.ttk.Button(
+                existing_buttons,text="Керувати закріпленнями",
+                command=lambda:open_existing_assignment_manager(False),
+            )
+            manage_button.pack(side="left",padx=6)
+            core.ttk.Label(
+                assignment_box,
+                text=("Закріплення є частиною цього наказу. Тут видно поточний перелік; "
+                      "для додавання кількох водіїв/ТЗ натисніть «Додати багато…», "
+                      "для редагування або видалення окремих пар — «Керувати закріпленнями»."),
+                style="Muted.TLabel",wraplength=700,justify="left",
+            ).grid(row=3,column=0,sticky="w",pady=(6,0))
+            dialog._taxo_existing_assignment_tree=existing_tree
+            dialog._taxo_existing_assignment_bulk_button=bulk_button
+            dialog._taxo_existing_assignment_manage_button=manage_button
 
         def show_assignment_box(order_type):
             if assignment_box is None:
@@ -293,7 +363,7 @@ def open_operations_center(app, core):
         show_assignment_box(initial_type)
         if existing and int(existing["paper_original_signed"] or 0):
             core.ttk.Label(frm,text="Увага: паперовий оригінал позначено як підписаний. Після змін звірте його і, за потреби, передрукуйте.",
-                           style="Muted.TLabel",wraplength=620,justify="left").grid(row=9,column=0,columnspan=2,sticky="w",pady=(4,2))
+                           style="Muted.TLabel",wraplength=620,justify="left").grid(row=10,column=0,columnspan=2,sticky="w",pady=(4,2))
         def sync_type(_event=None):
             if existing: return
             key=type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
@@ -360,7 +430,7 @@ def open_operations_center(app, core):
             created_order=order_cache.get(int(oid))
             if created_order is not None:
                 preview_order(created_order)
-        bar=core.ttk.Frame(frm); bar.grid(row=10,column=0,columnspan=2,sticky="ew",pady=(10,0))
+        bar=core.ttk.Frame(frm); bar.grid(row=11,column=0,columnspan=2,sticky="ew",pady=(10,0))
         core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")
         core.ttk.Button(bar,text="Типовий текст",command=apply_template).pack(side="left")
         core.ttk.Button(bar,text="Зберегти" if existing else "Створити",style="Accent.TButton",command=save).pack(side="right",padx=(0,6)); dialog.transient(win)
