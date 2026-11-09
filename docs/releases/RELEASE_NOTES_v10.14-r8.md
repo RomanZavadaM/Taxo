@@ -61,3 +61,16 @@ Stable / Latest не пересувається без окремого ріше
 - Google Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, file ID `1ObOoSjHZvMmOzMgkNDULCCnQ0M42B7F3`.
 
 **Manual acceptance:** очікується на реальній робочій БД. **Stable / Latest залишається v10.14-r4.** Наступна кодова ревізія — **10.14-r9**.
+
+## Інтеграція та exact-main перевірка
+
+- PR #280 merged у `main`: `98c9f2daea8398c1bf18b64e5f96163c6c02e4cc`.
+- Final PR-head: Windows #1395, Win7 #371, macOS Intel/ARM #1296 — SUCCESS.
+- Exact-main: Windows #1396, Win7 #372, macOS Intel/ARM #1297, START #2511 — SUCCESS.
+- Exact-main regression: **1033 tests OK**.
+- START artifact: #13677776040, 1 748 707 байт.
+- SHA256: `e75beea340ea24088a05d90fcb37c7c96edbed7f6c2d41e81a586cf0494e7284`.
+- Google Drive recovery-copy: `Taxo_CURRENT_MAIN_v10.14-r8_2026-11-09_START.zip`, file ID `1lC9JVUXd6X46zIeEzxxrJDHKsyGInJ6z`.
+- Ручне експлуатаційне приймання власником — **PENDING**.
+- Наступна кодова ревізія — **10.14-r9**. Stable / Latest лишається `v10.14-r4`.
+
