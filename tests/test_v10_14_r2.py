@@ -61,8 +61,8 @@ class OrderFormatsR2Tests(unittest.TestCase):
         self.core = fake_core(self.output)
 
     def test_current_version_and_start_guard(self):
-        self.assertEqual(main.APP_VERSION, "10.14-r2")
-        self.assertIn("10.14-r2", Path("VERSION.txt").read_text(encoding="utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.14-r2", "10.14-r3"))
+        self.assertIn(main.APP_VERSION, Path("VERSION.txt").read_text(encoding="utf-8"))
         start = Path("START.bat").read_text(encoding="utf-8")
         self.assertIn("order_pdf_workflow.py", start)
         self.assertIn("order_document_formats.py", start)
