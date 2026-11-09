@@ -32,7 +32,7 @@ RUNTIME_ROUTE_TEST_MODULES = {
     "vehicles.military.statement": "test_v10_12_r4",
     "operations.center": "test_v10_12_r4",
     "operations.assignment_bulk": "test_v10_14_r6",
-    "operations.assignment_existing": "test_v10_14_r8",
+    "operations.assignment_existing": "test_v10_14_r8",\n    "operations.assignment_preview_sync": "test_v10_14_r9",
     "operations.instructions": "test_v10_14_r7",
     "maintenance.stoir": "test_function_reachability_r2",
     "documents.center": "test_v10_12_r7",
