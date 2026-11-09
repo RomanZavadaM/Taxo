@@ -10,6 +10,7 @@ from unittest import mock
 
 import function_registry
 import main
+from runtime_reachability import runtime_routes, activate_widget
 
 
 def walk(widget):
@@ -57,6 +58,7 @@ class PlanToFactReachabilityR10Tests(unittest.TestCase):
         self.assertIn("timesheet.plan_to_fact", routes)
         self.assertTrue(routes["timesheet.plan_to_fact"].runtime_smoke)
 
+    @runtime_routes("timesheet.plan_to_fact")
     def test_live_button_copies_only_missing_fact_in_isolated_database(self):
         today = date.today()
         missing_day = today.replace(day=1)
@@ -196,8 +198,6 @@ class PlanToFactReachabilityR10Tests(unittest.TestCase):
 
                     button = button_by_text(win, "План → факт")
                     self.assertIsNotNone(button)
-                    self.assertTrue(button.winfo_ismapped())
-
                     daily_tree = next(
                         widget for widget in walk(win)
                         if isinstance(widget, ttk.Treeview)
@@ -209,7 +209,7 @@ class PlanToFactReachabilityR10Tests(unittest.TestCase):
                     )
                     app.update()
 
-                    button.invoke()
+                    activate_widget(button, "timesheet.plan_to_fact", container=win)
                     app.update()
 
                     self.assertTrue(confirm.called)
