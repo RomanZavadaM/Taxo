@@ -1,3 +1,17 @@
+## 09.11.2026 — 10.14-r10 integrated: cold-start crash pack/grid
+
+- Owner exact-main r9 START на Windows впав до робочого вікна з `_tkinter.TclError: cannot use geometry manager pack ... already has slaves managed by grid`.
+- Traceback привів у `v1048_features.py` до кнопки «Реєстр “Шлях”».
+- Підтверджено historical conflict: v1048 пакував registry actions у legacy vehicle toolbar, v1066 пізніше переводив core controls того самого parent на grid.
+- Старий `test_v10_8_r1.py` знав про конфлікт, але перевіряв його наявність; regression змінено так, щоб конфлікт був заборонений.
+- PR #283 merged → exact main `12d6ff9e49b9a9ac2753b29f63828531c66bd1c8`.
+- Registry/TCC vehicle actions винесено в окрему панель «Реєстри та облік ТЗ».
+- Додано справжній cold-start smoke в окремому процесі з ізольованим workspace; він відтворює startup order і не забруднює решту regression suite.
+- Exact-main: START #2556, Windows #1413, Win7 #389, macOS #1314 — SUCCESS; 1039 tests OK; cold-start PASS.
+- START artifact #13682040160, 1 760 098 B; SHA256 `a8304385abe5e120a5802872909eb2bd892adbbf3ef6a1bd678244929e21671b`.
+- Drive: `Taxo_CURRENT_MAIN_v10.14-r10_2026-11-09_START.zip`, ID `13aUUhV1yGawzaqdrujn_emPqyK999cey`.
+- Stable лишається v10.14-r4. Manual acceptance r10 pending. Next code revision: 10.15-r1.
+
 ## 09.11.2026 — 10.14-r5 integrated: appendix edit lock removed
 
 - Recovery виконано за START_HERE/HANDOFF/private profile/live GitHub; stable v10.14-r4 підтверджено й не змінено.
