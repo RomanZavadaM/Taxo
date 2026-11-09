@@ -28,4 +28,11 @@
 - збереження додатків у snapshot перед видаленням наказу;
 - відсутності старих UI-заборон.
 
-Windows / Windows 7 / macOS / START мають пройти PR CI перед інтеграцією.
+## Результат інтеграції
+
+- PR #273 merged → main `df7c9c6d001445fa2ea5d0b0cd12c20a04d0c5e6`.
+- PR-head: Windows #1368, Win7 #344, macOS #1269, START #2418 — SUCCESS.
+- Exact-main: Windows #1369, Win7 #345, macOS #1270, START #2419 — SUCCESS.
+- START regression: 1023 tests OK.
+- Exact-main START artifact #13668314757; Drive recovery-copy `Taxo_CURRENT_MAIN_v10.14-r5_2026-11-09_START.zip`, 1 729 037 байт, file ID `1EsQ5pdJUEP9Fge0_Hiw41qCvtaxCNF9q`.
+- Stable / Latest лишається `v10.14-r4`; r5 — інтегрований кандидат для експлуатаційного тестування.
