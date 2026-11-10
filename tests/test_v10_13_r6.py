@@ -169,6 +169,7 @@ class StructuredOrderEntitiesR6Tests(unittest.TestCase):
 
     def test_ui_has_bulk_structured_entity_workflow(self):
         text=Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        text+=Path("src/taxo/order_entities_ui.py").read_text(encoding="utf-8")
         for marker in (
             'text="Учасники / ТЗ"',
             'text="Додати працівників…"',
