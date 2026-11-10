@@ -20,6 +20,10 @@ from pathlib import Path
 from docx import Document
 from pypdf import PdfReader
 import paper_documents as paper
+import employee_document_control_r7 as employee_control
+import personnel_registry as personnel
+from reportlab.pdfgen import canvas
+from PIL import Image
 import safety_instructions_ui as brief
 import tachograph
 import workspace
@@ -45,10 +49,33 @@ tcon.execute(
 tcon.commit()
 tcon.close()
 
+# Real-format documents are synthetic and belong exclusively to the temporary
+# workspace. The employee document must be linked from the actual registry.
+sample_pdf = root.parent / "employee-source.pdf"
+pdf_canvas = canvas.Canvas(str(sample_pdf))
+pdf_canvas.drawString(72, 720, "Synthetic employee document 101")
+pdf_canvas.save()
+sample_jpg = root.parent / "tachograph-source.jpg"
+Image.new("RGB", (64, 64), (31, 90, 140)).save(str(sample_jpg), "JPEG")
+stored_pdf, copied = employee_control.stored_document_path(main, 101, str(sample_pdf))
+assert copied and stored_pdf.startswith("workspace://Data/EmployeeDocuments/")
+con = main.db()
+employee_control.ensure_schema_on_connection(con)
+document_id = personnel.save_employee_document(con, 101, {
+    "doc_type": "Synthetic test document",
+    "number": "TEST-101",
+    "expiry_date": "2030-12-31",
+    "file_path": stored_pdf,
+})
+employee_control.save_requirement(
+    con, 101, "Synthetic test document", required=True, expiry_control=True)
+con.commit()
+con.close()
+
 samples = {
     "Data/EmployeeDocuments/test-employee.pdf": b"synthetic employee document",
     "Data/VehicleDocuments/test-vehicle.pdf": b"synthetic vehicle document",
-    "Data/TachographScans/scan-test.jpg": b"synthetic tachograph scan",
+    "Data/TachographScans/scan-test.jpg": sample_jpg.read_bytes(),
 }
 for relative, payload in samples.items():
     dest = root / relative
@@ -90,6 +117,20 @@ assert con.execute("SELECT count(*) FROM vehicles WHERE id BETWEEN 201 AND 212")
 row = con.execute("SELECT planned_hours,actual_hours,notes FROM employee_time_entries WHERE employee_id=101 AND work_date='2026-11-10'").fetchone()
 assert tuple(row) == (8.0, 9.5, "Тест план і факт"), tuple(row)
 assert ops.vehicle_assignment_pairs(con, order_id) == before_pairs
+doc = con.execute(
+    "SELECT employee_id, doc_type, number, expiry_date, file_path FROM employee_documents WHERE id=?",
+    (document_id,),
+).fetchone()
+assert tuple(doc) == (101, "Synthetic test document", "TEST-101", "2030-12-31", stored_pdf)
+req = con.execute(
+    "SELECT required, expiry_control FROM employee_document_requirements WHERE employee_id=? AND doc_type=?",
+    (101, "Synthetic test document"),
+).fetchone()
+assert tuple(req) == (1, 1)
+restored_employee_pdf = workspace.resolved_path(doc["file_path"], restored)
+assert restored_employee_pdf.is_file()
+assert restored_employee_pdf.read_bytes() == sample_pdf.read_bytes()
+assert "Synthetic employee document 101" in PdfReader(str(restored_employee_pdf)).pages[0].extract_text()
 con.close()
 tcon = sqlite3.connect(str(restored_paths["tacho_db"]))
 assert tcon.execute("PRAGMA quick_check").fetchone()[0] == "ok"
@@ -97,6 +138,8 @@ assert tcon.execute("SELECT scan_name,driver_id,vehicle_id FROM discs").fetchone
 tcon.close()
 for relative, payload in samples.items():
     assert (restored / relative).read_bytes() == payload, relative
+with Image.open(str(restored / "Data/TachographScans/scan-test.jpg")) as image:
+    assert image.format == "JPEG" and image.size == (64, 64)
 records = paper.list_documents(restored)
 assert len(records) == 2
 assert {r["kind"] for r in records} == {"Інструктаж", "Стажування"}
