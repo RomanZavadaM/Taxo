@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """Missing employee document files are reported without changing records."""
+import sqlite3
 import tempfile
+import tkinter as tk
 import unittest
+from tkinter import ttk
+from types import SimpleNamespace
 from datetime import date
 from pathlib import Path
 
@@ -105,6 +109,63 @@ class DocumentFileControlR4Tests(unittest.TestCase):
         self.set_document("workspace://../outside.pdf")
         self.assertEqual(self.row(True)[0]["state"], control.STATE_FILE_MISSING)
         self.assertFalse(self.row()[0]["file_backed_up"])
+
+
+class DocumentControlWindowR4Tests(unittest.TestCase):
+    def test_missing_file_shown_and_refresh_removes_resolved_problem(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "workspace"
+            root.mkdir()
+            dbfile = root / "test.sqlite3"
+            seed = make_db()
+            control.save_requirement(seed, 1, "Тест", required=True, expiry_control=True)
+            personnel.save_employee_document(seed, 1, {
+                "doc_type": "Тест", "number": "UI-SYNTHETIC",
+                "expiry_date": "2030-01-01",
+                "file_path": "workspace://Data/EmployeeDocuments/example.pdf",
+            })
+            seed.commit()
+            dest = sqlite3.connect(str(dbfile))
+            seed.backup(dest)
+            dest.close()
+            seed.close()
+
+            def db():
+                con = sqlite3.connect(str(dbfile))
+                con.row_factory = sqlite3.Row
+                return con
+
+            core = SimpleNamespace(DATA_ROOT=root, tk=tk, ttk=ttk, db=db,
+                                   real_data_path=lambda value: workspace.resolved_path(value, root))
+            app_class = control.install(core, tk.Tk)
+            app = app_class()
+            try:
+                app.open_required_employee_documents_r7()
+                app.update()
+                win = app._required_employee_documents_r7_window
+
+                def walk(widget):
+                    for child in widget.winfo_children():
+                        yield child
+                        yield from walk(child)
+
+                widgets = list(walk(win))
+                tree = next(w for w in widgets if isinstance(w, ttk.Treeview))
+                items = tree.get_children()
+                self.assertEqual(len(items), 1)
+                values = tree.item(items[0], "values")
+                self.assertEqual(values[-1], control.STATE_LABELS[control.STATE_FILE_MISSING])
+
+                copy = root / "Data/EmployeeDocuments/example.pdf"
+                copy.parent.mkdir(parents=True, exist_ok=True)
+                copy.write_bytes(b"synthetic")
+                button = next(w for w in widgets if isinstance(w, ttk.Button)
+                              and str(w.cget("text")) == "Оновити")
+                button.invoke()
+                app.update()
+                self.assertEqual(tree.get_children(), ())
+            finally:
+                app.destroy()
 
 
 if __name__ == "__main__":
