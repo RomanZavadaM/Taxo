@@ -19,7 +19,7 @@
 
 ## Завантаження
 
-Власник протестував **10.15-r4** і доручив зробити її стабільною. Зміна статусу на GitHub ще очікує завершення. [Усі файли 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [чинна стабільна 10.14-r4 (після переходу — попередня)](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4).
+**Стабільна версія: [10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4).** [Попередня стабільна 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4).
 
 - **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_Windows_x64_Portable.zip)
 - **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_Windows7_x64_Portable.zip)

@@ -17,9 +17,9 @@ Taxo es una aplicación de escritorio para empresas de transporte: personal y ve
 
 ## Descargas
 
-El propietario ha probado 10.15-r4 y ha solicitado declararla estable; el cambio de estado en GitHub está pendiente.
+Versión estable: 10.15-r4.
 
-[Todos los archivos 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Versión estable actual 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
+[Todos los archivos 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Versión estable anterior 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
 
 Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/SHA256SUMS_v10_15_r4.txt)
 
