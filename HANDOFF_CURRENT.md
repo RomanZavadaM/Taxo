@@ -1,18 +1,16 @@
 # HANDOFF_CURRENT — Taxo
 
-**10.11.2026:** власник протестував 10.15-r4 і доручив зробити її стабільною. GitHub підтверджує [v10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) як Latest, prerelease=false; попередня stable — 10.14-r4.
+**10.11.2026:** stable / Latest — [v10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4). Власник протестував перший каталог 10.15-r5 та повідомив, що зауважень не знайшов; рішення зробити r5 stable не надходило.
 
-- Product/tag `ae0c673a42c5b633706efdffc1adfd5b1b70681d`; у випуску 8 файлів. Перевірки [START](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804380), [Windows](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804065), [Win7-сумісність](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804054), [macOS Intel/ARM](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804153) — SUCCESS; ручного запуску на фізичній Windows 7 немає.
-- Нові описи й переклади, маршрут до приватного профілю та актуальний статус — PR #308. Історичний WORKLOG звірено у private `dev-strategy/profile/taxo/taxo-history/2026-11-10-worklog-snapshot/WORKLOG.md`; новий журнал — `taxo-history/DEVELOPMENT_LOG.md`.
-- Опис stable виправлено штатним publisher [42837469420](https://github.com/RomanZavadaM/Taxo/actions/runs/42837469420); GitHub Latest, tag та ID/digest усіх 8 файлів після публікації звірені й не змінені. У виданому START старий README: [актуальний комплект документації](docs/releases/DOCUMENTATION_v10.15-r4.md) доступний окремо зі сторінки релізу.
-- Exact-main START artifact збережено у Drive `02_CURRENT_MAIN`, файл `1QIyvVj4PPTKOjB3anHX4zX3IlxmhvA_X`, 1 847 445 bytes; SHA256 до передавання `aa4449f6a3233a0e4dd7c0736acb73bf7fe04a14c5ab2ea67982a19777c6b4f2`; побайтове повторне зчитування не виконувалось.
-- Власник доручив спроєктувати спільне збереження готових документів з необов'язковими підписаними копіями та відокремити накази й інструктажі. [Проєкт взаємодії](https://github.com/RomanZavadaM/dev-strategy/blob/profile/taxo/taxo-history/DESIGN_DOCUMENTS_ORDERS_BRIEFINGS_2026-11-10.md) і окремий автоматизований read-only огляд зафіксовано приватно; огляд виявив межу 1000 наказів, приховану ініціалізацію БД при читанні та ризики узгодженості резерву. Перший етап реалізовано в окремій гілці й він не інтегрований; перенесення старих великих частин ще немає. База `main.py` — 16 644 рядки (#289, #290).
-
-- **Тестовий r5:** draft [PR #312](https://github.com/RomanZavadaM/Taxo/pull/312), head `6a930cb9a5920835f9521fd5029df240744a86e1`. START, Windows, Win7-сумісність і macOS Intel/ARM — SUCCESS, 1081 тест; [START artifact](https://github.com/RomanZavadaM/Taxo/actions/runs/42845249482/artifacts/13778080774) дійсний до 10.12.2026. Власник перевірив r5 і повідомив, що зауважень не знайшов; сканів немає. Фізичний Win7 та реальний SMB/NAS не перевірені.
+- [10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5) — опублікований prerelease, 8 файлів. Product/tag `0a5420cb9285ae5a8fc085c2689303d3e070ffbb`; каталог наказів і підготовлених документів інтегровано [PR #312](https://github.com/RomanZavadaM/Taxo/pull/312), без міграції старих даних і без завантаження сканів.
+- Exact-product перевірки [START](https://github.com/RomanZavadaM/Taxo/actions/runs/42850673313), [Windows](https://github.com/RomanZavadaM/Taxo/actions/runs/42850673453), [Win7-сумісність](https://github.com/RomanZavadaM/Taxo/actions/runs/42850673934), [macOS Intel/ARM](https://github.com/RomanZavadaM/Taxo/actions/runs/42850673085) — SUCCESS; [publisher](https://github.com/RomanZavadaM/Taxo/actions/runs/42851842833) — SUCCESS. Фізичний Win7 та реальний SMB/NAS не перевірені.
+- Старі великі частини ще не винесені: `main.py` — 16 644 рядки; розвантаження наказів та інструктажів залишається попереду. Опційні підписані копії не реалізовані.
+- [Приватний проєкт](https://github.com/RomanZavadaM/dev-strategy/blob/profile/taxo/taxo-history/DESIGN_DOCUMENTS_ORDERS_BRIEFINGS_2026-11-10.md) містить ризики й варіанти наступних кроків; [приватний журнал](https://github.com/RomanZavadaM/dev-strategy/blob/profile/taxo/taxo-history/DEVELOPMENT_LOG.md) — детальні докази. Копія попереднього exact-main START є в Drive, а нову резервну копію r5 тут ще не підтверджено.
+- У виданому stable r4 START старий README; [актуальна документація](docs/releases/DOCUMENTATION_v10.15-r4.md) доступна окремо. Тег і файли r4 не змінювали.
 
 ## Наступна дія
 
-Робота 10.15-r5 у гілці `work/v10.15-r5-document-catalog`: спільний читальний список наказів та PaperDocuments, без міграції і зміни схеми при перегляді. Після приймання власником потрібні повторні перевірки актуальної гілки, інтеграція та кандидатний release/recovery checkpoint; додавання сканів — наступний етап. Перед продовженням звірити open PR і його перевірки.
+Після звірки live GitHub та цього recovery checkpoint визначити й зафіксувати безпечний протокол додавання опційних підписаних копій, включно зі збоями й узгодженістю резерву; потім розпочати окрему ревізію **10.15-r6**. Виділення старих сценаріїв наказів та інструктажів виконувати окремими перевірюваними кроками.
 
 ## Recovery
 
