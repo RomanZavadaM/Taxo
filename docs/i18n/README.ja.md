@@ -25,12 +25,15 @@ Taxo の命令書は業務支援文書です。状態や紙の署名マークに
 
 ## 文書と開発
 
-運用文書の正本はウクライナ語です。クイックスタートと運行・整備ガイドを参照してください。次のコード改訂は 10.15-r4 です。
+運用文書の正本はウクライナ語です。クイックスタートと運行・整備ガイドを参照してください。
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
 
-## テスト候補 10.15-r3 — 安全教育と運転手の研修書類
 
-安全教育では、散在する CSV の代わりに、教育内容全文と手書き署名用の別紙を含む編集可能な DOCX を作成できます。運転手の研修記録用紙と、作業領域に保存した Word 文書の検索一覧も追加しました（完全バックアップ対象）。ファイルの作成は教育実施、署名、乗務許可を意味しません。任意の署名済み原本スキャンと階層型文書一覧は別の課題 #289、Python のモジュール再編は #290 です。安定版は引き続き 10.14-r4 です。
+## テスト版 10.15-r4
+
+従業員書類の管理では、保存されたパスだけでコピーがあると判断せず、ローカルファイルが見つからない場合に警告します。有効期限は別に確認します。ファイルを元に戻した後は「更新」を押してください。10.15 には、編集可能な教育用 DOCX と署名用紙、運転手の研修記録、作成済み Word 文書の検索一覧もあります。一覧のファイルは完全バックアップに含まれます。文書の作成は実施、署名、乗務許可を意味しません。
+
+[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)

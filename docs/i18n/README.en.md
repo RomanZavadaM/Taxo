@@ -25,12 +25,15 @@ Work databases, scans, personal documents and caches are excluded from release f
 
 ## Documentation and development
 
-The canonical operational documentation is in Ukrainian. Read the quick start and the operations/maintenance guide. The next planned code revision after 10.15-r3 is 10.15-r4.
+The canonical operational documentation is in Ukrainian. Read the quick start and the operations/maintenance guide.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
 
-## Test candidate 10.15-r3 — briefing and internship documents
 
-Operations → Briefings now produces an editable DOCX with the full program and a separate paper signature sheet, rather than a loose CSV as the primary output. Operations also offers a driver's internship/training sheet and a searchable catalog of saved Word documents inside the workspace (included in full backup). Generating a file never confirms attendance, a signature, or authorization to drive. The optional scanned originals and hierarchical catalog are planned separately (#289); modular Python restructuring for 2–3× growth is #290. Stable release remains 10.14-r4.
+## Test candidate 10.15-r4
+
+Employee document control now reports a missing local attachment instead of treating its stored path as a copy. Expiry remains a separate check; use Refresh after restoring a file. Version 10.15 also offers editable briefing DOCX and signature sheets, a driver internship form, and a searchable catalog of generated Word documents included in full backups. Creating a document does not confirm attendance, a signature, or authorization.
+
+[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)

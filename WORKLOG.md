@@ -1,3 +1,11 @@
+## 10.11.2026 — 10.15-r4 прийнято власником та інтегровано
+
+- Власник повідомив, що тестував r4 і він, за його оцінкою, працює; доручив merge, релізний checkpoint, оновлення документації та перекладів.
+- PR #304 merged: product `ae0c673a42c5b633706efdffc1adfd5b1b70681d`. PR-head `f199cdd6adef027788deffe3a9601daf8a87c2f3`: Windows [42807207434](https://github.com/RomanZavadaM/Taxo/actions/runs/42807207434), Win7 [42807207609](https://github.com/RomanZavadaM/Taxo/actions/runs/42807207609), macOS Intel/ARM [42807207436](https://github.com/RomanZavadaM/Taxo/actions/runs/42807207436) — SUCCESS.
+- Exact-main CI та публікація мають бути звірені окремо; до наступної кодової ревізії потрібен завершений recovery checkpoint.
+- До очищення описів копії дев'яти описових файлів і PROJECT_STATE записані та звірені у приватній гілці `dev-strategy/profile/taxo/taxo-history/2026-11-10-before-10.15-r4/`. Git та цей журнал залишають історію.
+- Пріоритет після завершення checkpoint — реальна поетапна перебудова структури, починаючи з наказів та інструктажів; Issue #290.
+
 ## Перевірка документа ТЗ і відсутнього файла 10.11.2026
 
 - PR #301 інтегровано: head `63d17d65d54a6fe187bb8cb1c6ca434958fa8bbd`, merge `fea9699ad638ad2b5f4a138f38488b771fb20c24`. Тест відновив пов'язаний із ТЗ 201 вигаданий PDF та реквізити; без вибору документів ТЗ файл не потрапив до ZIP.

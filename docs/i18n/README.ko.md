@@ -25,12 +25,15 @@ Taxo의 명령서는 업무 보조 문서입니다. 상태나 종이 서명 표�
 
 ## 문서 및 개발
 
-공식 운영 설명서는 우크라이나어로 제공됩니다. 빠른 시작과 운영·정비 안내서를 참조하세요. 다음 코드 개정은 10.15-r4입니다.
+공식 운영 설명서는 우크라이나어로 제공됩니다. 빠른 시작과 운영·정비 안내서를 참조하세요.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
 
-## 시험 후보 10.15-r3 — 안전교육 및 운전자 실습 문서
 
-안전교육은 여러 CSV 파일 대신 전체 교육 내용과 별도 자필 서명지가 포함된 편집 가능한 DOCX를 생성합니다. 운전자 실습 기록지와 작업 공간에 저장된 Word 문서를 검색하는 목록도 추가되었습니다(전체 백업에 포함). 문서 생성은 교육 실시, 서명 또는 운행 승인으로 간주하지 않습니다. 선택적 서명본 스캔과 계층형 문서 목록은 별도 작업(#289), Python 모듈 분리는 #290입니다. 안정 버전은 여전히 10.14-r4입니다.
+## 시험 버전 10.15-r4
+
+직원 문서 관리에서 저장된 경로만으로 사본이 있다고 판단하지 않고 로컬 파일이 없으면 경고합니다. 유효기간은 별도로 확인하며 파일을 복원한 뒤에는 새로 고침을 누르세요. 10.15에는 편집 가능한 교육 DOCX와 서명지, 운전자 실습 기록지, 생성된 Word 문서의 검색 목록도 포함됩니다. 목록의 파일은 전체 백업에 포함됩니다. 문서 생성이 교육 실시, 서명 또는 운행 승인을 뜻하지는 않습니다.
+
+[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
