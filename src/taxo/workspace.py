@@ -19,6 +19,8 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from paper_documents_lock import paper_documents_lock
+
 
 WORKSPACE_FORMAT = 1
 WORKSPACE_POINTER_ENV = "TAXO_WORKSPACE_ROOT"
@@ -478,7 +480,15 @@ def _copy_backup_payload(
             if child==srcp["vehicle_documents"] or child==srcp["tacho_scans"]:
                 continue
             dest=dstp["data"]/child.name
-            if child.is_dir():
+            if child.name == "PaperDocuments":
+                # Keep the JSON index and its generated files in one
+                # process-local snapshot relative to save_document().
+                with paper_documents_lock(source):
+                    if child.is_dir():
+                        shutil.copytree(child,dest,dirs_exist_ok=True)
+                    else:
+                        shutil.copy2(child,dest)
+            elif child.is_dir():
                 shutil.copytree(child,dest,dirs_exist_ok=True)
             else:
                 shutil.copy2(child,dest)
@@ -665,7 +675,9 @@ def clone_workspace(source_root,target_root):
     stage=target/f".taxo_transfer_{uuid.uuid4().hex}"
     stage.mkdir(parents=False,exist_ok=False)
     try:
-        _copy_tree_without_databases(source,stage)
+        # The transfer takes the same paper-document snapshot as ZIP backup.
+        with paper_documents_lock(source):
+            _copy_tree_without_databases(source,stage)
         srcp=paths_for(source); stagep=paths_for(stage)
         if srcp["main_db"].exists():
             _sqlite_backup(srcp["main_db"],stagep["main_db"])
