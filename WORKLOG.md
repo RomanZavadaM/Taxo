@@ -1,3 +1,8 @@
+## 10.11.2026 — уточнення документації випуску 10.15-r4
+
+- Після публікації встановлено: tag `ae0c673a42c5b633706efdffc1adfd5b1b70681d` створює START з документацією до PR #305. README у випущеному START містить застарілий стан r3, включно з помилковим твердженням про неопублікований r3.
+- Актуальні описи й переклади вже в main; immutable тег і release не перезаписувалися. Включити актуальну документацію до наступної кодової ревізії.
+
 ## 10.11.2026 — 10.15-r4 опубліковано
 
 - Exact product `ae0c673a42c5b633706efdffc1adfd5b1b70681d`: START [42807804380](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804380), Windows [42807804065](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804065), Win7 [42807804054](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804054), macOS [42807804153](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804153) — SUCCESS.
