@@ -4,6 +4,7 @@ import json
 import tempfile
 import threading
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import paper_documents as paper
@@ -91,6 +92,56 @@ class PaperDocumentSynchronizationTests(unittest.TestCase):
             records = json.loads((stage / "Data/PaperDocuments/index.json").read_text("utf-8"))
             self.assertEqual(len(records), 1)
             self.assertEqual((stage / "Data/PaperDocuments" / records[0]["file"]).read_bytes(), b"document")
+
+    def test_transfer_takes_paper_snapshot_before_a_concurrent_write(self):
+        with tempfile.TemporaryDirectory() as td:
+            root, target = Path(td) / "source", Path(td) / "target"
+            workspace.ensure_workspace(root)
+            paper.save_document(root, _Document(b"before"), "test", "before", "2026-11-10")
+            entered, proceed, writer_started, writer_done = (threading.Event() for _ in range(4))
+            errors = []
+            original = workspace._copy_tree_without_databases
+
+            def paused_copy(source, stage):
+                entered.set()
+                if not proceed.wait(10):
+                    raise RuntimeError("transfer test barrier timed out")
+                original(source, stage)
+
+            def transfer():
+                try:
+                    workspace.clone_workspace(root, target)
+                except Exception as exc:
+                    errors.append(exc)
+
+            def save():
+                writer_started.set()
+                try:
+                    paper.save_document(root, _Document(b"after"), "test", "after", "2026-11-10")
+                except Exception as exc:
+                    errors.append(exc)
+                finally:
+                    writer_done.set()
+
+            with mock.patch.object(workspace, "_copy_tree_without_databases", side_effect=paused_copy):
+                copier = threading.Thread(target=transfer)
+                writer = threading.Thread(target=save)
+                copier.start()
+                self.assertTrue(entered.wait(5))
+                writer.start()
+                self.assertTrue(writer_started.wait(5))
+                try:
+                    self.assertFalse(writer_done.wait(0.2), "writer bypassed the transfer lock")
+                finally:
+                    proceed.set()
+                    copier.join(10)
+                    writer.join(10)
+            self.assertFalse(copier.is_alive() or writer.is_alive())
+            self.assertEqual(errors, [])
+            self.assertEqual({r["title"] for r in paper.list_documents(target)}, {"before"})
+            self.assertEqual({r["title"] for r in paper.list_documents(root)}, {"before", "after"})
+            record = paper.list_documents(target)[0]
+            self.assertEqual(paper.document_path(target, record).read_bytes(), b"before")
 
     def test_equivalent_paths_share_lock(self):
         with tempfile.TemporaryDirectory() as td:
