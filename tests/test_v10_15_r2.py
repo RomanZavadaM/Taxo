@@ -108,6 +108,7 @@ class SafetyTemplateR2Tests(unittest.TestCase):
     def test_live_sources_expose_template_selection_and_editing_controls(self):
         instructions=(ROOT/"src"/"taxo"/"safety_instructions_ui.py").read_text("utf-8")
         orders=(ROOT/"src"/"taxo"/"operations_orders_ui.py").read_text("utf-8")
+        orders+=(ROOT/"src"/"taxo"/"order_editor_ui.py").read_text("utf-8")
         for marker in (
             "Типова заготовка","Текст програми…",
             "_taxo_briefing_template_box","_taxo_briefing_program_var",

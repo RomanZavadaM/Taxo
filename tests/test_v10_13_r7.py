@@ -189,6 +189,7 @@ class TaxoR7BulkAssignmentAndNumberingTests(unittest.TestCase):
 
     def test_ui_exposes_bulk_assignment_and_numbering_controls(self):
         text=Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        text+=Path("src/taxo/order_editor_ui.py").read_text(encoding="utf-8")
         for marker in (
             "Наступний № робочого / експлуатаційного наказу",
             "Наступний № кадрового наказу",
