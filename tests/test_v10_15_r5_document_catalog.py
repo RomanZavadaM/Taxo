@@ -353,11 +353,10 @@ class CombinedCatalogWindowTests(unittest.TestCase):
                 self.assertTrue(win.winfo_exists())
                 release.set()
                 deadline = time.monotonic() + 3
-                while time.monotonic() < deadline:
+                while win._taxo_catalog_status.get() == "Завантаження документів…" and time.monotonic() < deadline:
                     app.update()
                     time.sleep(0.02)
-                    if not win._taxo_catalog_tree.get_children():
-                        break
+                self.assertIn("OK", win._taxo_catalog_status.get())
         finally:
             release.set()
             app.destroy()
@@ -498,6 +497,57 @@ class CombinedCatalogWindowTests(unittest.TestCase):
             finally:
                 release.set()
                 app.destroy()
+
+
+    def test_reopening_on_stalled_storage_keeps_only_one_reader(self):
+        app = tk.Tk()
+        entered, release = threading.Event(), threading.Event()
+        gate = threading.Lock()
+        counts = {"active": 0, "maximum": 0, "calls": 0}
+        messages = SimpleNamespace(showinfo=lambda *a, **k: None,
+                                   showerror=lambda *a, **k: self.fail(str(a)))
+        core = SimpleNamespace(tk=tk, ttk=ttk, messagebox=messages)
+        def stalled_reader(_root):
+            with gate:
+                counts["active"] += 1
+                counts["calls"] += 1
+                counts["maximum"] = max(counts["maximum"], counts["active"])
+            try:
+                entered.set()
+                release.wait(5)
+                return {"rows": [], "paper_status": "OK", "order_status": "OK"}
+            finally:
+                with gate:
+                    counts["active"] -= 1
+        try:
+            with mock.patch.object(catalog, "read_sources", side_effect=stalled_reader):
+                first = catalog_ui.open_document_catalog(app, core, ".")
+                deadline = time.monotonic() + 3
+                while not entered.is_set() and time.monotonic() < deadline:
+                    app.update()
+                    time.sleep(0.01)
+                self.assertTrue(entered.is_set())
+                first.destroy()
+                for _ in range(3):
+                    other = catalog_ui.open_document_catalog(app, core, ".")
+                    app.update()
+                    self.assertIn("Попереднє читання", other._taxo_catalog_status.get())
+                    other.destroy()
+                self.assertEqual(counts["calls"], 1)
+                self.assertEqual(counts["maximum"], 1)
+                release.set()
+                final = catalog_ui.open_document_catalog(app, core, ".")
+                deadline = time.monotonic() + 8
+                while "OK" not in final._taxo_catalog_status.get() and time.monotonic() < deadline:
+                    app.update()
+                    time.sleep(0.02)
+                self.assertIn("OK", final._taxo_catalog_status.get())
+                self.assertEqual(counts["maximum"], 1)
+                self.assertEqual(final._taxo_catalog_source.get(), "Усі — за датою")
+                final.destroy()
+        finally:
+            release.set()
+            app.destroy()
 
 
 if __name__ == "__main__":

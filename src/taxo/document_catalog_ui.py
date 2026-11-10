@@ -9,6 +9,10 @@ import document_catalog
 import paper_documents as paperwork
 
 
+# A stalled network read from a closed window must not spawn unlimited workers.
+_READER_SLOT = threading.BoundedSemaphore(1)
+
+
 def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win = core.tk.Toplevel(parent)
     win.title("Документи")
@@ -63,7 +67,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     actions = core.ttk.Frame(body)
     actions.grid(row=4, column=0, sticky="ew", pady=(4, 0))
     page_text = core.tk.StringVar(value="")
-    state = {"page": 0, "pages": 1, "rows": {}, "after": None, "poll": None,
+    state = {"page": 0, "pages": 1, "rows": {}, "after": None, "poll": None, "retry": None,
              "snapshot": None, "generation": 0, "busy": False, "wanted": None,
              "needs_reload": False,
              "results": queue.Queue()}
@@ -96,6 +100,18 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             start_worker(state["generation"], state["wanted"])
 
     def start_worker(generation, wanted):
+        if not _READER_SLOT.acquire(blocking=False):
+            source_status.set("Попереднє читання ще триває. Перевірте з'єднання зі сховищем.")
+            if state["retry"] is None:
+                def retry():
+                    state["retry"] = None
+                    if not state["busy"]:
+                        start_worker(state["generation"], state["wanted"])
+                state["retry"] = win.after(500, retry)
+            return
+        if state["retry"] is not None:
+            win.after_cancel(state["retry"])
+            state["retry"] = None
         state["busy"] = True
         text_filter, page, reload_sources, source_filter = wanted
         previous = state["snapshot"]
@@ -109,7 +125,14 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 state["results"].put((generation, snapshot, result, None))
             except Exception as exc:
                 state["results"].put((generation, None, None, str(exc)))
-        threading.Thread(target=worker, daemon=True).start()
+            finally:
+                _READER_SLOT.release()
+        try:
+            threading.Thread(target=worker, daemon=True).start()
+        except Exception as exc:
+            state["busy"] = False
+            _READER_SLOT.release()
+            source_status.set("Не вдалося запустити читання: " + str(exc))
 
     def poll_results():
         while True:
@@ -133,7 +156,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     def cancel_pending(event):
         if event.widget is not win:
             return
-        for key in ("after", "poll"):
+        for key in ("after", "poll", "retry"):
             token = state.get(key)
             if token is not None:
                 try:
