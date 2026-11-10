@@ -2,38 +2,35 @@
 
 [Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-> **安定版:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) · 09.11.2026 · Windows 10/11, Windows 7, macOS Intel / Apple Silicon, START verified.
-> **以前の安定版 / ロールバック:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
+Taxo は運送事業者向けのデスクトップアプリです。従業員と車両、運転者の勤務予定・労働時間、業務文書と帳票を管理します。
 
-## ダウンロード — 10.14-r4
+## 主な機能
 
-**Windows 10/11 x64:** [インストーラー](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Setup_Windows_x64.exe) · [ポータブル](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Windows_x64_Portable.zip)
+- 従業員と運転者：台帳、役割の履歴、書類、有効期限、欠落したローカル添付ファイルの確認。
+- 予定と労働時間：路線、勤務シフト、勤務表、予定時間と実績時間の分離。
+- 運転者の管理：運転・労働・休憩・休息、個別帳票、60日間の活動記録。
+- 車両と整備：車両情報、走行距離、書類、保守と修理。
+- 運行業務：運行記録、命令書、運転者と車両の割当て、活動証明書と文書印刷。
+- 安全教育と研修：編集可能な Word 教育資料、署名簿、研修様式と基本的な文書カタログ。
+- アナログタコグラフ：スキャン、表示、手動確認を伴う補助的な認識。
+- 帳票とバックアップ：PDF/Excel 帳票と作業データのバックアップ。
 
-**Windows 7 SP1 x64:** [インストーラー](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Setup_Windows7_x64.exe) · [ポータブル](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Windows7_x64_Portable.zip)
+## ダウンロード
 
-**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_macOS_x86_64_Portable.zip)
+所有者は 10.15-r4 をテストし、安定版への移行を指示しました。GitHub 上の状態変更は未完了です。
 
-**ソース / チェックサム:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/SHA256SUMS_v10_14_r4.txt) · [Release notes (UK)](../releases/RELEASE_NOTES_v10.14-r4.md).
+[10.15-r4 の全ファイル](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [前の安定版 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
 
-## 10.12-r10 からの変更点
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/SHA256SUMS_v10_15_r4.txt)
 
-運行・整備画面の改善、複数ドライバー・車両の割当、人事・業務命令の別々の採番、書類プレビュー、編集可能な Word と PDF/JPG、統一された表とレイアウト。
+## 初期設定とデータ
 
-Taxo の命令書は業務支援文書です。状態や紙の署名マークによって編集・削除は制限されません。正式な紙の原本は利用者が管理します。
+データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。完全バックアップには従業員書類と作成済み Word 文書が含まれます。車両書類、タコグラフ画像、Output ファイルは該当項目の選択が必要です。
 
-業務データベース、スキャン、個人書類、キャッシュは配布物に含まれません。更新前にバックアップしてください。
+[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
-## 文書と開発
+## 開発
 
-運用文書の正本はウクライナ語です。クイックスタートと運行・整備ガイドを参照してください。
+開始はこちら [START_HERE.md](../../START_HERE.md).
 
-[Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
-
-**Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
-
-
-## テスト版 10.15-r4
-
-従業員書類の管理では、保存されたパスだけでコピーがあると判断せず、ローカルファイルが見つからない場合に警告します。有効期限は別に確認します。ファイルを元に戻した後は「更新」を押してください。10.15 には、編集可能な教育用 DOCX と署名用紙、運転手の研修記録、作成済み Word 文書の検索一覧もあります。一覧のファイルは完全バックアップに含まれます。文書の作成は実施、署名、乗務許可を意味しません。
-
-[START ZIP をダウンロード](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
+Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved. [LICENSE](../../LICENSE.md).
