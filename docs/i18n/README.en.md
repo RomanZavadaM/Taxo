@@ -19,7 +19,7 @@ Taxo is a desktop system for a transport company: staff and vehicles, driver sch
 
 The owner has tested 10.15-r4 and requested its promotion to stable; the GitHub status change is pending.
 
-[All 10.15-r4 files](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Previous stable 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
+[All 10.15-r4 files](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Current stable 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
 
 Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/SHA256SUMS_v10_15_r4.txt)
 
