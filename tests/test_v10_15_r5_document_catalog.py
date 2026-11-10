@@ -272,6 +272,24 @@ class CombinedCatalogWindowTests(unittest.TestCase):
                     self.assertEqual(opened, [3])
                     open_file.assert_called_once_with(folder / "a.docx")
                     self.assertTrue(win.winfo_ismapped())
+                    # Both views remain reachable from the same window.
+                    source = win._taxo_catalog_source
+                    source_box = win._taxo_catalog_source_box
+                    source.set("Підготовлені Word — новіші")
+                    source_box.event_generate("<<ComboboxSelected>>")
+                    deadline = time.monotonic() + 10
+                    while len(tree.get_children()) != 1 and time.monotonic() < deadline:
+                        app.update()
+                        time.sleep(0.02)
+                    self.assertEqual(len(tree.get_children()), 1)
+                    self.assertIn("Інструктаж", str(tree.item(tree.get_children()[0], "values")))
+                    source.set("Усі — за датою")
+                    source_box.event_generate("<<ComboboxSelected>>")
+                    deadline = time.monotonic() + 10
+                    while len(tree.get_children()) != 2 and time.monotonic() < deadline:
+                        app.update()
+                        time.sleep(0.02)
+                    self.assertEqual(len(tree.get_children()), 2)
                     # A new search rereads a document created while the window is open.
                     (folder / "index.json").write_text(json.dumps([{
                         "id": "b", "date": "2026-11-10", "kind": "Інструктаж",

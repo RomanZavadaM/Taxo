@@ -197,6 +197,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_tree = tree
     win._taxo_catalog_search = search
     win._taxo_catalog_source = source_choice
+    win._taxo_catalog_source_box = source_box
     win._taxo_catalog_status = source_status
     win._taxo_catalog_refresh = refresh
     win._taxo_catalog_open = open_selected
