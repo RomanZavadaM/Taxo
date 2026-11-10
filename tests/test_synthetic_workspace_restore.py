@@ -26,6 +26,7 @@ from reportlab.pdfgen import canvas
 from PIL import Image
 import safety_instructions_ui as brief
 import tachograph
+import vehicle_documents as vehicle_docs
 import workspace
 
 root = Path(main.DATA_ROOT)
@@ -69,6 +70,17 @@ document_id = personnel.save_employee_document(con, 101, {
 })
 employee_control.save_requirement(
     con, 101, "Synthetic test document", required=True, expiry_control=True)
+# A real registry record links vehicle 201 to a synthetic PDF inside the
+# optional vehicle-document group.
+vehicle_copy = root / "Data/VehicleDocuments/vehicle-201.pdf"
+vehicle_copy.parent.mkdir(parents=True, exist_ok=True)
+vehicle_copy.write_bytes(sample_pdf.read_bytes())
+vehicle_docs.ensure_vehicle_documents_schema(con)
+vehicle_path = "workspace://Data/VehicleDocuments/vehicle-201.pdf"
+vehicle_id = con.execute(
+    "INSERT INTO vehicle_documents(vehicle_id,doc_type,document_no,valid_until,copy_path,created_at,updated_at) VALUES(?,?,?,?,?,?,?)",
+    (201, "insurance", "SYNTHETIC-201", "2030-12-31", vehicle_path, now, now),
+).lastrowid
 con.commit()
 con.close()
 
@@ -131,6 +143,14 @@ restored_employee_pdf = workspace.resolved_path(doc["file_path"], restored)
 assert restored_employee_pdf.is_file()
 assert restored_employee_pdf.read_bytes() == sample_pdf.read_bytes()
 assert "Synthetic employee document 101" in PdfReader(str(restored_employee_pdf)).pages[0].extract_text()
+vehicle_doc = con.execute(
+    "SELECT vehicle_id,doc_type,document_no,valid_until,copy_path FROM vehicle_documents WHERE id=?",
+    (vehicle_id,),
+).fetchone()
+assert tuple(vehicle_doc) == (201, "insurance", "SYNTHETIC-201", "2030-12-31", vehicle_path)
+vehicle_pdf = workspace.resolved_path(vehicle_doc["copy_path"], restored)
+assert vehicle_pdf.is_file() and vehicle_pdf.read_bytes() == sample_pdf.read_bytes()
+assert "Synthetic employee document 101" in PdfReader(str(vehicle_pdf)).pages[0].extract_text()
 con.close()
 tcon = sqlite3.connect(str(restored_paths["tacho_db"]))
 assert tcon.execute("PRAGMA quick_check").fetchone()[0] == "ok"
@@ -190,7 +210,27 @@ assert "Data/EmployeeDocuments/test-employee.pdf" in names
 assert "Data/PaperDocuments/" + brief_path.name in names
 for relative in ("Data/VehicleDocuments/test-vehicle.pdf", "Data/TachographScans/scan-test.jpg"):
     assert relative not in names
+assert "Data/VehicleDocuments/vehicle-201.pdf" not in names
 assert not any(name.startswith("Output/") for name in names)
+
+# Characterize the known missing-file defect, without treating it as healthy:
+# the database can retain a portable path even though the file is gone. The
+# current control relies on the prefix and therefore incorrectly reports a copy.
+workspace.resolved_path(stored_pdf, root).unlink()
+missing_archive = workspace.create_workspace_backup_archive(root, folder / "missing-employee.zip")
+missing_root = folder / "missing-employee-restored"
+missing_paths = workspace.restore_workspace_backup_archive(missing_archive, missing_root)
+missing_con = sqlite3.connect(str(missing_paths["main_db"]))
+missing_con.row_factory = sqlite3.Row
+missing_row = missing_con.execute("SELECT file_path FROM employee_documents WHERE id=?", (document_id,)).fetchone()
+assert missing_row["file_path"] == stored_pdf
+assert not workspace.resolved_path(missing_row["file_path"], missing_root).exists()
+control_rows = employee_control.document_control_rows(missing_con, today=date(2026, 11, 10))
+control_row = next(row for row in control_rows if row["employee_id"] == 101 and row["doc_type"] == "Synthetic test document")
+assert control_row["file_backed_up"] is True, "Update this defect characterization when missing-file detection is fixed"
+assert control_row["state"] == employee_control.STATE_OK
+missing_con.close()
+print("KNOWN_DEFECT_MISSING_EMPLOYEE_FILE_MARKED_AS_BACKED_UP")
 
 broken = folder / "broken.zip"
 broken.write_bytes(b"not a zip archive")
