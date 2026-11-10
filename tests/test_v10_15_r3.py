@@ -26,8 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class PaperDocumentsR3Tests(unittest.TestCase):
     def test_version_and_live_controls(self):
-        self.assertEqual(main.APP_VERSION, "10.15-r3")
-        self.assertIn("Version: 10.15-r3", (ROOT / "VERSION.txt").read_text("utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.15-r3", "10.15-r4"))
+        self.assertIn("Version: " + main.APP_VERSION, (ROOT / "VERSION.txt").read_text("utf-8"))
         start = (ROOT / "START.bat").read_text("utf-8")
         for filename in ("paper_documents.py", "paper_documents_ui.py", "driver_internship_ui.py"):
             self.assertIn(filename, start)

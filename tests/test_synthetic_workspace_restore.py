@@ -213,9 +213,7 @@ for relative in ("Data/VehicleDocuments/test-vehicle.pdf", "Data/TachographScans
 assert "Data/VehicleDocuments/vehicle-201.pdf" not in names
 assert not any(name.startswith("Output/") for name in names)
 
-# Characterize the known missing-file defect, without treating it as healthy:
-# the database can retain a portable path even though the file is gone. The
-# current control relies on the prefix and therefore incorrectly reports a copy.
+# A missing file must remain visible after restoring the unchanged database.
 workspace.resolved_path(stored_pdf, root).unlink()
 missing_archive = workspace.create_workspace_backup_archive(root, folder / "missing-employee.zip")
 missing_root = folder / "missing-employee-restored"
@@ -225,12 +223,21 @@ missing_con.row_factory = sqlite3.Row
 missing_row = missing_con.execute("SELECT file_path FROM employee_documents WHERE id=?", (document_id,)).fetchone()
 assert missing_row["file_path"] == stored_pdf
 assert not workspace.resolved_path(missing_row["file_path"], missing_root).exists()
-control_rows = employee_control.document_control_rows(missing_con, today=date(2026, 11, 10))
+class RestoredCore:
+    DATA_ROOT = missing_root
+
+    @staticmethod
+    def real_data_path(value):
+        return workspace.resolved_path(value, missing_root)
+
+control_rows = employee_control.document_control_rows(
+    missing_con, today=date(2026, 11, 10), problems_only=True, core=RestoredCore)
 control_row = next(row for row in control_rows if row["employee_id"] == 101 and row["doc_type"] == "Synthetic test document")
-assert control_row["file_backed_up"] is True, "Update this defect characterization when missing-file detection is fixed"
-assert control_row["state"] == employee_control.STATE_OK
+assert control_row["file_backed_up"] is False
+assert control_row["file_missing"] is True
+assert control_row["state"] == employee_control.STATE_FILE_MISSING
 missing_con.close()
-print("KNOWN_DEFECT_MISSING_EMPLOYEE_FILE_MARKED_AS_BACKED_UP")
+print("MISSING_EMPLOYEE_FILE_REPORTED_AFTER_RESTORE")
 
 broken = folder / "broken.zip"
 broken.write_bytes(b"not a zip archive")
