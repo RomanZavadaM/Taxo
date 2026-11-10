@@ -23,6 +23,16 @@ def _paper_file(folder, value):
     return path
 
 
+def paper_file(root, value):
+    """Resolve a catalog file only inside the currently selected workspace."""
+    folder = Path(root) / "Data" / "PaperDocuments"
+    try:
+        folder.resolve().relative_to(Path(root).resolve())
+    except (ValueError, OSError, RuntimeError):
+        raise ValueError("Каталог документів поза робочим сховищем")
+    return _paper_file(folder, value)
+
+
 def _read_paper(root):
     folder = Path(root) / "Data" / "PaperDocuments"
     index = folder / "index.json"
@@ -48,7 +58,7 @@ def _read_paper(root):
             problems += 1
         seen.add(identity)
         try:
-            path = _paper_file(folder, item.get("file"))
+            path = paper_file(root, item.get("file"))
             state = "Файл доступний" if path.is_file() else "Файл не знайдено"
         except (ValueError, OSError, RuntimeError):
             path = None
@@ -119,15 +129,19 @@ def _read_orders(root):
 
 
 def _sort_key(row):
+    # Document date is the shared ordering key. Legacy order timestamps are
+    # local and paper timestamps are UTC; comparing them globally is misleading.
+    # Within paper documents retain their original creation-time ordering.
     return (
-        row["created_at"], row["source"],
+        row["date"], row["source"],
+        row["created_at"] if row["source"] == "paper" else "",
         int(row["source_id"]) if row["source"] == "order" else 0,
         str(row["source_id"]), row["key"][2],
     )
 
 
 def read_sources(root):
-    """Read and sort both sources once; keep their errors independent."""
+    """Read both sources and sort by document date; keep errors independent."""
     paper, paper_status = _read_paper(root)
     orders, order_status = _read_orders(root)
     rows = paper + orders
@@ -144,7 +158,7 @@ def paginate_sources(snapshot, text_filter="", page=0, page_size=100):
         fields = ("date", "number", "kind", "title", "person", "order_type")
         all_rows = [row for row in all_rows if needle in " ".join(
             str(row.get(field, "")) for field in fields).casefold()]
-    # Rows are already sorted by creation time in the background reader.
+    # Rows are already sorted by document date in the background reader.
     page_size = max(1, min(int(page_size), 500))
     pages = max(1, (len(all_rows) + page_size - 1) // page_size)
     page = max(0, min(int(page), pages - 1))

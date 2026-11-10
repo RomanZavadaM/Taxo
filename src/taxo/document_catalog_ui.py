@@ -2,7 +2,6 @@
 """One read-only browser for existing orders and prepared paper documents."""
 from __future__ import annotations
 
-from pathlib import Path
 import queue
 import threading
 
@@ -21,7 +20,7 @@ def open_document_catalog(parent, core, workspace_root):
     body.pack(fill="both", expand=True)
     body.columnconfigure(0, weight=1)
     body.rowconfigure(3, weight=1)
-    core.ttk.Label(body, text="Готові документи та накази",
+    core.ttk.Label(body, text="Готові документи та накази (за датою документа)",
                    style="Subtitle.TLabel").grid(row=0, column=0, sticky="w")
     search = core.tk.StringVar(value="")
     bar = core.ttk.Frame(body)
@@ -54,14 +53,11 @@ def open_document_catalog(parent, core, workspace_root):
     actions = core.ttk.Frame(body)
     actions.grid(row=4, column=0, sticky="ew", pady=(4, 0))
     page_text = core.tk.StringVar(value="")
-    state = {"page": 0, "pages": 1, "rows": {}, "after": None,
-             "snapshot": None, "generation": 0, "busy": False, "results": queue.Queue()}
+    state = {"page": 0, "pages": 1, "rows": {}, "after": None, "poll": None,
+             "snapshot": None, "generation": 0, "busy": False, "wanted": None,
+             "results": queue.Queue()}
 
-    def render():
-        if state["snapshot"] is None:
-            return
-        result = document_catalog.paginate_sources(
-            state["snapshot"], text_filter=search.get(), page=state["page"])
+    def render(result):
         state["page"], state["pages"] = result["page"], result["pages"]
         source_status.set(result["order_status"] + " " + result["paper_status"])
         page_text.set("Сторінка %d з %d · записів: %d" % (
@@ -79,42 +75,56 @@ def open_document_catalog(parent, core, workspace_root):
     def refresh(reset=False, reload_sources=False):
         if reset:
             state["page"] = 0
-        if not reload_sources and state["snapshot"] is not None:
-            render()
-            return
         state["generation"] += 1
+        # Capture Tk values on the UI thread; workers never call Tk.
+        state["wanted"] = (search.get(), state["page"], reload_sources)
         source_status.set("Завантаження документів…")
         if not state["busy"]:
-            start_worker(state["generation"])
+            start_worker(state["generation"], state["wanted"])
 
-    def start_worker(generation):
+    def start_worker(generation, wanted):
         state["busy"] = True
+        text_filter, page, reload_sources = wanted
+        previous = state["snapshot"]
         def worker():
-            # Never call Tk from the worker; slow storage does not block the UI.
             try:
-                result = document_catalog.read_sources(workspace_root)
-                state["results"].put((generation, result, None))
+                snapshot = (document_catalog.read_sources(workspace_root)
+                            if reload_sources or previous is None else previous)
+                result = document_catalog.paginate_sources(snapshot, text_filter, page)
+                state["results"].put((generation, snapshot, result, None))
             except Exception as exc:
-                state["results"].put((generation, None, str(exc)))
+                state["results"].put((generation, None, None, str(exc)))
         threading.Thread(target=worker, daemon=True).start()
 
     def poll_results():
         while True:
             try:
-                generation, snapshot, error = state["results"].get_nowait()
+                generation, snapshot, result, error = state["results"].get_nowait()
             except queue.Empty:
                 break
             state["busy"] = False
             if generation != state["generation"]:
-                # Coalesce intervening requests; at most one reader runs at a time.
-                start_worker(state["generation"])
+                # Coalesce requests; only one reader works at a time.
+                start_worker(state["generation"], state["wanted"])
                 continue
             if error:
                 source_status.set("Не вдалося прочитати каталог: " + error)
             else:
                 state["snapshot"] = snapshot
-                render()
-        win.after(100, poll_results)
+                render(result)
+        state["poll"] = win.after(100, poll_results)
+
+    def cancel_pending(event):
+        if event.widget is not win:
+            return
+        for key in ("after", "poll"):
+            token = state.get(key)
+            if token is not None:
+                try:
+                    win.after_cancel(token)
+                except Exception:
+                    pass
+                state[key] = None
 
     def search_changed(*_):
         if state["after"] is not None:
@@ -149,8 +159,8 @@ def open_document_catalog(parent, core, workspace_root):
         try:
             # Re-read and revalidate the actual path immediately before opening.
             path = row["file_path"]
-            if path is None or document_catalog._paper_file(
-                    Path(workspace_root) / "Data" / "PaperDocuments", path.name) != path:
+            if path is None or document_catalog.paper_file(
+                    workspace_root, path.name) != path:
                 raise ValueError("Небезпечний шлях до документа.")
             if not path.is_file():
                 raise FileNotFoundError("Файл документа відсутній: " + str(path))
@@ -171,6 +181,7 @@ def open_document_catalog(parent, core, workspace_root):
     win._taxo_catalog_search = search
     win._taxo_catalog_refresh = refresh
     win._taxo_catalog_open = open_selected
+    win.bind("<Destroy>", cancel_pending, add="+")
     refresh(reload_sources=True)
-    win.after(100, poll_results)
+    state["poll"] = win.after(100, poll_results)
     return win

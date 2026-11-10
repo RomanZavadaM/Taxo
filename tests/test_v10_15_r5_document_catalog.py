@@ -133,6 +133,24 @@ class CombinedCatalogTests(unittest.TestCase):
         order_rows = catalog.read_catalog(self.root, "Тема", page_size=100)["rows"]
         self.assertEqual([row["source_id"] for row in order_rows[:3]], [120, 119, 118])
 
+    def test_mixed_sources_sort_by_document_date_not_incompatible_timezones(self):
+        self.seed_orders(1)
+        folder = self.paper_index([{
+            "id": "doc", "date": "2026-11-10",
+            "created_at": "2026-11-10T00:01:00+00:00",
+            "kind": "Інструктаж", "title": "Час UTC", "file": "a.docx"
+        }])
+        (folder / "a.docx").write_bytes(b"synthetic")
+        con = sqlite3.connect(str(self.db))
+        con.execute("ALTER TABLE operations_orders ADD COLUMN created_at TEXT")
+        con.execute("UPDATE operations_orders SET created_at='2026-11-10T23:59:00'")
+        con.commit()
+        con.close()
+        rows = catalog.read_catalog(self.root)["rows"]
+        # Same document date: group sources instead of comparing UTC and
+        # timezone-free historical timestamps as if they used the same zone.
+        self.assertEqual([row["source"] for row in rows], ["paper", "order"])
+
     def test_uri_handles_local_and_unc_without_authority(self):
         self.assertEqual(catalog._readonly_sqlite_uri("file:///C:/Taxo/a%20b.db"),
                          "file:///C:/Taxo/a%20b.db?mode=ro")
@@ -287,6 +305,81 @@ class CombinedCatalogWindowTests(unittest.TestCase):
                     time.sleep(0.02)
                     if not win._taxo_catalog_tree.get_children():
                         break
+        finally:
+            release.set()
+            app.destroy()
+
+
+    def test_replacing_catalog_directory_after_loading_cannot_open_external_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "workspace"
+            folder = root / "Data" / "PaperDocuments"
+            folder.mkdir(parents=True)
+            (folder / "a.docx").write_bytes(b"internal")
+            (folder / "index.json").write_text(json.dumps([{
+                "id": "a", "date": "2026-11-09", "kind": "Інструктаж",
+                "title": "Тест", "file": "a.docx"
+            }], ensure_ascii=False), encoding="utf-8")
+            outside = Path(tmp) / "outside"
+            outside.mkdir()
+            (outside / "a.docx").write_bytes(b"external")
+            app = tk.Tk()
+            errors = []
+            messages = SimpleNamespace(showinfo=lambda *a, **k: None,
+                                       showerror=lambda *a, **k: errors.append(a))
+            core = SimpleNamespace(tk=tk, ttk=ttk, messagebox=messages)
+            link = None
+            try:
+                with mock.patch.object(catalog_ui.paperwork, "open_file") as open_file:
+                    win = catalog_ui.open_document_catalog(app, core, root)
+                    tree = win._taxo_catalog_tree
+                    deadline = time.monotonic() + 10
+                    while not tree.get_children() and time.monotonic() < deadline:
+                        app.update()
+                        time.sleep(0.02)
+                    self.assertEqual(len(tree.get_children()), 1)
+                    folder.rename(root / "Data" / "PaperDocuments-original")
+                    try:
+                        folder.symlink_to(outside, target_is_directory=True)
+                    except (OSError, NotImplementedError):
+                        self.skipTest("Directory symlink is unavailable on this runner")
+                    link = folder
+                    tree.selection_set(tree.get_children()[0])
+                    win._taxo_catalog_open()
+                    self.assertTrue(errors)
+                    open_file.assert_not_called()
+            finally:
+                app.destroy()
+                if link is not None and link.is_symlink():
+                    link.unlink()
+
+    def test_closing_window_during_slow_read_cancels_ui_callbacks(self):
+        app = tk.Tk()
+        entered, release = threading.Event(), threading.Event()
+        failures = []
+        app.report_callback_exception = lambda *args: failures.append(args)
+        messages = SimpleNamespace(showinfo=lambda *a, **k: None,
+                                   showerror=lambda *a, **k: failures.append(a))
+        core = SimpleNamespace(tk=tk, ttk=ttk, messagebox=messages)
+        def slow_reader(_root):
+            entered.set()
+            release.wait(5)
+            return {"rows": [], "paper_status": "OK", "order_status": "OK"}
+        try:
+            with mock.patch.object(catalog, "read_sources", side_effect=slow_reader):
+                win = catalog_ui.open_document_catalog(app, core, ".")
+                deadline = time.monotonic() + 3
+                while not entered.is_set() and time.monotonic() < deadline:
+                    app.update()
+                    time.sleep(0.01)
+                self.assertTrue(entered.is_set())
+                win.destroy()
+                release.set()
+                deadline = time.monotonic() + 0.5
+                while time.monotonic() < deadline:
+                    app.update()
+                    time.sleep(0.02)
+                self.assertEqual(failures, [])
         finally:
             release.set()
             app.destroy()
