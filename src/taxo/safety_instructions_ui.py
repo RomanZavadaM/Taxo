@@ -11,7 +11,7 @@ import csv
 from datetime import date, datetime
 from pathlib import Path
 
-import operations_orders as ops
+import entity_choices as ops
 import safety_templates as safety_tpl
 import paper_documents as paperwork
 from workspace import load_workspace_root

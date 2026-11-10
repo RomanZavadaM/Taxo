@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-import operations_orders as ops
+import entity_choices as ops
 import paper_documents as paperwork
 from paper_documents_ui import open_paper_document_catalog
 from workspace import load_workspace_root
