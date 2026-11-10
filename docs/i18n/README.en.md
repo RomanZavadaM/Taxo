@@ -36,4 +36,4 @@ The canonical operational documentation is in Ukrainian. Read the quick start an
 
 Employee document control now reports a missing local attachment instead of treating its stored path as a copy. Expiry remains a separate check; use Refresh after restoring a file. Version 10.15 also offers editable briefing DOCX and signature sheets, a driver internship form, and a searchable catalog of generated Word documents included in full backups. Creating a document does not confirm attendance, a signature, or authorization.
 
-[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
+[Download START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)

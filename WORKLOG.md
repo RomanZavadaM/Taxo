@@ -1,3 +1,11 @@
+## 10.11.2026 — 10.15-r4 опубліковано
+
+- Exact product `ae0c673a42c5b633706efdffc1adfd5b1b70681d`: START [42807804380](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804380), Windows [42807804065](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804065), Win7 [42807804054](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804054), macOS [42807804153](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804153) — SUCCESS.
+- [v10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) — prerelease, 8/8 assets, publisher [42808943357](https://github.com/RomanZavadaM/Taxo/actions/runs/42808943357) SUCCESS, tag = exact product; stable/latest v10.14-r4.
+- Drive exact-source START artifact: `1QIyvVj4PPTKOjB3anHX4zX3IlxmhvA_X`, папка `02_CURRENT_MAIN`, 1 847 445 bytes; SHA256 до передавання `aa4449f6a3233a0e4dd7c0736acb73bf7fe04a14c5ab2ea67982a19777c6b4f2`. Після передавання перевірені назва, розмір і папка; повторне зчитування байтів не виконувалось.
+- PR #305: оновлені сім README, інструкція, статус, release index, recovery; старі описи й стан збережені та звірені в приватному профілі `dev-strategy/profile/taxo/taxo-history/2026-11-10-before-10.15-r4/`.
+- Наступна кодова ревізія 10.15-r5 після цього checkpoint: структурний етап наказів і інструктажів (#290); перенесення на цей момент не розпочиналося.
+
 ## 10.11.2026 — 10.15-r4 прийнято власником та інтегровано
 
 - Власник повідомив, що тестував r4 і він, за його оцінкою, працює; доручив merge, релізний checkpoint, оновлення документації та перекладів.

@@ -28,7 +28,7 @@
 
 Лінія 10.15 також містить інструктажі з редагованим DOCX і окремим листом підписів, лист стажування та початковий каталог створених Word-документів. Файли каталогу входять у повну резервну копію. Створення файла не підтверджує проведення, підпис чи допуск.
 
-Стабільною залишається 10.14-r4. [Сторінка тестового випуску 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Усі випуски](https://github.com/RomanZavadaM/Taxo/releases).
+Стабільною залишається 10.14-r4. [Завантажити START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Сторінка тестового випуску 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Усі випуски](https://github.com/RomanZavadaM/Taxo/releases).
 
 ## Що вміє Taxo
 

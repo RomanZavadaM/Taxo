@@ -36,4 +36,4 @@ Taxo の命令書は業務支援文書です。状態や紙の署名マークに
 
 従業員書類の管理では、保存されたパスだけでコピーがあると判断せず、ローカルファイルが見つからない場合に警告します。有効期限は別に確認します。ファイルを元に戻した後は「更新」を押してください。10.15 には、編集可能な教育用 DOCX と署名用紙、運転手の研修記録、作成済み Word 文書の検索一覧もあります。一覧のファイルは完全バックアップに含まれます。文書の作成は実施、署名、乗務許可を意味しません。
 
-[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
+[START ZIP をダウンロード](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)

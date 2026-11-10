@@ -36,4 +36,4 @@ La documentation opérationnelle de référence est en ukrainien. Consultez le d
 
 Le contrôle des documents du personnel signale désormais un fichier local manquant au lieu de considérer son chemin enregistré comme une copie présente. La date d'expiration reste contrôlée séparément ; après restauration du fichier, utilisez Actualiser. La version 10.15 propose aussi des consignes DOCX modifiables avec feuille de signatures, une fiche de stage et un catalogue de documents Word générés inclus dans la sauvegarde complète. La création ne confirme ni la réalisation, ni la signature, ni l'autorisation.
 
-[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
+[Télécharger START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)

@@ -6,9 +6,9 @@
 
 - **Stable / Latest:** [v10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4); попередня stable — [v10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
 - **Інтегровано 10.15-r4:** PR #304, product `ae0c673a42c5b633706efdffc1adfd5b1b70681d`; контроль документів працівників повідомляє про відсутній файл, строк контролюється окремо.
-- Власник повідомив, що протестував r4 і він, за його оцінкою, працює. PR-head Windows, Win7-сумісність і macOS Intel/ARM — SUCCESS. Exact-main перевірки та публікація r4 на момент запису ще потребують звірки у GitHub.
+- Власник повідомив, що протестував r4 і він, за його оцінкою, працює. Exact-main START, Windows, Win7-сумісність і macOS Intel/ARM — SUCCESS. [Тестовий випуск v10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) опубліковано: 8 файлів, тег на product commit; stable залишається 10.14-r4.
 - Лінія 10.15 також включає друк інструктажів та лист стажування, початковий каталог Word-файлів у `Data/PaperDocuments` та резервування цих файлів. Підпис, проведення і допуск не засвідчуються автоматично.
-- Наступна кодова ревізія — **10.15-r5**, лише після інтегрованого release/recovery checkpoint. Пріоритет — поетапна структурна перебудова; рішення і ризики див. [#290](https://github.com/RomanZavadaM/Taxo/issues/290).
+- Наступна кодова ревізія — **10.15-r5**, після цього release/recovery checkpoint. Пріоритет — поетапна структурна перебудова; рішення і ризики див. [#290](https://github.com/RomanZavadaM/Taxo/issues/290).
 
 ## Незмінні умови
 
