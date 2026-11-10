@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import sqlite3
 import tempfile
+import time
+import threading
 import tkinter as tk
 import unittest
 from pathlib import Path
@@ -117,6 +119,62 @@ class CombinedCatalogTests(unittest.TestCase):
         self.assertEqual(result["rows"][0]["file_state"], "Небезпечний шлях")
         self.assertIn("Проблемних", result["paper_status"])
 
+    def test_newest_paper_and_numeric_order_ids_are_first(self):
+        self.seed_orders(120)
+        folder = self.paper_index([{
+            "id": "%04d" % (120 - i), "date": "2026-11-09",
+            "created_at": "2026-11-10T%02d:%02d:00+00:00" % (i // 60, i % 60),
+            "kind": "Інструктаж", "title": "Документ %d" % i, "file": "a.docx"
+        } for i in range(120)])
+        (folder / "a.docx").write_bytes(b"synthetic")
+        rows = catalog.read_catalog(self.root, "Документ", page_size=100)["rows"]
+        self.assertEqual(rows[0]["title"], "Документ 119")
+        self.assertEqual(len(rows), 100)
+        order_rows = catalog.read_catalog(self.root, "Тема", page_size=100)["rows"]
+        self.assertEqual([row["source_id"] for row in order_rows[:3]], [120, 119, 118])
+
+    def test_uri_handles_local_and_unc_without_authority(self):
+        self.assertEqual(catalog._readonly_sqlite_uri("file:///C:/Taxo/a%20b.db"),
+                         "file:///C:/Taxo/a%20b.db?mode=ro")
+        self.assertEqual(catalog._readonly_sqlite_uri("file://server/share/a%20b.db"),
+                         "file:////server/share/a%20b.db?mode=ro")
+
+    def test_committed_wal_is_read_without_uncommitted_rows(self):
+        writer = sqlite3.connect(str(self.db))
+        try:
+            writer.execute("PRAGMA journal_mode=WAL")
+            writer.execute("PRAGMA wal_autocheckpoint=0")
+            writer.execute("CREATE TABLE operations_orders "
+                           "(id INTEGER PRIMARY KEY, order_date TEXT, order_no TEXT, "
+                           "order_type TEXT, subject TEXT)")
+            writer.commit()
+            writer.execute("INSERT INTO operations_orders VALUES "
+                           "(1, '2026-11-10', '1', 'work', 'Підтверджений')")
+            writer.commit()
+            writer.execute("INSERT INTO operations_orders VALUES "
+                           "(2, '2026-11-10', '2', 'work', 'Не підтверджений')")
+            result = catalog.read_catalog(self.root)
+            self.assertEqual(result["total"], 1)
+            self.assertEqual(result["rows"][0]["source_id"], 1)
+            self.assertEqual(writer.execute("SELECT COUNT(*) FROM operations_orders").fetchone()[0], 2)
+            writer.rollback()
+            self.assertEqual(writer.execute("SELECT COUNT(*) FROM operations_orders").fetchone()[0], 1)
+        finally:
+            writer.close()
+
+    def test_catalog_directory_symlink_outside_workspace_is_reported(self):
+        outside = Path(self.tmp.name) / "outside"
+        outside.mkdir()
+        (outside / "index.json").write_text("[]", encoding="utf-8")
+        link = self.root / "Data" / "PaperDocuments"
+        try:
+            link.symlink_to(outside, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            self.skipTest("Directory symlink is unavailable on this runner")
+        result = catalog.read_catalog(self.root)
+        self.assertIn("Помилка каталогу", result["paper_status"])
+        self.assertEqual(result["total"], 0)
+
     def test_catalog_survives_backup_and_restore_without_output(self):
         self.seed_orders(2)
         folder = self.paper_index([{
@@ -169,8 +227,11 @@ class CombinedCatalogWindowTests(unittest.TestCase):
             try:
                 with mock.patch.object(catalog_ui.paperwork, "open_file") as open_file:
                     win = catalog_ui.open_document_catalog(app, core, root)
-                    app.update()
                     tree = win._taxo_catalog_tree
+                    deadline = time.monotonic() + 10
+                    while len(tree.get_children()) != 2 and time.monotonic() < deadline:
+                        app.update()
+                        time.sleep(0.02)
                     self.assertEqual(len(tree.get_children()), 2)
                     for iid in tree.get_children():
                         tree.selection_set(iid)
@@ -178,8 +239,57 @@ class CombinedCatalogWindowTests(unittest.TestCase):
                     self.assertEqual(opened, [3])
                     open_file.assert_called_once_with(folder / "a.docx")
                     self.assertTrue(win.winfo_ismapped())
+                    # A new search rereads a document created while the window is open.
+                    (folder / "index.json").write_text(json.dumps([{
+                        "id": "b", "date": "2026-11-10", "kind": "Інструктаж",
+                        "title": "Новий запис", "file": "a.docx"
+                    }], ensure_ascii=False), encoding="utf-8")
+                    win._taxo_catalog_search.set("Новий запис")
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        app.update()
+                        ids = tree.get_children()
+                        if len(ids) == 1 and "Новий запис" in str(tree.item(ids[0], "values")):
+                            break
+                        time.sleep(0.02)
+                    self.assertEqual(len(tree.get_children()), 1)
+                    self.assertIn("Новий запис", str(tree.item(tree.get_children()[0], "values")))
             finally:
                 app.destroy()
+
+
+    def test_slow_source_does_not_block_window_event_loop(self):
+        app = tk.Tk()
+        app.geometry("900x600")
+        entered, release = threading.Event(), threading.Event()
+        messages = SimpleNamespace(showinfo=lambda *a, **k: None,
+                                   showerror=lambda *a, **k: self.fail(str(a)))
+        core = SimpleNamespace(tk=tk, ttk=ttk, messagebox=messages)
+        def slow_reader(_root):
+            entered.set()
+            release.wait(5)
+            return {"rows": [], "paper_status": "OK", "order_status": "OK"}
+        try:
+            with mock.patch.object(catalog, "read_sources", side_effect=slow_reader):
+                win = catalog_ui.open_document_catalog(app, core, ".")
+                deadline = time.monotonic() + 3
+                while not entered.is_set() and time.monotonic() < deadline:
+                    app.update()
+                    time.sleep(0.01)
+                self.assertTrue(entered.is_set())
+                app.update()
+                self.assertTrue(win.winfo_ismapped())
+                self.assertTrue(win.winfo_exists())
+                release.set()
+                deadline = time.monotonic() + 3
+                while time.monotonic() < deadline:
+                    app.update()
+                    time.sleep(0.02)
+                    if not win._taxo_catalog_tree.get_children():
+                        break
+        finally:
+            release.set()
+            app.destroy()
 
 
 if __name__ == "__main__":

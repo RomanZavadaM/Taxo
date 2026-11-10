@@ -47,6 +47,14 @@ def open_operations_center(app, core):
         header, text="Лист стажування…",
         command=lambda: book.select(internship_tab)
     ).pack(side="right")
+    def open_documents_catalog():
+        from paper_documents_ui import open_paper_document_catalog
+        from workspace import load_workspace_root
+        open_paper_document_catalog(win, core, load_workspace_root())
+
+    core.ttk.Button(header, text="Документи…",
+                    command=open_documents_catalog).pack(side="right", padx=(8, 0))
+
     core.ttk.Label(
         body,
         text=("Робочий центр експлуатації: щоденні документи, технічна готовність, накази, "

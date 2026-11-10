@@ -27,12 +27,16 @@ def _read_paper(root):
     folder = Path(root) / "Data" / "PaperDocuments"
     index = folder / "index.json"
     try:
+        # A redirected folder or index must not escape this workspace.
+        folder.resolve().relative_to(Path(root).resolve())
+        if index.exists() and index.resolve().parent != folder.resolve():
+            raise ValueError("індекс поза робочим сховищем")
         data = json.loads(index.read_text(encoding="utf-8"))
         if not isinstance(data, list):
             raise ValueError("індекс не є списком")
     except FileNotFoundError:
         return [], "Каталог інструктажів і стажування ще не створений."
-    except (OSError, ValueError, UnicodeError) as exc:
+    except (OSError, ValueError, UnicodeError, RuntimeError) as exc:
         return [], "Помилка каталогу інструктажів і стажування: " + str(exc)
     rows, problems, seen = [], 0, set()
     for pos, item in enumerate(data):
@@ -54,6 +58,7 @@ def _read_paper(root):
             "key": ("paper", identity, pos),
             "source": "paper", "source_id": identity,
             "date": str(item.get("date") or ""),
+            "created_at": str(item.get("created_at") or item.get("date") or ""),
             "number": "", "kind": str(item.get("kind") or "Документ"),
             "title": str(item.get("title") or ""),
             "person": str(item.get("person") or ""),
@@ -63,6 +68,13 @@ def _read_paper(root):
     if problems:
         status += " Проблемних записів або шляхів: %d." % problems
     return rows, status
+
+
+def _readonly_sqlite_uri(file_uri):
+    """Allow Windows UNC paths without requiring SQLite URI authority support."""
+    if file_uri.startswith("file://") and not file_uri.startswith("file:///"):
+        file_uri = "file:////" + file_uri[len("file://"):]
+    return file_uri + "?mode=ro"
 
 
 def _read_orders(root):
@@ -75,7 +87,7 @@ def _read_orders(root):
         return [], "Помилка доступу до бази наказів: " + str(exc)
     try:
         # mode=ro prevents SQLite from silently creating a missing database.
-        con = sqlite3.connect(db.resolve().as_uri() + "?mode=ro", uri=True, timeout=5)
+        con = sqlite3.connect(_readonly_sqlite_uri(db.resolve().as_uri()), uri=True, timeout=5)
         try:
             con.execute("PRAGMA query_only=ON")
             exists = con.execute(
@@ -83,9 +95,12 @@ def _read_orders(root):
             ).fetchone()
             if not exists:
                 return [], "Таблиці наказів у цій базі немає."
+            columns = {item[1] for item in con.execute(
+                "PRAGMA table_info(operations_orders)").fetchall()}
+            created = "created_at" if "created_at" in columns else "''"
             raw = con.execute(
-                "SELECT id, order_date, order_no, order_type, subject "
-                "FROM operations_orders ORDER BY order_date DESC, id DESC"
+                "SELECT id, order_date, order_no, order_type, subject, "
+                + created + " FROM operations_orders"
             ).fetchall()
         finally:
             con.close()
@@ -94,19 +109,30 @@ def _read_orders(root):
     rows = [{
         "key": ("order", str(order_id), 0),
         "source": "order", "source_id": int(order_id),
-        "date": str(day or ""), "number": str(number or ""),
+        "date": str(day or ""), "created_at": str(created or day or ""),
+        "number": str(number or ""),
         "kind": "Наказ", "title": str(subject or ""),
         "person": "", "order_type": str(kind or ""),
         "file_state": "Файл не прив'язаний", "file_path": None,
-    } for order_id, day, number, kind, subject in raw]
+    } for order_id, day, number, kind, subject, created in raw]
     return rows, "Накази: %d." % len(rows)
 
 
+def _sort_key(row):
+    return (
+        row["created_at"], row["source"],
+        int(row["source_id"]) if row["source"] == "order" else 0,
+        str(row["source_id"]), row["key"][2],
+    )
+
+
 def read_sources(root):
-    """Read both sources once; keep their errors independent."""
+    """Read and sort both sources once; keep their errors independent."""
     paper, paper_status = _read_paper(root)
     orders, order_status = _read_orders(root)
-    return {"rows": paper + orders, "paper_status": paper_status,
+    rows = paper + orders
+    rows.sort(key=_sort_key, reverse=True)
+    return {"rows": rows, "paper_status": paper_status,
             "order_status": order_status}
 
 
@@ -118,9 +144,7 @@ def paginate_sources(snapshot, text_filter="", page=0, page_size=100):
         fields = ("date", "number", "kind", "title", "person", "order_type")
         all_rows = [row for row in all_rows if needle in " ".join(
             str(row.get(field, "")) for field in fields).casefold()]
-    # Invalid or blank legacy dates remain visible as text rather than disappearing.
-    all_rows.sort(key=lambda row: (row["date"], row["source"], str(row["source_id"]),
-                                  row["key"][2]), reverse=True)
+    # Rows are already sorted by creation time in the background reader.
     page_size = max(1, min(int(page_size), 500))
     pages = max(1, (len(all_rows) + page_size - 1) // page_size)
     page = max(0, min(int(page), pages - 1))
