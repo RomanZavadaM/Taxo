@@ -8,11 +8,11 @@
 - Exact-main START artifact збережено у Drive `02_CURRENT_MAIN`, файл `1QIyvVj4PPTKOjB3anHX4zX3IlxmhvA_X`, 1 847 445 bytes; SHA256 до передавання `aa4449f6a3233a0e4dd7c0736acb73bf7fe04a14c5ab2ea67982a19777c6b4f2`; побайтове повторне зчитування не виконувалось.
 - Власник доручив спроєктувати спільне збереження готових документів з необов'язковими підписаними копіями та відокремити накази й інструктажі. [Проєкт взаємодії](https://github.com/RomanZavadaM/dev-strategy/blob/profile/taxo/taxo-history/DESIGN_DOCUMENTS_ORDERS_BRIEFINGS_2026-11-10.md) і окремий автоматизований read-only огляд зафіксовано приватно; огляд виявив межу 1000 наказів, приховану ініціалізацію БД при читанні та ризики узгодженості резерву. Перший етап реалізовано в окремій гілці й він не інтегрований; перенесення старих великих частин ще немає. База `main.py` — 16 644 рядки (#289, #290).
 
-- **Тестовий r5:** draft [PR #312](https://github.com/RomanZavadaM/Taxo/pull/312), head `6a930cb9a5920835f9521fd5029df240744a86e1`. START, Windows, Win7-сумісність і macOS Intel/ARM — SUCCESS, 1081 тест; [START artifact](https://github.com/RomanZavadaM/Taxo/actions/runs/42845249482/artifacts/13778080774) дійсний до 10.12.2026. Власник ще не прийняв r5; сканів немає. Фізичний Win7 та реальний SMB/NAS не перевірені.
+- **Тестовий r5:** draft [PR #312](https://github.com/RomanZavadaM/Taxo/pull/312), head `6a930cb9a5920835f9521fd5029df240744a86e1`. START, Windows, Win7-сумісність і macOS Intel/ARM — SUCCESS, 1081 тест; [START artifact](https://github.com/RomanZavadaM/Taxo/actions/runs/42845249482/artifacts/13778080774) дійсний до 10.12.2026. Власник перевірив r5 і повідомив, що зауважень не знайшов; сканів немає. Фізичний Win7 та реальний SMB/NAS не перевірені.
 
 ## Наступна дія
 
-Робота 10.15-r5 у гілці `work/v10.15-r5-document-catalog`: спільний читальний список наказів та PaperDocuments, без міграції і зміни схеми при перегляді. Потрібні CI/перевірка START, приймання власником, інтеграція та checkpoint; додавання сканів — наступний етап. Перед продовженням звірити open PR і його перевірки.
+Робота 10.15-r5 у гілці `work/v10.15-r5-document-catalog`: спільний читальний список наказів та PaperDocuments, без міграції і зміни схеми при перегляді. Після приймання власником потрібні повторні перевірки актуальної гілки, інтеграція та кандидатний release/recovery checkpoint; додавання сканів — наступний етап. Перед продовженням звірити open PR і його перевірки.
 
 ## Recovery
 

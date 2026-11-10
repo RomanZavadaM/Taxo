@@ -47,6 +47,14 @@ def open_operations_center(app, core):
         header, text="Лист стажування…",
         command=lambda: book.select(internship_tab)
     ).pack(side="right")
+    def open_documents_catalog():
+        from document_catalog_ui import open_document_catalog
+        from workspace import load_workspace_root
+        open_document_catalog(win, core, load_workspace_root())
+
+    core.ttk.Button(header, text="Документи…",
+                    command=open_documents_catalog).pack(side="right", padx=(8, 0))
+
     core.ttk.Label(
         body,
         text=("Робочий центр експлуатації: щоденні документи, технічна готовність, накази, "
@@ -1405,4 +1413,17 @@ def open_operations_center(app, core):
     core.ttk.Button(cbar,text="Створити наказ за вибраним типом",style="Accent.TButton",command=create_from_catalog).pack(side="left")
     catalog_tree.bind("<Double-1>",lambda _e:create_from_catalog())
 
+    def preview_catalog_order(order_id):
+        # Reuse the existing live preview without depending on the visible
+        # first 1000 rows in the orders table.
+        con2 = core.db()
+        try:
+            row = ops.get_order(con2, order_id)
+        finally:
+            con2.close()
+        if row is None:
+            raise ValueError("Наказ більше не існує в робочій базі.")
+        preview_order(row)
+
+    win._taxo_preview_catalog_order = preview_catalog_order
     refresh_orders(); return win

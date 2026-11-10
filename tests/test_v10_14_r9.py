@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """10.14-r9 — open order preview must sync automatically after assignment changes."""
 from pathlib import Path
+import sqlite3
+import tempfile
+import time
+import workspace
 import tkinter as tk
 from tkinter import ttk
 from types import SimpleNamespace
@@ -63,7 +67,7 @@ class _AppHarness(tk.Tk):
 
 class LivePreviewSyncR9Tests(unittest.TestCase):
     def test_r9_identity_and_registry(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4"))
+        self.assertIn(main.APP_VERSION, ("10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5"))
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
         self.assertIn("operations.assignment_preview_sync", routes)
         self.assertTrue(routes["operations.assignment_preview_sync"].required)
@@ -171,6 +175,51 @@ class LivePreviewSyncR9Tests(unittest.TestCase):
                 win = operations_orders_ui.open_operations_center(app, core)
                 app.update_idletasks()
                 app.update()
+
+                # Open the real combined catalog from Operations and then
+                # preview an order without selecting it in the old table.
+                with tempfile.TemporaryDirectory() as directory:
+                    data = Path(directory) / "Data"
+                    data.mkdir()
+                    catalog_db = sqlite3.connect(str(data / "driver_worktime.sqlite3"))
+                    catalog_db.execute(
+                        "CREATE TABLE operations_orders (id INTEGER PRIMARY KEY, "
+                        "order_date TEXT, order_no TEXT, order_type TEXT, subject TEXT)")
+                    catalog_db.execute(
+                        "INSERT INTO operations_orders VALUES "
+                        "(28, '2026-11-09', '28', 'work', 'Тестовий наказ')")
+                    catalog_db.commit()
+                    catalog_db.close()
+                    with mock.patch.object(workspace, "load_workspace_root", return_value=Path(directory)):
+                        catalog_button = button_by_text(win, "Документи…")
+                        self.assertIsNotNone(catalog_button)
+                        catalog_button.invoke()
+                        app.update()
+                        catalog_win = next(
+                            widget for widget in walk(win)
+                            if isinstance(widget, tk.Toplevel)
+                            and str(widget.title()) == "Документи"
+                        )
+                        tree = catalog_win._taxo_catalog_tree
+                        deadline = time.monotonic() + 10
+                        while not tree.get_children() and time.monotonic() < deadline:
+                            app.update()
+                            time.sleep(0.02)
+                        self.assertEqual(len(tree.get_children()), 1)
+                        tree.selection_set(tree.get_children()[0])
+                        open_button = button_by_text(catalog_win, "Відкрити вибране")
+                        self.assertIsNotNone(open_button)
+                        open_button.invoke()
+                        app.update()
+                        direct_preview = next(
+                            widget for widget in walk(win)
+                            if isinstance(widget, tk.Toplevel)
+                            and widget is not win
+                            and str(widget.title()) == "Перегляд наказу №28"
+                        )
+                        self.assertTrue(direct_preview.winfo_exists())
+                        direct_preview.destroy()
+                        catalog_win.destroy()
 
                 order_tree = next(
                     widget for widget in walk(win)
