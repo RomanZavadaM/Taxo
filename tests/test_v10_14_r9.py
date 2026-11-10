@@ -63,7 +63,7 @@ class _AppHarness(tk.Tk):
 
 class LivePreviewSyncR9Tests(unittest.TestCase):
     def test_r9_identity_and_registry(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4"))
+        self.assertIn(main.APP_VERSION, ("10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5"))
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
         self.assertIn("operations.assignment_preview_sync", routes)
         self.assertTrue(routes["operations.assignment_preview_sync"].required)
@@ -171,6 +171,19 @@ class LivePreviewSyncR9Tests(unittest.TestCase):
                 win = operations_orders_ui.open_operations_center(app, core)
                 app.update_idletasks()
                 app.update()
+
+                # The combined catalog can open an order by ID without relying
+                # on selection in the existing, limited orders table.
+                win._taxo_preview_catalog_order(28)
+                app.update()
+                direct_preview = next(
+                    widget for widget in walk(win)
+                    if isinstance(widget, tk.Toplevel)
+                    and widget is not win
+                    and str(widget.title()) == "Перегляд наказу №28"
+                )
+                self.assertTrue(direct_preview.winfo_exists())
+                direct_preview.destroy()
 
                 order_tree = next(
                     widget for widget in walk(win)
