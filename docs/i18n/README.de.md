@@ -25,12 +25,15 @@ Arbeitsdatenbanken, Scans, persönliche Dokumente und Caches sind nicht im Relea
 
 ## Dokumentation und Entwicklung
 
-Die maßgebliche Betriebsdokumentation ist auf Ukrainisch. Siehe Kurzanleitung und Betriebs-/Wartungsanleitung. Nächste Code-Revision: 10.15-r4.
+Die maßgebliche Betriebsdokumentation ist auf Ukrainisch. Siehe Kurzanleitung und Betriebs-/Wartungsanleitung.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
 
-## Testkandidat 10.15-r3 — Unterweisungen und Fahrerpraktikum
 
-Unterweisungen erzeugen jetzt ein bearbeitbares DOCX mit vollständigem Programm und einem getrennten Unterschriftenblatt statt einzelner CSV-Dateien. Es gibt außerdem ein Formular für das Fahrerpraktikum und ein durchsuchbares Verzeichnis gespeicherter Word-Dokumente im Arbeitsbereich (in der vollständigen Sicherung enthalten). Das Erstellen bestätigt weder Durchführung noch Unterschrift oder Zulassung. Optionale Scans und der hierarchische Dokumentenkatalog folgen separat (#289); die Python-Modularisierung ist #290. Die stabile Version bleibt 10.14-r4.
+## Testversion 10.15-r4
+
+Die Kontrolle der Mitarbeiterdokumente meldet eine fehlende lokale Datei, statt den gespeicherten Pfad als vorhandene Kopie zu behandeln. Die Gültigkeit wird unabhängig geprüft; nach Wiederherstellung der Datei „Aktualisieren“ wählen. Version 10.15 bietet zudem bearbeitbare DOCX-Unterweisungen mit Unterschriftenblatt, ein Fahrerpraktikumsformular und ein durchsuchbares Verzeichnis erzeugter Word-Dokumente in der vollständigen Sicherung. Das Erstellen bestätigt weder Durchführung noch Unterschrift oder Zulassung.
+
+[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)

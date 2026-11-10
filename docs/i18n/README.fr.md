@@ -25,12 +25,15 @@ Les bases de données, scans, documents personnels et caches ne sont pas inclus 
 
 ## Documentation et développement
 
-La documentation opérationnelle de référence est en ukrainien. Consultez le démarrage rapide et le guide d'exploitation. Prochaine révision : 10.15-r4.
+La documentation opérationnelle de référence est en ukrainien. Consultez le démarrage rapide et le guide d'exploitation.
 
 [Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
 
 **Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
 
-## Version de test 10.15-r3 — consignes et stage de conduite
 
-Les consignes génèrent désormais un document DOCX modifiable avec le programme complet et une feuille de signatures séparée, au lieu de fichiers CSV dispersés. Une fiche de stage du conducteur et un catalogue consultable des documents Word sauvegardés dans l’espace de travail sont également disponibles (inclus dans la sauvegarde complète). La création d’un fichier ne confirme ni la formation, ni une signature, ni l’autorisation de conduite. Les scans facultatifs et le catalogue hiérarchique sont prévus séparément (#289) ; la modularisation Python relève de #290. La version stable reste 10.14-r4.
+## Version de test 10.15-r4
+
+Le contrôle des documents du personnel signale désormais un fichier local manquant au lieu de considérer son chemin enregistré comme une copie présente. La date d'expiration reste contrôlée séparément ; après restauration du fichier, utilisez Actualiser. La version 10.15 propose aussi des consignes DOCX modifiables avec feuille de signatures, une fiche de stage et un catalogue de documents Word générés inclus dans la sauvegarde complète. La création ne confirme ni la réalisation, ni la signature, ni l'autorisation.
+
+[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
