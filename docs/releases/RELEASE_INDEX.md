@@ -4,10 +4,10 @@
 
 | Лінія | Версія | Призначення |
 |---|---|---|
-| Стабільна / Latest | [10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) | Основна стабільна версія. |
-| Тестова | [10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) | Контроль відсутнього файла документа працівника. |
+| Стабільна / Latest | [10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) | Основна стабільна версія. |
+| Попередня стабільна | [10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) | Варіант повернення. |
 | Тестова | [10.15-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r3) | Інструктажі, лист стажування та початковий каталог. |
-| Попередня стабільна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |
+| Архівна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |
 | Архівна | [10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | Попередній контрольний випуск. |
 
 [Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Примітки 10.15-r4](RELEASE_NOTES_v10.15-r4.md) · [Поточний стан](../../PROJECT_STATE.md).

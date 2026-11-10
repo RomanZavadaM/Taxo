@@ -2,38 +2,35 @@
 
 [Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-> **Stabile Version:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) · 09.11.2026 · Windows 10/11, Windows 7, macOS Intel / Apple Silicon, START verified.
-> **Vorherige stabile Version / Rückkehr:** [Taxo 10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10).
+Taxo ist eine Desktop-Anwendung für Verkehrsunternehmen: Personal und Fahrzeuge, Dienstpläne und Arbeitszeit, Betriebsdokumente und Berichte.
 
-## Downloads — 10.14-r4
+## Funktionen
 
-**Windows 10/11 x64:** [Installationsprogramm](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Setup_Windows_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Windows_x64_Portable.zip)
+- Personal und Fahrer: Stammdaten, Rollenverlauf, Dokumente, Fristen und fehlende lokale Dateien.
+- Dienstpläne und Arbeitszeit: Strecken, Schichten, Zeiterfassung sowie getrennte Plan- und Istzeiten.
+- Fahrerkontrolle: Lenk- und Arbeitszeit, Pausen, Ruhezeiten, Einzelberichte und 60-Tage-Aktivitätsregister.
+- Fahrzeuge und Instandhaltung: Fahrzeugdaten, Kilometerstand, Dokumente, Wartung und Reparaturen.
+- Betrieb: Fahrtblätter, Anordnungen und Fahrer-Fahrzeug-Zuordnung, Tätigkeitsbescheinigungen und Dokumentendruck.
+- Unterweisungen und Praktikum: bearbeitbare Word-Programme, Unterschriftenlisten, Praktikumsformular und einfacher Dokumentenkatalog.
+- Analoge Tachoscheiben: Scans, Ansicht und unterstützte Erkennung mit manueller Prüfung.
+- Berichte und Sicherung: PDF-/Excel-Berichte und Sicherung des Arbeitsordners.
 
-**Windows 7 SP1 x64:** [Installationsprogramm](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Setup_Windows7_x64.exe) · [Portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_Windows7_x64_Portable.zip)
+## Downloads
 
-**macOS:** [Apple Silicon / ARM64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_macOS_arm64_Portable.zip) · [Intel x86_64](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_macOS_x86_64_Portable.zip)
+Stabile Version: 10.15-r4.
 
-**Quellpaket / Prüfsummen:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/Taxo_v10_14_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.14-r4/SHA256SUMS_v10_14_r4.txt) · [Release notes (UK)](../releases/RELEASE_NOTES_v10.14-r4.md).
+[Alle Dateien 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Vorherige stabile Version 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
 
-## Neu seit 10.12-r10
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/SHA256SUMS_v10_15_r4.txt)
 
-Überarbeitete Betriebs- und Wartungsoberfläche, Mehrfachzuordnung von Fahrern und Fahrzeugen, getrennte Personal-/Betriebsnummern für Anordnungen, Dokumentvorschau sowie bearbeitbare Word-, PDF- und JPG-Dokumente mit einheitlichen Tabellen.
+## Erste Schritte und Daten
 
-Anordnungen sind Arbeitsdokumente. Status und Vermerk über die Unterschrift auf Papier verhindern weder Korrekturen noch Löschung. Maßgeblich bleiben die Papieroriginale.
+Datenbanken und Dokumente in einem separaten Arbeitsordner speichern und vor Updates sichern. Die vollständige Sicherung enthält Mitarbeiter- und erstellte Word-Dokumente; Fahrzeugdokumente, Tachoscheibenscans und Output-Dateien müssen entsprechend ausgewählt werden.
 
-Arbeitsdatenbanken, Scans, persönliche Dokumente und Caches sind nicht im Release enthalten. Vor dem Update ein Backup erstellen.
+[Benutzerhandbuch (Ukrainisch)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
-## Dokumentation und Entwicklung
+## Entwicklung
 
-Die maßgebliche Betriebsdokumentation ist auf Ukrainisch. Siehe Kurzanleitung und Betriebs-/Wartungsanleitung.
+Starten mit [START_HERE.md](../../START_HERE.md).
 
-[Quick Start / Швидкий старт](../guides/QUICK_START.md) · [Operations & Maintenance / Експлуатація](../guides/OPERATIONS_STOIR_GUIDE.md) · [Release Index](../releases/RELEASE_INDEX.md) · [Current State](../../PROJECT_STATE.md).
-
-**Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved.** Taxo is proprietary software.
-
-
-## Testversion 10.15-r4
-
-Die Kontrolle der Mitarbeiterdokumente meldet eine fehlende lokale Datei, statt den gespeicherten Pfad als vorhandene Kopie zu behandeln. Die Gültigkeit wird unabhängig geprüft; nach Wiederherstellung der Datei „Aktualisieren“ wählen. Version 10.15 bietet zudem bearbeitbare DOCX-Unterweisungen mit Unterschriftenblatt, ein Fahrerpraktikumsformular und ein durchsuchbares Verzeichnis erzeugter Word-Dokumente in der vollständigen Sicherung. Das Erstellen bestätigt weder Durchführung noch Unterschrift oder Zulassung.
-
-[START ZIP herunterladen](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
+Copyright © 2026 Roman Zavada (Роман Завада). Alle Rechte vorbehalten. [LICENSE](../../LICENSE.md).

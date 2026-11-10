@@ -20,7 +20,7 @@
 
 Перед записом у код, документацію, workflow, release або інші проєктні матеріали додатково:
 
-1. Прочитати приватний Taxo-profile у `RomanZavadaM/dev-strategy` / branch `profile/taxo` / `TAXO_PROFILE.md`.
+1. Прочитати [приватний Taxo-profile](https://github.com/RomanZavadaM/dev-strategy/blob/profile/taxo/TAXO_PROFILE.md) у гілці `profile/taxo`; [архів журналу Taxo](https://github.com/RomanZavadaM/dev-strategy/blob/profile/taxo/taxo-history/2026-11-10-worklog-snapshot/WORKLOG.md) збережено там само.
 2. Прочитати `PROJECT_RULES.md`.
 3. Прочитати `PROJECT_STATE.md`.
 4. За потреби відкрити `WORKLOG.md` та Issue #61 для деталей і доказів.
