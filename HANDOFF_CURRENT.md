@@ -1,19 +1,19 @@
 # HANDOFF_CURRENT — Taxo
 
-**Дата:** 10.11.2026. **Стан:** 10.15-r4 інтегровано; випуск і контрольна документація ще завершуються.
+**Дата:** 10.11.2026. **Стан:** 10.15-r4 інтегровано, прийнято власником і опубліковано як тестовий випуск. Документацію та переклади оновлено; структурне перенесення ще не розпочато.
 
 ## Підтверджена база
 
-- Stable / Latest: **v10.14-r4**, не змінювати без окремого рішення власника.
-- **10.15-r4:** PR [#304](https://github.com/RomanZavadaM/Taxo/pull/304) merged; product main `ae0c673a42c5b633706efdffc1adfd5b1b70681d`. Власник повідомив, що тестував кандидат і він, за його оцінкою, працює.
-- Виправлено контроль відсутнього файла документа працівника [#302](https://github.com/RomanZavadaM/Taxo/issues/302); перевірка строку незалежна, дані не змінюються.
-- PR-head `f199cdd6adef027788deffe3a9601daf8a87c2f3`: Windows [42807207434](https://github.com/RomanZavadaM/Taxo/actions/runs/42807207434), Win7 [42807207609](https://github.com/RomanZavadaM/Taxo/actions/runs/42807207609), macOS [42807207436](https://github.com/RomanZavadaM/Taxo/actions/runs/42807207436) — SUCCESS.
-- Exact-main START [42807804380](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804380), Windows [42807804065](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804065), Win7 [42807804054](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804054), macOS [42807804153](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804153): **результат перевірити у GitHub**. Тег/випуск r4 і їхні файли на момент цього запису **не підтверджені**.
-- Перед скороченням описів точні попередні README українською і шістьма мовами, PRODUCT_STATUS, RELEASE_INDEX і PROJECT_STATE збережено й звірено у приватній `dev-strategy/profile/taxo/taxo-history/2026-11-10-before-10.15-r4/`.
+- Stable / GitHub Latest: **[v10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)**; попередня stable — v10.12-r10. Stable не змінювати без окремого рішення власника.
+- **10.15-r4:** PR #304 merged, exact product/tag `ae0c673a42c5b633706efdffc1adfd5b1b70681d`. Власник повідомив, що тестував кандидат і він, за його оцінкою, працює. Контроль документа працівника виявляє відсутній файл, строк перевіряється окремо (#302).
+- Exact-main [START](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804380), [Windows](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804065), [Win7-сумісність](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804054), [macOS Intel/ARM](https://github.com/RomanZavadaM/Taxo/actions/runs/42807804153) — SUCCESS; Win7 не є ручним запуском на Windows 7.
+- **[v10.15-r4 prerelease](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4):** publisher [42808943357](https://github.com/RomanZavadaM/Taxo/actions/runs/42808943357) SUCCESS, тег на exact product, 8 файлів: Windows і Win7 Setup/Portable, macOS Intel/ARM, START і SHA256.
+- Exact-main START artifact збережено у Drive `02_CURRENT_MAIN`, файл `1QIyvVj4PPTKOjB3anHX4zX3IlxmhvA_X`, 1 847 445 bytes; SHA256 локально перед передаванням `aa4449f6a3233a0e4dd7c0736acb73bf7fe04a14c5ab2ea67982a19777c6b4f2`; після завантаження перевірено назву, розмір, папку, побайтове повторне завантаження не виконувалось.
+- README українською та шістьма мовами, інструкція й стан оновлені через #305. Попередні описи й PROJECT_STATE збережено і звірено у private `dev-strategy/profile/taxo/taxo-history/2026-11-10-before-10.15-r4/`. Історія Git і WORKLOG залишені.
 
-## Наступна дія
+## Одна наступна дія
 
-Перевірити exact-main CI, завершити публікацію кандидатного випуску r4 і перевірити 8 файлів, оновити цей checkpoint, WORKLOG та Issue #61. **До завершення checkpoint не починати наступну кодову ревізію.** Після цього наступна ревізія — **10.15-r5**: узгоджена структурна перебудова з пріоритетом наказів та інструктажів, реальним зменшенням великих файлів і захистом збереження/друку/backup; див. Issue #290. Повнота карти та перевірки backup через UI ще не встановлена.
+Почати окрему структурну ревізію **10.15-r5**: за рішенням власника спершу накази та інструктажі, визначити змістовний блок і його залежності, забезпечити сценарний захист і перенести код без зміни поведінки; звітувати про фактичне зменшення великих файлів. База `main.py` — 16 644 рядки; перенесення ще немає. Врахувати Issue #290, #275 та часткові карти/backup-restore; не робити масове перенесення ядра або міграцій без достатнього захисту.
 
 ## Recovery
 

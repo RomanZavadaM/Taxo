@@ -36,4 +36,4 @@ La documentación operativa canónica está en ucraniano. Consulte el inicio rá
 
 El control de documentos del personal avisa si falta un archivo local en lugar de considerar la ruta guardada como una copia existente. La fecha de vencimiento se controla por separado; tras recuperar el archivo, pulse Actualizar. La versión 10.15 también incluye instrucciones DOCX editables con hoja de firmas, una ficha de prácticas del conductor y un catálogo de documentos Word generados incluido en la copia completa. Crear un archivo no confirma la realización, la firma ni la autorización.
 
-[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
+[Descargar START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)

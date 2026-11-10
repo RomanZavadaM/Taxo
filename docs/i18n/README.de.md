@@ -36,4 +36,4 @@ Die maßgebliche Betriebsdokumentation ist auf Ukrainisch. Siehe Kurzanleitung u
 
 Die Kontrolle der Mitarbeiterdokumente meldet eine fehlende lokale Datei, statt den gespeicherten Pfad als vorhandene Kopie zu behandeln. Die Gültigkeit wird unabhängig geprüft; nach Wiederherstellung der Datei „Aktualisieren“ wählen. Version 10.15 bietet zudem bearbeitbare DOCX-Unterweisungen mit Unterschriftenblatt, ein Fahrerpraktikumsformular und ein durchsuchbares Verzeichnis erzeugter Word-Dokumente in der vollständigen Sicherung. Das Erstellen bestätigt weder Durchführung noch Unterschrift oder Zulassung.
 
-[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
+[START ZIP herunterladen](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)

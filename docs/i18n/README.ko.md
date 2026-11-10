@@ -36,4 +36,4 @@ Taxo의 명령서는 업무 보조 문서입니다. 상태나 종이 서명 표�
 
 직원 문서 관리에서 저장된 경로만으로 사본이 있다고 판단하지 않고 로컬 파일이 없으면 경고합니다. 유효기간은 별도로 확인하며 파일을 복원한 뒤에는 새로 고침을 누르세요. 10.15에는 편집 가능한 교육 DOCX와 서명지, 운전자 실습 기록지, 생성된 Word 문서의 검색 목록도 포함됩니다. 목록의 파일은 전체 백업에 포함됩니다. 문서 생성이 교육 실시, 서명 또는 운행 승인을 뜻하지는 않습니다.
 
-[Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
+[START ZIP 다운로드](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [Taxo 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [Releases](https://github.com/RomanZavadaM/Taxo/releases)
