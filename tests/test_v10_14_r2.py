@@ -71,7 +71,7 @@ class OrderFormatsR2Tests(unittest.TestCase):
         self.core = fake_core(self.output)
 
     def test_current_version_and_start_guard(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r2", "10.14-r3", "10.14-r4", "10.14-r5", "10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5"))
+        self.assertIn(main.APP_VERSION, ("10.14-r2", "10.14-r3", "10.14-r4", "10.14-r5", "10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7"))
         self.assertIn(main.APP_VERSION, Path("VERSION.txt").read_text(encoding="utf-8"))
         start = Path("START.bat").read_text(encoding="utf-8")
         self.assertIn("order_pdf_workflow.py", start)
@@ -133,6 +133,7 @@ class OrderFormatsR2Tests(unittest.TestCase):
 
     def test_existing_order_entries_and_format_choices_remain_visible(self):
         text = Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        text += Path("src/taxo/order_preview_ui.py").read_text(encoding="utf-8")
         for required in (
             "preview_order(created_order)", "Переглянути / друк",
             "Сформувати PDF / друк", "Створити DOCX", "Створити PDF",
