@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Publish checkpoint: candidate 10.15-r4, exact product main ae0c673a42c5b633706efdffc1adfd5b1b70681d; exact-main CI gate required.
+# Publish checkpoint: candidate 10.15-r5, exact product main 0a5420cb9285ae5a8fc085c2689303d3e070ffbb; exact-main CI gate required.
 
 on:
   workflow_dispatch:
