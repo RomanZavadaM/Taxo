@@ -38,4 +38,4 @@
 
 ## Ліцензія
 
-Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved. Taxo — proprietary software. [Ліцензія](LICENSE.md) · [Сторонні компоненти](THIRD_PARTY_NOTICES.md).
+Copyright © 2026 Roman Zavada (Роман Завада). All rights reserved. Taxo — proprietary software. [LICENSE.md](LICENSE.md) · [Сторонні компоненти](THIRD_PARTY_NOTICES.md).
