@@ -56,10 +56,22 @@ class EmployeeDocumentRequirementR7Tests(unittest.TestCase):
             }
         )
         self.con.commit()
-        row = control.document_control_rows(
-            self.con, today=date(2026, 11, 5)
-        )[0]
-        self.assertEqual(row["state"], control.STATE_OK)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            copy = root / "Data/EmployeeDocuments/employee_000001/drv.pdf"
+            copy.parent.mkdir(parents=True)
+            copy.write_bytes(b"synthetic")
+            class Core:
+                DATA_ROOT = root
+
+                @staticmethod
+                def real_data_path(value):
+                    return workspace.resolved_path(value, root)
+
+            row = control.document_control_rows(
+                self.con, today=date(2026, 11, 5), core=Core
+            )[0]
+            self.assertEqual(row["state"], control.STATE_OK)
 
         personnel.archive_employee_document(self.con, 1, doc_id)
         self.con.commit()

@@ -44,7 +44,7 @@ class AppendixFreeEditingR5Tests(unittest.TestCase):
         self.con.close()
 
     def test_version_and_start_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r5", "10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3"))
+        self.assertIn(main.APP_VERSION, ("10.14-r5", "10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4"))
         self.assertIn("Version: " + main.APP_VERSION, Path("VERSION.txt").read_text(encoding="utf-8"))
         self.assertIn("Taxo " + main.APP_VERSION, Path("START.bat").read_text(encoding="utf-8"))
 

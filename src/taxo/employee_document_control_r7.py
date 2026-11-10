@@ -21,6 +21,7 @@ STATE_EXPIRED = "expired"
 STATE_EXPIRING = "expiring"
 STATE_NOT_CONTROLLED = "not_controlled"
 STATE_COPY_REQUIRED = "copy_required"
+STATE_FILE_MISSING = "file_missing"
 
 STATE_LABELS = {
     STATE_OK: "Чинний",
@@ -30,6 +31,7 @@ STATE_LABELS = {
     STATE_EXPIRING: "Закінчується ≤30 днів",
     STATE_NOT_CONTROLLED: "Строк не контролюється",
     STATE_COPY_REQUIRED: "Немає резервної копії файла",
+    STATE_FILE_MISSING: "Файл документа не знайдено",
 }
 
 PROBLEM_STATES = {
@@ -38,6 +40,7 @@ PROBLEM_STATES = {
     STATE_EXPIRED,
     STATE_EXPIRING,
     STATE_COPY_REQUIRED,
+    STATE_FILE_MISSING,
 }
 
 
@@ -201,7 +204,7 @@ def is_workspace_document(core, value):
         return False
     try:
         path = Path(core.real_data_path(raw)).resolve()
-        root = employee_document_storage_root(core).resolve()
+        root = workspace.paths_for(core.DATA_ROOT)["employee_documents"].resolve()
         path.relative_to(root)
         return path.is_file()
     except Exception:
@@ -281,7 +284,7 @@ def _best_active_document(rows, expiry_control, today):
     return invalid_or_blank[0], STATE_DATE_REQUIRED
 
 
-def document_control_rows(con, today=None, problems_only=False):
+def document_control_rows(con, today=None, problems_only=False, core=None):
     ensure_schema_on_connection(con)
     today = today or date.today()
     reqs = con.execute(
@@ -306,9 +309,26 @@ def document_control_rows(con, today=None, problems_only=False):
         )
         state_label = STATE_LABELS[state]
         file_backed_up = False
+        file_missing = False
         if document is not None:
             raw_file = _text(document["file_path"])
-            file_backed_up = raw_file.startswith("workspace://Data/EmployeeDocuments/")
+            if raw_file and not _is_url(raw_file):
+                try:
+                    resolved = core.real_data_path(raw_file) if core is not None else None
+                    file_missing = not resolved or not Path(resolved).is_file()
+                except (OSError, ValueError, TypeError):
+                    file_missing = True
+                if core is not None and not file_missing:
+                    file_backed_up = is_workspace_document(core, raw_file)
+
+        # File presence is independent of expiry: retain expiry warnings when
+        # both conditions apply. A URL is a reference, not a local missing file.
+        if file_missing:
+            if state in (STATE_OK, STATE_NOT_CONTROLLED):
+                state = STATE_FILE_MISSING
+                state_label = STATE_LABELS[state]
+            else:
+                state_label += " · " + STATE_LABELS[STATE_FILE_MISSING].lower()
 
         # A required document may be declared before its copy is available.
         # That is a valid requirement state, but it remains a visible problem
@@ -317,7 +337,7 @@ def document_control_rows(con, today=None, problems_only=False):
             if state in (STATE_OK, STATE_NOT_CONTROLLED):
                 state = STATE_COPY_REQUIRED
                 state_label = STATE_LABELS[state]
-            elif state not in (STATE_NO_DOCUMENT,):
+            elif state not in (STATE_NO_DOCUMENT, STATE_FILE_MISSING) and not file_missing:
                 state_label = state_label + " · немає резервної копії файла"
 
         # Missing optional-but-controlled document is still a control problem;
@@ -339,6 +359,7 @@ def document_control_rows(con, today=None, problems_only=False):
             "expiry_date": _text(document["expiry_date"]) if document is not None else "",
             "file_path": _text(document["file_path"]) if document is not None else "",
             "file_backed_up": file_backed_up,
+            "file_missing": file_missing,
             "state": state,
             "state_label": state_label,
         })
@@ -438,6 +459,7 @@ def install(core, base_app):
                 (STATE_OK, "#0B5D1E"),
                 (STATE_NOT_CONTROLLED, "#365A7A"),
                 (STATE_COPY_REQUIRED, "#8A1C1C"),
+                (STATE_FILE_MISSING, "#8A1C1C"),
             ):
                 tree.tag_configure(state, foreground=color)
 
@@ -454,6 +476,7 @@ def install(core, base_app):
                     rows = document_control_rows(
                         con,
                         problems_only=problems_only.get(),
+                        core=core,
                     )
                 finally:
                     con.close()
