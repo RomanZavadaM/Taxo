@@ -133,6 +133,20 @@ class CombinedCatalogTests(unittest.TestCase):
         order_rows = catalog.read_catalog(self.root, "Тема", page_size=100)["rows"]
         self.assertEqual([row["source_id"] for row in order_rows[:3]], [120, 119, 118])
 
+    def test_paper_only_mode_keeps_newly_created_backdated_document_first(self):
+        self.seed_orders(1)
+        folder = self.paper_index([
+            {"id": "one", "date": "2026-11-10", "created_at": "2026-11-10T08:00:00+00:00",
+             "kind": "Інструктаж", "title": "Раніше створений", "file": "a.docx"},
+            {"id": "two", "date": "2026-01-01", "created_at": "2026-11-10T09:00:00+00:00",
+             "kind": "Інструктаж", "title": "Щойно створений за минулий період", "file": "a.docx"},
+        ])
+        (folder / "a.docx").write_bytes(b"synthetic")
+        snapshot = catalog.read_sources(self.root)
+        result = catalog.paginate_sources(snapshot, source_filter="paper")
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(result["rows"][0]["source_id"], "two")
+
     def test_mixed_sources_sort_by_document_date_not_incompatible_timezones(self):
         self.seed_orders(1)
         folder = self.paper_index([{
@@ -383,6 +397,68 @@ class CombinedCatalogWindowTests(unittest.TestCase):
         finally:
             release.set()
             app.destroy()
+
+
+    def test_page_change_does_not_cancel_pending_source_refresh(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "workspace"
+            folder = root / "Data" / "PaperDocuments"
+            folder.mkdir(parents=True)
+            index = folder / "index.json"
+            (folder / "a.docx").write_bytes(b"synthetic")
+            def write_records(count):
+                index.write_text(json.dumps([{
+                    "id": str(i), "date": "2026-11-%02d" % (i + 1),
+                    "kind": "Інструктаж", "title": "Запис %d" % i, "file": "a.docx"
+                } for i in range(count)], ensure_ascii=False), encoding="utf-8")
+            write_records(1)
+            app = tk.Tk()
+            messages = SimpleNamespace(showinfo=lambda *a, **k: None,
+                                       showerror=lambda *a, **k: self.fail(str(a)))
+            core = SimpleNamespace(tk=tk, ttk=ttk, messagebox=messages)
+            started, release = threading.Event(), threading.Event()
+            original = catalog.read_sources
+            calls = []
+            def gated_reader(path):
+                calls.append(1)
+                if len(calls) == 2:
+                    started.set()
+                    release.wait(5)
+                return original(path)
+            def find_button(parent, label):
+                for child in parent.winfo_children():
+                    if isinstance(child, ttk.Button) and child.cget("text") == label:
+                        return child
+                    result = find_button(child, label)
+                    if result is not None:
+                        return result
+                return None
+            try:
+                with mock.patch.object(catalog, "read_sources", side_effect=gated_reader):
+                    win = catalog_ui.open_document_catalog(app, core, root)
+                    tree = win._taxo_catalog_tree
+                    deadline = time.monotonic() + 10
+                    while len(tree.get_children()) != 1 and time.monotonic() < deadline:
+                        app.update()
+                        time.sleep(0.02)
+                    self.assertEqual(len(tree.get_children()), 1)
+                    write_records(2)
+                    find_button(win, "Оновити").invoke()
+                    deadline = time.monotonic() + 3
+                    while not started.is_set() and time.monotonic() < deadline:
+                        app.update()
+                        time.sleep(0.01)
+                    self.assertTrue(started.is_set())
+                    find_button(win, "Наступна").invoke()
+                    release.set()
+                    deadline = time.monotonic() + 10
+                    while len(tree.get_children()) != 2 and time.monotonic() < deadline:
+                        app.update()
+                        time.sleep(0.02)
+                    self.assertEqual(len(tree.get_children()), 2)
+            finally:
+                release.set()
+                app.destroy()
 
 
 if __name__ == "__main__":

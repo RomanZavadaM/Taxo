@@ -150,15 +150,20 @@ def read_sources(root):
             "order_status": order_status}
 
 
-def paginate_sources(snapshot, text_filter="", page=0, page_size=100):
+def paginate_sources(snapshot, text_filter="", page=0, page_size=100, source_filter="all"):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
     all_rows = list(snapshot["rows"])
+    if source_filter in ("paper", "order"):
+        all_rows = [row for row in all_rows if row["source"] == source_filter]
+    if source_filter == "paper":
+        # Preserve the original paper catalog's newest-created-first behavior.
+        all_rows.sort(key=lambda row: (row["created_at"], row["key"][2]), reverse=True)
     if needle:
         fields = ("date", "number", "kind", "title", "person", "order_type")
         all_rows = [row for row in all_rows if needle in " ".join(
             str(row.get(field, "")) for field in fields).casefold()]
-    # Rows are already sorted by document date in the background reader.
+    # Filtering and, where needed, sorting are executed by the background worker.
     page_size = max(1, min(int(page_size), 500))
     pages = max(1, (len(all_rows) + page_size - 1) // page_size)
     page = max(0, min(int(page), pages - 1))

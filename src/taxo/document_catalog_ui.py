@@ -20,7 +20,7 @@ def open_document_catalog(parent, core, workspace_root):
     body.pack(fill="both", expand=True)
     body.columnconfigure(0, weight=1)
     body.rowconfigure(3, weight=1)
-    core.ttk.Label(body, text="Готові документи та накази (за датою документа)",
+    core.ttk.Label(body, text="Готові документи та накази",
                    style="Subtitle.TLabel").grid(row=0, column=0, sticky="w")
     search = core.tk.StringVar(value="")
     bar = core.ttk.Frame(body)
@@ -28,6 +28,14 @@ def open_document_catalog(parent, core, workspace_root):
     bar.columnconfigure(1, weight=1)
     core.ttk.Label(bar, text="Пошук:").grid(row=0, column=0, sticky="w")
     core.ttk.Entry(bar, textvariable=search).grid(row=0, column=1, sticky="ew", padx=8)
+    source_options = {
+        "Усі — за датою": "all", "Підготовлені Word — новіші": "paper",
+        "Накази": "order",
+    }
+    source_choice = core.tk.StringVar(value="Усі — за датою")
+    source_box = core.ttk.Combobox(bar, textvariable=source_choice, state="readonly",
+                                   values=tuple(source_options), width=28)
+    source_box.grid(row=0, column=2, sticky="e")
     source_status = core.tk.StringVar(value="")
     core.ttk.Label(body, textvariable=source_status, wraplength=900,
                    justify="left").grid(row=2, column=0, sticky="ew")
@@ -55,6 +63,7 @@ def open_document_catalog(parent, core, workspace_root):
     page_text = core.tk.StringVar(value="")
     state = {"page": 0, "pages": 1, "rows": {}, "after": None, "poll": None,
              "snapshot": None, "generation": 0, "busy": False, "wanted": None,
+             "needs_reload": False,
              "results": queue.Queue()}
 
     def render(result):
@@ -76,21 +85,25 @@ def open_document_catalog(parent, core, workspace_root):
         if reset:
             state["page"] = 0
         state["generation"] += 1
+        state["needs_reload"] = state["needs_reload"] or reload_sources
         # Capture Tk values on the UI thread; workers never call Tk.
-        state["wanted"] = (search.get(), state["page"], reload_sources)
+        state["wanted"] = (search.get(), state["page"], reload_sources,
+                           source_options.get(source_choice.get(), "all"))
         source_status.set("Завантаження документів…")
         if not state["busy"]:
             start_worker(state["generation"], state["wanted"])
 
     def start_worker(generation, wanted):
         state["busy"] = True
-        text_filter, page, reload_sources = wanted
+        text_filter, page, reload_sources, source_filter = wanted
         previous = state["snapshot"]
+        must_reload = state["needs_reload"] or reload_sources or previous is None
         def worker():
             try:
                 snapshot = (document_catalog.read_sources(workspace_root)
-                            if reload_sources or previous is None else previous)
-                result = document_catalog.paginate_sources(snapshot, text_filter, page)
+                            if must_reload else previous)
+                result = document_catalog.paginate_sources(
+                    snapshot, text_filter, page, source_filter=source_filter)
                 state["results"].put((generation, snapshot, result, None))
             except Exception as exc:
                 state["results"].put((generation, None, None, str(exc)))
@@ -111,6 +124,7 @@ def open_document_catalog(parent, core, workspace_root):
                 source_status.set("Не вдалося прочитати каталог: " + error)
             else:
                 state["snapshot"] = snapshot
+                state["needs_reload"] = False
                 render(result)
         state["poll"] = win.after(100, poll_results)
 
@@ -177,8 +191,10 @@ def open_document_catalog(parent, core, workspace_root):
                    style="Muted.TLabel").grid(row=5, column=0, sticky="w", pady=(6, 0))
     tree.bind("<Double-1>", open_selected)
     search.trace_add("write", search_changed)
+    source_box.bind("<<ComboboxSelected>>", lambda _e: refresh(reset=True, reload_sources=True))
     win._taxo_catalog_tree = tree
     win._taxo_catalog_search = search
+    win._taxo_catalog_source = source_choice
     win._taxo_catalog_refresh = refresh
     win._taxo_catalog_open = open_selected
     win.bind("<Destroy>", cancel_pending, add="+")
