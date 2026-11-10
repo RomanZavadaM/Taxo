@@ -9,7 +9,7 @@ import document_catalog
 import paper_documents as paperwork
 
 
-def open_document_catalog(parent, core, workspace_root):
+def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win = core.tk.Toplevel(parent)
     win.title("Документи")
     try:
@@ -32,7 +32,9 @@ def open_document_catalog(parent, core, workspace_root):
         "Усі — за датою": "all", "Підготовлені Word — новіші": "paper",
         "Накази": "order",
     }
-    source_choice = core.tk.StringVar(value="Усі — за датою")
+    selected_label = next((label for label, value in source_options.items()
+                           if value == initial_source), "Усі — за датою")
+    source_choice = core.tk.StringVar(value=selected_label)
     source_box = core.ttk.Combobox(bar, textvariable=source_choice, state="readonly",
                                    values=tuple(source_options), width=28)
     source_box.grid(row=0, column=2, sticky="e")
@@ -195,6 +197,7 @@ def open_document_catalog(parent, core, workspace_root):
     win._taxo_catalog_tree = tree
     win._taxo_catalog_search = search
     win._taxo_catalog_source = source_choice
+    win._taxo_catalog_status = source_status
     win._taxo_catalog_refresh = refresh
     win._taxo_catalog_open = open_selected
     win.bind("<Destroy>", cancel_pending, add="+")

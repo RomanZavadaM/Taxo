@@ -16,6 +16,7 @@ from unittest import mock
 
 import document_catalog as catalog
 import document_catalog_ui as catalog_ui
+import paper_documents_ui
 import workspace
 
 
@@ -289,6 +290,26 @@ class CombinedCatalogWindowTests(unittest.TestCase):
             finally:
                 app.destroy()
 
+
+    def test_existing_paper_catalog_entry_keeps_newest_word_mode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = tk.Tk()
+            messages = SimpleNamespace(showinfo=lambda *a, **k: None,
+                                       showerror=lambda *a, **k: self.fail(str(a)))
+            core = SimpleNamespace(tk=tk, ttk=ttk, messagebox=messages)
+            try:
+                win = paper_documents_ui.open_paper_document_catalog(app, core, directory)
+                app.update()
+                self.assertEqual(win._taxo_catalog_source.get(),
+                                 "Підготовлені Word — новіші")
+                deadline = time.monotonic() + 10
+                while win._taxo_catalog_status.get() == "Завантаження документів…" and time.monotonic() < deadline:
+                    app.update()
+                    time.sleep(0.02)
+                self.assertNotEqual(win._taxo_catalog_status.get(), "Завантаження документів…")
+                win.destroy()
+            finally:
+                app.destroy()
 
     def test_slow_source_does_not_block_window_event_loop(self):
         app = tk.Tk()

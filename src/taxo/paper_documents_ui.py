@@ -6,4 +6,4 @@ from document_catalog_ui import open_document_catalog
 
 
 def open_paper_document_catalog(parent, core, workspace_root):
-    return open_document_catalog(parent, core, workspace_root)
+    return open_document_catalog(parent, core, workspace_root, initial_source="paper")
