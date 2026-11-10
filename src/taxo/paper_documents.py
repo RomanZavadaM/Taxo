@@ -14,6 +14,8 @@ import uuid
 from datetime import date, datetime, timezone
 from pathlib import Path
 
+from paper_documents_lock import paper_documents_lock
+
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Cm, Pt
@@ -166,6 +168,12 @@ def list_documents(root, text_filter=""):
 
 
 def save_document(root, doc, kind, title, day, person=""):
+    """Serialize paper-document updates with backup/transfer in this process."""
+    with paper_documents_lock(root):
+        return _save_document_locked(root, doc, kind, title, day, person)
+
+
+def _save_document_locked(root, doc, kind, title, day, person=""):
     """Never overwrite earlier documents; index is atomically replaced."""
     folder = catalog_dir(root)
     folder.mkdir(parents=True, exist_ok=True)
