@@ -13,3 +13,5 @@
 [Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Примітки 10.15-r4](RELEASE_NOTES_v10.15-r4.md) · [Поточний стан](../../PROJECT_STATE.md).
 
 Номери виданих ревізій і теги не перевикористовуються. Призначення stable змінюється лише окремим рішенням власника. Детальна історія попередніх контрольних точок збережена у приватній гілці проєктного профілю та в історії Git.
+
+Архівні контрольні точки: Taxo 10.4-r7 — `9f397a092fe828570927bc39cef7a3a467e2aff0` (immutable); [v9.0.1](https://github.com/RomanZavadaM/Taxo/releases/tag/v9.0.1) — historical rollback.

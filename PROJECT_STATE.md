@@ -16,6 +16,8 @@
 
 Історію попереднього стану збережено у приватній гілці `dev-strategy/profile/taxo/taxo-history/2026-11-10-before-10.15-r4/`, у журналі `WORKLOG.md`, Git та [індексі випусків](docs/releases/RELEASE_INDEX.md).
 
+Історичний контрольний випуск: Taxo 10.3 / `v10.3`, source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+
 ## Recovery
 
 `START_HERE.md` → `HANDOFF_CURRENT.md` → private Taxo-profile → live GitHub → цей файл.
