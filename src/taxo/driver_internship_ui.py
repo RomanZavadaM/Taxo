@@ -6,6 +6,7 @@ from datetime import date
 
 import entity_choices as ops
 import paper_documents as paperwork
+import paper_document_store as document_store
 from paper_documents_ui import open_paper_document_catalog
 from workspace import load_workspace_root
 
@@ -92,7 +93,7 @@ def install_internship_tab(app, core, book):
             "vehicle_id": vehicle.get("id"),
         }
         try:
-            target = paperwork.save_document(
+            target = document_store.save_document(
                 load_workspace_root(), paperwork.build_training_docx(data),
                 "Стажування", kind_var.get() + ": " + data["driver"],
                 date.today().isoformat(), data["driver"])
@@ -100,7 +101,7 @@ def install_internship_tab(app, core, book):
             core.messagebox.showerror("Лист стажування", str(exc), parent=tab)
             return
         try:
-            paperwork.open_file(target)
+            document_store.open_file(target)
         except OSError as exc:
             core.messagebox.showwarning(
                 "Лист стажування збережено",
