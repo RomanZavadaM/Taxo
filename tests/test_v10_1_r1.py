@@ -4,6 +4,7 @@ import sqlite3
 import unittest
 
 import branding
+import driver_registry_ui
 import employee_registry_ui
 import main
 
@@ -171,8 +172,9 @@ class TestDriverRoleSeparation(unittest.TestCase):
         )
 
     def test_driver_card_requires_end_date_when_current_role_is_deactivated(self):
-        source = inspect.getsource(main.App.driver_form)
-        self.assertIn('role_end_date=""', source)
+        source = inspect.getsource(driver_registry_ui.driver_form)
+        normalized = source.replace(" ", "")
+        self.assertIn('role_end_date=""', normalized)
         self.assertIn('"Дата завершення роботи водієм (ДД.ММ.РРРР):"', source)
         self.assertIn("driver_end_date=?", source)
 

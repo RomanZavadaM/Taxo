@@ -13,6 +13,7 @@ _original_path_home = Path.home
 Path.home = classmethod(lambda cls: Path(_temporary_home.name))
 try:
     from pdf_test_utils import open_pdf
+    import driver_registry_ui
     import employee_registry_ui
     import main
     import tachograph
@@ -52,7 +53,7 @@ class V870R5Tests(unittest.TestCase):
             con.close()
 
     def test_employee_register_and_route_editor_are_exposed(self):
-        self.assertIn("Реєстр усіх працівників", inspect.getsource(main.App.build_drivers))
+        self.assertIn("Реєстр усіх працівників", inspect.getsource(driver_registry_ui.build_drivers))
         self.assertIn("Пули серій і номерів", inspect.getsource(main.App.build_company))
         route_source = inspect.getsource(main.App.route_catalog_form)
         self.assertIn("Точка початку роботи", route_source)
