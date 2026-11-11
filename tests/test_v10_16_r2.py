@@ -15,13 +15,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OrderRegisterSeparationR2Tests(unittest.TestCase):
     def test_version_and_start_require_order_register_module(self):
-        self.assertEqual(main.APP_VERSION, "10.16-r2")
+        self.assertIn(main.APP_VERSION, ("10.16-r2", "10.16-r3"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.16-r2\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
         start = (ROOT / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.16-r2", start)
+        self.assertIn("Taxo " + main.APP_VERSION, start)
         self.assertIn("order_register_ui.py", start)
 
     def test_operations_center_is_a_module_coordinator(self):

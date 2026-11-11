@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class VehicleRegistryUiSeparationR9Tests(unittest.TestCase):
     def test_version_and_start_require_vehicle_registry_ui(self):
-        self.assertIn(main.APP_VERSION, ("10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2"))
+        self.assertIn(main.APP_VERSION, ("10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3"))
         self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n")
         start = (ROOT / "START.bat").read_text("utf-8")
         self.assertIn("Taxo " + main.APP_VERSION, start)
