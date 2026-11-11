@@ -26,7 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git show "$SOURCE_SHA:VERSION.txt" | tr -d '\r')" = "Version: 10.16-r7"
-          git show "$SOURCE_SHA:main.py" | grep -Fq 'APP_VERSION = "10.16-r7"'
+          git show "$SOURCE_SHA:main.py" | grep -F 'APP_VERSION = "10.16-r7"' >/dev/null
           test -f docs/releases/RELEASE_NOTES_v10.16-r7.md
           for run in 43036224116 43036224099 43036224219; do
             test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.head_sha')" = "$SOURCE_SHA"
@@ -62,11 +62,11 @@ jobs:
           done
           git archive --format=zip --prefix="$STEM"_START/ --output="release_files/$STEM"_START.zip "$SOURCE_SHA"
           archive="release_files/$STEM"_START.zip
-          if unzip -Z1 "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+          if unzip -Z1 "$archive" | grep -Ei '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
             echo "Database/cache found in START" >&2; exit 1
           fi
           for required in START.bat requirements.txt VERSION.txt main.py taxo_app.py src/taxo/order_editor_persistence.py src/taxo/order_editor_ui.py LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md; do
-            unzip -Z1 "$archive" | grep -Fxq "$STEM"_START/"$required" || {
+            unzip -Z1 "$archive" | grep -Fx "$STEM"_START/"$required" >/dev/null || {
               echo "Required START file missing: $required" >&2; exit 1;
             }
           done
