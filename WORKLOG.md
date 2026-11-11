@@ -914,3 +914,11 @@
 - Recovery evidence: PR #341 comment 6796510877; Issue #61 comment 6796511722.
 - 10.16-r6 не merged і не stable. `main` лишається 10.15-r5; stable — v10.15-r4; 10.15-r5 — rollback/reference. Наступна кодова ревізія — **10.16-r7**.
 
+## 11.11.2026 — визнання 10.15-r5 стабільною версією
+
+- Власник уточнив, що вже прийнята робоча 10.15-r5 мала бути stable. Підтверджено існуючий release з 8 assets і SHA256 та незмінним source SHA `0a5420cb9285ae5a8fc085c2689303d3e070ffbb`.
+- Docs/marker PR #346 інтегровано в `main` як `5425175b87c4f7c027bf99a97e23b79e648e97fb`. `.release/stable-current` = `10.15-r5`; release notes більше не називають r5 тестовою.
+- Publish workflow 43037738240 — SUCCESS. GitHub API `releases/latest` та `releases/tags/v10.15-r5` підтвердили `Taxo 10.15-r5 — Stable`, prerelease=false, Latest=v10.15-r5. Тег та старі assets не переписувались.
+- Для наступних 10.16 власник визначив тестові portable-only випуски (Windows/Win7/macOS Intel/ARM, START/source, SHA256), без публікації інсталяторів. Не інтегрувати код 10.16 у main без окремого рішення.
+
+
