@@ -901,3 +901,16 @@
 - Через docs-only divergence cumulative PR платформний CI запущено через validation base `validation/v10.16-r5-base-r4` і PR #339. Після повного SUCCESS PR #339 закрито **без merge**.
 - 10.16-r5 не merged і не stable. `main` лишається 10.15-r5; stable — v10.15-r4; 10.15-r5 — rollback/reference. Наступна кодова ревізія — **10.16-r6**.
 
+## 11.11.2026 — 10.16-r6: документна межа стажування
+
+- Від exact verified r5 `8fa5687012abd6731327bbd65af8df572e017fa4` створено `work/v10.16-r6-driver-internship-documents`, draft PR #341.
+- У `driver_internship_document_service.py` винесено документну операцію стажування/контрольної поїздки: побудова існуючого editable DOCX, збереження через існуючий `paper_document_store` і відкриття через існуючий cross-platform handler. `driver_internship_ui.py` лишився Tk-формою збору й перевірки даних та делегує документну операцію сервісу.
+- Це поділ відповідальності, а не скорочення коду. Формат DOCX, каталог `Data/PaperDocuments`, схема БД, backup/restore та правило «підготовлений документ не означає фактично проведене стажування, підпис чи допуск» не змінені.
+- Історичний live-test стажування лишив реальне створення DOCX і перевірку файла в тестовому каталозі, але open-file patch перенаправлено з фізичного `driver_internship_ui.document_store` на новий сервіс.
+- Перший START push run `43024216657` виявив одну packaging-прогалину: новий сервіс не був внесений до package guard `START.bat`. Guard додано; бізнес-поведінка не змінювалася.
+- Exact final head `21c11679892d47c61118517fe96dc5a3548267f8`: START/source 43024413444 SUCCESS, 1129 tests; Windows 43024422301 SUCCESS, 1129 tests; Win7 compatibility 43024422268 SUCCESS, 1129 tests на Python 3.8; macOS 43024422266 Intel + ARM SUCCESS, 1129 tests кожна. Windows START preflight та incomplete-package guard SUCCESS.
+- Artifacts: START 13857285030 `Taxo_v10_16_candidate_r6_START`; Windows 13857145797; regression log 13857155379; Win7 13855789085; Win7 build log 13856487531; macOS x86_64 13857315862; macOS ARM64 13856552190.
+- Через docs-only divergence cumulative PR платформний CI перевірено через validation base `validation/v10.16-r6-base-r5` і PR #342. Після повного SUCCESS PR #342 закрито **без merge**.
+- Recovery evidence: PR #341 comment 6796510877; Issue #61 comment 6796511722.
+- 10.16-r6 не merged і не stable. `main` лишається 10.15-r5; stable — v10.15-r4; 10.15-r5 — rollback/reference. Наступна кодова ревізія — **10.16-r7**.
+
