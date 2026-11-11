@@ -166,7 +166,7 @@ def install_order_register(
     def order_dialog(existing=None, force_type=None):
         return open_order_editor(
             core, ops, win, existing, force_type, personnel_order_next_var,
-            work_order_next_var, order_place_var, employee_by_id, operations_resp_var,
+            work_order_next_var, order_place_var, employee_by_id, operations_responsible_var,
             type_labels, type_by_label, employee_labels, employee_by_label,
             book, assignments_tab, orders_tab, refresh_assignments,
             add_assignments_bulk, refresh_orders, refresh_open_order_previews,

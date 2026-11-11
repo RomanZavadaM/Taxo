@@ -106,6 +106,7 @@ class TaxoR10OrderPreviewTests(unittest.TestCase):
 
     def test_orders_ui_exposes_preview_print_and_auto_opens_created_order(self):
         text=Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        text += Path("src/taxo/order_register_ui.py").read_text(encoding="utf-8")
         text += Path("src/taxo/order_editor_ui.py").read_text(encoding="utf-8")
         text+=Path("src/taxo/order_preview_ui.py").read_text(encoding="utf-8")
         for marker in (

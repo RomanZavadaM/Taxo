@@ -133,6 +133,7 @@ class OrderFormatsR2Tests(unittest.TestCase):
 
     def test_existing_order_entries_and_format_choices_remain_visible(self):
         text = Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        text += Path("src/taxo/order_register_ui.py").read_text(encoding="utf-8")
         text += Path("src/taxo/order_editor_ui.py").read_text(encoding="utf-8")
         text += Path("src/taxo/order_preview_ui.py").read_text(encoding="utf-8")
         for required in (

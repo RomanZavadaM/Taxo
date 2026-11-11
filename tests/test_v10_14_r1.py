@@ -78,6 +78,7 @@ class OrderPdfWorkflowTests(unittest.TestCase):
 
     def test_orders_ui_keeps_preview_and_print_entry_points(self):
         source = Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        source += Path("src/taxo/order_register_ui.py").read_text(encoding="utf-8")
         source += Path("src/taxo/order_editor_ui.py").read_text(encoding="utf-8")
         self.assertIn("preview_order(created_order)", source)
         self.assertIn('("Переглянути / друк", preview_order', source)

@@ -105,6 +105,7 @@ class FreeOrderEditingR3Tests(unittest.TestCase):
 
     def test_ui_actions_exist_without_status_guard(self):
         source=Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        source+=Path("src/taxo/order_register_ui.py").read_text(encoding="utf-8")
         self.assertIn('"Видалити наказ"',source)
         self.assertIn('"Скасувати наказ"',source)
         self.assertIn('signed=not bool(',source)
