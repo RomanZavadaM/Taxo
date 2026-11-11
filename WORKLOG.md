@@ -889,3 +889,15 @@
 - Через docs-only divergence основного cumulative PR платформні PR-only workflows перевірено через тимчасовий validation PR #336 до exact r3; PR #336 закрито без merge після SUCCESS.
 - r4 не merged/stable. Stable лишається v10.15-r4; r5 — rollback/reference. Наступна кодова ревізія — 10.16-r5.
 
+## 11.11.2026 — 10.16-r5: документна межа інструктажів і детермінований каталог
+
+- Від exact verified r4 `a3509473ec3d884ec18bbbceb07fa78dd24ad3b3` створено `work/v10.16-r5-safety-instruction-documents`, draft PR #338.
+- У `safety_instruction_document_service.py` винесено документну операцію інструктажу: побудова існуючого editable DOCX, збереження через існуючий `paper_document_store` і відкриття через існуючий cross-platform handler. `safety_instructions_ui.py` лишився UI збору/редагування даних і делегує цю операцію сервісу.
+- Це поділ відповідальності, а не скорочення коду. Формат DOCX, каталог `Data/PaperDocuments`, схема БД, backup/restore та правило «підготовлений документ не означає проведення чи підписання» не змінені.
+- Перший macOS ARM64 regression виявив історичний live-test, прив'язаний до фізичного місця `safety_instructions_ui.document_store`. Тест перенаправлено на `instruction_documents.open_briefing_document`; реальне створення DOCX і перевірка файла в каталозі залишилися активними.
+- Наступний Win7/Python 3.8 regression виявив реальний дефект: два швидко створені документи могли мати однаковий `created_at`, тому stable reverse-sort іноді ставив старіший append першим. `paper_document_store.list_documents()` отримав детермінований tie-breaker за append-позицією; додано окремий regression на однакові timestamps.
+- Exact final head `8fa5687012abd6731327bbd65af8df572e017fa4`: Windows 43021465684 SUCCESS, 1125 tests; Win7 compatibility 43021465639 SUCCESS, 1125 tests на Python 3.8; macOS 43021467222 Intel + ARM SUCCESS, 1125 tests кожна. Windows START preflight та incomplete-package guard SUCCESS.
+- Artifacts: Windows 13855272500 `Taxo-current-Windows-x64`; regression log 13854499080; Win7 13854479547 `Taxo-current-Windows7-x64`; Win7 build log 13855491714; macOS x86_64 13854264580; macOS ARM64 13855755743.
+- Через docs-only divergence cumulative PR платформний CI запущено через validation base `validation/v10.16-r5-base-r4` і PR #339. Після повного SUCCESS PR #339 закрито **без merge**.
+- 10.16-r5 не merged і не stable. `main` лишається 10.15-r5; stable — v10.15-r4; 10.15-r5 — rollback/reference. Наступна кодова ревізія — **10.16-r6**.
+
