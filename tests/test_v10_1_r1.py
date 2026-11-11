@@ -4,6 +4,7 @@ import sqlite3
 import unittest
 
 import branding
+import employee_registry_ui
 import main
 
 
@@ -150,7 +151,7 @@ class TestDriverRoleSeparation(unittest.TestCase):
         con.close()
 
     def test_employee_card_preserves_historical_driver_end_date(self):
-        source = inspect.getsource(main.App.employee_form)
+        source = inspect.getsource(employee_registry_ui.employee_form)
         self.assertIn("stored_driver_end", source)
         self.assertIn("next_driver_end=stored_driver_end", source)
         self.assertNotIn(
@@ -159,9 +160,11 @@ class TestDriverRoleSeparation(unittest.TestCase):
         )
 
     def test_reemployment_does_not_reactivate_driver_role(self):
-        source = inspect.getsource(main.App.toggle_employee_active)
+        source = inspect.getsource(employee_registry_ui.toggle_employee_active)
         normalized = " ".join(source.split())
-        self.assertIn("if row[\"driver_id\"] and new_state==0", normalized)
+        self.assertIn('row["driver_id"]', normalized)
+        self.assertIn("new_state == 0", normalized)
+        self.assertIn("finish_driver_role", normalized)
         self.assertNotIn(
             'UPDATE drivers SET active=? WHERE id=?',
             normalized,
