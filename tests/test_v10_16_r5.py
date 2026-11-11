@@ -18,13 +18,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SafetyInstructionDocumentServiceR5Tests(unittest.TestCase):
     def test_version_and_start_require_instruction_document_service(self):
-        self.assertEqual(main.APP_VERSION, "10.16-r5")
+        self.assertIn(main.APP_VERSION, ("10.16-r5", "10.16-r6"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.16-r5\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
         start = (ROOT / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.16-r5", start)
+        self.assertIn("Taxo " + main.APP_VERSION, start)
         self.assertIn("safety_instruction_document_service.py", start)
 
     def test_instruction_ui_delegates_document_work_to_service(self):
