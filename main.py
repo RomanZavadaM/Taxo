@@ -7167,7 +7167,7 @@ class App(tk.Tk):
             pass
 
     def show_vehicle_documents_report(self):
-        return open_vehicle_documents_report(
+        open_vehicle_documents_report(
             self,
             db,
             OUTPUT_DIR,

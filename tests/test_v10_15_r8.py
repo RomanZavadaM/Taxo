@@ -49,7 +49,7 @@ class VehicleDocumentReportSeparationR8Tests(unittest.TestCase):
         app = object.__new__(main.App)
         with mock.patch.object(main, "open_vehicle_documents_report", return_value="opened") as opener:
             result = main.App.show_vehicle_documents_report(app)
-        self.assertEqual(result, "opened")
+        self.assertIsNone(result)
         args, kwargs = opener.call_args
         self.assertIs(args[0], app)
         self.assertIs(args[1], main.db)

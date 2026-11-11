@@ -60,7 +60,7 @@ def open_vehicle_documents_report(
         try:
             if existing.winfo_exists():
                 existing.lift()
-                return existing
+                return
         except tk.TclError:
             pass
 
@@ -206,4 +206,4 @@ def open_vehicle_documents_report(
     active_only.trace_add("write", lambda *_args: refresh())
     only_issues.trace_add("write", lambda *_args: refresh())
     refresh()
-    return win
+    return None
