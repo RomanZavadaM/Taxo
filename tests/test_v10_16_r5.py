@@ -5,13 +5,12 @@ from __future__ import annotations
 import inspect
 import unittest
 from datetime import date
+from pathlib import Path
 from unittest import mock
 
 import main
 import safety_instruction_document_service as instruction_documents
 import safety_instructions_ui
-
-from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
