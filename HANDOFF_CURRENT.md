@@ -1,23 +1,25 @@
 # HANDOFF_CURRENT — Taxo
 
-**11.11.2026 — перевірений stable checkpoint.**
+**11.11.2026 — stable r8, наступний перевірений тестовий checkpoint r9.**
 
-## Підтверджена база
+## Підтверджений стан
 
-- **Stable / GitHub Latest:** [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8), exact release tag/source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`. Release promotion workflow [43077702929](https://github.com/RomanZavadaM/Taxo/actions/runs/43077702929) — **SUCCESS**: збережено чотири раніше видані portable ZIP, додано два перевірені Inno Setup EXE (Windows x64, Win7 x64), START/source ZIP, перераховано і перевірено повний SHA256; **8 assets, Stable/Latest**.
-- **Поточний код `main`: 10.16-r8**, інтегровано спеціальним PR [#352](https://github.com/RomanZavadaM/Taxo/pull/352), merge `890d9734a1de54020267ed0a08f789785508b803` (exact r8 код + актуальні recovery-документи main). PR #352 CI: Windows 43073483675 SUCCESS, Win7 compatibility 43073483820 SUCCESS, macOS Intel/ARM 43073483665 SUCCESS. Merge push CI — окремий запуск, перевірити поточний статус у GitHub.
-- **Попередня стабільна / rollback:** [v10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5), source `0a5420cb9285ae5a8fc085c2689303d3e070ffbb`; її тег та 8 assets незмінні. Старіший r4 також збережений.
-- **r9 незавершена і НЕ належить до stable:** окрема робоча гілка `work/v10.16-r9-order-editor-presets` станом на `6a1f03c0c397e11125c15a32c1bd339170115f5f`. Її джерело не перевикористовувати як r8. Після стабілізації нову роботу проводити від поточного `main`, виконуючи reconciliation стану, а не бездумно merge-ити незавершену гілку.
+- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, immutable source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`, 8 assets (2 Windows installer EXE, 4 portable, START/source, SHA256); stable promotion CI [43077702929](https://github.com/RomanZavadaM/Taxo/actions/runs/43077702929) SUCCESS. Попередня stable [v10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5) збережена для rollback.
+- **`main` залишається на коді 10.16-r8**, на старті цього slice HEAD `be1650cde2061bc51faa85c6087999e3efc9c34f`, після документного checkpoint оновиться лише документаційно. Платформні CI для r8 зелений.
+- **Новий тестовий [v10.16-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r9)**, draft [PR #355](https://github.com/RomanZavadaM/Taxo/pull/355), exact code head/tag `53428d4287c0f4e83a55a739109c0bd209e3a623`. Винесено **картку водія** із `driver_registry_ui.py` до `driver_form_ui.py`; публічний сумісний виклик `driver_registry_ui.driver_form` і поведінку ролей, дат та SQLite збережено. Новий regression тест + START guard. CI exact-head: START/source [43085532694](https://github.com/RomanZavadaM/Taxo/actions/runs/43085532694), Windows [43085597365](https://github.com/RomanZavadaM/Taxo/actions/runs/43085597365), Win7 Python 3.8 compatibility [43085597651](https://github.com/RomanZavadaM/Taxo/actions/runs/43085597651), macOS Intel/ARM [43085597241](https://github.com/RomanZavadaM/Taxo/actions/runs/43085597241) — **всі SUCCESS**. Окремий release publisher [43086357353](https://github.com/RomanZavadaM/Taxo/actions/runs/43086357353) SUCCESS: 4 portable ZIP + START/source ZIP + SHA256, рівно 6 assets; без інсталяторів, Stable/Latest залишилась r8. Код r9 НЕ merged у main.
+- Відкладена попередня неуспішна/незавершена гілка `work/v10.16-r9-order-editor-presets` exact head `6a1f03c0c397e11125c15a32c1bd339170115f5f` **не є виданою r9** і не повинна зливатися; вона виникла до зміни пріоритету власником.
 
-## Рішення про бібліотеку шаблонів
+## Рішення власника
 
-Власник зазначив, що типові накази надто обмежені, але **не потребують штучно довгих текстів**: для закріплення головне — конкретні пари водій–ТЗ, дати, реквізити, реальна підстава. Кожен користувач повинен мати **власну редаговану бібліотеку шаблонів** з можливістю створювати/копіювати/редагувати свої заготовки, без втрати після оновлення. **Шаблон ніколи не є кінцевим документом**; кінцевий наказ щоразу отримує реальні дані, перевіряється, фіксується окремо. Зміна шаблону не змінює попередні накази. План [ORDER_TEMPLATE_LIBRARY_PLAN_2026-11-11.md](docs/planning/ORDER_TEMPLATE_LIBRARY_PLAN_2026-11-11.md); власник може надати знеособлені архіви наказів за 20 років.
+- Роботу іншого ШІ над історичним архівом наказів **ігнорувати** у поточній розробці; не брати його незавершені матеріали в гілки Taxo.
+- **Відкласти бібліотеку шаблонів і сховище документів** до нової команди. Їхня архітектура зафіксована в `docs/planning/`; зараз її не реалізовувати, не змінювати.
+- Продовжувати **модульну структурну перебудову інших систем**, не скорочувати код заради кількості рядків, зберігати читабельність і повний захист вже робочих функцій.
 
 ## Наступна дія
 
-1. Перевірити поточні live main HEAD, PR, CI, реліз і синхронність цього HANDOFF; не називати незавершений CI успішним.
-2. Прийняти 10.16-r8 як нову основу; збережений старий stable — 10.15-r5.
-3. Розпланувати наступну нову тестову ревізію **10.16-r9** з урахуванням власної редагованої бібліотеки та безпечної структурної перебудови; не зливати незавершений r9 без звірки. Будь-які випуски після r8 — спочатку тестові, без автоматичної зміни stable.
+1. На наступній сесії: `START_HERE.md` → HANDOFF → private Taxo-profile → live GitHub (main/PR #355/CI/release).
+2. Стабільна основа для rollback — r8. Наступна **нова кодова ревізія: 10.16-r10** (r9 вже видана й не перевикористовується).
+3. Вибрати безпечний наступний модульний крок **поза шаблонами та архівом документів**; повні regression/START/portable до показу тестової версії; stable не змінювати без прямої команди.
 
 ## Recovery
 
