@@ -56,7 +56,7 @@ class R7IntegrationTests(unittest.TestCase):
         self.assertIn("v1067_features.py", workflow)
 
     def test_base_document_window_keeps_actions_state_and_scrollbars(self):
-        source = (ROOT / "vehicle_documents.py").read_text("utf-8")
+        source = (ROOT / "vehicle_documents_ui.py").read_text("utf-8")
         start = source.index("class VehicleDocumentsWindow")
         block = source[start:source.index("    def _selected_id", start)]
         for label in r7.DOCUMENT_ACTION_LABELS:
