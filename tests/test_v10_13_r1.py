@@ -193,6 +193,12 @@ class OperationsStoirUsabilityR1Tests(unittest.TestCase):
             encoding="utf-8",
         ) as catalog_file:
             text += catalog_file.read()
+        with open(
+            "src/taxo/order_register_ui.py",
+            "r",
+            encoding="utf-8",
+        ) as register_file:
+            text += register_file.read()
         for marker in (
             "Що потрібно оформити?",
             "Новий наказ…",

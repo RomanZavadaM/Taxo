@@ -17,13 +17,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OperationsCenterSeparationR1Tests(unittest.TestCase):
     def test_version_and_start_require_new_operations_modules(self):
-        self.assertEqual(main.APP_VERSION, "10.16-r1")
+        self.assertIn(main.APP_VERSION, ("10.16-r1", "10.16-r2"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.16-r1\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
         start = (ROOT / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.16-r1", start)
+        self.assertIn("Taxo " + main.APP_VERSION, start)
         self.assertIn("operations_orders_ui.py", start)
         self.assertIn("operations_settings_ui.py", start)
         self.assertIn("order_type_catalog_ui.py", start)
