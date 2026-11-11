@@ -1,0 +1,5 @@
+Approved: 2026-11-11
+Version: 10.16-r8
+ExactSource: 115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6
+MainMerge: 890d9734a1de54020267ed0a08f789785508b803
+Purpose: Promote only after full 8-asset SHA256 validation
