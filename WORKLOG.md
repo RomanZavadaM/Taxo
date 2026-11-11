@@ -932,3 +932,15 @@
 - Тимчасовий validation PR #345 закрито без merge. Draft PR #344 залишається незлитим; main код і stable 10.15-r5 не змінені.
 - Наступна нова кодова ревізія — **10.16-r8**.
 
+## 11.11.2026 — 10.16-r8: окремий assignment-UI редактора наказу і portable-only prerelease
+
+- На старті сесії live GitHub виявив, що переданий recovery-контекст відставав: після r5 уже були завершені r6 та r7. За правилом невикористання виданих ревізій роботу продовжено не повторним r6, а **10.16-r8** від exact verified r7 `b0d848b86b8344d1064024ca1d3a3f7186adc27c`.
+- Створено `work/v10.16-r8-order-editor-assignments`, draft PR #349. У `order_editor_assignments_ui.py` винесено блок вибору/підготовки пар водій–ТЗ, відображення існуючих закріплень і переходу до менеджера. `order_editor_ui.py` лишився координатором форми; `order_editor_persistence.py` лишився місцем збереження. Схема БД, backup/restore, формати документів і правила парування не змінені.
+- Збережено live-test hooks критичного bulk-сценарію. Додано r8 regression на делегування assignment-UI, збереження підготовлених пар після втрати виділення/фокусу та підтвердження порожнього наказу. Верхню частину координатора редактора розформатовано для читабельності без зміни логіки.
+- Перший platform CI на проміжному head `b3f6aaa9019c010f104eb96fec0dd572ce88d444` завершив 1139 тестів з одним failure: історичний `test_v10_14_r4` не допускав r8 у version allowlist. Gate розширено без послаблення тесту; final exact head — `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`.
+- Final exact-head CI: Windows 43042553534 SUCCESS, 1139/1139, START preflight та incomplete-package guard SUCCESS; Win7 compatibility 43042553636 SUCCESS, 1139/1139 на Python 3.8; macOS 43042553516 — Intel і ARM SUCCESS, 1139/1139 кожна. Temporary validation PR #350 закрито без merge.
+- START/source workflow 43042538213 **двічі** не дійшов до тестів через однаковий DNS GitHub runner-а під час apt (`Temporary failure resolving azure.archive.ubuntu.com / archive.ubuntu.com / security.ubuntu.com`, exit 100). Це infra incident, не помилка коду; цей workflow не приймався як доказ продукту.
+- Ізольований release workflow 43043571230 — SUCCESS: перевірив exact source SHA та три зелені platform runs, завантажив тільки portable artifacts, сам створив і перевірив START ZIP, заборонив installer-файли та перевірив stable/latest.
+- Опубліковано immutable [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8) як prerelease, tag `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`, рівно 6 assets: Windows x64 portable, Windows 7 x64 portable, macOS x86_64 portable, macOS arm64 portable, START/source ZIP і SHA256. **Інсталяторів у релізі нема; Latest лишається v10.15-r5.**
+- Draft PR #349 не merged/stable. Наступна кодова ревізія — **10.16-r9**.
+
