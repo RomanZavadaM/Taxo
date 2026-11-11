@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SafetyInstructionDocumentServiceR5Tests(unittest.TestCase):
     def test_version_and_start_require_instruction_document_service(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r5", "10.16-r6", "10.16-r7"))
+        self.assertIn(main.APP_VERSION, ("10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: " + main.APP_VERSION + "\n",

@@ -44,13 +44,13 @@ class OrderEditorPersistenceR7Tests(unittest.TestCase):
         )
 
     def test_version_and_package_guard(self):
-        self.assertEqual(main.APP_VERSION, "10.16-r7")
+        self.assertIn(main.APP_VERSION, ("10.16-r7", "10.16-r8"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text(encoding="utf-8"),
-            "Version: 10.16-r7\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
         start = (ROOT / "START.bat").read_text(encoding="utf-8")
-        self.assertIn("Taxo 10.16-r7", start)
+        self.assertIn("Taxo " + main.APP_VERSION, start)
         self.assertIn("order_editor_persistence.py", start)
 
     def test_ui_delegates_write_but_retains_commit_and_rollback(self):
@@ -60,7 +60,7 @@ class OrderEditorPersistenceR7Tests(unittest.TestCase):
         self.assertIn("connection.rollback()", source)
         self.assertNotIn("ops.create_vehicle_assignment_order(", source)
         self.assertNotIn("ops.verify_vehicle_assignment_pairs(", source)
-        self.assertIn("staged_initial_pairs", source)
+        self.assertIn("assignment_section.initial_pairs_for_save(", source)
 
     def test_assignment_creation_verifies_all_selected_pairs(self):
         result = order_editor_persistence.save_order(

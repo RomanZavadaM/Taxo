@@ -2,6 +2,7 @@
 """Create and edit operations orders, including initial driver assignments."""
 from datetime import date
 
+import order_editor_assignments_ui
 import order_editor_persistence
 
 
@@ -66,204 +67,20 @@ def open_order_editor(core, ops, win, existing, force_type, personnel_order_next
     body_text=core.tk.Text(frm,height=5,wrap="word"); body_text.grid(row=10,column=1,sticky="nsew",pady=5)
     body_text.insert("1.0",str(existing["body_text"] if existing else ops.DEFAULT_BODY_TEMPLATES.get(initial_type,"")))
 
-    initial_vehicles=[]
-    initial_drivers=[]
-    initial_vehicle_list=None
-    initial_driver_list=None
-    assignment_box=None
-    assignment_count_var=core.tk.StringVar(value="")
-    staged_initial_pairs=[]
-    staged_pair_tree=None
-    if existing is None:
-        con_choices=core.db()
-        try:
-            initial_vehicles=ops.list_vehicle_choices(con_choices,active_only=True)
-            initial_drivers=ops.list_driver_choices(con_choices,active_only=True)
-        finally:
-            con_choices.close()
-        assignment_box=core.ttk.LabelFrame(frm,text="Закріплення в цьому наказі",padding=8)
-        assignment_box.grid(row=8,column=0,columnspan=2,sticky="ew",pady=(8,2))
-        assignment_box.columnconfigure(0,weight=1); assignment_box.columnconfigure(1,weight=1)
-
-        left=core.ttk.Frame(assignment_box); left.grid(row=0,column=0,sticky="nsew",padx=(0,4))
-        right=core.ttk.Frame(assignment_box); right.grid(row=0,column=1,sticky="nsew",padx=(4,0))
-        core.ttk.Label(left,text="Транспортний засіб").pack(anchor="w")
-        initial_vehicle_list=core.tk.Listbox(left,selectmode="extended",exportselection=False,height=5)
-        initial_vehicle_list.pack(fill="both",expand=True,pady=(3,0))
-        for row in initial_vehicles: initial_vehicle_list.insert("end",row["label"])
-        core.ttk.Label(right,text="Водій із бази водіїв").pack(anchor="w")
-        initial_driver_list=core.tk.Listbox(right,selectmode="extended",exportselection=False,height=5)
-        initial_driver_list.pack(fill="both",expand=True,pady=(3,0))
-        for row in initial_drivers: initial_driver_list.insert("end",row["label"])
-        # Stable live-test hooks for the critical bulk assignment controls.
-        # These are widget references only; no business logic depends on them.
-        dialog._taxo_assignment_box = assignment_box
-        dialog._taxo_assignment_vehicle_list = initial_vehicle_list
-        dialog._taxo_assignment_driver_list = initial_driver_list
-
-        staged_pair_tree=core.ttk.Treeview(
-            assignment_box,columns=("vehicle","driver"),show="headings",height=3,selectmode="none"
-        )
-        staged_pair_tree.heading("vehicle",text="Підготовлений ТЗ")
-        staged_pair_tree.heading("driver",text="Підготовлений водій")
-        staged_pair_tree.column("vehicle",width=350,anchor="w")
-        staged_pair_tree.column("driver",width=350,anchor="w")
-        staged_pair_tree.grid(row=2,column=0,columnspan=2,sticky="ew",pady=(4,2))
-        dialog._taxo_staged_assignment_tree = staged_pair_tree
-        dialog._taxo_staged_assignment_pairs = staged_initial_pairs
-
-        def render_staged_pairs():
-            for iid in staged_pair_tree.get_children():
-                staged_pair_tree.delete(iid)
-            vehicle_by_id={int(row["id"]):row for row in initial_vehicles}
-            driver_by_id={int(row["id"]):row for row in initial_drivers}
-            for seq,(vehicle_id,driver_id) in enumerate(staged_initial_pairs,1):
-                vehicle=vehicle_by_id.get(int(vehicle_id),{})
-                driver=driver_by_id.get(int(driver_id),{})
-                staged_pair_tree.insert(
-                    "","end",iid=str(seq),values=(
-                        vehicle.get("label") or ("ТЗ #%s" % vehicle_id),
-                        driver.get("label") or ("Працівник #%s" % driver_id),
-                    )
-                )
-
-        def stage_current_selection(_event=None, *, show_error=False):
-            vehicle_ids=[initial_vehicles[int(index)]["id"] for index in initial_vehicle_list.curselection()]
-            driver_ids=[initial_drivers[int(index)]["id"] for index in initial_driver_list.curselection()]
-            if not vehicle_ids and not driver_ids:
-                assignment_count_var.set(
-                    "Підготовлено пар: %d. Поточне виділення порожнє." % len(staged_initial_pairs)
-                )
-                return list(staged_initial_pairs)
-            try:
-                pairs=ops.build_assignment_pairs(vehicle_ids,driver_ids)
-            except Exception as exc:
-                assignment_count_var.set(
-                    "Підготовлено пар: %d. Поточний вибір потребує уточнення." % len(staged_initial_pairs)
-                )
-                if show_error:
-                    core.messagebox.showerror("Наказ про закріплення",str(exc),parent=dialog)
-                return None
-            staged_initial_pairs[:]=[(int(vehicle_id),int(driver_id)) for vehicle_id,driver_id in pairs]
-            render_staged_pairs()
-            assignment_count_var.set(
-                "Вибрано: ТЗ — %d; водіїв — %d. Підготовлено пар: %d."
-                % (len(vehicle_ids),len(driver_ids),len(staged_initial_pairs))
-            )
-            return list(staged_initial_pairs)
-
-        def clear_staged_pairs():
-            staged_initial_pairs.clear()
-            try:
-                initial_vehicle_list.selection_clear(0,"end")
-                initial_driver_list.selection_clear(0,"end")
-            except Exception:
-                pass
-            render_staged_pairs()
-            assignment_count_var.set("Підготовлено пар: 0.")
-
-        initial_vehicle_list.bind("<<ListboxSelect>>",stage_current_selection)
-        initial_driver_list.bind("<<ListboxSelect>>",stage_current_selection)
-        core.ttk.Label(
-            assignment_box,textvariable=assignment_count_var,style="Subtitle.TLabel"
-        ).grid(row=1,column=0,columnspan=2,sticky="w",pady=(6,2))
-        controls=core.ttk.Frame(assignment_box)
-        controls.grid(row=3,column=0,columnspan=2,sticky="ew",pady=(2,0))
-        core.ttk.Button(
-            controls,text="Зафіксувати поточний вибір",
-            command=lambda:stage_current_selection(show_error=True),
-        ).pack(side="left")
-        core.ttk.Button(
-            controls,text="Очистити підготовлені пари",command=clear_staged_pairs
-        ).pack(side="left",padx=6)
-        assignment_count_var.set("Підготовлено пар: 0.")
-        core.ttk.Label(
-            assignment_box,
-            text=("Пари, які реально підуть у наказ, показані в таблиці вище. "
-                  "Вибір зберігається окремо від підсвічування списків, тому не зникає при зміні фокусу. "
-                  "Правило: 1 ТЗ + кілька водіїв або однакова кількість ТЗ і водіїв."),
-            style="Muted.TLabel",wraplength=700,justify="left",
-        ).grid(row=4,column=0,columnspan=2,sticky="w",pady=(4,0))
-    elif initial_type==ops.TYPE_VEHICLE_ASSIGNMENT:
-        con_existing=core.db()
-        try:
-            existing_assignments=ops.order_assignments(con_existing,existing["id"])
-        finally:
-            con_existing.close()
-        assignment_box=core.ttk.LabelFrame(frm,text="Водії і ТЗ цього наказу",padding=8)
-        assignment_box.grid(row=7,column=0,columnspan=2,sticky="ew",pady=(8,2))
-        assignment_box.columnconfigure(0,weight=1)
-        core.ttk.Label(
-            assignment_box,
-            text="Поточні закріплення: %d" % len(existing_assignments),
-            style="Subtitle.TLabel",
-        ).grid(row=0,column=0,sticky="w",pady=(0,4))
-        existing_tree=core.ttk.Treeview(
-            assignment_box,columns=("vehicle","plate","driver"),show="headings",
-            height=max(1,min(4,len(existing_assignments))),selectmode="browse",
-        )
-        for key,label,width in (
-            ("vehicle","Транспортний засіб",300),
-            ("plate","Держ. номер",130),
-            ("driver","Водій",320),
-        ):
-            existing_tree.heading(key,text=label)
-            existing_tree.column(key,width=width,anchor="w")
-        existing_tree.grid(row=1,column=0,sticky="ew",pady=(0,6))
-        for item in existing_assignments:
-            driver=" ".join(
-                str(item[k] or "").strip()
-                for k in ("last_name","first_name","middle_name")
-                if str(item[k] or "").strip()
-            )
-            existing_tree.insert(
-                "","end",values=(
-                    item["make_model"] or item["vehicle_name"],
-                    item["plate"] or "—",
-                    driver or "—",
-                )
-            )
-        existing_buttons=core.ttk.Frame(assignment_box)
-        existing_buttons.grid(row=2,column=0,sticky="ew")
-        def open_existing_assignment_manager(open_bulk=False):
-            dialog.destroy()
-            book.select(assignments_tab)
-            refresh_assignments()
-            if open_bulk:
-                try:
-                    win.after_idle(add_assignments_bulk)
-                except Exception:
-                    add_assignments_bulk()
-        bulk_button=core.ttk.Button(
-            existing_buttons,text="Додати багато…",style="Accent.TButton",
-            command=lambda:open_existing_assignment_manager(True),
-        )
-        bulk_button.pack(side="left")
-        manage_button=core.ttk.Button(
-            existing_buttons,text="Керувати закріпленнями",
-            command=lambda:open_existing_assignment_manager(False),
-        )
-        manage_button.pack(side="left",padx=6)
-        core.ttk.Label(
-            assignment_box,
-            text=("Закріплення є частиною цього наказу. Тут видно поточний перелік; "
-                  "для додавання кількох водіїв/ТЗ натисніть «Додати багато…», "
-                  "для редагування або видалення окремих пар — «Керувати закріпленнями»."),
-            style="Muted.TLabel",wraplength=700,justify="left",
-        ).grid(row=3,column=0,sticky="w",pady=(6,0))
-        dialog._taxo_existing_assignment_tree=existing_tree
-        dialog._taxo_existing_assignment_bulk_button=bulk_button
-        dialog._taxo_existing_assignment_manage_button=manage_button
-
-    def show_assignment_box(order_type):
-        if assignment_box is None:
-            return
-        if order_type==ops.TYPE_VEHICLE_ASSIGNMENT:
-            assignment_box.grid()
-        else:
-            assignment_box.grid_remove()
-
-    show_assignment_box(initial_type)
+    assignment_section = order_editor_assignments_ui.install_order_editor_assignments(
+        core=core,
+        ops=ops,
+        dialog=dialog,
+        frame=frm,
+        existing=existing,
+        initial_type=initial_type,
+        owner_window=win,
+        book=book,
+        assignments_tab=assignments_tab,
+        refresh_assignments=refresh_assignments,
+        add_assignments_bulk=add_assignments_bulk,
+    )
+    assignment_section.show_for_type(initial_type)
 
     preset_rows=[]
     def refresh_order_presets(order_type, select_first=True):
@@ -292,7 +109,7 @@ def open_order_editor(core, ops, win, existing, force_type, personnel_order_next
         preamble.delete("1.0","end"); preamble.insert("1.0",ops.DEFAULT_PREAMBLES.get(key,""))
         body_text.delete("1.0","end"); body_text.insert("1.0",ops.DEFAULT_BODY_TEMPLATES.get(key,""))
         refresh_order_presets(key, select_first=True)
-        show_assignment_box(key)
+        assignment_section.show_for_type(key)
     type_box.bind("<<ComboboxSelected>>",sync_type)
     def sync_series(_event=None):
         if existing:
@@ -342,22 +159,9 @@ def open_order_editor(core, ops, win, existing, force_type, personnel_order_next
     def save():
         order_type=force_type or type_by_label.get(type_var.get(),ops.TYPE_GENERIC)
         series_key=next((key for key,label in ops.ORDER_SERIES_LABELS.items() if label==series_var.get()),ops.ORDER_SERIES_WORK)
-        initial_pairs=[]
-        if existing is None and order_type==ops.TYPE_VEHICLE_ASSIGNMENT and assignment_box is not None:
-            current_vehicle_ids=[initial_vehicles[int(index)]["id"] for index in initial_vehicle_list.curselection()]
-            current_driver_ids=[initial_drivers[int(index)]["id"] for index in initial_driver_list.curselection()]
-            if current_vehicle_ids or current_driver_ids:
-                staged=stage_current_selection(show_error=True)
-                if staged is None:
-                    return
-            initial_pairs=list(staged_initial_pairs)
-            if not initial_pairs:
-                if not core.messagebox.askyesno(
-                    "Порожній наказ про закріплення?",
-                    "Жодної пари ТЗ / водій не підготовлено. Створити порожній наказ без закріплень?",
-                    parent=dialog,
-                ):
-                    return
+        initial_pairs = assignment_section.initial_pairs_for_save(order_type)
+        if initial_pairs is None:
+            return
         connection = core.db()
         try:
             oid = order_editor_persistence.save_order(
