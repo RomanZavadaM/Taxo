@@ -1,0 +1,94 @@
+name: Publish Taxo r7 portable-only test release
+on:
+  push:
+    branches:
+      - release/v10.16-r7-portable
+    paths:
+      - .github/workflows/publish-r7-portable.yml
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish-portable:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: b0d848b86b8344d1064024ca1d3a3f7186adc27c
+      STEM: Taxo_v10_16_candidate_r7
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify source, passing CI and unused release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show "$SOURCE_SHA:VERSION.txt" | tr -d '\r')" = "Version: 10.16-r7"
+          git show "$SOURCE_SHA:main.py" | grep -Fq 'APP_VERSION = "10.16-r7"'
+          test -f docs/releases/RELEASE_NOTES_v10.16-r7.md
+          for run in 43036224116 43036224099 43036224219; do
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.head_sha')" = "$SOURCE_SHA"
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.conclusion')" = "success"
+          done
+          if gh release view v10.16-r7 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release already exists: refusing overwrite" >&2; exit 1
+          fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v10.16-r7" >/dev/null 2>&1; then
+            echo "Tag already exists: refusing overwrite" >&2; exit 1
+          fi
+
+      - name: Download exact portable artifacts only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p collected/windows collected/win7 collected/macos
+          gh run download 43036224116 --repo "$GITHUB_REPOSITORY" --name Taxo-current-Windows-x64 --dir collected/windows
+          gh run download 43036224099 --repo "$GITHUB_REPOSITORY" --name Taxo-current-Windows7-x64 --dir collected/win7
+          gh run download 43036224219 --repo "$GITHUB_REPOSITORY" --name Taxo-current-macOS-x86_64 --dir collected/macos
+          gh run download 43036224219 --repo "$GITHUB_REPOSITORY" --name Taxo-current-macOS-arm64 --dir collected/macos
+
+      - name: Prepare START and portable release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release_files
+          for suffix in Windows_x64 Windows7_x64 macOS_x86_64 macOS_arm64; do
+            name="$STEM"_"$suffix"_Portable.zip
+            mapfile -t matches < <(find collected -type f -name "$name")
+            test "${#matches[@]}" -eq 1 || { echo "Expected one $name" >&2; exit 1; }
+            cp "${matches[0]}" "release_files/$name"
+          done
+          git archive --format=zip --prefix="$STEM"_START/ --output="release_files/$STEM"_START.zip "$SOURCE_SHA"
+          archive="release_files/$STEM"_START.zip
+          if unzip -Z1 "$archive" | grep -Eiq '\.(db|sqlite|sqlite3)([[:space:]]|$)|__pycache__|\.pyc([[:space:]]|$)'; then
+            echo "Database/cache found in START" >&2; exit 1
+          fi
+          for required in START.bat requirements.txt VERSION.txt main.py taxo_app.py src/taxo/order_editor_persistence.py src/taxo/order_editor_ui.py LICENSE.md COPYRIGHT.md THIRD_PARTY_NOTICES.md; do
+            unzip -Z1 "$archive" | grep -Fxq "$STEM"_START/"$required" || {
+              echo "Required START file missing: $required" >&2; exit 1;
+            }
+          done
+          test "$(unzip -p "$archive" "$STEM"_START/VERSION.txt | tr -d '\r')" = "Version: 10.16-r7"
+          for file in release_files/*.zip; do unzip -tqq "$file"; done
+          (cd release_files && sha256sum *.zip > SHA256SUMS_v10_16_r7.txt)
+          test "$(find release_files -maxdepth 1 -type f | wc -l)" -eq 6
+          if find release_files -type f | grep -Eiq 'Setup_|\.exe$|\.msi$'; then
+            echo "Installers forbidden for this test release" >&2; exit 1
+          fi
+
+      - name: Publish immutable test prerelease, keep stable unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create v10.16-r7 release_files/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SOURCE_SHA" \
+            --title "Taxo 10.16-r7 — Test Portable" \
+            --notes-file docs/releases/RELEASE_NOTES_v10.16-r7.md \
+            --prerelease
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v10.16-r7" --jq '.object.sha')" = "$SOURCE_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v10.16-r7" --jq '.prerelease')" = true
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/v10.16-r7" --jq '.assets | length')" -eq 6
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')" = v10.15-r5
