@@ -4,10 +4,10 @@
 
 ## Підтверджена база
 
-- **Stable / Latest:** [v10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4).
-- Код, інтегрований у `main`, має `APP_VERSION = 10.15-r5`; [v10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5) — prerelease. Власник перевірив r5 і не знайшов зауважень. **r5 лишається робочою rollback/reference точкою**, а не stable.
+- **Stable / Latest:** [v10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5), підтверджено GitHub після PR #346; publish run 43037738240 SUCCESS. Раніше стабільна r4 стала історичною.
+- Код, інтегрований у `main`, має `APP_VERSION = 10.15-r5`; її release уже stable/latest, тег і 8 assets не змінювали. **r5 також є робочою rollback/reference точкою**.
 - 10.15-r6 скасовано; PR #317 не інтегровано.
-- До завершення великої перебудови нові стани — **лише тестові checkpoints**. Власник дозволив робити ручні тестові архіви більшими етапами, а не після кожного дрібного перенесення.
+- До завершення великої перебудови нові 10.16 — **лише тестові checkpoints і portable-only prerelease** (Windows, Win7, macOS Intel/ARM, START/source, checksums; інсталятори не публікувати). Власник дозволив робити тестові архіви більшими етапами.
 
 ## Незлита лінія перебудови
 
@@ -34,8 +34,8 @@
 
 1. При новій сесії ще раз звірити live GitHub і exact head PR #341 (`21c11679892d47c61118517fe96dc5a3548267f8`).
 2. Не merge-ити r7/r8/r9/r10/r1/r2/r3/r4/r5/r6 і не робити їх stable без окремої команди власника.
-3. Наступна кодова ревізія за правилом версій — **10.16-r7**.
-4. Продовжити від exact r6 планове розділення наказів / інструктажів / документів одним цілісним безпечним кроком, з урахуванням читабельності й розвитку функцій; не створювати нових монолітів і не «худнути заради худнення».
+3. Ревізію **10.16-r7** вже розпочато в `work/v10.16-r7-order-editor-persistence`, draft PR #344, exact working head `b0d848b86b8344d1064024ca1d3a3f7186adc27c`; перед початком наступної ревізії завершити її release/recovery.
+4. Найближча дія: завершити перевірки та portable-only prerelease `v10.16-r7` на основі exact r7, не merge-ити структурний PR #344 у `main`; звірити START-source після runner DNS-проблеми й зафіксувати checkpoint.
 5. Інтегровану 10.15-r5 зберігати недоторканою rollback/reference точкою.
 
 ## Recovery
