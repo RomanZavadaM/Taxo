@@ -921,4 +921,14 @@
 - Publish workflow 43037738240 — SUCCESS. GitHub API `releases/latest` та `releases/tags/v10.15-r5` підтвердили `Taxo 10.15-r5 — Stable`, prerelease=false, Latest=v10.15-r5. Тег та старі assets не переписувались.
 - Для наступних 10.16 власник визначив тестові portable-only випуски (Windows/Win7/macOS Intel/ARM, START/source, SHA256), без публікації інсталяторів. Не інтегрувати код 10.16 у main без окремого рішення.
 
+## 11.11.2026 — 10.16-r7: транзакційне збереження наказів і portable-only prerelease
+
+- Від exact r6 `21c11679892d47c61118517fe96dc5a3548267f8` створено `work/v10.16-r7-order-editor-persistence`, draft PR #344; кодовий exact head `b0d848b86b8344d1064024ca1d3a3f7186adc27c`.
+- Додано `order_editor_persistence.py`. Сервіс створює й редагує накази та перевіряє повний запис вибраних пар водій–ТЗ. Tk-редактор зберігає підготовку пар, повідомлення й транзакцію: commit тільки після перевірки, rollback при помилці. Існуючі API, структура БД, шаблони наказів і резервування не змінені.
+- Нові regression на масові пари, неповний запис, редагування та створення загального наказу. Exact-head CI: Windows 43036224116 — SUCCESS 1135; Win7 compatibility 43036224099 — SUCCESS 1135 на Python 3.8; macOS Intel/ARM 43036224219 — SUCCESS 1135 на кожній архітектурі.
+- START workflow 43036142029 двічі провалився при встановленні `python3-tk` через тимчасову DNS-помилку `azure.archive.ubuntu.com` / `security.ubuntu.com`; source/test stage не виконався, тому не називати цей workflow SUCCESS.
+- Окремий release workflow `release/v10.16-r7-portable` перевірив exact code SHA, 3 зелені платформні workflow, сам створив START ZIP із exact SHA, перевірив його склад/чистоту й ZIP integrity. Перший запуск 43038310336 зупинився до публікації на SIGPIPE в release-shell; виправлено тільки isolated release workflow. Другий 43038435601 — SUCCESS.
+- Опубліковано immutable [v10.16-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r7) як prerelease, tag `b0d848b86b8344d1064024ca1d3a3f7186adc27c`, рівно 6 assets: Windows x64 portable, Windows 7 x64 portable, macOS x86_64 portable, macOS arm64 portable, START/source ZIP, SHA256. **Без інсталяторів**. Перевірено: GitHub Latest лишається `v10.15-r5`.
+- Тимчасовий validation PR #345 закрито без merge. Draft PR #344 залишається незлитим; main код і stable 10.15-r5 не змінені.
+- Наступна нова кодова ревізія — **10.16-r8**.
 
