@@ -2,6 +2,8 @@
 """Create and edit operations orders, including initial driver assignments."""
 from datetime import date
 
+import order_editor_persistence
+
 
 def open_order_editor(core, ops, win, existing, force_type, personnel_order_next_var,
                       work_order_next_var, place_var, emp_by_id, operations_resp_var,
@@ -356,37 +358,31 @@ def open_order_editor(core, ops, win, existing, force_type, personnel_order_next
                     parent=dialog,
                 ):
                     return
-        con3=core.db()
+        connection = core.db()
         try:
-            if existing:
-                ops.update_order(con3,existing["id"],order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
-                                 subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
-                                 control_employee_id=emp_by_label.get(control_var.get()),history_note="Редагування через інтерфейс")
-                oid=int(existing["id"])
-            elif order_type==ops.TYPE_VEHICLE_ASSIGNMENT:
-                oid=ops.create_vehicle_assignment_order(
-                    con3,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
-                    subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),
-                    body_text=body_text.get("1.0","end-1c"),
-                    control_employee_id=emp_by_label.get(control_var.get()),
-                    initial_pairs=initial_pairs,order_series=series_key,
-                )
-                if initial_pairs:
-                    stored_count=ops.verify_vehicle_assignment_pairs(con3,oid,initial_pairs)
-                    expected_count=len({(int(v),int(e)) for v,e in initial_pairs})
-                    if stored_count != expected_count:
-                        raise RuntimeError(
-                            "Taxo не підтвердив повний запис пар у новому наказі: "
-                            "очікувалось %d, у наказі %d." % (expected_count,stored_count)
-                        )
-            else:
-                oid=ops.create_order(con3,order_type=order_type,order_no=no_var.get(),order_date=date_var.get(),place=place_local.get(),
-                                     subject=subject_var.get(),preamble=preamble.get("1.0","end-1c"),body_text=body_text.get("1.0","end-1c"),
-                                     control_employee_id=emp_by_label.get(control_var.get()),order_series=series_key)
-            con3.commit()
+            oid = order_editor_persistence.save_order(
+                ops,
+                connection,
+                existing=existing,
+                order_type=order_type,
+                order_series=series_key,
+                order_no=no_var.get(),
+                order_date=date_var.get(),
+                place=place_local.get(),
+                subject=subject_var.get(),
+                preamble=preamble.get("1.0", "end-1c"),
+                body_text=body_text.get("1.0", "end-1c"),
+                control_employee_id=emp_by_label.get(control_var.get()),
+                initial_pairs=initial_pairs,
+            )
+            connection.commit()
         except Exception as exc:
-            con3.rollback(); core.messagebox.showerror("Наказ",str(exc),parent=dialog); return
-        finally: con3.close()
+            connection.rollback()
+            core.messagebox.showerror("Наказ", str(exc), parent=dialog)
+            return
+        finally:
+            connection.close()
+
         dialog.destroy(); refresh_orders(oid)
         refresh_open_order_previews(oid)
         created_order=order_cache.get(int(oid))
