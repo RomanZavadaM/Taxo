@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Taxo 10.7-r4 — UI розділу «Експлуатація»."""
+"""Координатор центру «Експлуатація» та реєстру наказів."""
 from __future__ import annotations
-
-from datetime import date
 
 import operations_orders as ops
 from order_pdf_workflow import save_and_preview_order
@@ -12,6 +10,8 @@ from order_assignments_ui import install_assignment_tab
 from order_entities_ui import install_order_entities_tab
 from safety_instructions_ui import install_instruction_tab
 from driver_internship_ui import install_internship_tab
+from operations_settings_ui import install_operations_settings
+from order_type_catalog_ui import install_order_type_catalog
 
 
 def _alive(widget):
@@ -19,13 +19,6 @@ def _alive(widget):
         return bool(widget is not None and widget.winfo_exists())
     except Exception:
         return False
-
-
-def _employee_maps(con):
-    rows = ops.list_employee_choices(con, active_only=False)
-    by_label = {row["label"]: row["id"] for row in rows}
-    by_id = {row["id"]: row["label"] for row in rows}
-    return rows, by_label, by_id
 
 
 def open_operations_center(app, core):
@@ -75,69 +68,18 @@ def open_operations_center(app, core):
     book.add(entities_tab, text="Учасники / ТЗ")
     book.add(settings_tab, text="Відповідальні"); book.add(maintenance_tab, text="Каталог наказів")
 
-    # Settings
-    settings_box = core.ttk.Frame(settings_tab, padding=14); settings_box.pack(fill="both", expand=True); settings_box.columnconfigure(1, weight=1)
-    con = core.db()
-    try:
-        cfg = ops.settings(con); employees, emp_by_label, emp_by_id = _employee_maps(con)
-    finally:
-        con.close()
-    employee_labels = [row["label"] for row in employees]
+    settings = install_operations_settings(core, settings_tab, win)
+    employee_labels = settings.employee_labels
+    emp_by_label = settings.employee_by_label
+    emp_by_id = settings.employee_by_id
+    operations_resp_var = settings.operations_responsible_var
+    place_var = settings.order_place_var
+    work_order_next_var = settings.work_order_next_var
+    personnel_order_next_var = settings.personnel_order_next_var
+    work_order_next_entry = settings.work_order_next_entry
+
     install_instruction_tab(app, core, book)
     internship_tab = install_internship_tab(app, core, book)
-    operations_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["operations_responsible_employee_id"], "") if cfg else "")
-    military_resp_var = core.tk.StringVar(value=emp_by_id.get(cfg["military_transport_responsible_employee_id"], "") if cfg else "")
-    place_var = core.tk.StringVar(value=(cfg["order_place"] if cfg else "") or "")
-    cfg_keys = set(cfg.keys()) if cfg is not None and hasattr(cfg, "keys") else set()
-    work_order_next_var = core.tk.StringVar(
-        value=str((cfg["work_order_next_no"] if "work_order_next_no" in cfg_keys else 1) or 1)
-    )
-    personnel_order_next_var = core.tk.StringVar(
-        value=str((cfg["personnel_order_next_no"] if "personnel_order_next_no" in cfg_keys else 1) or 1)
-    )
-    for row, (label, var) in enumerate((("Відповідальний за експлуатацію", operations_resp_var),
-                                        ("Відповідальний за військово-транспортний обов'язок", military_resp_var))):
-        core.ttk.Label(settings_box, text=label).grid(row=row, column=0, sticky="w", padx=(0,10), pady=7)
-        core.ttk.Combobox(settings_box, textvariable=var, values=employee_labels, state="readonly").grid(row=row, column=1, sticky="ew", pady=7)
-    core.ttk.Label(settings_box, text="Місце складання наказів").grid(row=2,column=0,sticky="w",padx=(0,10),pady=7)
-    core.ttk.Entry(settings_box, textvariable=place_var).grid(row=2,column=1,sticky="ew",pady=7)
-
-    core.ttk.Separator(settings_box,orient="horizontal").grid(row=3,column=0,columnspan=2,sticky="ew",pady=(12,8))
-    core.ttk.Label(settings_box, text="Нумерація наказів", style="Title.TLabel").grid(row=4,column=0,columnspan=2,sticky="w",pady=(0,4))
-    core.ttk.Label(settings_box, text="Наступний № робочого / експлуатаційного наказу").grid(row=5,column=0,sticky="w",padx=(0,10),pady=7)
-    work_order_next_entry=core.ttk.Entry(settings_box, textvariable=work_order_next_var, width=12)
-    work_order_next_entry.grid(row=5,column=1,sticky="w",pady=7)
-    core.ttk.Label(settings_box, text="Наступний № кадрового наказу").grid(row=6,column=0,sticky="w",padx=(0,10),pady=7)
-    personnel_order_next_entry=core.ttk.Entry(settings_box, textvariable=personnel_order_next_var, width=12)
-    personnel_order_next_entry.grid(row=6,column=1,sticky="w",pady=7)
-    core.ttk.Label(
-        settings_box,
-        text=("Це початок / наступний номер для двох незалежних журналів. "
-              "Робочі накази: 1, 2, 3…; кадрові: 1-К, 2-К, 3-К…. "
-              "Якщо паперовий журнал уже ведеться, введіть тут номер, з якого Taxo має продовжити."),
-        style="Muted.TLabel",wraplength=900,justify="left",
-    ).grid(row=7,column=0,columnspan=2,sticky="w",pady=(4,8))
-    core.ttk.Label(settings_box, text=("Відомість ТЦК перед друком затверджується відповідальним у Taxo. "
-                                      "Службові позначки про джерело імпорту у затверджену форму не друкуються."),
-                   style="Muted.TLabel", wraplength=900, justify="left").grid(row=8,column=0,columnspan=2,sticky="w",pady=(8,12))
-
-    def save_settings():
-        con2 = core.db()
-        try:
-            ops.save_settings(
-                con2,
-                operations_responsible_employee_id=emp_by_label.get(operations_resp_var.get()),
-                military_transport_responsible_employee_id=emp_by_label.get(military_resp_var.get()),
-                order_place=place_var.get(),
-                work_order_next_no=work_order_next_var.get(),
-                personnel_order_next_no=personnel_order_next_var.get(),
-            ); con2.commit()
-        except Exception as exc:
-            con2.rollback(); core.messagebox.showerror("Експлуатація", str(exc), parent=win); return
-        finally:
-            con2.close()
-        core.messagebox.showinfo("Експлуатація", "Налаштування експлуатації та нумерації наказів збережено.", parent=win)
-    core.ttk.Button(settings_box,text="Зберегти",style="Accent.TButton",command=save_settings).grid(row=9,column=1,sticky="e")
 
     # Orders register
     order_top = core.ttk.Frame(orders_tab,padding=(10,10,10,4)); order_top.pack(fill="x")
@@ -502,63 +444,12 @@ def open_operations_center(app, core):
         core, ops, win, entities_tab, order_tree, selected_order, require_mutable_order,
     )
 
-    mbody=core.ttk.Frame(maintenance_tab,padding=14); mbody.pack(fill="both",expand=True)
-    core.ttk.Label(mbody,text="Що потрібно оформити?",style="Title.TLabel").pack(anchor="w")
-    core.ttk.Label(
-        mbody,
-        text=("Почніть не з порожнього бланка, а з потрібної дії. Taxo підставить типову тему, вступ і редаговану заготовку пунктів. "
-              "Це робоча заготовка, а не юридичне твердження: перед підписанням перевірте фактичні реквізити й зміст."),
-        style="Muted.TLabel",wraplength=1040,justify="left"
-    ).pack(anchor="w",pady=(4,8))
-    quick=core.ttk.LabelFrame(mbody,text="Найчастіші дії",padding=8); quick.pack(fill="x",pady=(0,10))
-    quick_types=[
-        ("Закріпити ТЗ за водіями", ops.TYPE_VEHICLE_ASSIGNMENT),
-        ("Організувати ТО / ремонти", ops.TYPE_MAINTENANCE_REPAIR),
-    ]
-    if hasattr(ops,"TYPE_RESPONSIBLE_PERSONS"):
-        quick_types.append(("Призначити відповідальних",ops.TYPE_RESPONSIBLE_PERSONS))
-    if hasattr(ops,"TYPE_VEHICLE_RELEASE_RETURN"):
-        quick_types.append(("Порядок випуску / повернення ТЗ",ops.TYPE_VEHICLE_RELEASE_RETURN))
-    for col in range(2):
-        quick.columnconfigure(col, weight=1)
-    for index,(label,order_type) in enumerate(quick_types):
-        core.ttk.Button(
-            quick,text=label,command=lambda t=order_type:order_dialog(force_type=t)
-        ).grid(
-            row=index // 2,
-            column=index % 2,
-            sticky="ew",
-            padx=(0 if index % 2 == 0 else 4, 4 if index % 2 == 1 else 0),
-            pady=3,
-        )
-    core.ttk.Label(
-        mbody,
-        text="Повний каталог типів наказів",
-        style="Subtitle.TLabel",
-    ).pack(anchor="w",pady=(2,4))
-    catalog_frame=core.ttk.Frame(mbody); catalog_frame.pack(fill="both",expand=True); catalog_frame.rowconfigure(0,weight=1); catalog_frame.columnconfigure(0,weight=1)
-    catalog_tree=core.ttk.Treeview(catalog_frame,columns=("group","type","subject"),show="headings",selectmode="browse")
-    for key,label,width in (("group","Група",250),("type","Тип наказу",320),("subject","Типова тема",430)):
-        catalog_tree.heading(key,text=label); catalog_tree.column(key,width=width,anchor="w")
-    csy=core.ttk.Scrollbar(catalog_frame,orient="vertical",command=catalog_tree.yview)
-    csx=core.ttk.Scrollbar(catalog_frame,orient="horizontal",command=catalog_tree.xview)
-    catalog_tree.configure(yscrollcommand=csy.set,xscrollcommand=csx.set)
-    catalog_tree.grid(row=0,column=0,sticky="nsew"); csy.grid(row=0,column=1,sticky="ns"); csx.grid(row=1,column=0,sticky="ew")
-    catalog_type_by_iid={}
-    catalog_index=0
-    for group_key,group_label in ops.ORDER_GROUP_LABELS.items():
-        for order_type in ops.ORDER_GROUP_TYPES.get(group_key,()):
-            catalog_index+=1; iid=str(catalog_index); catalog_type_by_iid[iid]=order_type
-            catalog_tree.insert("","end",iid=iid,values=(group_label,ops.ORDER_TYPE_LABELS[order_type],ops.DEFAULT_SUBJECTS.get(order_type,"") or "—"))
-    def create_from_catalog():
-        sel=catalog_tree.selection()
-        if not sel:
-            core.messagebox.showinfo("Каталог наказів","Виберіть тип наказу.",parent=win); return
-        order_type=catalog_type_by_iid.get(sel[0])
-        if order_type: order_dialog(force_type=order_type)
-    cbar=core.ttk.Frame(mbody); cbar.pack(fill="x",pady=(8,0))
-    core.ttk.Button(cbar,text="Створити наказ за вибраним типом",style="Accent.TButton",command=create_from_catalog).pack(side="left")
-    catalog_tree.bind("<Double-1>",lambda _e:create_from_catalog())
+    install_order_type_catalog(
+        core,
+        maintenance_tab,
+        win,
+        order_dialog,
+    )
 
     def preview_catalog_order(order_id):
         # Reuse the existing live preview without depending on the visible

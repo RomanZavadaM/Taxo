@@ -94,7 +94,7 @@ from vehicle_documents_report_ui import open_vehicle_documents_report
 import vehicle_registry_ui
 import employee_registry_ui
 
-APP_VERSION = "10.15-r10"
+APP_VERSION = "10.16-r1"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
