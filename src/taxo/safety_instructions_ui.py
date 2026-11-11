@@ -11,8 +11,7 @@ from datetime import date
 
 import entity_choices as ops
 import safety_templates as safety_tpl
-import paper_documents as paperwork
-import paper_document_store as document_store
+import safety_instruction_document_service as instruction_documents
 from workspace import load_workspace_root
 
 
@@ -295,10 +294,9 @@ def install_instruction_tab(app, core, book):
             )
             return
         try:
-            target = document_store.save_document(
-                load_workspace_root(), paperwork.build_briefing_docx(prepared),
-                "Інструктаж", prepared["topic"], prepared["day"].isoformat(),
-                ", ".join(prepared["people"]),
+            target = instruction_documents.save_briefing_document(
+                load_workspace_root(),
+                prepared,
             )
         except Exception as exc:
             core.messagebox.showerror("Файл не збережено", str(exc), parent=tab)
@@ -311,7 +309,7 @@ def install_instruction_tab(app, core, book):
             parent=tab,
         )
         try:
-            document_store.open_file(target)
+            instruction_documents.open_briefing_document(target)
         except OSError as exc:
             core.messagebox.showwarning(
                 "Документ збережено",
