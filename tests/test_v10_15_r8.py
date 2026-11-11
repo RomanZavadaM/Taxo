@@ -16,10 +16,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class VehicleDocumentReportSeparationR8Tests(unittest.TestCase):
     def test_version_and_start_require_new_module(self):
-        self.assertEqual(main.APP_VERSION, "10.15-r8")
-        self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: 10.15-r8\n")
+        self.assertIn(main.APP_VERSION, ("10.15-r8", "10.15-r9"))
+        self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n")
         start = (ROOT / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.15-r8", start)
+        self.assertIn("Taxo " + main.APP_VERSION, start)
         self.assertIn("vehicle_documents_report_ui.py", start)
 
     def test_report_date_parser_keeps_existing_contract(self):
