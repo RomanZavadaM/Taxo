@@ -53,7 +53,7 @@ class _AppHarness(tk.Tk):
 
 class AssignmentVisibilityGuardR6Tests(unittest.TestCase):
     def test_r6_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10"))
+        self.assertIn(main.APP_VERSION, ("10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1"))
 
     def test_bulk_assignment_is_first_class_feature_loss_route(self):
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
