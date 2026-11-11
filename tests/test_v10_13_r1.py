@@ -187,10 +187,12 @@ class OperationsStoirUsabilityR1Tests(unittest.TestCase):
     def test_operations_ui_guides_order_lifecycle_and_guards_history(self):
         source = operations_orders_ui.__file__
         text = open(source, "r", encoding="utf-8").read()
-        catalog = Path("src/taxo/order_type_catalog_ui.py").read_text(
-            encoding="utf-8"
-        )
-        text += catalog
+        with open(
+            "src/taxo/order_type_catalog_ui.py",
+            "r",
+            encoding="utf-8",
+        ) as catalog_file:
+            text += catalog_file.read()
         for marker in (
             "Що потрібно оформити?",
             "Новий наказ…",
