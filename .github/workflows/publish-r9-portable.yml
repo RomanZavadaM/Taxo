@@ -1,4 +1,5 @@
 name: Publish Taxo r9 driver-card portable-only test release
+# CI exact-source runs verified success: Windows, Win7, macOS Intel/ARM, START.
 on:
   push:
     branches:
