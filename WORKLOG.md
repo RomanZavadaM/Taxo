@@ -847,3 +847,12 @@
 - Окремий START artifact r10 не створено; ручні тестові архіви під час перебудови дозволено групувати більшими етапами. Не видавати START preflight за готовий архів.
 - r7/r8/r9/r10 не merged і не stable. Stable лишається v10.15-r4; r5 — робоча rollback/reference точка. Наступна кодова ревізія — 10.16-r1.
 - `HANDOFF_CURRENT.md` та `PROJECT_STATE.md` оновлено, бо попередній PROJECT_STATE помилково вказував r6 як наступну ревізію.
+
+
+## 11.11.2026 — 10.16-r1: поділ центру наказів за відповідальностями
+
+- На гілці `work/v10.16-r1-operations-center-modules` (draft PR #327) налаштування відповідальних/місця/нумерації винесено в `operations_settings_ui.py`, каталог типів наказів — у `order_type_catalog_ui.py`.
+- Мета — не зменшення рядків, а запобігання другому моноліту. `operations_orders_ui.py` лишився координатором + реєстром наказів; нові модулі оформлено читабельно.
+- Кодовий head `81fd6740bed0e1fe32a2503d45c924a5c8f98ac7`: Windows 42999564972 SUCCESS, 1103 tests; Win7 compatibility 42999565006 SUCCESS, 1103 tests; macOS 42999564999 Intel + ARM SUCCESS, 1103 tests. Після синхронізації форматування PROJECT_STATE поточний head PR #327 — `5971bd57c00d919c70247f7fb55298c9fe263add`; код не змінено, повторні regression-перевірки Windows/Win7 compatibility/macOS Intel+ARM також SUCCESS.
+- Під час regression виявлено 4 старі source-location тести; їх перенаправлено без послаблення вимог. Також повернуто випадково втрачений історичний anchor Taxo 10.3 у PROJECT_STATE через docs PR #328.
+- r1 не merged/stable. Stable v10.15-r4, r5 rollback/reference. Наступна кодова ревізія — 10.16-r2.
