@@ -17,6 +17,7 @@
 - **r10:** [draft PR #325](https://github.com/RomanZavadaM/Taxo/pull/325), exact head `05cb7341146f46e2a2233b6966b85ed670b0b8f7`. Реєстр працівників, картку працівника й базові дії статусу винесено в `employee_registry_ui.py`; App API збережено через adapters. `main.py` став меншим лише як наслідок поділу — функціонал не видалявся.
 - r10: Windows run 42996976591 — SUCCESS, 1097/1097; START preflight і guard неповного пакета — SUCCESS. Win7 compatibility 42996977191 — SUCCESS, 1097/1097 (**не фізичний Windows 7**). macOS 42996976642 — Intel і ARM SUCCESS, 1097/1097 на кожній архітектурі.
 - **10.16-r1 — поточний checkpoint:** [draft PR #327](https://github.com/RomanZavadaM/Taxo/pull/327), exact head `5971bd57c00d919c70247f7fb55298c9fe263add`. Налаштування відповідальних/місця/нумерації винесено в `operations_settings_ui.py`, каталог типів наказів — в `order_type_catalog_ui.py`. `operations_orders_ui.py` лишився координатором і реєстром наказів. Кодова перевірка на попередньому head `81fd6740bed0e1fe32a2503d45c924a5c8f98ac7`: Windows, Win7 compatibility та macOS Intel/ARM — SUCCESS, 1103/1103. Поточний head `5971bd57c00d919c70247f7fb55298c9fe263add` відрізняється лише форматуванням PROJECT_STATE; повторні regression-перевірки на всіх платформах також SUCCESS.
+- **10.16-r2 — поточний checkpoint:** [draft PR #331](https://github.com/RomanZavadaM/Taxo/pull/331), exact head `baf785b95bc32403e9b7a7a888dfc7b23766d1dc`. Реєстр наказів винесено в `order_register_ui.py`; `operations_orders_ui.py` тепер збирає спеціалізовані модулі. Перший CI зловив реальний NameError у callback створення наказу після перейменування змінної; виправлено. Windows 43002030779, Win7 compatibility 43002030767, macOS 43002030758 — SUCCESS, 1108/1108 на кожному середовищі/архітектурі. START preflight і incomplete-package guard — SUCCESS.
 - Під час r1 regression повернуто втрачений у recovery-документації історичний anchor Taxo 10.3 через docs PR #328; це виправлення вже в `main`.
 - Для r10 окремий START-архів цими PR-triggered workflow не створювався. Не називати START preflight готовим START artifact.
 - Схема БД, бізнес-правила, backup/restore та формати робочих даних у r8-r10 не змінювалися.
@@ -27,9 +28,9 @@
 
 ## Наступна дія
 
-1. При новій сесії ще раз звірити live GitHub і exact head PR #327.
-2. Не merge-ити r7/r8/r9/r10/r1 і не робити їх stable без окремої команди власника.
-3. Наступна кодова ревізія за правилом версій — **10.16-r2**.
+1. При новій сесії ще раз звірити live GitHub і exact head PR #331.
+2. Не merge-ити r7/r8/r9/r10/r1/r2 і не робити їх stable без окремої команди власника.
+3. Наступна кодова ревізія за правилом версій — **10.16-r3**.
 4. Продовжити планове розділення наказів / інструктажів / документів одним цілісним безпечним кроком, з урахуванням читабельності й розвитку функцій; `main.py` не «худнути заради худнення».
 5. r5 зберігати недоторканою точкою повернення.
 
