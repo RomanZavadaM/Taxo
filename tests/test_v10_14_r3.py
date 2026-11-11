@@ -49,7 +49,7 @@ class FreeOrderEditingR3Tests(unittest.TestCase):
         return int(cursor.lastrowid)
 
     def test_version_and_package_guard(self):
-        self.assertIn(main.APP_VERSION,("10.14-r3","10.14-r4","10.14-r5", "10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3"))
+        self.assertIn(main.APP_VERSION,("10.14-r3","10.14-r4","10.14-r5", "10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4"))
         start=Path("START.bat").read_text(encoding="utf-8")
         self.assertIn("Taxo "+main.APP_VERSION,start)
         self.assertIn("order_edit_actions.py",start)
