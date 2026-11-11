@@ -17,13 +17,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OrderEditorAssignmentsR8Tests(unittest.TestCase):
     def test_version_and_start_require_assignment_module(self):
-        self.assertEqual(main.APP_VERSION, "10.16-r8")
+        self.assertIn(main.APP_VERSION, ("10.16-r8", "10.16-r9"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text(encoding="utf-8"),
-            "Version: 10.16-r8\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
         start = (ROOT / "START.bat").read_text(encoding="utf-8")
-        self.assertIn("Taxo 10.16-r8", start)
+        self.assertIn("Taxo " + main.APP_VERSION, start)
         self.assertIn("order_editor_assignments_ui.py", start)
 
     def test_order_editor_delegates_assignment_controls(self):
