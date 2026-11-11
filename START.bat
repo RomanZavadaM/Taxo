@@ -40,6 +40,7 @@ if not exist "src\taxo\paper_documents_ui.py" goto :package_incomplete
 if not exist "src\taxo\document_catalog.py" goto :package_incomplete
 if not exist "src\taxo\document_catalog_ui.py" goto :package_incomplete
 if not exist "src\taxo\driver_internship_ui.py" goto :package_incomplete
+if not exist "src\taxo\driver_internship_document_service.py" goto :package_incomplete
 if not exist "src\taxo\safety_templates.py" goto :package_incomplete
 if not exist "src\taxo\entity_choices.py" goto :package_incomplete
 if not exist "src\taxo\v10710_features.py" goto :package_incomplete
