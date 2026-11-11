@@ -14,9 +14,11 @@ from tkinter import messagebox, ttk
 from branding import PALETTE
 from vehicle_documents import (
     ensure_vehicle_documents_schema,
+    vehicle_document_summary_text,
+)
+from vehicle_documents_ui import (
     open_vehicle_document_control,
     open_vehicle_documents,
-    vehicle_document_summary_text,
 )
 
 
