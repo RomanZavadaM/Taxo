@@ -167,7 +167,7 @@ class PaperworkLiveRouteR3Tests(unittest.TestCase):
     def test_live_briefing_print_action_is_reachable_and_saves_file(self):
         with tempfile.TemporaryDirectory() as directory, \
              mock.patch.object(brief, "load_workspace_root", return_value=directory), \
-             mock.patch.object(brief.document_store, "open_file"), \
+             mock.patch.object(brief.instruction_documents, "open_briefing_document"), \
              mock.patch.object(brief.ops, "list_employee_choices", return_value=[
                  {"id": 1, "label": "Водій Один", "name": "Водій Один", "personnel_no": "001"},
                  {"id": 2, "label": "Водій Два", "name": "Водій Два", "personnel_no": "002"},
