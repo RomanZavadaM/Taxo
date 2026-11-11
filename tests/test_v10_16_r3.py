@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class DriverRegistrySeparationR3Tests(unittest.TestCase):
     def test_version_and_start_require_driver_registry_module(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8"))
+        self.assertIn(main.APP_VERSION, ("10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: " + main.APP_VERSION + "\n",

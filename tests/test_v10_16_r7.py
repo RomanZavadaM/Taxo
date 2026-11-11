@@ -44,7 +44,7 @@ class OrderEditorPersistenceR7Tests(unittest.TestCase):
         )
 
     def test_version_and_package_guard(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r7", "10.16-r8"))
+        self.assertIn(main.APP_VERSION, ("10.16-r7", "10.16-r8", "10.16-r9"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text(encoding="utf-8"),
             "Version: " + main.APP_VERSION + "\n",
