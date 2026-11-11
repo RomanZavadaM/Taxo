@@ -39,7 +39,14 @@ def list_documents(root, text_filter=""):
         records = [row for row in records if needle in " ".join(
             str(row.get(k, "")) for k in ("title", "kind", "date", "person")
         ).casefold()]
-    return sorted(records, key=lambda row: row["created_at"], reverse=True)
+    # created_at can collide on filesystems/runtimes with coarser clock precision.
+    # The catalog is append-only, so a later record is the newer one on an exact tie.
+    indexed_records = list(enumerate(records))
+    indexed_records.sort(
+        key=lambda item: (item[1]["created_at"], item[0]),
+        reverse=True,
+    )
+    return [row for _index_value, row in indexed_records]
 
 
 def save_document(root, doc, kind, title, day, person=""):
