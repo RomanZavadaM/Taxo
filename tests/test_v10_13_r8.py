@@ -107,6 +107,7 @@ class TaxoR8BulkAssignmentSafetyTests(unittest.TestCase):
 
     def test_ui_no_longer_advertises_one_driver_many_vehicles(self):
         text=Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        text+=Path("src/taxo/order_assignments_ui.py").read_text(encoding="utf-8")
         self.assertIn("Один водій не закріплюється одночасно за кількома ТЗ",text)
         self.assertNotIn("1 водій + кілька ТЗ",text)
 

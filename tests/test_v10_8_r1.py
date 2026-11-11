@@ -48,7 +48,7 @@ class VehicleFunctionalityGuardTests(unittest.TestCase):
         cls = vehicle_documents.VehicleDocumentsWindow
         for method in ("add_document", "edit_document", "archive_document", "open_copy", "load"):
             self.assertTrue(callable(getattr(cls, method, None)), method)
-        source = (ROOT / "vehicle_documents.py").read_text("utf-8")
+        source = (ROOT / "vehicle_documents_ui.py").read_text("utf-8")
         for label in (
             "Додати документ", "Редагувати", "Архівувати",
             "Відкрити копію", "Оновити", "Показувати архів",

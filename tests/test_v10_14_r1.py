@@ -12,7 +12,7 @@ from order_pdf_workflow import order_pdf_path, save_and_preview_order
 
 class OrderPdfWorkflowTests(unittest.TestCase):
     def test_version_and_package_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r1", "10.14-r2", "10.14-r3", "10.14-r4", "10.14-r5", "10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5"))
+        self.assertIn(main.APP_VERSION, ("10.14-r1", "10.14-r2", "10.14-r3", "10.14-r4", "10.14-r5", "10.14-r6", "10.14-r7", "10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8"))
         self.assertIn(main.APP_VERSION, Path("VERSION.txt").read_text(encoding="utf-8"))
         start = Path("START.bat").read_text(encoding="utf-8")
         self.assertIn("Taxo " + main.APP_VERSION, start)
@@ -78,6 +78,8 @@ class OrderPdfWorkflowTests(unittest.TestCase):
 
     def test_orders_ui_keeps_preview_and_print_entry_points(self):
         source = Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        source += Path("src/taxo/order_register_ui.py").read_text(encoding="utf-8")
+        source += Path("src/taxo/order_editor_ui.py").read_text(encoding="utf-8")
         self.assertIn("preview_order(created_order)", source)
         self.assertIn('("Переглянути / друк", preview_order', source)
         self.assertIn("save_and_preview_order(", source)

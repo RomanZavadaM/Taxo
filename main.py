@@ -87,18 +87,15 @@ import backup_migration as backup_store
 from database_runtime import connect_database as _connect_database
 from vehicle_documents import (
     ensure_vehicle_documents_schema,
-    open_vehicle_document_control,
-    open_vehicle_documents,
-    vehicle_document_summary_text,
     vehicle_document_warning_lines,
     vehicle_document_warning_lines_for_period,
-    vehicle_document_report_rows,
-    export_vehicle_document_report_pdf,
-    export_vehicle_document_report_xlsx,
-    display_date,
 )
+from vehicle_documents_report_ui import open_vehicle_documents_report
+import vehicle_registry_ui
+import employee_registry_ui
+import driver_registry_ui
 
-APP_VERSION = "10.15-r5"
+APP_VERSION = "10.16-r8"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -7170,192 +7167,14 @@ class App(tk.Tk):
             pass
 
     def show_vehicle_documents_report(self):
-        existing=getattr(self,"vehicle_documents_report_win",None)
-        if existing is not None:
-            try:
-                if existing.winfo_exists():
-                    existing.lift()
-                    return
-            except tk.TclError:
-                pass
-
-        win=tk.Toplevel(self)
-        self.vehicle_documents_report_win=win
-        fit_window_to_screen(win,1320,760,900,540)
-        self._decorate_secondary_window(
-            win,"Стан документів транспортних засобів",
-            "Контроль строків і комплектності документів"
+        open_vehicle_documents_report(
+            self,
+            db,
+            OUTPUT_DIR,
+            calendar_button=calendar_button,
+            fit_window_to_screen=fit_window_to_screen,
+            write_output_file=write_output_file,
         )
-
-        top=ttk.Frame(win,padding=(10,8))
-        top.pack(fill="x")
-        report_date=tk.StringVar(value=date.today().strftime("%d.%m.%Y"))
-        active_only=tk.BooleanVar(value=True)
-        only_issues=tk.BooleanVar(value=False)
-        summary=tk.StringVar(value="")
-        cache={"rows":[],"date":date.today()}
-
-        ttk.Label(top,text="Стан документів на дату:").pack(side="left")
-        ttk.Entry(top,textvariable=report_date,width=12).pack(side="left",padx=(5,3))
-        calendar_button(top,report_date).pack(side="left",padx=(0,10))
-        ttk.Checkbutton(
-            top,text="Тільки авто в експлуатації",variable=active_only
-        ).pack(side="left",padx=8)
-        ttk.Checkbutton(
-            top,text="Тільки проблемні / попередження",variable=only_issues
-        ).pack(side="left",padx=8)
-
-        table_frame=ttk.Frame(win,padding=(10,0,10,6))
-        table_frame.pack(fill="both",expand=True)
-        table_frame.rowconfigure(0,weight=1)
-        table_frame.columnconfigure(0,weight=1)
-        cols=("vehicle","overall","document","number","from","until","status","copy")
-        tree=ttk.Treeview(table_frame,columns=cols,show="headings")
-        heads={
-            "vehicle":"Автомобіль","overall":"Загальний стан","document":"Документ",
-            "number":"№ / серія","from":"Від","until":"Діє до",
-            "status":"Стан","copy":"Копія",
-        }
-        widths={
-            "vehicle":250,"overall":115,"document":285,"number":130,
-            "from":90,"until":90,"status":160,"copy":70,
-        }
-        for key in cols:
-            tree.heading(key,text=heads[key])
-            tree.column(key,width=widths[key],anchor="w")
-        ybar=ttk.Scrollbar(table_frame,orient="vertical",command=tree.yview)
-        xbar=ttk.Scrollbar(table_frame,orient="horizontal",command=tree.xview)
-        tree.configure(yscrollcommand=ybar.set,xscrollcommand=xbar.set)
-        tree.grid(row=0,column=0,sticky="nsew")
-        ybar.grid(row=0,column=1,sticky="ns")
-        xbar.grid(row=1,column=0,sticky="ew")
-        tree.tag_configure("problem",background="#FCE8E6")
-        tree.tag_configure("warning",background="#FFF4D6")
-
-        footer=ttk.Frame(win,padding=(10,4,10,10))
-        footer.pack(fill="x")
-        ttk.Label(footer,textvariable=summary).pack(side="left")
-
-        def selected_date():
-            try:
-                return datetime.strptime(report_date.get().strip(),"%d.%m.%Y").date()
-            except ValueError:
-                raise ValueError("Дата має бути у форматі ДД.ММ.РРРР.")
-
-        def load_rows(show_error=True):
-            try:
-                target=selected_date()
-            except ValueError as exc:
-                if show_error:
-                    messagebox.showerror("Звіт документів авто",str(exc),parent=win)
-                return None
-            con=db()
-            try:
-                ensure_vehicle_documents_schema(con)
-                rows=vehicle_document_report_rows(
-                    con,target,active_only=bool(active_only.get())
-                )
-            finally:
-                con.close()
-            cache["rows"]=rows
-            cache["date"]=target
-            return rows
-
-        def refresh():
-            rows=load_rows()
-            if rows is None:
-                return
-            for item in tree.get_children():
-                tree.delete(item)
-            visible=[
-                row for row in rows
-                if not only_issues.get() or row["rank"]<3
-            ]
-            for index,row in enumerate(visible):
-                tag="problem" if row["rank"]<=1 else ("warning" if row["rank"]==2 else "")
-                tree.insert(
-                    "","end",iid=f"v{index}",
-                    values=(
-                        row["vehicle"],row["overall"],row["type_label"],
-                        row["document_no"],display_date(row["valid_from"]),
-                        display_date(row["valid_until"]),row["status"],
-                        "Є" if row["copy"] else "Немає",
-                    ),
-                    tags=((tag,) if tag else ()),
-                )
-            vehicles={}
-            for row in rows:
-                vehicles[row["vehicle_id"]]=row["overall"]
-            problems=sum(1 for value in vehicles.values() if value=="Проблема")
-            warnings=sum(1 for value in vehicles.values() if value=="Увага")
-            actual=sum(1 for value in vehicles.values() if value=="Актуально")
-            summary.set(
-                f"Авто: {len(vehicles)}   Проблема: {problems}   "
-                f"Увага: {warnings}   Актуально: {actual}   "
-                f"Позицій у таблиці: {len(visible)}"
-            )
-
-        def export_report(kind):
-            rows=load_rows()
-            if rows is None:
-                return
-            if only_issues.get():
-                rows=[row for row in rows if row["rank"]<3]
-            target=cache["date"]
-            suffix=".pdf" if kind=="pdf" else ".xlsx"
-            initial=f"Стан_документів_авто_{target.isoformat()}{suffix}"
-            path=filedialog.asksaveasfilename(
-                parent=win,
-                title="Зберегти звіт стану документів авто",
-                initialdir=str(OUTPUT_DIR),
-                initialfile=initial,
-                defaultextension=suffix,
-                filetypes=[("PDF","*.pdf")] if kind=="pdf" else [("Excel","*.xlsx")],
-            )
-            if not path:
-                return
-            company=self._company_name_value()
-            writer=(
-                (lambda out: export_vehicle_document_report_pdf(
-                    rows,target,out,company_name=company
-                ))
-                if kind=="pdf"
-                else
-                (lambda out: export_vehicle_document_report_xlsx(
-                    rows,target,out,company_name=company
-                ))
-            )
-            actual=write_output_file(
-                writer,path,parent=win,
-                kind="PDF звіту документів авто" if kind=="pdf" else "Excel звіту документів авто",
-                error_title="Звіт документів авто",
-            )
-            if actual is None:
-                return
-            try:
-                if kind=="pdf":
-                    open_document(win,actual,external_opener=open_external)
-                else:
-                    open_external(actual)
-            except Exception as exc:
-                messagebox.showwarning(
-                    "Звіт документів авто",
-                    f"Файл створено, але не вдалося відкрити його автоматично:\n{actual}\n\n{exc}",
-                    parent=win,
-                )
-
-        ttk.Button(footer,text="Оновити",command=refresh).pack(side="right",padx=3)
-        ttk.Button(
-            footer,text="Excel",command=lambda:export_report("xlsx")
-        ).pack(side="right",padx=3)
-        ttk.Button(
-            footer,text="PDF",style="Accent.TButton",command=lambda:export_report("pdf")
-        ).pack(side="right",padx=3)
-        ttk.Button(footer,text="Закрити",command=win.destroy).pack(side="right",padx=(10,3))
-
-        active_only.trace_add("write",lambda *_args:refresh())
-        only_issues.trace_add("write",lambda *_args:refresh())
-        refresh()
 
     def show_reports_home(self):
         """Open reports inside the main workspace when the personnel module is active."""
@@ -8471,555 +8290,49 @@ class App(tk.Tk):
             )
 
     def build_drivers(self):
-        top = ttk.Frame(self.tab_drivers)
-        top.pack(fill="x", padx=10, pady=8)
-        ttk.Button(top, text="Реєстр усіх працівників", command=self.show_employee_registry).pack(side="left", padx=4)
-        ttk.Button(top, text="Табель персоналу", command=self.show_employee_timesheet).pack(side="left", padx=4)
-        ttk.Separator(top,orient="vertical").pack(side="left",fill="y",padx=6)
-        ttk.Button(top, text="Новий водій", command=self.new_driver).pack(side="left", padx=4)
-        ttk.Button(top, text="Редагувати", command=self.edit_driver).pack(side="left", padx=4)
-        ttk.Button(top, text="Завершити роль водія", command=self.delete_driver).pack(side="left", padx=4)
-        ttk.Button(top, text="Оновити", command=self.load_drivers).pack(side="left", padx=4)
-
-        cols = ("id","name","birth","license","employment","active")
-        self.driver_tree = ttk.Treeview(self.tab_drivers, columns=cols, show="headings", height=24)
-        headings = {"id":"ID","name":"ПІБ","birth":"Дата народження","license":"Посвідчення","employment":"Прийнятий з","active":"Статус"}
-        widths = {"id":50,"name":330,"birth":120,"license":200,"employment":120,"active":80}
-        for c in cols:
-            self.driver_tree.heading(c, text=headings[c])
-            self.driver_tree.column(c, width=widths[c], anchor="w")
-        driver_y=ttk.Scrollbar(self.tab_drivers,orient="vertical",command=self.driver_tree.yview)
-        driver_x=ttk.Scrollbar(self.tab_drivers,orient="horizontal",command=self.driver_tree.xview)
-        self.driver_tree.configure(yscrollcommand=driver_y.set,xscrollcommand=driver_x.set)
-        driver_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
-        driver_y.pack(side="right",fill="y",pady=5)
-        self.driver_tree.pack(side="left",fill="both", expand=True, padx=(10,0), pady=5)
-        self.driver_tree.bind("<<TreeviewSelect>>", self.on_driver_select)
-        self.driver_tree.bind("<Double-1>",lambda _event:self.edit_driver())
-        self.driver_tree.bind("<Return>",lambda _event:self.edit_driver())
+        return driver_registry_ui.build_drivers(self)
 
     def employee_full_name(self, row):
-        return " ".join(x for x in (row["last_name"],row["first_name"],row["middle_name"]) if x).strip()
+        return employee_registry_ui.employee_full_name(row)
 
     def show_employee_registry(self):
-        # In the approved application shell the personnel registry is a main
-        # page, not a separate legacy Toplevel. Keep the old window only as a
-        # compatibility fallback when the personnel module is unavailable.
-        personnel_tab=getattr(self,"tab_personnel",None)
-        if personnel_tab is not None:
-            overview_action=getattr(self,"show_personnel_overview",None)
-            if callable(overview_action):
-                overview_action()
-            else:
-                self.show_tab(personnel_tab)
-                refresh=getattr(self,"_refresh_personnel_overview",None)
-                if callable(refresh):
-                    refresh()
-            return
-        if hasattr(self,"employee_win") and self.employee_win.winfo_exists():
-            self.employee_win.lift(); self.load_employee_registry(); return
-        win=tk.Toplevel(self); self.employee_win=win
-        fit_window_to_screen(win,1080,650,820,500)
-        self._decorate_secondary_window(
-            win,"Реєстр усіх працівників","Персонал, ролі та статус працевлаштування"
+        return employee_registry_ui.show_employee_registry(
+            self,
+            fit_window_to_screen,
         )
-        top=ttk.Frame(win,padding=8); top.pack(fill="x")
-        ttk.Button(top,text="Новий працівник",command=self.employee_form).pack(side="left",padx=3)
-        ttk.Button(top,text="Редагувати",command=self.edit_employee).pack(side="left",padx=3)
-        ttk.Button(top,text="Звільнити / поновити",command=self.toggle_employee_active).pack(side="left",padx=3)
-        ttk.Button(top,text="Зміни випуску",command=self.show_dispatch_staff_schedule).pack(side="left",padx=3)
-        ttk.Button(top,text="Табель персоналу",command=self.show_employee_timesheet).pack(side="left",padx=3)
-        ttk.Label(win,text="Водій є працівником із додатковою водійською карткою. Лікаря, механіка, диспетчера та інших вводьте тут один раз.",foreground=PALETTE["muted"],wraplength=1020,justify="left").pack(fill="x",padx=10,pady=(0,6))
-        frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6)
-        frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
-        cols=("id","personnel","name","gender","roles","position","tariff","employment","dismissal","phone","status")
-        self.employee_tree=ttk.Treeview(frame,columns=cols,show="headings")
-        heads={"id":"ID","personnel":"Таб. №","name":"ПІБ","gender":"Стать","roles":"Ролі","position":"Посада","tariff":"Оклад / ставка","employment":"Прийнятий","dismissal":"Звільнений","phone":"Телефон","status":"Стан"}
-        widths={"id":45,"personnel":75,"name":220,"gender":55,"roles":170,"position":145,"tariff":105,"employment":90,"dismissal":90,"phone":120,"status":80}
-        for key in cols: self.employee_tree.heading(key,text=heads[key]); self.employee_tree.column(key,width=widths[key],anchor="w")
-        y=ttk.Scrollbar(frame,orient="vertical",command=self.employee_tree.yview); x=ttk.Scrollbar(frame,orient="horizontal",command=self.employee_tree.xview)
-        self.employee_tree.configure(yscrollcommand=y.set,xscrollcommand=x.set)
-        self.employee_tree.grid(row=0,column=0,sticky="nsew"); y.grid(row=0,column=1,sticky="ns"); x.grid(row=1,column=0,sticky="ew")
-        self.employee_tree.bind("<Double-1>",lambda _e:self.edit_employee())
-        self.load_employee_registry()
 
     def load_employee_registry(self):
-        if not hasattr(self,"employee_tree") or not self.employee_tree.winfo_exists(): return
-        for item in self.employee_tree.get_children(): self.employee_tree.delete(item)
-        con=db(); rows=con.execute("""SELECT e.*,GROUP_CONCAT(er.role, ', ') roles FROM employees e
-             LEFT JOIN employee_roles er ON er.employee_id=e.id GROUP BY e.id
-             ORDER BY e.active DESC,e.last_name,e.first_name,e.middle_name""").fetchall(); con.close()
-        for row in rows:
-            tariff="" if "tariff_rate" not in row.keys() or row["tariff_rate"] is None else f"{float(row['tariff_rate']):.2f}"
-            gender=(row["gender"] if "gender" in row.keys() else "") or ""
-            self.employee_tree.insert("","end",values=(row["id"],row["personnel_no"],self.employee_full_name(row),gender,row["roles"] or "",row["position"],tariff,fmt_date(row["employment_date"]),fmt_date(row["dismissal_date"]),row["phone"],"Працює" if row["active"] else "Звільнений"))
+        return employee_registry_ui.load_employee_registry(
+            self,
+            db,
+            fmt_date,
+        )
 
     def selected_employee(self):
-        tree=getattr(self,"employee_tree",None)
-        sel=tree.selection() if tree is not None and tree.winfo_exists() else ()
-        eid=None
-        if sel:
-            try:
-                eid=int(tree.item(sel[0],"values")[0])
-            except (TypeError,ValueError,IndexError):
-                eid=None
-        if eid is None:
-            tree=getattr(self,"personnel_overview_tree",None)
-            sel=tree.selection() if tree is not None and tree.winfo_exists() else ()
-            if sel:
-                try:
-                    eid=int(sel[0])
-                except (TypeError,ValueError):
-                    eid=None
-        if eid is None:
-            return None
-        con=db()
-        row=con.execute("SELECT * FROM employees WHERE id=?",(eid,)).fetchone()
-        con.close()
-        return row
+        return employee_registry_ui.selected_employee(self, db)
 
     def employee_form(self, employee=None):
-        parent=getattr(self,"employee_win",self)
-        win=tk.Toplevel(parent)
-        win.title(f"Taxo / {self._company_name_value()} — Картка працівника")
-        fit_window_to_screen(win,1040,740,860,620)
-        configure_toplevel(win)
-        win.transient(parent)
-        win.grab_set()
-
-        banner=tk.Canvas(win,height=82,bg=PALETTE["header"],highlightthickness=0)
-        banner.pack(fill="x")
-        draw_brand_header(banner,self._company_name_value(),"Картка працівника")
-        banner.bind(
-            "<Configure>",
-            lambda _e:draw_brand_header(
-                banner,self._company_name_value(),"Картка працівника"
-            ),
-            add="+",
+        return employee_registry_ui.employee_form(
+            self,
+            employee,
+            db_factory=db,
+            fmt_date=fmt_date,
+            calendar_button=calendar_button,
+            fit_window_to_screen=fit_window_to_screen,
+            finish_driver_role=finish_driver_role,
+            void_legacy_driver_role=void_legacy_driver_role,
+            activate_driver_role=activate_driver_role,
         )
-
-        con=db()
-        current_roles={
-            r[0] for r in con.execute(
-                "SELECT role FROM employee_roles WHERE employee_id=?",
-                (employee["id"],),
-            ).fetchall()
-        } if employee else set()
-        current_driver_end=""
-        if employee and employee["driver_id"]:
-            driver_row=con.execute(
-                "SELECT driver_end_date FROM drivers WHERE id=?",(employee["driver_id"],)
-            ).fetchone()
-            if driver_row:
-                current_driver_end=(driver_row["driver_end_date"] or "").strip()
-        con.close()
-
-        title=ttk.Frame(win,padding=(14,10,14,4))
-        title.pack(fill="x")
-        ttk.Label(
-            title,
-            text="Картка працівника" if employee else "Новий працівник",
-            style="HeroTitle.TLabel",
-        ).pack(side="left")
-        state_text="Працює" if (not employee or bool(employee["active"])) else "Звільнений"
-        state_color=PALETTE["success"] if state_text=="Працює" else PALETTE["danger"]
-        tk.Label(
-            title,text=state_text,bg=PALETTE["paper"],fg=state_color,
-            font=("TkDefaultFont",11,"bold")
-        ).pack(side="right",padx=6)
-
-        fields=(
-            ("personnel_no","Табельний номер"),
-            ("last_name","Прізвище"),
-            ("first_name","Ім'я"),
-            ("middle_name","По батькові"),
-            ("position","Основна посада"),
-            ("gender","Стать для П-5"),
-            ("tariff_rate","Оклад / тарифна ставка, грн"),
-            ("phone","Телефон"),
-            ("employment_date","Дата прийняття"),
-            ("dismissal_date","Дата звільнення"),
-            ("notes","Примітка"),
-        )
-        values={}
-        for key,_label in fields:
-            raw=employee[key] if employee and key in employee.keys() else ""
-            if raw is None:
-                raw=""
-            if key=="tariff_rate" and raw!="":
-                try:
-                    raw=f"{float(raw):.2f}".rstrip("0").rstrip(".")
-                except Exception:
-                    raw=str(raw)
-            if key in {"employment_date","dismissal_date"}:
-                raw=fmt_date(raw)
-            values[key]=tk.StringVar(value=raw)
-
-        body=ttk.Frame(win,padding=(14,4,14,8))
-        body.pack(fill="both",expand=True)
-        body.columnconfigure(0,weight=3)
-        body.columnconfigure(1,weight=2)
-        body.rowconfigure(0,weight=1)
-
-        basic=ttk.LabelFrame(body,text="Основні дані",padding=10)
-        basic.grid(row=0,column=0,sticky="nsew",padx=(0,7))
-        basic.columnconfigure(1,weight=1)
-
-        def field(frame,row,key,label,calendar_field=False):
-            ttk.Label(frame,text=label).grid(
-                row=row,column=0,sticky="w",padx=(0,8),pady=5
-            )
-            if key=="gender":
-                widget=ttk.Combobox(
-                    frame,textvariable=values[key],
-                    values=("", "ч", "ж"),state="readonly",width=12
-                )
-            else:
-                widget=ttk.Entry(frame,textvariable=values[key])
-            widget.grid(row=row,column=1,sticky="ew",pady=5)
-            if calendar_field:
-                calendar_button(frame,values[key]).grid(
-                    row=row,column=2,sticky="w",padx=(5,0),pady=5
-                )
-            return widget
-
-        field(basic,0,"personnel_no","Табельний номер")
-        field(basic,1,"last_name","Прізвище")
-        field(basic,2,"first_name","Ім'я")
-        field(basic,3,"middle_name","По батькові")
-        field(basic,4,"position","Основна посада")
-        field(basic,5,"phone","Телефон")
-        ttk.Label(
-            basic,
-            text="Телефон необов'язково; залиште порожнім, якщо контакт не потрібен.",
-            foreground=PALETTE["muted"],
-        ).grid(row=5,column=2,sticky="w",padx=(5,0),pady=5)
-        field(basic,6,"gender","Стать для П-5")
-        field(basic,7,"employment_date","Дата прийняття",True)
-        field(basic,8,"dismissal_date","Дата звільнення",True)
-
-        extra=ttk.LabelFrame(basic,text="Додаткова інформація",padding=8)
-        extra.grid(row=9,column=0,columnspan=3,sticky="ew",pady=(10,0))
-        extra.columnconfigure(1,weight=1)
-        ttk.Label(extra,text="Оклад / тарифна ставка, грн").grid(
-            row=0,column=0,sticky="w",padx=(0,8),pady=4
-        )
-        ttk.Entry(extra,textvariable=values["tariff_rate"]).grid(
-            row=0,column=1,sticky="ew",pady=4
-        )
-        ttk.Label(extra,text="Примітка").grid(
-            row=1,column=0,sticky="w",padx=(0,8),pady=4
-        )
-        ttk.Entry(extra,textvariable=values["notes"]).grid(
-            row=1,column=1,sticky="ew",pady=4
-        )
-
-        side=ttk.Frame(body)
-        side.grid(row=0,column=1,sticky="nsew",padx=(7,0))
-
-        role_box=ttk.LabelFrame(side,text="Спеціальні ролі",padding=10)
-        role_box.pack(fill="x")
-        role_vars={}
-        for i,role in enumerate(("Водій","Лікар","Механік","Диспетчер","Кондуктор","Інше")):
-            role_vars[role]=tk.BooleanVar(value=role in current_roles)
-            ttk.Checkbutton(
-                role_box,text=role,variable=role_vars[role]
-            ).grid(row=i//2,column=i%2,sticky="w",padx=6,pady=5)
-
-        ttk.Label(
-            role_box,
-            text=(
-                "Роль і статус працевлаштування не змішуються. "
-                "Щоб завершити роль водія, зніміть «Водій» і збережіть картку."
-            ),
-            foreground=PALETTE["muted"],wraplength=330,justify="left"
-        ).grid(row=3,column=0,columnspan=2,sticky="w",padx=6,pady=(8,3))
-
-        driver_box=ttk.LabelFrame(side,text="Роль водія",padding=10)
-        driver_box.pack(fill="x",pady=(10,0))
-        if current_driver_end:
-            ttk.Label(
-                driver_box,
-                text=f"Історична дата завершення: {fmt_date(current_driver_end)}",
-                foreground=PALETTE["warning"],
-                font=("TkDefaultFont",10,"bold"),
-            ).pack(anchor="w")
-        else:
-            ttk.Label(
-                driver_box,
-                text="Дата завершення ролі зберігається окремо від звільнення.",
-                foreground=PALETTE["muted"],wraplength=330,justify="left",
-            ).pack(anchor="w")
-
-        status_box=ttk.LabelFrame(side,text="Стан працівника",padding=10)
-        status_box.pack(fill="x",pady=(10,0))
-        active=tk.BooleanVar(value=bool(employee["active"]) if employee else True)
-        ttk.Checkbutton(
-            status_box,text="Працює",variable=active
-        ).pack(anchor="w")
-        ttk.Label(
-            status_box,
-            text=(
-                "Зняття прапорця «Працює» означає звільнення працівника. "
-                "Це не те саме, що зняти лише роль «Водій»."
-            ),
-            foreground=PALETTE["muted"],wraplength=330,justify="left",
-        ).pack(anchor="w",pady=(6,0))
-
-        quick=ttk.LabelFrame(side,text="Пов'язані дані",padding=10)
-        quick.pack(fill="x",pady=(10,0))
-        if employee:
-            ttk.Button(
-                quick,text="Відкрити табель персоналу",
-                command=lambda:(win.destroy(),self.show_employee_timesheet())
-            ).pack(fill="x",pady=3)
-            ttk.Button(
-                quick,text="Режим робочого часу…",
-                command=lambda:(win.destroy(),self.show_employee_work_regime())
-            ).pack(fill="x",pady=3)
-        else:
-            ttk.Label(
-                quick,text="Після першого збереження стануть доступні табель і режим.",
-                foreground=PALETTE["muted"],wraplength=320,justify="left"
-            ).pack(anchor="w")
-
-        def save():
-            vals={k:v.get().strip() for k,v in values.items()}
-            if not vals["last_name"] or not vals["first_name"]:
-                messagebox.showerror(
-                    "Працівник","Прізвище та ім'я обов'язкові.",parent=win
-                )
-                return
-            roles=[r for r,v in role_vars.items() if v.get()]
-            closing_driver=bool(
-                employee and employee["driver_id"]
-                and "Водій" in current_roles and "Водій" not in roles
-            )
-            opening_driver=bool(
-                "Водій" in roles
-                and (not employee or "Водій" not in current_roles)
-            )
-            driver_end_date=""
-            driver_start_date=""
-            closing_driver_mode=""
-            if closing_driver:
-                choice=messagebox.askyesnocancel(
-                    "Завершити роль водія / виправити спадкову роль",
-                    "Це реальне завершення роботи водієм чи виправлення старої помилкової ролі?\n\n"
-                    "ТАК — працівник реально був водієм: зберегти історію та дату завершення.\n"
-                    "НІ — це спадщина старих версій, де всі були записані як водії: "
-                    "позначити роль як помилкову і не враховувати старий driver-графік у табелі.\n"
-                    "СКАСУВАТИ — нічого не змінювати.",
-                    parent=win,
-                )
-                if choice is None:
-                    return
-                if choice:
-                    closing_driver_mode="finish"
-                    raw_end=simpledialog.askstring(
-                        "Дата завершення ролі",
-                        "Дата завершення роботи водієм (ДД.ММ.РРРР):",
-                        initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
-                    )
-                    if raw_end is None:
-                        return
-                    try:
-                        driver_end_date=datetime.strptime(
-                            raw_end.strip(),"%d.%m.%Y"
-                        ).strftime("%Y-%m-%d")
-                    except ValueError:
-                        messagebox.showerror(
-                            "Працівник",
-                            "Дата завершення ролі має бути у форматі ДД.ММ.РРРР.",
-                            parent=win,
-                        )
-                        return
-                else:
-                    closing_driver_mode="void"
-            if opening_driver:
-                if employee and employee["driver_id"]:
-                    raw_start=simpledialog.askstring(
-                        "Початок ролі водія",
-                        "Дата початку / відновлення реальної ролі водія (ДД.ММ.РРРР):",
-                        initialvalue=date.today().strftime("%d.%m.%Y"),parent=win,
-                    )
-                    if raw_start is None:
-                        return
-                    try:
-                        driver_start_date=datetime.strptime(
-                            raw_start.strip(),"%d.%m.%Y"
-                        ).strftime("%Y-%m-%d")
-                    except ValueError:
-                        messagebox.showerror(
-                            "Працівник",
-                            "Дата початку ролі має бути у форматі ДД.ММ.РРРР.",
-                            parent=win,
-                        )
-                        return
-                else:
-                    driver_start_date=vals.get("employment_date") or date.today().isoformat()
-            for key in ("employment_date","dismissal_date"):
-                if vals[key]:
-                    try:
-                        vals[key]=datetime.strptime(
-                            vals[key],"%d.%m.%Y"
-                        ).strftime("%Y-%m-%d")
-                    except ValueError:
-                        messagebox.showerror(
-                            "Працівник","Дата має бути у форматі ДД.ММ.РРРР.",parent=win
-                        )
-                        return
-            vals["gender"]=vals["gender"].lower()
-            if vals["gender"] not in ("","ч","ж"):
-                messagebox.showerror(
-                    "Працівник",
-                    "Стать для П-5: залиште порожньо або виберіть «ч» / «ж».",
-                    parent=win,
-                )
-                return
-            tariff_rate=None
-            if vals["tariff_rate"]:
-                try:
-                    tariff_rate=float(vals["tariff_rate"].replace(",","."))
-                    if tariff_rate < 0:
-                        raise ValueError
-                except ValueError:
-                    messagebox.showerror(
-                        "Працівник",
-                        "Оклад / тарифна ставка мають бути невід'ємним числом.",
-                        parent=win,
-                    )
-                    return
-            con=db()
-            if vals["personnel_no"] and con.execute(
-                "SELECT 1 FROM employees WHERE personnel_no=? AND id<>?",
-                (vals["personnel_no"],employee["id"] if employee else -1)
-            ).fetchone():
-                con.close()
-                messagebox.showerror(
-                    "Працівник","Такий табельний номер уже використовується.",parent=win
-                )
-                return
-            driver_id=employee["driver_id"] if employee else None
-            if "Водій" in roles and not driver_id:
-                cur=con.execute(
-                    """INSERT INTO drivers(
-                           last_name,first_name,middle_name,personnel_no,
-                           employment_date,notes,active,created_at
-                       ) VALUES(?,?,?,?,?,?,?,?)""",
-                    (
-                        vals["last_name"],vals["first_name"],vals["middle_name"],
-                        vals["personnel_no"],vals["employment_date"],vals["notes"],
-                        0,datetime.now().isoformat(timespec="seconds"),
-                    ),
-                )
-                driver_id=cur.lastrowid
-            if employee:
-                eid=employee["id"]
-                con.execute(
-                    """UPDATE employees SET
-                           personnel_no=?,last_name=?,first_name=?,middle_name=?,
-                           position=?,gender=?,tariff_rate=?,phone=?,
-                           employment_date=?,dismissal_date=?,notes=?,active=?,driver_id=?
-                       WHERE id=?""",
-                    (
-                        vals["personnel_no"],vals["last_name"],vals["first_name"],
-                        vals["middle_name"],vals["position"],vals["gender"],tariff_rate,
-                        vals["phone"],vals["employment_date"],vals["dismissal_date"],
-                        vals["notes"],int(active.get()),driver_id,eid,
-                    ),
-                )
-            else:
-                cur=con.execute(
-                    """INSERT INTO employees(
-                           personnel_no,last_name,first_name,middle_name,position,
-                           gender,tariff_rate,phone,employment_date,dismissal_date,
-                           notes,active,driver_id,created_at
-                       ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (
-                        vals["personnel_no"],vals["last_name"],vals["first_name"],
-                        vals["middle_name"],vals["position"],vals["gender"],tariff_rate,
-                        vals["phone"],vals["employment_date"],vals["dismissal_date"],
-                        vals["notes"],int(active.get()),driver_id,
-                        datetime.now().isoformat(timespec="seconds"),
-                    ),
-                )
-                eid=cur.lastrowid
-            con.execute("DELETE FROM employee_roles WHERE employee_id=?",(eid,))
-            con.executemany(
-                "INSERT INTO employee_roles(employee_id,role) VALUES(?,?)",
-                [(eid,r) for r in roles],
-            )
-            if driver_id:
-                driver_row=con.execute(
-                    "SELECT driver_end_date FROM drivers WHERE id=?",(driver_id,)
-                ).fetchone()
-                stored_driver_end=(
-                    (driver_row["driver_end_date"] if driver_row else "") or ""
-                ).strip()
-                if "Водій" in roles:
-                    next_driver_end=""
-                elif closing_driver_mode=="finish":
-                    next_driver_end=driver_end_date
-                elif closing_driver_mode=="void":
-                    next_driver_end=""
-                else:
-                    next_driver_end=stored_driver_end
-                driver_active=int(active.get() and "Водій" in roles)
-                con.execute(
-                    """UPDATE drivers SET
-                           last_name=?,first_name=?,middle_name=?,personnel_no=?,
-                           employment_date=?,driver_end_date=?,notes=?,active=?
-                       WHERE id=?""",
-                    (
-                        vals["last_name"],vals["first_name"],vals["middle_name"],
-                        vals["personnel_no"],vals["employment_date"],next_driver_end,
-                        vals["notes"],driver_active,driver_id,
-                    ),
-                )
-                if closing_driver_mode=="finish":
-                    finish_driver_role(con,eid,driver_id,driver_end_date)
-                elif closing_driver_mode=="void":
-                    void_legacy_driver_role(con,eid,driver_id)
-                elif opening_driver:
-                    activate_driver_role(con,eid,driver_id,driver_start_date)
-            con.commit()
-            con.close()
-            self.load_employee_registry()
-            self.load_drivers()
-            win.destroy()
-
-        actions=ttk.Frame(win,padding=(14,4,14,12))
-        actions.pack(fill="x")
-        ttk.Button(actions,text="Закрити",command=win.destroy).pack(side="right",padx=(6,0))
-        ttk.Button(
-            actions,text="Зберегти",style="Accent.TButton",command=save
-        ).pack(side="right")
 
     def edit_employee(self):
-        row=self.selected_employee()
-        if row: self.employee_form(row)
+        return employee_registry_ui.edit_employee(self)
 
     def toggle_employee_active(self):
-        row=self.selected_employee()
-        if not row: return
-        new_state=0 if row["active"] else 1
-        today=date.today().isoformat()
-        con=db()
-        con.execute(
-            "UPDATE employees SET active=?,dismissal_date=CASE WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",
-            (new_state,new_state,today,new_state,row["id"]),
+        return employee_registry_ui.toggle_employee_active(
+            self,
+            db,
+            finish_driver_role,
         )
-        if row["driver_id"] and new_state==0:
-            # Dismissal ends the current driver role. Re-employment is separate
-            # and must not silently restore that role.
-            driver=con.execute(
-                "SELECT active,driver_end_date FROM drivers WHERE id=?",(row["driver_id"],)
-            ).fetchone()
-            if driver and bool(driver["active"]):
-                end_date=(driver["driver_end_date"] or "").strip() or today
-                finish_driver_role(con,row["id"],row["driver_id"],end_date)
-        con.commit(); con.close(); self.load_employee_registry(); self.load_drivers()
 
     def show_employee_timesheet(self):
         existing=getattr(self,"_employee_timesheet_win",None)
@@ -9923,298 +9236,39 @@ class App(tk.Tk):
         return win
 
     def driver_form(self, driver=None):
-        win = tk.Toplevel(self)
-        win.title("Картка водія")
-        fit_window_to_screen(win,760,720,700,540)
-        win.transient(self)
-
-        # Картка містить багато полів і на ноутбучному екрані не вміщується
-        # по висоті. Весь вміст, включно з прапорцем і кнопкою збереження,
-        # розміщуємо у вертикально прокручуваному полотні.
-        shell=ttk.Frame(win)
-        shell.pack(fill="both",expand=True)
-        shell.rowconfigure(0,weight=1)
-        shell.columnconfigure(0,weight=1)
-        form_canvas=tk.Canvas(shell,highlightthickness=0,borderwidth=0)
-        form_scroll=ttk.Scrollbar(shell,orient="vertical",command=form_canvas.yview)
-        form_canvas.configure(yscrollcommand=form_scroll.set)
-        form_canvas.grid(row=0,column=0,sticky="nsew")
-        form_scroll.grid(row=0,column=1,sticky="ns")
-
-        outer=ttk.Frame(form_canvas,padding=10)
-        form_window=form_canvas.create_window((0,0),window=outer,anchor="nw")
-
-        def sync_driver_form(_event=None):
-            try:
-                form_canvas.configure(scrollregion=form_canvas.bbox("all"))
-            except tk.TclError:
-                pass
-
-        def fit_driver_form_width(event):
-            try:
-                form_canvas.itemconfigure(form_window,width=max(1,event.width))
-                sync_driver_form()
-            except tk.TclError:
-                pass
-
-        def scroll_driver_form(event):
-            if getattr(event,"num",None)==4:
-                step=-1
-            elif getattr(event,"num",None)==5:
-                step=1
-            else:
-                delta=getattr(event,"delta",0)
-                if not delta:
-                    return None
-                step=int(-delta/120) or (-1 if delta>0 else 1)
-            form_canvas.yview_scroll(step,"units")
-            return "break"
-
-        outer.bind("<Configure>",sync_driver_form,add="+")
-        form_canvas.bind("<Configure>",fit_driver_form_width,add="+")
-        win.bind("<MouseWheel>",scroll_driver_form,add="+")
-        win.bind("<Button-4>",scroll_driver_form,add="+")
-        win.bind("<Button-5>",scroll_driver_form,add="+")
-
-        ua=ttk.LabelFrame(outer,text="Дані водія — українською",padding=8)
-        ua.pack(fill="x",pady=(0,8))
-        en=ttk.LabelFrame(outer,text="Дані для англійської сторони Бланка",padding=8)
-        en.pack(fill="x",pady=(0,8))
-        extra=ttk.LabelFrame(outer,text="Інші дані",padding=8)
-        extra.pack(fill="x",pady=(0,8))
-
-        vars_={}
-
-        ua_fields=[
-            ("last_name","Прізвище"),("first_name","Ім'я"),("middle_name","По батькові"),
-        ]
-        for i,(k,lbl) in enumerate(ua_fields):
-            ttk.Label(ua,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
-            v=tk.StringVar(value=(driver[k] if driver else ""))
-            vars_[k]=v
-            ttk.Entry(ua,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
-        ua.columnconfigure(1,weight=1)
-
-        en_fields=[
-            ("last_name_en","Surname / прізвище англійською"),
-            ("first_name_en","First name / ім'я англійською"),
-            ("middle_name_en","Middle name / по батькові англійською"),
-        ]
-        for i,(k,lbl) in enumerate(en_fields):
-            ttk.Label(en,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
-            raw=(driver[k] if driver and k in driver.keys() else "")
-            v=tk.StringVar(value=raw or "")
-            vars_[k]=v
-            ttk.Entry(en,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
-        ttk.Label(
-            en,
-            text="Якщо англійське поле порожнє, у англійську сторону Бланка автоматично підставляється відповідне українське поле.",
-            foreground=PALETTE["muted"],wraplength=680,justify="left"
-        ).grid(row=len(en_fields),column=0,columnspan=2,sticky="w",padx=6,pady=(5,2))
-        en.columnconfigure(1,weight=1)
-
-        other_fields=[
-            ("personnel_no","Табельний номер"),
-            ("birth_date","Дата народження (ДД.ММ.РРРР)"),
-            ("license_series","Серія посвідчення"),("license_number","Номер посвідчення"),
-            ("license_issue_date","Дата видачі посвідчення (ДД.ММ.РРРР)"),
-            ("employment_date","Дата прийняття (ДД.ММ.РРРР)"),
-            ("notes","Примітка")
-        ]
-        for i,(k,lbl) in enumerate(other_fields):
-            ttk.Label(extra,text=lbl).grid(row=i,column=0,sticky="w",padx=6,pady=5)
-            raw=(driver[k] if driver else "")
-            if k in ("birth_date","license_issue_date","employment_date") and raw:
-                try:
-                    raw=datetime.strptime(str(raw),"%Y-%m-%d").strftime("%d.%m.%Y")
-                except ValueError:
-                    pass
-            v=tk.StringVar(value=raw)
-            vars_[k]=v
-            ttk.Entry(extra,textvariable=v,width=62).grid(row=i,column=1,sticky="ew",padx=6,pady=5)
-            if k in ("birth_date","license_issue_date","employment_date"):
-                calendar_button(extra,v).grid(row=i,column=2,sticky="w",padx=(0,6),pady=5)
-        extra.columnconfigure(1,weight=1)
-
-        active=tk.BooleanVar(value=bool(driver["active"]) if driver else True)
-        ttk.Checkbutton(outer,text="Активний водій",variable=active).pack(anchor="w",padx=8,pady=5)
-
-        def save():
-            order=[
-                "last_name","first_name","middle_name",
-                "last_name_en","first_name_en","middle_name_en",
-                "personnel_no","birth_date","license_series","license_number",
-                "license_issue_date","employment_date","notes"
-            ]
-            vals={k:vars_[k].get().strip() for k in order}
-            for k in ("birth_date","license_issue_date","employment_date"):
-                if vals[k]:
-                    try:
-                        vals[k]=datetime.strptime(vals[k],"%d.%m.%Y").strftime("%Y-%m-%d")
-                    except ValueError:
-                        messagebox.showerror("Помилка","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
-                        return
-            if not vals["last_name"] or not vals["first_name"]:
-                messagebox.showerror("Помилка","Прізвище та ім'я обов'язкові.",parent=win)
-                return
-            role_end_date=""
-            role_start_date=""
-            role_action=""
-            if driver and bool(driver["active"]) and not active.get():
-                choice=messagebox.askyesnocancel(
-                    "Зняти роль «Водій»",
-                    "ТАК — це реальне завершення роботи водієм і треба зберегти дату.\n"
-                    "НІ — це помилкова спадкова роль зі старих версій; не вважати працівника водієм історично.\n"
-                    "СКАСУВАТИ — повернутися без змін.",
-                    parent=win,
-                )
-                if choice is None:
-                    return
-                if choice:
-                    role_action="finish"
-                    raw_end=simpledialog.askstring(
-                        "Дата завершення ролі",
-                        "Дата завершення роботи водієм (ДД.ММ.РРРР):",
-                        initialvalue=date.today().strftime("%d.%m.%Y"),
-                        parent=win,
-                    )
-                    if raw_end is None:
-                        return
-                    try:
-                        role_end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
-                    except ValueError:
-                        messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
-                        return
-                else:
-                    role_action="void"
-            elif driver and not bool(driver["active"]) and active.get():
-                raw_start=simpledialog.askstring(
-                    "Початок ролі водія",
-                    "Дата початку / відновлення ролі водія (ДД.ММ.РРРР):",
-                    initialvalue=date.today().strftime("%d.%m.%Y"),
-                    parent=win,
-                )
-                if raw_start is None:
-                    return
-                try:
-                    role_start_date=datetime.strptime(raw_start.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
-                except ValueError:
-                    messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=win)
-                    return
-                role_action="activate"
-            elif not driver and active.get():
-                role_action="activate"
-                role_start_date=vals.get("employment_date") or date.today().isoformat()
-            con=db()
-            if driver:
-                saved_driver_id=driver["id"]
-                next_driver_end=(
-                    "" if active.get() or role_action=="void"
-                    else (role_end_date or (driver["driver_end_date"] or "").strip())
-                )
-                con.execute("""UPDATE drivers SET
-                    last_name=?,first_name=?,middle_name=?,
-                    last_name_en=?,first_name_en=?,middle_name_en=?,
-                    personnel_no=?,birth_date=?,license_series=?,license_number=?,license_issue_date=?,
-                    employment_date=?,notes=?,active=?,driver_end_date=? WHERE id=?""",
-                    (vals["last_name"],vals["first_name"],vals["middle_name"],
-                     vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
-                     vals["personnel_no"],vals["birth_date"],vals["license_series"],vals["license_number"],
-                     vals["license_issue_date"],vals["employment_date"],vals["notes"],
-                     int(active.get()),next_driver_end,saved_driver_id))
-            else:
-                cur=con.execute("""INSERT INTO drivers(
-                    last_name,first_name,middle_name,last_name_en,first_name_en,middle_name_en,
-                    personnel_no,birth_date,license_series,license_number,license_issue_date,employment_date,
-                    notes,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                    (vals["last_name"],vals["first_name"],vals["middle_name"],
-                     vals["last_name_en"],vals["first_name_en"],vals["middle_name_en"],
-                     vals["personnel_no"],vals["birth_date"],vals["license_series"],vals["license_number"],
-                     vals["license_issue_date"],vals["employment_date"],vals["notes"],
-                     0,datetime.now().isoformat(timespec="seconds")))
-                saved_driver_id=cur.lastrowid
-            emp=con.execute("SELECT id FROM employees WHERE driver_id=?",(saved_driver_id,)).fetchone()
-            if emp:
-                employee_id=emp["id"]
-                con.execute("""UPDATE employees SET personnel_no=?,last_name=?,first_name=?,middle_name=?,employment_date=?,notes=? WHERE id=?""",
-                    (vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],vals["employment_date"],vals["notes"],employee_id))
-            else:
-                cur=con.execute("""INSERT INTO employees(personnel_no,last_name,first_name,middle_name,position,employment_date,notes,active,driver_id,created_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?)""",(vals["personnel_no"],vals["last_name"],vals["first_name"],vals["middle_name"],"Водій",vals["employment_date"],vals["notes"],1,saved_driver_id,datetime.now().isoformat(timespec="seconds")))
-                employee_id=cur.lastrowid
-            if role_action=="finish":
-                finish_driver_role(con,employee_id,saved_driver_id,role_end_date)
-            elif role_action=="void":
-                void_legacy_driver_role(con,employee_id,saved_driver_id)
-            elif role_action=="activate":
-                activate_driver_role(con,employee_id,saved_driver_id,role_start_date)
-            elif active.get():
-                con.execute("INSERT OR IGNORE INTO employee_roles(employee_id,role) VALUES(?,?)",(employee_id,"Водій"))
-                con.execute("UPDATE drivers SET active=1,driver_end_date='' WHERE id=?",(saved_driver_id,))
-            else:
-                con.execute("DELETE FROM employee_roles WHERE employee_id=? AND role='Водій'",(employee_id,))
-            con.commit(); con.close()
-            self.load_drivers(); self.load_employee_registry(); win.destroy()
-
-        ttk.Button(outer,text="Зберегти",command=save).pack(anchor="e",padx=8,pady=8)
-
-    def new_driver(self): self.driver_form()
-    def edit_driver(self):
-        d=self.selected_driver()
-        if d: self.driver_form(d)
-    def delete_driver(self):
-        d=self.selected_driver()
-        if not d: return
-        choice=messagebox.askyesnocancel(
-            "Зняти роль «Водій»",
-            "ТАК — реальне завершення ролі з датою.\n"
-            "НІ — виправити помилкову спадкову роль старих версій.\n"
-            "СКАСУВАТИ — нічого не змінювати.",
-            parent=self,
+        return driver_registry_ui.driver_form(
+            self,
+            driver,
+            db_factory=db,
+            fit_window_to_screen=fit_window_to_screen,
+            calendar_button=calendar_button,
+            finish_driver_role=finish_driver_role,
+            void_legacy_driver_role=void_legacy_driver_role,
+            activate_driver_role=activate_driver_role,
         )
-        if choice is None: return
-        end_date=""
-        if choice:
-            raw_end=simpledialog.askstring("Дата завершення ролі","Дата завершення роботи водієм (ДД.ММ.РРРР):",initialvalue=date.today().strftime("%d.%m.%Y"),parent=self)
-            if raw_end is None: return
-            try: end_date=datetime.strptime(raw_end.strip(),"%d.%m.%Y").strftime("%Y-%m-%d")
-            except ValueError:
-                messagebox.showerror("Роль водія","Дата має бути у форматі ДД.ММ.РРРР.",parent=self); return
-        con=db()
-        employee=con.execute("SELECT id FROM employees WHERE driver_id=?",(d["id"],)).fetchone()
-        if employee:
-            if choice:
-                finish_driver_role(con,employee["id"],d["id"],end_date)
-            else:
-                void_legacy_driver_role(con,employee["id"],d["id"])
-        elif choice:
-            con.execute("UPDATE drivers SET active=0,driver_end_date=? WHERE id=?",(end_date,d["id"]))
-        else:
-            cols={r[1] for r in con.execute("PRAGMA table_info(drivers)").fetchall()}
-            if "driver_role_mode" in cols:
-                con.execute("UPDATE drivers SET active=0,driver_end_date='',driver_role_mode='invalid' WHERE id=?",(d["id"],))
-            else:
-                con.execute("UPDATE drivers SET active=0,driver_end_date='' WHERE id=?",(d["id"],))
-        con.commit(); con.close(); self.load_drivers(); self.load_employee_registry()
+
+    def new_driver(self):
+        return driver_registry_ui.new_driver(self)
+
+    def edit_driver(self):
+        return driver_registry_ui.edit_driver(self)
+
+    def delete_driver(self):
+        return driver_registry_ui.delete_driver(
+            self,
+            db_factory=db,
+            finish_driver_role=finish_driver_role,
+            void_legacy_driver_role=void_legacy_driver_role,
+        )
+
     def selected_driver(self):
-        sel=self.driver_tree.selection()
-        if not sel: return None
-        did=int(self.driver_tree.item(sel[0],"values")[0])
-        con=db(); d=con.execute("SELECT * FROM drivers WHERE id=?",(did,)).fetchone(); con.close(); return d
+        return driver_registry_ui.selected_driver(self, db)
 
     def driver_by_id(self, driver_id):
-        """Повертає водія за ID незалежно від виділення у вкладці «Водії»."""
-        if not driver_id:
-            return None
-        con=db()
-        try:
-            return con.execute("SELECT * FROM drivers WHERE id=?",(int(driver_id),)).fetchone()
-        finally:
-            con.close()
+        return driver_registry_ui.driver_by_id(driver_id, db)
 
-    def driver_full_name(self, d):
-        if not d: return ""
-        return " ".join(x for x in (d["last_name"], d["first_name"], d["middle_name"]) if x).strip()
+    def driver_full_name(self, driver):
+        return driver_registry_ui.driver_full_name(driver)
 
     def on_driver_select(self,_=None):
         d=self.selected_driver()
@@ -10335,18 +9389,11 @@ class App(tk.Tk):
             self.load_att_history()
 
     def load_drivers(self):
-        for x in getattr(self,"driver_tree",ttk.Treeview(self)).get_children():
-            self.driver_tree.delete(x)
-        con=db(); rows=con.execute("SELECT * FROM drivers ORDER BY last_name, first_name").fetchall(); con.close()
-        for d in rows:
-            name=" ".join(x for x in [d["last_name"],d["first_name"],d["middle_name"]] if x)
-            lic=f"{d['license_series']} {d['license_number']}".strip()
-            issue=fmt_date(d["license_issue_date"])
-            if issue:
-                lic=f"{lic}, вид. {issue}" if lic else f"вид. {issue}"
-            self.driver_tree.insert("", "end", values=(d["id"],name,fmt_date(d["birth_date"]),lic,fmt_date(d["employment_date"]), "Так" if d["active"] else "Ні"))
-        self.refresh_att_driver_choices()
-        self.refresh_work_driver_choices()
+        return driver_registry_ui.load_drivers(
+            self,
+            db,
+            fmt_date,
+        )
 
     def show_waybill_number_pools(self):
         if hasattr(self,"pool_win") and self.pool_win.winfo_exists():
@@ -10488,159 +9535,34 @@ class App(tk.Tk):
         return True
 
     def build_vehicles(self):
-        top = ttk.Frame(self.tab_vehicles)
-        top.pack(fill="x", padx=10, pady=8)
-        ttk.Button(top, text="Нове авто", command=self.vehicle_form).pack(side="left", padx=4)
-        ttk.Button(top, text="Редагувати", command=self.edit_vehicle).pack(side="left", padx=4)
-        ttk.Button(top, text="Документи", command=self.vehicle_documents).pack(side="left", padx=4)
-        ttk.Button(top, text="Контроль документів", command=self.vehicle_document_control).pack(side="left", padx=4)
-        ttk.Button(top, text="Вивести з експлуатації", command=self.delete_vehicle).pack(side="left", padx=4)
-        ttk.Button(top, text="Оновити", command=self.load_vehicles).pack(side="left", padx=4)
-        ttk.Label(
-            self.tab_vehicles,
-            text="Каталог транспортних засобів. Документи зберігаються з копіями та контролем строків дії.",
-            foreground=PALETTE["muted"],
-        ).pack(anchor="w", padx=12)
-        cols=("id","name","plate","garage","make","year","ownership","active","documents","notes")
-        self.vehicle_tree=ttk.Treeview(self.tab_vehicles,columns=cols,show="headings",height=25)
-        heads={"id":"ID","name":"Назва","plate":"Держ. №","garage":"Гар. №","make":"Марка / модель","year":"Рік","ownership":"Власність / користування","active":"Статус","documents":"Документи","notes":"Примітка"}
-        widths={"id":45,"name":145,"plate":105,"garage":80,"make":150,"year":60,"ownership":155,"active":75,"documents":260,"notes":200}
-        for c in cols:
-            self.vehicle_tree.heading(c,text=heads[c]); self.vehicle_tree.column(c,width=widths[c],anchor="w")
-        vehicle_y=ttk.Scrollbar(self.tab_vehicles,orient="vertical",command=self.vehicle_tree.yview)
-        vehicle_x=ttk.Scrollbar(self.tab_vehicles,orient="horizontal",command=self.vehicle_tree.xview)
-        self.vehicle_tree.configure(yscrollcommand=vehicle_y.set,xscrollcommand=vehicle_x.set)
-        vehicle_x.pack(side="bottom",fill="x",padx=10,pady=(0,5))
-        vehicle_y.pack(side="right",fill="y",pady=5)
-        self.vehicle_tree.pack(side="left",fill="both",expand=True,padx=(10,0),pady=5)
-        self.vehicle_tree.bind("<Double-1>",lambda _event:self.edit_vehicle())
-        self.vehicle_tree.bind("<Return>",lambda _event:self.edit_vehicle())
-        self.load_vehicles()
+        vehicle_registry_ui.build_vehicles(self)
 
     def load_vehicles(self):
-        if not hasattr(self,"vehicle_tree"): return
-        for x in self.vehicle_tree.get_children(): self.vehicle_tree.delete(x)
-        con=db()
-        try:
-            ensure_vehicle_documents_schema(con)
-            rows=con.execute("SELECT * FROM vehicles ORDER BY active DESC, name, plate").fetchall()
-            data=[(r,vehicle_document_summary_text(con,r["id"])) for r in rows]
-        finally:
-            con.close()
-        for r,doc_state in data:
-            self.vehicle_tree.insert(
-                "","end",
-                values=(r["id"],r["name"],r["plate"],r["garage_no"],r["make_model"],r["year"] or "",r["ownership_type"] or "","Так" if r["active"] else "Ні",doc_state,r["notes"])
-            )
+        vehicle_registry_ui.load_vehicles(self, db)
 
     def selected_vehicle(self):
-        sel=self.vehicle_tree.selection()
-        if not sel: return None
-        vid=int(self.vehicle_tree.item(sel[0],"values")[0])
-        con=db(); r=con.execute("SELECT * FROM vehicles WHERE id=?",(vid,)).fetchone(); con.close(); return r
+        return vehicle_registry_ui.selected_vehicle(self, db)
 
     def vehicle_label(self, r):
-        if not r: return ""
-        parts=[r["name"], r["plate"]]
-        if r["make_model"]: parts.append(r["make_model"])
-        return " — ".join(x for x in parts if x)
+        return vehicle_registry_ui.vehicle_label(r)
 
     def vehicle_form(self, vehicle=None):
-        win=tk.Toplevel(self); win.title("Автомобіль"); fit_window_to_screen(win,680,560,560,460); win.transient(self); win.grab_set()
-        fields=[("name","Назва / інвентарний номер"),("plate","Державний номер"),("garage_no","Гаражний номер"),("make_model","Марка / модель"),("year","Рік")]
-        vv={}
-        for i,(k,lbl) in enumerate(fields):
-            ttk.Label(win,text=lbl).grid(row=i,column=0,sticky="w",padx=10,pady=8)
-            v=tk.StringVar(value=str(vehicle[k] or "") if vehicle else ""); vv[k]=v
-            ttk.Entry(win,textvariable=v,width=55).grid(row=i,column=1,sticky="ew",padx=10,pady=8)
-
-        ownership_row=len(fields)
-        ttk.Label(win,text="Форма власності / користування").grid(row=ownership_row,column=0,sticky="w",padx=10,pady=8)
-        ownership=tk.StringVar(value=str(vehicle["ownership_type"] or "") if vehicle else "Власний")
-        ttk.Combobox(
-            win,textvariable=ownership,
-            values=("Власний","Оренда","Лізинг","Позичка / інше користування","Інше"),
-            width=52
-        ).grid(row=ownership_row,column=1,sticky="ew",padx=10,pady=8)
-
-        temporary_required=tk.BooleanVar(
-            value=bool(vehicle["temporary_registration_required"]) if vehicle else False
-        )
-        ttk.Checkbutton(
-            win,
-            text="Потрібен тимчасовий реєстраційний документ",
-            variable=temporary_required,
-        ).grid(row=ownership_row+1,column=1,sticky="w",padx=10,pady=(2,8))
-
-        notes_row=ownership_row+2
-        ttk.Label(win,text="Примітка").grid(row=notes_row,column=0,sticky="w",padx=10,pady=8)
-        notes=tk.StringVar(value=str(vehicle["notes"] or "") if vehicle else "")
-        ttk.Entry(win,textvariable=notes,width=55).grid(row=notes_row,column=1,sticky="ew",padx=10,pady=8)
-
-        active=tk.BooleanVar(value=bool(vehicle["active"]) if vehicle else True)
-        ttk.Checkbutton(win,text="Активний автомобіль",variable=active).grid(row=notes_row+1,column=1,sticky="w",padx=10,pady=8)
-        def save():
-            name=vv["name"].get().strip()
-            if not name:
-                messagebox.showerror("Помилка","Вкажіть назву автомобіля.",parent=win); return
-            year=vv["year"].get().strip()
-            if year:
-                try: year=int(year)
-                except ValueError: messagebox.showerror("Помилка","Рік має бути числом.",parent=win); return
-            else: year=None
-            con=db()
-            vals=(
-                name,vv["plate"].get().strip(),vv["garage_no"].get().strip(),
-                vv["make_model"].get().strip(),year,ownership.get().strip(),
-                int(temporary_required.get()),notes.get().strip(),int(active.get())
-            )
-            if vehicle:
-                con.execute(
-                    "UPDATE vehicles SET name=?,plate=?,garage_no=?,make_model=?,year=?,ownership_type=?,temporary_registration_required=?,notes=?,active=? WHERE id=?",
-                    (*vals,vehicle["id"])
-                )
-            else:
-                con.execute(
-                    "INSERT INTO vehicles(name,plate,garage_no,make_model,year,ownership_type,temporary_registration_required,notes,active,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
-                    (*vals,datetime.now().isoformat(timespec="seconds"))
-                )
-            con.commit(); con.close(); self.load_vehicles(); win.destroy()
-        ttk.Button(win,text="Зберегти",command=save).grid(row=notes_row+2,column=1,sticky="e",padx=10,pady=14)
+        vehicle_registry_ui.vehicle_form(self, db, fit_window_to_screen, vehicle=vehicle)
 
     def edit_vehicle(self):
-        v=self.selected_vehicle()
-        if v: self.vehicle_form(v)
+        vehicle_registry_ui.edit_vehicle(self)
 
     def vehicle_documents(self):
-        v=self.selected_vehicle()
-        if not v:
-            messagebox.showinfo("Документи авто","Виберіть транспортний засіб.",parent=self)
-            return
-        open_vehicle_documents(self,db,DATA_ROOT,v,on_change=self.load_vehicles)
+        vehicle_registry_ui.vehicle_documents(self, db, DATA_ROOT)
 
     def open_vehicle_documents_by_id(self, vehicle_id):
-        con=db()
-        try:
-            v=con.execute("SELECT * FROM vehicles WHERE id=?",(int(vehicle_id),)).fetchone()
-        finally:
-            con.close()
-        if v:
-            open_vehicle_documents(self,db,DATA_ROOT,v,on_change=self.load_vehicles)
+        vehicle_registry_ui.open_vehicle_documents_by_id(self, db, DATA_ROOT, vehicle_id)
 
     def vehicle_document_control(self):
-        open_vehicle_document_control(
-            self,db,DATA_ROOT,on_open_vehicle=self.open_vehicle_documents_by_id
-        )
+        vehicle_registry_ui.vehicle_document_control(self, db, DATA_ROOT)
 
     def delete_vehicle(self):
-        v=self.selected_vehicle()
-        if not v: return
-        if not messagebox.askyesno(
-            "Підтвердження",
-            "Вивести транспортний засіб з експлуатації? Історичні записи та документи залишаться.",
-            parent=self,
-        ): return
-        con=db(); con.execute("UPDATE vehicles SET active=0 WHERE id=?",(v["id"],)); con.commit(); con.close(); self.load_vehicles()
+        vehicle_registry_ui.delete_vehicle(self, db)
 
     def build_work(self):
         controls=ttk.Frame(self.tab_work)

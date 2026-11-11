@@ -4,6 +4,7 @@ import unittest
 
 import branding
 import branding_asset
+import employee_registry_ui
 import main
 import personnel_v91
 
@@ -45,10 +46,10 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
         self.assertIn('nb.select(self.tab_personnel)',personnel_source)
 
     def test_legacy_registry_action_routes_to_embedded_personnel_page(self):
-        source=inspect.getsource(main.App.show_employee_registry)
-        selected=inspect.getsource(main.App.selected_employee)
-        self.assertIn('personnel_tab=getattr(self,"tab_personnel",None)',source)
-        self.assertIn('self.show_tab(personnel_tab)',source)
+        source=inspect.getsource(employee_registry_ui.show_employee_registry)
+        selected=inspect.getsource(employee_registry_ui.selected_employee)
+        self.assertIn('getattr(app, "tab_personnel", None)',source)
+        self.assertIn('app.show_tab(personnel_tab)',source)
         self.assertIn('personnel_overview_tree',selected)
 
     def test_personnel_registry_matches_approved_main_page(self):
@@ -74,10 +75,10 @@ class TestTaxo101R3ApprovedShell(unittest.TestCase):
     def test_dynamic_enterprise_name_is_used_in_window_titles(self):
         header=inspect.getsource(main.App._refresh_brand_header)
         timesheet=inspect.getsource(main.App.show_employee_timesheet)
-        employee_card=inspect.getsource(main.App.employee_form)
+        employee_card=inspect.getsource(employee_registry_ui.employee_form)
         self.assertIn('self.title(f"Taxo / {company_name} — Облік персоналу")',header)
         self.assertIn('Taxo / {self._company_name_value()} — Табель робочого часу',timesheet)
-        self.assertIn('Taxo / {self._company_name_value()} — Картка працівника',employee_card)
+        self.assertIn('Taxo / {app._company_name_value()} — Картка працівника',employee_card)
 
     def test_dynamic_enterprise_name_remains_separate_from_logo(self):
         header=inspect.getsource(main.App._refresh_brand_header)

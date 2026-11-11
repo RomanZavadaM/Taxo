@@ -39,15 +39,14 @@ class R5IntegrationTests(unittest.TestCase):
         self.assertIn("v1065_features.py", workflow)
 
     def test_base_report_keeps_default_active_filter_and_both_scrollbars(self):
-        source = (ROOT / "main.py").read_text("utf-8")
-        start = source.index("def show_vehicle_documents_report")
-        block = source[start:source.index("def ", start + 4)]
-        self.assertIn("active_only=tk.BooleanVar(value=True)", block)
-        self.assertIn('text="Тільки авто в експлуатації"', block)
-        self.assertIn('text="Тільки проблемні / попередження"', block)
-        self.assertIn('orient="vertical",command=tree.yview', block)
-        self.assertIn('orient="horizontal",command=tree.xview', block)
-        self.assertIn('xscrollcommand=xbar.set', block)
+        source = (ROOT / "src/taxo/vehicle_documents_report_ui.py").read_text("utf-8")
+        compact = source.replace(" ", "")
+        self.assertIn("active_only=tk.BooleanVar(value=True)", compact)
+        self.assertIn('text="Тількиавтовексплуатації"', compact)
+        self.assertIn('text="Тількипроблемні/попередження"', compact)
+        self.assertIn('orient="vertical",command=tree.yview', compact)
+        self.assertIn('orient="horizontal",command=tree.xview', compact)
+        self.assertIn('xscrollcommand=xbar.set', compact)
 
     def test_r5_reflows_existing_controls_without_business_logic(self):
         source = (ROOT / "v1065_features.py").read_text("utf-8")

@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class PaperDocumentsR3Tests(unittest.TestCase):
     def test_version_and_live_controls(self):
-        self.assertIn(main.APP_VERSION, ("10.15-r3", "10.15-r4", "10.15-r5"))
+        self.assertIn(main.APP_VERSION, ("10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8"))
         self.assertIn("Version: " + main.APP_VERSION, (ROOT / "VERSION.txt").read_text("utf-8"))
         start = (ROOT / "START.bat").read_text("utf-8")
         for filename in ("paper_documents.py", "paper_documents_ui.py", "driver_internship_ui.py"):
@@ -167,7 +167,7 @@ class PaperworkLiveRouteR3Tests(unittest.TestCase):
     def test_live_briefing_print_action_is_reachable_and_saves_file(self):
         with tempfile.TemporaryDirectory() as directory, \
              mock.patch.object(brief, "load_workspace_root", return_value=directory), \
-             mock.patch.object(brief.paperwork, "open_file"), \
+             mock.patch.object(brief.instruction_documents, "open_briefing_document"), \
              mock.patch.object(brief.ops, "list_employee_choices", return_value=[
                  {"id": 1, "label": "Водій Один", "name": "Водій Один", "personnel_no": "001"},
                  {"id": 2, "label": "Водій Два", "name": "Водій Два", "personnel_no": "002"},
@@ -190,7 +190,7 @@ class PaperworkLiveRouteR3Tests(unittest.TestCase):
     def test_live_driver_internship_action_is_reachable_and_saves_file(self):
         with tempfile.TemporaryDirectory() as directory, \
              mock.patch.object(driver_internship_ui, "load_workspace_root", return_value=directory), \
-             mock.patch.object(driver_internship_ui.paperwork, "open_file"), \
+             mock.patch.object(driver_internship_ui.internship_documents, "open_internship_document"), \
              mock.patch.object(driver_internship_ui.ops, "list_driver_choices", return_value=[
                  {"id": 1, "label": "Стажист Один", "name": "Стажист Один", "personnel_no": "001"},
                  {"id": 2, "label": "Наставник Два", "name": "Наставник Два", "personnel_no": "002"},

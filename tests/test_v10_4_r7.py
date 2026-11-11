@@ -17,7 +17,7 @@ class TestTaxo104R7DocumentControlBoundary(unittest.TestCase):
         self.assertIn("immutable",release_index)
 
     def test_vehicle_control_tree_is_child_of_grid_container(self):
-        source=(ROOT/"vehicle_documents.py").read_text("utf-8")
+        source=(ROOT/"vehicle_documents_ui.py").read_text("utf-8")
         start=source.index("def open_vehicle_document_control")
         block=source[start:]
         self.assertIn("table = ttk.Frame(win)",block)
@@ -26,7 +26,10 @@ class TestTaxo104R7DocumentControlBoundary(unittest.TestCase):
         self.assertLess(block.index("table = ttk.Frame(win)"), block.index("tree = ttk.Treeview(table"))
 
     def test_operational_document_control_has_no_registry_dependency(self):
-        source=(ROOT/"vehicle_documents.py").read_text("utf-8")
+        source="\n".join((
+            (ROOT/"vehicle_documents.py").read_text("utf-8"),
+            (ROOT/"vehicle_documents_ui.py").read_text("utf-8"),
+        ))
         self.assertNotIn("from personnel_registry",source)
         self.assertNotIn("import personnel_registry",source)
         self.assertNotIn("registry_reconciliation",source)

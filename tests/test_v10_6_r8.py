@@ -50,7 +50,7 @@ class R8IntegrationTests(unittest.TestCase):
         self.assertIn("v1068_features.py", workflow)
 
     def test_base_form_keeps_document_business_rules_and_save_action(self):
-        source = (ROOT / "vehicle_documents.py").read_text("utf-8")
+        source = (ROOT / "vehicle_documents_ui.py").read_text("utf-8")
         start = source.index("    def _form(self, row=None):")
         end = source.index("    def archive_document", start)
         block = source[start:end]

@@ -57,11 +57,9 @@ class R6IntegrationTests(unittest.TestCase):
         self.assertIn("v1066_features.py", workflow)
 
     def test_base_vehicle_toolbar_and_r1_filter_contract_are_preserved(self):
-        main = (ROOT / "main.py").read_text("utf-8")
-        start = main.index("def build_vehicles")
-        block = main[start:main.index("def ", start + 4)]
+        source = (ROOT / "src/taxo/vehicle_registry_ui.py").read_text("utf-8")
         for label in r6.VEHICLE_ACTION_LABELS[:-1]:
-            self.assertIn(f'text="{label}"', block)
+            self.assertIn(f'text="{label}"', source)
         r1 = (ROOT / "v1061_features.py").read_text("utf-8")
         self.assertIn("self.vehicle_hide_inactive = core.tk.BooleanVar(value=True)", r1)
         self.assertIn('text="Сховати неактивні автомобілі"', r1)
