@@ -866,3 +866,14 @@
 - Exact final head `baf785b95bc32403e9b7a7a888dfc7b23766d1dc`: Windows 43002030779 SUCCESS, 1108 tests; Win7 compatibility 43002030767 SUCCESS, 1108 tests; macOS 43002030758 Intel + ARM SUCCESS, 1108 tests кожна. Windows START preflight та incomplete-package guard SUCCESS.
 - Artifacts: Windows 13847301165; Win7 compatibility 13846587755; macOS ARM64 13847340326; macOS x86_64 13845959220.
 - r2 не merged/stable. Stable v10.15-r4; r5 rollback/reference. Наступна кодова ревізія — 10.16-r3.
+
+
+## 11.11.2026 — 10.16-r3: окремий реєстр і картка водія
+
+- Від exact verified r2 створено `work/v10.16-r3-driver-registry-ui`, draft PR #333; recovery docs синхронізовано перед кодовою зміною.
+- У `driver_registry_ui.py` винесено реєстр водіїв, картку, створення/редагування, завершення/виправлення ролі та базове завантаження. Табельні й атестаційні списки водіїв навмисно лишено поза модулем як окремі відповідальності.
+- Стару стислу картку розгорнуто в читабельні секції та явні залежності. `main.py` приблизно 15857 → 15558 рядків лише як наслідок поділу; новий модуль близько 821 рядка.
+- Перший regression знайшов 2 source-location checks (driver_form/build_drivers у main.App); їх перенаправлено на новий модуль без послаблення правил завершення ролі й `driver_end_date`.
+- Exact final head `2caaafb390bb9040ec7c65b4ca5dbb7292d81a94`: Windows 43004222187 SUCCESS, 1114 tests; Win7 compatibility 43004222283 SUCCESS, 1114 tests; macOS 43004222630 Intel + ARM SUCCESS, 1114 tests кожна. Windows START preflight та incomplete-package guard SUCCESS.
+- Artifacts: Windows 13847841763; Win7 compatibility 13846489953; macOS ARM64 13846744008; macOS x86_64 13847228709.
+- r3 не merged/stable. Stable v10.15-r4; r5 rollback/reference. Наступна кодова ревізія — 10.16-r4.
