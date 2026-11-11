@@ -31,7 +31,7 @@ jobs:
           set -euo pipefail
           git fetch origin main
           test "$(git show origin/main:VERSION.txt | tr -d '\r')" = 'Version: 10.16-r8'
-          git show origin/main:main.py | grep -Fq 'APP_VERSION = "10.16-r8"'
+          git show origin/main:main.py | grep -F 'APP_VERSION = "10.16-r8"' >/dev/null
           git merge-base --is-ancestor "$SOURCE_SHA" origin/main
           test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')" = "$SOURCE_SHA"
           test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.prerelease')" = true
