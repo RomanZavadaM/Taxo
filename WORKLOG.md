@@ -944,3 +944,11 @@
 - Опубліковано immutable [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8) як prerelease, tag `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`, рівно 6 assets: Windows x64 portable, Windows 7 x64 portable, macOS x86_64 portable, macOS arm64 portable, START/source ZIP і SHA256. **Інсталяторів у релізі нема; Latest лишається v10.15-r5.**
 - Draft PR #349 не merged/stable. Наступна кодова ревізія — **10.16-r9**.
 
+
+## 11.11.2026 — власник затвердив stable v10.16-r8 та повний комплект інсталяторів
+
+- Рішення власника: видану тестову r8 перевести в Stable/Latest; додати інсталятори Windows x64 та Win7 x64, залишити portable Windows/Win7/macOS Intel/ARM, START/source, повний SHA256. R9 до релізу не включати; стару stable 10.15-r5 зберегти.
+- Integrate PR #352 (exact r8 source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6` + збережені recovery docs main) merged `890d9734a1de54020267ed0a08f789785508b803`. PR Windows run 43073483675 SUCCESS, Win7 compatibility 43073483820 SUCCESS, macOS Intel/ARM 43073483665 SUCCESS.
+- Release promotion workflow 43077555581 спочатку зупинився на SIGPIPE `exit 141` у `git show | grep -Fq`; gate виправлено, failure не приховано. Повторний run [43077702929](https://github.com/RomanZavadaM/Taxo/actions/runs/43077702929) — **SUCCESS**, перевірив exact source/tag, оригінальні 6 assets і контрольні суми; витягнув Setup_Windows_x64.exe і Setup_Windows7_x64.exe з перевірених exact-r8 CI artifacts; оновив повний SHA256, перевів release у Stable/Latest; фінально завантажив усі 8 assets і перевірив SHA256.
+- Release [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8) — Stable/Latest, exact tag як і був. Реліз 10.15-r5 залишився незмінною rollback.
+- Зауваження власника до типових документів: бібліотека повинна бути **своя редагована для кожного користувача**, підтримувати створення власних шаблонів; шаблон не є фінальним документом. Заповнювати конкретними датами, ПІБ, транспортом та іншими реквізитами з робочих даних; не вигадувати зайві положення для простих наказів про закріплення. Історичні накази власника (до 20 років) можуть використовуватися для аналізу за умови приватності. Детальна карта: `docs/planning/ORDER_TEMPLATE_LIBRARY_PLAN_2026-11-11.md`.

@@ -4,15 +4,14 @@
 
 | Лінія | Версія | Призначення |
 |---|---|---|
-| Стабільна / Latest | [10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5) | Основна стабільна версія; прийнята власником. |
-| Попередня стабільна | [10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) | Історична stable / варіант повернення. |
-| Тестова portable-only | [10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8) | Поточна незлита структурна ревізія, 4 portable ZIP + START + SHA256, без інсталяторів. |
+| Стабільна / Latest | [10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8) | Інтегрована структура, повний випуск: 2 інсталятори, 4 portable, START, SHA256. |
+| Попередня стабільна | [10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5) | Перевірена точка повернення, файли не змінено. |
 | Попередня тестова portable-only | [10.16-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r7) | Попередній незлитий структурний checkpoint, portable-only. |
 | Старіша тестова | [10.15-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r3) | Інструктажі, лист стажування та початковий каталог. |
 | Архівна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |
 | Архівна | [10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | Попередній контрольний випуск. |
 
-[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Примітки stable 10.15-r5](RELEASE_NOTES_v10.15-r5.md) · [Поточний стан](../../PROJECT_STATE.md).
+[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Примітки stable 10.16-r8](RELEASE_NOTES_v10.16-r8.md) · [Поточний стан](../../PROJECT_STATE.md).
 
 Номери виданих ревізій і теги не перевикористовуються. Призначення stable змінюється лише окремим рішенням власника. Детальна історія попередніх контрольних точок збережена у приватній гілці проєктного профілю та в історії Git.
 
