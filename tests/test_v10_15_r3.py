@@ -190,7 +190,7 @@ class PaperworkLiveRouteR3Tests(unittest.TestCase):
     def test_live_driver_internship_action_is_reachable_and_saves_file(self):
         with tempfile.TemporaryDirectory() as directory, \
              mock.patch.object(driver_internship_ui, "load_workspace_root", return_value=directory), \
-             mock.patch.object(driver_internship_ui.document_store, "open_file"), \
+             mock.patch.object(driver_internship_ui.internship_documents, "open_internship_document"), \
              mock.patch.object(driver_internship_ui.ops, "list_driver_choices", return_value=[
                  {"id": 1, "label": "Стажист Один", "name": "Стажист Один", "personnel_no": "001"},
                  {"id": 2, "label": "Наставник Два", "name": "Наставник Два", "personnel_no": "002"},
