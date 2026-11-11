@@ -20,9 +20,10 @@
 - **10.16-r2 — поточний checkpoint:** [draft PR #331](https://github.com/RomanZavadaM/Taxo/pull/331), exact head `baf785b95bc32403e9b7a7a888dfc7b23766d1dc`. Реєстр наказів винесено в `order_register_ui.py`; `operations_orders_ui.py` тепер збирає спеціалізовані модулі. Перший CI зловив реальний NameError у callback створення наказу після перейменування змінної; виправлено. Windows 43002030779, Win7 compatibility 43002030767, macOS 43002030758 — SUCCESS, 1108/1108 на кожному середовищі/архітектурі. START preflight і incomplete-package guard — SUCCESS.
 - **10.16-r3 — поточний checkpoint:** [draft PR #333](https://github.com/RomanZavadaM/Taxo/pull/333), exact head `2caaafb390bb9040ec7c65b4ca5dbb7292d81a94`. Реєстр/картку водія та життєвий цикл ролі винесено в `driver_registry_ui.py`; табельні й атестаційні списки водіїв залишено окремими App-інтеграціями. Картку переформатовано для читабельності. Windows 43004222187, Win7 compatibility 43004222283, macOS 43004222630 — SUCCESS, 1114/1114 на кожному середовищі/архітектурі. START preflight і incomplete-package guard — SUCCESS.
 - **10.16-r4 — поточний checkpoint:** [draft PR #335](https://github.com/RomanZavadaM/Taxo/pull/335), exact head `a3509473ec3d884ec18bbbceb07fa78dd24ad3b3`. UI документів ТЗ винесено в `vehicle_documents_ui.py`; `vehicle_documents.py` лишився місцем схеми, статусів, строків, звітних даних, копіювання файлів і compatibility entry points. Перший START regression виявив 19 старих version allowlists і 5 source-location checks; їх перенаправлено/розширено без послаблення вимог. START/source 43015674097 — SUCCESS, 1119/1119; Windows 43015867380 — SUCCESS, 1119/1119; Win7 compatibility 43015867350 — SUCCESS, 1119/1119 на Python 3.8 (**не фізичний Windows 7**); macOS 43015867478 — Intel і ARM SUCCESS, 1119/1119 кожна. Артефакти: START 13852362721; Windows 13852962058; Win7 13851949739; macOS x86_64 13853106845; ARM64 13852288612. Тимчасовий validation PR #336 закрито без merge після SUCCESS.
+- **10.16-r5 — поточний checkpoint:** [draft PR #338](https://github.com/RomanZavadaM/Taxo/pull/338), exact head `8fa5687012abd6731327bbd65af8df572e017fa4`. Формування/збереження/відкриття комплекту інструктажу відокремлено від Tk-UI у `safety_instruction_document_service.py`; UI збирає дані й делегує документну операцію, а існуючі DOCX, `Data/PaperDocuments`, backup contract і правило «підготовлений документ не означає проведення/підписання» збережені. Під час CI старий live-test перенаправлено на новий сервіс без послаблення перевірки, а Win7 виявив реальну колізію сортування при однаковому `created_at`: `paper_document_store.list_documents()` тепер детерміновано вважає пізніше доданий запис новішим на exact tie, додано regression. Final exact-head CI: Windows 43021465684 — SUCCESS, 1125/1125, START preflight + incomplete-package guard SUCCESS; Win7 compatibility 43021465639 — SUCCESS, 1125/1125 на Python 3.8 (**не фізичний Windows 7**); macOS 43021467222 — Intel і ARM SUCCESS, 1125/1125 кожна. Артефакти: Windows 13855272500; Win7 13854479547; macOS x86_64 13854264580; ARM64 13855755743. Тимчасовий validation PR #339 закрито без merge після SUCCESS.
 - Під час r1 regression повернуто втрачений у recovery-документації історичний anchor Taxo 10.3 через docs PR #328; це виправлення вже в `main`.
 - Для r10 окремий START-архів цими PR-triggered workflow не створювався. Не називати START preflight готовим START artifact.
-- Схема БД, бізнес-правила, backup/restore та формати робочих даних у r8-r10 не змінювалися.
+- Схема БД, backup/restore та формати робочих даних у тестовій лінії до 10.16-r5 не змінювалися. r5 змінив лише межу відповідальності інструктажу та детермінований порядок читання паперового каталогу на однаковому timestamp.
 
 ## Важлива настанова власника
 
@@ -30,11 +31,11 @@
 
 ## Наступна дія
 
-1. При новій сесії ще раз звірити live GitHub і exact head PR #335.
-2. Не merge-ити r7/r8/r9/r10/r1/r2/r3/r4 і не робити їх stable без окремої команди власника.
-3. Наступна кодова ревізія за правилом версій — **10.16-r5**.
-4. Продовжити планове розділення наказів / інструктажів / документів одним цілісним безпечним кроком, з урахуванням читабельності й розвитку функцій; `main.py` не «худнути заради худнення».
-5. r5 зберігати недоторканою точкою повернення.
+1. При новій сесії ще раз звірити live GitHub і exact head PR #338 (`8fa5687012abd6731327bbd65af8df572e017fa4`).
+2. Не merge-ити r7/r8/r9/r10/r1/r2/r3/r4/r5 і не робити їх stable без окремої команди власника.
+3. Наступна кодова ревізія за правилом версій — **10.16-r6**.
+4. Продовжити від exact r5 планове розділення наказів / інструктажів / документів одним цілісним безпечним кроком, з урахуванням читабельності й розвитку функцій; не створювати нових монолітів і не «худнути заради худнення».
+5. Інтегровану 10.15-r5 зберігати недоторканою rollback/reference точкою.
 
 ## Recovery
 
