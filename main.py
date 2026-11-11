@@ -8291,6 +8291,7 @@ class App(tk.Tk):
 
     def build_drivers(self):
         return driver_registry_ui.build_drivers(self)
+
     def employee_full_name(self, row):
         return employee_registry_ui.employee_full_name(row)
 
@@ -9245,10 +9246,13 @@ class App(tk.Tk):
             void_legacy_driver_role=void_legacy_driver_role,
             activate_driver_role=activate_driver_role,
         )
+
     def new_driver(self):
         return driver_registry_ui.new_driver(self)
+
     def edit_driver(self):
         return driver_registry_ui.edit_driver(self)
+
     def delete_driver(self):
         return driver_registry_ui.delete_driver(
             self,
@@ -9256,12 +9260,16 @@ class App(tk.Tk):
             finish_driver_role=finish_driver_role,
             void_legacy_driver_role=void_legacy_driver_role,
         )
+
     def selected_driver(self):
         return driver_registry_ui.selected_driver(self, db)
+
     def driver_by_id(self, driver_id):
         return driver_registry_ui.driver_by_id(driver_id, db)
+
     def driver_full_name(self, driver):
         return driver_registry_ui.driver_full_name(driver)
+
     def on_driver_select(self,_=None):
         d=self.selected_driver()
         if d:
@@ -9386,6 +9394,7 @@ class App(tk.Tk):
             db,
             fmt_date,
         )
+
     def show_waybill_number_pools(self):
         if hasattr(self,"pool_win") and self.pool_win.winfo_exists():
             self.pool_win.lift(); self.load_waybill_number_pools(); return
