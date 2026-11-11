@@ -1,0 +1,138 @@
+name: Promote Taxo 10.16-r8 to stable with verified installers
+on:
+  push:
+    branches:
+      - release/promote-v10.16-r8-with-installers
+    paths:
+      - .release/promote-r8-now
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: 115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6
+      TAG: v10.16-r8
+      STEM: Taxo_v10_16_candidate_r8
+      CHECKSUMS: SHA256SUMS_v10_16_r8.txt
+    steps:
+      - name: Checkout guarded promotion branch and live main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Require the approved r8 code in main and exact source CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git show origin/main:VERSION.txt | tr -d '\r')" = 'Version: 10.16-r8'
+          git show origin/main:main.py | grep -Fq 'APP_VERSION = "10.16-r8"'
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/main
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')" = "$SOURCE_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.prerelease')" = true
+          for run in 43042553534 43042553636 43042553516 43043571230; do
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.head_sha')" = "$SOURCE_SHA" || {
+              if [ "$run" = 43043571230 ]; then
+                # The packaging workflow runs on its own release branch; its
+                # explicit SOURCE_SHA was verified by the workflow itself.
+                test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.conclusion')" = success
+                continue
+              fi
+              exit 1
+            }
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.conclusion')" = success
+          done
+          for run in 43073483675 43073483820 43073483665; do
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq '.conclusion')" = success
+          done
+
+      - name: Download and verify all original issued portable packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p previous release_files
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir previous
+          test "$(find previous -maxdepth 1 -type f | wc -l)" -eq 6
+          (
+            cd previous
+            sha256sum -c "$CHECKSUMS"
+          )
+          for suffix in Windows_x64 Windows7_x64 macOS_x86_64 macOS_arm64; do
+            test -f "previous/${STEM}_${suffix}_Portable.zip"
+          done
+          test -f "previous/${STEM}_START.zip"
+          for archive in previous/*.zip; do
+            unzip -tqq "$archive"
+            cp "$archive" release_files/
+          done
+
+      - name: Recover signed-by-CI Windows installers from exact r8 run artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p collected/win collected/win7
+          gh run download 43042553534 --repo "$GITHUB_REPOSITORY" --name Taxo-current-Windows-x64 --dir collected/win
+          gh run download 43042553636 --repo "$GITHUB_REPOSITORY" --name Taxo-current-Windows7-x64 --dir collected/win7
+          install_one() {
+            local name="$1"
+            mapfile -t matches < <(find collected -type f -name "$name")
+            test "${#matches[@]}" -eq 1 || { echo "Expected exactly one installer $name, got ${#matches[@]}" >&2; exit 1; }
+            file "${matches[0]}" | grep -iq 'PE32'
+            cp "${matches[0]}" "release_files/$name"
+          }
+          install_one "${STEM}_Setup_Windows_x64.exe"
+          install_one "${STEM}_Setup_Windows7_x64.exe"
+          (
+            cd release_files
+            sha256sum Taxo_* > "$CHECKSUMS"
+          )
+          test "$(find release_files -maxdepth 1 -type f | wc -l)" -eq 8
+
+      - name: Upload only the missing installer assets and complete checksum manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.id')"
+          names="$(gh api "repos/$GITHUB_REPOSITORY/releases/$release_id/assets" --paginate --jq '.[].name')"
+          test "$(printf '%s\n' "$names" | wc -l)" -eq 6
+          for name in "${STEM}_Setup_Windows_x64.exe" "${STEM}_Setup_Windows7_x64.exe"; do
+            if printf '%s\n' "$names" | grep -Fxq "$name"; then
+              echo "Installer already exists; refusing silent overwrite: $name" >&2
+              exit 1
+            fi
+          done
+          gh release upload "$TAG" \
+            "release_files/${STEM}_Setup_Windows_x64.exe" \
+            "release_files/${STEM}_Setup_Windows7_x64.exe" \
+            --repo "$GITHUB_REPOSITORY"
+          gh release upload "$TAG" "release_files/$CHECKSUMS" \
+            --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Mark the fully populated r8 release stable and latest
+        shell: bash
+        run: |
+          set -euo pipefail
+          id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.id')"
+          body="$(git show origin/main:docs/releases/RELEASE_NOTES_v10.16-r8.md)"
+          jq -n --arg name 'Taxo 10.16-r8 — Stable' --arg body "$body" \
+            '{name:$name,body:$body,prerelease:false,make_latest:"true"}' \
+            | gh api --method PATCH "repos/$GITHUB_REPOSITORY/releases/$id" --input -
+
+      - name: Verify stable, exact tag, assets and complete SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')" = "$SOURCE_SHA"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.prerelease')" = false
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq '.tag_name')" = "$TAG"
+          id="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq '.id')"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets" --jq 'length')" -eq 8
+          mkdir -p verified
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir verified
+          (cd verified && sha256sum -c "$CHECKSUMS")
+          test "$(find verified -maxdepth 1 -type f | wc -l)" -eq 8
