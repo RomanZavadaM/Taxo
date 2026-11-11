@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest import mock
 
 import main
+import paper_document_store
 import safety_instruction_document_service as instruction_documents
 import safety_instructions_ui
 
@@ -87,6 +88,15 @@ class SafetyInstructionDocumentServiceR5Tests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Текст програми порожній"):
                 instruction_documents.save_briefing_document(object(), prepared)
         save_document.assert_not_called()
+
+    def test_paper_catalog_prefers_later_append_when_timestamps_match(self):
+        records = [
+            {"id": "older", "created_at": "2026-11-11T12:00:00+00:00"},
+            {"id": "newer", "created_at": "2026-11-11T12:00:00+00:00"},
+        ]
+        with mock.patch.object(paper_document_store, "_index", return_value=records):
+            result = paper_document_store.list_documents(object())
+        self.assertEqual([row["id"] for row in result], ["newer", "older"])
 
     def test_open_delegates_to_existing_cross_platform_handler(self):
         target = object()
