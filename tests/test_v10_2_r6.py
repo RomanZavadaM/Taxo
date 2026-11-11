@@ -3,6 +3,7 @@ import inspect
 import unittest
 
 import main
+import vehicle_documents_report_ui as vehicle_report_ui
 
 
 class TestTaxo102R6SecondaryWindowStyle(unittest.TestCase):
@@ -19,8 +20,11 @@ class TestTaxo102R6SecondaryWindowStyle(unittest.TestCase):
         self.assertIn("APP_VERSION", source)
 
     def test_major_secondary_windows_use_approved_decorator(self):
+        self.assertIn(
+            "app._decorate_secondary_window(",
+            inspect.getsource(vehicle_report_ui.open_vehicle_documents_report),
+        )
         functions=(
-            main.App.show_vehicle_documents_report,
             main.App.manual_backup,
             main.App.show_workspace_manager,
             main.App.show_employee_registry,
