@@ -224,7 +224,18 @@ def selected_employee(app, db_factory):
         con.close()
 
 
-def employee_form(\n    app,\n    employee=None,\n    *,\n    db_factory,\n    fmt_date,\n    calendar_button,\n    fit_window_to_screen,\n    finish_driver_role,\n    void_legacy_driver_role,\n    activate_driver_role,\n):
+def employee_form(
+    app,
+    employee=None,
+    *,
+    db_factory,
+    fmt_date,
+    calendar_button,
+    fit_window_to_screen,
+    finish_driver_role,
+    void_legacy_driver_role,
+    activate_driver_role,
+):
     parent=getattr(app,"employee_win",app)
     win=tk.Toplevel(parent)
     win.title(f"Taxo / {app._company_name_value()} — Картка працівника")
@@ -658,35 +669,29 @@ def toggle_employee_active(app, db_factory, finish_driver_role):
     new_state = 0 if row["active"] else 1
     today = date.today().isoformat()
     con = db_factory()
-    try:
-        con.execute(
-            "UPDATE employees SET active=?,dismissal_date=CASE "
-            "WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? "
-            "WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",
-            (new_state, new_state, today, new_state, row["id"]),
-        )
-        if row["driver_id"] and new_state == 0:
-            # Звільнення завершує поточну роль водія. Поновлення працівника —
-            # окрема дія і не повинно непомітно повертати роль водія.
-            driver = con.execute(
-                "SELECT active,driver_end_date FROM drivers WHERE id=?",
-                (row["driver_id"],),
-            ).fetchone()
-            if driver and bool(driver["active"]):
-                end_date = (driver["driver_end_date"] or "").strip() or today
-                finish_driver_role(
-                    con,
-                    row["id"],
-                    row["driver_id"],
-                    end_date,
-                )
-        con.commit()
-    except Exception:
-        con.rollback()
-        raise
-    finally:
-        con.close()
-
+    con.execute(
+        "UPDATE employees SET active=?,dismissal_date=CASE "
+        "WHEN ?=0 AND COALESCE(dismissal_date,'')='' THEN ? "
+        "WHEN ?=1 THEN '' ELSE dismissal_date END WHERE id=?",
+        (new_state, new_state, today, new_state, row["id"]),
+    )
+    if row["driver_id"] and new_state == 0:
+        # Звільнення завершує поточну роль водія. Поновлення працівника —
+        # окрема дія і не повинно непомітно повертати роль водія.
+        driver = con.execute(
+            "SELECT active,driver_end_date FROM drivers WHERE id=?",
+            (row["driver_id"],),
+        ).fetchone()
+        if driver and bool(driver["active"]):
+            end_date = (driver["driver_end_date"] or "").strip() or today
+            finish_driver_role(
+                con,
+                row["id"],
+                row["driver_id"],
+                end_date,
+            )
+    con.commit()
+    con.close()
     app.load_employee_registry()
     app.load_drivers()
 
