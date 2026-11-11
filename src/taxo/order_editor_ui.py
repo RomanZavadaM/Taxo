@@ -6,22 +6,71 @@ import order_editor_assignments_ui
 import order_editor_persistence
 
 
-def open_order_editor(core, ops, win, existing, force_type, personnel_order_next_var,
-                      work_order_next_var, place_var, emp_by_id, operations_resp_var,
-                      type_labels, type_by_label, employee_labels, emp_by_label,
-                      book, assignments_tab, orders_tab, refresh_assignments,
-                      add_assignments_bulk, refresh_orders, refresh_open_order_previews,
-                      order_cache, preview_order):
-    dialog=core.tk.Toplevel(win); dialog.title("Редагувати наказ" if existing else "Створити наказ")
+def open_order_editor(
+    core,
+    ops,
+    win,
+    existing,
+    force_type,
+    personnel_order_next_var,
+    work_order_next_var,
+    place_var,
+    emp_by_id,
+    operations_resp_var,
+    type_labels,
+    type_by_label,
+    employee_labels,
+    emp_by_label,
+    book,
+    assignments_tab,
+    orders_tab,
+    refresh_assignments,
+    add_assignments_bulk,
+    refresh_orders,
+    refresh_open_order_previews,
+    order_cache,
+    preview_order,
+):
+    """Open the order form and coordinate its specialized sections."""
+    dialog = core.tk.Toplevel(win)
+    dialog.title("Редагувати наказ" if existing else "Створити наказ")
     try:
         core.fit_window_to_screen(dialog, 900, 760, 760, 560)
-        core.configure_toplevel(dialog,title=dialog.title(),minsize=(760,560))
-    except Exception: pass
-    frm=core.ttk.Frame(dialog,padding=14); frm.pack(fill="both",expand=True); frm.columnconfigure(1,weight=1); frm.rowconfigure(10,weight=1)
-    initial_type=force_type or (existing["order_type"] if existing else ops.TYPE_VEHICLE_ASSIGNMENT)
-    type_var=core.tk.StringVar(value=ops.ORDER_TYPE_LABELS.get(initial_type,ops.ORDER_TYPE_LABELS[ops.TYPE_GENERIC]))
-    initial_series=(str(existing["order_series"] or ops.ORDER_SERIES_WORK) if existing and "order_series" in existing.keys() else ops.ORDER_SERIES_WORK)
-    series_var=core.tk.StringVar(value=ops.ORDER_SERIES_LABELS.get(initial_series,ops.ORDER_SERIES_LABELS[ops.ORDER_SERIES_WORK]))
+        core.configure_toplevel(
+            dialog,
+            title=dialog.title(),
+            minsize=(760, 560),
+        )
+    except Exception:
+        pass
+
+    frm = core.ttk.Frame(dialog, padding=14)
+    frm.pack(fill="both", expand=True)
+    frm.columnconfigure(1, weight=1)
+    frm.rowconfigure(10, weight=1)
+
+    initial_type = force_type or (
+        existing["order_type"]
+        if existing
+        else ops.TYPE_VEHICLE_ASSIGNMENT
+    )
+    type_var = core.tk.StringVar(
+        value=ops.ORDER_TYPE_LABELS.get(
+            initial_type,
+            ops.ORDER_TYPE_LABELS[ops.TYPE_GENERIC],
+        )
+    )
+    initial_series = (
+        str(existing["order_series"] or ops.ORDER_SERIES_WORK)
+        if existing and "order_series" in existing.keys()
+        else ops.ORDER_SERIES_WORK
+    )
+    series_var = core.tk.StringVar(
+        value=ops.ORDER_SERIES_LABELS.get(
+            initial_series,
+            ops.ORDER_SERIES_LABELS[ops.ORDER_SERIES_WORK],
+        )
+    )
     if existing:
         initial_number=str(existing["order_no"])
     else:
