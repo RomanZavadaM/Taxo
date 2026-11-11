@@ -877,3 +877,15 @@
 - Exact final head `2caaafb390bb9040ec7c65b4ca5dbb7292d81a94`: Windows 43004222187 SUCCESS, 1114 tests; Win7 compatibility 43004222283 SUCCESS, 1114 tests; macOS 43004222630 Intel + ARM SUCCESS, 1114 tests кожна. Windows START preflight та incomplete-package guard SUCCESS.
 - Artifacts: Windows 13847841763; Win7 compatibility 13846489953; macOS ARM64 13846744008; macOS x86_64 13847228709.
 - r3 не merged/stable. Stable v10.15-r4; r5 rollback/reference. Наступна кодова ревізія — 10.16-r4.
+
+## 11.11.2026 — 10.16-r4: окремий UI документів транспортних засобів
+
+- Від exact verified r3 `2caaafb390bb9040ec7c65b4ca5dbb7292d81a94` створено `work/v10.16-r4-vehicle-documents-ui`, draft PR #335.
+- CRUD-вікно документів ТЗ і загальний контроль документів винесено в `vehicle_documents_ui.py`. `vehicle_documents.py` лишив схему, статуси, строки дії, report data/export, копіювання файлів і сумісні точки входу; `vehicle_registry_ui.py` явно підключає UI-модуль.
+- Мета — модульність і читабельність, не зменшення рядків. DB schema, backup/restore, формати робочих даних і правила документів не змінювались.
+- Перший START regression виявив 24 історичні прив'язки: 19 version allowlists не знали r4, 5 source-location checks шукали UI у старому файлі. Тести перенаправлено/розширено без послаблення поведінкових вимог.
+- Exact final head `a3509473ec3d884ec18bbbceb07fa78dd24ad3b3`: START/source 43015674097 SUCCESS, 1119 tests; Windows 43015867380 SUCCESS, 1119 tests; Win7 compatibility 43015867350 SUCCESS, 1119 tests на Python 3.8; macOS 43015867478 Intel + ARM SUCCESS, 1119 tests кожна. Windows START preflight та incomplete-package guard SUCCESS.
+- Artifacts: START 13852362721; Windows 13852962058; Win7 compatibility 13851949739; macOS x86_64 13853106845; macOS ARM64 13852288612.
+- Через docs-only divergence основного cumulative PR платформні PR-only workflows перевірено через тимчасовий validation PR #336 до exact r3; PR #336 закрито без merge після SUCCESS.
+- r4 не merged/stable. Stable лишається v10.15-r4; r5 — rollback/reference. Наступна кодова ревізія — 10.16-r5.
+
