@@ -92,6 +92,7 @@ class TaxoR9OwnerTestFixes(unittest.TestCase):
 
     def test_numbering_has_direct_visible_entry_from_orders(self):
         text=Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
+        text+=Path("src/taxo/operations_settings_ui.py").read_text(encoding="utf-8")
         for marker in (
             "Нумерація наказів…",
             'text="Нумерація наказів"',

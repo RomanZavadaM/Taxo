@@ -20,6 +20,7 @@ class Taxo107R8Tests(unittest.TestCase):
 
     def test_ui_has_group_filter_and_catalog(self):
         text=(ROOT/'operations_orders_ui.py').read_text(encoding='utf-8')
+        text+=(ROOT/'order_type_catalog_ui.py').read_text(encoding='utf-8')
         self.assertIn('group_filter_var',text)
         self.assertIn('Каталог наказів',text)
         self.assertIn('Створити наказ за вибраним типом',text)
