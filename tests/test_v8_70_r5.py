@@ -13,6 +13,8 @@ _original_path_home = Path.home
 Path.home = classmethod(lambda cls: Path(_temporary_home.name))
 try:
     from pdf_test_utils import open_pdf
+    import driver_registry_ui
+    import employee_registry_ui
     import main
     import tachograph
     import waybill
@@ -51,7 +53,7 @@ class V870R5Tests(unittest.TestCase):
             con.close()
 
     def test_employee_register_and_route_editor_are_exposed(self):
-        self.assertIn("Реєстр усіх працівників", inspect.getsource(main.App.build_drivers))
+        self.assertIn("Реєстр усіх працівників", inspect.getsource(driver_registry_ui.build_drivers))
         self.assertIn("Пули серій і номерів", inspect.getsource(main.App.build_company))
         route_source = inspect.getsource(main.App.route_catalog_form)
         self.assertIn("Точка початку роботи", route_source)
@@ -60,7 +62,7 @@ class V870R5Tests(unittest.TestCase):
         self.assertIn("Вставити список", route_source)
         self.assertIn("Назви ← прямий", route_source)
         self.assertIn("Швидко вставити обидва напрямки", route_source)
-        employee_source = inspect.getsource(main.App.employee_form)
+        employee_source = inspect.getsource(employee_registry_ui.employee_form)
         self.assertIn("Завершити роль водія", employee_source)
         self.assertNotIn("знімається лише після завершення", employee_source)
         self.assertIn("необов'язково", employee_source)

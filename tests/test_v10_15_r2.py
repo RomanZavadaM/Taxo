@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class SafetyTemplateR2Tests(unittest.TestCase):
     def test_r2_identity_and_start_guard(self):
-        self.assertIn(main.APP_VERSION, ("10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5"))
+        self.assertIn(main.APP_VERSION, ("10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8"))
         self.assertIn("Version: " + main.APP_VERSION, (ROOT / "VERSION.txt").read_text("utf-8"))
         start=(ROOT / "START.bat").read_text("utf-8")
         self.assertIn("Taxo " + main.APP_VERSION, start)
@@ -108,6 +108,7 @@ class SafetyTemplateR2Tests(unittest.TestCase):
     def test_live_sources_expose_template_selection_and_editing_controls(self):
         instructions=(ROOT/"src"/"taxo"/"safety_instructions_ui.py").read_text("utf-8")
         orders=(ROOT/"src"/"taxo"/"operations_orders_ui.py").read_text("utf-8")
+        orders+=(ROOT/"src"/"taxo"/"order_editor_ui.py").read_text("utf-8")
         for marker in (
             "Типова заготовка","Текст програми…",
             "_taxo_briefing_template_box","_taxo_briefing_program_var",

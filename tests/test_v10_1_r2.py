@@ -3,6 +3,7 @@ import inspect
 import unittest
 
 import branding
+import employee_registry_ui
 import main
 
 
@@ -70,7 +71,7 @@ class TestTaxo101R2UiRefresh(unittest.TestCase):
         self.assertIn('self.bind_all("<F1>"', menu_source)
 
     def test_employee_card_visually_separates_employment_and_roles(self):
-        source = inspect.getsource(main.App.employee_form)
+        source = inspect.getsource(employee_registry_ui.employee_form)
         self.assertIn("Спеціальні ролі", source)
         self.assertIn("Стан працівника", source)
         self.assertIn("Роль і статус працевлаштування не змішуються", source)

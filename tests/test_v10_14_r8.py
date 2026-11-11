@@ -204,8 +204,8 @@ class AssignmentPersistenceR8Tests(unittest.TestCase):
                  ), \
                  mock.patch.object(operations_orders_ui.ops, "list_order_entities", return_value=[]), \
                  mock.patch.object(operations_orders_ui.ops, "employee_name", return_value=""), \
-                 mock.patch.object(operations_orders_ui, "generate_order_formats", side_effect=capture_formats), \
-                 mock.patch.object(operations_orders_ui, "open_order_format", return_value=None):
+                 mock.patch("order_preview_ui.generate_order_formats", side_effect=capture_formats), \
+                 mock.patch("order_preview_ui.open_order_format", return_value=None):
                 win = operations_orders_ui.open_operations_center(app, core)
                 app.update_idletasks()
                 app.update()
@@ -255,7 +255,7 @@ class AssignmentPersistenceR8Tests(unittest.TestCase):
 
 class ExistingAssignmentEditGuardR8Tests(unittest.TestCase):
     def test_r8_identity_and_registry(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5"))
+        self.assertIn(main.APP_VERSION, ("10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8"))
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
         self.assertIn("operations.assignment_existing", routes)
         self.assertTrue(routes["operations.assignment_existing"].runtime_smoke)

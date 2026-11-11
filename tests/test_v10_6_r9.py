@@ -49,7 +49,7 @@ class R9IntegrationTests(unittest.TestCase):
         self.assertIn("v1069_features.py", workflow)
 
     def test_base_header_keeps_summary_source_and_document_table(self):
-        source = (ROOT / "vehicle_documents.py").read_text("utf-8")
+        source = (ROOT / "vehicle_documents_ui.py").read_text("utf-8")
         start = source.index("class VehicleDocumentsWindow")
         end = source.index("    def _selected_id", start)
         block = source[start:end]
