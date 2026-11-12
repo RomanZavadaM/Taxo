@@ -1,3 +1,3 @@
-Version: 10.17-r10
-Source: 6536a6da6cade49229fa1944e2aa47f941df40a6
-Reason: Owner explicitly approved 10.17-r10 as Stable/Latest on 2026-11-12. Source passed exact-head START 1205 tests, Windows, Win7 and macOS Intel/ARM CI. Product code merged to main via PR #378; v10.16-r8 remains immutable rollback.
+Version: 10.18-r3
+Source: 65bc80ecae85793cb7c2c14edd4d3eabaa2b4470
+Reason: Owner requested merge/release Taxo 10.18-r3 on 2026-11-12. Exact head passed START, Windows, Windows 7, macOS Intel/ARM CI, owner manual acceptance 25/25 PASS. Integrated through PR #387; previous Stable v10.17-r10 remains immutable rollback.
