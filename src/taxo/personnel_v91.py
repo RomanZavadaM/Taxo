@@ -2274,8 +2274,15 @@ def install(core, base_app):
             ).pack(side="right")
             self._refresh_personnel_overview()
 
-            # Планування
+            # Планування — внутрішні вкладки приховані в shell, тож
+            # повернення до реєстру має бути очевидним без sidebar.
             panel = core.ttk.Frame(planning, padding=16); panel.pack(fill="x")
+            planning_nav = core.ttk.Frame(panel)
+            planning_nav.pack(fill="x", pady=(0, 10))
+            core.ttk.Button(
+                planning_nav, text="← До реєстру працівників",
+                command=self.show_personnel_overview,
+            ).pack(side="left")
             core.ttk.Label(
                 panel, text="Єдине планування персоналу",
                 font=("TkDefaultFont", 13, "bold")
@@ -2318,8 +2325,12 @@ def install(core, base_app):
             core.ttk.Button(common, text="Норма за режимом → план місяця…", command=self.show_regime_month_plan_filler).pack(anchor="w", pady=4)
             core.ttk.Button(common, text="Відпустки / лікарняні / інші відсутності…", command=self.show_personnel_absence_planner).pack(anchor="w", pady=4)
 
-            # Табель
+            # Табель — явна навігація між прихованими сторінками.
             tpanel = core.ttk.Frame(timesheet, padding=16); tpanel.pack(fill="x")
+            core.ttk.Button(
+                tpanel, text="← До реєстру працівників",
+                command=self.show_personnel_overview,
+            ).pack(anchor="w", pady=(0, 10))
             core.ttk.Label(tpanel, text="Табель персоналу", font=("TkDefaultFont",13,"bold")).pack(anchor="w")
             core.ttk.Label(tpanel, text="Щоденний табель, місячний баланс, ручний факт і контроль відсутнього факту.", foreground=core.PALETTE["muted"]).pack(anchor="w", pady=(4,12))
             core.ttk.Button(tpanel, text="Відкрити табель персоналу", command=self.show_employee_timesheet).pack(anchor="w", pady=4)
@@ -2331,6 +2342,10 @@ def install(core, base_app):
             # залишаються доступними, а широкі реквізити можна прокрутити.
             reports_body = self._make_scrollable_tab_body(reports, "personnel_reports")
             rpanel = core.ttk.Frame(reports_body, padding=16); rpanel.pack(fill="both", expand=True)
+            core.ttk.Button(
+                rpanel, text="← До реєстру працівників",
+                command=self.show_personnel_overview,
+            ).pack(anchor="w", pady=(0, 10))
             core.ttk.Label(
                 rpanel,text="Звіти та друк",style="HeroTitle.TLabel"
             ).pack(anchor="w")
