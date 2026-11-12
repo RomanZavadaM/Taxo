@@ -5,6 +5,10 @@ from __future__ import annotations
 from datetime import date, datetime
 
 import military_transport_2026 as mt
+from table_sorting import (
+    configure_sortable_tree as _configure_sortable_tree,
+    restore_tree_selection as _restore_tree_selection,
+)
 
 
 def _alive(widget):
@@ -72,6 +76,8 @@ def _selected_tree_id(tree):
     if not sel:
         return None
     return sel[0]
+
+
 
 
 def _dialog(core, parent, title, fields, save_label="Зберегти"):
@@ -267,6 +273,50 @@ def install(core, base_app):
             worker_buttons=core.ttk.Frame(worker_tab); worker_buttons.grid(row=1,column=0,columnspan=2,sticky="ew",pady=(8,0))
             core.ttk.Label(worker_buttons,text="Зв'язок задається явно; Taxo не вгадує його зі старих шляхових листів.",style="Muted.TLabel").pack(side="left")
 
+            # UI-only sorting state. Stable IDs let refresh restore selection.
+            sort_state = {}
+            vehicle_sort_columns = (
+                ("plate", "Держ. номер", "text", None),
+                ("name", "ТЗ", "text", None),
+                ("status", "Військовий статус", "status", tuple(mt.STATUS_LABELS.values())),
+                ("readiness", "Готовність", "status", tuple(mt.READINESS_LABELS.values())),
+                ("basis", "Підстава", "text", None),
+                ("next", "Наступна дія", "date", None),
+            )
+            order_sort_columns = (
+                ("kind", "Наряд", "text", None),
+                ("no", "№", "text", None),
+                ("date", "Дата", "date", None),
+                ("due", "Передати до", "date", None),
+                ("status", "Стан", "status", tuple(mt.ORDER_STATUS_LABELS.values())),
+                ("point", "Пункт передачі", "text", None),
+            )
+            action_sort_columns = (
+                ("vehicle", "ТЗ", "text", None),
+                ("action", "Дія", "text", None),
+                ("event", "Подія", "date", None),
+                ("due", "Строк", "date", None),
+                ("status", "Стан", "status", ("Відкрита", "Виконано", "Скасовано")),
+                ("ref", "Вихідний / примітка", "text", None),
+            )
+            report_sort_columns = (
+                ("date", "Контрольна дата", "date", None),
+                ("submitted", "Подано", "datetime", None),
+                ("authority", "Куди", "text", None),
+                ("reference", "Реквізит", "text", None),
+            )
+            worker_sort_columns = (
+                ("name", "Працівник", "text", None),
+                ("from", "Від", "date", None),
+                ("until", "До", "date", None),
+                ("note", "Зв'язок / примітка", "text", None),
+            )
+            apply_vehicle_sort = _configure_sortable_tree(vehicle_tree, vehicle_sort_columns, sort_state, "vehicles")
+            apply_order_sort = _configure_sortable_tree(order_tree, order_sort_columns, sort_state, "orders")
+            apply_action_sort = _configure_sortable_tree(action_tree, action_sort_columns, sort_state, "actions")
+            apply_report_sort = _configure_sortable_tree(report_tree, report_sort_columns, sort_state, "reports")
+            apply_worker_sort = _configure_sortable_tree(worker_tree, worker_sort_columns, sort_state, "workers")
+
             maps = {"vehicles":{}, "orders":{}, "actions":{}}
 
             def current_vehicle_id(require=True):
@@ -305,6 +355,7 @@ def install(core, base_app):
                 profile_text.configure(state="disabled")
 
             def refresh_orders():
+                selected_ids = tuple(order_tree.selection())
                 for iid in order_tree.get_children(): order_tree.delete(iid)
                 maps["orders"].clear(); vid=current_vehicle_id(False)
                 if vid is None: return
@@ -315,11 +366,14 @@ def install(core, base_app):
                     iid=str(row["id"]); maps["orders"][iid]=row
                     order_tree.insert("","end",iid=iid,values=(
                         mt.ORDER_LABELS.get(row["order_kind"],row["order_kind"]),row["document_no"] or "—",
-                        _fmt_day(row["document_date"]),_fmt_day(row["transfer_due_date"]) or "—",
+                        _fmt_day(row["document_date"]),_fmt_day(row["transfer_due_date"]),
                         mt.ORDER_STATUS_LABELS.get(row["status"],row["status"]),row["transfer_point"] or "—",
                     ))
+                apply_order_sort()
+                _restore_tree_selection(order_tree, selected_ids)
 
             def refresh_actions():
+                selected_ids = tuple(action_tree.selection())
                 for iid in action_tree.get_children(): action_tree.delete(iid)
                 maps["actions"].clear()
                 con=core.db()
@@ -336,8 +390,11 @@ def install(core, base_app):
                     ),tags=(row["status"],))
                 action_tree.tag_configure(mt.ACTION_OPEN,foreground="#7A5B00")
                 action_tree.tag_configure(mt.ACTION_DONE,foreground="#0B5D1E")
+                apply_action_sort()
+                _restore_tree_selection(action_tree, selected_ids)
 
             def refresh_reports():
+                selected_ids = tuple(report_tree.selection())
                 deadline=mt.next_reporting_deadline(date.today())
                 report_info.set(
                     "Наступна контрольна дата: %s. Taxo не backfill-ить минулі строки до запуску r10; факт подання фіксується вручну."
@@ -348,12 +405,15 @@ def install(core, base_app):
                 try: rows=mt.list_submissions(con)
                 finally: con.close()
                 for row in rows:
-                    report_tree.insert("","end",values=(
+                    report_tree.insert("","end",iid=str(row["id"]),values=(
                         _fmt_day(row["report_date"]),str(row["submitted_at"] or "").replace("T"," "),
                         row["authority"] or "—",row["reference"] or "—",
                     ))
+                apply_report_sort()
+                _restore_tree_selection(report_tree, selected_ids)
 
             def refresh_workers():
+                selected_ids = tuple(worker_tree.selection())
                 for iid in worker_tree.get_children(): worker_tree.delete(iid)
                 vid=current_vehicle_id(False)
                 if vid is None: return
@@ -362,7 +422,12 @@ def install(core, base_app):
                 finally: con.close()
                 for row in rows:
                     name=row["worker_name"] or " ".join(filter(None,[row["last_name"],row["first_name"],row["middle_name"]]))
-                    worker_tree.insert("","end",values=(name or "—",_fmt_day(row["valid_from"]) or "—",_fmt_day(row["valid_until"]) or "—",row["relation_note"] or "—"))
+                    worker_tree.insert("","end",iid=str(row["id"]),values=(
+                        name or "—", _fmt_day(row["valid_from"]), _fmt_day(row["valid_until"]),
+                        row["relation_note"] or "—",
+                    ))
+                apply_worker_sort()
+                _restore_tree_selection(worker_tree, selected_ids)
 
             def refresh_vehicles(select_id=None):
                 for iid in vehicle_tree.get_children(): vehicle_tree.delete(iid)
@@ -379,9 +444,10 @@ def install(core, base_app):
                     iid=str(row["vehicle_id"]); maps["vehicles"][iid]=row
                     readiness=mt.READINESS_LABELS.get(row["readiness_status"],row["readiness_status"])
                     basis=(row["basis_document_no"] or "—")
-                    next_due=_fmt_day(row["next_due_date"]) or "—"
+                    next_due=_fmt_day(row["next_due_date"])
                     tag="clarify" if row["needs_clarification"] else ("transferred" if row["status"]==mt.STATUS_TRANSFERRED else "normal")
                     vehicle_tree.insert("","end",iid=iid,values=(row["plate"] or "—",row["name"],row["status_label"],readiness,basis,next_due),tags=(tag,))
+                apply_vehicle_sort()
                 target=str(select_id or selected["vehicle_id"] or "")
                 if target and target in vehicle_tree.get_children():
                     vehicle_tree.selection_set(target); vehicle_tree.see(target)

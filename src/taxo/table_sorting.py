@@ -174,3 +174,51 @@ def sort_treeview(
     if focus in order:
         tree.focus(focus)
     return order
+
+
+
+def restore_tree_selection(tree, item_ids):
+    """Restore only still-visible stable Treeview IDs after a refresh."""
+    visible = set(tree.get_children(""))
+    retained = tuple(iid for iid in item_ids if iid in visible)
+    if not retained:
+        return ()
+    tree.selection_set(retained)
+    tree.focus(retained[0])
+    try:
+        tree.see(retained[0])
+    except Exception:
+        pass
+    return retained
+
+
+def configure_sortable_tree(tree, columns, sort_state, state_key):
+    """Attach reusable type-aware click sorting to a Treeview."""
+    specs = {key: (label, value_type, status_order) for key, label, value_type, status_order in columns}
+
+    def apply_current():
+        current = sort_state.get(state_key)
+        if current is None:
+            return ()
+        column, descending = current
+        _label, value_type, status_order = specs[column]
+        order = sort_treeview(tree, column, descending, value_type=value_type, status_order=status_order)
+        update_headings()
+        return tuple(order)
+
+    def sort_by_header(column):
+        current = sort_state.get(state_key)
+        descending = bool(current and current[0] == column and not current[1])
+        sort_state[state_key] = (column, descending)
+        return apply_current()
+
+    def update_headings():
+        current = sort_state.get(state_key)
+        for key, (label, _value_type, _status_order) in specs.items():
+            direction = ""
+            if current and current[0] == key:
+                direction = " ▼" if current[1] else " ▲"
+            tree.heading(key, text=label + direction, command=lambda name=key: sort_by_header(name))
+
+    update_headings()
+    return apply_current
