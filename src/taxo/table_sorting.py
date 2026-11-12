@@ -50,6 +50,37 @@ def _date_key(text):
     return (1, _natural_text(value))
 
 
+def _datetime_key(text):
+    """Order displayed change-log timestamps by instant, not by text.
+
+    SQLite change logs use ISO timestamps; also accept common local display
+    forms. Mixed offsets are normalized through UTC timestamps where present,
+    so sorting remains comparable with naive local values.
+    """
+    value = str(text or "").strip()
+    normalized = value.replace("Z", "+00:00") if value.endswith("Z") else value
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        parsed = None
+    if parsed is None:
+        for fmt in ("%d.%m.%Y %H:%M:%S", "%d.%m.%Y %H:%M"):
+            try:
+                parsed = datetime.strptime(value, fmt)
+                break
+            except ValueError:
+                pass
+    if parsed is not None:
+        # A numeric key avoids comparing offset-aware and naive datetime
+        # objects, which Python does not allow.
+        if parsed.tzinfo is not None:
+            from datetime import timezone
+            parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        return (0, (parsed.toordinal(), parsed.hour, parsed.minute,
+                    parsed.second, parsed.microsecond))
+    return (1, _natural_text(value))
+
+
 def _duration_key(text):
     value = str(text or "").strip()
     match = re.fullmatch(r"(\d+):(\d{1,2})", value)
@@ -92,6 +123,8 @@ def _value_key(column, value, value_type=None, status_order=None):
         return (0,) + _number_key(text)
     if kind == "date":
         return (0,) + _date_key(text)
+    if kind == "datetime":
+        return (0,) + _datetime_key(text)
     if kind == "duration":
         return (0,) + _duration_key(text)
     if kind == "status":
@@ -106,7 +139,7 @@ def sorted_row_ids(
 ):
     """Return iid order, keeping blanks last in either direction.
 
-    value_type may be text, number, date, duration, status or the legacy
+    value_type may be text, number, date, datetime, duration, status or the legacy
     documents kind. The original order is preserved for ties to avoid
     surprising changes after reload.
     """
