@@ -742,7 +742,7 @@ class TachographModule:
         for p in paths:
             self._import_one(Path(p))
         self.load()
-        self.recognize_all()
+        self.recognize_unprocessed(silent=True)
 
     def _import_one(self,p):
         dest=SCAN_DIR/f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{p.name}"
@@ -754,6 +754,63 @@ class TachographModule:
             con.execute("INSERT INTO discs(source_path,scan_name,disc_no,cx,cy,radius,created_at) VALUES(?,?,?,?,?,?,?)",(stored_scan_path(dest),p.name,i,cx,cy,r,datetime.now().isoformat(timespec="seconds")))
         con.commit();con.close()
         if not circles: messagebox.showwarning("Шайба",f"Не вдалося автоматично знайти коло у {p.name}. Її можна буде налаштувати вручну.",parent=self.parent)
+
+    def recognize_unprocessed(self, silent=False):
+        """Розпізнає лише шайби без інтервалів; вже перевірені дані не замінює."""
+        read_con=tdb()
+        try:
+            rows=read_con.execute(
+                """
+                SELECT d.*
+                FROM discs d
+                WHERE d.radius IS NOT NULL
+                  AND d.radius>0
+                  AND NOT EXISTS (
+                      SELECT 1 FROM intervals i WHERE i.disc_id=d.id
+                  )
+                ORDER BY d.id
+                """
+            ).fetchall()
+        finally:
+            read_con.close()
+        if not rows:
+            if not silent:
+                messagebox.showinfo(
+                    "Розпізнавання",
+                    "Немає нерозпізнаних тахокарт без інтервалів.",
+                    parent=self.parent,
+                )
+            return 0
+
+        total=0
+        con=tdb()
+        for r in rows:
+            rot=float(r["rotation_deg"] or 0)
+            items=_polar_signal(
+                scan_path(r["source_path"]),r["cx"],r["cy"],r["radius"],rot
+            )
+            for a,b,act,conf in items:
+                con.execute(
+                    "INSERT INTO intervals(disc_id,start_min,end_min,activity,confidence,source) "
+                    "VALUES(?,?,?,?,?,?)",
+                    (r["id"],a,b,act,conf,"auto"),
+                )
+            con.execute(
+                "UPDATE discs SET status=? WHERE id=?",
+                (f"Розпізнано — {len(items)} кандидатів",r["id"]),
+            )
+            total += len(items)
+        con.commit()
+        con.close()
+        self.load()
+        if not silent:
+            messagebox.showinfo(
+                "Розпізнавання",
+                f"Оброблено нових/порожніх тахокарт: {len(rows)}. "
+                f"Створено кандидатів інтервалів: {total}.",
+                parent=self.parent,
+            )
+        return len(rows)
 
     def recognize_all(self, silent=False):
         read_con=tdb()
@@ -1459,4 +1516,4 @@ class TachographModule:
             if p.exists() and p.name not in existing:self._import_one(p)
         self.load()
         # Тестові шайби одразу проходять первинне розпізнавання, щоб модуль не виглядав порожнім.
-        self.recognize_all(silent=True)
+        self.recognize_unprocessed(silent=True)

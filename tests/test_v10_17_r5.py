@@ -248,6 +248,20 @@ class TachographDialogCancellationR5Tests(unittest.TestCase):
         finally:
             root.destroy()
 
+    def test_import_and_seed_only_recognize_discs_without_intervals(self):
+        import_source = inspect.getsource(tachograph.TachographModule.import_scan)
+        self.assertIn("recognize_unprocessed(silent=True)", import_source)
+        self.assertNotIn("recognize_all()", import_source)
+
+        seed_source = inspect.getsource(tachograph.TachographModule.seed_examples)
+        self.assertIn("recognize_unprocessed(silent=True)", seed_source)
+        self.assertNotIn("recognize_all(silent=True)", seed_source)
+
+        safe_source = inspect.getsource(tachograph.TachographModule.recognize_unprocessed)
+        self.assertIn("NOT EXISTS", safe_source)
+        self.assertIn("intervals i", safe_source)
+        self.assertNotIn("DELETE FROM intervals", safe_source)
+
     def test_destructive_tachograph_actions_are_named_and_confirmed(self):
         build_source = inspect.getsource(tachograph.TachographModule.build)
         self.assertIn('text="Видалити тахокарту"', build_source)
