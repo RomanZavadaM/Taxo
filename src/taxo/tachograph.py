@@ -820,7 +820,13 @@ class TachographModule:
         return datetime.strptime(s.strip(), "%d.%m.%Y").date().isoformat()
     @staticmethod
     def parse(t):
-        h,m=map(int,t.strip().split(":")); return h*60+m
+        parts=t.strip().split(":")
+        if len(parts)!=2:
+            raise ValueError("Час має містити години і хвилини")
+        h,m=map(int,parts)
+        if not (0<=h<24 and 0<=m<60):
+            raise ValueError("Час поза межами доби")
+        return h*60+m
 
 
     def update_stats(self):
@@ -1028,7 +1034,9 @@ class TachographModule:
             else: ttk.Entry(w,textvariable=var,width=32).grid(row=i,column=1,padx=10,pady=8)
         def save():
             try:a=self.parse(sv.get());b=self.parse(ev.get())
-            except:messagebox.showerror("Помилка","Час у форматі ГГ:ХХ",parent=w);return
+            except ValueError:
+                messagebox.showerror("Помилка","Час у форматі ГГ:ХХ, від 00:00 до 23:59.",parent=w)
+                return
             if r:
                 rid=r["id"];con=tdb();con.execute("UPDATE intervals SET start_min=?,end_min=?,activity=?,source='manual',note=? WHERE id=?",(a,b,av.get(),nv.get(),rid))
             else:
