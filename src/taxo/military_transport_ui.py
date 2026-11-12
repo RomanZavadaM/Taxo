@@ -161,7 +161,15 @@ def install(core, base_app):
             _configure_window(core, win, "Військово-транспортний облік ТЗ", 1280, 800)
             body = core.ttk.Frame(win, padding=12)
             body.pack(fill="both", expand=True)
-            core.ttk.Label(body, text="Військово-транспортний облік ТЗ", style="Title.TLabel").pack(anchor="w")
+            header = core.ttk.Frame(body)
+            header.pack(fill="x")
+            core.ttk.Label(
+                header, text="Військово-транспортний облік ТЗ",
+                style="Title.TLabel",
+            ).pack(side="left")
+            core.ttk.Button(
+                header, text="Закрити", command=win.destroy,
+            ).pack(side="right", padx=(8, 0))
             core.ttk.Label(
                 body,
                 text=(mt.LEGAL_BASIS + ". Окремий контур: не замінює «Шлях» і контроль страхування/реєстрації/діагностики. "

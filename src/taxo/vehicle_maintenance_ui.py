@@ -127,7 +127,15 @@ def open_maintenance_center(app, core):
         win.geometry("1260x780")
 
     body = core.ttk.Frame(win, padding=12); body.pack(fill="both", expand=True)
-    core.ttk.Label(body, text="СТОІР — експлуатація та технічна готовність", style="HeroTitle.TLabel").pack(anchor="w")
+    header = core.ttk.Frame(body)
+    header.pack(fill="x")
+    core.ttk.Label(
+        header, text="СТОІР — експлуатація та технічна готовність",
+        style="HeroTitle.TLabel",
+    ).pack(side="left")
+    core.ttk.Button(
+        header, text="Закрити", command=win.destroy,
+    ).pack(side="right", padx=(8, 0))
     core.ttk.Label(
         body,
         text=("Робочий порядок: спочатку перегляньте стан автопарку, потім оберіть ТЗ. "
@@ -390,9 +398,14 @@ def open_maintenance_center(app, core):
             finally:
                 con2.close()
             dialog.destroy(); refresh()
+        actions = core.ttk.Frame(frm)
+        actions.grid(row=6, column=1, sticky="e", pady=(10, 0))
         core.ttk.Button(
-            frm, text="Зберегти", style="Accent.TButton", command=save
-        ).grid(row=6, column=1, sticky="e", pady=(10, 0))
+            actions, text="Скасувати", command=dialog.destroy
+        ).pack(side="left", padx=(0, 8))
+        core.ttk.Button(
+            actions, text="Зберегти", style="Accent.TButton", command=save
+        ).pack(side="left")
 
     for text, event in (("Додати ТО-1", maint.MAINTENANCE_TO1), ("Додати ТО-2", maint.MAINTENANCE_TO2),
                         ("Сезонне ТО", maint.MAINTENANCE_SEASONAL), ("Ремонт", maint.MAINTENANCE_REPAIR)):
@@ -436,7 +449,14 @@ def open_maintenance_center(app, core):
             finally:
                 con2.close()
             dialog.destroy(); refresh()
-        core.ttk.Button(frm, text="Створити заявку", style="Accent.TButton", command=save).grid(row=4, column=1, sticky="e", pady=(10,0))
+        actions = core.ttk.Frame(frm)
+        actions.grid(row=4, column=1, sticky="e", pady=(10, 0))
+        core.ttk.Button(
+            actions, text="Скасувати", command=dialog.destroy
+        ).pack(side="left", padx=(0, 8))
+        core.ttk.Button(
+            actions, text="Створити заявку", style="Accent.TButton", command=save
+        ).pack(side="left")
 
     def selected_request_row():
         selected = request_tree.selection()
@@ -518,11 +538,16 @@ def open_maintenance_center(app, core):
             refresh()
 
         action_row = 3 if closing else 2
+        actions = core.ttk.Frame(frm)
+        actions.grid(row=action_row, column=1, sticky="e", pady=(10, 0))
         core.ttk.Button(
-            frm,
+            actions, text="Скасувати", command=dialog.destroy
+        ).pack(side="left", padx=(0, 8))
+        core.ttk.Button(
+            actions,
             text="Закрити заявку" if closing else "Взяти в роботу",
             style="Accent.TButton", command=save_request,
-        ).grid(row=action_row, column=1, sticky="e", pady=(10, 0))
+        ).pack(side="left")
 
     core.ttk.Button(
         request_top, text="Нова заявка…", style="Accent.TButton", command=add_request

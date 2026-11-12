@@ -6,7 +6,6 @@
 |---|---|---|
 | Стабільна / Latest | [10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8) | Інтегрована структура, повний випуск: 2 інсталятори, 4 portable, START, SHA256. |
 | Попередня стабільна | [10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5) | Перевірена точка повернення, файли не змінено. |
-| Тестова portable-only | [10.16-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r9) | Картка водія в окремому модулі, 4 portable ZIP, START і SHA256, без інсталяторів; не merged у main. |
 | Попередня тестова portable-only | [10.16-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r7) | Попередній незлитий структурний checkpoint, portable-only. |
 | Старіша тестова | [10.15-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r3) | Інструктажі, лист стажування та початковий каталог. |
 | Архівна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |

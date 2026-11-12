@@ -14,6 +14,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
 from branding import PALETTE, configure_toplevel, draw_brand_header
+from table_sorting import sort_treeview
 
 
 def employee_full_name(row):
@@ -133,8 +134,58 @@ def show_employee_registry(app, fit_window_to_screen):
         "phone": 120,
         "status": 80,
     }
+    column_types = {
+        "id": "number",
+        "personnel": "text",
+        "name": "text",
+        "gender": "text",
+        "roles": "text",
+        "position": "text",
+        "tariff": "number",
+        "employment": "date",
+        "dismissal": "date",
+        "phone": "text",
+        "status": "status",
+    }
+    app.employee_registry_headings = headings
+    app.employee_registry_column_types = column_types
+    app.employee_registry_status_order = ("Працює", "Звільнений")
+    app.employee_registry_sort = None
+
+    def update_sort_headings():
+        current = getattr(app, "employee_registry_sort", None)
+        for key in columns:
+            suffix = ""
+            if current and current[0] == key:
+                suffix = " ▼" if current[1] else " ▲"
+            app.employee_tree.heading(key, text=headings[key] + suffix)
+
+    def sort_by_header(column):
+        current = getattr(app, "employee_registry_sort", None)
+        descending = (
+            not current[1] if current and current[0] == column else False
+        )
+        app.employee_registry_sort = (column, descending)
+        sort_treeview(
+            app.employee_tree,
+            column,
+            descending,
+            value_type=column_types[column],
+            status_order=(
+                app.employee_registry_status_order
+                if column_types[column] == "status"
+                else None
+            ),
+        )
+        update_sort_headings()
+
+    app._update_employee_registry_sort_headings = update_sort_headings
     for key in columns:
-        app.employee_tree.heading(key, text=headings[key])
+        app.employee_tree.heading(
+            key,
+            text=headings[key],
+            command=lambda name=key: sort_by_header(name),
+        )
         app.employee_tree.column(key, width=widths[key], anchor="w")
 
     ybar = ttk.Scrollbar(frame, orient="vertical", command=app.employee_tree.yview)
@@ -151,6 +202,16 @@ def load_employee_registry(app, db_factory, fmt_date):
     """Перечитати реєстр працівників без зміни даних."""
     if not hasattr(app, "employee_tree") or not app.employee_tree.winfo_exists():
         return
+
+    selected_employee_ids = []
+    for iid in app.employee_tree.selection():
+        try:
+            values = app.employee_tree.item(iid, "values")
+            if values:
+                selected_employee_ids.append(str(values[0]))
+        except (TypeError, ValueError, IndexError):
+            pass
+    selected_sort = getattr(app, "employee_registry_sort", None)
 
     for item in app.employee_tree.get_children():
         app.employee_tree.delete(item)
@@ -175,6 +236,7 @@ def load_employee_registry(app, db_factory, fmt_date):
         app.employee_tree.insert(
             "",
             "end",
+            iid=str(row["id"]),
             values=(
                 row["id"],
                 row["personnel_no"],
@@ -189,6 +251,32 @@ def load_employee_registry(app, db_factory, fmt_date):
                 "Працює" if row["active"] else "Звільнений",
             ),
         )
+
+    if selected_sort:
+        column, descending = selected_sort
+        column_types = getattr(app, "employee_registry_column_types", {})
+        value_type = column_types.get(column, "text")
+        sort_treeview(
+            app.employee_tree,
+            column,
+            descending,
+            value_type=value_type,
+            status_order=(
+                getattr(app, "employee_registry_status_order", None)
+                if value_type == "status"
+                else None
+            ),
+        )
+        update_headings = getattr(app, "_update_employee_registry_sort_headings", None)
+        if callable(update_headings):
+            update_headings()
+
+    visible_ids = set(app.employee_tree.get_children(""))
+    retained = [iid for iid in selected_employee_ids if iid in visible_ids]
+    if retained:
+        app.employee_tree.selection_set(retained)
+        app.employee_tree.focus(retained[0])
+        app.employee_tree.see(retained[0])
 
 
 def selected_employee(app, db_factory):

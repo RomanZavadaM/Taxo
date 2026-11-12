@@ -334,7 +334,7 @@ class TachographModule:
         ttk.Button(actions1,text="Розпізнати шайбу",command=self.recognize_selected).pack(side="left",padx=3)
         ttk.Button(actions1,text="Відкрити скан",command=self.open_scan).pack(side="left",padx=3)
         ttk.Button(actions2,text="Розпізнати всі",command=self.recognize_all).pack(side="left",padx=3)
-        ttk.Button(actions2,text="Видалити тест",command=self.delete_selected).pack(side="left",padx=3)
+        ttk.Button(actions2,text="Видалити тахокарту",command=self.delete_selected).pack(side="left",padx=3)
         ttk.Button(actions2,text="Оновити",command=self.load).pack(side="left",padx=3)
         ttk.Label(
             top,
@@ -742,23 +742,108 @@ class TachographModule:
         for p in paths:
             self._import_one(Path(p))
         self.load()
-        self.recognize_all()
+        self.recognize_unprocessed(silent=True)
 
     def _import_one(self,p):
         dest=SCAN_DIR/f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{p.name}"
         shutil.copy2(p,dest)
         circles=detect_discs(dest)
+        detected_circle=bool(circles)
         con=tdb()
-        if not circles: circles=[(0,0,0)]
+        if not detected_circle: circles=[(0,0,0)]
         for i,(cx,cy,r) in enumerate(circles,1):
             con.execute("INSERT INTO discs(source_path,scan_name,disc_no,cx,cy,radius,created_at) VALUES(?,?,?,?,?,?,?)",(stored_scan_path(dest),p.name,i,cx,cy,r,datetime.now().isoformat(timespec="seconds")))
         con.commit();con.close()
-        if not circles: messagebox.showwarning("Шайба",f"Не вдалося автоматично знайти коло у {p.name}. Її можна буде налаштувати вручну.",parent=self.parent)
+        if not detected_circle:
+            messagebox.showwarning(
+                "Шайба",
+                f"Не вдалося автоматично знайти коло у {p.name}. Її можна буде налаштувати вручну.",
+                parent=self.parent,
+            )
+
+    def recognize_unprocessed(self, silent=False):
+        """Розпізнає лише шайби без інтервалів; вже перевірені дані не замінює."""
+        read_con=tdb()
+        try:
+            rows=read_con.execute(
+                """
+                SELECT d.*
+                FROM discs d
+                WHERE d.radius IS NOT NULL
+                  AND d.radius>0
+                  AND NOT EXISTS (
+                      SELECT 1 FROM intervals i WHERE i.disc_id=d.id
+                  )
+                ORDER BY d.id
+                """
+            ).fetchall()
+        finally:
+            read_con.close()
+        if not rows:
+            if not silent:
+                messagebox.showinfo(
+                    "Розпізнавання",
+                    "Немає нерозпізнаних тахокарт без інтервалів.",
+                    parent=self.parent,
+                )
+            return 0
+
+        total=0
+        con=tdb()
+        for r in rows:
+            rot=float(r["rotation_deg"] or 0)
+            items=_polar_signal(
+                scan_path(r["source_path"]),r["cx"],r["cy"],r["radius"],rot
+            )
+            for a,b,act,conf in items:
+                con.execute(
+                    "INSERT INTO intervals(disc_id,start_min,end_min,activity,confidence,source) "
+                    "VALUES(?,?,?,?,?,?)",
+                    (r["id"],a,b,act,conf,"auto"),
+                )
+            con.execute(
+                "UPDATE discs SET status=? WHERE id=?",
+                (f"Розпізнано — {len(items)} кандидатів",r["id"]),
+            )
+            total += len(items)
+        con.commit()
+        con.close()
+        self.load()
+        if not silent:
+            messagebox.showinfo(
+                "Розпізнавання",
+                f"Оброблено нових/порожніх тахокарт: {len(rows)}. "
+                f"Створено кандидатів інтервалів: {total}.",
+                parent=self.parent,
+            )
+        return len(rows)
 
     def recognize_all(self, silent=False):
-        rows=tdb().execute("SELECT * FROM discs WHERE radius IS NOT NULL AND radius>0 ORDER BY id").fetchall()
+        read_con=tdb()
+        try:
+            rows=read_con.execute(
+                "SELECT * FROM discs WHERE radius IS NOT NULL AND radius>0 ORDER BY id"
+            ).fetchall()
+            existing_count=read_con.execute(
+                """
+                SELECT COUNT(*)
+                FROM intervals i
+                JOIN discs d ON d.id=i.disc_id
+                WHERE d.radius IS NOT NULL AND d.radius>0
+                """
+            ).fetchone()[0]
+        finally:
+            read_con.close()
         if not rows:
             messagebox.showwarning("Розпізнавання","Немає шайб із знайденим колом.",parent=self.parent); return
+        if existing_count and not silent:
+            if not messagebox.askyesno(
+                "Повторне розпізнавання",
+                "Повторне розпізнавання всіх тахокарт замінить усі поточні інтервали "
+                "(у тому числі відредаговані вручну).\n\nПродовжити?",
+                parent=self.parent,
+            ):
+                return
         total=0
         con=tdb()
         for r in rows:
@@ -777,6 +862,22 @@ class TachographModule:
         r=self._selected()
         if not r:return
         if not r["radius"]: messagebox.showwarning("Розпізнавання","Для цієї шайби не знайдено коло.",parent=self.parent);return
+        check_con=tdb()
+        try:
+            existing_count=check_con.execute(
+                "SELECT COUNT(*) FROM intervals WHERE disc_id=?",
+                (r["id"],),
+            ).fetchone()[0]
+        finally:
+            check_con.close()
+        if existing_count:
+            if not messagebox.askyesno(
+                "Повторне розпізнавання",
+                "Ця дія замінить усі поточні інтервали тахокарти, "
+                "включно з ручними правками.\n\nПродовжити?",
+                parent=self.parent,
+            ):
+                return
         try: rot=float(self.v_rot.get().replace(",","."))
         except: rot=0
         items=_polar_signal(scan_path(r["source_path"]),r["cx"],r["cy"],r["radius"],rot)
@@ -820,7 +921,13 @@ class TachographModule:
         return datetime.strptime(s.strip(), "%d.%m.%Y").date().isoformat()
     @staticmethod
     def parse(t):
-        h,m=map(int,t.strip().split(":")); return h*60+m
+        parts=t.strip().split(":")
+        if len(parts)!=2:
+            raise ValueError("Час має містити години і хвилини")
+        h,m=map(int,parts)
+        if not (0<=h<24 and 0<=m<60):
+            raise ValueError("Час поза межами доби")
+        return h*60+m
 
 
     def update_stats(self):
@@ -1028,18 +1135,34 @@ class TachographModule:
             else: ttk.Entry(w,textvariable=var,width=32).grid(row=i,column=1,padx=10,pady=8)
         def save():
             try:a=self.parse(sv.get());b=self.parse(ev.get())
-            except:messagebox.showerror("Помилка","Час у форматі ГГ:ХХ",parent=w);return
+            except ValueError:
+                messagebox.showerror("Помилка","Час у форматі ГГ:ХХ, від 00:00 до 23:59.",parent=w)
+                return
             if r:
                 rid=r["id"];con=tdb();con.execute("UPDATE intervals SET start_min=?,end_min=?,activity=?,source='manual',note=? WHERE id=?",(a,b,av.get(),nv.get(),rid))
             else:
                 con=tdb();con.execute("INSERT INTO intervals(disc_id,start_min,end_min,activity,confidence,source,note) VALUES(?,?,?,?,?,?,?)",(self.current_id,a,b,av.get(),1.0,"manual",nv.get()))
             con.commit();con.close();w.destroy();self.load_intervals()
-        ttk.Button(w,text="Зберегти",command=save).grid(row=5,column=1,sticky="e",padx=10,pady=12)
+        actions=ttk.Frame(w)
+        actions.grid(row=5,column=0,columnspan=2,sticky="e",padx=10,pady=12)
+        ttk.Button(actions,text="Скасувати",command=w.destroy).pack(side="left",padx=(0,8))
+        ttk.Button(actions,text="Зберегти",command=save).pack(side="left")
 
     def delete_interval(self):
         s=self.itree.selection()
         if not s:return
-        rid=int(self.itree.item(s[0],"values")[0]);con=tdb();con.execute("DELETE FROM intervals WHERE id=?",(rid,));con.commit();con.close();self.load_intervals()
+        values=self.itree.item(s[0],"values")
+        rid=int(values[0])
+        description=""
+        if len(values)>=4:
+            description=f" {values[1]}–{values[2]} ({values[3]})"
+        if not messagebox.askyesno(
+            "Видалення інтервалу",
+            f"Видалити інтервал{description}?\n\nЦю дію не можна скасувати.",
+            parent=self.parent,
+        ):
+            return
+        con=tdb();con.execute("DELETE FROM intervals WHERE id=?",(rid,));con.commit();con.close();self.load_intervals()
 
     def delete_selected(self):
         r=self._selected()
@@ -1339,7 +1462,7 @@ class TachographModule:
         tree.grid(row=0,column=0,sticky="nsew")
         y.grid(row=0,column=1,sticky="ns")
         x.grid(row=1,column=0,sticky="ew")
-        outer.rowconfigure(0,weight=1)
+        outer.rowconfigure(0,weight=2)
         outer.columnconfigure(0,weight=1)
 
         con=tdb()
@@ -1363,8 +1486,8 @@ class TachographModule:
             )
 
         detail=tk.Text(outer,wrap="word",height=11)
-        detail.grid(row=1,column=0,columnspan=2,sticky="nsew",pady=(8,0))
-        outer.rowconfigure(1,weight=1)
+        detail.grid(row=2,column=0,columnspan=2,sticky="nsew",pady=(8,0))
+        outer.rowconfigure(2,weight=1)
 
         def show_selected(event=None):
             sel=tree.selection()
@@ -1387,7 +1510,7 @@ class TachographModule:
 
         ttk.Button(
             outer,text="Закрити",command=win.destroy
-        ).grid(row=2,column=0,columnspan=2,sticky="e",pady=(8,0))
+        ).grid(row=3,column=0,columnspan=2,sticky="e",pady=(8,0))
 
 
     def seed_examples(self, paths):
@@ -1399,4 +1522,4 @@ class TachographModule:
             if p.exists() and p.name not in existing:self._import_one(p)
         self.load()
         # Тестові шайби одразу проходять первинне розпізнавання, щоб модуль не виглядав порожнім.
-        self.recognize_all(silent=True)
+        self.recognize_unprocessed(silent=True)
