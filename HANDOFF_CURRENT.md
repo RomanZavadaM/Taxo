@@ -1,22 +1,24 @@
 # HANDOFF_CURRENT — Taxo
 
-**12.11.2026 — Stable / Latest: v10.17-r10 (ПІДТВЕРДЖЕНО). Наступна кодова ревізія — 10.18-r1.**
+**12.11.2026 — Stable / Latest: v10.17-r10 (ПІДТВЕРДЖЕНО). Остання перевірена test revision — 10.18-r2. Наступна кодова ревізія — 10.18-r3.**
 
 ## Підтверджена база
 
-- **Нова Stable/Latest: [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)**, immutable exact source `6536a6da6cade49229fa1944e2aa47f941df40a6`. Owner approval 12.11.2026. Повний випуск створено штатним guarded workflow [43271144404](https://github.com/RomanZavadaM/Taxo/actions/runs/43271144404) **SUCCESS**; GitHub `releases/latest` підтвердив `v10.17-r10`, `prerelease=false`, `draft=false`, **8 assets** (2 Windows Setup, 4 portable Windows/Win7/macOS Intel/ARM, START, SHA256). Git tag на exact source, релізні файли доступні зі стандартної сторінки Releases.
-- **Стара Stable/rollback: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, exact source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`, незмінна, 8 assets збережені.
-- Код r10 інтегровано в `main` через [PR #378](https://github.com/RomanZavadaM/Taxo/pull/378), merge `bf20d20f1e0ac76317544562137d004e5303bee1`. Перед інтеграцією exact-source START/source [43267826061](https://github.com/RomanZavadaM/Taxo/actions/runs/43267826061) **SUCCESS, 1205 tests**, Windows [43267844221](https://github.com/RomanZavadaM/Taxo/actions/runs/43267844221), Win7 [43267845707](https://github.com/RomanZavadaM/Taxo/actions/runs/43267845707), macOS Intel/ARM [43267844237](https://github.com/RomanZavadaM/Taxo/actions/runs/43267844237) — усі **SUCCESS**. Після синхронізації з `main` CI для merge-head `8cd4aba2490433df72c098dae8858287eb5c38b5` також пройшли на усіх трьох платформних workflows.
-- Релізний marker PR [#380](https://github.com/RomanZavadaM/Taxo/pull/380) merged `273ccf89badb777dcffe636f4e62f3a8d2e47e5c`; запустив guarded stable publisher, загальний publisher коректно пропущено через `[skip-publish]`. Release/build/security workflow не змінювали.
-- Накопичувальна r1…r10: сортування ТЗ, маршрутів, працівників, наказів, водіїв, історії наказу; виходи «Закрити»/«Скасувати» у відповідних діалогах; безпечні редактори тахографа і маршрутів, додаткові підтвердження перед destructive actions.
-- **Не прийнято вручну:** Windows DPI 100/125/150 %, фокус/табуляція, X із незбереженою чернеткою та повторне відкриття. Автоматичні тести не замінюють ручної перевірки.
-- Власник відклав бібліотеку шаблонів та сховище документів. Не чіпати до окремої команди. Продовжувати модульний, читабельний код, не зменшувати рядки заради метрики.
-- Нове правило: після кожної `r5` і `r10` автоматично публікувати тестовий GitHub Pre-release з усіма portable. Команда «зливаємо» — повний Stable із Windows installers, portable, START, checksums.
+- **Stable/Latest: [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)**, exact immutable release source `6536a6da6cade49229fa1944e2aa47f941df40a6`, 8 assets. Rollback — [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8).
+- Публічна документація Stable синхронізована через PR #382, merge `f054c33c7d3fdf5302534eaaef64e2cff26286d0`.
+- **Останній перевірений test CODE checkpoint — 10.18-r2:** draft [PR #385](https://github.com/RomanZavadaM/Taxo/pull/385), branch `work/v10.18-r2-military-accounting-ui`, exact head `67772f0884d2a82a05953cf2e80cdd80d97a983a`, **не merged у main і не Stable**.
+- r1 (входить у r2): type-aware сортування п'яти таблиць військово-транспортного обліку ТЗ, stable selection після refresh.
+- r2: три вікна військового обліку працівників стали single-instance; таблиці дій і офіційних звірянь отримали type-aware sorting + stable selection; перед «Позначити виконаною» додано підтвердження. Спільний sort/selection helper винесено в `table_sorting.py`. Юридичні строки та SQLite schema не змінені.
+- START/source [43283089055](https://github.com/RomanZavadaM/Taxo/actions/runs/43283089055) — **SUCCESS**, artifact [13974580181](https://github.com/RomanZavadaM/Taxo/actions/runs/43283089055/artifacts/13974580181) `Taxo_v10_18_candidate_r2_START`.
+- Windows [43283188306](https://github.com/RomanZavadaM/Taxo/actions/runs/43283188306) — **SUCCESS**, artifact [13973897367](https://github.com/RomanZavadaM/Taxo/actions/runs/43283188306/artifacts/13973897367). Win7 [43283188213](https://github.com/RomanZavadaM/Taxo/actions/runs/43283188213) — **SUCCESS**, artifact [13973523015](https://github.com/RomanZavadaM/Taxo/actions/runs/43283188213/artifacts/13973523015). macOS Intel/ARM [43283188271](https://github.com/RomanZavadaM/Taxo/actions/runs/43283188271) — **SUCCESS**, artifacts [Intel 13972718485](https://github.com/RomanZavadaM/Taxo/actions/runs/43283188271/artifacts/13972718485), [ARM 13972693537](https://github.com/RomanZavadaM/Taxo/actions/runs/43283188271/artifacts/13972693537).
+- r2 не створює GitHub Release: тестові Pre-release автоматично потрібні на r5/r10. Stable/Latest лишається v10.17-r10.
+- **Ручний gate pending:** Windows DPI 100/125/150 %, фокус/табуляція, X/«Закрити», незбережені дані та повторне відкриття.
+- Бібліотеку шаблонів і сховище документів **не чіпати** до окремої команди.
 
 ## Одна наступна дія
 
-**Почати 10.18-r1** від перевіреної бази `main`, продовжувати `docs/maintenance/UI_NAVIGATION_CONSISTENCY_AUDIT_2026-11-12.md`: інші робочі реєстри, службові Toplevel, доступність виходу, X/незбережені дані/повторне відкриття, вибір рядків після сортування. До зміни коду виконати recovery preflight за правилами проєкту. Ручний Windows UI/DPI gate залишити явно pending.
+**Почати 10.18-r3 від exact test head `67772f0884d2a82a05953cf2e80cdd80d97a983a`** і продовжити UI-аудит одним ізольованим проходом робочих таблиць СТОІР: сортування, стабільний вибір після refresh, вихід/X і destructive actions. Stable не змінювати; ручний Windows gate лишити pending.
 
 ## Recovery
 
-`START_HERE.md` → цей файл → private Taxo-profile `RomanZavadaM/dev-strategy:profile/taxo/TAXO_PROFILE.md` → live GitHub PR/CI/releases → `PROJECT_RULES.md` та `PROJECT_STATE.md`.
+`START_HERE.md` → цей файл → private Taxo-profile → live GitHub PR #385 / CI / releases → `PROJECT_RULES.md` та `PROJECT_STATE.md`.
