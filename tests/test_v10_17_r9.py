@@ -65,7 +65,7 @@ class DriverRegisterR9Tests(unittest.TestCase):
 
     def test_pool_close_is_separate_from_deactivation(self):
         source = inspect.getsource(main.App.show_waybill_number_pools)
-        self.assertIn('text="Закрити / активувати"', source)
+        self.assertIn('text="Деактивувати / активувати пул"', source)
         self.assertIn('command=self.toggle_waybill_number_pool', source)
         self.assertIn('text="Закрити вікно",command=win.destroy', source)
         self.assertNotIn("WM_DELETE_WINDOW", source)
