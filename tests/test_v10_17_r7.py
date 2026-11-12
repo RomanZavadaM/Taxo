@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class EmployeeRegisterSortingR7Tests(unittest.TestCase):
     def test_revision_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.17-r7", "10.17-r8", "10.17-r9"))
+        self.assertIn(main.APP_VERSION, ("10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: " + main.APP_VERSION + "\n",
