@@ -133,7 +133,7 @@ class TachographDialogCancellationR5Tests(unittest.TestCase):
                 dialog = toplevel_by_title(root, "Інтервал шайби")
                 self.assertIsNotNone(dialog)
                 self.assertEqual(root.grab_current(), dialog)
-                self.assertEqual(dialog.protocol("WM_DELETE_WINDOW"), "")
+                self.assertIn("destroy", dialog.protocol("WM_DELETE_WINDOW"))
                 entries = [w for w in walk(dialog) if str(w.winfo_class()) == "TEntry"]
                 entries[0].delete(0, "end")
                 entries[0].insert(0, "10:30")
@@ -302,9 +302,9 @@ class TachographDialogCancellationR5Tests(unittest.TestCase):
         module.parent = object()
         module.itree = mock.Mock()
         module.itree.selection.return_value = ("row-1",)
-        module.itree.item.return_value = {
-            "values": (12, "08:00", "09:00", "Керування", 1.0, "manual")
-        }
+        module.itree.item.return_value = (
+            12, "08:00", "09:00", "Керування", 1.0, "manual"
+        )
         load_calls = []
         module.load_intervals = lambda: load_calls.append(True)
         connection = _RecordingConnection()
