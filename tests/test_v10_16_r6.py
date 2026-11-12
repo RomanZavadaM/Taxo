@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class DriverInternshipDocumentServiceR6Tests(unittest.TestCase):
     def test_version_and_start_require_internship_document_service(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8"))
+        self.assertIn(main.APP_VERSION, ("10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: " + main.APP_VERSION + "\n",
