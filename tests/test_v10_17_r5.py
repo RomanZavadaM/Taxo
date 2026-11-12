@@ -54,6 +54,9 @@ class _RecordingConnection:
     def close(self):
         self.closed += 1
 
+    def fetchall(self):
+        return []
+
 
 class TachographDialogCancellationR5Tests(unittest.TestCase):
     def test_revision_identity(self):
@@ -197,6 +200,51 @@ class TachographDialogCancellationR5Tests(unittest.TestCase):
             self.assertIsNotNone(second)
             second.destroy()
             root.update()
+        finally:
+            root.destroy()
+
+    def test_protocol_window_keeps_scrollbar_details_and_close_on_separate_rows(self):
+        root = tk.Tk()
+        root.withdraw()
+        connection = _RecordingConnection()
+        module = object.__new__(tachograph.TachographModule)
+        module.parent = root
+
+        try:
+            with mock.patch.object(tachograph, "tdb", return_value=connection):
+                module.show_control_protocols()
+                root.update()
+                dialog = toplevel_by_title(root, "Протоколи контролю тахокарт")
+                self.assertIsNotNone(dialog)
+
+                scrollbars = [w for w in walk(dialog) if isinstance(w, ttk.Scrollbar)]
+                horizontal = next(
+                    w for w in scrollbars
+                    if str(w.cget("orient")) == "horizontal"
+                )
+                detail = next(
+                    w for w in walk(dialog)
+                    if isinstance(w, tk.Text)
+                )
+                close = button_by_text(dialog, "Закрити")
+                self.assertIsNotNone(close)
+
+                self.assertEqual(int(horizontal.grid_info()["row"]), 1)
+                self.assertEqual(int(detail.grid_info()["row"]), 2)
+                self.assertEqual(int(close.grid_info()["row"]), 3)
+                self.assertEqual(connection.commits, 0)
+
+                close.invoke()
+                root.update()
+                self.assertIsNone(toplevel_by_title(root, "Протоколи контролю тахокарт"))
+
+                module.show_control_protocols()
+                root.update()
+                reopened = toplevel_by_title(root, "Протоколи контролю тахокарт")
+                self.assertIsNotNone(reopened)
+                reopened.destroy()
+                root.update()
+                self.assertEqual(connection.commits, 0)
         finally:
             root.destroy()
 

@@ -1350,7 +1350,7 @@ class TachographModule:
         tree.grid(row=0,column=0,sticky="nsew")
         y.grid(row=0,column=1,sticky="ns")
         x.grid(row=1,column=0,sticky="ew")
-        outer.rowconfigure(0,weight=1)
+        outer.rowconfigure(0,weight=2)
         outer.columnconfigure(0,weight=1)
 
         con=tdb()
@@ -1374,8 +1374,8 @@ class TachographModule:
             )
 
         detail=tk.Text(outer,wrap="word",height=11)
-        detail.grid(row=1,column=0,columnspan=2,sticky="nsew",pady=(8,0))
-        outer.rowconfigure(1,weight=1)
+        detail.grid(row=2,column=0,columnspan=2,sticky="nsew",pady=(8,0))
+        outer.rowconfigure(2,weight=1)
 
         def show_selected(event=None):
             sel=tree.selection()
@@ -1398,7 +1398,7 @@ class TachographModule:
 
         ttk.Button(
             outer,text="Закрити",command=win.destroy
-        ).grid(row=2,column=0,columnspan=2,sticky="e",pady=(8,0))
+        ).grid(row=3,column=0,columnspan=2,sticky="e",pady=(8,0))
 
 
     def seed_examples(self, paths):
