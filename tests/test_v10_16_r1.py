@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OperationsCenterSeparationR1Tests(unittest.TestCase):
     def test_version_and_start_require_new_operations_modules(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2"))
+        self.assertIn(main.APP_VERSION, ("10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: " + main.APP_VERSION + "\n",
