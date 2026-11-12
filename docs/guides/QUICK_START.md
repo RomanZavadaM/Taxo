@@ -1,14 +1,14 @@
-# Короткий старт — Taxo 10.15-r4
+# Короткий старт — Taxo 10.17-r10
 
 ## Варіанти запуску
 
 ### Windows — встановлена версія
-1. Завантажте **10.15-r4** з [GitHub Releases](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4): `Taxo_v10_15_candidate_r4_Setup_Windows_x64.exe`.
+1. Завантажте **10.17-r10** з [GitHub Releases](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10): `Taxo_v10_17_candidate_r10_Setup_Windows_x64.exe`.
 2. Встановіть програму.
 3. Запустіть Taxo з ярлика.
 
 ### Windows — portable
-1. Завантажте `Taxo_v10_15_candidate_r4_Windows_x64_Portable.zip`.
+1. Завантажте `Taxo_v10_17_candidate_r10_Windows_x64_Portable.zip`.
 2. Розпакуйте в окрему папку.
 3. Запустіть `Taxo.exe`.
 
@@ -17,7 +17,7 @@
 
 **Не запускайте `START.bat` прямо з відкритого ZIP.** Архіватор може тимчасово витягнути лише BAT-файл без `requirements.txt` та решти програми.
 
-1. Завантажте [START ZIP 10.15-r4](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) з GitHub Release.
+1. Завантажте [START ZIP 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_START.zip) з GitHub Release.
 2. Виберіть **«Видобути все / Extract all»** або в 7-Zip — **«Extract to…»**.
 3. Відкрийте саме розпаковану папку.
 4. Переконайтеся, що поруч із `START.bat` є `requirements.txt` і `taxo_app.py`.
