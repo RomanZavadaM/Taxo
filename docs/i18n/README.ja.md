@@ -15,13 +15,17 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員と
 - アナログタコグラフ：スキャン、表示、手動確認を伴う補助的な認識。
 - 帳票とバックアップ：PDF/Excel 帳票と作業データのバックアップ。
 
+## 10.18-r3 の改善点
+
+軍用車両・人員の管理台帳と整備関連の4つの表で、列見出しをクリックして日付・数値・状態・文字列で並べ替えできます。対応する表では更新後も並べ替えと選択行が維持されます。軍関連の作業を完了にする際は確認が必要で、修理依頼を終了する際は結果の入力が必要です。Windows、Windows 7、macOS Intel／Apple Silicon のビルドと25項目の手動 UI 確認に合格しました。DPI 表示倍率ごとの検証は未完了です。
+
 ## ダウンロード
 
-安定版：10.17-r10。
+安定版：10.18-r3。
 
-[10.17-r10 の全ファイル](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10) · [前の安定版 10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)
+[10.18-r3 の全ファイル](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [前の安定版 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/SHA256SUMS_v10_17_r10.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
 
 ## 初期設定とデータ
 
