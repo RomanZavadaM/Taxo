@@ -15,6 +15,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
 from driver_form_ui import driver_form
+from table_sorting import sort_treeview
 
 
 def build_drivers(app):
@@ -75,8 +76,51 @@ def build_drivers(app):
         show="headings",
         height=24,
     )
+    app.driver_registry_sort = None
+    app.driver_registry_column_types = {
+        "id": "number",
+        "name": "text",
+        "birth": "date",
+        "license": "text",
+        "employment": "date",
+        "active": "status",
+    }
+    app.driver_registry_status_order = ("Так", "Ні")
+    app.driver_registry_headings = headings
+
+    def update_sort_headings():
+        current = getattr(app, "driver_registry_sort", None)
+        for key, label in headings.items():
+            suffix = ""
+            if current and current[0] == key:
+                suffix = " ▼" if current[1] else " ▲"
+            app.driver_tree.heading(key, text=label + suffix)
+
+    def sort_by_header(column):
+        current = getattr(app, "driver_registry_sort", None)
+        descending = (
+            not current[1] if current and current[0] == column else False
+        )
+        app.driver_registry_sort = (column, descending)
+        sort_treeview(
+            app.driver_tree,
+            column,
+            descending,
+            value_type=app.driver_registry_column_types[column],
+            status_order=(
+                app.driver_registry_status_order
+                if column == "active" else None
+            ),
+        )
+        update_sort_headings()
+
+    app._update_driver_registry_sort_headings = update_sort_headings
     for key in columns:
-        app.driver_tree.heading(key, text=headings[key])
+        app.driver_tree.heading(
+            key,
+            text=headings[key],
+            command=lambda name=key: sort_by_header(name),
+        )
         app.driver_tree.column(key, width=widths[key], anchor="w")
 
     ybar = ttk.Scrollbar(
@@ -265,6 +309,8 @@ def driver_full_name(driver):
 
 def load_drivers(app, db_factory, fmt_date):
     """Оновити реєстр водіїв і залежні списки вибору."""
+    selected_ids = tuple(app.driver_tree.selection())
+    selected_sort = getattr(app, "driver_registry_sort", None)
     for item in app.driver_tree.get_children():
         app.driver_tree.delete(item)
 
@@ -292,6 +338,7 @@ def load_drivers(app, db_factory, fmt_date):
         app.driver_tree.insert(
             "",
             "end",
+            iid=str(driver["id"]),
             values=(
                 driver["id"],
                 name,
@@ -301,6 +348,34 @@ def load_drivers(app, db_factory, fmt_date):
                 "Так" if driver["active"] else "Ні",
             ),
         )
+
+    if selected_sort:
+        column, descending = selected_sort
+        value_type = getattr(app, "driver_registry_column_types", {}).get(
+            column, "text"
+        )
+        sort_treeview(
+            app.driver_tree,
+            column,
+            descending,
+            value_type=value_type,
+            status_order=(
+                getattr(app, "driver_registry_status_order", None)
+                if column == "active" else None
+            ),
+        )
+        update_headings = getattr(
+            app, "_update_driver_registry_sort_headings", None
+        )
+        if callable(update_headings):
+            update_headings()
+
+    visible_ids = set(app.driver_tree.get_children(""))
+    retained = [iid for iid in selected_ids if iid in visible_ids]
+    if retained:
+        app.driver_tree.selection_set(retained)
+        app.driver_tree.focus(retained[0])
+        app.driver_tree.see(retained[0])
 
     # Ці списки належать іншим робочим екранам, але мають оновитися
     # одразу після зміни картки водія.
