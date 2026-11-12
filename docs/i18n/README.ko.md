@@ -17,11 +17,11 @@ Taxo는 운송업체를 위한 데스크톱 프로그램으로 직원과 차량,
 
 ## 다운로드
 
-안정 버전: 10.15-r4.
+안정 버전: 10.17-r10.
 
-[10.15-r4 전체 파일](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r4) · [이전 안정 버전 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
+[10.17-r10 전체 파일](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10) · [이전 안정 버전 10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/Taxo_v10_15_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.15-r4/SHA256SUMS_v10_15_r4.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/SHA256SUMS_v10_17_r10.txt)
 
 ## 시작과 데이터
 
