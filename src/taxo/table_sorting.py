@@ -7,6 +7,8 @@ document validity, filters, or the meaning of status labels.
 from __future__ import annotations
 
 import re
+from datetime import datetime
+from decimal import Decimal, InvalidOperation
 
 NUMERIC_COLUMNS = frozenset(("id", "year"))
 DOCUMENTS_COLUMN = "documents"
@@ -29,39 +31,106 @@ def _natural_text(value):
     return tuple((1, int(part)) if part.isdigit() else (0, part) for part in parts)
 
 
-def _value_key(column, value):
+def _number_key(text):
+    normalized = str(text or "").strip().replace("\xa0", "").replace(" ", "").replace(",", ".")
+    try:
+        return (0, Decimal(normalized))
+    except (InvalidOperation, ValueError):
+        return (1, _natural_text(text))
+
+
+def _date_key(text):
+    value = str(text or "").strip()
+    for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%d.%m.%y"):
+        try:
+            parsed = datetime.strptime(value, fmt)
+            return (0, parsed.toordinal())
+        except ValueError:
+            pass
+    return (1, _natural_text(value))
+
+
+def _duration_key(text):
+    value = str(text or "").strip()
+    match = re.fullmatch(r"(\d+):(\d{1,2})", value)
+    if match:
+        hours, minutes = int(match.group(1)), int(match.group(2))
+        if 0 <= minutes < 60:
+            return (0, hours * 60 + minutes)
+    return (1, _natural_text(value))
+
+
+def _status_key(text, status_order=None):
+    value = str(text or "").strip()
+    if status_order:
+        if isinstance(status_order, dict):
+            normalized = {str(key).casefold(): rank for key, rank in status_order.items()}
+        else:
+            normalized = {str(key).casefold(): rank for rank, key in enumerate(status_order)}
+        key = value.casefold()
+        if key in normalized:
+            return (0, normalized[key])
+        return (1, _natural_text(value))
+    return (0, _natural_text(value))
+
+
+def _value_key(column, value, value_type=None, status_order=None):
     text = str(value or "").strip()
     if not text:
         return (1,)
-    if column in NUMERIC_COLUMNS:
-        try:
-            return (0, int(text))
-        except ValueError:
-            return (0, 0, _natural_text(text))
-    if column == DOCUMENTS_COLUMN:
+
+    kind = value_type
+    if kind is None:
+        if column in NUMERIC_COLUMNS:
+            kind = "number"
+        elif column == DOCUMENTS_COLUMN:
+            kind = "documents"
+        else:
+            kind = "text"
+
+    if kind == "number":
+        return (0,) + _number_key(text)
+    if kind == "date":
+        return (0,) + _date_key(text)
+    if kind == "duration":
+        return (0,) + _duration_key(text)
+    if kind == "status":
+        return (0,) + _status_key(text, status_order)
+    if kind == "documents":
         return (0, _document_priority(text), _natural_text(text))
     return (0, _natural_text(text))
 
 
-def sorted_row_ids(rows, column, descending=False):
+def sorted_row_ids(
+    rows, column, descending=False, *, value_type=None, status_order=None
+):
     """Return iid order, keeping blanks last in either direction.
 
-    rows: iterable of (iid, displayed_value) pairs. The original order is
-    preserved for ties to avoid surprising changes after reload.
+    value_type may be text, number, date, duration, status or the legacy
+    documents kind. The original order is preserved for ties to avoid
+    surprising changes after reload.
     """
     present = []
     missing = []
     for iid, value in rows:
-        pair = (iid, _value_key(column, value))
+        pair = (iid, _value_key(column, value, value_type, status_order))
         (missing if pair[1][0] else present).append(pair)
     present.sort(key=lambda pair: pair[1][1:], reverse=bool(descending))
     return [iid for iid, _ in present + missing]
 
 
-def sort_treeview(tree, column, descending=False):
+def sort_treeview(
+    tree, column, descending=False, *, value_type=None, status_order=None
+):
     """Reorder only the already-visible Treeview items, preserving selection."""
     rows = [(iid, tree.set(iid, column)) for iid in tree.get_children("")]
-    order = sorted_row_ids(rows, column, descending)
+    order = sorted_row_ids(
+        rows,
+        column,
+        descending,
+        value_type=value_type,
+        status_order=status_order,
+    )
     selected = tuple(tree.selection())
     focus = tree.focus()
     for position, iid in enumerate(order):
