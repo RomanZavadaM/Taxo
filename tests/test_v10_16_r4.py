@@ -17,10 +17,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class VehicleDocumentsUiSeparationR4Tests(unittest.TestCase):
     def test_version_and_start_require_vehicle_documents_ui_module(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10"))
+        self.assertIn(main.APP_VERSION, ("10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1"))
         self.assertIn(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            ("Version: 10.16-r4\n", "Version: 10.16-r5\n", "Version: 10.16-r6\n", "Version: 10.16-r7\n", "Version: 10.16-r8\n", "Version: 10.16-r9\n", "Version: 10.16-r10\n"),
+            ("Version: 10.16-r4\n", "Version: 10.16-r5\n", "Version: 10.16-r6\n", "Version: 10.16-r7\n", "Version: 10.16-r8\n", "Version: 10.16-r9\n", "Version: 10.16-r10\n", "Version: 10.17-r1\n"),
         )
         start = (ROOT / "START.bat").read_text("utf-8")
         self.assertIn("Taxo %s" % main.APP_VERSION, start)
