@@ -1,18 +1,18 @@
 # HANDOFF_CURRENT — Taxo
 
-**12.11.2026 — stable 10.16-r8; останній перевірений тестовий artifact-checkpoint 10.17-r8.**
+**12.11.2026 — stable 10.16-r8; останній перевірений тестовий artifact-checkpoint 10.17-r9.**
 
 ## Підтверджений стан
 
-- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, exact stable source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`; жодних змін stable/tag/assets.
-- **Останній перевірений test artifact-checkpoint — 10.17-r8:** [draft PR #373](https://github.com/RomanZavadaM/Taxo/pull/373), branch `work/v10.17-r8-order-register-sorting`, exact head `d98dec73bb748a86972b535c614f1b36bd951e6e`, **не merged у main**.
-- У реєстрі наказів усі 9 заголовків сортуються кліком. Дата сортується хронологічно, номер — природним порядком (2-К перед 10-К), стани наказу/паперового оригіналу — за явним порядком, інші поля — текст. Другий клік перемикає ▲/▼.
-- Після refresh та зміни фільтра груп вибраний наказ відновлюється за стабільним ID, чинне сортування зберігається. Якщо вибраний наказ тимчасово прихований фільтром, він не підмінюється; після видалення наказу старий ID очищається разом із видимим вибором. Логіка наказів, підтвердження destructive actions, SQLite, PDF та backup не змінені.
-- UI-аудит доповнено у `docs/maintenance/UI_NAVIGATION_CONSISTENCY_AUDIT_2026-11-12.md`. В історії наказу «Закрити» → тільки `dlg.destroy`; налаштування нумерації лишаються вкладкою центру Експлуатації.
-- START/source [43243891648](https://github.com/RomanZavadaM/Taxo/actions/runs/43243891648) **SUCCESS, 1195 tests OK**. Exact-head Windows [43243908886](https://github.com/RomanZavadaM/Taxo/actions/runs/43243908886), Win7/Python 3.8 [43243909031](https://github.com/RomanZavadaM/Taxo/actions/runs/43243909031), macOS Intel/ARM [43243908747](https://github.com/RomanZavadaM/Taxo/actions/runs/43243908747) — **усі SUCCESS**.
-- CI artifacts: START `13954838323`; Windows x64 `13956253300`; Win7 x64 `13955348499`; macOS Intel `13955258718`; ARM `13955677886`.
-- r8 — **Actions test artifact-checkpoint**, GitHub tag/release не створено. Stable/Latest `v10.16-r8` незмінна.
-- **Не завершено фізичне Windows UI-приймання** 100/125/150 % DPI, фокус, вкладені modal, поведінка X/незбережених даних. Автоматичний regression не заміняє реальний UI smoke.
+- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`; stable/tag/assets незмінні.
+- **Останній test artifact-checkpoint — 10.17-r9:** [draft PR #375](https://github.com/RomanZavadaM/Taxo/pull/375), branch `work/v10.17-r9-driver-register-ui`, exact code head `0a61634932779024c03d09a2f72fe1d6575e69ac`, **не merged у main**.
+- Реєстр водіїв: клікабельне сортування усіх 6 заголовків; ID — число, дати народження/прийняття — дата, ПІБ/посвідчення — природний текст, статус — явний порядок «Так»/«Ні». Після «Оновити» чинне сортування і вибраний водій відновлюються за стабільним driver ID; підживлення списків табелів/бланків незмінне.
+- Вікно пулів серій/номерів шляхівок: неоднозначну кнопку «Закрити / активувати» перейменовано на **«Деактивувати / активувати пул»**; додано окрему **«Закрити вікно» → `win.destroy`**, яка не змінює стан пулу. Стандартний X також не викликає запис, повторне відкриття працює через наявний single-window guard.
+- START/source [43246695276](https://github.com/RomanZavadaM/Taxo/actions/runs/43246695276) **SUCCESS, 1200 tests OK**, START artifact `13956962484`.
+- Exact-head platform CI: Windows [43246709702](https://github.com/RomanZavadaM/Taxo/actions/runs/43246709702), Win7/Python 3.8 [43246709857](https://github.com/RomanZavadaM/Taxo/actions/runs/43246709857), macOS Intel/ARM [43246709856](https://github.com/RomanZavadaM/Taxo/actions/runs/43246709856). **усі SUCCESS**. CI artifacts: Windows x64 `13958065920`; Win7 x64 `13957846076`; macOS Intel `13956729594`, ARM `13958685252`.
+- **Тестові виконувані архіви для власника:** [Windows x64 ZIP](https://github.com/RomanZavadaM/Taxo/actions/runs/43246709702/artifacts/13958065920), [Windows 7 compatibility ZIP](https://github.com/RomanZavadaM/Taxo/actions/runs/43246709857/artifacts/13957846076), [macOS Intel ZIP](https://github.com/RomanZavadaM/Taxo/actions/runs/43246709856/artifacts/13956729594), [macOS ARM ZIP](https://github.com/RomanZavadaM/Taxo/actions/runs/43246709856/artifacts/13958685252), [START source ZIP](https://github.com/RomanZavadaM/Taxo/actions/runs/43246695276/artifacts/13956962484). Це Actions artifacts, а не GitHub Release; власнику потрібна зрозуміла публікація тестових виконуваних версій, не лише CI.
+- r9 — тестовий Actions checkpoint; GitHub tag/release не створено. Stable/Latest v10.16-r8 незмінна. Бібліотеку шаблонів і сховище документів не чіпали.
+- **Ручний Windows UI/DPI gate** 100/125/150 %, фокус/табуляція, X із незбереженими даними та повторне відкриття залишаються pending.
 
 ## Рішення власника
 
@@ -23,10 +23,10 @@
 
 ## Наступна дія
 
-1. `START_HERE.md` → цей файл → private Taxo-profile → live GitHub `main` / draft PR #373 / exact-head CI → `PROJECT_STATE.md`.
-2. **Наступна кодова ревізія 10.17-r9:** послідовно підключити type-aware сортування в реєстрі водіїв (ID, дати, статус і текст) зі збереженням вибору після refresh; продовжити статичний аудит службових Toplevel/історії наказу без зміни їхніх даних.
-3. Після regression/CI оформити наступний docs-only recovery-checkpoint. Stable 10.16-r8 не змінювати і тестовий код не зливати в `main`.
-4. Не чіпати бібліотеку шаблонів і сховище документів. Фізичне Windows UI/DPI-приймання залишається окремим ручним gate.
+1. Почати із `START_HERE.md` → `HANDOFF_CURRENT.md` → private Taxo-profile → live GitHub і PR #375 exact head → `PROJECT_STATE.md`.
+2. **Нова кодова ревізія 10.17-r10** тільки після повного CI PASS і злиття документаційного recovery r9 в `main`: перевірити журнал історії наказів і наступні робочі таблиці, типи datetime/status/text та сортування без втрати вибору. Продовжити аудит службових Toplevel.
+3. Усе фіксувати в GitHub і провести повний regression/CI. Stable/Latest 10.16-r8 не змінювати, тестовий код не зливати без прямої команди власника.
+4. Не чіпати бібліотеку шаблонів / сховище документів. Ручний Windows UI/DPI smoke — окремий незакритий gate.
 
 ## Recovery
 
