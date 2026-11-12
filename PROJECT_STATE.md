@@ -2,7 +2,14 @@
 
 **Дата:** 12.11.2026.
 
-## Підтверджений інтегрований стан
+## Поточний підтверджений інтегрований стан
+
+- **Stable / Latest — [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)** за прямою командою власника від 12.11.2026. Exact immutable source/tag `6536a6da6cade49229fa1944e2aa47f941df40a6`. Guarded stable workflow [43271144404](https://github.com/RomanZavadaM/Taxo/actions/runs/43271144404) **SUCCESS**: 8 перевірених assets (Setup Windows, Setup Win7, portable Windows/Win7/macOS Intel/ARM, START, SHA256); GitHub `releases/latest` = `v10.17-r10`, `prerelease=false`. Існуючі workflow release/security без змін.
+- **Код 10.17-r10 інтегровано в main** через [PR #378](https://github.com/RomanZavadaM/Taxo/pull/378), merge `bf20d20f1e0ac76317544562137d004e5303bee1`; exact-source CI START 43267826061 (**1205 tests**), Windows 43267844221, Win7 43267845707, macOS 43267844237 — всі **SUCCESS**. Після синхронізації з main перевірки для інтеграційного head `8cd4aba2490433df72c098dae8858287eb5c38b5` також SUCCESS. [PR #380](https://github.com/RomanZavadaM/Taxo/pull/380), merge `273ccf89badb777dcffe636f4e62f3a8d2e47e5c`, запустив guard із markers `.release/stable-current`/`.release/stable-promote`, generic publisher пропущено.
+- **Попередня Stable / rollback — [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, exact tag `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`, повні 8 assets, незмінна.
+- **Наступна нова кодова ревізія — 10.18-r1.** Продовжити UI-аудит; шаблонну бібліотеку й сховище документів не чіпати. Windows DPI/focus/X/чернетки/reopen — ручний gate, поки не прийнято.
+
+## Історичний стан до Stable 10.17-r10 (не поточний статус)
 
 - **Stable / Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)** за прямим рішенням власника від 11.11.2026. Тег збережено на exact source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`; після guarded workflow [43077702929](https://github.com/RomanZavadaM/Taxo/actions/runs/43077702929) SUCCESS реліз містить 8 перевірених assets (2 Windows Setup EXE, 4 portable ZIP, START ZIP, SHA256). Github Latest = r8.
 - **`main` інтегрував код 10.16-r8** через [PR #352](https://github.com/RomanZavadaM/Taxo/pull/352), merge `890d9734a1de54020267ed0a08f789785508b803`. Exact source r8 — його предок; `main.APP_VERSION = 10.16-r8`. PR CI Windows 43073483675, Win7 compatibility 43073483820, macOS Intel/ARM 43073483665 — всі SUCCESS. Повторні CI для main push оцінювати окремо.
