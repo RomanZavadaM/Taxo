@@ -17,14 +17,21 @@
 
 Докладніше: [огляд системи](docs/SYSTEM_OVERVIEW.md) · [посібник користувача](docs/guides/USER_MANUAL.md) · [експлуатація та СТОІР](docs/guides/OPERATIONS_STOIR_GUIDE.md).
 
+## Що нового у стабільній 10.18-r3
+
+- **Сортування реєстрів.** У військово-транспортному обліку, військовому обліку працівників і чотирьох таблицях СТОІР можна сортувати дати, числа, статуси й текст за заголовками; повторний клік змінює напрямок.
+- **Навігація.** Після «Оновити» підтримувані таблиці зберігають сортування та вибір; службові вікна не створюють дублікати.
+- **Захист дій.** Завершення військово-облікової дії потребує підтвердження, а закриття заявки СТОІР — запису результату.
+- **Перевірки.** CI Windows, Windows 7, macOS Intel/ARM — PASS; ручне приймання 25/25 PASS. Окремий DPI-gate лишається відкритим.
+
 ## Завантаження
 
-**Стабільна / Latest версія: [10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10).** [Попередня стабільна / rollback 10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8).
+**Стабільна / Latest версія: [10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).** [Попередня стабільна / rollback 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10).
 
-- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_Windows_x64_Portable.zip)
-- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_Windows7_x64_Portable.zip)
-- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_macOS_x86_64_Portable.zip)
-- **Запуск із вихідного коду:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_START.zip) · [контрольні суми SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/SHA256SUMS_v10_17_r10.txt)
+- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_Windows_x64_Portable.zip)
+- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_Windows7_x64_Portable.zip)
+- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_macOS_x86_64_Portable.zip)
+- **Запуск із вихідного коду:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [контрольні суми SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
 
 ## Початок роботи та дані
 
