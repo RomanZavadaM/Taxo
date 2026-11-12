@@ -23,7 +23,7 @@ class OperationWindowNavigationR3Tests(unittest.TestCase):
         self.assertIn("Taxo 10.17-r3", (ROOT / "START.bat").read_text("utf-8"))
 
     def test_stoir_center_close_is_non_destructive(self):
-        source = inspect.getsource(vehicle_maintenance_ui.open_vehicle_maintenance)
+        source = inspect.getsource(vehicle_maintenance_ui.open_maintenance_center)
         self.assertIn('text="Закрити", command=win.destroy', source)
         self.assertIn("app._maintenance_center_window = win", source)
         self.assertIn("existing.lift()", source)
