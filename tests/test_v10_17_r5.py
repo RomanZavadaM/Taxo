@@ -248,6 +248,63 @@ class TachographDialogCancellationR5Tests(unittest.TestCase):
         finally:
             root.destroy()
 
+    def test_destructive_tachograph_actions_are_named_and_confirmed(self):
+        build_source = inspect.getsource(tachograph.TachographModule.build)
+        self.assertIn('text="Видалити тахокарту"', build_source)
+        self.assertNotIn('text="Видалити тест"', build_source)
+
+        delete_source = inspect.getsource(tachograph.TachographModule.delete_interval)
+        self.assertIn("messagebox.askyesno", delete_source)
+        self.assertLess(
+            delete_source.index("messagebox.askyesno"),
+            delete_source.index("DELETE FROM intervals WHERE id=?"),
+        )
+
+        selected_source = inspect.getsource(tachograph.TachographModule.recognize_selected)
+        self.assertIn("Повторне розпізнавання", selected_source)
+        self.assertIn("включно з ручними правками", selected_source)
+        self.assertLess(
+            selected_source.index("messagebox.askyesno"),
+            selected_source.index("DELETE FROM intervals WHERE disc_id=?"),
+        )
+
+        all_source = inspect.getsource(tachograph.TachographModule.recognize_all)
+        self.assertIn("Повторне розпізнавання всіх тахокарт", all_source)
+        self.assertIn("у тому числі відредаговані вручну", all_source)
+        self.assertLess(
+            all_source.index("messagebox.askyesno"),
+            all_source.index("DELETE FROM intervals WHERE disc_id=?"),
+        )
+
+    def test_delete_interval_cancel_keeps_data_and_confirmed_delete_writes_once(self):
+        module = object.__new__(tachograph.TachographModule)
+        module.parent = object()
+        module.itree = mock.Mock()
+        module.itree.selection.return_value = ("row-1",)
+        module.itree.item.return_value = {
+            "values": (12, "08:00", "09:00", "Керування", 1.0, "manual")
+        }
+        load_calls = []
+        module.load_intervals = lambda: load_calls.append(True)
+        connection = _RecordingConnection()
+
+        with mock.patch.object(tachograph, "tdb", return_value=connection), \
+             mock.patch.object(tachograph.messagebox, "askyesno", return_value=False):
+            module.delete_interval()
+        self.assertEqual(connection.executed, [])
+        self.assertEqual(connection.commits, 0)
+        self.assertEqual(load_calls, [])
+
+        with mock.patch.object(tachograph, "tdb", return_value=connection), \
+             mock.patch.object(tachograph.messagebox, "askyesno", return_value=True):
+            module.delete_interval()
+        self.assertEqual(
+            [sql for sql, _ in connection.executed if "DELETE FROM intervals WHERE id=?" in sql],
+            ["DELETE FROM intervals WHERE id=?"],
+        )
+        self.assertEqual(connection.commits, 1)
+        self.assertEqual(len(load_calls), 1)
+
     def test_other_tachograph_toplevels_already_have_close_actions(self):
         for method_name in (
             "show_stats_popup",
