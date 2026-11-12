@@ -96,7 +96,7 @@ import employee_registry_ui
 import driver_registry_ui
 from table_sorting import sort_treeview
 
-APP_VERSION = "10.17-r8"
+APP_VERSION = "10.17-r9"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -9405,6 +9405,7 @@ class App(tk.Tk):
         ttk.Button(top,text="Новий пул",command=self.waybill_number_pool_form).pack(side="left",padx=3)
         ttk.Button(top,text="Редагувати",command=self.edit_waybill_number_pool).pack(side="left",padx=3)
         ttk.Button(top,text="Закрити / активувати",command=self.toggle_waybill_number_pool).pack(side="left",padx=3)
+        ttk.Button(top,text="Закрити вікно",command=win.destroy).pack(side="right",padx=3)
         ttk.Label(win,text="Taxo вибирає пул за датою роботи. Для готових пронумерованих бланків використовуйте ручний режим.",foreground=PALETTE["muted"],wraplength=990,justify="left").pack(fill="x",padx=10,pady=(0,6))
         frame=ttk.Frame(win); frame.pack(fill="both",expand=True,padx=10,pady=6); frame.rowconfigure(0,weight=1); frame.columnconfigure(0,weight=1)
         cols=("id","series","range","next","dates","mode","status","notes")
