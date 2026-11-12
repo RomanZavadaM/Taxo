@@ -17,7 +17,7 @@ class RouteUiConsistencyR6Tests(unittest.TestCase):
         self.assertIn(main.APP_VERSION, ("10.17-r6", "10.17-r7"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.17-r6\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
         self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
