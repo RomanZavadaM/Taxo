@@ -1,28 +1,33 @@
 # HANDOFF_CURRENT — Taxo
 
-**12.11.2026 — stable 10.16-r8; останній перевірений тестовий artifact-checkpoint 10.17-r4.**
+**12.11.2026 — stable 10.16-r8; останній перевірений тестовий artifact-checkpoint 10.17-r5.**
 
 ## Підтверджений стан
 
-- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`. `main` і stable assets не змінювалися кодом. Попередні тестові контрольні точки: r9 `53428d4287c0f4e83a55a739109c0bd209e3a623` (draft #355), r10 `1b39d60a7bce22843ebab575faa7173e3c818454` (draft #357), 10.17-r1 `fa9ba20497cd179038129cb61ad9d72df1617cc0` (draft #359), r2 `eb77fa477e75daa9a9264fbab4f07adf99184d2b` (draft #361), r3 `190f920b78160dca2510321921631ee720bd8d16` (draft #363).
-- **Останній перевірений test artifact-checkpoint 10.17-r4:** [draft PR #365](https://github.com/RomanZavadaM/Taxo/pull/365), branch `work/v10.17-r4-stoir-dialog-cancel`, exact code head `f80e7559a4c3b7922da0fa9cb5b5fb3eb9caca2e`, не merged у main.
-- Згідно з картою `docs/maintenance/UI_NAVIGATION_CONSISTENCY_AUDIT_2026-11-12.md` додано явну кнопку **«Скасувати»** до трьох дочірніх форм СТОІР: запис ТО/ремонту, нова заявка, зміна/закриття заявки. Форма профілю ТО вже мала скасування. Нові команди тільки `dialog.destroy`; існуючі callback збереження, облік, SQLite та дочірні дані не змінені.
-- Аудит r4 у файлі за PR #365 розмежовує виправлення за кодом і **поки не виконане ручне** приймання X/Скасувати/Зберегти з незбереженими полями, повторного відкриття та 100/125/150 % DPI. У тахографі вже локалізовано наступну аналогічну невідповідність — `tachograph.py: interval_form` має тільки «Зберегти»; статистика/скан/протоколи мають «Закрити». Це кандидат r5.
-- START/source [43222679904](https://github.com/RomanZavadaM/Taxo/actions/runs/43222679904) **SUCCESS, 1166 tests OK**, code head `eb4c8c4c27db10247b981dfd75d812ae11da150f`. Наступний єдиний commit до final head змінює лише Markdown audit. Final-head Windows [43222794856](https://github.com/RomanZavadaM/Taxo/actions/runs/43222794856), Win7 Python 3.8 [43222794843](https://github.com/RomanZavadaM/Taxo/actions/runs/43222794843), macOS Intel/ARM [43222794848](https://github.com/RomanZavadaM/Taxo/actions/runs/43222794848) — **усі SUCCESS**.
-- CI artifacts: START `13945373845` (code-identical head); Windows x64 `13946064692`, Win7 x64 `13945364358`, macOS Intel `13946781165`, macOS ARM `13946945506` (усі платформи exact final head). Windows portable `Taxo_v10_17_candidate_r4_Windows_x64_Portable.zip` витягнуто з CI, SHA-256 `85b8fedac930df690865e2efa627ff5f0687c3fcb574c3d2bbc3f4300aeccb48` збігається з маніфестом.
-- r4 — тестовий Actions artifact-checkpoint, **GitHub tag/release не створено**. Stable/Latest v10.16-r8 лишається без змін.
+- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`. Stable assets і код stable не змінювалися.
+- **Останній перевірений test artifact-checkpoint 10.17-r5:** [draft PR #367](https://github.com/RomanZavadaM/Taxo/pull/367), branch `work/v10.17-r5-tachograph-dialog-cancel`, exact final head `4615073fed50acff921c8b7b80928ab0ae531494`, не merged у `main`.
+- За картою `docs/maintenance/UI_NAVIGATION_CONSISTENCY_AUDIT_2026-11-12.md` виконано повний поточний прохід тахографа, а не лише додавання кнопки. Редактор інтервалу має non-saving **«Скасувати»**, Cancel/default X не записують дані, modal grab звільняється, повторне відкриття працює; валідний Save окремо робить запис/commit/refresh.
+- Виправлено перевірку ручного часу: дозволено тільки `00:00–23:59`; значення на кшталт `99:99` більше не можуть потрапити в SQLite. У вікні протоколів рознесено по окремих рядках горизонтальну прокрутку, деталі й «Закрити».
+- Небезпечні дії зроблено зрозумілішими: `Видалити тест` перейменовано на **«Видалити тахокарту»**; видалення інтервалу потребує підтвердження; повторне розпізнавання попереджає перед заміною наявних, у тому числі ручних, інтервалів.
+- Імпорт і тестове seed-наповнення більше не запускають destructive `recognize_all()`: новий `recognize_unprocessed()` обробляє тільки тахокарти без інтервалів і не видаляє вже перевірені дані. Також відновлено реально досяжне попередження, коли коло шайби не знайдено.
+- START/source [43226444606](https://github.com/RomanZavadaM/Taxo/actions/runs/43226444606) **SUCCESS, 1177 tests OK**. Exact-head platform CI: Windows [43226454498](https://github.com/RomanZavadaM/Taxo/actions/runs/43226454498), Win7/Python 3.8 compatibility [43226454247](https://github.com/RomanZavadaM/Taxo/actions/runs/43226454247), macOS Intel/ARM [43226454270](https://github.com/RomanZavadaM/Taxo/actions/runs/43226454270) — **усі SUCCESS**.
+- CI artifacts: START `13948173229`; Windows x64 `13948671038`; Win7 x64 `13948705865`; macOS Intel `13948665908`; macOS ARM `13947244468`. Windows portable `Taxo_v10_17_candidate_r5_Windows_x64_Portable.zip` SHA-256 `3c39dfe2a420d4c9ccfe075f43f6dc45e94603e567dcc7d474f9f21255b6aeef` звірено з CI manifest; Setup SHA-256 `d59b2d5709fe87914457eccbee03886966b514abab84ec7379067c3e511225cb` також збігається.
+- r5 — тестовий Actions artifact-checkpoint, **GitHub tag/release не створено**. PR #367 лишається draft/unmerged. Stable/Latest v10.16-r8 незмінна.
+- **Ще не виконано фізичне Windows UI-приймання** тахографа на 100/125/150 % DPI та оцінка фокуса/розмірів на реальному робочому екрані. Автоматичні Tk-тести перевіряють поведінку й дані, але не заміняють цей візуальний gate.
 
 ## Рішення власника
 
-- Продовжувати послідовну роботу по карті аудиту та завершення поточної модульної перебудови, зі зрозумілими виходами з робочих сторінок і діалогів.
-- **Бібліотеку шаблонів і сховище документів не чіпати**; окреме проєктування лише після завершення поточного етапу та переходу в новий чат.
-- Не змінювати stable r8 без прямої команди, тестові PR не зливати як код у main.
+- Продовжувати послідовну роботу по карті аудиту; перевіряти не лише кнопки, а навігацію, доступність функцій, збереження даних і регресії.
+- **Бібліотеку шаблонів і сховище документів не чіпати**; до їхнього проєктування повернутися окремо після завершення поточної роботи.
+- Продовжувати модульну перебудову; скорочення коду не є ціллю.
+- Stable 10.16-r8 не змінювати; тестовий код не зливати в `main` без прямої команди.
 
 ## Наступна дія
 
-1. Відновлення: `START_HERE.md` → цей файл → private Taxo-profile → live GitHub main / draft PR #365 / exact-head checks.
-2. **Наступна нова кодова ревізія 10.17-r5**: перевірити й виправити `tachograph.interval_form` (видима не-зберігаюча «Скасувати»), інші тахографічні Toplevel/X та їхній стан; не зачіпати аналіз тахокарт або протоколи даних без потреби.
-3. Провести ручний Windows UI smoke форм СТОІР і нових вікон. Автоматичний regression не замінює інтерактивне тестування.
+1. Відновлення: `START_HERE.md` → цей файл → private Taxo-profile → live GitHub `main` / draft PR #367 / exact-head checks.
+2. **Наступна нова кодова ревізія 10.17-r6:** продовжити карту аудиту з **Маршрутів та решти діалогів Експлуатації** — X/Скасувати/Зберегти, повторний вхід, зрозумілість дій, destructive actions і правильність збереження.
+3. Після цього перейти до ширшого застосування сортування таблиць (з окремими типами дат/чисел/тексту), якщо карта не виявить вищого пріоритету.
+4. Окремо залишається ручний Windows UI/DPI smoke; automation його не замінює.
 
 ## Recovery
 
