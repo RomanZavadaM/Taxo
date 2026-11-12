@@ -127,7 +127,15 @@ def open_maintenance_center(app, core):
         win.geometry("1260x780")
 
     body = core.ttk.Frame(win, padding=12); body.pack(fill="both", expand=True)
-    core.ttk.Label(body, text="СТОІР — експлуатація та технічна готовність", style="HeroTitle.TLabel").pack(anchor="w")
+    header = core.ttk.Frame(body)
+    header.pack(fill="x")
+    core.ttk.Label(
+        header, text="СТОІР — експлуатація та технічна готовність",
+        style="HeroTitle.TLabel",
+    ).pack(side="left")
+    core.ttk.Button(
+        header, text="Закрити", command=win.destroy,
+    ).pack(side="right", padx=(8, 0))
     core.ttk.Label(
         body,
         text=("Робочий порядок: спочатку перегляньте стан автопарку, потім оберіть ТЗ. "
