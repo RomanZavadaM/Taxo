@@ -15,12 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class DriverRegisterR9Tests(unittest.TestCase):
     def test_revision_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.17-r9")
+        self.assertIn(main.APP_VERSION, ("10.17-r9", "10.17-r10"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.17-r9\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
-        self.assertIn("Taxo 10.17-r9", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_driver_columns_use_correct_types_and_click_sort(self):
         build = inspect.getsource(driver_registry_ui.build_drivers)
