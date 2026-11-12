@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OrderEditorAssignmentsR8Tests(unittest.TestCase):
     def test_version_and_start_require_assignment_module(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r8", "10.16-r9", "10.16-r10"))
+        self.assertIn(main.APP_VERSION, ("10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text(encoding="utf-8"),
             "Version: " + main.APP_VERSION + "\n",
