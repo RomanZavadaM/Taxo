@@ -1034,7 +1034,10 @@ class TachographModule:
             else:
                 con=tdb();con.execute("INSERT INTO intervals(disc_id,start_min,end_min,activity,confidence,source,note) VALUES(?,?,?,?,?,?,?)",(self.current_id,a,b,av.get(),1.0,"manual",nv.get()))
             con.commit();con.close();w.destroy();self.load_intervals()
-        ttk.Button(w,text="Зберегти",command=save).grid(row=5,column=1,sticky="e",padx=10,pady=12)
+        actions=ttk.Frame(w)
+        actions.grid(row=5,column=0,columnspan=2,sticky="e",padx=10,pady=12)
+        ttk.Button(actions,text="Скасувати",command=w.destroy).pack(side="left",padx=(0,8))
+        ttk.Button(actions,text="Зберегти",command=save).pack(side="left")
 
     def delete_interval(self):
         s=self.itree.selection()
