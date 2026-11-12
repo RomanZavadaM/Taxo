@@ -17,11 +17,11 @@ Taxo is a desktop system for a transport company: staff and vehicles, driver sch
 
 ## Downloads
 
-Stable release: 10.17-r10.
+Stable release: 10.18-r3.
 
-[All 10.17-r10 files](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10) · [Previous stable 10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)
+[All 10.18-r3 files](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [Previous stable 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/SHA256SUMS_v10_17_r10.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
 
 ## Getting started and data
 
