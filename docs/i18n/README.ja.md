@@ -19,7 +19,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員と
 
 安定版：10.18-r3。
 
-[10.18-r3 の全ファイル](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [前の安定版 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3)
+[10.18-r3 の全ファイル](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [前の安定版 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)
 
 Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
 
