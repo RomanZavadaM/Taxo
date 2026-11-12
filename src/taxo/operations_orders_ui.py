@@ -52,6 +52,14 @@ def open_operations_center(app, core):
         style="HeroTitle.TLabel",
     ).pack(side="left")
 
+    # Окреме вікно центру експлуатації має явний вихід,
+    # незалежний від закриття головної програми.
+    core.ttk.Button(
+        header,
+        text="Закрити",
+        command=win.destroy,
+    ).pack(side="right", padx=(8, 0))
+
     book = core.ttk.Notebook(body)
 
     def open_documents_catalog():
