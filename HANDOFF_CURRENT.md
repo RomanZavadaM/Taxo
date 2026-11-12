@@ -1,24 +1,32 @@
 # HANDOFF_CURRENT — Taxo
 
-**11.11.2026 — перевірений stable checkpoint.**
+**12.11.2026 — stable 10.16-r8; останній перевірений test code/artifact-checkpoint 10.17-r10; Pre-release НЕ опубліковано.**
 
-## Підтверджена база
+## Підтверджений стан
 
-- **Stable / GitHub Latest:** [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8), exact release tag/source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`. Release promotion workflow [43077702929](https://github.com/RomanZavadaM/Taxo/actions/runs/43077702929) — **SUCCESS**: збережено чотири раніше видані portable ZIP, додано два перевірені Inno Setup EXE (Windows x64, Win7 x64), START/source ZIP, перераховано і перевірено повний SHA256; **8 assets, Stable/Latest**.
-- **Поточний код `main`: 10.16-r8**, інтегровано спеціальним PR [#352](https://github.com/RomanZavadaM/Taxo/pull/352), merge `890d9734a1de54020267ed0a08f789785508b803` (exact r8 код + актуальні recovery-документи main). PR #352 CI: Windows 43073483675 SUCCESS, Win7 compatibility 43073483820 SUCCESS, macOS Intel/ARM 43073483665 SUCCESS. Merge push CI — окремий запуск, перевірити поточний статус у GitHub.
-- **Попередня стабільна / rollback:** [v10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5), source `0a5420cb9285ae5a8fc085c2689303d3e070ffbb`; її тег та 8 assets незмінні. Старіший r4 також збережений.
-- **r9 незавершена і НЕ належить до stable:** окрема робоча гілка `work/v10.16-r9-order-editor-presets` станом на `6a1f03c0c397e11125c15a32c1bd339170115f5f`. Її джерело не перевикористовувати як r8. Після стабілізації нову роботу проводити від поточного `main`, виконуючи reconciliation стану, а не бездумно merge-ити незавершену гілку.
+- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, stable source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`; stable code/tag/assets незмінні.
+- **Останній перевірений test CODE checkpoint — 10.17-r10:** [draft PR #378](https://github.com/RomanZavadaM/Taxo/pull/378), branch `work/v10.17-r10-order-history-sorting`, exact head `4d74649bb0e1904321cc196bced3e645a50d3e7a`, не merged у `main`.
+- r10: журнал історії наказів сортується за чотирма заголовками, включно з повним datetime (хронологія з годинами/хвилинами/секундами). Повторний клік перемикає ▲/▼. Журнал лишається read-only; «Закрити»/X не змінюють БД. Додано regression і UI-аудит. Код r10 накопичує r1–r9.
+- START/source run [43253284345](https://github.com/RomanZavadaM/Taxo/actions/runs/43253284345) — **SUCCESS, 1205 tests OK**. Windows [43253295294](https://github.com/RomanZavadaM/Taxo/actions/runs/43253295294), Win7/Python 3.8 [43253294988](https://github.com/RomanZavadaM/Taxo/actions/runs/43253294988), macOS Intel/ARM [43253295224](https://github.com/RomanZavadaM/Taxo/actions/runs/43253295224) — усі **SUCCESS** на exact code head.
+- **Тимчасові виконувані Actions archives:** [Windows x64](https://github.com/RomanZavadaM/Taxo/actions/runs/43253295294/artifacts/13960276960), [Windows 7](https://github.com/RomanZavadaM/Taxo/actions/runs/43253294988/artifacts/13961051624), [macOS Intel](https://github.com/RomanZavadaM/Taxo/actions/runs/43253295224/artifacts/13960601723), [macOS ARM](https://github.com/RomanZavadaM/Taxo/actions/runs/43253295224/artifacts/13961590915), [START/source](https://github.com/RomanZavadaM/Taxo/actions/runs/43253284345/artifacts/13961430842).
+- **ПУБЛІКАЦІЯ Pre-release r10 ЩЕ НЕ ВИКОНАНА.** Штатний `.github/workflows/publish-current.yml` має ручний `workflow_dispatch`, який при запуску на гілці r10 збирає готові exact-head файли, додає START, SHA256 і створює immutable GitHub Pre-release. `docs/releases/RELEASE_NOTES_v10.17-r10.md` створено на r10 branch. Поточне GitHub-підключення дозволяє читати Actions, але НЕ має `workflow_dispatch`/create-release дії. **Не запускати publisher від `main`**: `main` ще має stable code 10.16-r8. Для публікації відкрити [Publish current Taxo release](https://github.com/RomanZavadaM/Taxo/actions/workflows/publish-current.yml), натиснути **Run workflow**, вибрати `work/v10.17-r10-order-history-sorting`, перевірити SUCCESS, після цього підтвердити новий `v10.17-r10` у [Releases](https://github.com/RomanZavadaM/Taxo/releases) та assets. Доки результат не перевірено, **не називати r10 виданим релізом**.
+- Відповідно до нового рішення власника, кожні r5/r10 мають виходити як тестові GitHub Pre-release з усіма portable; «зливай у main» означає повний stable release. Правило інтегроване в `PROJECT_RULES.md` через docs-only PR #377.
+- **Ручний Windows UI/DPI gate** 100/125/150 %, фокус, X із незбереженими даними та повторне відкриття залишаються pending. Бібліотеку шаблонів і сховище документів не чіпати.
 
-## Рішення про бібліотеку шаблонів
+## Рішення власника
 
-Власник зазначив, що типові накази надто обмежені, але **не потребують штучно довгих текстів**: для закріплення головне — конкретні пари водій–ТЗ, дати, реквізити, реальна підстава. Кожен користувач повинен мати **власну редаговану бібліотеку шаблонів** з можливістю створювати/копіювати/редагувати свої заготовки, без втрати після оновлення. **Шаблон ніколи не є кінцевим документом**; кінцевий наказ щоразу отримує реальні дані, перевіряється, фіксується окремо. Зміна шаблону не змінює попередні накази. План [ORDER_TEMPLATE_LIBRARY_PLAN_2026-11-11.md](docs/planning/ORDER_TEMPLATE_LIBRARY_PLAN_2026-11-11.md); власник може надати знеособлені архіви наказів за 20 років.
+- Продовжувати карту аудиту й перевіряти не лише кнопки, а навігацію, доступність функцій, збереження даних і регресії.
+- **Бібліотеку шаблонів і сховище документів не чіпати**; повернутися до їх проєктування окремо після завершення поточної роботи.
+- Продовжувати модульну перебудову; скорочення коду не є ціллю.
+- Stable 10.16-r8 не змінювати; тестовий код не зливати в `main` без прямої команди.
 
 ## Наступна дія
 
-1. Перевірити поточні live main HEAD, PR, CI, реліз і синхронність цього HANDOFF; не називати незавершений CI успішним.
-2. Прийняти 10.16-r8 як нову основу; збережений старий stable — 10.15-r5.
-3. Розпланувати наступну нову тестову ревізію **10.16-r9** з урахуванням власної редагованої бібліотеки та безпечної структурної перебудови; не зливати незавершений r9 без звірки. Будь-які випуски після r8 — спочатку тестові, без автоматичної зміни stable.
+1. `START_HERE.md` → цей файл → private Taxo-profile → live GitHub `main` / PR #378 exact head і чотири CI → `PROJECT_STATE.md`.
+2. **Пріоритет — завершити плановий r10 Pre-release:** запустити штатний `Publish current Taxo release` на гілці `work/v10.17-r10-order-history-sorting` (не `main`), звірити immutable tag, portable Windows/Win7/macOS Intel/ARM, START, installers, SHA256 та `prerelease=true`, `Latest` все ще 10.16-r8. Наразі ручний GitHub workflow dispatch недоступний цьому підключенню; не обходити release/security workflow.
+3. **Наступна кодова ревізія після завершення r10 checkpoint — 10.18-r1.** Продовжити інші робочі таблиці та Toplevel за картою аудиту, із окремим CI та recovery; stable не змінювати, тестовий код без команди власника у `main` не зливати.
+4. Бібліотеку шаблонів і сховище документів не чіпати. Ручний Windows UI smoke залишається окремим прийманням.
 
 ## Recovery
 
-`START_HERE.md` → цей файл → приватний Taxo-profile → live GitHub → `PROJECT_STATE.md`.
+`START_HERE.md` → цей файл → private Taxo-profile → live GitHub → `PROJECT_STATE.md`.
