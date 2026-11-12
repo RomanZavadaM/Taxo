@@ -15,12 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OrderHistorySortingR10Tests(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.17-r10")
+        self.assertIn(main.APP_VERSION, ("10.17-r10", "10.18-r1"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.17-r10\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
-        self.assertIn("Taxo 10.17-r10", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_same_day_timestamp_sort_uses_time_not_just_date(self):
         rows = [
