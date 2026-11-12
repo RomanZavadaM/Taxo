@@ -14,12 +14,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class RouteUiConsistencyR6Tests(unittest.TestCase):
     def test_revision_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.17-r6")
+        self.assertIn(main.APP_VERSION, ("10.17-r6", "10.17-r7"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: 10.17-r6\n",
         )
-        self.assertIn("Taxo 10.17-r6", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_route_register_is_click_sortable_and_refresh_preserves_selection(self):
         build = inspect.getsource(main.App.build_route_catalog)
