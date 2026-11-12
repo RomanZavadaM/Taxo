@@ -19,7 +19,7 @@ Taxo est une application de bureau pour les entreprises de transport : personnel
 
 Version stable : 10.18-r3.
 
-[Tous les fichiers 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [Version stable précédente 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3)
+[Tous les fichiers 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [Version stable précédente 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)
 
 Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
 
