@@ -2247,12 +2247,31 @@ def install(core, base_app):
             cols = ("personnel","name","position","roles","regime","weeknorm","employment","status")
             tree = core.ttk.Treeview(frame, columns=cols, show="headings")
             self.personnel_overview_tree = tree
-            for key,label,width in (
-                ("personnel","Таб. №",90),("name","ПІБ",270),("position","Посада",175),
-                ("roles","Спеціальні ролі",175),("regime","Режим",180),("weeknorm","Норма/тиж.",90),
-                ("employment","Прийнятий",100),("status","Стан",90),
-            ):
-                tree.heading(key,text=label); tree.column(key,width=width,anchor="w")
+            personnel_columns = (
+                ("personnel","Таб. №",90,"text"),
+                ("name","ПІБ",270,"text"),
+                ("position","Посада",175,"text"),
+                ("roles","Спеціальні ролі",175,"text"),
+                ("regime","Режим",180,"text"),
+                ("weeknorm","Норма/тиж.",90,"duration"),
+                ("employment","Прийнятий",100,"date"),
+                ("status","Стан",90,"status"),
+            )
+            self.personnel_overview_headings = {
+                key: label for key, label, _width, _kind in personnel_columns
+            }
+            self.personnel_overview_column_types = {
+                key: kind for key, _label, _width, kind in personnel_columns
+            }
+            self.personnel_overview_status_order = ("Працює", "Звільнений")
+            self.personnel_overview_sort = None
+            for key,label,width,_kind in personnel_columns:
+                tree.heading(
+                    key,
+                    text=label,
+                    command=lambda name=key:self._sort_personnel_overview(name),
+                )
+                tree.column(key,width=width,anchor="w")
             sy=core.ttk.Scrollbar(frame,orient="vertical",command=tree.yview)
             sx=core.ttk.Scrollbar(frame,orient="horizontal",command=tree.xview)
             tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set)
@@ -2415,6 +2434,48 @@ def install(core, base_app):
                 command=self.show_vehicle_documents_report,
             ).pack(side="right", padx=(12,0))
 
+        def _update_personnel_overview_sort_headings(self):
+            tree = getattr(self, "personnel_overview_tree", None)
+            if not widget_alive(tree):
+                return
+            current = getattr(self, "personnel_overview_sort", None)
+            headings = getattr(self, "personnel_overview_headings", {})
+            for key, label in headings.items():
+                suffix = ""
+                if current and current[0] == key:
+                    suffix = " ▼" if current[1] else " ▲"
+                tree.heading(key, text=label + suffix)
+
+        def _apply_personnel_overview_sort(self, selected_sort):
+            tree = getattr(self, "personnel_overview_tree", None)
+            if not widget_alive(tree) or not selected_sort:
+                return
+            column, descending = selected_sort
+            column_types = getattr(self, "personnel_overview_column_types", {})
+            value_type = column_types.get(column, "text")
+            status_order = (
+                getattr(self, "personnel_overview_status_order", None)
+                if value_type == "status" else None
+            )
+            core.sort_treeview(
+                tree,
+                column,
+                descending,
+                value_type=value_type,
+                status_order=status_order,
+            )
+            self._update_personnel_overview_sort_headings()
+
+        def _sort_personnel_overview(self, column):
+            current = getattr(self, "personnel_overview_sort", None)
+            descending = (
+                not current[1]
+                if current and current[0] == column
+                else False
+            )
+            self.personnel_overview_sort = (column, descending)
+            self._apply_personnel_overview_sort(self.personnel_overview_sort)
+
         def _open_personnel_overview_employee(self):
             tree=getattr(self,"personnel_overview_tree",None)
             if not widget_alive(tree) or not tree.selection():
@@ -2440,6 +2501,8 @@ def install(core, base_app):
             tree = getattr(self, "personnel_overview_tree", None)
             if not widget_alive(tree):
                 return
+            selected_ids = tuple(tree.selection())
+            selected_sort = getattr(self, "personnel_overview_sort", None)
             for item in tree.get_children(): tree.delete(item)
             query=""
             search_var=getattr(self,"personnel_search_var",None)
@@ -2488,6 +2551,15 @@ def install(core, base_app):
                         driver_count+=1
             finally:
                 con.close()
+            if selected_sort:
+                self._apply_personnel_overview_sort(selected_sort)
+            visible_ids = set(tree.get_children(""))
+            retained = [iid for iid in selected_ids if iid in visible_ids]
+            if retained:
+                tree.selection_set(retained)
+                tree.focus(retained[0])
+                tree.see(retained[0])
+
             count_var=getattr(self,"personnel_count_var",None)
             if count_var is not None:
                 count_var.set(f"Всього: {count}")
