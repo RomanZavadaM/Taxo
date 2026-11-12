@@ -109,6 +109,7 @@ class OrderSortingR8Tests(unittest.TestCase):
         self.assertIn("apply_order_sort()", source)
         self.assertIn("if remembered_order_id in visible_ids:", source)
         self.assertIn("order_tree.selection_set(remembered_order_id)", source)
+        self.assertIn("order_tree.selection_set(())", source)
         self.assertIn("remembered_order_id = None", source)
         self.assertIn('group_filter_box.bind("<<ComboboxSelected>>"', source)
 
