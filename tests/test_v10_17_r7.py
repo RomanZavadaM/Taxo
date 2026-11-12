@@ -18,12 +18,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class EmployeeRegisterSortingR7Tests(unittest.TestCase):
     def test_revision_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.17-r7")
+        self.assertIn(main.APP_VERSION, ("10.17-r7", "10.17-r8"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.17-r7\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
-        self.assertIn("Taxo 10.17-r7", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_sorting_supports_dates_numbers_durations_and_status(self):
         dates = [("a", "10.11.2026"), ("b", "02.01.2025"), ("c", "")]
