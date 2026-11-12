@@ -66,7 +66,7 @@ class TachographDialogCancellationR5Tests(unittest.TestCase):
             "Version: " + main.APP_VERSION + "\n",
         )
         self.assertIn(
-            "Taxo 10.17-r5",
+            "Taxo " + main.APP_VERSION,
             (ROOT / "START.bat").read_text("utf-8"),
         )
 
