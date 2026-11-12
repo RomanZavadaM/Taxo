@@ -1,25 +1,29 @@
 # HANDOFF_CURRENT — Taxo
 
-**11.11.2026 — stable r8, наступний перевірений тестовий checkpoint r9.**
+**12.11.2026 — stable r8; останній перевірений тестовий artifact-checkpoint r10.**
 
 ## Підтверджений стан
 
-- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, immutable source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`, 8 assets (2 Windows installer EXE, 4 portable, START/source, SHA256); stable promotion CI [43077702929](https://github.com/RomanZavadaM/Taxo/actions/runs/43077702929) SUCCESS. Попередня stable [v10.15-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.15-r5) збережена для rollback.
-- **`main` залишається на коді 10.16-r8**, на старті цього slice HEAD `be1650cde2061bc51faa85c6087999e3efc9c34f`, після документного checkpoint оновиться лише документаційно. Платформні CI для r8 зелений.
-- **Новий тестовий [v10.16-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r9)**, draft [PR #355](https://github.com/RomanZavadaM/Taxo/pull/355), exact code head/tag `53428d4287c0f4e83a55a739109c0bd209e3a623`. Винесено **картку водія** із `driver_registry_ui.py` до `driver_form_ui.py`; публічний сумісний виклик `driver_registry_ui.driver_form` і поведінку ролей, дат та SQLite збережено. Новий regression тест + START guard. CI exact-head: START/source [43085532694](https://github.com/RomanZavadaM/Taxo/actions/runs/43085532694), Windows [43085597365](https://github.com/RomanZavadaM/Taxo/actions/runs/43085597365), Win7 Python 3.8 compatibility [43085597651](https://github.com/RomanZavadaM/Taxo/actions/runs/43085597651), macOS Intel/ARM [43085597241](https://github.com/RomanZavadaM/Taxo/actions/runs/43085597241) — **всі SUCCESS**. Окремий release publisher [43086357353](https://github.com/RomanZavadaM/Taxo/actions/runs/43086357353) SUCCESS: 4 portable ZIP + START/source ZIP + SHA256, рівно 6 assets; без інсталяторів, Stable/Latest залишилась r8. Код r9 НЕ merged у main.
-- Відкладена попередня неуспішна/незавершена гілка `work/v10.16-r9-order-editor-presets` exact head `6a1f03c0c397e11125c15a32c1bd339170115f5f` **не є виданою r9** і не повинна зливатися; вона виникла до зміни пріоритету власником.
+- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, immutable source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`. Stable/Latest і його assets **не змінювалися**. Попередня stable v10.15-r5 лишається rollback.
+- **`main` за кодом залишається 10.16-r8.** Документаційний recovery-checkpoint r10 може змінити лише HEAD документації; код r10 у `main` не зливався.
+- Попередній tagged test checkpoint — **[v10.16-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r9)**, exact `53428d4287c0f4e83a55a739109c0bd209e3a623`, draft PR #355. Він не merged у main.
+- **Новий перевірений тестовий r10**: draft [PR #357](https://github.com/RomanZavadaM/Taxo/pull/357), branch `work/v10.16-r10-vehicle-form-module`, exact head `1b39d60a7bce22843ebab575faa7173e3c818454`. Картку ТЗ винесено з `vehicle_registry_ui.py` у `vehicle_form_ui.py`; сумісний entry point `vehicle_registry_ui.vehicle_form` збережено. SQL INSERT/UPDATE, валідація року, ownership/active поля і виклик `app.load_vehicles()` не змінені за поведінкою.
+- r10 exact-head CI: START/source [43189898943](https://github.com/RomanZavadaM/Taxo/actions/runs/43189898943), Windows [43189936525](https://github.com/RomanZavadaM/Taxo/actions/runs/43189936525), Win7/Python 3.8 compatibility [43189936785](https://github.com/RomanZavadaM/Taxo/actions/runs/43189936785), macOS Intel/ARM [43189936420](https://github.com/RomanZavadaM/Taxo/actions/runs/43189936420) — **усі SUCCESS, по 1147 тестів**.
+- r10 CI artifacts існують на exact head: START artifact `13929863257`; Windows x64 `13930327101`; Windows7 x64 `13930436491`; macOS Intel `13930925650`; macOS ARM `13929962887`. Із Windows artifact перевірено portable `Taxo_v10_16_candidate_r10_Windows_x64_Portable.zip`, SHA-256 `8d4a4ccf9262e2439b6f3a594ecbacf996b0152853a3145ebd15761abb07d0d1`.
+- **Для r10 GitHub tag/release не створено.** Підключений GitHub connector не має безпечної дії workflow-dispatch/create-release; release/build workflow навмисно не змінювався й `main` не використовувався як обхід. Якщо потрібен довготривалий prerelease, публікувати тільки exact head r10 штатним publisher без зміни коду.
+- Відкладена `work/v10.16-r9-order-editor-presets` лишається parked і не повинна зливатися.
 
 ## Рішення власника
 
-- Роботу іншого ШІ над історичним архівом наказів **ігнорувати** у поточній розробці; не брати його незавершені матеріали в гілки Taxo.
-- **Відкласти бібліотеку шаблонів і сховище документів** до нової команди. Їхня архітектура зафіксована в `docs/planning/`; зараз її не реалізовувати, не змінювати.
-- Продовжувати **модульну структурну перебудову інших систем**, не скорочувати код заради кількості рядків, зберігати читабельність і повний захист вже робочих функцій.
+- **Бібліотеку шаблонів і сховище/архів документів не чіпати** до нової команди. Архітектурні плани в `docs/planning/` не реалізовувати й не змінювати.
+- Продовжувати модульну перебудову інших систем. Скорочення коду не є метою; пріоритет — читабельні модулі та збереження робочої поведінки.
+- Stable 10.16-r8 не змінювати без прямої команди.
 
 ## Наступна дія
 
-1. На наступній сесії: `START_HERE.md` → HANDOFF → private Taxo-profile → live GitHub (main/PR #355/CI/release).
-2. Стабільна основа для rollback — r8. Наступна **нова кодова ревізія: 10.16-r10** (r9 вже видана й не перевикористовується).
-3. Вибрати безпечний наступний модульний крок **поза шаблонами та архівом документів**; повні regression/START/portable до показу тестової версії; stable не змінювати без прямої команди.
+1. Нова сесія: `START_HERE.md` → цей HANDOFF → private Taxo-profile → live GitHub (main / PR #357 / exact-head checks).
+2. r10 уже отримав окремий тестовий artifact-checkpoint і **не перевикористовується для нового коду**. Наступна кодова ревізія за правилом rollover — **10.17-r1**.
+3. Перед 10.17-r1 вибрати наступну безпечну модульну межу поза бібліотекою шаблонів і сховищем документів; не починати її, якщо live GitHub суперечить цьому recovery.
 
 ## Recovery
 
