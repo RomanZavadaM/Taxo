@@ -229,6 +229,16 @@ class CombinedCatalogTests(unittest.TestCase):
 
 
 class CombinedCatalogWindowTests(unittest.TestCase):
+    def tearDown(self):
+        """Do not let a catalog reader from one Tk test leak into the next test."""
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            if catalog_ui._READER_SLOT.acquire(blocking=False):
+                catalog_ui._READER_SLOT.release()
+                return
+            time.sleep(0.02)
+        self.fail("Document catalog background reader did not become idle after the test.")
+
     def test_actual_window_opens_paper_and_invokes_order_callback(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "workspace"
