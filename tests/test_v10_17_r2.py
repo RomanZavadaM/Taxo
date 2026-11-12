@@ -15,11 +15,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class PersonnelNavigationR2Tests(unittest.TestCase):
     def test_revision_markers(self):
-        self.assertEqual(main.APP_VERSION, "10.17-r2")
+        self.assertIn(main.APP_VERSION, ("10.17-r2", "10.17-r3"))
         self.assertEqual(
-            (ROOT / "VERSION.txt").read_text("utf-8"), "Version: 10.17-r2\n"
+            (ROOT / "VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n"
         )
-        self.assertIn("Taxo 10.17-r2", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_planning_timesheet_and_reports_have_back_to_registry(self):
         source = inspect.getsource(personnel_v91)
