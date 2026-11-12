@@ -8,6 +8,7 @@ from pathlib import Path
 
 import main
 import personnel_v91
+import operations_orders_ui
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -35,6 +36,12 @@ class PersonnelNavigationR2Tests(unittest.TestCase):
         self.assertIn("self._select_personnel_page(", source)
         self.assertIn('getattr(self,"personnel_overview_page",None)', source)
         self.assertNotIn('text="← До реєстру працівників",\n                command=lambda: core.tk.Toplevel', source)
+
+    def test_operations_center_has_explicit_close(self):
+        source = inspect.getsource(operations_orders_ui.open_operations_center)
+        self.assertIn('text="Закрити"', source)
+        self.assertIn("command=win.destroy", source)
+        self.assertIn('text="Експлуатація"', source)
 
     def test_planning_actions_stay_available(self):
         source = inspect.getsource(personnel_v91)
