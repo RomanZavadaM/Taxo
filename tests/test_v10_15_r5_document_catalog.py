@@ -2,6 +2,7 @@
 """Read-only combined catalog of existing orders and paper documents."""
 from __future__ import annotations
 
+import gc
 import json
 import sqlite3
 import tempfile
@@ -235,6 +236,9 @@ class CombinedCatalogWindowTests(unittest.TestCase):
         while time.monotonic() < deadline:
             if catalog_ui._READER_SLOT.acquire(blocking=False):
                 catalog_ui._READER_SLOT.release()
+                # Force Tk variable finalizers to run on the test/UI thread,
+                # not later inside the next background reader on macOS.
+                gc.collect()
                 return
             time.sleep(0.02)
         self.fail("Document catalog background reader did not become idle after the test.")
