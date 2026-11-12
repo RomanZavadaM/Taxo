@@ -402,11 +402,39 @@ def install_order_register(
         htree=core.ttk.Treeview(
             tree_frame,columns=("at","entity","action","note"),show="headings"
         )
-        for key,label,width in (
-            ("at","Коли",170),("entity","Об'єкт",120),
-            ("action","Дія",150),("note","Примітка",420)
-        ):
-            htree.heading(key,text=label); htree.column(key,width=width,anchor="w")
+        history_columns = (
+            ("at", "Коли", 170, "datetime"),
+            ("entity", "Об'єкт", 120, "text"),
+            ("action", "Дія", 150, "text"),
+            ("note", "Примітка", 420, "text"),
+        )
+        history_sort = None
+
+        def sort_history(column):
+            nonlocal history_sort
+            descending = (
+                not history_sort[1]
+                if history_sort and history_sort[0] == column else False
+            )
+            history_sort = (column, descending)
+            value_types = {key: kind for key, _label, _width, kind
+                           in history_columns}
+            sort_treeview(
+                htree, column, descending,
+                value_type=value_types[column],
+            )
+            for key, label, _width, _kind in history_columns:
+                arrow = ""
+                if key == column:
+                    arrow = " ▼" if descending else " ▲"
+                htree.heading(key, text=label + arrow)
+
+        for key, label, width, _kind in history_columns:
+            htree.heading(
+                key, text=label,
+                command=lambda name=key: sort_history(name),
+            )
+            htree.column(key, width=width, anchor="w")
         hy=core.ttk.Scrollbar(tree_frame,orient="vertical",command=htree.yview)
         hx=core.ttk.Scrollbar(tree_frame,orient="horizontal",command=htree.xview)
         htree.configure(yscrollcommand=hy.set,xscrollcommand=hx.set)
