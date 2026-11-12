@@ -346,6 +346,9 @@ def install_order_register(
             ))
         if not history:
             core.ttk.Label(frm,text="Історії змін ще немає.").pack(anchor="w",pady=8)
+        core.ttk.Button(
+            frm,text="Закрити",command=dlg.destroy
+        ).pack(anchor="e",pady=(8,0))
 
     def _order_print_data(row):
         con2=core.db()

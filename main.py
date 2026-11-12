@@ -94,8 +94,9 @@ from vehicle_documents_report_ui import open_vehicle_documents_report
 import vehicle_registry_ui
 import employee_registry_ui
 import driver_registry_ui
+from table_sorting import sort_treeview
 
-APP_VERSION = "10.17-r5"
+APP_VERSION = "10.17-r6"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -13273,14 +13274,19 @@ class App(tk.Tk):
         ).pack(anchor="w",padx=12,pady=(0,6))
         cols=("id","label","vehicle","distance","shift","segments","description","active")
         self.route_catalog_tree=ttk.Treeview(self.tab_route_catalog,columns=cols,show="headings",height=25)
-        heads={
+        self.route_catalog_headings={
             "id":"ID","label":"№ / назва","vehicle":"Автомобіль","distance":"План, км","shift":"Тип зміни",
             "segments":"Точний часовий сценарій","description":"Опис / примітка","active":"Статус"
         }
         widths={"id":45,"label":230,"vehicle":150,"distance":80,"shift":145,"segments":410,"description":280,"active":80}
+        self.route_catalog_sort=getattr(self,"route_catalog_sort",None)
         for c in cols:
-            self.route_catalog_tree.heading(c,text=heads[c])
+            self.route_catalog_tree.heading(
+                c,text=self.route_catalog_headings[c],
+                command=lambda name=c:self.sort_route_catalog(name),
+            )
             self.route_catalog_tree.column(c,width=widths[c],anchor="w")
+        self.update_route_catalog_sort_headings()
         routecat_y=ttk.Scrollbar(self.tab_route_catalog,orient="vertical",command=self.route_catalog_tree.yview)
         routecat_x=ttk.Scrollbar(self.tab_route_catalog,orient="horizontal",command=self.route_catalog_tree.xview)
         self.route_catalog_tree.configure(yscrollcommand=routecat_y.set,xscrollcommand=routecat_x.set)
@@ -13290,6 +13296,25 @@ class App(tk.Tk):
         self.route_catalog_tree.bind("<Double-1>",lambda _event:self.edit_route_catalog())
         self.route_catalog_tree.bind("<Return>",lambda _event:self.edit_route_catalog())
         self.load_route_catalog()
+
+    def update_route_catalog_sort_headings(self):
+        headings=getattr(self,"route_catalog_headings",{})
+        current=getattr(self,"route_catalog_sort",None)
+        tree=getattr(self,"route_catalog_tree",None)
+        if tree is None:
+            return
+        for column,label in headings.items():
+            suffix=""
+            if current and current[0]==column:
+                suffix=" ▼" if current[1] else " ▲"
+            tree.heading(column,text=label+suffix)
+
+    def sort_route_catalog(self,column):
+        previous=getattr(self,"route_catalog_sort",None)
+        descending=not previous[1] if previous and previous[0]==column else False
+        self.route_catalog_sort=(column,descending)
+        sort_treeview(self.route_catalog_tree,column,descending)
+        self.update_route_catalog_sort_headings()
 
     def route_label(self,r):
         if not r:
@@ -13321,6 +13346,13 @@ class App(tk.Tk):
     def load_route_catalog(self):
         if not hasattr(self,"route_catalog_tree"):
             return
+        selected_route_id=None
+        selected=self.route_catalog_tree.selection()
+        if selected:
+            try:
+                selected_route_id=str(self.route_catalog_tree.item(selected[0],"values")[0])
+            except (IndexError,TypeError,ValueError):
+                selected_route_id=None
         for x in self.route_catalog_tree.get_children():
             self.route_catalog_tree.delete(x)
         con=db()
@@ -13340,11 +13372,19 @@ class App(tk.Tk):
             route_plan=(f"зупинки: прямий {stop_counts.get('outbound',0)}, "
                         f"зворотний {stop_counts.get('return',0)}")
             description="; ".join(x for x in ((r["description"] or "").strip(), route_plan, (r["notes"] or "").strip()) if x)
-            self.route_catalog_tree.insert("","end",values=(
+            self.route_catalog_tree.insert("","end",iid=str(r["id"]),values=(
                 r["id"],self.route_label(r),r["vehicle"],r["planned_distance_km"] or "—",r["shift_type"],summary,description,
                 "Так" if r["active"] else "Ні"
             ))
         con.close()
+        selected_sort=getattr(self,"route_catalog_sort",None)
+        if selected_sort:
+            sort_treeview(self.route_catalog_tree,*selected_sort)
+        self.update_route_catalog_sort_headings()
+        if selected_route_id and self.route_catalog_tree.exists(selected_route_id):
+            self.route_catalog_tree.selection_set(selected_route_id)
+            self.route_catalog_tree.focus(selected_route_id)
+            self.route_catalog_tree.see(selected_route_id)
 
     def selected_route_catalog(self):
         sel=self.route_catalog_tree.selection()
@@ -13535,6 +13575,7 @@ class App(tk.Tk):
                     redraw_stops(direction); refresh_stops_summary(); sync_route_bounds(force=False)
                     qw.destroy()
                 ttk.Button(buttons,text="Замінити графік цим списком",command=apply_quick).pack(side="right")
+                ttk.Button(buttons,text="Скасувати",command=qw.destroy).pack(side="right",padx=(0,8))
 
             def quick_fill_both():
                 qw=tk.Toplevel(sw); qw.title("Швидке заповнення маршруту")
@@ -13586,6 +13627,7 @@ class App(tk.Tk):
                     redraw_stops("outbound"); redraw_stops("return")
                     refresh_stops_summary(); sync_route_bounds(force=True); qw.destroy()
                 ttk.Button(buttons,text="Зберегти обидва напрямки",command=apply_both).pack(side="right")
+                ttk.Button(buttons,text="Скасувати",command=qw.destroy).pack(side="right",padx=(0,8))
 
             def copy_reverse_names():
                 if not stop_data["outbound"]:
@@ -13643,7 +13685,9 @@ class App(tk.Tk):
                     if index is None: stop_data[direction].append(item)
                     else: stop_data[direction][index]=item
                     redraw_stops(direction); refresh_stops_summary(); fw.destroy()
-                ttk.Button(fw,text="Зберегти",command=save_stop).grid(row=7,column=1,sticky="e",padx=10,pady=12)
+                stop_actions=ttk.Frame(fw); stop_actions.grid(row=7,column=0,columnspan=2,sticky="e",padx=10,pady=12)
+                ttk.Button(stop_actions,text="Скасувати",command=fw.destroy).pack(side="left",padx=(0,8))
+                ttk.Button(stop_actions,text="Зберегти",command=save_stop).pack(side="left")
 
             for col,(direction,title) in enumerate((("outbound","Прямий напрямок"),("return","Зворотний напрямок"))):
                 frame=ttk.LabelFrame(body,text=title); frame.grid(row=0,column=col,sticky="nsew",padx=5,pady=3)
@@ -13664,8 +13708,17 @@ class App(tk.Tk):
                 ttk.Button(bar,text="Редагувати",command=edit_selected).pack(side="left",padx=2)
                 def delete_selected(d=direction):
                     sel=trees[d].selection()
-                    if sel:
-                        stop_data[d].pop(int(trees[d].item(sel[0],"values")[0])-1); redraw_stops(d); refresh_stops_summary()
+                    if not sel:
+                        return
+                    index=int(trees[d].item(sel[0],"values")[0])-1
+                    item=stop_data[d][index]
+                    if not messagebox.askyesno(
+                        "Видалити точку маршруту?",
+                        f"Прибрати «{item['stop_name']}» з чернетки графіка руху?",
+                        parent=sw,
+                    ):
+                        return
+                    stop_data[d].pop(index); redraw_stops(d); refresh_stops_summary()
                 ttk.Button(bar,text="Видалити",command=delete_selected).pack(side="left",padx=2)
                 if direction=="return":
                     ttk.Button(bar,text="Назви ← прямий",command=copy_reverse_names).pack(side="left",padx=2)
@@ -13674,7 +13727,7 @@ class App(tk.Tk):
             bottom=ttk.Frame(sw); bottom.pack(fill="x",padx=12,pady=8)
             ttk.Button(bottom,text="Швидко вставити обидва напрямки",command=quick_fill_both).pack(side="left",padx=(0,6))
             ttk.Button(bottom,text="Підтягнути точки й дні з графіка",command=lambda:sync_route_bounds(force=True)).pack(side="left")
-            ttk.Button(bottom,text="Готово",command=sw.destroy).pack(side="right")
+            ttk.Button(bottom,text="Готово — повернутися до маршруту",command=sw.destroy).pack(side="right")
 
         refresh_stops_summary()
         ttk.Label(win,textvariable=stops_summary,foreground=PALETTE["muted"]).grid(row=8,column=1,columnspan=2,sticky="e",padx=(10,3),pady=(3,5))
@@ -13800,7 +13853,9 @@ class App(tk.Tk):
                 else:
                     seg_data[index]=item
                 redraw(); sw.destroy()
-            ttk.Button(sw,text="Зберегти",command=save_seg).grid(row=8,column=1,sticky="e",padx=10,pady=10)
+            segment_actions=ttk.Frame(sw); segment_actions.grid(row=8,column=0,columnspan=2,sticky="e",padx=10,pady=10)
+            ttk.Button(segment_actions,text="Скасувати",command=sw.destroy).pack(side="left",padx=(0,8))
+            ttk.Button(segment_actions,text="Зберегти",command=save_seg).pack(side="left")
 
         button_row=ttk.Frame(win); button_row.grid(row=10,column=1,columnspan=3,sticky="w",padx=10,pady=5)
         ttk.Button(button_row,text="Додати частину",command=lambda:edit_seg()).pack(side="left",padx=3)
@@ -13811,8 +13866,20 @@ class App(tk.Tk):
         ttk.Button(button_row,text="Редагувати",command=edit_selected).pack(side="left",padx=3)
         def del_selected():
             sel=tree.selection()
-            if sel:
-                seg_data.pop(int(tree.item(sel[0],"values")[0])-1); redraw()
+            if not sel:
+                return
+            index=int(tree.item(sel[0],"values")[0])-1
+            item=seg_data[index]
+            if not messagebox.askyesno(
+                "Видалити частину маршруту?",
+                "Прибрати з чернетки частину %s–%s (керування %s–%s)?" % (
+                    item["work_start_time"],item["work_end_time"],
+                    item["start_time"] or "—",item["end_time"] or "—",
+                ),
+                parent=win,
+            ):
+                return
+            seg_data.pop(index); redraw()
         ttk.Button(button_row,text="Видалити",command=del_selected).pack(side="left",padx=3)
         redraw()
 
@@ -13917,7 +13984,9 @@ class App(tk.Tk):
                 con.close()
             win.destroy(); self.load_route_catalog()
 
-        ttk.Button(win,text="Зберегти маршрут",command=save).grid(row=11,column=3,sticky="e",padx=10,pady=10)
+        route_actions=ttk.Frame(win); route_actions.grid(row=11,column=1,columnspan=3,sticky="e",padx=10,pady=10)
+        ttk.Button(route_actions,text="Скасувати",command=win.destroy).pack(side="left",padx=(0,8))
+        ttk.Button(route_actions,text="Зберегти маршрут",command=save).pack(side="left")
 
     def edit_route_catalog(self):
         item=self.selected_route_catalog()
