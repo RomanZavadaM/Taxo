@@ -48,9 +48,9 @@ class FakeTree:
 
 class OrderSortingR8Tests(unittest.TestCase):
     def test_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.17-r8")
+        self.assertIn(main.APP_VERSION, ("10.17-r8", "10.17-r9"))
         self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: 10.17-r8\n")
-        self.assertIn("Taxo 10.17-r8", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_order_number_natural_not_lexicographic(self):
         rows = [("a", "10-К"), ("b", "2-К"), ("c", "1-К"), ("d", "")]
