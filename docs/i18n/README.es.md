@@ -15,13 +15,17 @@ Taxo es una aplicación de escritorio para empresas de transporte: personal y ve
 - Discos de tacógrafo analógico: escaneos, visualización y reconocimiento asistido con revisión manual.
 - Informes y copias: informes PDF/Excel y copias del almacenamiento de trabajo.
 
+## Novedades de 10.18-r3
+
+Los registros de transporte y personal de contabilidad militar y cuatro tablas de mantenimiento permiten ordenar por fecha, número, estado o texto desde sus encabezados. El orden y la selección se conservan tras actualizar cuando corresponde. Completar una acción militar requiere confirmación; cerrar una solicitud de reparación exige registrar el resultado. Las compilaciones Windows, Windows 7 y macOS Intel/Apple Silicon y 25 pruebas manuales pasaron. Quedan pendientes las pruebas específicas de escalado DPI.
+
 ## Descargas
 
-Versión estable: 10.17-r10.
+Versión estable: 10.18-r3.
 
-[Todos los archivos 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10) · [Versión estable anterior 10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)
+[Todos los archivos 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [Versión estable anterior 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/Taxo_v10_17_candidate_r10_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.17-r10/SHA256SUMS_v10_17_r10.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
 
 ## Primeros pasos y datos
 
