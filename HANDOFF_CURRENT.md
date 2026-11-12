@@ -1,29 +1,30 @@
 # HANDOFF_CURRENT — Taxo
 
-**12.11.2026 — stable 10.16-r8; останній перевірений тестовий artifact-checkpoint 10.17-r1.**
+**12.11.2026 — stable 10.16-r8; останній перевірений тестовий artifact-checkpoint 10.17-r2.**
 
 ## Підтверджений стан
 
-- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, immutable source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`. Stable і release assets не змінювалися.
-- `main` зберігає код **10.16-r8**. Остання документаційна база перед цією сесією `d83e704ca13d5abc1792f594a15b5e803eecb8ad`. Тестові PR не зливати в `main` без прямого рішення власника.
-- Попередній тестовий r9 має [immutable tag/release](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r9), exact `53428d4287c0f4e83a55a739109c0bd209e3a623` (draft PR #355); r10 має перевірений Actions artifact-checkpoint exact `1b39d60a7bce22843ebab575faa7173e3c818454` (draft PR #357) без tag/release.
-- **Останній перевірений test checkpoint 10.17-r1**: [draft PR #359](https://github.com/RomanZavadaM/Taxo/pull/359), branch `work/v10.17-r1-vehicle-table-sorting`, exact code head `fa9ba20497cd179038129cb61ad9d72df1617cc0`. На звернення власника додано сортування натисканням заголовків для всіх 10 колонок реєстру ТЗ; наступне натискання змінює напрям, стрілка показує напрямок. ID/рік сортуються числово, назви — природно, `Документи` групує `Актуально` окремо від проблем (це **не** дозвіл на рейс). Сортування зберігається після `Оновити`; вибір авто відновлюється за ID; існуючий фільтр неактивних лишається незалежним.
-- Спільний `src/taxo/table_sorting.py` підготовлений для інших таблиць, але в r1 змінено **тільки реєстр ТЗ**. Жодного масового втручання в інші екрани.
-- CI exact-head [START/source 43193698666](https://github.com/RomanZavadaM/Taxo/actions/runs/43193698666), [Windows 43193742440](https://github.com/RomanZavadaM/Taxo/actions/runs/43193742440), [Win7/Python 3.8 43193742341](https://github.com/RomanZavadaM/Taxo/actions/runs/43193742341), [macOS Intel/ARM 43193742503](https://github.com/RomanZavadaM/Taxo/actions/runs/43193742503) — **усі SUCCESS**. START regression: **1154 tests OK**.
-- START/source GitHub Actions artifact `13931428348`, назва `Taxo_v10_17_candidate_r1_START`, exact head confirmed. Windows artifact `13931254289`; Win7 `13932331375`; macOS Intel `13932850359`; macOS ARM `13931463723`. Це **CI artifacts**, не GitHub release. Для r1 tag/release **не створено**, stable не змінювали.
-- Невикористана `work/v10.16-r9-order-editor-presets` лишається parked. Ревізії r9/r10/r1 не перевикористовувати.
+- **Stable/Latest: [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, immutable source `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`. Код stable, tag/release/assets не змінювалися; `main` має код 10.16-r8.
+- Попередні test checkpoints: tagged `v10.16-r9` exact `53428d4287c0f4e83a55a739109c0bd209e3a623` (draft #355), artifact `10.16-r10` exact `1b39d60a7bce22843ebab575faa7173e3c818454` (draft #357), `10.17-r1` exact `fa9ba20497cd179038129cb61ad9d72df1617cc0` (draft #359).
+- **Останній test checkpoint 10.17-r2**: [draft PR #361](https://github.com/RomanZavadaM/Taxo/pull/361), branch `work/v10.17-r2-navigation-consistency`, exact HEAD `eb77fa477e75daa9a9264fbab4f07adf99184d2b` (останній commit — тільки audit-документ; кодова межа `02eb7544506fd0e5b9935d0456610c0e5ed5847a`).
+- За відгуком власника знімок «Єдине планування персоналу» не має видимого виходу. У прихованих сторінках **Планування, Табель, Звіти** додано «← До реєстру працівників» через існуючий `show_personnel_overview`. У окреме вікно **Експлуатація** додано кнопку «Закрити» (лише `win.destroy`). Не змінено дані, накази чи збереження.
+- Первинний статичний аудит та **черга повного ручного UI-приймання**: `docs/maintenance/UI_NAVIGATION_CONSISTENCY_AUDIT_2026-11-12.md` у PR #361. Це не підтвердження, що весь інтерфейс пройдено вручну. СТОІР — наступний потенційний приклад відсутньої явної команди виходу; перевірити інші основні екрани, модальні діалоги, сортування, DPI.
+- Перевірки r2: START/source на code head `02eb754…` [43201641126](https://github.com/RomanZavadaM/Taxo/actions/runs/43201641126) — SUCCESS, **1159 tests OK**. Windows [43201864503](https://github.com/RomanZavadaM/Taxo/actions/runs/43201864503), Win7 Python 3.8 compatibility [43201864597](https://github.com/RomanZavadaM/Taxo/actions/runs/43201864597), macOS Intel/ARM [43201864313](https://github.com/RomanZavadaM/Taxo/actions/runs/43201864313) на final head `eb77fa4…` — **усі SUCCESS**.
+- Перевірений Windows portable із CI artifact `13935313095`: `Taxo_v10_17_candidate_r2_Windows_x64_Portable.zip`, SHA-256 `df376eb7d1de4e7b24e035c83f88c04330fa82af8d34eaacdea497d5f7844b20`, звірений із manifest. **GitHub tag/release r2 не створено**, це тестовий artifact checkpoint.
+- Код r2 не merged у main. Документаційний checkpoint не змінює продукт; stable не чіпати.
 
 ## Рішення власника
 
-- **Бібліотеку шаблонів і сховище документів поки не чіпати.** Не підхоплювати незалежний незавершений архів іншого ШІ.
-- Продовжувати модульну перебудову інших систем, не скорочувати код заради рядків.
-- Stable **10.16-r8 не змінювати** без прямої команди. Тестові ревізії — START або portable на контрольних точках.
+- Продовжити розпочату модульну перебудову та перевірити інтерфейс на неузгодженості, особливо очевидний вихід з екранів.
+- Бібліотеку шаблонів і сховище документів **не чіпати**, до їхнього проєктування повернутися лише після завершення поточного етапу та переходу в новий чат.
+- Редагування коду й UI — поступово, зрозуміло людині, без штучного скорочення файлів; зберігати дані й функції.
+- Stable/Latest `v10.16-r8` залишити незмінною.
 
 ## Наступна дія
 
-1. Наступна сесія: `START_HERE.md` → HANDOFF → private Taxo-profile → live GitHub (main / draft #359 / CI exact-head).
-2. Після 10.17-r1 наступна нова кодова ревізія — **10.17-r2**, не reuse r1.
-3. Перевірити реакцію власника на сортування ТЗ; наступну окрему модульну або UI-роботу обрати поза бібліотекою шаблонів і сховищем документів. Пріоритет — стабільність, читабельність, захист даних.
+1. Нова сесія: `START_HERE.md` → цей HANDOFF → private Taxo-profile → live GitHub (main / PR #361 / CI).
+2. **Наступна нова кодова ревізія 10.17-r3**: продовжити вибіркову перевірку UI за audit matrix, насамперед СТОІР, інші Toplevel та повернення; не змінювати багато модулів одночасно. r2 уже видана як тестовий артефакт і не перевикористовується.
+3. Після ручного приймання власником уточнювати наступні пріоритети; заморожені документні системи не починати.
 
 ## Recovery
 
