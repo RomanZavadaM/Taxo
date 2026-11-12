@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 import operations_orders as ops
+from table_sorting import sort_treeview
 from order_assignments_ui import install_assignment_tab
 from order_editor_ui import open_order_editor
 from order_entities_ui import install_order_entities_tab
@@ -68,9 +69,64 @@ def install_order_register(
     order_frame = core.ttk.Frame(orders_tab); order_frame.pack(fill="both",expand=True,padx=10,pady=(0,10)); order_frame.rowconfigure(0,weight=1); order_frame.columnconfigure(0,weight=1)
     cols=("date","no","series","group","type","subject","status","paper","control")
     order_tree=core.ttk.Treeview(order_frame,columns=cols,show="headings",selectmode="browse")
-    for key,label,width in (("date","Дата",100),("no","№",75),("series","Серія",150),("group","Група",220),("type","Тип наказу",250),("subject","Тема",340),
-                            ("status","Стан",110),("paper","Паперовий оригінал",140),("control","Контроль",210)):
-        order_tree.heading(key,text=label); order_tree.column(key,width=width,anchor="w")
+    order_columns = (
+        ("date", "Дата", 100, "date"),
+        ("no", "№", 75, "text"),
+        ("series", "Серія", 150, "text"),
+        ("group", "Група", 220, "text"),
+        ("type", "Тип наказу", 250, "text"),
+        ("subject", "Тема", 340, "text"),
+        ("status", "Стан", 110, "status"),
+        ("paper", "Паперовий оригінал", 140, "status"),
+        ("control", "Контроль", 210, "text"),
+    )
+    order_headings = {key: label for key, label, _width, _kind in order_columns}
+    order_column_types = {key: kind for key, _label, _width, kind in order_columns}
+    order_status_order = ("Чернетка", "Діє в Taxo", "Скасовано")
+    paper_status_order = ("підписано", "—")
+    selected_sort = None
+    remembered_order_id = None
+
+    def update_order_sort_headings():
+        for key, label in order_headings.items():
+            direction = ""
+            if selected_sort and selected_sort[0] == key:
+                direction = " ▼" if selected_sort[1] else " ▲"
+            order_tree.heading(key, text=label + direction)
+
+    def apply_order_sort():
+        if not selected_sort:
+            return
+        column, descending = selected_sort
+        status_order = (
+            order_status_order if column == "status"
+            else paper_status_order if column == "paper"
+            else None
+        )
+        sort_treeview(
+            order_tree,
+            column,
+            descending,
+            value_type=order_column_types[column],
+            status_order=status_order,
+        )
+        update_order_sort_headings()
+
+    def sort_orders_by_header(column):
+        nonlocal selected_sort
+        descending = (
+            not selected_sort[1]
+            if selected_sort and selected_sort[0] == column else False
+        )
+        selected_sort = (column, descending)
+        apply_order_sort()
+
+    for key, label, width, _kind in order_columns:
+        order_tree.heading(
+            key, text=label,
+            command=lambda name=key: sort_orders_by_header(name),
+        )
+        order_tree.column(key, width=width, anchor="w")
     sy=core.ttk.Scrollbar(order_frame,orient="vertical",command=order_tree.yview); sx=core.ttk.Scrollbar(order_frame,orient="horizontal",command=order_tree.xview)
     order_tree.configure(yscrollcommand=sy.set,xscrollcommand=sx.set); order_tree.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns"); sx.grid(row=1,column=0,sticky="ew")
     order_cache={}
@@ -124,7 +180,21 @@ def install_order_register(
     group_filter_box=core.ttk.Combobox(order_filter_bar,textvariable=group_filter_var,values=group_filter_labels,state="readonly",width=31)
     group_filter_box.pack(side="right")
 
+    def remember_order_selection(_event=None):
+        nonlocal remembered_order_id
+        selection = order_tree.selection()
+        if selection:
+            remembered_order_id = selection[0]
+
+    order_tree.bind("<<TreeviewSelect>>", remember_order_selection, add="+")
+
     def refresh_orders(select_id=None):
+        nonlocal remembered_order_id
+        current_selection = tuple(order_tree.selection())
+        if current_selection:
+            remembered_order_id = current_selection[0]
+        if select_id is not None:
+            remembered_order_id = str(select_id)
         for iid in order_tree.get_children(): order_tree.delete(iid)
         order_cache.clear(); con2=core.db()
         try: rows=ops.list_orders(con2)
@@ -147,8 +217,14 @@ def install_order_register(
         order_tree.tag_configure(ops.ORDER_APPROVED,foreground="#0B5D1E"); order_tree.tag_configure(ops.ORDER_CANCELLED,foreground="#777777")
         if rows: order_hint.pack_forget()
         elif not order_hint.winfo_manager(): order_hint.pack(anchor="w",padx=12,pady=(0,4),before=order_frame)
-        if select_id and str(select_id) in order_tree.get_children():
-            order_tree.selection_set(str(select_id)); order_tree.focus(str(select_id)); order_tree.see(str(select_id))
+        apply_order_sort()
+        # The selected order is identified by its database ID, never by
+        # its row position. A group filter may hide it temporarily.
+        visible_ids = set(order_tree.get_children(""))
+        if remembered_order_id in visible_ids:
+            order_tree.selection_set(remembered_order_id)
+            order_tree.focus(remembered_order_id)
+            order_tree.see(remembered_order_id)
         refresh_assignments()
         refresh_order_entities()
 
@@ -293,6 +369,9 @@ def install_order_register(
             con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
         finally:
             con2.close()
+        # A deleted order cannot be reselected when filters change.
+        nonlocal remembered_order_id
+        remembered_order_id = None
         refresh_orders()
 
     def show_history():
