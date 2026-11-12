@@ -15,12 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OperationWindowNavigationR3Tests(unittest.TestCase):
     def test_revision_and_start_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.17-r3")
+        self.assertIn(main.APP_VERSION, ("10.17-r3", "10.17-r4"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.17-r3\n",
+            "Version: " + main.APP_VERSION + "\n",
         )
-        self.assertIn("Taxo 10.17-r3", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_stoir_center_close_is_non_destructive(self):
         source = inspect.getsource(vehicle_maintenance_ui.open_maintenance_center)
