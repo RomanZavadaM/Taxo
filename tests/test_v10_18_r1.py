@@ -36,9 +36,9 @@ class FakeTree:
 
 class MilitaryTransportSortingR1Tests(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.18-r1")
-        self.assertEqual((ROOT/"VERSION.txt").read_text("utf-8"), "Version: 10.18-r1\n")
-        self.assertIn("Taxo 10.18-r1", (ROOT/"START.bat").read_text("utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.18-r1", "10.18-r2"))
+        self.assertEqual((ROOT/"VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n")
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT/"START.bat").read_text("utf-8"))
 
     def test_sort_helper_clicks_dates_and_keeps_missing_last(self):
         tree=FakeTree(); state={}

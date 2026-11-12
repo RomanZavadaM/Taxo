@@ -60,7 +60,7 @@ class _RecordingConnection:
 
 class TachographDialogCancellationR5Tests(unittest.TestCase):
     def test_revision_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1"))
+        self.assertIn(main.APP_VERSION, ("10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: " + main.APP_VERSION + "\n",

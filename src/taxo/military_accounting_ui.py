@@ -11,9 +11,16 @@ from tkinter import simpledialog
 
 import military_accounting_2026 as military
 import personnel_registry as registry
+from table_sorting import configure_sortable_tree, restore_tree_selection
 
 APP_VERSION = "10.4-r9"
 
+
+def _alive(widget):
+    try:
+        return bool(widget is not None and widget.winfo_exists())
+    except Exception:
+        return False
 
 def _configure_window(core, win, title, width=1100, height=700):
     win.title(title)
@@ -54,7 +61,13 @@ def install(core, base_app):
                 con.close()
 
         def open_military_accounting_overview(self):
+            existing = getattr(self, "_military_accounting_overview_window", None)
+            if _alive(existing):
+                existing.lift()
+                existing.focus_force()
+                return
             win = core.tk.Toplevel(self)
+            self._military_accounting_overview_window = win
             _configure_window(core, win, "Військовий облік 2026 — контроль і журнал", 1120, 700)
             body = core.ttk.Frame(win, padding=14)
             body.pack(fill="both", expand=True)
@@ -138,7 +151,13 @@ def install(core, base_app):
             win.transient(self)
 
         def open_military_actions_journal(self):
+            existing = getattr(self, "_military_actions_window", None)
+            if _alive(existing):
+                existing.lift()
+                existing.focus_force()
+                return
             win = core.tk.Toplevel(self)
+            self._military_actions_window = win
             _configure_window(core, win, "Військовий облік — дії та строки", 1120, 680)
             body = core.ttk.Frame(win, padding=12)
             body.pack(fill="both", expand=True)
@@ -163,7 +182,22 @@ def install(core, base_app):
             tree.configure(yscrollcommand=y.set)
             tree.grid(row=0, column=0, sticky="nsew"); y.grid(row=0, column=1, sticky="ns")
 
+            action_sort_state = {}
+            action_sort_columns = (
+                ("status", "Стан", "status", ("Відкрита", "Виконано", "Скасовано")),
+                ("due", "Строк", "date", None),
+                ("employee", "Працівник", "text", None),
+                ("action", "Дія", "text", None),
+                ("event", "Подія", "date", None),
+                ("channel", "Канал", "text", None),
+                ("reference", "Реквізит", "text", None),
+            )
+            apply_action_sort = configure_sortable_tree(
+                tree, action_sort_columns, action_sort_state, "actions"
+            )
+
             def refresh():
+                selected_ids = tuple(tree.selection())
                 for iid in tree.get_children(): tree.delete(iid)
                 con = core.db()
                 try:
@@ -175,17 +209,25 @@ def install(core, base_app):
                     state = {military.STATUS_OPEN:"Відкрита", military.STATUS_DONE:"Виконано", military.STATUS_CANCELLED:"Скасовано"}.get(row["status"], row["status"])
                     tag = "late" if row["status"] == military.STATUS_OPEN and row["due_date"] and row["due_date"] < today else row["status"]
                     tree.insert("", "end", iid=str(row["id"]), values=(
-                        state, row["due_date"] or "—", _name(row), military.ACTION_LABELS.get(row["action_type"], row["action_type"]),
+                        state, row["due_date"], _name(row), military.ACTION_LABELS.get(row["action_type"], row["action_type"]),
                         row["event_date"], row["channel"] or "—", row["reference"] or "—",
                     ), tags=(tag,))
                 tree.tag_configure("late", foreground="#8A1C1C")
                 tree.tag_configure(military.STATUS_DONE, foreground="#0B5D1E")
                 tree.tag_configure(military.STATUS_CANCELLED, foreground="#666666")
+                apply_action_sort()
+                restore_tree_selection(tree, selected_ids)
 
             def complete_selected():
                 sel = tree.selection()
                 if not sel:
                     core.messagebox.showinfo("Військовий облік", "Виберіть дію.", parent=win); return
+                if not core.messagebox.askyesno(
+                    "Військовий облік",
+                    "Позначити вибрану дію виконаною?",
+                    parent=win,
+                ):
+                    return
                 con = core.db()
                 try:
                     military.complete_action(con, int(sel[0])); con.commit()
@@ -229,7 +271,13 @@ def install(core, base_app):
             refresh(); win.transient(self)
 
         def open_official_reconciliation_log(self):
+            existing = getattr(self, "_military_reconciliation_window", None)
+            if _alive(existing):
+                existing.lift()
+                existing.focus_force()
+                return
             win = core.tk.Toplevel(self)
+            self._military_reconciliation_window = win
             _configure_window(core, win, "Журнал офіційних звірянь №1487", 1120, 680)
             body = core.ttk.Frame(win, padding=12); body.pack(fill="both", expand=True)
             core.ttk.Label(body, text="Журнал офіційних звірянь", style="Title.TLabel").pack(anchor="w")
@@ -266,13 +314,28 @@ def install(core, base_app):
             y=core.ttk.Scrollbar(frame,orient="vertical",command=tree.yview); tree.configure(yscrollcommand=y.set)
             tree.grid(row=0,column=0,sticky="nsew"); y.grid(row=0,column=1,sticky="ns")
 
+            reconciliation_sort_state = {}
+            reconciliation_sort_columns = (
+                ("date", "Дата", "date", None),
+                ("kind", "Вид", "text", None),
+                ("method", "Спосіб", "text", None),
+                ("authority", "Орган", "text", None),
+                ("reference", "Реквізит", "text", None),
+            )
+            apply_reconciliation_sort = configure_sortable_tree(
+                tree, reconciliation_sort_columns, reconciliation_sort_state, "reconciliation"
+            )
+
             def refresh():
+                selected_ids = tuple(tree.selection())
                 for iid in tree.get_children(): tree.delete(iid)
                 con=core.db()
                 try: rows=military.reconciliation_history(con)
                 finally: con.close()
                 for row in rows:
-                    tree.insert("","end",values=(row["reconciliation_date"],military.RECONCILIATION_LABELS.get(row["kind"],row["kind"]),row["method"] or "—",row["authority"] or "—",row["reference"] or "—"))
+                    tree.insert("","end",iid=str(row["id"]),values=(row["reconciliation_date"],military.RECONCILIATION_LABELS.get(row["kind"],row["kind"]),row["method"] or "—",row["authority"] or "—",row["reference"] or "—"))
+                apply_reconciliation_sort()
+                restore_tree_selection(tree, selected_ids)
 
             def add_record():
                 try:

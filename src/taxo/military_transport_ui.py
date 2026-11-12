@@ -5,7 +5,10 @@ from __future__ import annotations
 from datetime import date, datetime
 
 import military_transport_2026 as mt
-from table_sorting import sort_treeview
+from table_sorting import (
+    configure_sortable_tree as _configure_sortable_tree,
+    restore_tree_selection as _restore_tree_selection,
+)
 
 
 def _alive(widget):
@@ -75,65 +78,6 @@ def _selected_tree_id(tree):
     return sel[0]
 
 
-
-def _restore_tree_selection(tree, item_ids):
-    """Restore only still-visible stable Treeview IDs after refresh."""
-    visible = set(tree.get_children(""))
-    retained = tuple(iid for iid in item_ids if iid in visible)
-    if not retained:
-        return ()
-    tree.selection_set(retained)
-    tree.focus(retained[0])
-    try:
-        tree.see(retained[0])
-    except Exception:
-        pass
-    return retained
-
-
-def _configure_sortable_tree(tree, columns, sort_state, state_key):
-    """Attach type-aware click sorting without changing source data."""
-    specs = {
-        key: (label, value_type, status_order)
-        for key, label, value_type, status_order in columns
-    }
-
-    def apply_current():
-        current = sort_state.get(state_key)
-        if current is None:
-            return ()
-        column, descending = current
-        _label, value_type, status_order = specs[column]
-        order = sort_treeview(
-            tree,
-            column,
-            descending,
-            value_type=value_type,
-            status_order=status_order,
-        )
-        update_headings()
-        return tuple(order)
-
-    def sort_by_header(column):
-        current = sort_state.get(state_key)
-        descending = bool(current and current[0] == column and not current[1])
-        sort_state[state_key] = (column, descending)
-        return apply_current()
-
-    def update_headings():
-        current = sort_state.get(state_key)
-        for key, (label, _value_type, _status_order) in specs.items():
-            direction = ""
-            if current and current[0] == key:
-                direction = " ▼" if current[1] else " ▲"
-            tree.heading(
-                key,
-                text=label + direction,
-                command=lambda name=key: sort_by_header(name),
-            )
-
-    update_headings()
-    return apply_current
 
 
 def _dialog(core, parent, title, fields, save_label="Зберегти"):
