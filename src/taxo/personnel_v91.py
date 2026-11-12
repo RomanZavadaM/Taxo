@@ -2265,6 +2265,7 @@ def install(core, base_app):
             }
             self.personnel_overview_status_order = ("Працює", "Звільнений")
             self.personnel_overview_sort = None
+            self.personnel_overview_selection = ()
             for key,label,width,_kind in personnel_columns:
                 tree.heading(
                     key,
@@ -2279,6 +2280,10 @@ def install(core, base_app):
             tree.tag_configure("inactive",foreground=core.PALETTE["muted"])
             tree.bind("<Double-1>",lambda _event:self._open_personnel_overview_employee())
             tree.bind("<Return>",lambda _event:self._open_personnel_overview_employee())
+            tree.bind(
+                "<<TreeviewSelect>>",
+                lambda _event:self._remember_personnel_overview_selection(),
+            )
 
             footer=core.ttk.Frame(overview,padding=(12,2,12,10))
             footer.pack(fill="x")
@@ -2434,6 +2439,14 @@ def install(core, base_app):
                 command=self.show_vehicle_documents_report,
             ).pack(side="right", padx=(12,0))
 
+        def _remember_personnel_overview_selection(self):
+            tree = getattr(self, "personnel_overview_tree", None)
+            if not widget_alive(tree):
+                return
+            selected = tuple(tree.selection())
+            if selected:
+                self.personnel_overview_selection = selected
+
         def _update_personnel_overview_sort_headings(self):
             tree = getattr(self, "personnel_overview_tree", None)
             if not widget_alive(tree):
@@ -2502,6 +2515,12 @@ def install(core, base_app):
             if not widget_alive(tree):
                 return
             selected_ids = tuple(tree.selection())
+            if selected_ids:
+                self.personnel_overview_selection = selected_ids
+            else:
+                selected_ids = tuple(
+                    getattr(self, "personnel_overview_selection", ())
+                )
             selected_sort = getattr(self, "personnel_overview_sort", None)
             for item in tree.get_children(): tree.delete(item)
             query=""
