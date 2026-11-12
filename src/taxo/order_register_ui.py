@@ -369,8 +369,10 @@ def install_order_register(
             con2.rollback(); core.messagebox.showerror("Накази",str(exc),parent=win); return
         finally:
             con2.close()
-        # A deleted order cannot be reselected when filters change.
+        # Clear the Treeview selection before refresh; otherwise refresh
+        # would remember the just-deleted ID again from the old widget state.
         nonlocal remembered_order_id
+        order_tree.selection_set(())
         remembered_order_id = None
         refresh_orders()
 
