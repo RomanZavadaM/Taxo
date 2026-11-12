@@ -748,12 +748,18 @@ class TachographModule:
         dest=SCAN_DIR/f"{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{p.name}"
         shutil.copy2(p,dest)
         circles=detect_discs(dest)
+        detected_circle=bool(circles)
         con=tdb()
-        if not circles: circles=[(0,0,0)]
+        if not detected_circle: circles=[(0,0,0)]
         for i,(cx,cy,r) in enumerate(circles,1):
             con.execute("INSERT INTO discs(source_path,scan_name,disc_no,cx,cy,radius,created_at) VALUES(?,?,?,?,?,?,?)",(stored_scan_path(dest),p.name,i,cx,cy,r,datetime.now().isoformat(timespec="seconds")))
         con.commit();con.close()
-        if not circles: messagebox.showwarning("Шайба",f"Не вдалося автоматично знайти коло у {p.name}. Її можна буде налаштувати вручну.",parent=self.parent)
+        if not detected_circle:
+            messagebox.showwarning(
+                "Шайба",
+                f"Не вдалося автоматично знайти коло у {p.name}. Її можна буде налаштувати вручну.",
+                parent=self.parent,
+            )
 
     def recognize_unprocessed(self, silent=False):
         """Розпізнає лише шайби без інтервалів; вже перевірені дані не замінює."""

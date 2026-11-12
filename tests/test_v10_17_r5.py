@@ -248,6 +248,13 @@ class TachographDialogCancellationR5Tests(unittest.TestCase):
         finally:
             root.destroy()
 
+    def test_import_keeps_missing_circle_warning_reachable(self):
+        source = inspect.getsource(tachograph.TachographModule._import_one)
+        self.assertIn("detected_circle=bool(circles)", source)
+        self.assertIn("if not detected_circle: circles=[(0,0,0)]", source)
+        self.assertIn("if not detected_circle:", source)
+        self.assertIn("Не вдалося автоматично знайти коло", source)
+
     def test_import_and_seed_only_recognize_discs_without_intervals(self):
         import_source = inspect.getsource(tachograph.TachographModule.import_scan)
         self.assertIn("recognize_unprocessed(silent=True)", import_source)
