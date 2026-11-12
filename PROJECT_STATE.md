@@ -4,6 +4,13 @@
 
 ## Поточний підтверджений інтегрований стан
 
+- **Stable / Latest — [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).** Власник прийняв 25/25 ручних сценаріїв без зауважень і дав команду «зливай у main». Exact immutable source/tag `65bc80ecae85793cb7c2c14edd4d3eabaa2b4470`. [Guarded promotion CI 43303075684](https://github.com/RomanZavadaM/Taxo/actions/runs/43303075684) SUCCESS; `releases/latest=v10.18-r3`, `prerelease=false`, 8 assets (Windows, Win7 Setup+portable, macOS Intel/ARM portable, START, SHA256).
+- Код r1–r3 інтегровано через [PR #387](https://github.com/RomanZavadaM/Taxo/pull/387), merge `cff3e8fe10bc210b67a1fb1dfb00efd092e30aee`. Release-marker PR #388 merged `743c8f94d784f389538c5181f80578635fc79fd1`; повторні інтеграційні Windows, Windows 7, macOS і START перевірки успішні.
+- **Rollback / попередня Stable — [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)**, exact source `6536a6da6cade49229fa1944e2aa47f941df40a6`, 8 assets, immutable.
+- **Наступна нова кодова ревізія — 10.18-r4.** UI-аудит незавершених таблиць/Toplevel та edge-case regression. Ручний Windows DPI/focus gate для неперевірених сценаріїв pending. Бібліотеку шаблонів і сховище документів не чіпати.
+
+## Історичний стан до Stable 10.18-r3 (не поточний статус)
+
 - **Stable / Latest — [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)** за прямою командою власника від 12.11.2026. Exact immutable source/tag `6536a6da6cade49229fa1944e2aa47f941df40a6`. Guarded stable workflow [43271144404](https://github.com/RomanZavadaM/Taxo/actions/runs/43271144404) **SUCCESS**: 8 перевірених assets (Setup Windows, Setup Win7, portable Windows/Win7/macOS Intel/ARM, START, SHA256); GitHub `releases/latest` = `v10.17-r10`, `prerelease=false`. Існуючі workflow release/security без змін.
 - **Код 10.17-r10 інтегровано в main** через [PR #378](https://github.com/RomanZavadaM/Taxo/pull/378), merge `bf20d20f1e0ac76317544562137d004e5303bee1`; exact-source CI START 43267826061 (**1205 tests**), Windows 43267844221, Win7 43267845707, macOS 43267844237 — всі **SUCCESS**. Після синхронізації з main перевірки для інтеграційного head `8cd4aba2490433df72c098dae8858287eb5c38b5` також SUCCESS. [PR #380](https://github.com/RomanZavadaM/Taxo/pull/380), merge `273ccf89badb777dcffe636f4e62f3a8d2e47e5c`, запустив guard із markers `.release/stable-current`/`.release/stable-promote`, generic publisher пропущено.
 - **Попередня Stable / rollback — [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8)**, exact tag `115df1c48f96e1e98d6ee3ae40e4ef48f34dacc6`, повні 8 assets, незмінна.
