@@ -14,10 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class StoirDialogCancellationR4Tests(unittest.TestCase):
     def test_revision_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.17-r4")
+        self.assertIn(main.APP_VERSION, ("10.17-r4", "10.17-r5"))
         self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"),
                          "Version: 10.17-r4\n")
-        self.assertIn("Taxo 10.17-r4", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_each_stoir_dialog_has_cancel_and_explicit_save(self):
         source = inspect.getsource(vehicle_maintenance_ui.open_maintenance_center)

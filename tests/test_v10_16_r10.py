@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class VehicleFormSeparationR10Tests(unittest.TestCase):
     def test_version_and_start_guard_include_new_form(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4"))
+        self.assertIn(main.APP_VERSION, ("10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: " + main.APP_VERSION + "\n",
