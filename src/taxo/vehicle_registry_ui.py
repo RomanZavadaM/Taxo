@@ -22,6 +22,13 @@ from vehicle_form_ui import vehicle_form
 from table_sorting import sort_treeview
 
 
+VEHICLE_HEADINGS = {
+        "id": "ID", "name": "Назва", "plate": "Держ. №", "garage": "Гар. №",
+        "make": "Марка / модель", "year": "Рік", "ownership": "Власність / користування",
+        "active": "Статус", "documents": "Документи", "notes": "Примітка",
+    }
+
+
 def build_vehicles(app):
     top = ttk.Frame(app.tab_vehicles)
     top.pack(fill="x", padx=10, pady=8)
@@ -38,11 +45,7 @@ def build_vehicles(app):
     ).pack(anchor="w", padx=12)
     cols = ("id", "name", "plate", "garage", "make", "year", "ownership", "active", "documents", "notes")
     app.vehicle_tree = ttk.Treeview(app.tab_vehicles, columns=cols, show="headings", height=25)
-    heads = {
-        "id": "ID", "name": "Назва", "plate": "Держ. №", "garage": "Гар. №",
-        "make": "Марка / модель", "year": "Рік", "ownership": "Власність / користування",
-        "active": "Статус", "documents": "Документи", "notes": "Примітка",
-    }
+    heads = VEHICLE_HEADINGS
     widths = {
         "id": 45, "name": 145, "plate": 105, "garage": 80, "make": 150,
         "year": 60, "ownership": 155, "active": 75, "documents": 260, "notes": 200,
@@ -124,12 +127,7 @@ def load_vehicles(app, db_factory):
     selected_sort = getattr(app, "vehicle_sort", None)
     if selected_sort:
         sort_treeview(app.vehicle_tree, *selected_sort)
-        update_sort_headings(app.vehicle_tree, {
-            "id": "ID", "name": "Назва", "plate": "Держ. №",
-            "garage": "Гар. №", "make": "Марка / модель",
-            "year": "Рік", "ownership": "Власність / користування",
-            "active": "Статус", "documents": "Документи", "notes": "Примітка",
-        }, selected_sort)
+        update_sort_headings(app.vehicle_tree, VEHICLE_HEADINGS, selected_sort)
 
 
 def selected_vehicle(app, db_factory):
