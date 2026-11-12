@@ -19,6 +19,7 @@ from vehicle_documents_ui import (
     open_vehicle_documents,
 )
 from vehicle_form_ui import vehicle_form
+from table_sorting import sort_treeview
 
 
 def build_vehicles(app):
@@ -46,8 +47,19 @@ def build_vehicles(app):
         "id": 45, "name": 145, "plate": 105, "garage": 80, "make": 150,
         "year": 60, "ownership": 155, "active": 75, "documents": 260, "notes": 200,
     }
+    app.vehicle_sort = getattr(app, "vehicle_sort", None)
+
+    def sort_by_header(column):
+        previous = app.vehicle_sort
+        descending = not previous[1] if previous and previous[0] == column else False
+        app.vehicle_sort = (column, descending)
+        sort_treeview(app.vehicle_tree, column, descending)
+        update_sort_headings(app.vehicle_tree, heads, app.vehicle_sort)
+
     for col in cols:
-        app.vehicle_tree.heading(col, text=heads[col])
+        app.vehicle_tree.heading(
+            col, text=heads[col], command=lambda name=col: sort_by_header(name)
+        )
         app.vehicle_tree.column(col, width=widths[col], anchor="w")
     vehicle_y = ttk.Scrollbar(app.tab_vehicles, orient="vertical", command=app.vehicle_tree.yview)
     vehicle_x = ttk.Scrollbar(app.tab_vehicles, orient="horizontal", command=app.vehicle_tree.xview)
@@ -60,9 +72,30 @@ def build_vehicles(app):
     app.load_vehicles()
 
 
+def update_sort_headings(tree, headings, current_sort):
+    """Show the active sort direction without changing the column identifiers."""
+    for column, label in headings.items():
+        suffix = ""
+        if current_sort and current_sort[0] == column:
+            suffix = " ▼" if current_sort[1] else " ▲"
+        tree.heading(column, text=label + suffix)
+
+
+def _selected_vehicle_ids(tree):
+    """Remember the selected vehicle across an ordinary Refresh operation."""
+    result = set()
+    for iid in tree.selection():
+        try:
+            result.add(int(tree.set(iid, "id")))
+        except (ValueError, TypeError):
+            continue
+    return result
+
+
 def load_vehicles(app, db_factory):
     if not hasattr(app, "vehicle_tree"):
         return
+    selected_ids = _selected_vehicle_ids(app.vehicle_tree)
     for item in app.vehicle_tree.get_children():
         app.vehicle_tree.delete(item)
     con = db_factory()
@@ -72,8 +105,9 @@ def load_vehicles(app, db_factory):
         data = [(row, vehicle_document_summary_text(con, row["id"])) for row in rows]
     finally:
         con.close()
+    restored = []
     for row, doc_state in data:
-        app.vehicle_tree.insert(
+        iid = app.vehicle_tree.insert(
             "",
             "end",
             values=(
@@ -82,6 +116,20 @@ def load_vehicles(app, db_factory):
                 doc_state, row["notes"],
             ),
         )
+        if row["id"] in selected_ids:
+            restored.append(iid)
+
+    if restored:
+        app.vehicle_tree.selection_set(restored)
+    selected_sort = getattr(app, "vehicle_sort", None)
+    if selected_sort:
+        sort_treeview(app.vehicle_tree, *selected_sort)
+        update_sort_headings(app.vehicle_tree, {
+            "id": "ID", "name": "Назва", "plate": "Держ. №",
+            "garage": "Гар. №", "make": "Марка / модель",
+            "year": "Рік", "ownership": "Власність / користування",
+            "active": "Статус", "documents": "Документи", "notes": "Примітка",
+        }, selected_sort)
 
 
 def selected_vehicle(app, db_factory):
