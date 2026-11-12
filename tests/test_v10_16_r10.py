@@ -57,7 +57,7 @@ class VehicleFormSeparationR10Tests(unittest.TestCase):
             return_value="vehicle-card",
         ) as edited:
             result = main.App.vehicle_form(app, {"id": 11})
-        self.assertEqual(result, "vehicle-card")
+        self.assertIsNone(result)
         edited.assert_called_once_with(
             app,
             main.db,
