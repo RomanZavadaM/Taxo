@@ -1,7 +1,7 @@
 # Taxo 10.18-r3 — СТОІР: сортування робочих таблиць
 
-**Тип:** тестова кодова ревізія / candidate.  
-**База:** перевірений cumulative checkpoint 10.18-r2; Stable/Latest лишається [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10).
+**Тип:** Stable/Latest, підвищено 12.11.2026 після ручного приймання 25/25 PASS.  
+**База:** cumulative 10.18-r1…r3, попередня Stable/rollback — [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10).
 
 ## Що змінено
 
@@ -12,4 +12,4 @@
 
 ## Не змінено
 
-SQLite schema, бізнес-дані СТОІР, ОТК, plan/fact, документи, backup, бібліотека шаблонів і сховище документів. Stable/Latest — 10.17-r10.
+SQLite schema, бізнес-дані СТОІР, ОТК, plan/fact, документи, backup, бібліотека шаблонів і сховище документів. Stable/Latest — 10.18-r3; попередня 10.17-r10 збережена.
