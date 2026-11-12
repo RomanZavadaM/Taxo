@@ -6,6 +6,7 @@ from datetime import date, datetime
 
 import vehicle_maintenance as maint
 from vehicle_documents import best_current_document, document_status, display_date
+from table_sorting import configure_sortable_tree, restore_tree_selection
 
 MAINTENANCE_STATUS_LABELS = {
     "unknown": "немає базового ТО",
@@ -209,6 +210,60 @@ def open_maintenance_center(app, core):
         core, report_frame, ("vehicle", "odometer", "avg", "to1", "to2", "requests"),
         (("vehicle", "ТЗ", 220), ("odometer", "Одометр", 110), ("avg", "Сер. км/день", 110),
          ("to1", "ТО-1", 230), ("to2", "ТО-2", 230), ("requests", "Відкриті заявки", 120)),
+    )
+
+    sort_state = {}
+    apply_mileage_sort = configure_sortable_tree(
+        mileage_tree,
+        (
+            ("at", "Дата / час", "datetime", None),
+            ("km", "Одометр, км", "number", None),
+            ("source", "Джерело", "text", None),
+            ("note", "Примітка", "text", None),
+        ),
+        sort_state,
+        "mileage",
+    )
+    apply_service_sort = configure_sortable_tree(
+        service_tree,
+        (
+            ("date", "Дата", "date", None),
+            ("type", "Подія", "text", None),
+            ("km", "Одометр", "number", None),
+            ("description", "Роботи / опис", "text", None),
+            ("performer", "Виконавець", "text", None),
+            ("document", "Документ", "text", None),
+            ("note", "Примітка", "text", None),
+        ),
+        sort_state,
+        "service",
+    )
+    apply_request_sort = configure_sortable_tree(
+        request_tree,
+        (
+            ("id", "№", "number", None),
+            ("reported", "Зареєстровано", "datetime", None),
+            ("priority", "Пріоритет", "status", tuple(maint.REQUEST_PRIORITY_LABELS[key] for key in maint.REQUEST_PRIORITIES)),
+            ("status", "Статус", "status", tuple(maint.REQUEST_STATUS_LABELS[key] for key in maint.REQUEST_STATUSES)),
+            ("defect", "Несправність / заявка", "text", None),
+            ("assignee", "Виконавець", "text", None),
+            ("resolution", "Результат", "text", None),
+        ),
+        sort_state,
+        "requests",
+    )
+    apply_report_sort = configure_sortable_tree(
+        report_tree,
+        (
+            ("vehicle", "ТЗ", "text", None),
+            ("odometer", "Одометр", "number", None),
+            ("avg", "Сер. км/день", "number", None),
+            ("to1", "ТО-1", "text", None),
+            ("to2", "ТО-2", "text", None),
+            ("requests", "Відкриті заявки", "number", None),
+        ),
+        sort_state,
+        "fleet",
     )
 
     inspection_box = core.ttk.Frame(inspection, padding=14); inspection_box.pack(fill="both", expand=True)
@@ -578,10 +633,16 @@ def open_maintenance_center(app, core):
         vid = selected_vehicle_id()
         if not vid:
             return
+        selected_rows = {
+            "mileage": tuple(mileage_tree.selection()),
+            "service": tuple(service_tree.selection()),
+            "requests": tuple(request_tree.selection()),
+            "fleet": tuple(report_tree.selection()),
+        }
         con2 = core.db()
         try:
             plan = maint.vehicle_plan(con2, vid)
-            rows = con2.execute("""SELECT reading_at,reading_km,source_type,COALESCE(notes,'') AS notes
+            rows = con2.execute("""SELECT id,reading_at,reading_km,source_type,COALESCE(notes,'') AS notes
                                   FROM vehicle_odometer_readings WHERE vehicle_id=? ORDER BY reading_at DESC,id DESC LIMIT 500""", (vid,)).fetchall()
             events = con2.execute("SELECT * FROM vehicle_maintenance_events WHERE vehicle_id=? ORDER BY event_date DESC,id DESC", (vid,)).fetchall()
             reqs = maint.repair_requests(con2, vid, include_closed=True)
@@ -605,7 +666,7 @@ def open_maintenance_center(app, core):
                 tree.delete(iid)
         for row in rows:
             mileage_tree.insert(
-                "", "end",
+                "", "end", iid=str(row["id"]),
                 values=(
                     _display_timestamp(row["reading_at"]),
                     row["reading_km"],
@@ -615,7 +676,7 @@ def open_maintenance_center(app, core):
             )
         for row in events:
             service_tree.insert(
-                "", "end",
+                "", "end", iid=str(row["id"]),
                 values=(
                     _display_day(row["event_date"]),
                     _maintenance_event_label(row["event_type"]),
@@ -625,7 +686,7 @@ def open_maintenance_center(app, core):
             )
         for row in reqs:
             request_tree.insert(
-                "", "end",
+                "", "end", iid=str(row["id"]),
                 values=(
                     row["id"],
                     _display_timestamp(row["reported_at"]),
@@ -638,8 +699,18 @@ def open_maintenance_center(app, core):
             vehicle = item["vehicle"]; fplan = item["plan"]
             label = " — ".join(x for x in (str(vehicle["plate"] or "").strip(), str(vehicle["name"] or vehicle["make_model"] or "").strip()) if x)
             favg = fplan.get("average_daily_km")
-            report_tree.insert("", "end", iid=str(vehicle["id"]), values=(label or f"ТЗ #{vehicle['id']}", fplan["current_odometer_km"] or "", f"{favg:.1f}" if favg else "—",
+            report_tree.insert("", "end", iid=str(vehicle["id"]), values=(label or f"ТЗ #{vehicle['id']}", fplan["current_odometer_km"] or "", f"{favg:.1f}" if favg else "",
                                                     _due_text(fplan["to1"]), _due_text(fplan["to2"]), item["open_requests"]))
+
+        apply_mileage_sort()
+        apply_service_sort()
+        apply_request_sort()
+        apply_report_sort()
+        restore_tree_selection(mileage_tree, selected_rows["mileage"])
+        restore_tree_selection(service_tree, selected_rows["service"])
+        restore_tree_selection(request_tree, selected_rows["requests"])
+        restore_tree_selection(report_tree, selected_rows["fleet"])
+
         if otk is None:
             inspection_status.set("Протокол ОТК: відсутній у реєстрі документів ТЗ.")
         else:
