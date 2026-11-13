@@ -21,6 +21,7 @@
 - Defender gate є fail-closed: якщо scanner недоступний, update/scan завершується помилкою або є detection — відповідний modern Windows або Win7 artifact не завантажується;
 - scan виконується без remediation, після чого SHA-256 Portable та Setup повторно звіряються з manifest;
 - додається build provenance: exact Git head, runner, Python, PyInstaller, `pip freeze`, SHA-256 spec;
+- release-critical Windows, Win7, macOS та source-test workflows на PR тепер явно checkout-ять `pull_request.head.sha`, а не синтетичний `refs/pull/.../merge`; це робить CI-перевірку справді exact-source;
 - GitHub Actions artifacts отримують унікальне ім'я з `run ID` замість повторюваного `Taxo-current-Windows-x64`; версія лишається в канонічних іменах ZIP/EXE всередині artifact;
 - додано regression contract, який фіксує security gate та порядок upload.
 
