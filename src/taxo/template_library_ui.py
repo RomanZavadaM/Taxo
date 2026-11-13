@@ -13,6 +13,7 @@ import threading
 from tkinter import ttk
 
 from template_library_service import LibraryView, inspect_workspace_library
+from template_library_preview_ui import open_template_preview
 
 # Avoid a new thread per click on a slow or disconnected network workspace.
 _READER_SLOT = threading.BoundedSemaphore(1)
@@ -90,7 +91,7 @@ def open_template_library(parent, services):
     ttk.Label(footer, textvariable=count).grid(row=0, column=0, sticky="w")
     refresh_button = ttk.Button(footer, text="Оновити")
     refresh_button.grid(row=0, column=1, padx=(4, 8))
-    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=2)
+    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=3)
 
     results = queue.Queue()
     state = {"closed": False, "busy": False, "generation": 0, "view": None,
@@ -145,6 +146,29 @@ def open_template_library(parent, services):
         attr = {"category": "category", "title": "title",
                 "kind": "kind", "revision": "revision_id"}[key]
         tree.heading(key, text=label, command=lambda k=attr: set_sort(k))
+
+    def open_selected_preview(_event=None):
+        """Open the selected, verified template revision without editing data."""
+        view = state["view"]
+        if state["closed"] or view is None or view.status != "AVAILABLE":
+            return
+        selection = tree.selection()
+        if not selection:
+            return
+        # IDs are selection keys only; never treat them as filesystem paths.
+        selected_key = selection[0]
+        for row in view.rows:
+            if row.template_id + "@" + row.revision_id == selected_key:
+                open_template_preview(
+                    win, view.root, services.app_version,
+                    row.template_id, row.revision_id
+                )
+                return
+
+    tree.bind("<Double-1>", open_selected_preview, add="+")
+    tree.bind("<Return>", open_selected_preview, add="+")
+    ttk.Button(footer, text="Переглянути шаблон",
+               command=open_selected_preview).grid(row=0, column=2, padx=(4, 8))
 
     search.trace_add("write", render_rows)
     combo.bind("<<ComboboxSelected>>", render_rows, add="+")
