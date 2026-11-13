@@ -10,6 +10,44 @@ import tachograph
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+class FakeTree:
+    def __init__(self):
+        self.records = {
+            "zero": {"confidence": 0},
+            "two": {"confidence": 2},
+            "blank": {"confidence": ""},
+        }
+        self.order = ["blank", "two", "zero"]
+        self.selected = ("zero",)
+        self.focused = "zero"
+        self.headings = {}
+
+    def get_children(self, parent=""):
+        return tuple(self.order)
+
+    def set(self, iid, column):
+        return self.records[iid][column]
+
+    def move(self, iid, parent, index):
+        self.order.remove(iid)
+        self.order.insert(index, iid)
+
+    def selection(self):
+        return self.selected
+
+    def selection_set(self, iids):
+        self.selected = (iids,) if isinstance(iids, str) else tuple(iids)
+
+    def focus(self, iid=None):
+        if iid is not None:
+            self.focused = iid
+        return self.focused
+
+    def heading(self, key, **kwargs):
+        self.headings.setdefault(key, {}).update(kwargs)
+
+
 class TachographTableSortingR4Tests(unittest.TestCase):
     def test_candidate_identity(self):
         self.assertEqual(main.APP_VERSION, "10.18-r4")
@@ -25,6 +63,25 @@ class TachographTableSortingR4Tests(unittest.TestCase):
         rows=(("missing",""),("old","02.01.2026"),("new","12.11.2026"))
         self.assertEqual(table_sorting.sorted_row_ids(rows,"date",value_type="date"),["old","new","missing"])
         self.assertEqual(table_sorting.sorted_row_ids(rows,"date",descending=True,value_type="date"),["new","old","missing"])
+
+    def test_current_sort_reapplies_after_refresh_with_zero_and_blank(self):
+        tree=FakeTree()
+        state={}
+        apply_sort=table_sorting.configure_sortable_tree(
+            tree,
+            (("confidence","Впевненість","number",None),),
+            state,
+            "intervals",
+        )
+        tree.headings["confidence"]["command"]()
+        self.assertEqual(tree.order,["zero","two","blank"])
+        self.assertEqual(tree.selection(),("zero",))
+
+        # Simulate a refresh that restores rows in database/default order.
+        tree.order=["two","blank","zero"]
+        apply_sort()
+        self.assertEqual(tree.order,["zero","two","blank"])
+        self.assertEqual(tree.selection(),("zero",))
 
     def test_tachograph_working_tables_use_typed_sorting(self):
         source=inspect.getsource(tachograph.TachographModule.build)
