@@ -36,7 +36,7 @@ class FakeTree:
 
 class MilitaryTransportSortingR1Tests(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.18-r1", "10.18-r2", "10.18-r3"))
+        self.assertIn(main.APP_VERSION, ("10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4"))
         self.assertEqual((ROOT/"VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n")
         self.assertIn("Taxo " + main.APP_VERSION, (ROOT/"START.bat").read_text("utf-8"))
 
