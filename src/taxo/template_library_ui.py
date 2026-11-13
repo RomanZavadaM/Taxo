@@ -3,8 +3,9 @@
 
 Tk is owned by this module; source file validation belongs to
 template_library_reader, and workspace selection to ApplicationServices.
-Closing this child window never closes Taxo. Blocking disk/network reads are
-performed off the Tk thread with a bounded number of active workers.
+Closing this child window never closes Taxo. Vendor templates remain read-only;
+creating a company copy is the only write action in this slice. Blocking reads
+and writes are performed off the Tk thread with bounded workers.
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ _FILTER_ALL = "Усі категорії"
 
 
 def open_template_library(parent, services):
-    """Open the library browser; returns a child window, never changes data."""
+    """Open the library browser and allow explicit creation of a company copy."""
     from tkinter import Toplevel, StringVar, TclError
 
     win = Toplevel(parent)
@@ -189,6 +190,9 @@ def open_template_library(parent, services):
 
     def show_result(view):
         state["view"] = view
+        copy_button.configure(
+            state="normal" if view.status == "AVAILABLE" else "disabled"
+        )
         status.set(view.summary)
         details.set(("%s · версія: %s" % (view.detail, view.package_version))
                     if view.package_version else view.detail)
@@ -218,6 +222,7 @@ def open_template_library(parent, services):
                 state["copy_busy"] = False
                 copy_button.configure(state="normal")
                 if ok:
+                    status.set("Власну копію створено.")
                     details.set(
                         "Власну копію створено: %s · власних копій: %d" % (
                             result.title,

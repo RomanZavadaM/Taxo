@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Read-only application-facing view of the offline template library.
+"""Application-facing template-library service.
 
-No Tk, database, archive installation or private template content is embedded
-here. The selected Taxo workspace is supplied by ApplicationServices rather
-than guessed from a machine-specific Windows path.
+No Tk, database or private template content is embedded here. Vendor reading
+stays read-only; the only write operation exposed in r1 is an explicit request
+to create a user-owned company copy in the active workspace.
 """
 from __future__ import annotations
 
@@ -11,8 +11,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
-from template_library_reader import LibrarySnapshot, default_library_root, inspect_library
 from company_template_store import create_company_copy, list_company_templates
+from template_library_reader import (
+    LibrarySnapshot,
+    default_library_root,
+    inspect_library,
+)
 
 
 CATEGORY_LABELS = {
@@ -25,7 +29,7 @@ CATEGORY_LABELS = {
 }
 STATUS_LABELS = {
     "NOT_INSTALLED": "Бібліотеку шаблонів не встановлено.",
-    "AVAILABLE": "Бібліотеку прочитано. Шаблони доступні лише для перегляду.",
+    "AVAILABLE": "Бібліотеку прочитано. Початкові шаблони можна переглядати та копіювати у власні.",
     "INCOMPATIBLE": "Версія бібліотеки не сумісна із Taxo.",
     "DAMAGED": "Бібліотека містить пошкоджені або непідтримувані дані.",
     "UNAVAILABLE": "Немає доступу до бібліотеки.",
