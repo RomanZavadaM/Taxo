@@ -3,6 +3,15 @@ name: Publish current Taxo release
 
 on:
   workflow_dispatch:
+    inputs:
+      package_set:
+        description: Release asset set
+        required: true
+        type: choice
+        options:
+          - portable
+          - full
+        default: portable
   push:
     branches:
       - main
@@ -39,9 +48,18 @@ jobs:
           fi
           if [ -n "${marker}" ] && [ "${marker}" = "${version}" ]; then
             echo "mode=stable" >> "${GITHUB_OUTPUT}"
-          else
-            echo "mode=publish" >> "${GITHUB_OUTPUT}"
+            exit 0
           fi
+
+          requested="full"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            requested="${{ inputs.package_set }}"
+          fi
+          case "${requested}" in
+            portable|full) ;;
+            *) echo "Unsupported package_set: ${requested}" >&2; exit 1 ;;
+          esac
+          echo "mode=${requested}" >> "${GITHUB_OUTPUT}"
 
       - name: Promote existing current release to stable
         if: ${{ steps.mode.outputs.mode == 'stable' }}
@@ -103,7 +121,7 @@ jobs:
           fetch-depth: 0
 
       - name: Read version and refuse overwrite
-        if: ${{ steps.mode.outputs.mode == 'publish' }}
+        if: ${{ steps.mode.outputs.mode != 'stable' }}
         id: version
         shell: bash
         run: |
@@ -137,7 +155,7 @@ jobs:
           echo "notes=${notes}" >> "${GITHUB_OUTPUT}"
 
       - name: Find successful build runs for exact source
-        if: ${{ steps.mode.outputs.mode == 'publish' }}
+        if: ${{ steps.mode.outputs.mode != 'stable' }}
         id: runs
         shell: bash
         run: |
@@ -166,7 +184,7 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Download isolated exact-head platform packages
-        if: ${{ steps.mode.outputs.mode == 'publish' }}
+        if: ${{ steps.mode.outputs.mode != 'stable' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -194,11 +212,12 @@ jobs:
           gh run download "${mac}" --repo "${GITHUB_REPOSITORY}" --dir collected/macos
 
       - name: Assemble exact release files
-        if: ${{ steps.mode.outputs.mode == 'publish' }}
+        if: ${{ steps.mode.outputs.mode != 'stable' }}
         shell: bash
         run: |
           set -euo pipefail
           c="${{ steps.version.outputs.candidate }}"
+          mode="${{ steps.mode.outputs.mode }}"
           mkdir -p release_files
 
           copy_one() {
@@ -215,11 +234,14 @@ jobs:
           }
 
           copy_one "Taxo_v${c}_Windows_x64_Portable.zip" "Taxo_v${c}_Windows_x64_Portable.zip" "collected/windows"
-          copy_one "Taxo_v${c}_Setup_Windows_x64.exe" "Taxo_v${c}_Setup_Windows_x64.exe" "collected/windows"
           copy_one "Taxo_v${c}_Windows7_x64_Portable.zip" "Taxo_v${c}_Windows7_x64_Portable.zip" "collected/win7"
-          copy_one "Taxo_v${c}_Setup_Windows7_x64.exe" "Taxo_v${c}_Setup_Windows7_x64.exe" "collected/win7"
           copy_one "Taxo_v${c}_macOS_arm64_Portable.zip" "Taxo_v${c}_macOS_arm64_Portable.zip" "collected/macos"
           copy_one "Taxo_v${c}_macOS_x86_64_Portable.zip" "Taxo_v${c}_macOS_x86_64_Portable.zip" "collected/macos"
+
+          if [ "${mode}" = "full" ]; then
+            copy_one "Taxo_v${c}_Setup_Windows_x64.exe" "Taxo_v${c}_Setup_Windows_x64.exe" "collected/windows"
+            copy_one "Taxo_v${c}_Setup_Windows7_x64.exe" "Taxo_v${c}_Setup_Windows7_x64.exe" "collected/win7"
+          fi
 
           start="Taxo_v${c}_START"
           git archive --format=zip --prefix="${start}/" --output="release_files/${start}.zip" "${{ steps.source.outputs.sha }}"
@@ -235,16 +257,23 @@ jobs:
           )
 
       - name: Publish immutable prerelease
-        if: ${{ steps.mode.outputs.mode == 'publish' }}
+        if: ${{ steps.mode.outputs.mode != 'stable' }}
         shell: bash
         run: |
           set -euo pipefail
           tag="${{ steps.version.outputs.tag }}"
           sha="${{ steps.source.outputs.sha }}"
-          gh release create "${tag}" release_files/*             --repo "${GITHUB_REPOSITORY}"             --target "${sha}"             --title "Taxo ${{ steps.version.outputs.version }}"             --notes-file "${{ steps.version.outputs.notes }}"             --prerelease
+          mode="${{ steps.mode.outputs.mode }}"
+          title="Taxo ${{ steps.version.outputs.version }}"
+          expected_assets=8
+          if [ "${mode}" = "portable" ]; then
+            title="${title} — Test Portable"
+            expected_assets=6
+          fi
+          gh release create "${tag}" release_files/*             --repo "${GITHUB_REPOSITORY}"             --target "${sha}"             --title "${title}"             --notes-file "${{ steps.version.outputs.notes }}"             --prerelease
 
           target="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" --jq '.object.sha')"
           test "${target}" = "${sha}"
 
           assets="$(gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets | length')"
-          test "${assets}" -eq 8
+          test "${assets}" -eq "${expected_assets}"
