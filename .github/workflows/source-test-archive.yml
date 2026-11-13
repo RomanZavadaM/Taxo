@@ -16,6 +16,17 @@ on:
       - '!WORKLOG.md'
       - '!docs/**'
       - 'docs/releases/**'
+  pull_request:
+    paths:
+      - '**'
+      - '!README.md'
+      - '!START_HERE.md'
+      - '!HANDOFF_CURRENT.md'
+      - '!PROJECT_RULES.md'
+      - '!PROJECT_STATE.md'
+      - '!WORKLOG.md'
+      - '!docs/**'
+      - 'docs/releases/**'
   workflow_dispatch:
 
 permissions:
@@ -30,6 +41,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
       - name: Install Tk/Xvfb runtime
