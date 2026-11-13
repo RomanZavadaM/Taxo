@@ -24,6 +24,7 @@
 - release-critical Windows, Win7, macOS та source-test workflows на PR тепер явно checkout-ять `pull_request.head.sha`, а не синтетичний `refs/pull/.../merge`; це робить CI-перевірку справді exact-source;
 - `Package Taxo START source` отримав `pull_request` trigger, тому exact-source release gate існує і для кандидатних гілок, які не називаються `work/v10.*`;
 - GitHub Actions artifacts отримують унікальне ім'я з `run ID` замість повторюваного `Taxo-current-Windows-x64`; версія лишається в канонічних іменах ZIP/EXE всередині artifact;
+- штатний `publish-current.yml` для ручного тестового випуску за замовчуванням формує **portable-only prerelease**: Windows x64, Windows 7 x64, macOS Intel, macOS Apple Silicon, START/source та спільний SHA256 manifest; Setup додається лише в явному `full` режимі, а Stable promotion як і раніше вимагає повні 8 assets;
 - додано regression contract, який фіксує security gate та порядок upload.
 
 ## Межі приймання
