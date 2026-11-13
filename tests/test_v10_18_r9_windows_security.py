@@ -109,6 +109,29 @@ class WindowsBinaryGateR9Tests(unittest.TestCase):
         )
         self.assertIn("  pull_request:", source_gate)
 
+    def test_current_publisher_defaults_to_portable_only_for_manual_test_release(self):
+        source = (
+            ROOT / ".github" / "workflows" / "publish-current.yml"
+        ).read_text(encoding="utf-8")
+        for marker in (
+            "package_set:",
+            "default: portable",
+            'requested="${{ inputs.package_set }}"',
+            'if [ "${mode}" = "full" ]; then',
+            "expected_assets=6",
+            'title="${title} — Test Portable"',
+            'test "${assets}" -eq "${expected_assets}"',
+        ):
+            self.assertIn(marker, source)
+
+        portable = source.index(
+            'copy_one "Taxo_v${c}_Windows_x64_Portable.zip"'
+        )
+        setup_guard = source.index('if [ "${mode}" = "full" ]; then')
+        setup = source.index('copy_one "Taxo_v${c}_Setup_Windows_x64.exe"')
+        self.assertLess(portable, setup_guard)
+        self.assertLess(setup_guard, setup)
+
 
 if __name__ == "__main__":
     unittest.main()
