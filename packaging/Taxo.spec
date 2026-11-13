@@ -49,7 +49,10 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
+    # Explicitly disable UPX for security/reputation diagnostics. The r8 hosted
+    # runner did not log an UPX invocation, but leaving this disabled prevents
+    # future runner-image changes from silently altering the executable.
+    upx=False,
     console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
@@ -64,7 +67,7 @@ coll = COLLECT(
     a.binaries,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name='Taxo',
 )
