@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OrderHistorySortingR10Tests(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6"))
+        self.assertIn(main.APP_VERSION, ("10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text("utf-8"),
             "Version: " + main.APP_VERSION + "\n",
