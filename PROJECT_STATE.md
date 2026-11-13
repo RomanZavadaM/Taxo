@@ -1,13 +1,23 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 12.11.2026.
+**Дата:** 13.11.2026.
 
 ## Поточний підтверджений інтегрований стан
 
-- **Stable / Latest — [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).** Власник прийняв 25/25 ручних сценаріїв без зауважень і дав команду «зливай у main». Exact immutable source/tag `65bc80ecae85793cb7c2c14edd4d3eabaa2b4470`. [Guarded promotion CI 43303075684](https://github.com/RomanZavadaM/Taxo/actions/runs/43303075684) SUCCESS; `releases/latest=v10.18-r3`, `prerelease=false`, 8 assets (Windows, Win7 Setup+portable, macOS Intel/ARM portable, START, SHA256).
-- Код r1–r3 інтегровано через [PR #387](https://github.com/RomanZavadaM/Taxo/pull/387), merge `cff3e8fe10bc210b67a1fb1dfb00efd092e30aee`. Release-marker PR #388 merged `743c8f94d784f389538c5181f80578635fc79fd1`; повторні інтеграційні Windows, Windows 7, macOS і START перевірки успішні.
-- **Rollback / попередня Stable — [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)**, exact source `6536a6da6cade49229fa1944e2aa47f941df40a6`, 8 assets, immutable.
-- **Наступна нова кодова ревізія — 10.18-r4.** UI-аудит незавершених таблиць/Toplevel та edge-case regression. Ручний Windows DPI/focus gate для неперевірених сценаріїв pending. Бібліотеку шаблонів і сховище документів не чіпати.
+- **`main` — `38f5de2b43571c5cb60291e378fa85e686f5f474`; кодова версія `10.18-r8`.** r8 код інтегрований, але executable release r8 не створено.
+- **Stable / Latest — [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).** `prerelease=false`, 8 assets; immutable робочий stable checkpoint. Stable/Latest під час security/release cleanup не змінювати.
+- **r8 executable publication — SECURITY HOLD.** Firefox заблокував попередній Windows ZIP повідомленням, яке Mozilla документує як Google Safe Browsing malware/download-protection verdict. Це не доказ зараження і не підстава називати warning false positive. r8 executable/Setup/Portable не публікувати.
+- **Publisher на `main` потребує виправлення перед наступним executable release.** Failed manual run `43495315686` зупинився до release через порожні run IDs та змішування artifacts між platform directories.
+- **Незлиті PR #406/#407/#408 не є частиною інтегрованого продуктового стану.** Їхній перевірений recovery-статус зафіксований у `HANDOFF_CURRENT.md` та Issue #61.
+- **Нова функціональність тимчасово призупинена.** Спочатку security/release cleanup.
+- **10.18-r9 уже використаний** як security/build-only test checkpoint і не може бути reused або переписаний. Наступний дозволений кодовий номер після cleanup-підготовки — **10.18-r10**, лише security/build/release plumbing до окремого рішення про повернення до функціонального розвитку.
+
+## Поточна release/security стратегія
+
+- Спочатку виправити publisher artifact isolation і жорстко зберегти r8 SECURITY HOLD.
+- Після цього новим r10 security/build checkpoint перенести потрібний r9 hardening на актуальний `main`, зберегти portable-only test publishing і додати обмежений retry Defender лише для `0x80070652`; malware scan та інші помилки лишаються fail-closed.
+- Звичайні функціональні ручні перевірки можна видавати як унікальні START/BAT source ZIP без executable package; online dependency installation не вважати незалежним supply-chain proof.
+- Нормальний Portable test release робити періодичним checkpoint після security gates; Stable змінюється лише за прямим рішенням власника.
 
 ## Історичний стан до Stable 10.18-r3 (не поточний статус)
 
