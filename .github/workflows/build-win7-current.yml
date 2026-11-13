@@ -66,6 +66,7 @@ jobs:
           if (!(Select-String -Path main.py -Pattern ('APP_VERSION = "' + $version + '"') -SimpleMatch)) { throw "main.APP_VERSION does not match VERSION.txt ($version)" }
           if (!(Test-Path 'packaging/Taxo_win7.spec')) { throw 'Win7 spec missing' }
           if (!(Test-Path 'assets/Бланк підтвердження.docx')) { throw 'Template missing' }
+          if (!(Test-Path 'scripts/windows_malware_gate.ps1')) { throw 'Windows malware gate missing' }
 
       - name: Install Win7 compatibility dependencies
         shell: pwsh
@@ -116,7 +117,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Taxo-current-Windows7-build-log
+          name: Taxo-Windows7-build-log-run-${{ github.run_id }}
           path: win7-build.log
           if-no-files-found: ignore
           retention-days: 7
@@ -144,13 +145,53 @@ jobs:
           $lines = foreach ($file in $files) { "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))" }
           $lines | Set-Content -Encoding ascii "SHA256SUMS_v${env:TAXO_CHECKSUM_STEM}_Windows7_x64.txt"
 
+      - name: Record exact Win7 build provenance
+        shell: pwsh
+        run: |
+          $out = "BUILD_PROVENANCE_v${env:TAXO_CHECKSUM_STEM}_Windows7_x64.txt"
+          $pythonVersion = ((python --version 2>&1) | Out-String).Trim()
+          $pyinstallerVersion = ((python -m PyInstaller --version 2>&1) | Out-String).Trim()
+          @(
+            "taxo_version=${env:TAXO_VERSION}",
+            "git_head=$(git rev-parse HEAD)",
+            "runner_os=${env:RUNNER_OS}",
+            "runner_arch=${env:RUNNER_ARCH}",
+            "python=$pythonVersion",
+            "pyinstaller=$pyinstallerVersion"
+          ) | Set-Content -Encoding utf8 $out
+          "pip_freeze_begin" | Add-Content -Encoding utf8 $out
+          python -m pip freeze | Sort-Object | Add-Content -Encoding utf8 $out
+          "pip_freeze_end" | Add-Content -Encoding utf8 $out
+          "Taxo_win7.spec_sha256=$((Get-FileHash packaging/Taxo_win7.spec -Algorithm SHA256).Hash.ToLowerInvariant())" | Add-Content -Encoding utf8 $out
+
+      - name: Mandatory Microsoft Defender malware gate for Win7 package
+        shell: pwsh
+        run: |
+          $bundle = "dist/${env:TAXO_CANDIDATE_STEM}_Windows7_x64"
+          $portable = "${env:TAXO_CANDIDATE_STEM}_Windows7_x64_Portable.zip"
+          $installer = "release_out/${env:TAXO_CANDIDATE_STEM}_Setup_Windows7_x64.exe"
+          ./scripts/windows_malware_gate.ps1 -Paths @($bundle, $portable, $installer)
+
+      - name: Verify Win7 package integrity after malware scan
+        shell: pwsh
+        run: |
+          $manifestPath = "SHA256SUMS_v${env:TAXO_CHECKSUM_STEM}_Windows7_x64.txt"
+          $manifest = @(Get-Content $manifestPath -Encoding ascii)
+          $files = @("${env:TAXO_CANDIDATE_STEM}_Windows7_x64_Portable.zip","release_out/${env:TAXO_CANDIDATE_STEM}_Setup_Windows7_x64.exe")
+          foreach ($file in $files) {
+            $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            $name = [IO.Path]::GetFileName($file)
+            if ("$actual  $name" -notin $manifest) { throw "Win7 integrity verification failed after malware scan: $name" }
+          }
+
       - name: Upload Win7 candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Taxo-current-Windows7-x64
+          name: Taxo-Windows7-x64-run-${{ github.run_id }}
           path: |
             Taxo_v*_Windows7_x64_Portable.zip
             release_out/Taxo_v*_Setup_Windows7_x64.exe
             SHA256SUMS_v*_Windows7_x64.txt
+            BUILD_PROVENANCE_v*_Windows7_x64.txt
           if-no-files-found: error
           retention-days: 30
