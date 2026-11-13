@@ -59,6 +59,35 @@ class WindowsBinaryGateR9Tests(unittest.TestCase):
         self.assertLess(malware, integrity)
         self.assertLess(integrity, upload)
 
+    def test_win7_workflow_has_the_same_malware_before_upload_contract(self):
+        source = (
+            ROOT / ".github" / "workflows" / "build-win7-current.yml"
+        ).read_text(encoding="utf-8")
+
+        required = (
+            "scripts/windows_malware_gate.ps1",
+            "Record exact Win7 build provenance",
+            "Mandatory Microsoft Defender malware gate for Win7 package",
+            "Verify Win7 package integrity after malware scan",
+            "Taxo-Windows7-x64-run-${{ github.run_id }}",
+        )
+        for marker in required:
+            self.assertIn(marker, source)
+
+        checksum = source.index("      - name: Create Win7 checksums")
+        provenance = source.index("      - name: Record exact Win7 build provenance")
+        malware = source.index(
+            "      - name: Mandatory Microsoft Defender malware gate for Win7 package"
+        )
+        integrity = source.index(
+            "      - name: Verify Win7 package integrity after malware scan"
+        )
+        upload = source.index("      - name: Upload Win7 candidate")
+        self.assertLess(checksum, provenance)
+        self.assertLess(provenance, malware)
+        self.assertLess(malware, integrity)
+        self.assertLess(integrity, upload)
+
 
 if __name__ == "__main__":
     unittest.main()
