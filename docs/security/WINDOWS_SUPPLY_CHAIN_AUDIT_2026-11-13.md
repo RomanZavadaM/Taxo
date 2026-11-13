@@ -12,6 +12,24 @@
 6. `packaging/installer/Taxo.iss` is compiled by Inno Setup; on a runner where ISCC is missing, the Windows workflow invokes `choco install innosetup` without a version/hash lock. This is an additional external input.
 7. GitHub Actions checkout, setup-python, and upload-artifact actions in the inspected workflow are pinned by commit SHA. This limits action-version drift but does not authenticate everything downloaded by pip, Chocolatey, the runner image, or all transitive artifacts.
 
+## Independent byte-level artifact comparison (read-only, no executable launch)
+
+Three saved GitHub Actions Windows artifact archives were opened as ZIP files (r8 exact-source, r8 integration, r9 final), then their nested Portable ZIP members were checked by relative path and SHA-256. The **outer** artifact hashes were:
+
+- r8 source outer ZIP: `c60a403439f09486331c217c05ad3d1a78cdf9e842e175c67481ff6e088f6785`;
+- r8 integration outer ZIP: `a3ff09b16ab4b377cbd786a91bbfc4361e9b5ddd578c07e5131a5400a2c065bf`;
+- r9 final outer ZIP: `0ce0034b0e81e2d4446db5c9bb1a25bbe98510db7123b203fa0948a3f9b68384` (matches GitHub artifact digest).
+
+All three nested Portable packages contained exactly **1116 relative file paths**, with no additions/removals between the sampled builds. Exactly 1113 files had identical SHA-256 content across all three. Only three paths differed:
+`Taxo.exe`, `_internal/base_library.zip`, and `_internal/numpy-2.5.4.dist-info/RECORD`.
+
+- r8 source vs r8 integration `Taxo.exe`: six changed bytes, at offsets `264,265,344,345,249828,249829`. Offset 264 is PE COFF timestamp, offset 344 is PE checksum; 249828 mirrors timestamp-associated bytes.
+- r8 source vs r9 `Taxo.exe`: eleven changed bytes at `264,265,344,345,346,249828,249829,3079925,3486805,3486806,3486808`. Not all are PE header offsets; do **not** describe all eleven as just a changed build timestamp.
+- The 154 uncompressed members inside `base_library.zip` have **identical SHA-256 contents** across all three packages, despite different outer ZIP hashes.
+- The observed difference in NumPy `RECORD` is limited to two hash lines for `../../Scripts/f2py.exe` and `../../Scripts/numpy-config.exe`; their actual executables are not part of the compared Portable tree. The rest of the RECORD file was unchanged.
+
+**Interpretation:** no new Portable file path or broad injected payload was detected between these builds. This evidence is narrower than a security clearance. A shared contaminated dependency or malicious code already present in all three packages remains possible; packed PyInstaller internals require a separate code/provenance audit.
+
 ## Threats to distinguish
 
 - **Browser reputation:** an unsigned, freshly built executable/archive can trigger reputation-based warnings. Hypothesis only; needs Firefox / Safe Browsing / anti-malware vendor verdict.
