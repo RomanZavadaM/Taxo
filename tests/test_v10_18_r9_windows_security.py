@@ -44,7 +44,7 @@ class WindowsBinaryGateR9Tests(unittest.TestCase):
             "BUILD_PROVENANCE_v${env:TAXO_CHECKSUM_STEM}_Windows_x64.txt",
             "Mandatory Microsoft Defender malware gate",
             "Verify package integrity after malware scan",
-            "Taxo-${{ env.TAXO_VERSION }}-Windows-x64-run-${{ github.run_id }}",
+            "Taxo-Windows-x64-run-${{ github.run_id }}",
         )
         for marker in required:
             self.assertIn(marker, source)
