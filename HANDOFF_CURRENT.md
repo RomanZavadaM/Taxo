@@ -1,35 +1,47 @@
 # HANDOFF_CURRENT — Taxo
 
-**13.11.2026 — код інтегрований у main на 10.18-r8. GitHub Stable/Latest досі v10.18-r3. Реліз r8 НЕ опубліковано: SECURITY HOLD через попередження Firefox про можливе шкідливе ПЗ. Наступна нова кодова ревізія — 10.18-r9.**
+**13.11.2026 — код 10.18-r8 інтегрований у `main`; GitHub Stable/Latest залишається `v10.18-r3`. Виконуваний r8 НЕ публікувати: SECURITY HOLD після Firefox / Google Safe Browsing malware warning. Нова функціональність призупинена до завершення security/release cleanup.**
 
-## Перевірений стан GitHub
+## Перевірений live-стан
 
-- **Код main** після інтеграції: `b1153adde923c73cba9a71d152ee749e351b2588`. `VERSION.txt = Version: 10.18-r8`. Злиття за прямою командою власника, [PR #404](https://github.com/RomanZavadaM/Taxo/pull/404) MERGED; первинний [PR #402](https://github.com/RomanZavadaM/Taxo/pull/402) теж GitHub позначив MERGED. Це інтеграція коду, **не реліз виконуваних файлів**.
-- **Стабільний реліз:** [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3), `prerelease=false`, 8 assets. Його НЕ змінено. Rollback попередній `v10.17-r10`.
-- **Кандидат r8, виданий раніше для ручного тестування:** source head `eb1d74872ce785c4bbaf4607333f78648ffa8a3a`, код із r7 `aed893047ef8853d2c8c9ef96e7d58603ad66c55`. Для інтеграції створено окремий 2-parent merge commit `9a2334952f32469344f0927f41aa35b7c9a4d7df` (код r8 + актуальний `HANDOFF_CURRENT.md` із main); початковий source head не переписували.
-- **Exact-source r8 CI SUCCESS:** [START/source 43467284684](https://github.com/RomanZavadaM/Taxo/actions/runs/43467284684) — 1263/1263; [Windows 43467336419](https://github.com/RomanZavadaM/Taxo/actions/runs/43467336419); [Win7 43467336453](https://github.com/RomanZavadaM/Taxo/actions/runs/43467336453); [macOS Intel/ARM 43467336517](https://github.com/RomanZavadaM/Taxo/actions/runs/43467336517). Усі перевірили source `eb1d74872ce785c4bbaf4607333f78648ffa8a3a`.
-- **Exact-integration CI SUCCESS:** Windows [43473156192](https://github.com/RomanZavadaM/Taxo/actions/runs/43473156192), Win7 [43473156115](https://github.com/RomanZavadaM/Taxo/actions/runs/43473156115), macOS Intel/ARM [43473156367](https://github.com/RomanZavadaM/Taxo/actions/runs/43473156367), source head `9a2334952f32469344f0927f41aa35b7c9a4d7df`.
-- Попередні видані тестові ревізії r4/r5/r6/r7 включені в послідовну r8-кодову гілку. Їхні GitHub Pre-release не слід називати опублікованими без окремої live-перевірки тегів. Жодна версія не може бути видана повторно під тим самим номером.
+- **`main`:** `38f5de2b43571c5cb60291e378fa85e686f5f474`; `VERSION.txt = Version: 10.18-r8`.
+- **Stable/Latest:** [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3), `prerelease=false`, 8 assets. Stable не змінювати.
+- **r8 executable release:** відсутній. Власницький workflow [run 43495315686](https://github.com/RomanZavadaM/Taxo/actions/runs/43495315686) завершився FAILURE до створення release: publisher передав порожні run IDs у `gh run download`, завантажив однаковий Windows artifact у три platform directories і зупинився, коли знайшов 3 копії Windows Portable ZIP. Це release-workflow bug, не malware verdict.
+- **PR #408 — publisher fix:** [fix/publisher-artifact-isolation](https://github.com/RomanZavadaM/Taxo/pull/408), exact head `943bbd1e2c460b0a2c7f6c0b7d83479cc8108ce6`, Draft, не merged. Windows `43498832731`, Win7 `43498832585`, macOS `43498832639` — SUCCESS. Перевірено numeric exact-head run IDs, повторну перевірку `head_sha`/success, platform isolation і явний блок r8.
+- **PR #406 — security candidate r9:** [security/v10.18-r9-windows-binary-gate](https://github.com/RomanZavadaM/Taxo/pull/406), exact immutable head `7537478bd4e60237cc3fc5d5f15a971ada927bdf`, Draft, не merged. r9 уже використаний для тестування через START/BAT — head і номер не переписувати. Exact-head START/Windows/Win7/macOS CI пройшли; Defender scan виконується до upload.
+- **PR #407 — supply-chain audit:** [audit/windows-supply-chain-post-r9](https://github.com/RomanZavadaM/Taxo/pull/407), exact head `33428445bb8ef4b6bccf44c960ce387b9d737e22`, Draft, не merged. START/macOS/Win7 SUCCESS; Windows `43497897278` FAILURE через Defender `0x80070652 — Another installation is already in progress` на етапі оновлення сигнатур. Malware scan не стартував; це transient update conflict, не malware detection.
 
-## Що працює в продукті
+## Firefox / Safe Browsing — що встановлено
 
-- Власник вручну перевірив у Windows r7: у вікні «Експлуатація → Документи» видно кнопку «Бібліотека шаблонів…», приватну бібліотеку `0.1.0` завантажено, **28 із 28 шаблонів** знайдено й показано. Це не означає перевірку вмісту/друку.
-- r8 містить ізольовані `template_library_preview.py` та `template_library_preview_ui.py`: відкриття тексту шаблону через подвійне клацання/Enter/кнопку, read-only вкладки «Текст та додатки» і «Поля для заповнення», хеш/структурні перевірки. `main.py` змінювався лише в номері версії. **Ручний r8 preview власником не прийнято**, бо Firefox заблокував ZIP.
-- **Знеособлені вихідні документи** зберігаються тільки в окремому приватному каталозі та локальному `<workspace>/TemplateLibrary`; жодних реальних шаблонів у публічних файлах Taxo, release assets або CI fixtures. Бібліотека — source форм, а не друге сховище готових документів. [Архітектурний PR #395](https://github.com/RomanZavadaM/Taxo/pull/395) окремо містить формат і план, не поспішати з редактором і міграцією.
+- Точний текст Firefox **«This file contains a virus or malware» / «Цей файл містить вірус чи іншу небезпеку»** Mozilla документує як блокування механізмом Google Safe Browsing download protection.
+- Це **не** те саме, що окреме попередження «This file is not commonly downloaded».
+- На Windows application-reputation перевірка може використовувати URL/referrer/redirect metadata, SHA-256, розмір/назву файлу та Authenticode-відомості.
+- Отже r8 warning треба вважати фактичним Safe Browsing malware verdict для того завантаження, але **не доказом реального зараження**. Не називати false positive без конкретної vendor reclassification.
+- Defender PASS r9 не скасовує Safe Browsing verdict і не закриває інцидент.
 
-## SECURITY HOLD — невирішено, обов'язково перед release
+Джерела: [Mozilla Downloads help](https://support.mozilla.org/en-US/kb/where-find-and-manage-downloaded-files-firefox), [Mozilla Phishing and Malware Protection](https://support.mozilla.org/en-US/kb/how-does-phishing-and-malware-protection-work), [Mozilla Application Reputation design](https://wiki.mozilla.org/Security/Features/Application_Reputation_Design_Doc).
 
-- Власник надіслав скриншот Firefox із червоним попередженням **«Цей файл містить вірус чи іншу небезпеку»** для ZIP GitHub Actions r8. Детальна панель Firefox показала лише загальне повідомлення про загрозу, **не назву детекції або антивіруса**.
-- Тестова Windows збірка r8 має artifact ID `14059297915` в run `43467336419`. Для технічного аналізу цей самий архів завантажено **без запуску**. ZIP містить Windows portable та Setup і SHA256SUMS. Контрольні суми архівів збіглися з GitHub checksum. Склад ZIP без незвичних шляхо-прохідних файлів. Це **не доказ відсутності вірусу**.
-- Збірка на PyInstaller 6.22.2 із `upx=True` і без підпису та без явного антивірусного gate. UPX/невідомий видавець **можуть** спричиняти евристичні помилкові спрацювання, але без незалежного сканування/детекції це **НЕ підтверджено**. Ні SHA256, ні CI успіх не встановлюють безпечність.
-- **Не публікувати r8 ZIP/Setup/EXE як реліз, не змушувати користувача обходити Firefox/Defender**, не оголошувати нову Stable, поки незалежний сканер або антивірусний постачальник не визначить природу попередження. Не додавати flagged ZIP у приватний каталог шаблонів.
-- Подальша технічна дія: відтворити збірку з контрольованими залежностями, перевірити бінарні файли незалежним AV/сканером, вивчити повну детекцію та походження build chain; за необхідності наступною кодовою ревізією `r9` вимкнути UPX, порівняти артефакти, додати malware gate/signing і повторити scanning. Не робити невидимі зміни вже виданої r8.
-- GitHub workflow `publish-current.yml` є окремим процесом випуску через workflow_dispatch; **жодної перевіреної публікації r8 не виконано**. Не плутати CI artifact із GitHub Release.
+## Security comparison / supply chain
 
-## Наступна дія для нового чату
+- r8 source, r8 integration і r9 Windows Portable мають 1116 однакових шляхів; 1113 файлів однакові за SHA-256.
+- Відрізняються лише `Taxo.exe`, `_internal/base_library.zip`, `_internal/numpy-2.5.4.dist-info/RECORD`.
+- r8↔r8 `Taxo.exe`: 6 байтів; r8↔r9: 11 байтів, не всі в PE header. Не описувати всі r8↔r9 відмінності як timestamp.
+- 154 розпаковані файли `base_library.zip` мають однаковий SHA-256.
+- Ознак великої вставки payload між цими збірками не знайдено, але shared compromised dependency/toolchain теоретично не виключений.
+- Supply-chain слабкі місця: неповний hash-lock transitive wheels та Inno Setup через Chocolatey без повного version+hash trust contract.
 
-**Насамперед — безпека Windows-бінарника, не розширення функціоналу.** Відкрити `START_HERE.md`, цей `HANDOFF_CURRENT.md`, актуальні `main`, `VERSION.txt`, releases і Issue #61, перевірити source та artifact SHA. Провести незалежне сканування r8/перезбірку, усунути причину Firefox warning та лише тоді розглядати GitHub Pre-release. Ручний тест r8 перегляду приватних шаблонів — після безпечної збірки. Наступна нова ревізія `10.18-r9`; не reuse r8. Stable `v10.18-r3` зберегти до окремого рішення.
+## Безпечний порядок cleanup
+
+1. **Не публікувати r8 і не змінювати Stable/Latest.**
+2. PR #408 є першим кандидатом на інтеграцію release plumbing, бо він блокує r8 і виправляє artifact isolation. Merge тільки після явного рішення власника.
+3. PR #406 не переписувати: r9 immutable/used. PR #407 залишати окремим audit evidence.
+4. Після інтеграції corrected publisher створити **новий security/build-only checkpoint 10.18-r10** (не нову функціональність) на актуальному `main`: перенести r9 hardening + portable-only test publishing, зберегти #408 isolation/r8 HOLD, додати bounded retry лише для Defender `0x80070652`; усі інші update/scan errors fail closed.
+5. Для звичайних ручних функціональних перевірок використовувати унікальний START/BAT source ZIP. Online `pip` усе ще не supply-chain-independent; довгостроково потрібен reviewed wheelhouse/hash-lock.
+
+## Одна наступна дія
+
+**Явне рішення власника щодо інтеграції PR #408 у `main`.** До цього не merge/publish, не чіпати Stable і не починати нову функціональність.
 
 ## Recovery
 
-`START_HERE.md` → цей файл → `PROJECT_RULES.md` / `PROJECT_STATE.md` → GitHub main / PR #404 / PR #402 / CI / Releases → приватний Taxo-профіль dev-strategy. Докладний журнал у [Issue #61](https://github.com/RomanZavadaM/Taxo/issues/61). Після відкату — STOP→READ→VERIFY→RECONCILE→CONTINUE.
+`START_HERE.md` → цей файл → `PROJECT_RULES.md` / `PROJECT_STATE.md` → live GitHub `main` / PR #406 / #407 / #408 / CI / Releases → private Taxo-profile. GitHub має пріоритет над документацією; після обриву STOP→READ→VERIFY→RECONCILE→CONTINUE.
