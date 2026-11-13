@@ -41,6 +41,10 @@ class PublisherArtifactIsolationTests(unittest.TestCase):
                 self.assertEqual(len(lines), 1)
                 self.assertTrue(lines[0].rstrip().endswith('"${directory}"'.replace("${directory}", directory)))
 
+    def test_automatic_maintenance_publish_defaults_to_portable(self):
+        self.assertIn('requested="portable"', self.source)
+        self.assertIn('requested="${{ inputs.package_set }}"', self.source)
+
     def test_downloads_only_after_exact_head_gate(self):
         names = (
             "Find successful build runs for exact source",

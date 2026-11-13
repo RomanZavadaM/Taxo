@@ -51,7 +51,7 @@ jobs:
             exit 0
           fi
 
-          requested="full"
+          requested="portable"
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             requested="${{ inputs.package_set }}"
           fi
