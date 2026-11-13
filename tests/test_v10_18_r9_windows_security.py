@@ -104,6 +104,11 @@ class WindowsBinaryGateR9Tests(unittest.TestCase):
                 source = (ROOT / relative).read_text(encoding="utf-8")
                 self.assertIn(marker, source)
 
+        source_gate = (ROOT / ".github/workflows/source-test-archive.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("  pull_request:", source_gate)
+
 
 if __name__ == "__main__":
     unittest.main()
