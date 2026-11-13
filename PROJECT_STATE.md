@@ -1,13 +1,22 @@
 # PROJECT_STATE — Taxo
 
-**Дата:** 12.11.2026.
+**Дата:** 13.11.2026.
 
 ## Поточний підтверджений інтегрований стан
 
-- **Stable / Latest — [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).** Власник прийняв 25/25 ручних сценаріїв без зауважень і дав команду «зливай у main». Exact immutable source/tag `65bc80ecae85793cb7c2c14edd4d3eabaa2b4470`. [Guarded promotion CI 43303075684](https://github.com/RomanZavadaM/Taxo/actions/runs/43303075684) SUCCESS; `releases/latest=v10.18-r3`, `prerelease=false`, 8 assets (Windows, Win7 Setup+portable, macOS Intel/ARM portable, START, SHA256).
-- Код r1–r3 інтегровано через [PR #387](https://github.com/RomanZavadaM/Taxo/pull/387), merge `cff3e8fe10bc210b67a1fb1dfb00efd092e30aee`. Release-marker PR #388 merged `743c8f94d784f389538c5181f80578635fc79fd1`; повторні інтеграційні Windows, Windows 7, macOS і START перевірки успішні.
+- **Stable / Latest — [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).** Власник прийняв 25/25 ручних сценаріїв без зауважень і дав команду «зливай у main». Exact immutable source/tag `65bc80ecae85793cb7c2c14edd4d3eabaa2b4470`; реліз має 8 перевірених assets. Stable під час r4 не змінювалася.
+- Код r1–r3 інтегровано через [PR #387](https://github.com/RomanZavadaM/Taxo/pull/387), merge `cff3e8fe10bc210b67a1fb1dfb00efd092e30aee`. Продуктовий `main` перед docs-only recovery r4 — `f8649163e9d2d408dba6c827af4adbaa4ea16802`; r4 product code у `main` не merged.
 - **Rollback / попередня Stable — [v10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)**, exact source `6536a6da6cade49229fa1944e2aa47f941df40a6`, 8 assets, immutable.
-- **Наступна нова кодова ревізія — 10.18-r4.** UI-аудит незавершених таблиць/Toplevel та edge-case regression. Ручний Windows DPI/focus gate для неперевірених сценаріїв pending. Бібліотеку шаблонів і сховище документів не чіпати.
+- **Наступна видана кодова ревізія — 10.18-r5.** 10.18-r4 уже видана як окремий перевірений test checkpoint і не може перевикористовуватися. Нову r5 починати від exact r4 head, а не від Stable/main, якщо власник не дасть іншу команду.
+
+## Поточний перевірений test checkpoint (не інтегрований)
+
+- **10.18-r4**, exact head `eb762664dbd85650d3b8e5a6a59a7f3dfb4ea551`, [draft PR #393](https://github.com/RomanZavadaM/Taxo/pull/393), **не merged у main, не tagged, не Stable**.
+- Зміни: type-aware click sorting каталогу тахокарт і таблиці інтервалів; стабільні `iid` за ID; reapply sort + restore visible selection після refresh; shared sorter коректно відрізняє числовий `0` від `None`/порожнього значення. SQLite schema, алгоритми розпізнавання, plan/fact, документи, backup, бібліотека шаблонів/сховище документів не змінені.
+- Exact-head CI: START/source `43388583728` SUCCESS (**1229/1229**), Windows `43388592068` SUCCESS, Win7/Python 3.8 compatibility `43388591962` SUCCESS, macOS Intel/ARM `43388592056` SUCCESS.
+- Artifacts: START `14019367531`, Windows x64 `14019114202`, Win7 x64 `14019701961`, macOS Intel `14019752076`, macOS ARM64 `14020215887`.
+- Ручний Windows DPI 100/125/150 %, фокус/табуляція, горизонтальні scrollbar/нижні кнопки, double-click та повторне відкриття для ще не прийнятих сценаріїв — **pending**.
+- **10.18-r5** має продовжити UI-аудит від exact r4 head і є обов'язковим portable GitHub Pre-release checkpoint. Stable/Latest `v10.18-r3` не змінювати без рішення власника.
 
 ## Історичний стан до Stable 10.18-r3 (не поточний статус)
 
