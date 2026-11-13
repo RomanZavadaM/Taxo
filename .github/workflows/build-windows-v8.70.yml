@@ -140,7 +140,7 @@ jobs:
         if: always() && steps.scope.outputs.docs_only != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Taxo-${{ env.TAXO_VERSION }}-regression-log-run-${{ github.run_id }}
+          name: Taxo-regression-log-run-${{ github.run_id }}
           path: unittest-r1.log
           if-no-files-found: ignore
           retention-days: 7
@@ -270,7 +270,7 @@ jobs:
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Taxo-${{ env.TAXO_VERSION }}-Windows-x64-run-${{ github.run_id }}
+          name: Taxo-Windows-x64-run-${{ github.run_id }}
           path: |
             Taxo_v*_Windows_x64_Portable.zip
             release_out/Taxo_v*_Setup_Windows_x64.exe
