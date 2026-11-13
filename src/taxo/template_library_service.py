@@ -11,7 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
-from template_library_reader import LibrarySnapshot, default_library_root, inspect_library\nfrom company_template_store import create_company_copy, list_company_templates
+from template_library_reader import LibrarySnapshot, default_library_root, inspect_library
+from company_template_store import create_company_copy, list_company_templates
 
 
 CATEGORY_LABELS = {

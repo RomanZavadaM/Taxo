@@ -12,11 +12,15 @@ import queue
 import threading
 from tkinter import ttk, messagebox
 
-from template_library_service import (\n    LibraryView, company_template_count, create_workspace_company_copy,\n    inspect_workspace_library,\n)
+from template_library_service import (
+    LibraryView, company_template_count, create_workspace_company_copy,
+    inspect_workspace_library,
+)
 from template_library_preview_ui import open_template_preview
 
 # Avoid a new thread per click on a slow or disconnected network workspace.
-_READER_SLOT = threading.BoundedSemaphore(1)\n_WRITER_SLOT = threading.BoundedSemaphore(1)
+_READER_SLOT = threading.BoundedSemaphore(1)
+_WRITER_SLOT = threading.BoundedSemaphore(1)
 _FILTER_ALL = "Усі категорії"
 
 
@@ -91,7 +95,9 @@ def open_template_library(parent, services):
     ttk.Label(footer, textvariable=count).grid(row=0, column=0, sticky="w")
     refresh_button = ttk.Button(footer, text="Оновити")
     refresh_button.grid(row=0, column=1, padx=(4, 8))
-    copy_button = ttk.Button(footer, text="Створити власну копію")\n    copy_button.grid(row=0, column=3, padx=(4, 8))\n    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=4)
+    copy_button = ttk.Button(footer, text="Створити власну копію")
+    copy_button.grid(row=0, column=3, padx=(4, 8))
+    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=4)
 
     results = queue.Queue()
     copy_results = queue.Queue()
