@@ -88,6 +88,22 @@ class WindowsBinaryGateR9Tests(unittest.TestCase):
         self.assertLess(malware, integrity)
         self.assertLess(integrity, upload)
 
+    def test_release_critical_workflows_checkout_exact_pr_head(self):
+        marker = (
+            "ref: ${{ github.event_name == 'pull_request' && "
+            "github.event.pull_request.head.sha || github.sha }}"
+        )
+        paths = (
+            ".github/workflows/build-windows-v8.70.yml",
+            ".github/workflows/build-win7-current.yml",
+            ".github/workflows/build-macos-v8.70.yml",
+            ".github/workflows/source-test-archive.yml",
+        )
+        for relative in paths:
+            with self.subTest(workflow=relative):
+                source = (ROOT / relative).read_text(encoding="utf-8")
+                self.assertIn(marker, source)
+
 
 if __name__ == "__main__":
     unittest.main()
