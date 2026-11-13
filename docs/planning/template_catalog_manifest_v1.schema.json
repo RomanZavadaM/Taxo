@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/RomanZavadaM/Taxo/blob/main/docs/planning/template_catalog_manifest_v1.schema.json",
+  "title": "Taxo template library catalog manifest v1",
+  "description": "Catalog of data-only template items. Not a document, not an installer instruction and not a digital signature.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "format",
+    "package_id",
+    "package_version",
+    "publisher",
+    "minimum_taxo_version",
+    "language",
+    "items",
+    "files"
+  ],
+  "properties": {
+    "format": {
+      "const": "taxo.template-catalog.v1"
+    },
+    "package_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{4,95}$"
+    },
+    "package_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "publisher": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "minimum_taxo_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+-r(?:10|[1-9])$"
+    },
+    "language": {
+      "const": "uk"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 2000
+    },
+    "rights": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "template_id",
+          "revision_id",
+          "category_id",
+          "path"
+        ],
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{4,95}$"
+          },
+          "revision_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$"
+          },
+          "category_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9._-]{1,95}$"
+          },
+          "path": {
+            "$ref": "#/$defs/relativeFilePath"
+          }
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "size_bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "$ref": "#/$defs/relativeFilePath"
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 536870912
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "relativeFilePath": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 512,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?/)(?!.*\\\\\\\\)(?!.*:)(?!.*//)[a-zA-Z0-9_.-]+(?:/[a-zA-Z0-9_.-]+)*$"
+    }
+  }
+}
