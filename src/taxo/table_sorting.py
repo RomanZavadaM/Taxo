@@ -14,9 +14,16 @@ NUMERIC_COLUMNS = frozenset(("id", "year"))
 DOCUMENTS_COLUMN = "documents"
 
 
+def _text_value(value):
+    """Normalize display values without turning numeric zero into a blank."""
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
 def _document_priority(text):
     """Group valid documents before warnings, without claiming trip clearance."""
-    value = str(text or "").strip().casefold()
+    value = _text_value(text).casefold()
     if not value:
         return 3
     if value.startswith("актуально"):
@@ -27,12 +34,12 @@ def _document_priority(text):
 
 
 def _natural_text(value):
-    parts = re.split(r"(\d+)", str(value or "").strip().casefold())
+    parts = re.split(r"(\d+)", _text_value(value).casefold())
     return tuple((1, int(part)) if part.isdigit() else (0, part) for part in parts)
 
 
 def _number_key(text):
-    normalized = str(text or "").strip().replace("\xa0", "").replace(" ", "").replace(",", ".")
+    normalized = _text_value(text).replace("\xa0", "").replace(" ", "").replace(",", ".")
     try:
         return (0, Decimal(normalized))
     except (InvalidOperation, ValueError):
@@ -40,7 +47,7 @@ def _number_key(text):
 
 
 def _date_key(text):
-    value = str(text or "").strip()
+    value = _text_value(text)
     for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%d.%m.%y"):
         try:
             parsed = datetime.strptime(value, fmt)
@@ -57,7 +64,7 @@ def _datetime_key(text):
     forms. Mixed offsets are normalized through UTC timestamps where present,
     so sorting remains comparable with naive local values.
     """
-    value = str(text or "").strip()
+    value = _text_value(text)
     normalized = value.replace("Z", "+00:00") if value.endswith("Z") else value
     try:
         parsed = datetime.fromisoformat(normalized)
@@ -82,7 +89,7 @@ def _datetime_key(text):
 
 
 def _duration_key(text):
-    value = str(text or "").strip()
+    value = _text_value(text)
     match = re.fullmatch(r"(\d+):(\d{1,2})", value)
     if match:
         hours, minutes = int(match.group(1)), int(match.group(2))
@@ -92,7 +99,7 @@ def _duration_key(text):
 
 
 def _status_key(text, status_order=None):
-    value = str(text or "").strip()
+    value = _text_value(text)
     if status_order:
         if isinstance(status_order, dict):
             normalized = {str(key).casefold(): rank for key, rank in status_order.items()}
@@ -106,7 +113,7 @@ def _status_key(text, status_order=None):
 
 
 def _value_key(column, value, value_type=None, status_order=None):
-    text = str(value or "").strip()
+    text = _text_value(value)
     if not text:
         return (1,)
 

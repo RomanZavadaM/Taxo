@@ -96,7 +96,7 @@ import employee_registry_ui
 import driver_registry_ui
 from table_sorting import sort_treeview
 
-APP_VERSION = "10.18-r3"
+APP_VERSION = "10.18-r8"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"

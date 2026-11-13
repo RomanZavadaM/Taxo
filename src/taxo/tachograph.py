@@ -25,6 +25,7 @@ from workspace import (
     resolved_path,
     stored_path,
 )
+from table_sorting import configure_sortable_tree, restore_tree_selection
 
 try:
     import cv2
@@ -320,6 +321,7 @@ class TachographModule:
         self._preview_resize_after=None
         self.catalog_collapsed=False
         self._catalog_sash_pos=260
+        self.table_sort_state={}
         init_tacho_db()
         self.build()
         self.load()
@@ -362,10 +364,20 @@ class TachographModule:
         # Каталог лишається спільним для обох підвкладок.
         cols=("id","name","disc","date","status")
         self.tree=ttk.Treeview(left,columns=cols,show="headings",selectmode="browse")
-        heads={"id":"ID","name":"Скан","disc":"Шайба","date":"Дата","status":"Стан"}
         for c in cols:
-            self.tree.heading(c,text=heads[c])
             self.tree.column(c,width=80 if c in ("id","disc") else 150)
+        self.apply_disc_sort=configure_sortable_tree(
+            self.tree,
+            (
+                ("id","ID","number",None),
+                ("name","Скан","text",None),
+                ("disc","Шайба","number",None),
+                ("date","Дата","date",None),
+                ("status","Стан","text",None),
+            ),
+            self.table_sort_state,
+            "discs",
+        )
         left_y=ttk.Scrollbar(left,orient="vertical",command=self.tree.yview)
         left_x=ttk.Scrollbar(left,orient="horizontal",command=self.tree.xview)
         self.tree.configure(yscrollcommand=left_y.set,xscrollcommand=left_x.set)
@@ -513,10 +525,21 @@ class TachographModule:
         itree_wrap.pack(fill="both",expand=True,pady=6)
         itree_wrap.pack_propagate(False)
         self.itree=ttk.Treeview(itree_wrap,columns=icols,show="headings",height=12)
-        ih={"id":"ID","start":"Початок","end":"Кінець","activity":"Активність","confidence":"Впевненість","source":"Джерело"}
         for c in icols:
-            self.itree.heading(c,text=ih[c])
             self.itree.column(c,width=85 if c in ("id","confidence") else 120)
+        self.apply_interval_sort=configure_sortable_tree(
+            self.itree,
+            (
+                ("id","ID","number",None),
+                ("start","Початок","duration",None),
+                ("end","Кінець","duration",None),
+                ("activity","Активність","text",None),
+                ("confidence","Впевненість","number",None),
+                ("source","Джерело","text",None),
+            ),
+            self.table_sort_state,
+            "intervals",
+        )
         itree_y=ttk.Scrollbar(itree_wrap,orient="vertical",command=self.itree.yview)
         itree_x=ttk.Scrollbar(itree_wrap,orient="horizontal",command=self.itree.xview)
         self.itree.configure(yscrollcommand=itree_y.set,xscrollcommand=itree_x.set)
@@ -632,9 +655,16 @@ class TachographModule:
         return tdb().execute("SELECT * FROM discs WHERE id=?",(self.tree.item(s[0],"values")[0],)).fetchone()
 
     def load(self):
+        selected_ids=tuple(self.tree.selection())
         for x in self.tree.get_children(): self.tree.delete(x)
         con=tdb(); rows=con.execute("SELECT * FROM discs ORDER BY id DESC").fetchall(); con.close()
-        for r in rows: self.tree.insert("","end",values=(r["id"],r["scan_name"],r["disc_no"],r["disc_date"],r["status"]))
+        for r in rows:
+            self.tree.insert(
+                "","end",iid=str(r["id"]),
+                values=(r["id"],r["scan_name"],r["disc_no"],r["disc_date"],r["status"])
+            )
+        self.apply_disc_sort()
+        restore_tree_selection(self.tree,selected_ids)
 
     def select(self):
         r=self._selected()
@@ -898,10 +928,17 @@ class TachographModule:
         con=tdb(); con.execute("UPDATE discs SET driver_id=?,vehicle_id=?,disc_date=?,rotation_deg=? WHERE id=?",(did,vid,disc_date,rot,self.current_id)); con.commit();con.close();self.load();self.select()
 
     def load_intervals(self):
+        selected_ids=tuple(self.itree.selection())
         for x in self.itree.get_children(): self.itree.delete(x)
         if not self.current_id:return
         con=tdb(); rows=con.execute("SELECT * FROM intervals WHERE disc_id=? ORDER BY start_min",(self.current_id,)).fetchall(); con.close()
-        for r in rows:self.itree.insert("","end",values=(r["id"],self.fm(r["start_min"]),self.fm(r["end_min"]),r["activity"],r["confidence"],r["source"]))
+        for r in rows:
+            self.itree.insert(
+                "","end",iid=str(r["id"]),
+                values=(r["id"],self.fm(r["start_min"]),self.fm(r["end_min"]),r["activity"],r["confidence"],r["source"])
+            )
+        self.apply_interval_sort()
+        restore_tree_selection(self.itree,selected_ids)
         if hasattr(self,"candidate_var"):
             self.candidate_var.set(f"Кандидатів: {len(rows)}")
         if hasattr(self,"stats_var"): self.update_stats()
