@@ -6,7 +6,6 @@ declare that a package is malware-free. It fails if the report lacks verifiable
 wheel archive metadata; never silently accepts a source distribution.
 """
 import argparse
-import hashlib
 import json
 import re
 from pathlib import Path
