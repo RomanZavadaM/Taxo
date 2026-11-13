@@ -71,7 +71,8 @@ jobs:
             'src/taxo/vehicle_documents.py','src/taxo/v1099_schema_compatibility.py',
             'assets/Бланк підтвердження.docx','assets/attestation_visual_template.pdf',
             'packaging/Taxo.spec','packaging/Taxo_win7.spec','packaging/Taxo_macos.spec',
-            'packaging/installer/Taxo.iss', 'tests/stage_legacy_layout.py'
+            'packaging/installer/Taxo.iss', 'tests/stage_legacy_layout.py',
+            'scripts/windows_malware_gate.ps1'
           )
           foreach ($file in $required) {
             if (!(Test-Path $file)) { throw "Required r10 layout file missing: $file" }
@@ -139,7 +140,7 @@ jobs:
         if: always() && steps.scope.outputs.docs_only != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Taxo-current-regression-log
+          name: Taxo-${{ env.TAXO_VERSION }}-regression-log-run-${{ github.run_id }}
           path: unittest-r1.log
           if-no-files-found: ignore
           retention-days: 7
@@ -220,14 +221,58 @@ jobs:
           $lines = foreach ($file in $files) { "$((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant())  $([IO.Path]::GetFileName($file))" }
           $lines | Set-Content -Encoding ascii "SHA256SUMS_v${env:TAXO_CHECKSUM_STEM}_Windows_x64.txt"
 
+      - name: Record exact Windows build provenance
+        if: steps.scope.outputs.docs_only != 'true'
+        shell: pwsh
+        run: |
+          $out = "BUILD_PROVENANCE_v${env:TAXO_CHECKSUM_STEM}_Windows_x64.txt"
+          @(
+            "taxo_version=${env:TAXO_VERSION}",
+            "git_head=$(git rev-parse HEAD)",
+            "runner_os=${env:RUNNER_OS}",
+            "runner_arch=${env:RUNNER_ARCH}",
+            "python=$((python --version) 2>&1)",
+            "pyinstaller=$((python -m PyInstaller --version) 2>&1)"
+          ) | Set-Content -Encoding utf8 $out
+          "pip_freeze_begin" | Add-Content -Encoding utf8 $out
+          python -m pip freeze | Sort-Object | Add-Content -Encoding utf8 $out
+          "pip_freeze_end" | Add-Content -Encoding utf8 $out
+          "Taxo.spec_sha256=$((Get-FileHash packaging/Taxo.spec -Algorithm SHA256).Hash.ToLowerInvariant())" | Add-Content -Encoding utf8 $out
+
+      - name: Mandatory Microsoft Defender malware gate
+        if: steps.scope.outputs.docs_only != 'true'
+        shell: pwsh
+        run: |
+          $bundle = "dist/${env:TAXO_CANDIDATE_STEM}_Windows_x64"
+          $portable = "${env:TAXO_CANDIDATE_STEM}_Windows_x64_Portable.zip"
+          $installer = "release_out/${env:TAXO_CANDIDATE_STEM}_Setup_Windows_x64.exe"
+          ./scripts/windows_malware_gate.ps1 -Paths @($bundle, $portable, $installer)
+
+      - name: Verify package integrity after malware scan
+        if: steps.scope.outputs.docs_only != 'true'
+        shell: pwsh
+        run: |
+          $manifestPath = "SHA256SUMS_v${env:TAXO_CHECKSUM_STEM}_Windows_x64.txt"
+          $manifest = @(Get-Content $manifestPath -Encoding ascii)
+          $files = @("${env:TAXO_CANDIDATE_STEM}_Windows_x64_Portable.zip","release_out/${env:TAXO_CANDIDATE_STEM}_Setup_Windows_x64.exe")
+          foreach ($file in $files) {
+            $actual = (Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant()
+            $name = [IO.Path]::GetFileName($file)
+            $expectedLine = "$actual  $name"
+            if ($expectedLine -notin $manifest) {
+              throw "Integrity verification failed after malware scan: $name"
+            }
+          }
+
       - name: Upload Windows test executables
         if: steps.scope.outputs.docs_only != 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Taxo-current-Windows-x64
+          name: Taxo-${{ env.TAXO_VERSION }}-Windows-x64-run-${{ github.run_id }}
           path: |
             Taxo_v*_Windows_x64_Portable.zip
             release_out/Taxo_v*_Setup_Windows_x64.exe
             SHA256SUMS_v*_Windows_x64.txt
+            BUILD_PROVENANCE_v*_Windows_x64.txt
           if-no-files-found: error
           retention-days: 30
