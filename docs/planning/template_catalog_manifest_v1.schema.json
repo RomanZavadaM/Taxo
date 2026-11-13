@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/RomanZavadaM/Taxo/blob/main/docs/planning/template_catalog_manifest_v1.schema.json",
   "title": "Taxo template library catalog manifest v1",
-  "description": "Catalog of data-only template items. Not a document, not an installer instruction and not a digital signature.",
+  "description": "Catalog of data-only template items. Not a document, not an installer instruction and not a digital signature. Paths are conservative and may not contain dot-prefixed segments; cross-record uniqueness, integrity and file system safety are checked by the reader/installer, not by JSON Schema.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -69,14 +69,21 @@
             "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$"
           },
           "category_id": {
-            "type": "string",
-            "pattern": "^[a-z][a-z0-9._-]{1,95}$"
+            "enum": [
+              "orders",
+              "briefings",
+              "instructions",
+              "training-programs",
+              "acts",
+              "forms"
+            ]
           },
           "path": {
             "$ref": "#/$defs/relativeFilePath"
           }
         }
-      }
+      },
+      "maxItems": 2000
     },
     "files": {
       "type": "array",
@@ -103,7 +110,8 @@
             "pattern": "^[a-f0-9]{64}$"
           }
         }
-      }
+      },
+      "maxItems": 2000
     }
   },
   "$defs": {
@@ -111,7 +119,7 @@
       "type": "string",
       "minLength": 3,
       "maxLength": 512,
-      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?/)(?!.*\\\\\\\\)(?!.*:)(?!.*//)[a-zA-Z0-9_.-]+(?:/[a-zA-Z0-9_.-]+)*$"
+      "pattern": "^[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$"
     }
   }
 }
