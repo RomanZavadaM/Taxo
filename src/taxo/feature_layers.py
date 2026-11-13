@@ -77,6 +77,7 @@ from personnel_data_center_r6 import install as install_personnel_data_center_r6
 from employee_document_control_r7 import install as install_employee_document_control_r7
 from personnel_month_schedule_r8 import install as install_personnel_month_schedule_r8
 from template_library_feature import install as install_template_library_feature
+from template_library_operations_entry import install as install_template_library_operations_entry
 
 Installer = Callable[..., type]
 
@@ -154,6 +155,8 @@ FEATURE_LAYERS: Tuple[FeatureLayer, ...] = (
     FeatureLayer("v1010-r7-employee-document-control", install_employee_document_control_r7, domain="personnel"),
     FeatureLayer("v1010-r8-simple-month-schedule", install_personnel_month_schedule_r8, domain="personnel"),
     FeatureLayer("v1018-r6-template-library-browser", install_template_library_feature,
+                 domain="documents", uses_services=True),
+    FeatureLayer("v1018-r7-visible-library-entry", install_template_library_operations_entry,
                  domain="documents", uses_services=True),
 )
 
