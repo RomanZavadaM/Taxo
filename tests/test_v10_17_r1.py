@@ -44,7 +44,7 @@ class FakeTree:
 
 class VehicleTableSortingR1Tests(unittest.TestCase):
     def test_version_start_and_new_module(self):
-        self.assertIn(main.APP_VERSION, ("10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4"))
+        self.assertIn(main.APP_VERSION, ("10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5"))
         self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n")
         start = (ROOT / "START.bat").read_text("utf-8")
         self.assertIn("Taxo " + main.APP_VERSION, start)
