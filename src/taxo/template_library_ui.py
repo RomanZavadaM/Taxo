@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""A small, read-only Tk browser for the installed template library.
+"""Template-library browser with safe copy-on-customize support.
 
 Tk is owned by this module; source file validation belongs to
 template_library_reader, and workspace selection to ApplicationServices.
@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import queue
 import threading
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
-from template_library_service import LibraryView, inspect_workspace_library
+from template_library_service import (\n    LibraryView, company_template_count, create_workspace_company_copy,\n    inspect_workspace_library,\n)
 from template_library_preview_ui import open_template_preview
 
 # Avoid a new thread per click on a slow or disconnected network workspace.
-_READER_SLOT = threading.BoundedSemaphore(1)
+_READER_SLOT = threading.BoundedSemaphore(1)\n_WRITER_SLOT = threading.BoundedSemaphore(1)
 _FILTER_ALL = "Усі категорії"
 
 
@@ -25,7 +25,7 @@ def open_template_library(parent, services):
     from tkinter import Toplevel, StringVar, TclError
 
     win = Toplevel(parent)
-    win.title("Taxo — Бібліотека шаблонів (перегляд)")
+    win.title("Taxo — Бібліотека шаблонів")
     try:
         from window_layout import fit_window_to_screen
         fit_window_to_screen(win, 940, 620, 700, 440)
@@ -37,7 +37,7 @@ def open_template_library(parent, services):
     body.columnconfigure(0, weight=1)
     body.rowconfigure(3, weight=1)
 
-    ttk.Label(body, text="Бібліотека шаблонів — лише перегляд",
+    ttk.Label(body, text="Бібліотека шаблонів",
               font=("TkDefaultFont", 13, "bold")).grid(row=0, column=0, sticky="w")
 
     status = StringVar(value="Перевіряю бібліотеку…")
@@ -91,7 +91,7 @@ def open_template_library(parent, services):
     ttk.Label(footer, textvariable=count).grid(row=0, column=0, sticky="w")
     refresh_button = ttk.Button(footer, text="Оновити")
     refresh_button.grid(row=0, column=1, padx=(4, 8))
-    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=3)
+    copy_button = ttk.Button(footer, text="Створити власну копію")\n    copy_button.grid(row=0, column=3, padx=(4, 8))\n    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=4)
 
     results = queue.Queue()
     state = {"closed": False, "busy": False, "generation": 0, "view": None,
@@ -198,8 +198,82 @@ def open_template_library(parent, services):
                 show_result(view)
         except queue.Empty:
             pass
+        try:
+            while True:
+                ok, result = copy_results.get_nowait()
+                state["copy_busy"] = False
+                copy_button.configure(state="normal")
+                if ok:
+                    details.set(
+                        "Власну копію створено: %s · власних копій: %d" % (
+                            result.title,
+                            company_template_count(services.workspace.root),
+                        )
+                    )
+                    messagebox.showinfo(
+                        "Бібліотека шаблонів",
+                        "Власну копію створено у CompanyTemplates. "
+                        "Початковий шаблон не змінено.",
+                        parent=win,
+                    )
+                else:
+                    status.set("Не вдалося створити власну копію.")
+                    messagebox.showerror(
+                        "Бібліотека шаблонів", str(result), parent=win
+                    )
+        except queue.Empty:
+            pass
         if not state["closed"]:
             state["poll"] = win.after(100, poll)
+
+    def create_selected_copy():
+        """Create one user-owned copy without mutating the installed package."""
+        view = state["view"]
+        if (
+            state["closed"] or state["copy_busy"]
+            or view is None or view.status != "AVAILABLE"
+        ):
+            return
+        selection = tree.selection()
+        if not selection:
+            messagebox.showinfo(
+                "Бібліотека шаблонів", "Виберіть шаблон.", parent=win
+            )
+            return
+        selected_key = selection[0]
+        selected_row = next(
+            (
+                row for row in view.rows
+                if row.template_id + "@" + row.revision_id == selected_key
+            ),
+            None,
+        )
+        if selected_row is None:
+            return
+        state["copy_busy"] = True
+        copy_button.configure(state="disabled")
+        status.set("Створюю власну копію…")
+
+        def worker():
+            with _WRITER_SLOT:
+                try:
+                    result = create_workspace_company_copy(
+                        services.workspace.root,
+                        services.app_version,
+                        selected_row.template_id,
+                        selected_row.revision_id,
+                    )
+                    copy_results.put((True, result))
+                except Exception as exc:
+                    copy_results.put((False, str(exc)))
+
+        threading.Thread(
+            target=worker,
+            name="Taxo-company-template-copy",
+            daemon=True,
+        ).start()
+
+    copy_button.configure(command=create_selected_copy)
 
     def refresh():
         if state["closed"] or state["busy"]:

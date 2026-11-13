@@ -492,6 +492,17 @@ def _copy_backup_payload(
     if include_output and srcp["output"].exists():
         shutil.copytree(srcp["output"],dstp["output"],dirs_exist_ok=True)
 
+    # Root-level template data is outside Data/, so preserve it explicitly.
+    # CompanyTemplates contains user-owned wording and is not reproducible from
+    # an application update; TemplateLibrary is included so a full restore keeps
+    # the exact template package used by historical work.
+    for name in ("TemplateLibrary", "CompanyTemplates"):
+        extra = source / name
+        if extra.exists():
+            if not extra.is_dir() or extra.is_symlink():
+                raise ValueError(f"Некоректне сховище шаблонів: {name}")
+            shutil.copytree(extra, target / name, dirs_exist_ok=True)
+
     marker=source/MARKER_NAME
     if marker.is_file():
         shutil.copy2(marker,target/MARKER_NAME)
@@ -544,6 +555,8 @@ def create_workspace_backup_archive(
                 "databases":True,
                 "vehicle_documents":bool(include_vehicle_documents),
                 "employee_documents":True,
+                "template_library":(source / "TemplateLibrary").is_dir(),
+                "company_templates":(source / "CompanyTemplates").is_dir(),
                 "tachograph_scans":bool(include_tacho_scans),
                 "output":bool(include_output),
             },

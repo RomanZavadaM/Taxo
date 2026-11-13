@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
-from template_library_reader import LibrarySnapshot, default_library_root, inspect_library
+from template_library_reader import LibrarySnapshot, default_library_root, inspect_library\nfrom company_template_store import create_company_copy, list_company_templates
 
 
 CATEGORY_LABELS = {
@@ -87,4 +87,21 @@ def inspect_workspace_library(workspace_root: Path, app_version: str) -> Library
     """
     return view_from_snapshot(
         inspect_library(default_library_root(Path(workspace_root)), app_version)
+    )
+
+
+def company_template_count(workspace_root: Path) -> int:
+    """Return the number of integrity-checked user-owned template copies."""
+    return len(list_company_templates(Path(workspace_root)))
+
+
+def create_workspace_company_copy(
+    workspace_root: Path,
+    app_version: str,
+    template_id: str,
+    revision_id: str,
+):
+    """Create a copy-on-customize record without modifying TemplateLibrary."""
+    return create_company_copy(
+        Path(workspace_root), app_version, template_id, revision_id
     )
