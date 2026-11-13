@@ -154,6 +154,19 @@ class CompanyTemplatesR1Tests(unittest.TestCase):
             (target / "CompanyTemplates" / "index.json").is_file()
         )
 
+    def test_backup_refuses_symlink_inside_template_storage(self):
+        outside = Path(self.temp.name) / "outside.txt"
+        outside.write_text("outside", encoding="utf-8")
+        link = self.vendor / "linked.txt"
+        try:
+            link.symlink_to(outside)
+        except (NotImplementedError, OSError):
+            self.skipTest("Symlinks not supported in this environment")
+        target = Path(self.temp.name) / "UnsafeBackupStage"
+        target.mkdir()
+        with self.assertRaises(ValueError):
+            workspace._copy_backup_payload(self.work, target)
+
     def test_service_and_ui_keep_storage_out_of_main(self):
         service_source = inspect.getsource(template_library_service)
         ui_source = inspect.getsource(template_library_ui)

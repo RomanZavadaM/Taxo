@@ -501,6 +501,8 @@ def _copy_backup_payload(
         if extra.exists():
             if not extra.is_dir() or extra.is_symlink():
                 raise ValueError(f"Некоректне сховище шаблонів: {name}")
+            if any(item.is_symlink() for item in extra.rglob("*")):
+                raise ValueError(f"Сховище шаблонів містить символічне посилання: {name}")
             shutil.copytree(extra, target / name, dirs_exist_ok=True)
 
     marker=source/MARKER_NAME

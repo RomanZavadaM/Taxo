@@ -94,8 +94,16 @@ def open_template_library(parent, services):
     copy_button = ttk.Button(footer, text="Створити власну копію")\n    copy_button.grid(row=0, column=3, padx=(4, 8))\n    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=4)
 
     results = queue.Queue()
-    state = {"closed": False, "busy": False, "generation": 0, "view": None,
-             "poll": None, "sort": ("title", False)}
+    copy_results = queue.Queue()
+    state = {
+        "closed": False,
+        "busy": False,
+        "copy_busy": False,
+        "generation": 0,
+        "view": None,
+        "poll": None,
+        "sort": ("title", False),
+    }
     win._taxo_library_state = state
 
     def close():
