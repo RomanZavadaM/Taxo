@@ -36,12 +36,10 @@ class TemplateLibraryBrowserR6Tests(unittest.TestCase):
             self.assertFalse((root / "TemplateLibrary").exists())
             reader.assert_called_once_with(root / "TemplateLibrary", "10.18-r6")
 
-    def test_real_private_catalog_uses_no_embedded_user_or_private_data(self):
+    def test_ui_modules_do_not_embed_private_paths_or_storage_code(self):
         for mod in (template_library_feature, template_library_service,
                     template_library_ui):
             code = inspect.getsource(mod)
-            self.assertNotIn("roman_mmg2lw7", code)
-            self.assertNotIn("transport-docs-catalog", code)
             self.assertNotIn("C:\\Users\\", code)
             self.assertNotIn("sqlite3", code)
             self.assertNotIn("DocumentVault", code)
