@@ -20,7 +20,7 @@ class VehicleDocumentsUiSeparationR4Tests(unittest.TestCase):
         self.assertIn(main.APP_VERSION, ("10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4"))
         self.assertIn(
             (ROOT / "VERSION.txt").read_text("utf-8"),
-            ("Version: 10.16-r4\n", "Version: 10.16-r5\n", "Version: 10.16-r6\n", "Version: 10.16-r7\n", "Version: 10.16-r8\n", "Version: 10.16-r9\n", "Version: 10.16-r10\n", "Version: 10.17-r1\n", "Version: 10.17-r2\n", "Version: 10.17-r3\n", "Version: 10.17-r4\n", "Version: 10.17-r5\n", "Version: 10.17-r6\n", "Version: 10.17-r7\n", "Version: 10.17-r8\n", "Version: 10.17-r9\n", "Version: 10.17-r10\n", "Version: 10.18-r1\n", "Version: 10.18-r2\n", "Version: 10.18-r3\n"),
+            ("Version: 10.16-r4\n", "Version: 10.16-r5\n", "Version: 10.16-r6\n", "Version: 10.16-r7\n", "Version: 10.16-r8\n", "Version: 10.16-r9\n", "Version: 10.16-r10\n", "Version: 10.17-r1\n", "Version: 10.17-r2\n", "Version: 10.17-r3\n", "Version: 10.17-r4\n", "Version: 10.17-r5\n", "Version: 10.17-r6\n", "Version: 10.17-r7\n", "Version: 10.17-r8\n", "Version: 10.17-r9\n", "Version: 10.17-r10\n", "Version: 10.18-r1\n", "Version: 10.18-r2\n", "Version: 10.18-r3\n", "Version: 10.18-r4\n"),
         )
         start = (ROOT / "START.bat").read_text("utf-8")
         self.assertIn("Taxo %s" % main.APP_VERSION, start)
