@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class VehicleDocumentReportSeparationR8Tests(unittest.TestCase):
     def test_version_and_start_require_new_module(self):
-        self.assertIn(main.APP_VERSION, ("10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7"))
+        self.assertIn(main.APP_VERSION, ("10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8"))
         self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n")
         start = (ROOT / "START.bat").read_text("utf-8")
         self.assertIn("Taxo " + main.APP_VERSION, start)
