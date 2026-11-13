@@ -2,6 +2,16 @@
 
 **Дата:** 13.11.2026.
 
+## Актуальне рішення власника та незлитий r5 checkpoint (13.11.2026)
+
+- **Інтегрований продуктовий main / Stable не змінені:** Stable/Latest `v10.18-r3`, rollback `v10.17-r10`. Цей запис — тільки про перевірений **незлитий** кандидат.
+- **Остання видана кодова ревізія — 10.18-r5**, exact source head `7ee89f3f0dcb731c4b2fd416b6ddb630e3ebe7d2` ([draft PR #396](https://github.com/RomanZavadaM/Taxo/pull/396), `work/v10.18-r5-template-library-reader`), від перевіреного r4 head `eb762664dbd85650d3b8e5a6a59a7f3dfb4ea551`. Не tagged, не merged, не Stable.
+- r5: read-only модуль читання встановленої бібліотеки `src/taxo/template_library_reader.py`; 13 синтетичних тестів; ніякої бізнес-логіки бібліотеки у `main.py`, жодних змін SQLite, архіву чи інсталятора.
+- **CI для точного r5 head:** START/source `43428732476` — 1242/1242 SUCCESS; Windows `43428739892` — SUCCESS; Win7 `43428739920` — SUCCESS; macOS Intel/ARM64 `43428739821` — SUCCESS. Артефакти: START `14038129439`, Win `14037529861`, Win7 `14037969420`, Intel `14038424881`, ARM `14038930161`.
+- **Обов'язковий r5 GitHub Portable Pre-release ще НЕ створений.** Наступна одна дія — опублікувати exact-head `v10.18-r5` через штатний `Publish current Taxo release` / `workflow_dispatch` на гілці r5, перевірити tag і всі 8 assets. Підключений GitHub connector не надає дії workflow dispatch/create release; не вважати CI artifact еквівалентом release. Стабільну `v10.18-r3` не змінювати без окремої команди власника.
+- Новий напрям: [docs-only draft PR #395](https://github.com/RomanZavadaM/Taxo/pull/395) описує окрему бібліотеку шаблонів (майбутній приватний source repo, UI поки через Taxo), робочу директорію за замовчуванням з можливістю зміни, єдину програму інструктажів підприємства на 24 місяці, архів довгих/підписаних документів. Немає потреби створювати паралельний архів замість чинного `Data/PaperDocuments`/`document_catalog.py`.
+- **Наступний новий номер після r5 — 10.18-r6.** `r5` не перевикористовувати. Ручний UI/DPI gate ще pending.
+
 ## Поточний підтверджений інтегрований стан
 
 - **Stable / Latest — [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).** Власник прийняв 25/25 ручних сценаріїв без зауважень і дав команду «зливай у main». Exact immutable source/tag `65bc80ecae85793cb7c2c14edd4d3eabaa2b4470`; реліз має 8 перевірених assets. Stable під час r4 не змінювалася.
