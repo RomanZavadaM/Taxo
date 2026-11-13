@@ -1,6 +1,15 @@
 # HANDOFF_CURRENT — Taxo
 
-**13.11.2026 — Stable/Latest: v10.18-r3. Останній кодовий тестовий кандидат: 10.18-r6, CI PASS, draft/unmerged/unreleased. Наступна нова кодова ревізія після видачі r6 — 10.18-r7.**
+**13.11.2026 — Stable/Latest: v10.18-r3. Остання видана тестова кодова ревізія: 10.18-r7, CI PASS, draft/unmerged/unreleased. Наступна нова ревізія — 10.18-r8.**
+
+## Відновлення після ручного тестування r6 і перевірки r7 (13.11)
+
+- Власник запустив Windows Portable **10.18-r6** і надіслав скриншот «Експлуатація → Документи»: бібліотеку шаблонів не видно. Причина — r6 додав нову функцію тільки в меню `Шаблони`, яке на Windows приховане/неочевидне. Це UX-дефект доступності, а не доказ несправності читача чи змісту приватної бібліотеки.
+- **Новий тестовий r7:** [draft PR #400](https://github.com/RomanZavadaM/Taxo/pull/400), branch `work/v10.18-r7-template-library-visible-entry`, exact head `aed893047ef8853d2c8c9ef96e7d58603ad66c55` (від exact r6 head `ad6f60cf2b95cf79597447e42164c5efd91c0155`). Створено окремий `template_library_operations_entry.py`, додано кнопку «Бібліотека шаблонів…» у чинний блок «Накази та розпорядження» праворуч від «Каталог типів наказів», через чинний `feature_layers.py`. `main.py` — тільки номер ревізії, жодного нового великого коду чи змін SQLite.
+- **Усі exact-head r7 CI успішні:** [START/source 43455393733](https://github.com/RomanZavadaM/Taxo/actions/runs/43455393733), **1255/1255** тестів, artifact `14052174811`; [Windows 43455410179](https://github.com/RomanZavadaM/Taxo/actions/runs/43455410179), artifact `14054111027`; [Win7 43455410214](https://github.com/RomanZavadaM/Taxo/actions/runs/43455410214), artifact `14052518546`; [macOS Intel/ARM 43455410124](https://github.com/RomanZavadaM/Taxo/actions/runs/43455410124), artifacts `14052538346`/`14054175651`. Прямий Windows-артефакт для власника: https://github.com/RomanZavadaM/Taxo/actions/runs/43455410179/artifacts/14054111027.
+- **r7 ще не merged/tagged/published GitHub Pre-release і НЕ Stable.** Чекає ручного Windows приймання: видима кнопка → приватна бібліотека 28 шаблонів → пошук/категорії/сортування → X/«Закрити» та повторне відкриття. Не плутати успіх CI із ручним UX-тестом.
+- Власницький приватний каталог шаблонів у цьому репозиторії **не з'явився** і в публічні release assets не включався. r5/r6 GitHub Pre-release checkpoint ще потребує звірки та завершення; не переписувати видані ревізії. Stable/Latest v10.18-r3 не змінювати без окремої команди.
+- Подробиці й архів дій — Issue #61.
 
 ## Підтверджена база
 
