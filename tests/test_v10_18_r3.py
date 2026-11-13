@@ -14,9 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class StoirTableSortingR3Tests(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.18-r3")
-        self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: 10.18-r3\n")
-        self.assertIn("Taxo 10.18-r3", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.18-r3", "10.18-r4"))
+        self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n")
+        self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_four_working_tables_use_explicit_types(self):
         source = inspect.getsource(vehicle_maintenance_ui.open_maintenance_center)
