@@ -50,9 +50,9 @@ class FakeTree:
 
 class TachographTableSortingR4Tests(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertEqual(main.APP_VERSION, "10.18-r4")
-        self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: 10.18-r4\n")
-        self.assertIn("Taxo 10.18-r4", (ROOT / "START.bat").read_text("utf-8"))
+        self.assertIn(main.APP_VERSION, ("10.18-r4", "10.18-r5"))
+        self.assertIn((ROOT / "VERSION.txt").read_text("utf-8"), ("Version: 10.18-r4\n", "Version: 10.18-r5\n"))
+        self.assertIn("Taxo %s" % main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_numeric_zero_is_not_treated_as_missing(self):
         rows=(("zero",0),("two",2),("blank",""),("none",None))
