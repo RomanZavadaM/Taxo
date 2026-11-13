@@ -62,15 +62,23 @@ class VisibleLibraryEntryR7Tests(unittest.TestCase):
         window, app = DummyWindow(), DummyApp()
         original = operations_orders_ui.open_operations_center
 
-        with mock.patch.object(operations_orders_ui, "open_operations_center",
-                               side_effect=lambda app, core: window) as current:
-            with mock.patch.object(entry, "add_operations_library_button") as attach:
-                result = entry.install(None, object, None)
-                self.assertIs(result, object)
-                self.assertIs(operations_orders_ui.open_operations_center(app, "core"), window)
-                current.assert_called_once_with(app, "core")
-                attach.assert_called_once_with(window, app)
-        operations_orders_ui.open_operations_center = original
+        calls = []
+
+        def original_open(parent, core):
+            calls.append((parent, core))
+            return window
+
+        try:
+            with mock.patch.object(operations_orders_ui, "open_operations_center",
+                                   new=original_open):
+                with mock.patch.object(entry, "add_operations_library_button") as attach:
+                    result = entry.install(None, object, None)
+                    self.assertIs(result, object)
+                    self.assertIs(operations_orders_ui.open_operations_center(app, "core"), window)
+                    self.assertEqual(calls, [(app, "core")])
+                    attach.assert_called_once_with(window, app)
+        finally:
+            operations_orders_ui.open_operations_center = original
 
     def test_entry_has_no_private_paths_or_document_mutations(self):
         import inspect
