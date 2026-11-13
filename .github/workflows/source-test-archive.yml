@@ -16,6 +16,17 @@ on:
       - '!WORKLOG.md'
       - '!docs/**'
       - 'docs/releases/**'
+  pull_request:
+    paths:
+      - '**'
+      - '!README.md'
+      - '!START_HERE.md'
+      - '!HANDOFF_CURRENT.md'
+      - '!PROJECT_RULES.md'
+      - '!PROJECT_STATE.md'
+      - '!WORKLOG.md'
+      - '!docs/**'
+      - 'docs/releases/**'
   workflow_dispatch:
 
 permissions:
