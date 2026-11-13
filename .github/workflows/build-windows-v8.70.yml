@@ -226,13 +226,15 @@ jobs:
         shell: pwsh
         run: |
           $out = "BUILD_PROVENANCE_v${env:TAXO_CHECKSUM_STEM}_Windows_x64.txt"
+          $pythonVersion = ((python --version 2>&1) | Out-String).Trim()
+          $pyinstallerVersion = ((python -m PyInstaller --version 2>&1) | Out-String).Trim()
           @(
             "taxo_version=${env:TAXO_VERSION}",
             "git_head=$(git rev-parse HEAD)",
             "runner_os=${env:RUNNER_OS}",
             "runner_arch=${env:RUNNER_ARCH}",
-            "python=$((python --version) 2>&1)",
-            "pyinstaller=$((python -m PyInstaller --version) 2>&1)"
+            "python=$pythonVersion",
+            "pyinstaller=$pyinstallerVersion"
           ) | Set-Content -Encoding utf8 $out
           "pip_freeze_begin" | Add-Content -Encoding utf8 $out
           python -m pip freeze | Sort-Object | Add-Content -Encoding utf8 $out
