@@ -17,8 +17,8 @@
 ## Зміни r9
 
 - `packaging/Taxo.spec`: UPX явно вимкнено, щоб майбутня зміна runner/tool availability не могла непомітно змінити спосіб пакування;
-- додано окремий CI-only `scripts/windows_malware_gate.ps1`; він не запускає Taxo та виконує Microsoft Defender custom scan із актуалізацією сигнатур;
-- Defender gate є fail-closed: якщо scanner недоступний, update/scan завершується помилкою або є detection — Windows artifact не завантажується;
+- додано окремий CI-only `scripts/windows_malware_gate.ps1`; він не запускає Taxo та виконує Microsoft Defender custom scan із актуалізацією сигнатур для modern Windows і Windows 7 packages;
+- Defender gate є fail-closed: якщо scanner недоступний, update/scan завершується помилкою або є detection — відповідний modern Windows або Win7 artifact не завантажується;
 - scan виконується без remediation, після чого SHA-256 Portable та Setup повторно звіряються з manifest;
 - додається build provenance: exact Git head, runner, Python, PyInstaller, `pip freeze`, SHA-256 spec;
 - GitHub Actions artifacts отримують унікальне ім'я з `run ID` замість повторюваного `Taxo-current-Windows-x64`; версія лишається в канонічних іменах ZIP/EXE всередині artifact;
