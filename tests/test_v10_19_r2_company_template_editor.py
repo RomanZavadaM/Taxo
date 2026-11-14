@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.19-r2: editable, versioned CompanyTemplates copies."""
+"""10.19-r2/r3: editable, versioned CompanyTemplates copies."""
 from __future__ import annotations
 
 import hashlib
@@ -113,19 +113,21 @@ class CompanyTemplateEditorR2Tests(unittest.TestCase):
             self.work, "10.19-r2", "instructions.editor-test", "v1"
         )
 
-    def test_revision_identity_is_10_19_r2(self):
+    def test_revision_identity_accepts_r2_and_r3(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
+        self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            "Version: 10.19-r2",
+            ("Version: 10.19-r2", "Version: 10.19-r3"),
         )
-        self.assertIn(
-            'APP_VERSION = "10.19-r2"',
-            (root / "main.py").read_text("utf-8"),
+        main_source = (root / "main.py").read_text("utf-8")
+        self.assertTrue(
+            'APP_VERSION = "10.19-r2"' in main_source
+            or 'APP_VERSION = "10.19-r3"' in main_source
         )
-        self.assertIn(
-            "Taxo 10.19-r2",
-            (root / "START.bat").read_text("utf-8"),
+        start_source = (root / "START.bat").read_text("utf-8")
+        self.assertTrue(
+            "Taxo 10.19-r2" in start_source
+            or "Taxo 10.19-r3" in start_source
         )
 
     def test_editor_exposes_text_not_structure(self):
@@ -298,6 +300,9 @@ class CompanyTemplateEditorR2Tests(unittest.TestCase):
         self.assertIn("Власні шаблони", inspect.getsource(template_library_ui))
         self.assertNotIn("exec(", source)
         self.assertNotIn("eval(", source)
+        self.assertIn("title_value = title.get()", source)
+        worker = source[source.index("        def worker():"):]
+        self.assertNotIn("title.get()", worker)
 
     def test_editor_logic_does_not_move_into_main(self):
         import main
