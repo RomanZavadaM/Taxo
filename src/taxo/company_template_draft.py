@@ -31,6 +31,17 @@ _PLACEHOLDER = re.compile(
 
 
 @dataclass(frozen=True)
+class CompanyTemplateDraftDefinition:
+    """Stable source snapshot used by a fact-entry form."""
+
+    company_template_id: str
+    source_sha256: str
+    edit_revision: int
+    title: str
+    variables: Tuple[DraftVariable, ...]
+
+
+@dataclass(frozen=True)
 class CompanyTemplateDraft:
     """Read-only in-memory result with exact company-revision provenance."""
 
@@ -200,11 +211,22 @@ def prepare_company_template_draft(
     workspace_root: Path,
     company_template_id: str,
     facts: Mapping[str, object],
+    expected_source_sha256: str = "",
 ) -> CompanyTemplateDraft:
-    """Build a typed, non-persistent preview from one company-owned revision."""
+    """Build a typed, non-persistent preview from one company-owned revision.
+
+    If expected_source_sha256 is provided, a concurrently edited company
+    template is rejected instead of rendering a different revision than the
+    fact-entry form displayed to the user.
+    """
     document = load_company_template(
         Path(workspace_root), company_template_id
     )
+    if expected_source_sha256 and document.content_sha256 != expected_source_sha256:
+        raise ValueError(
+            "Власний шаблон змінився після відкриття форми. "
+            "Оновіть форму і перевірте дані ще раз."
+        )
     variables = declared_variables(document.template)
     normalized = normalize_facts(variables, facts)
     declarations = {item.name: item for item in variables}
@@ -237,11 +259,26 @@ def prepare_company_template_draft(
     )
 
 
-def list_draft_variables(
+def load_draft_definition(
     workspace_root: Path, company_template_id: str
-) -> Tuple[DraftVariable, ...]:
-    """Read declared variables without rendering or writing anything."""
+) -> CompanyTemplateDraftDefinition:
+    """Load exact source identity plus declared fields for one fact form."""
     document = load_company_template(
         Path(workspace_root), company_template_id
     )
-    return declared_variables(document.template)
+    return CompanyTemplateDraftDefinition(
+        company_template_id=company_template_id,
+        source_sha256=document.content_sha256,
+        edit_revision=document.edit_revision,
+        title=document.title,
+        variables=declared_variables(document.template),
+    )
+
+
+def list_draft_variables(
+    workspace_root: Path, company_template_id: str
+) -> Tuple[DraftVariable, ...]:
+    """Backward-compatible read of declared variables."""
+    return load_draft_definition(
+        workspace_root, company_template_id
+    ).variables
