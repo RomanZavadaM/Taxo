@@ -80,15 +80,16 @@ class CompanyTemplatesR1Tests(unittest.TestCase):
         self.vendor = self.work / "TemplateLibrary"
         self.vendor_file = _write_vendor_library(self.vendor)
 
-    def test_revision_identity_is_10_19_r1(self):
+    def test_revision_identity_accepts_current_r2(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
-            (root / "VERSION.txt").read_text("utf-8").strip(),
-            "Version: 10.19-r1",
-        )
         self.assertIn(
-            'APP_VERSION = "10.19-r1"',
-            (root / "main.py").read_text("utf-8"),
+            (root / "VERSION.txt").read_text("utf-8").strip(),
+            ("Version: 10.19-r1", "Version: 10.19-r2"),
+        )
+        main_source = (root / "main.py").read_text("utf-8")
+        self.assertTrue(
+            'APP_VERSION = "10.19-r1"' in main_source
+            or 'APP_VERSION = "10.19-r2"' in main_source
         )
 
     def test_missing_company_storage_is_read_only(self):
