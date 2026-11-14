@@ -4,61 +4,64 @@
 
 ## Поточний стан
 
-- Поточний продуктовий checkpoint: **10.19-r5**.
-- Exact product / release source: `0ab0cc761078b38e391c1998ddf9feee7447d3a8`.
+- Поточний продуктовий checkpoint: **10.19-r6**.
+- Exact product / release source: `eca31f5d61fc382cebc4663ec511619b9dcd69e7`.
 - **Stable / Latest:** `v10.18-r3` — без змін.
-- **Поточний тестовий реліз:** `v10.19-r5 — Test Portable`.
-- r5 prerelease: 4 Portable + START + SHA256, без Setup.
+- **Поточний тестовий реліз:** `v10.19-r6 — Test Portable`.
+- r6 prerelease: 4 Portable + START + SHA256, без Setup.
+- Product PR: #431.
+- Release trigger PR: #432.
+- Publisher: `43622926821` SUCCESS.
 
-## 10.19-r5 — що завершено
+## 10.19-r6 — що завершено
 
-1. У `CompanyTemplates` додано дію **«Підготувати чернетку»**.
-2. Форма будується з typed variables конкретної власної редакції.
-3. Реєстри працівників/водіїв/ТЗ читаються через чинний `entity_choices` зі stable ID + snapshot-полями.
-4. Є UI-контроли для `text`, `date`, `integer`, `person_ref`, `vehicle_ref`, `participants`, `pairs`, `sections`, `table_rows`.
-5. Учасники підтримують multi-select; пари водій–ТЗ складаються явно.
-6. Pair invariant узгоджений з чинними наказами: один ТЗ може мати кількох водіїв, але один водій не може одночасно мати кілька різних ТЗ у межах однієї чернетки; точний дубль блокується.
-7. Форма прив'язана до exact `source_sha256`; якщо власна редакція змінилась після відкриття, preview відмовляється рендерити іншу редакцію мовчки.
-8. Усі Tk values збираються в UI thread; background renderer отримує plain Python facts.
-9. Preview read-only: не змінює TemplateLibrary, CompanyTemplates, main DB, накази/інструктажі, DocumentArchive і не створює DOCX/PDF.
+1. Заповнену `CompanyTemplates` чернетку можна явно зберегти як окремий immutable prepared snapshot.
+2. Snapshot зберігає exact `company_template_id`, `source_sha256`, `edit_revision`, normalized facts, rendered structure і rendered content.
+3. Сховище окреме: workspace `Data/PreparedDocuments`; у r6 немає update/delete API для створеного snapshot-а.
+4. Індекс і файли snapshot-ів перевіряються за SHA-256/розміром; небезпечні/невідомі об'єкти, сирітські файли та порушення індексу відхиляються.
+5. Запис файлів атомарний; `PreparedDocuments` входить у повний backup/restore.
+6. У preview додано явну дію **«Зберегти підготовлену чернетку»**; Tk-значення не читаються background worker-ом.
+7. Snapshot не створює автоматично наказ/інструктаж, DOCX/PDF, фінальний архів, скан чи підпис.
+8. Vendor `TemplateLibrary` лишається read-only; власні шаблони — `CompanyTemplates`.
+9. Feature-логіка лишилася в окремих модулях; `main.py` не роздувався.
 
-## Exact-main перевірки r5
+## Exact-main перевірки r6
 
-Для `0ab0cc761078b38e391c1998ddf9feee7447d3a8`:
-- START/source — `43614552144` SUCCESS;
-- Windows — `43614552146` SUCCESS;
-- Windows 7 — `43614552095` SUCCESS;
-- macOS Intel + ARM — `43614552161` SUCCESS;
-- Windows/Win7 Defender — PASS;
+Для exact product source `eca31f5d61fc382cebc4663ec511619b9dcd69e7`:
+- START/source — `43622027078` SUCCESS;
+- Windows — `43622027016` SUCCESS;
+- Windows 7 — `43622027066` SUCCESS;
+- macOS Intel + ARM — `43622027010` SUCCESS;
+- Windows/Win7 Microsoft Defender — PASS;
 - post-scan integrity/hash verification — PASS.
 
 Publisher:
-- `43615561706` — SUCCESS;
-- immutable release `v10.19-r5`;
-- target = exact product source `0ab0cc761078b38e391c1998ddf9feee7447d3a8`;
-- 6 assets.
+- `43622926821` — SUCCESS;
+- immutable release `v10.19-r6`;
+- target = exact product source `eca31f5d61fc382cebc4663ec511619b9dcd69e7`;
+- 6 assets: Windows, Windows 7, macOS Intel, macOS ARM, START, SHA256.
+- GitHub Latest лишається `v10.18-r3 — Stable`.
 
-## Recovery note r5
+## Recovery note r6
 
-Перед merge strict ruleset показав branch як `behind`. Перевірено, що 5 службових main-комітів змінювали лише recovery-документи, яких r5 не торкалась. Main був підтягнутий у r5 звичайним merge commit з двома батьками, без force; після цього required `build-windows` PASS і PR #428 merged.
+Після нестабільного чату live GitHub показав, що r6 уже була розпочата на `work/v10.19-r6-prepared-snapshot`; ревізію не починали повторно. Незавершені version/START guards після обриву були узгоджені без зміни дизайну snapshot storage. Final branch exact head `1535bd7f92facf2d636f9dc7e656653a6eea1a24` пройшов повний платформний CI; PR #431 merged у exact product source вище. Після exact-main PASS PR #432 запустив guarded publisher без зміни Stable.
 
 ## Наступна дія
 
-**Наступна кодова ревізія — 10.19-r6.**
+**Наступна кодова ревізія — 10.19-r7.**
 
-Immutable snapshot заповненої чернетки як проміжний документний стан перед DOCX/PDF:
-- зафіксувати exact company-template revision SHA/edit_revision;
-- зафіксувати normalized facts і rendered structured content;
-- snapshot після створення не редагувати in-place;
-- окремо від робочого наказу/інструктажу: snapshot не створює business fact автоматично;
-- не змішувати в r6 генерацію DOCX/PDF, DocumentArchive, скани чи підписи;
-- визначити безпечний workspace-relative storage/index і атомарний commit;
-- backup/restore coverage додати разом зі snapshot storage.
+Окремий slice: DOCX renderer/export для вже збереженого prepared snapshot-а:
+- рендерити з immutable snapshot, а не повторно читати поточний шаблон;
+- не змішувати в r7 PDF/print;
+- не створювати в r7 фінальний DocumentArchive, scan/signature state або автоматичний business fact;
+- зберегти provenance exact template revision і prepared snapshot ID у вихідному документному контексті;
+- не переносити feature-логіку в `main.py`.
 
 ## Незмінні правила
 
 - Виданий номер ревізії не переписувати і не використовувати повторно.
 - Повний успішний exact-SHA комплект усіх платформ → Test prerelease.
 - Stable/Latest змінювати лише за прямим рішенням власника.
-- Не створювати нових монолітів і не переносити feature-логіку в main.py.
+- `TemplateLibrary` read-only; власні шаблони — `CompanyTemplates`.
+- Не створювати нових монолітів; скорочення коду не є ціллю.
 - Recovery: START_HERE.md → цей файл → PROJECT_STATE.md → live GitHub → Issue #61.

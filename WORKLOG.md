@@ -1,3 +1,14 @@
+## 14.11.2026 — 10.19-r6 recovered, integrated and released
+
+- Recovery після нестабільного чату почався з live GitHub. Документи ще вказували r5 як завершену, але фактично вже існувала незавершена гілка `work/v10.19-r6-prepared-snapshot`; номер r6 не перевикористовувався і робота не починалась заново.
+- Незавершена r6 вже містила immutable prepared-document snapshot storage. Після обриву лишилися застарілі historical version/START guards та один текстовий static guard; їх узгоджено без зміни snapshot design. Final branch exact head `1535bd7f92facf2d636f9dc7e656653a6eea1a24`.
+- r6 додає explicit save підготовленої CompanyTemplates-чернетки в `Data/PreparedDocuments`: exact template ID/SHA/edit revision, normalized facts, rendered structure/content, SHA-256/size integrity index, atomic write, immutable API boundary і backup/restore coverage. Немає автоматичного business fact, DOCX/PDF, final archive, scan/signature side effects.
+- Product PR #431 merged; exact product/release source `eca31f5d61fc382cebc4663ec511619b9dcd69e7`.
+- Exact-main CI: START `43622027078`, Windows `43622027016`, Win7 `43622027066`, macOS Intel/ARM `43622027010` — SUCCESS. Windows і Win7 Microsoft Defender та post-scan integrity — PASS.
+- Release trigger PR #432 зберіг semantic Stable marker `10.18-r3` і запустив existing guarded publisher. Publisher `43622926821` SUCCESS → immutable [v10.19-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r6), target exactly `eca31f5d61fc382cebc4663ec511619b9dcd69e7`, 6 assets (4 Portable + START + SHA256).
+- GitHub Latest/Stable лишається [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).
+- Наступна кодова ревізія після recovery checkpoint: **10.19-r7**, окремий DOCX renderer/export з immutable prepared snapshot-а; PDF/print і DocumentArchive — пізніші окремі slices.
+
 ## 14.11.2026 — 10.19-r5 integrated and released
 
 - Exact product/release source `0ab0cc761078b38e391c1998ddf9feee7447d3a8`.
