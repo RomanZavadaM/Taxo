@@ -133,6 +133,7 @@ class CompanyTemplateEditorR2Tests(unittest.TestCase):
             or "Taxo 10.19-r3" in start_source
             or "Taxo 10.19-r4" in start_source
             or "Taxo 10.19-r5" in start_source
+            or "Taxo 10.19-r6" in start_source
         )
 
     def test_editor_exposes_text_not_structure(self):
