@@ -4,51 +4,49 @@
 
 ## Поточний підтверджений стан
 
-Taxo інтегрував і опублікував продуктовий checkpoint **10.19-r2**.
+Taxo інтегрував і опублікував коригувальний checkpoint **10.19-r3**.
 
-- Exact product / release source: `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`.
+- Exact product / release source: `a89291553bca88a1b792d45f56cc99d5e93876b7`.
 - Stable/Latest: **v10.18-r3**, без змін.
-- Current Test prerelease: **v10.19-r2 — Test Portable**.
-- r2 release: 4 Portable + START + SHA256, без Setup.
-- r8 executable publication залишається заблокованою; історичний Firefox verdict не оголошується false positive.
+- Current Test prerelease: **v10.19-r3 — Test Portable**.
+- r3 release: 4 Portable + START + SHA256, без Setup.
+- `v10.19-r2` залишається виданим історичним prerelease і не переписується.
 
-## Що додано в 10.19-r2
+## Причина r3
 
-Другий slice системи шаблонів:
-- окремий список `CompanyTemplates` і редактор власних копій;
-- vendor `TemplateLibrary` не редагується;
-- редактор змінює лише дозволені користувацькі тексти, зберігаючи структурні ID/типи/variables/data source;
-- великі тексти не усікаються в межах встановлених лімітів;
-- Save створює нову immutable власну редакцію, а попередній файл не переписується;
-- current-index атомарно переключається на нову редакцію;
-- SHA-256 захищає від silent last-write-wins при двох редакторах;
-- Cancel/X попереджають про незбережені зміни;
-- storage/service/list UI/editor UI винесені з `main.py`.
+Після випуску 10.19-r2 статичний перегляд виявив UI-thread defect:
+background save-worker редактора читав Tk `StringVar` через `title.get()`.
 
-Підстановка фактичних даних, DOCX/PDF і `DocumentArchive` до r2 не входять.
+CI r2 цього не зловив, бо проблема є thread-safety ризиком, а не гарантованим deterministic crash.
 
-## Exact-source перевірки 10.19-r2
+У 10.19-r3:
+- значення Tk читається в UI thread до старту worker;
+- worker отримує plain Python string;
+- regression-тест забороняє повернення Tk read у save-worker;
+- функціональна поведінка CompanyTemplates з r2 не розширювалась.
 
-Для `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`:
-- START/source — `43595242155` SUCCESS;
-- Windows — `43595242166` SUCCESS;
-- Windows 7 — `43595242114` SUCCESS;
-- macOS Intel + ARM — `43595242059` SUCCESS;
+## Exact-source перевірки 10.19-r3
+
+Для `a89291553bca88a1b792d45f56cc99d5e93876b7`:
+- START/source — `43598231924` SUCCESS;
+- Windows — `43598231921` SUCCESS;
+- Windows 7 — `43598231945` SUCCESS;
+- macOS Intel + ARM — `43598231954` SUCCESS;
 - Windows / Windows 7 Defender — PASS;
 - post-scan integrity/hash verification — PASS.
 
-Publisher `43595998112` — SUCCESS.
-Immutable release `v10.19-r2` target = `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`.
+Publisher `43599116472` — SUCCESS.
+Immutable release `v10.19-r3` target = `a89291553bca88a1b792d45f56cc99d5e93876b7`.
 
 ## Release policy
 
-Для нової ревізії з повним успішним exact-SHA комплектом START + Windows + Windows 7 + macOS Intel + macOS ARM і пройденими security/integrity gates публікувати immutable **Test prerelease**, якщо release ще не існує. Завершені артефакти не викидати й не перебудовувати лише заради публікації.
+Для нової ревізії з повним успішним exact-SHA комплектом START + Windows + Windows 7 + macOS Intel + macOS ARM і пройденими security/integrity gates публікувати immutable **Test prerelease**, якщо release ще не існує.
 
 Це правило **не змінює Stable/Latest**. Stable призначається тільки прямим рішенням власника.
 
 ## Наступна продуктова ревізія
 
-**10.19-r3.**
+**10.19-r4.**
 
 Наступний slice — типізована підстановка фактичних даних у вибрану власну редакцію та in-memory чернетка для preview:
 - не змінювати шаблон;
