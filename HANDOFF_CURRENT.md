@@ -4,55 +4,57 @@
 
 ## Поточний стан
 
-- Поточний продуктовий checkpoint: **10.19-r2**.
-- Exact product / release source: `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`.
+- Поточний продуктовий checkpoint: **10.19-r3**.
+- Exact product / release source: `a89291553bca88a1b792d45f56cc99d5e93876b7`.
 - **Stable / Latest:** `v10.18-r3` — без змін.
-- **Поточний тестовий реліз:** `v10.19-r2 — Test Portable`.
-- r2 prerelease: 4 Portable + START + SHA256, без Setup.
-- Після product commit у `main` є тільки release/recovery maintenance; продукт r2 не переписувався.
+- **Поточний тестовий реліз:** `v10.19-r3 — Test Portable`.
+- r3 prerelease: 4 Portable + START + SHA256, без Setup.
+- Виданий `v10.19-r2` не переписаний; r3 є окремою коригувальною ревізією.
 
-## 10.19-r2 — що завершено
+## 10.19-r3 — що виправлено
 
-1. У `CompanyTemplates` з'явився окремий список власних шаблонів і редактор.
-2. Vendor `TemplateLibrary` залишається read-only; редактор його не змінює.
-3. Редагуються тільки користувацькі текстові частини: назва, опис, тексти/примітки блоків, пункти списків, статичні таблиці та додатки.
-4. Службова структура, ID, типи блоків, змінні та data source через редактор не змінюються.
-5. Підтримані великі тексти для інструкцій та інструктажів.
-6. Кожне «Зберегти» створює новий файл власної редакції; попередній файл зберігається.
-7. SHA-256 використовується як optimistic-concurrency token: застаріле друге вікно не може мовчки перезаписати новішу редакцію.
-8. «Скасувати» і X попереджають про незбережені зміни.
-9. Storage, editor service, list UI та editor UI розділені; редактор не перенесено в `main.py`.
-10. Word/PDF, підстановка фактичних даних і `DocumentArchive` у r2 не входять.
+Після публікації r2 у статичному перегляді UI-коду знайдено, що save-worker редактора читав Tk `StringVar` напряму з background thread.
 
-## Exact-main перевірки r2
+У r3:
+1. Назва шаблону зчитується в UI thread **до** запуску worker.
+2. Worker отримує звичайний Python-рядок і не звертається до Tk.
+3. Додано regression-контракт, який забороняє `title.get()` у save-worker.
+4. Функціональність r2 не розширювалась.
+5. Vendor `TemplateLibrary` лишається read-only.
+6. `CompanyTemplates`, історія власних редакцій та SHA-concurrency працюють за контрактом r2.
 
-Для `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`:
-- START/source — `43595242155` SUCCESS;
-- Windows — `43595242166` SUCCESS;
-- Windows 7 — `43595242114` SUCCESS;
-- macOS Intel + ARM — `43595242059` SUCCESS;
+## Exact-main перевірки r3
+
+Для `a89291553bca88a1b792d45f56cc99d5e93876b7`:
+- START/source — `43598231924` SUCCESS;
+- Windows — `43598231921` SUCCESS;
+- Windows 7 — `43598231945` SUCCESS;
+- macOS Intel + ARM — `43598231954` SUCCESS;
 - Windows і Windows 7 — Microsoft Defender PASS;
 - post-scan integrity/hash verification — PASS.
 
 Publisher:
-- `43595998112` — SUCCESS;
-- immutable release `v10.19-r2`;
-- release target = exact product source `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`;
+- `43599116472` — SUCCESS;
+- immutable release `v10.19-r3`;
+- release target = exact product source `a89291553bca88a1b792d45f56cc99d5e93876b7`;
 - 6 assets: Windows, Windows 7, macOS Intel, macOS ARM, START, SHA256.
 
 ## Release rule
 
-Якщо нова ревізія вже має повний успішний exact-SHA набір START + Windows + Windows 7 + macOS Intel + macOS ARM і security/integrity gates пройдені, її публікуємо як immutable **Test prerelease**, якщо такого release ще немає. Stable автоматично не змінюється.
+Повний успішний exact-SHA комплект START + Windows + Windows 7 + macOS Intel + macOS ARM після security/integrity gates → **Test prerelease**, якщо такого release ще немає. Stable автоматично не змінюється.
 
 ## Одна наступна дія
 
-**Наступна кодова ревізія — 10.19-r3.**
+**Наступна кодова ревізія — 10.19-r4.**
 
-Наступний slice: підстановка типізованих фактичних даних у вибрану власну редакцію та формування **чернетки для preview**, без зміни шаблону і без запису готового документа в архів:
-- явна помилка для відсутніх обов'язкових полів;
-- не робити сліпий string-replace, який руйнує структуру;
-- не створювати факти наказу/інструктажу самим preview;
-- Word/PDF і `DocumentArchive` не змішувати в цей slice, якщо це зробить його надто великим.
+Повернутись до відкладеного функціонального slice:
+- типізована підстановка фактичних даних у вибрану власну редакцію;
+- in-memory чернетка для preview;
+- шаблон при preview не змінюється;
+- відсутні обов'язкові поля дають явну помилку;
+- не робити сліпий string-replace, який руйнує блокову структуру;
+- preview не створює бізнес-факт наказу/інструктажу;
+- Word/PDF і `DocumentArchive` не змішувати в цей slice.
 
 ## Незмінні правила
 
