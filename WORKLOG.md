@@ -1,3 +1,13 @@
+## 14.11.2026 — 10.19-r1 integrated, released; full-build release rule changed
+
+- PR #414 integrated product checkpoint 10.19-r1; exact product/release source `c1357d6ba84e521bfa332f99024fbc85c8304ec3`.
+- r1 adds separate `CompanyTemplates` copies while vendor `TemplateLibrary` remains read-only; provenance/integrity, duplicate guard and template-zone backup checks are covered. Editor/Word/PDF/DocumentArchive remain for later revisions.
+- Exact-main CI: START `43592182090`, Windows `43592182079`, Win7 `43592182138`, macOS `43592182091` — SUCCESS. Windows and Win7 Microsoft Defender gates and post-scan integrity checks — PASS.
+- Release trigger PR #416 used the existing guarded publisher without changing Stable semantics. Publisher `43592683925` SUCCESS → immutable prerelease [v10.19-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r1), target exactly `c1357d6ba84e521bfa332f99024fbc85c8304ec3`, 6 assets (4 Portable + START + SHA256). Stable/Latest remains [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).
+- Owner changed release policy: when a new revision already has successful START + Windows + Windows 7 + macOS Intel + macOS ARM builds on one exact source SHA and required security/integrity gates pass, publish a Test prerelease from those completed exact-SHA artifacts if an immutable release does not already exist. Do not rebuild only for publication; never promote Stable automatically.
+- PR #417 integrated this rule into `PROJECT_RULES.md`; stale PR #415 closed as superseded.
+- Next code revision after recovery checkpoint: **10.19-r2**, editor for user-owned `CompanyTemplates` copy; vendor source remains untouched.
+
 ## 10.11.2026 — уточнення документації випуску 10.15-r4
 
 - Після публікації встановлено: tag `ae0c673a42c5b633706efdffc1adfd5b1b70681d` створює START з документацією до PR #305. README у випущеному START містить застарілий стан r3, включно з помилковим твердженням про неопублікований r3.
