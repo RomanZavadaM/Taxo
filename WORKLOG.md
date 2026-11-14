@@ -1,3 +1,14 @@
+## 14.11.2026 — 10.19-r5 integrated and released
+
+- Exact product/release source `0ab0cc761078b38e391c1998ddf9feee7447d3a8`.
+- Added user-facing CompanyTemplates flow: typed fact form backed by current employee/driver/vehicle registries, stable-ID snapshots, participant multi-select, explicit driver–vehicle pairs and read-only in-memory preview.
+- Self-audit before merge found a weaker pair rule in the first r5 draft. Fixed before integration: one vehicle may have several drivers, one driver cannot be assigned to several different vehicles in one draft set, exact duplicate pairs are rejected. Regression covers both allowed and rejected cases.
+- Tk values are collected only on UI thread; renderer workers receive plain Python facts. Stale form is rejected by exact source SHA guard. Registry adapter performs no SQL writes.
+- PR #428 strict ruleset initially blocked merge because branch was behind main by 5 recovery commits. Verified zero changed-file intersection: main changed only HANDOFF/PROJECT_STATE/WORKLOG/RELEASE_INDEX. Main was merged into r5 with an ordinary two-parent merge commit, no force; required Windows check then PASS.
+- Exact-main CI: START `43614552144`, Windows `43614552146`, Win7 `43614552095`, macOS `43614552161` — SUCCESS; Defender/integrity PASS.
+- Release trigger PR #429 used existing guarded publisher. Publisher `43615561706` SUCCESS → immutable [v10.19-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r5), target exactly `0ab0cc761078b38e391c1998ddf9feee7447d3a8`, 6 assets (4 Portable + START + SHA256). Stable/Latest remains [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).
+- Next code revision: **10.19-r6**, immutable snapshot of a filled draft as an intermediate document state; no automatic business fact, DOCX/PDF, DocumentArchive, scan or signature in the same slice.
+
 ## 14.11.2026 — 10.19-r4 integrated and released
 
 - Exact product/release source `a408ddbea823defdc91d1dd562e99ebddd032622`.
