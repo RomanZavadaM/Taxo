@@ -4,57 +4,57 @@
 
 ## Поточний підтверджений стан
 
-Taxo інтегрував і опублікував **10.19-r5**.
+Taxo інтегрував і опублікував **10.19-r6**.
 
-- Exact product / release source: `0ab0cc761078b38e391c1998ddf9feee7447d3a8`.
+- Exact product / release source: `eca31f5d61fc382cebc4663ec511619b9dcd69e7`.
 - Stable/Latest: **v10.18-r3**, без змін.
-- Current Test prerelease: **v10.19-r5 — Test Portable**.
+- Current Test prerelease: **v10.19-r6 — Test Portable**.
 - 6 assets: Windows, Windows 7, macOS Intel, macOS ARM, START, SHA256.
+- Product PR #431 merged; release trigger PR #432 merged.
+- Publisher `43622926821` SUCCESS.
 
-## Реалізовано у r5
+## Реалізовано у r6
 
-- user-facing path `Власні шаблони → Підготувати чернетку`;
-- typed fact form для всіх типів r4;
-- read-only registry adapter через `entity_choices`;
-- stable-ID employee/driver/vehicle snapshots;
-- multi-select participants;
-- explicit driver–vehicle pair editor;
-- pair invariant: один ТЗ → кілька водіїв допустимо; один водій → кілька різних ТЗ в одній чернетці блокується;
-- exact source SHA guard проти stale form;
-- усі Tk reads виконуються в UI thread;
-- background rendering отримує лише plain Python facts;
-- read-only preview без Save/Export/business side effects.
+- explicit save з preview у immutable prepared snapshot;
+- окреме workspace storage `Data/PreparedDocuments`;
+- exact source provenance: company template ID, SHA-256 та edit revision;
+- normalized facts + rendered structured content + rendered text у snapshot;
+- immutable ID та відсутність update/delete API у r6;
+- SHA-256/size integrity index і fail-closed перевірки вмісту;
+- atomic file replacement;
+- backup/restore coverage для `PreparedDocuments`;
+- UI worker не читає Tk state у background thread;
+- жодного автоматичного наказу/інструктажу, DOCX/PDF, final archive, scan/signature side effect;
+- `TemplateLibrary` лишається read-only, `CompanyTemplates` — користувацька зона;
+- feature-логіка винесена в окремі модулі, `main.py` отримав тільки version identity.
 
 ## Exact-source CI
 
-Для `0ab0cc761078b38e391c1998ddf9feee7447d3a8`:
-- START `43614552144` SUCCESS;
-- Windows `43614552146` SUCCESS;
-- Windows 7 `43614552095` SUCCESS;
-- macOS Intel/ARM `43614552161` SUCCESS;
-- Windows/Win7 Defender + post-scan integrity PASS.
-- Publisher `43615561706` SUCCESS.
-- Immutable release `v10.19-r5` target = exact product source.
+Для `eca31f5d61fc382cebc4663ec511619b9dcd69e7`:
+- START `43622027078` SUCCESS;
+- Windows `43622027016` SUCCESS;
+- Windows 7 `43622027066` SUCCESS;
+- macOS Intel/ARM `43622027010` SUCCESS;
+- Windows/Win7 Defender + post-scan integrity PASS;
+- publisher `43622926821` SUCCESS;
+- immutable `v10.19-r6` target = exact product source.
 
-## Merge/recovery note
+## Recovery / reconciliation
 
-r5 branch відставала від main на 5 службових recovery-комітів. Перетин файлів був нульовий: main змінював лише HANDOFF/PROJECT_STATE/WORKLOG/RELEASE_INDEX. Main підтягнуто звичайним merge commit без force; strict required `build-windows` після цього PASS.
+На початку recovery документи ще показували завершену r5, але live GitHub уже містив незавершену r6-гілку. r6 не перевикористовувалась і не починалась заново. Виявлені після обриву застарілі version/START regression guards були виправлені; snapshot design і release/security механізми не переписувалися. Final branch head `1535bd7f92facf2d636f9dc7e656653a6eea1a24` пройшов повний CI, після чого PR #431 merged.
 
 ## Наступна продуктова ревізія
 
-**10.19-r6** — immutable snapshot заповненої чернетки як проміжний документний стан перед генерацією файлів.
+**10.19-r7** — DOCX renderer/export з immutable prepared snapshot-а.
 
-r6 має:
-- зберігати exact source template SHA/edit revision;
-- зберігати normalized facts і rendered structured content;
-- бути immutable після створення;
-- мати workspace-relative storage/index та atomic write;
-- входити в backup/restore;
-- не створювати автоматично наказ/інструктаж;
-- не генерувати DOCX/PDF;
-- не створювати DocumentArchive, scan/signature state.
+r7 має:
+- брати дані з exact prepared snapshot;
+- зберігати provenance snapshot/template revision;
+- генерувати editable DOCX окремим модулем;
+- не додавати в цей slice PDF/print;
+- не створювати final DocumentArchive, scan/signature state чи автоматичний business fact.
 
-Після r6 окремими slices: DOCX renderer/export → PDF/print path → DocumentArchive.
+Подальші окремі slices: PDF/print path → DocumentArchive.
 
 ## Історичний якір
 
