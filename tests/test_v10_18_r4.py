@@ -50,8 +50,8 @@ class FakeTree:
 
 class TachographTableSortingR4Tests(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8", "10.18-r10", "10.19-r1", "10.19-r2", "10.19-r3"))
-        self.assertIn((ROOT / "VERSION.txt").read_text("utf-8"), ("Version: 10.18-r4\n", "Version: 10.18-r5\n", "Version: 10.18-r6\n", "Version: 10.18-r7\n", "Version: 10.18-r8\n", "Version: 10.18-r10\n", "Version: 10.19-r1\n", "Version: 10.19-r2\n", "Version: 10.19-r3\n"))
+        self.assertIn(main.APP_VERSION, ("10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8", "10.18-r10", "10.19-r1", "10.19-r2", "10.19-r3", "10.19-r4"))
+        self.assertIn((ROOT / "VERSION.txt").read_text("utf-8"), ("Version: 10.18-r4\n", "Version: 10.18-r5\n", "Version: 10.18-r6\n", "Version: 10.18-r7\n", "Version: 10.18-r8\n", "Version: 10.18-r10\n", "Version: 10.19-r1\n", "Version: 10.19-r2\n", "Version: 10.19-r3\n", "Version: 10.19-r4\n"))
         self.assertIn("Taxo %s" % main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
     def test_numeric_zero_is_not_treated_as_missing(self):
