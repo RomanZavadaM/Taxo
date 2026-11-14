@@ -4,51 +4,56 @@
 
 ## Поточний стан
 
-- Поточний продуктовий checkpoint: **10.19-r4**.
-- Exact product / release source: `a408ddbea823defdc91d1dd562e99ebddd032622`.
+- Поточний продуктовий checkpoint: **10.19-r5**.
+- Exact product / release source: `0ab0cc761078b38e391c1998ddf9feee7447d3a8`.
 - **Stable / Latest:** `v10.18-r3` — без змін.
-- **Поточний тестовий реліз:** `v10.19-r4 — Test Portable`.
-- r4 prerelease: 4 Portable + START + SHA256, без Setup.
+- **Поточний тестовий реліз:** `v10.19-r5 — Test Portable`.
+- r5 prerelease: 4 Portable + START + SHA256, без Setup.
 
-## 10.19-r4 — що завершено
+## 10.19-r5 — що завершено
 
-1. Додано typed fact contract для `text`, `date`, `integer`, `person_ref`, `vehicle_ref`, `pairs`, `participants`, `sections`, `table_rows`.
-2. Додано окремий структурний in-memory renderer.
-3. Renderer працює на deep copy перевіреної власної редакції `CompanyTemplates`.
-4. Відсутні required поля, неправильні типи, unknown facts/placeholders і невірна ширина dynamic-table дають явну помилку.
-5. Person/vehicle refs використовують stable ID + snapshot-поля, сумісні з `entity_choices`.
-6. Preview не змінює TemplateLibrary/CompanyTemplates, не пише в main DB, не створює наказ/інструктаж, не створює DocumentArchive і файли DOCX/PDF.
-7. Fact normalization і renderer розділені на окремі модулі; main.py не роздуто.
+1. У `CompanyTemplates` додано дію **«Підготувати чернетку»**.
+2. Форма будується з typed variables конкретної власної редакції.
+3. Реєстри працівників/водіїв/ТЗ читаються через чинний `entity_choices` зі stable ID + snapshot-полями.
+4. Є UI-контроли для `text`, `date`, `integer`, `person_ref`, `vehicle_ref`, `participants`, `pairs`, `sections`, `table_rows`.
+5. Учасники підтримують multi-select; пари водій–ТЗ складаються явно.
+6. Pair invariant узгоджений з чинними наказами: один ТЗ може мати кількох водіїв, але один водій не може одночасно мати кілька різних ТЗ у межах однієї чернетки; точний дубль блокується.
+7. Форма прив'язана до exact `source_sha256`; якщо власна редакція змінилась після відкриття, preview відмовляється рендерити іншу редакцію мовчки.
+8. Усі Tk values збираються в UI thread; background renderer отримує plain Python facts.
+9. Preview read-only: не змінює TemplateLibrary, CompanyTemplates, main DB, накази/інструктажі, DocumentArchive і не створює DOCX/PDF.
 
-Проміжний CI-fail під час розділення модулів був спричинений зайвим escape у regex імен змінних; до merge/release виправлено. У release source regex коректний.
+## Exact-main перевірки r5
 
-## Exact-main перевірки r4
-
-Для `a408ddbea823defdc91d1dd562e99ebddd032622`:
-- START/source — `43607027278` SUCCESS;
-- Windows — `43607027231` SUCCESS;
-- Windows 7 — `43607027233` SUCCESS;
-- macOS Intel + ARM — `43607027263` SUCCESS;
+Для `0ab0cc761078b38e391c1998ddf9feee7447d3a8`:
+- START/source — `43614552144` SUCCESS;
+- Windows — `43614552146` SUCCESS;
+- Windows 7 — `43614552095` SUCCESS;
+- macOS Intel + ARM — `43614552161` SUCCESS;
 - Windows/Win7 Defender — PASS;
 - post-scan integrity/hash verification — PASS.
 
 Publisher:
-- `43607894395` — SUCCESS;
-- immutable release `v10.19-r4`;
-- target = exact product source `a408ddbea823defdc91d1dd562e99ebddd032622`;
+- `43615561706` — SUCCESS;
+- immutable release `v10.19-r5`;
+- target = exact product source `0ab0cc761078b38e391c1998ddf9feee7447d3a8`;
 - 6 assets.
+
+## Recovery note r5
+
+Перед merge strict ruleset показав branch як `behind`. Перевірено, що 5 службових main-комітів змінювали лише recovery-документи, яких r5 не торкалась. Main був підтягнутий у r5 звичайним merge commit з двома батьками, без force; після цього required `build-windows` PASS і PR #428 merged.
 
 ## Наступна дія
 
-**Наступна кодова ревізія — 10.19-r5.**
+**Наступна кодова ревізія — 10.19-r6.**
 
-UI збору/вибору fact-ів із чинних реєстрів Taxo та показ in-memory чернетки:
-- text/date/integer — звичайні поля;
-- person_ref/participants — вибір із реєстру працівників;
-- vehicle_ref — вибір із реєстру ТЗ;
-- pairs — існуючий безпечний контракт пар водій–ТЗ;
-- preview не створює бізнес-факт;
-- DOCX/PDF/DocumentArchive не змішувати в цей slice.
+Immutable snapshot заповненої чернетки як проміжний документний стан перед DOCX/PDF:
+- зафіксувати exact company-template revision SHA/edit_revision;
+- зафіксувати normalized facts і rendered structured content;
+- snapshot після створення не редагувати in-place;
+- окремо від робочого наказу/інструктажу: snapshot не створює business fact автоматично;
+- не змішувати в r6 генерацію DOCX/PDF, DocumentArchive, скани чи підписи;
+- визначити безпечний workspace-relative storage/index і атомарний commit;
+- backup/restore coverage додати разом зі snapshot storage.
 
 ## Незмінні правила
 
