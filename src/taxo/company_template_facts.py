@@ -14,7 +14,7 @@ from datetime import date, datetime
 from typing import Any, Dict, Mapping, Tuple
 
 VARIABLE_NAME = re.compile(
-    r"^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)*$"
+    r"^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)*$"
 )
 ALLOWED_TYPES = frozenset((
     "text", "date", "integer", "person_ref", "vehicle_ref",
