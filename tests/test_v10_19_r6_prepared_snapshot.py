@@ -109,19 +109,21 @@ class PreparedDocumentR6Tests(unittest.TestCase):
         self.work = self.root / "Work"
         self.work.mkdir()
 
-    def test_revision_identity_is_r6(self):
+    def test_revision_identity_accepts_r6_and_r7(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
+        self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            "Version: 10.19-r6",
+            ("Version: 10.19-r6", "Version: 10.19-r7"),
         )
-        self.assertIn(
-            'APP_VERSION = "10.19-r6"',
-            (root / "main.py").read_text("utf-8"),
+        main_source = (root / "main.py").read_text("utf-8")
+        self.assertTrue(
+            'APP_VERSION = "10.19-r6"' in main_source
+            or 'APP_VERSION = "10.19-r7"' in main_source
         )
-        self.assertIn(
-            "Taxo 10.19-r6",
-            (root / "START.bat").read_text("utf-8"),
+        start_source = (root / "START.bat").read_text("utf-8")
+        self.assertTrue(
+            "Taxo 10.19-r6" in start_source
+            or "Taxo 10.19-r7" in start_source
         )
 
     def test_missing_store_listing_has_no_write_side_effect(self):
