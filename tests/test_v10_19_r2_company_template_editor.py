@@ -298,6 +298,9 @@ class CompanyTemplateEditorR2Tests(unittest.TestCase):
         self.assertIn("Власні шаблони", inspect.getsource(template_library_ui))
         self.assertNotIn("exec(", source)
         self.assertNotIn("eval(", source)
+        self.assertIn("title_value = title.get()", source)
+        worker = source[source.index("        def worker():"):]
+        self.assertNotIn("title.get()", worker)
 
     def test_editor_logic_does_not_move_into_main(self):
         import main
