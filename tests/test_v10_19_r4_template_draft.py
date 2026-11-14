@@ -237,7 +237,7 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            ("Version: 10.19-r4", "Version: 10.19-r5", "Version: 10.19-r6"),
+            ("Version: 10.19-r4", "Version: 10.19-r5", "Version: 10.19-r6", "Version: 10.19-r7"),
         )
         main_source = (root / "main.py").read_text("utf-8")
         self.assertTrue(
