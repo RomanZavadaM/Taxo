@@ -50,6 +50,7 @@ if not exist "src\taxo\safety_templates.py" goto :package_incomplete
 if not exist "src\taxo\company_template_store.py" goto :package_incomplete
 if not exist "src\taxo\company_template_editor_service.py" goto :package_incomplete
 if not exist "src\taxo\company_template_editor_ui.py" goto :package_incomplete
+if not exist "src\taxo\company_template_list_ui.py" goto :package_incomplete
 if not exist "src\taxo\template_library_ui.py" goto :package_incomplete
 if not exist "src\taxo\entity_choices.py" goto :package_incomplete
 if not exist "src\taxo\v10710_features.py" goto :package_incomplete
