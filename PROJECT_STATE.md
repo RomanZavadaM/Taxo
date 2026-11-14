@@ -4,69 +4,62 @@
 
 ## Поточний підтверджений стан
 
-Taxo інтегрував і опублікував продуктовий checkpoint **10.19-r1**.
+Taxo інтегрував і опублікував продуктовий checkpoint **10.19-r2**.
 
-- Exact product / release source: `c1357d6ba84e521bfa332f99024fbc85c8304ec3`.
+- Exact product / release source: `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`.
 - Stable/Latest: **v10.18-r3**, без змін.
-- Current Test prerelease: **v10.19-r1 — Test Portable**.
-- r1 release: 4 Portable + START + SHA256, без Setup.
+- Current Test prerelease: **v10.19-r2 — Test Portable**.
+- r2 release: 4 Portable + START + SHA256, без Setup.
 - r8 executable publication залишається заблокованою; історичний Firefox verdict не оголошується false positive.
 
-## Що додано в 10.19-r1
+## Що додано в 10.19-r2
 
-Перший slice нової системи шаблонів:
-- vendor `TemplateLibrary` лишається read-only;
-- створюється окрема user/company-owned копія під `CompanyTemplates`;
-- копія зберігає provenance початкового package/template/revision/SHA-256;
-- дублювання тієї самої vendor revision блокується;
-- tamper/integrity перевірки виявляють змінену копію;
-- повний backup включає `TemplateLibrary` і `CompanyTemplates`;
-- symlink у цих template storage зонах відхиляється;
-- storage/business logic не перенесено в `main.py`.
+Другий slice системи шаблонів:
+- окремий список `CompanyTemplates` і редактор власних копій;
+- vendor `TemplateLibrary` не редагується;
+- редактор змінює лише дозволені користувацькі тексти, зберігаючи структурні ID/типи/variables/data source;
+- великі тексти не усікаються в межах встановлених лімітів;
+- Save створює нову immutable власну редакцію, а попередній файл не переписується;
+- current-index атомарно переключається на нову редакцію;
+- SHA-256 захищає від silent last-write-wins при двох редакторах;
+- Cancel/X попереджають про незбережені зміни;
+- storage/service/list UI/editor UI винесені з `main.py`.
 
-Редактор, Word/PDF generation і `DocumentArchive` до r1 не входять.
+Підстановка фактичних даних, DOCX/PDF і `DocumentArchive` до r2 не входять.
 
-## Exact-source перевірки 10.19-r1
+## Exact-source перевірки 10.19-r2
 
-Для `c1357d6ba84e521bfa332f99024fbc85c8304ec3`:
-- START/source — `43592182090` SUCCESS;
-- Windows — `43592182079` SUCCESS;
-- Windows 7 — `43592182138` SUCCESS;
-- macOS Intel + ARM — `43592182091` SUCCESS;
+Для `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`:
+- START/source — `43595242155` SUCCESS;
+- Windows — `43595242166` SUCCESS;
+- Windows 7 — `43595242114` SUCCESS;
+- macOS Intel + ARM — `43595242059` SUCCESS;
 - Windows / Windows 7 Defender — PASS;
 - post-scan integrity/hash verification — PASS.
 
-Publisher `43592683925` — SUCCESS.
-Immutable release `v10.19-r1` target = `c1357d6ba84e521bfa332f99024fbc85c8304ec3`.
+Publisher `43595998112` — SUCCESS.
+Immutable release `v10.19-r2` target = `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`.
 
-## Release policy від 14.11.2026
+## Release policy
 
-Для нової ревізії, яка вже має повний успішний exact-SHA комплект:
-- START;
-- Windows;
-- Windows 7;
-- macOS Intel;
-- macOS ARM;
-- усі обов'язкові security/integrity gates;
+Для нової ревізії з повним успішним exact-SHA комплектом START + Windows + Windows 7 + macOS Intel + macOS ARM і пройденими security/integrity gates публікувати immutable **Test prerelease**, якщо release ще не існує. Завершені артефакти не викидати й не перебудовувати лише заради публікації.
 
-публікувати **immutable Test prerelease** з готових артефактів, якщо release для цієї ревізії ще не існує. Не викидати завершений кросплатформний комплект і не перебудовувати його лише заради публікації.
-
-Це правило **не змінює Stable/Latest**. Stable призначається лише прямим рішенням власника.
+Це правило **не змінює Stable/Latest**. Stable призначається тільки прямим рішенням власника.
 
 ## Наступна продуктова ревізія
 
-**10.19-r2.**
+**10.19-r3.**
 
-Наступний slice — редактор власної копії шаблону в `CompanyTemplates`:
-- vendor template не змінювати;
-- підтримати великі тексти;
-- коректні Save / Cancel / X та незбережені зміни;
-- редактор і storage-логіку тримати окремими модулями;
-- не змішувати цей slice з Word/PDF/готовими документами.
+Наступний slice — типізована підстановка фактичних даних у вибрану власну редакцію та in-memory чернетка для preview:
+- не змінювати шаблон;
+- обов'язкові відсутні поля мають давати видиму помилку;
+- не використовувати сліпий replace, що руйнує блокову структуру;
+- preview не створює бізнес-факту наказу/інструктажу;
+- Word/PDF і архів готових документів відокремити, якщо вони роблять slice надто великим.
 
-Подальші етапи після цього: підстановка даних → формування Word/PDF/друк → окремий `DocumentArchive` → optional scan/PDF підписаного паперового оригіналу.
+Подальші етапи: генерація Word/PDF/друк → окремий `DocumentArchive` → optional scan/PDF підписаного паперового оригіналу.
 
-Подальший supply-chain hardening (повний dependency hash lock, provenance інструментів інсталятора) лишається backlog і не блокує продуктову роботу.
+Supply-chain hardening (повний dependency hash lock, provenance інструментів інсталятора) лишається backlog і не блокує продуктову роботу.
 
 ## Історичний контрольний якір
 
