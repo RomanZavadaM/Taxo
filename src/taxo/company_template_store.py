@@ -47,6 +47,8 @@ class CompanyTemplateSummary:
     created_at: str
     file_name: str
     enabled: bool = True
+    updated_at: str = ""
+    edit_revision: int = 1
 
 
 def default_company_template_root(workspace_root: Path) -> Path:
@@ -152,6 +154,12 @@ def _summary_from_entry(root: Path, entry: dict) -> CompanyTemplateSummary:
         or based.get("revision_id") != entry["based_on_revision_id"]
     ):
         raise ValueError("Походження власної копії не збігається з індексом")
+    updated_at = entry.get("updated_at", entry["created_at"])
+    edit_revision = entry.get("edit_revision", 1)
+    if not isinstance(updated_at, str) or not updated_at:
+        raise ValueError("Некоректний час зміни власного шаблону")
+    if type(edit_revision) is not int or edit_revision < 1:
+        raise ValueError("Некоректний номер власної редакції")
     return CompanyTemplateSummary(
         company_template_id=identity,
         title=str(entry["title"]),
@@ -160,6 +168,8 @@ def _summary_from_entry(root: Path, entry: dict) -> CompanyTemplateSummary:
         created_at=str(entry["created_at"]),
         file_name=file_name,
         enabled=bool(entry.get("enabled", True)),
+        updated_at=updated_at,
+        edit_revision=edit_revision,
     )
 
 
@@ -264,6 +274,7 @@ def create_company_copy(
         "enabled": True,
         "created_at": created,
         "updated_at": created,
+        "edit_revision": 1,
         "based_on": {
             "package_id": snapshot.package_id,
             "package_version": snapshot.package_version,
@@ -286,6 +297,8 @@ def create_company_copy(
         "based_on_template_id": template_id,
         "based_on_revision_id": revision_id,
         "created_at": created,
+        "updated_at": created,
+        "edit_revision": 1,
         "enabled": True,
         "file": file_name,
         "size_bytes": len(payload),
@@ -304,3 +317,208 @@ def create_company_copy(
             pass
         raise
     return _summary_from_entry(root, entry)
+
+@dataclass(frozen=True)
+class CompanyTemplateDocument:
+    """Verified current revision of one user-owned template.
+
+    content_sha256 is the optimistic-concurrency token. edit_revision starts at
+    1 for r1 copies that predate explicit revision metadata.
+    """
+
+    summary: CompanyTemplateSummary
+    title: str
+    template: dict
+    updated_at: str
+    edit_revision: int
+    content_sha256: str
+
+
+def _current_entry(root: Path, company_template_id: str):
+    entries = _load_index(root)
+    matches = [
+        entry for entry in entries
+        if isinstance(entry, dict)
+        and entry.get("company_template_id") == company_template_id
+    ]
+    if len(matches) != 1:
+        raise ValueError("Власний шаблон не знайдено або його індекс неоднозначний")
+    return entries, matches[0]
+
+
+def _verified_copy_data(root: Path, entry: dict):
+    summary = _summary_from_entry(root, entry)
+    items_root = root / "items"
+    path = items_root / summary.file_name
+    if items_root.is_symlink() or path.is_symlink():
+        raise ValueError("Посилання у сховищі власних шаблонів заборонені")
+    raw = _read_bytes(path, MAX_COPY_BYTES)
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != entry["sha256"]:
+        raise ValueError("Порушено цілісність власного шаблону")
+    data = _object(raw, summary.file_name)
+    template = data.get("template")
+    if not isinstance(template, dict):
+        raise ValueError("Власна копія не містить шаблону")
+    revision = data.get("edit_revision", entry.get("edit_revision", 1))
+    if type(revision) is not int or revision < 1:
+        raise ValueError("Некоректний номер власної редакції")
+    updated_at = data.get("updated_at", entry.get("updated_at", summary.created_at))
+    if not isinstance(updated_at, str) or not updated_at:
+        raise ValueError("Некоректний час зміни власного шаблону")
+    title = data.get("title")
+    if not isinstance(title, str) or not title.strip():
+        raise ValueError("Власна копія не має назви")
+    if template.get("title") != title:
+        raise ValueError("Назва власної копії не збігається з її шаблоном")
+    return summary, data, raw, digest, revision, updated_at
+
+
+def load_company_template(
+    workspace_root: Path, company_template_id: str
+) -> CompanyTemplateDocument:
+    """Load one integrity-checked current company-template revision."""
+    root = _company_root(workspace_root, allow_missing=False)
+    _entries, entry = _current_entry(root, company_template_id)
+    summary, data, _raw, digest, revision, updated_at = _verified_copy_data(
+        root, entry
+    )
+    return CompanyTemplateDocument(
+        summary=summary,
+        title=data["title"],
+        template=data["template"],
+        updated_at=updated_at,
+        edit_revision=revision,
+        content_sha256=digest,
+    )
+
+
+def save_company_template(
+    workspace_root: Path,
+    company_template_id: str,
+    expected_sha256: str,
+    title: str,
+    template: dict,
+) -> CompanyTemplateDocument:
+    """Commit a new immutable company revision and atomically move the index.
+
+    The previous revision file is deliberately preserved. The index is the
+    commit point: if writing it fails, the old revision remains current and the
+    unreferenced new file is removed. expected_sha256 prevents last-write-wins.
+    """
+    if (
+        not isinstance(expected_sha256, str)
+        or len(expected_sha256) != 64
+        or any(ch not in "0123456789abcdef" for ch in expected_sha256)
+    ):
+        raise ValueError("Некоректна контрольна сума редакції")
+    if not isinstance(title, str) or not title.strip():
+        raise ValueError("Назва шаблону не може бути порожньою")
+    if len(title) > 250 or "\n" in title or "\r" in title:
+        raise ValueError("Некоректна назва шаблону")
+    if not isinstance(template, dict):
+        raise ValueError("Некоректний вміст власного шаблону")
+
+    root = _company_root(workspace_root, allow_missing=False)
+    entries, current = _current_entry(root, company_template_id)
+    (
+        _summary,
+        current_data,
+        _current_raw,
+        current_digest,
+        current_revision,
+        _updated_at,
+    ) = _verified_copy_data(root, current)
+    if current_digest != expected_sha256:
+        raise ValueError(
+            "Власний шаблон уже змінено. Оновіть його перед повторним збереженням."
+        )
+
+    based_on = current_data.get("based_on")
+    if not isinstance(based_on, dict):
+        raise ValueError("Власна копія не містить походження")
+    if template.get("template_id") != based_on.get("template_id"):
+        raise ValueError("Не можна змінити ID початкового шаблону")
+    if template.get("title") != title:
+        raise ValueError("Назва шаблону не синхронізована")
+
+    _validate_template(
+        template,
+        {
+            "template_id": based_on["template_id"],
+            "revision_id": str(based_on.get("revision_id") or "company"),
+            "category_id": "forms",
+            "path": "company.json",
+        },
+    )
+
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    new_revision = current_revision + 1
+    previous_file = current["file"]
+    previous_sha = current["sha256"]
+    copy_data = dict(current_data)
+    copy_data.update({
+        "title": title,
+        "updated_at": now,
+        "edit_revision": new_revision,
+        "template": template,
+        "previous_revision": {
+            "file": previous_file,
+            "sha256": previous_sha,
+            "edit_revision": current_revision,
+        },
+    })
+    payload = _strict_json_bytes(copy_data)
+    if len(payload) > MAX_COPY_BYTES:
+        raise ValueError("Власна копія шаблону перевищує допустимий розмір")
+
+    items_root = root / "items"
+    if not items_root.is_dir() or items_root.is_symlink():
+        raise ValueError("Папка власних шаблонів пошкоджена")
+    file_name = "%s.rev-%04d-%s.json" % (
+        company_template_id,
+        new_revision,
+        uuid.uuid4().hex[:12],
+    )
+    target = items_root / file_name
+    _atomic_write(target, payload)
+    digest = hashlib.sha256(payload).hexdigest()
+
+    updated_entry = dict(current)
+    updated_entry.update({
+        "title": title,
+        "updated_at": now,
+        "edit_revision": new_revision,
+        "file": file_name,
+        "size_bytes": len(payload),
+        "sha256": digest,
+    })
+    new_entries = [
+        updated_entry
+        if entry.get("company_template_id") == company_template_id
+        else entry
+        for entry in entries
+    ]
+    try:
+        index_payload = _strict_json_bytes({
+            "format": INDEX_FORMAT,
+            "items": new_entries,
+        })
+        _atomic_write(root / "index.json", index_payload)
+    except Exception:
+        try:
+            target.unlink()
+        except OSError:
+            pass
+        raise
+
+    summary = _summary_from_entry(root, updated_entry)
+    return CompanyTemplateDocument(
+        summary=summary,
+        title=title,
+        template=template,
+        updated_at=now,
+        edit_revision=new_revision,
+        content_sha256=digest,
+    )
+
