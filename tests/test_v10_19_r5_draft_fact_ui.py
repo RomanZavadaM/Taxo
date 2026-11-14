@@ -333,9 +333,15 @@ class FactEntryUiR5Tests(unittest.TestCase):
         self.assertIn('"Підготувати чернетку"', source)
         self.assertIn("open_company_template_draft_form", source)
 
-    def test_choice_adapter_contains_no_write_sql(self):
-        source = inspect.getsource(choices).upper()
-        for marker in ("INSERT ", "UPDATE ", "DELETE ", "REPLACE "):
+    def test_choice_adapter_performs_no_sql_write_calls(self):
+        source = inspect.getsource(choices)
+        for marker in (
+            ".execute(",
+            ".executemany(",
+            ".executescript(",
+            ".commit(",
+            ".rollback(",
+        ):
             self.assertNotIn(marker, source)
 
     def test_r5_logic_stays_out_of_main(self):
