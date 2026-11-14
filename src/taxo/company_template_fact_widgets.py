@@ -62,9 +62,13 @@ def scalar_control(parent, variable):
     if variable.variable_type == "text":
         getter = lambda: parse_text(value.get())
     elif variable.variable_type == "date":
-        getter = lambda: parse_date(value.get())
+        getter = lambda: (
+            parse_date(value.get()) if value.get().strip() else None
+        )
     elif variable.variable_type == "integer":
-        getter = lambda: parse_integer(value.get())
+        getter = lambda: (
+            parse_integer(value.get()) if value.get().strip() else None
+        )
     else:
         raise ValueError("Непідтримуваний scalar control")
     return FactControl(frame=frame, get_value=getter, focus_widget=entry)
