@@ -235,7 +235,7 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
 
     def test_revision_identity_accepts_r4_and_r5(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
+        self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
             ("Version: 10.19-r4", "Version: 10.19-r5"),
         )
