@@ -18,7 +18,7 @@ from template_library_service import (
     inspect_workspace_library,
 )
 from template_library_preview_ui import open_template_preview
-from company_template_editor_ui import open_company_templates
+from company_template_list_ui import open_company_templates
 
 # Avoid a new thread per click on a slow or disconnected network workspace.
 _READER_SLOT = threading.BoundedSemaphore(1)
