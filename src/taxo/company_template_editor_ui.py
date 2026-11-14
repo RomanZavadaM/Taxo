@@ -316,6 +316,7 @@ def open_company_template_editor(
         model = state["model"]
         preferred_key = state["current_key"]
         values = dict(state["values"])
+        title_value = title.get()
         state["saving"] = True
         save_button.configure(state="disabled")
         title_entry.configure(state="disabled")
@@ -329,7 +330,7 @@ def open_company_template_editor(
                         services.workspace.root,
                         model.company_template_id,
                         model.expected_sha256,
-                        title.get(),
+                        title_value,
                         values,
                     )
                     messages.put(("save", True, result, preferred_key))
