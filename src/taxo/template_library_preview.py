@@ -113,7 +113,8 @@ def _format_blocks(blocks, *, budget: Dict[str, int], level: int = 0):
     return parts
 
 
-def _render(template: dict) -> str:
+def render_template_text(template: dict) -> str:
+    """Render an already validated data-only template to safe plain text."""
     budget = {"blocks": 0}
     parts = _format_blocks(template["blocks"], budget=budget)
     for appendix in template.get("appendices", []):
@@ -126,6 +127,10 @@ def _render(template: dict) -> str:
     if len(content) > MAX_PREVIEW_CHARS:
         raise ValueError("Документ завеликий для перегляду")
     return content
+
+
+# Historical tests and callers may still use the private name.
+_render = render_template_text
 
 
 def load_template_preview(root: Path, app_version: str, template_id: str,
