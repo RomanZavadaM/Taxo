@@ -128,6 +128,13 @@ def _render(template: dict) -> str:
     return content
 
 
+def render_template_text(template: dict) -> str:
+    """Render an already validated template copy as plain preview text."""
+    if not isinstance(template, dict):
+        raise ValueError("Некоректний шаблон для перегляду")
+    return _render(template)
+
+
 def load_template_preview(root: Path, app_version: str, template_id: str,
                           revision_id: str) -> TemplatePreview:
     """Load one verified revision without writing or executing its contents.
