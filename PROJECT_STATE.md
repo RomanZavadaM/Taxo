@@ -4,61 +4,45 @@
 
 ## Поточний підтверджений стан
 
-Taxo інтегрував і опублікував коригувальний checkpoint **10.19-r3**.
+Taxo інтегрував і опублікував **10.19-r4**.
 
-- Exact product / release source: `a89291553bca88a1b792d45f56cc99d5e93876b7`.
+- Exact product / release source: `a408ddbea823defdc91d1dd562e99ebddd032622`.
 - Stable/Latest: **v10.18-r3**, без змін.
-- Current Test prerelease: **v10.19-r3 — Test Portable**.
-- r3 release: 4 Portable + START + SHA256, без Setup.
-- `v10.19-r2` залишається виданим історичним prerelease і не переписується.
+- Current Test prerelease: **v10.19-r4 — Test Portable**.
+- 6 assets: Windows, Windows 7, macOS Intel, macOS ARM, START, SHA256.
 
-## Причина r3
+## Реалізовано у r4
 
-Після випуску 10.19-r2 статичний перегляд виявив UI-thread defect:
-background save-worker редактора читав Tk `StringVar` через `title.get()`.
+- typed fact validation;
+- окремий fact-normalization module;
+- окремий structural draft renderer;
+- deep-copy in-memory preview;
+- required/type/unknown-field validation;
+- stable-ID person/vehicle snapshots;
+- dynamic rows для pairs/participants/table_rows;
+- повна відсутність write side effects під час preview.
 
-CI r2 цього не зловив, бо проблема є thread-safety ризиком, а не гарантованим deterministic crash.
+Проміжний regex-defect під час refactor був виправлений до інтеграції; release source містить коректний variable-name regex.
 
-У 10.19-r3:
-- значення Tk читається в UI thread до старту worker;
-- worker отримує plain Python string;
-- regression-тест забороняє повернення Tk read у save-worker;
-- функціональна поведінка CompanyTemplates з r2 не розширювалась.
+## Exact-source CI
 
-## Exact-source перевірки 10.19-r3
-
-Для `a89291553bca88a1b792d45f56cc99d5e93876b7`:
-- START/source — `43598231924` SUCCESS;
-- Windows — `43598231921` SUCCESS;
-- Windows 7 — `43598231945` SUCCESS;
-- macOS Intel + ARM — `43598231954` SUCCESS;
-- Windows / Windows 7 Defender — PASS;
-- post-scan integrity/hash verification — PASS.
-
-Publisher `43599116472` — SUCCESS.
-Immutable release `v10.19-r3` target = `a89291553bca88a1b792d45f56cc99d5e93876b7`.
-
-## Release policy
-
-Для нової ревізії з повним успішним exact-SHA комплектом START + Windows + Windows 7 + macOS Intel + macOS ARM і пройденими security/integrity gates публікувати immutable **Test prerelease**, якщо release ще не існує.
-
-Це правило **не змінює Stable/Latest**. Stable призначається тільки прямим рішенням власника.
+- START `43607027278` SUCCESS;
+- Windows `43607027231` SUCCESS;
+- Windows 7 `43607027233` SUCCESS;
+- macOS `43607027263` SUCCESS;
+- Defender/integrity gates PASS.
+- Publisher `43607894395` SUCCESS.
 
 ## Наступна продуктова ревізія
 
-**10.19-r4.**
+**10.19-r5** — UI збору фактичних даних і перегляду in-memory draft через існуючі реєстри Taxo.
 
-Наступний slice — типізована підстановка фактичних даних у вибрану власну редакцію та in-memory чернетка для preview:
-- не змінювати шаблон;
-- обов'язкові відсутні поля мають давати видиму помилку;
-- не використовувати сліпий replace, що руйнує блокову структуру;
-- preview не створює бізнес-факту наказу/інструктажу;
-- Word/PDF і архів готових документів відокремити, якщо вони роблять slice надто великим.
+Не включати в r5:
+- DOCX/PDF generation;
+- запис business fact;
+- DocumentArchive;
+- signed scan/original handling.
 
-Подальші етапи: генерація Word/PDF/друк → окремий `DocumentArchive` → optional scan/PDF підписаного паперового оригіналу.
+## Історичний якір
 
-Supply-chain hardening (повний dependency hash lock, provenance інструментів інсталятора) лишається backlog і не блокує продуктову роботу.
-
-## Історичний контрольний якір
-
-Незмінний історичний контрольний випуск: **Taxo 10.3 / `v10.3`**, exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Це rollback/history anchor, не поточна Stable.
+Taxo 10.3 / `v10.3`, exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.

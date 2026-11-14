@@ -1,3 +1,13 @@
+## 14.11.2026 — 10.19-r4 integrated and released
+
+- Exact product/release source `a408ddbea823defdc91d1dd562e99ebddd032622`.
+- Added typed fact normalization and separate structural in-memory renderer for CompanyTemplates.
+- Preview is write-free: no template mutation, main DB write, business fact, DocumentArchive or DOCX/PDF output.
+- Exact-main CI: START 43607027278, Windows 43607027231, Win7 43607027233, macOS 43607027263 — SUCCESS; Defender/integrity PASS.
+- Publisher 43607894395 SUCCESS → immutable `v10.19-r4 — Test Portable`, 6 assets.
+- Intermediate regex escaping defect found by CI during module split was fixed before merge/release; final release source is correct.
+- Next code revision: **10.19-r5**, fact-entry/selection UI + in-memory preview only.
+
 ## 14.11.2026 — 10.19-r3 editor threading fix integrated and released
 
 - After v10.19-r2 publication, static review found one UI-thread defect: the CompanyTemplates save worker read Tk `StringVar` through `title.get()` from a background thread. This was a thread-safety risk, not a deterministic CI failure.
