@@ -258,6 +258,41 @@ class FactEntryUiR5Tests(unittest.TestCase):
                 pair, catalog.drivers[0], catalog.vehicles[0]
             )
 
+    def test_pair_codec_blocks_one_driver_on_multiple_vehicles(self):
+        catalog = choices.load_fact_choice_catalog(_Services(self.db_path))
+        first = codec.add_unique_pair(
+            [], catalog.drivers[0], catalog.vehicles[0]
+        )
+        with self.assertRaisesRegex(
+            ValueError, "один водій|Один водій"
+        ):
+            codec.add_unique_pair(
+                first, catalog.drivers[0], catalog.vehicles[1]
+            )
+
+    def test_pair_codec_allows_multiple_drivers_on_one_vehicle(self):
+        catalog = choices.load_fact_choice_catalog(_Services(self.db_path))
+        second_driver = choices.FactChoice(
+            entity_type="employee",
+            entity_id=99,
+            label="Другий водій",
+            snapshot={
+                "entity_type": "employee",
+                "id": 99,
+                "name": "Другий Водій",
+            },
+        )
+        pairs = codec.add_unique_pair(
+            [], catalog.drivers[0], catalog.vehicles[0]
+        )
+        pairs = codec.add_unique_pair(
+            pairs, second_driver, catalog.vehicles[0]
+        )
+        self.assertEqual(len(pairs), 2)
+        self.assertEqual(
+            [item["vehicle"]["id"] for item in pairs], [10, 10]
+        )
+
     def test_exact_revision_guard_rejects_stale_form(self):
         definition = draft.load_draft_definition(
             self.work, self.summary.company_template_id
