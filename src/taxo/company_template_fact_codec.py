@@ -120,14 +120,24 @@ def pair_snapshot(driver: FactChoice, vehicle: FactChoice) -> dict:
 
 
 def add_unique_pair(existing, driver: FactChoice, vehicle: FactChoice):
-    """Append one stable pair, rejecting only the exact duplicate."""
+    """Append one stable pair using Taxo's current assignment invariant.
+
+    One vehicle may have several drivers, but one driver cannot be assigned to
+    several different vehicles in the same draft set. Exact duplicates are
+    rejected as well. This mirrors the issued operations-order contract rather
+    than inventing a second, weaker pair rule in the template UI.
+    """
     pair = pair_snapshot(driver, vehicle)
-    key = (pair["person"]["id"], pair["vehicle"]["id"])
+    driver_id = pair["person"]["id"]
+    vehicle_id = pair["vehicle"]["id"]
     for item in existing:
-        old = (
-            item.get("person", {}).get("id"),
-            item.get("vehicle", {}).get("id"),
-        )
-        if old == key:
+        old_driver = item.get("person", {}).get("id")
+        old_vehicle = item.get("vehicle", {}).get("id")
+        if (old_driver, old_vehicle) == (driver_id, vehicle_id):
             raise ValueError("Ця пара водій–ТЗ вже додана")
+        if old_driver == driver_id and old_vehicle != vehicle_id:
+            raise ValueError(
+                "Один водій не може бути одночасно закріплений за кількома ТЗ. "
+                "Виберіть для іншого ТЗ окремого водія."
+            )
     return list(existing) + [pair]
