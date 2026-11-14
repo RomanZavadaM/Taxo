@@ -94,6 +94,7 @@ class CompanyTemplatesR1Tests(unittest.TestCase):
             or 'APP_VERSION = "10.19-r4"' in main_source
             or 'APP_VERSION = "10.19-r5"' in main_source
             or 'APP_VERSION = "10.19-r6"' in main_source
+            or 'APP_VERSION = "10.19-r7"' in main_source
         )
 
     def test_missing_company_storage_is_read_only(self):
