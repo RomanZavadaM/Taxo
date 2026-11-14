@@ -1,3 +1,14 @@
+## 14.11.2026 — 10.19-r2 editor integrated and released
+
+- PR #419 integrated the second CompanyTemplates slice; exact product/release source `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`.
+- Added separate company-template list, structured text editor and versioned storage updates. Vendor `TemplateLibrary` remains read-only. Save writes a new company revision file and atomically moves the current index; the previous file is preserved. SHA-256 optimistic concurrency rejects stale silent overwrites.
+- Editable surface is limited to user-visible text: title/description, block text/notes, list items, static-table text and appendices. IDs, block types, variables, data sources and provenance remain structural. Large instruction text roundtrip is covered.
+- UI has Save/Cancel/X unsaved-change protection and background load/save workers. Storage, service, list UI and editor UI remain separate from `main.py`.
+- Exact-main CI: START `43595242155`, Windows `43595242166`, Win7 `43595242114`, macOS `43595242059` — SUCCESS. Windows and Win7 Defender + post-scan integrity — PASS.
+- Release trigger PR #420 used the existing guarded publisher without changing Stable semantics. Publisher `43595998112` SUCCESS → immutable prerelease [v10.19-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r2), target exactly `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`, 6 assets (4 Portable + START + SHA256).
+- Stable/Latest remains [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).
+- Next code revision after recovery checkpoint: **10.19-r3** — typed fact substitution and a non-persistent document draft/preview; no final archive side effects.
+
 ## 14.11.2026 — 10.19-r1 integrated, released; full-build release rule changed
 
 - PR #414 integrated product checkpoint 10.19-r1; exact product/release source `c1357d6ba84e521bfa332f99024fbc85c8304ec3`.
