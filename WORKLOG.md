@@ -1,3 +1,12 @@
+## 14.11.2026 — 10.19-r7 завершено й опубліковано
+
+- DOCX export із immutable PreparedDocuments snapshot; окремий модуль, без повторного читання поточного шаблону, зі збереженням exact provenance.
+- Product PR #434 merged, exact product SHA `0cfccee73eec9bcf0fbb07afc64c5d7a7949dfcc`.
+- Exact-main START `43625038373`, Windows `43625038453`, Win7 `43625038422`, macOS Intel/ARM `43625038460` — SUCCESS. Windows/Win7 Defender та integrity PASS.
+- Release PR #435 merged; publisher `43627285299` SUCCESS; [Test prerelease v10.19-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r7) містить 4 Portable + START + SHA256 і вказує точно на product SHA.
+- Stable/Latest v10.18-r3 не змінено. Наступна дозволена 10.19-r8, PDF/print окремо від фінального архіву.
+- Recovery після chat delivery timeout: з’ясовано, що GitHub продовжив і завершив PR #434 та main-builds, отже повторних збірок не запускали; закінчено вже підготовлений release PR #435.
+
 ## 14.11.2026 — 10.19-r6 recovered, integrated and released
 
 - Recovery після нестабільного чату почався з live GitHub. Документи ще вказували r5 як завершену, але фактично вже існувала незавершена гілка `work/v10.19-r6-prepared-snapshot`; номер r6 не перевикористовувався і робота не починалась заново.

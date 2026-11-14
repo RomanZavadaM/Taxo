@@ -1,3 +1,17 @@
+## Підтверджений новий checkpoint — 10.19-r7 (14.11.2026)
+
+- **Продуктова ревізія завершена і злита:** PR #434, exact product SHA `0cfccee73eec9bcf0fbb07afc64c5d7a7949dfcc`.
+- **Опубліковано Test Portable:** [v10.19-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r7), publisher run `43627285299` SUCCESS.
+- 6 файлів: Windows Portable, Win7 Portable, macOS Intel, macOS ARM, START і SHA256; усі з exact product SHA.
+- Exact-main CI: START `43625038373`, Windows `43625038453`, Win7 `43625038422`, macOS Intel/ARM `43625038460` — SUCCESS; Windows/Win7 Defender та перевірка цілісності — PASS.
+- Збережений immutable PreparedDocuments snapshot тепер експортується у редагований DOCX; джерело — саме snapshot, без повторного читання CompanyTemplates. Ідентифікатор snapshot, редакція і SHA шаблону фіксуються в DOCX.
+- PDF, друк, фінальний архів, скани, підписи й автоматичне створення наказів не входили в r7.
+- **Stable/Latest лишається v10.18-r3**, без змін.
+- **Наступна дозволена кодова ревізія: 10.19-r8.** Наступний окремий етап: PDF/print шлях; DocumentArchive окремо. До початку нового коду звірити фактичний live GitHub.
+- Recovery-document checkpoint: цей запис додається окремим PR після релізу.
+
+---
+
 # HANDOFF_CURRENT — Taxo
 
 **Актуально на 14.11.2026.**
