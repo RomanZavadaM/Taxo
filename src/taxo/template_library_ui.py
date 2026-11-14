@@ -18,6 +18,7 @@ from template_library_service import (
     inspect_workspace_library,
 )
 from template_library_preview_ui import open_template_preview
+from company_template_list_ui import open_company_templates
 
 # Avoid a new thread per click on a slow or disconnected network workspace.
 _READER_SLOT = threading.BoundedSemaphore(1)
@@ -98,7 +99,11 @@ def open_template_library(parent, services):
     refresh_button.grid(row=0, column=1, padx=(4, 8))
     copy_button = ttk.Button(footer, text="Створити власну копію")
     copy_button.grid(row=0, column=3, padx=(4, 8))
-    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=4)
+    ttk.Button(
+        footer, text="Власні шаблони",
+        command=lambda: open_company_templates(win, services),
+    ).grid(row=0, column=4, padx=(4, 8))
+    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=5)
 
     results = queue.Queue()
     copy_results = queue.Queue()
@@ -232,7 +237,8 @@ def open_template_library(parent, services):
                     messagebox.showinfo(
                         "Бібліотека шаблонів",
                         "Власну копію створено у CompanyTemplates. "
-                        "Початковий шаблон не змінено.",
+                        "Початковий шаблон не змінено. "
+                        "Для редагування відкрийте «Власні шаблони».",
                         parent=win,
                     )
                 else:

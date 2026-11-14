@@ -11,8 +11,8 @@ class WindowsBinaryGateR10Tests(unittest.TestCase):
     def test_revision_identity_is_r10(self):
         version = (ROOT / "VERSION.txt").read_text(encoding="utf-8").strip()
         main_source = (ROOT / "main.py").read_text(encoding="utf-8")
-        self.assertEqual(version, "Version: 10.19-r1")
-        self.assertIn('APP_VERSION = "10.19-r1"', main_source)
+        self.assertEqual(version, "Version: 10.19-r2")
+        self.assertIn('APP_VERSION = "10.19-r2"', main_source)
 
     def test_modern_windows_spec_explicitly_disables_upx(self):
         source = (ROOT / "packaging" / "Taxo.spec").read_text(encoding="utf-8")
