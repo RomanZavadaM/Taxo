@@ -3,7 +3,7 @@
 
 The rendered text stays read-only. r6 adds one explicit action that stores the
 already-rendered draft as an immutable PreparedDocuments snapshot. This does
-not create an order/briefing, DOCX/PDF, DocumentArchive entry, scan or signature.
+not create an order/briefing, DOCX/PDF, final document archive entry, scan or signature.
 """
 from __future__ import annotations
 
