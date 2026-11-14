@@ -453,6 +453,10 @@ def _render_blocks(
                 block["rows"] = [[fact["display"]]]
             else:
                 block["rows"] = copy.deepcopy(fact["rows"])
+            # A resolved draft carries concrete rows, not a live data-source
+            # instruction. The original template remains untouched.
+            block["type"] = "table"
+            block.pop("data_source", None)
 
         if "children" in block:
             _render_blocks(block["children"], specs, normalized, warnings)
