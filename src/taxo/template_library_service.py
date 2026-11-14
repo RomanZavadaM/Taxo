@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-"""Read-only application-facing view of the offline template library.
+"""Application-facing template-library service.
 
-No Tk, database, archive installation or private template content is embedded
-here. The selected Taxo workspace is supplied by ApplicationServices rather
-than guessed from a machine-specific Windows path.
+No Tk, database or private template content is embedded here. Vendor reading
+stays read-only; the only write operation exposed in r1 is an explicit request
+to create a user-owned company copy in the active workspace.
 """
 from __future__ import annotations
 
@@ -11,7 +11,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
-from template_library_reader import LibrarySnapshot, default_library_root, inspect_library
+from company_template_store import create_company_copy, list_company_templates
+from template_library_reader import (
+    LibrarySnapshot,
+    default_library_root,
+    inspect_library,
+)
 
 
 CATEGORY_LABELS = {
@@ -24,7 +29,7 @@ CATEGORY_LABELS = {
 }
 STATUS_LABELS = {
     "NOT_INSTALLED": "Бібліотеку шаблонів не встановлено.",
-    "AVAILABLE": "Бібліотеку прочитано. Шаблони доступні лише для перегляду.",
+    "AVAILABLE": "Бібліотеку прочитано. Початкові шаблони доступні для перегляду та створення власної копії.",
     "INCOMPATIBLE": "Версія бібліотеки не сумісна із Taxo.",
     "DAMAGED": "Бібліотека містить пошкоджені або непідтримувані дані.",
     "UNAVAILABLE": "Немає доступу до бібліотеки.",
@@ -87,4 +92,21 @@ def inspect_workspace_library(workspace_root: Path, app_version: str) -> Library
     """
     return view_from_snapshot(
         inspect_library(default_library_root(Path(workspace_root)), app_version)
+    )
+
+
+def company_template_count(workspace_root: Path) -> int:
+    """Return the number of integrity-checked user-owned template copies."""
+    return len(list_company_templates(Path(workspace_root)))
+
+
+def create_workspace_company_copy(
+    workspace_root: Path,
+    app_version: str,
+    template_id: str,
+    revision_id: str,
+):
+    """Create a copy-on-customize record without modifying TemplateLibrary."""
+    return create_company_copy(
+        Path(workspace_root), app_version, template_id, revision_id
     )
