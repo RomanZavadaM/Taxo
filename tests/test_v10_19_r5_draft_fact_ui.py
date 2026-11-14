@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.19-r5: registry-backed fact-entry UI for in-memory template drafts."""
+"""10.19-r5/r6: registry-backed fact-entry UI and prepared snapshot path."""
 from __future__ import annotations
 
 import copy
@@ -198,19 +198,21 @@ class FactEntryUiR5Tests(unittest.TestCase):
         self.db_path = self.root / "main.sqlite3"
         _create_registry(self.db_path)
 
-    def test_revision_identity_is_r5(self):
+    def test_revision_identity_accepts_r5_and_r6(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
+        self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            "Version: 10.19-r5",
+            ("Version: 10.19-r5", "Version: 10.19-r6"),
         )
-        self.assertIn(
-            'APP_VERSION = "10.19-r5"',
-            (root / "main.py").read_text("utf-8"),
+        main_source = (root / "main.py").read_text("utf-8")
+        self.assertTrue(
+            'APP_VERSION = "10.19-r5"' in main_source
+            or 'APP_VERSION = "10.19-r6"' in main_source
         )
-        self.assertIn(
-            "Taxo 10.19-r5",
-            (root / "START.bat").read_text("utf-8"),
+        start_source = (root / "START.bat").read_text("utf-8")
+        self.assertTrue(
+            "Taxo 10.19-r5" in start_source
+            or "Taxo 10.19-r6" in start_source
         )
 
     def test_registry_catalog_reuses_stable_ids_and_is_read_only(self):
@@ -354,14 +356,15 @@ class FactEntryUiR5Tests(unittest.TestCase):
         self.assertIn('"Додати пару"', source)
         self.assertIn('"Прибрати вибрану"', source)
 
-    def test_preview_is_read_only_and_has_no_save_export_action(self):
+    def test_preview_content_stays_read_only_without_export_or_business_action(self):
         source = inspect.getsource(company_template_draft_preview_ui)
         self.assertIn('state="disabled"', source)
         self.assertIn('"Закрити"', source)
         self.assertIn("WM_DELETE_WINDOW", source)
-        self.assertNotIn('"Зберегти"', source)
         self.assertNotIn("write_file", source)
         self.assertNotIn("DocumentArchive", source)
+        self.assertNotIn("create_order(", source)
+        self.assertNotIn("create_briefing", source)
 
     def test_company_template_list_exposes_draft_action(self):
         source = inspect.getsource(company_template_list_ui)
