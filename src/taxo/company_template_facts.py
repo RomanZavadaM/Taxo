@@ -169,7 +169,7 @@ def _normalise_value(value: object, typ: str) -> object:
     if typ == "text":
         if not isinstance(value, str):
             raise ValueError("Текстове поле має бути рядком")
-        if "\\x00" in value or len(value) > MAX_RENDERED_FIELD_CHARS:
+        if "\x00" in value or len(value) > MAX_RENDERED_FIELD_CHARS:
             raise ValueError("Некоректне або завелике текстове поле")
         return value
     if typ == "date":
@@ -210,7 +210,7 @@ def _normalise_value(value: object, typ: str) -> object:
             raise ValueError("Некоректний список розділів")
         sections = []
         for item in value:
-            if not isinstance(item, str) or "\\x00" in item:
+            if not isinstance(item, str) or "\x00" in item:
                 raise ValueError("Розділ має бути текстом")
             sections.append(item)
         return tuple(sections)
@@ -290,9 +290,9 @@ def display_fact(value: object, typ: str) -> str:
     if typ == "vehicle_ref":
         return display_vehicle(value)
     if typ == "participants":
-        return "\\n".join(display_person(item) for item in value)
+        return "\n".join(display_person(item) for item in value)
     if typ == "pairs":
-        return "\\n".join(
+        return "\n".join(
             "%s — %s" % (
                 display_person(item["person"]),
                 display_vehicle(item["vehicle"]),
@@ -300,9 +300,9 @@ def display_fact(value: object, typ: str) -> str:
             for item in value
         )
     if typ == "sections":
-        return "\\n\\n".join(value)
+        return "\n\n".join(value)
     if typ == "table_rows":
-        return "\\n".join(" | ".join(row) for row in value)
+        return "\n".join(" | ".join(row) for row in value)
     raise ValueError("Непідтримуваний тип поля")
 
 
