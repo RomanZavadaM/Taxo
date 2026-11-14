@@ -12,6 +12,7 @@ from tkinter import messagebox, ttk
 
 from company_template_editor_service import list_editor_templates
 from company_template_editor_ui import open_company_template_editor
+from company_template_draft_form_ui import open_company_template_draft_form
 
 _LIST_READER_SLOT = threading.BoundedSemaphore(1)
 
@@ -72,8 +73,12 @@ def open_company_templates(parent, services):
     refresh_button.grid(row=0, column=1, padx=(4, 8))
     edit_button = ttk.Button(footer, text="Редагувати", state="disabled")
     edit_button.grid(row=0, column=2, padx=(4, 8))
+    draft_button = ttk.Button(
+        footer, text="Підготувати чернетку", state="disabled"
+    )
+    draft_button.grid(row=0, column=3, padx=(4, 8))
     ttk.Button(footer, text="Закрити", command=lambda: close()).grid(
-        row=0, column=3
+        row=0, column=4
     )
 
     results = queue.Queue()
@@ -119,9 +124,9 @@ def open_company_templates(parent, services):
         if previous and tree.exists(previous[0]):
             tree.selection_set(previous[0])
             tree.see(previous[0])
-        edit_button.configure(
-            state="normal" if tree.selection() else "disabled"
-        )
+        enabled = "normal" if tree.selection() else "disabled"
+        edit_button.configure(state=enabled)
+        draft_button.configure(state=enabled)
         status.set("Власних шаблонів: %d" % len(rows))
 
     def poll():
@@ -155,6 +160,7 @@ def open_company_templates(parent, services):
         generation = state["generation"]
         refresh_button.configure(state="disabled")
         edit_button.configure(state="disabled")
+        draft_button.configure(state="disabled")
         status.set("Завантажую власні шаблони…")
 
         def worker():
@@ -172,9 +178,13 @@ def open_company_templates(parent, services):
         ).start()
 
     def selection_changed(_event=None):
-        edit_button.configure(
-            state="normal" if tree.selection() and not state["busy"] else "disabled"
+        enabled = (
+            "normal"
+            if tree.selection() and not state["busy"]
+            else "disabled"
         )
+        edit_button.configure(state=enabled)
+        draft_button.configure(state=enabled)
 
     def edit_selected(_event=None):
         selected = tree.selection()
@@ -187,10 +197,19 @@ def open_company_templates(parent, services):
             on_saved=refresh,
         )
 
+    def draft_selected():
+        selected = tree.selection()
+        if not selected:
+            return
+        open_company_template_draft_form(
+            win, services, selected[0]
+        )
+
     tree.bind("<<TreeviewSelect>>", selection_changed, add="+")
     tree.bind("<Double-1>", edit_selected, add="+")
     tree.bind("<Return>", edit_selected, add="+")
     edit_button.configure(command=edit_selected)
+    draft_button.configure(command=draft_selected)
     refresh_button.configure(command=refresh)
     state["after"] = win.after(120, poll)
     refresh()

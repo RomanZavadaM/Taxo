@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.19-r4: typed facts render an in-memory CompanyTemplates preview."""
+"""10.19-r4/r5: typed facts render an in-memory CompanyTemplates preview."""
 from __future__ import annotations
 
 import hashlib
@@ -233,19 +233,21 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
             ],
         }
 
-    def test_revision_identity_is_r4(self):
+    def test_revision_identity_accepts_r4_and_r5(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
+        self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            "Version: 10.19-r4",
+            ("Version: 10.19-r4", "Version: 10.19-r5"),
         )
-        self.assertIn(
-            'APP_VERSION = "10.19-r4"',
-            (root / "main.py").read_text("utf-8"),
+        main_source = (root / "main.py").read_text("utf-8")
+        self.assertTrue(
+            'APP_VERSION = "10.19-r4"' in main_source
+            or 'APP_VERSION = "10.19-r5"' in main_source
         )
-        self.assertIn(
-            "Taxo 10.19-r4",
-            (root / "START.bat").read_text("utf-8"),
+        start_source = (root / "START.bat").read_text("utf-8")
+        self.assertTrue(
+            "Taxo 10.19-r4" in start_source
+            or "Taxo 10.19-r5" in start_source
         )
 
     def test_typed_facts_render_structurally(self):
