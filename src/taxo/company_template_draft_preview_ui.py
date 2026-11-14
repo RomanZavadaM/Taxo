@@ -1,23 +1,30 @@
 # -*- coding: utf-8 -*-
-"""Preview and explicit persistence of an in-memory CompanyTemplateDraft.
+"""Preview, immutable snapshot save and DOCX export for CompanyTemplateDraft.
 
-The rendered text stays read-only. r6 adds one explicit action that stores the
-already-rendered draft as an immutable PreparedDocuments snapshot. This does
-not create an order/briefing, DOCX/PDF, final document archive entry, scan or signature.
+The rendered text stays read-only. A DOCX can be exported only after the draft
+has been committed as an immutable PreparedDocuments snapshot. Export reloads
+that verified snapshot; it does not render from a live template and does not
+create a business fact, PDF, print job, final archive entry, scan or signature.
 """
 from __future__ import annotations
 
 import queue
 import threading
-from tkinter import messagebox, ttk
+from pathlib import Path
+from tkinter import filedialog, messagebox, ttk
 
+from prepared_document_docx import (
+    export_prepared_snapshot_docx,
+    suggested_docx_name,
+)
 from prepared_document_store import create_prepared_snapshot
 
 _SNAPSHOT_WRITER_SLOT = threading.BoundedSemaphore(1)
+_DOCX_EXPORT_SLOT = threading.BoundedSemaphore(1)
 
 
 def open_company_template_draft_preview(parent, services, draft):
-    """Show one rendered draft and optionally freeze it as a prepared snapshot."""
+    """Show a draft, freeze it as a snapshot, then optionally export DOCX."""
     from tkinter import StringVar, TclError, Text, Toplevel
 
     workspace_root = services.workspace.root
@@ -25,9 +32,9 @@ def open_company_template_draft_preview(parent, services, draft):
     win.title("Taxo — Чернетка документа")
     try:
         from window_layout import fit_window_to_screen
-        fit_window_to_screen(win, 980, 720, 720, 500)
+        fit_window_to_screen(win, 1020, 720, 760, 500)
     except (ImportError, AttributeError, TypeError):
-        win.geometry("980x720")
+        win.geometry("1020x720")
 
     body = ttk.Frame(win, padding=12)
     body.pack(fill="both", expand=True)
@@ -48,7 +55,7 @@ def open_company_template_draft_preview(parent, services, draft):
             % (draft.edit_revision, draft.source_sha256[:12])
         ),
         justify="left",
-        wraplength=900,
+        wraplength=940,
     ).grid(row=1, column=0, sticky="ew", pady=(5, 8))
 
     frame = ttk.Frame(body)
@@ -72,30 +79,40 @@ def open_company_template_draft_preview(parent, services, draft):
 
     status = StringVar(
         value=(
-            "Snapshot ще не створено. Він не є наказом/інструктажем "
-            "і не створює DOCX/PDF."
+            "Snapshot ще не створено. Спочатку зафіксуйте чернетку; "
+            "DOCX експортується лише з immutable snapshot-а."
         )
     )
     ttk.Label(
         footer,
         textvariable=status,
         justify="left",
-        wraplength=620,
+        wraplength=560,
     ).grid(row=0, column=0, sticky="w")
 
     save_button = ttk.Button(
         footer,
         text="Зберегти підготовлену чернетку",
     )
-    save_button.grid(row=0, column=1, padx=(8, 8))
+    save_button.grid(row=0, column=1, padx=(8, 6))
+
+    export_button = ttk.Button(
+        footer,
+        text="Експорт DOCX…",
+        state="disabled",
+    )
+    export_button.grid(row=0, column=2, padx=(0, 6))
+
     close_button = ttk.Button(footer, text="Закрити")
-    close_button.grid(row=0, column=2)
+    close_button.grid(row=0, column=3)
 
     messages = queue.Queue()
     state = {
         "closed": False,
         "saving": False,
         "saved": False,
+        "snapshot_id": "",
+        "exporting": False,
         "after": None,
     }
     win._taxo_prepared_snapshot_state = state
@@ -103,10 +120,10 @@ def open_company_template_draft_preview(parent, services, draft):
     def close():
         if state["closed"]:
             return
-        if state["saving"]:
+        if state["saving"] or state["exporting"]:
             messagebox.showinfo(
                 "Підготовлена чернетка",
-                "Збереження snapshot-а ще виконується.",
+                "Збереження або експорт документа ще виконується.",
                 parent=win,
             )
             return
@@ -131,13 +148,10 @@ def open_company_template_draft_preview(parent, services, draft):
         def worker():
             with _SNAPSHOT_WRITER_SLOT:
                 try:
-                    summary = create_prepared_snapshot(
-                        workspace_root,
-                        draft,
-                    )
-                    messages.put((True, summary))
+                    summary = create_prepared_snapshot(workspace_root, draft)
+                    messages.put(("snapshot", True, summary))
                 except Exception as exc:
-                    messages.put((False, str(exc)))
+                    messages.put(("snapshot", False, str(exc)))
 
         threading.Thread(
             target=worker,
@@ -147,31 +161,96 @@ def open_company_template_draft_preview(parent, services, draft):
 
     save_button.configure(command=save_snapshot)
 
+    def export_docx():
+        if (
+            state["closed"]
+            or state["saving"]
+            or state["exporting"]
+            or not state["snapshot_id"]
+        ):
+            return
+
+        target_name = filedialog.asksaveasfilename(
+            parent=win,
+            title="Зберегти DOCX",
+            defaultextension=".docx",
+            filetypes=[("Word DOCX", "*.docx")],
+            initialfile=suggested_docx_name(
+                draft.title,
+                state["snapshot_id"],
+            ),
+        )
+        if not target_name:
+            return
+
+        target = Path(target_name)
+        snapshot_id = state["snapshot_id"]
+        state["exporting"] = True
+        export_button.configure(state="disabled")
+        status.set("Створюю editable DOCX з immutable snapshot-а…")
+
+        def worker():
+            with _DOCX_EXPORT_SLOT:
+                try:
+                    path = export_prepared_snapshot_docx(
+                        workspace_root,
+                        snapshot_id,
+                        target,
+                        overwrite=True,
+                    )
+                    messages.put(("docx", True, path))
+                except Exception as exc:
+                    messages.put(("docx", False, str(exc)))
+
+        threading.Thread(
+            target=worker,
+            name="Taxo-prepared-document-docx-export",
+            daemon=True,
+        ).start()
+
+    export_button.configure(command=export_docx)
+
     def poll():
         if state["closed"]:
             return
         try:
             while True:
-                ok, payload = messages.get_nowait()
-                state["saving"] = False
-                if ok:
-                    state["saved"] = True
-                    save_button.configure(state="disabled")
-                    status.set(
-                        "Збережено immutable snapshot %s · SHA-256 %s…"
-                        % (
-                            payload.snapshot_id,
-                            payload.sha256[:12],
+                kind, ok, payload = messages.get_nowait()
+                if kind == "snapshot":
+                    state["saving"] = False
+                    if ok:
+                        state["saved"] = True
+                        state["snapshot_id"] = payload.snapshot_id
+                        save_button.configure(state="disabled")
+                        export_button.configure(state="normal")
+                        status.set(
+                            "Збережено immutable snapshot %s · SHA-256 %s… "
+                            "DOCX можна експортувати з цього exact snapshot-а."
+                            % (payload.snapshot_id, payload.sha256[:12])
                         )
-                    )
-                else:
-                    save_button.configure(state="normal")
-                    status.set("Не вдалося зберегти snapshot.")
-                    messagebox.showerror(
-                        "Підготовлена чернетка",
-                        str(payload),
-                        parent=win,
-                    )
+                    else:
+                        save_button.configure(state="normal")
+                        status.set("Не вдалося зберегти snapshot.")
+                        messagebox.showerror(
+                            "Підготовлена чернетка",
+                            str(payload),
+                            parent=win,
+                        )
+                elif kind == "docx":
+                    state["exporting"] = False
+                    export_button.configure(state="normal")
+                    if ok:
+                        status.set(
+                            "DOCX створено з immutable snapshot-а: %s"
+                            % payload.name
+                        )
+                    else:
+                        status.set("Не вдалося створити DOCX.")
+                        messagebox.showerror(
+                            "Експорт DOCX",
+                            str(payload),
+                            parent=win,
+                        )
         except queue.Empty:
             pass
         if not state["closed"]:
