@@ -220,19 +220,27 @@ def _resolve_blocks(blocks, display, definitions, normalized):
         if "rows" in block:
             if not isinstance(block["rows"], list):
                 raise ValueError("Некоректні рядки таблиці")
-            block["rows"] = [
-                [_replace_text(cell, display, definitions) for cell in row]
-                for row in block["rows"]
-            ]
+            clean_rows = []
+            for row in block["rows"]:
+                if not isinstance(row, list):
+                    raise ValueError("Некоректний рядок таблиці")
+                clean_rows.append([
+                    _replace_text(cell, display, definitions) for cell in row
+                ])
+            block["rows"] = clean_rows
 
         if block.get("type") == "dynamic_table":
             source = block.get("data_source")
-            if isinstance(source, str) and source in normalized:
+            if isinstance(source, str) and source:
                 field = definitions.get(source)
+                if field is None:
+                    raise ValueError("Невідоме джерело динамічної таблиці: " + source)
+                if field.variable_type not in _COMPLEX_TYPES:
+                    raise ValueError("Джерело динамічної таблиці має бути структурованим")
+            if isinstance(source, str) and source in normalized:
+                field = definitions[source]
                 value = normalized[source]
                 columns = block.get("columns", [])
-                if field is None or field.variable_type not in _COMPLEX_TYPES:
-                    raise ValueError("Джерело динамічної таблиці має бути структурованим")
                 if field.variable_type == "table_rows":
                     rows = [list(row) for row in value]
                 else:
