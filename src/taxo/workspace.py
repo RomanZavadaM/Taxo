@@ -116,6 +116,7 @@ def paths_for(root):
         "tacho_scans":data/"TachographScans",
         "vehicle_documents":data/"VehicleDocuments",
         "employee_documents":data/"EmployeeDocuments",
+        "prepared_documents":data/"PreparedDocuments",
     }
 
 
@@ -170,7 +171,7 @@ def workspace_has_data(root):
     p=paths_for(root)
     if p["main_db"].exists() or p["tacho_db"].exists():
         return True
-    for key in ("tacho_scans","vehicle_documents","employee_documents","output","backups"):
+    for key in ("tacho_scans","vehicle_documents","employee_documents","prepared_documents","output","backups"):
         folder=p[key]
         try:
             if folder.exists() and any(folder.iterdir()):
@@ -478,6 +479,13 @@ def _copy_backup_payload(
             if child==srcp["vehicle_documents"] or child==srcp["tacho_scans"]:
                 continue
             dest=dstp["data"]/child.name
+            if child==srcp["prepared_documents"]:
+                if not child.is_dir() or child.is_symlink():
+                    raise ValueError("Некоректне сховище PreparedDocuments.")
+                if any(item.is_symlink() for item in child.rglob("*")):
+                    raise ValueError(
+                        "PreparedDocuments містить символічне посилання."
+                    )
             if child.is_dir():
                 shutil.copytree(child,dest,dirs_exist_ok=True)
             else:
@@ -559,6 +567,7 @@ def create_workspace_backup_archive(
                 "employee_documents":True,
                 "template_library":(source / "TemplateLibrary").is_dir(),
                 "company_templates":(source / "CompanyTemplates").is_dir(),
+                "prepared_documents":srcp["prepared_documents"].is_dir(),
                 "tachograph_scans":bool(include_tacho_scans),
                 "output":bool(include_output),
             },

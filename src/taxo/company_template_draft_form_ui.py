@@ -280,7 +280,7 @@ def open_company_template_draft_form(
                         )
                     )
                     if ok:
-                        open_company_template_draft_preview(win, payload)
+                        open_company_template_draft_preview(win, services, payload)
                     else:
                         messagebox.showerror(
                             "Не вдалося підготувати чернетку",
