@@ -1,3 +1,13 @@
+## 14.11.2026 — 10.19-r3 editor threading fix integrated and released
+
+- After v10.19-r2 publication, static review found one UI-thread defect: the CompanyTemplates save worker read Tk `StringVar` through `title.get()` from a background thread. This was a thread-safety risk, not a deterministic CI failure.
+- Corrective PR #422 produced 10.19-r3 only: title is captured on the Tk/UI thread before worker start; the worker receives a plain Python string. Regression guard prevents Tk variable access from the save worker. No new product feature was added.
+- Exact product/release source: `a89291553bca88a1b792d45f56cc99d5e93876b7`.
+- Exact-main CI: START `43598231924`, Windows `43598231921`, Win7 `43598231945`, macOS Intel/ARM `43598231954` — SUCCESS. Windows and Win7 Defender + post-scan integrity — PASS.
+- Release trigger PR #423 used the guarded publisher. Publisher `43599116472` SUCCESS → immutable prerelease [v10.19-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r3), 6 assets, target exactly `a89291553bca88a1b792d45f56cc99d5e93876b7`. Stable/Latest remains [v10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).
+- Issued v10.19-r2 was not overwritten or reused; release index marks it superseded by r3 for the UI-thread fix.
+- Next product revision after recovery: **10.19-r4**, typed fact substitution into a selected CompanyTemplates revision and an in-memory preview draft; no DOCX/PDF/DocumentArchive in the same slice.
+
 ## 14.11.2026 — 10.19-r2 editor integrated and released
 
 - PR #419 integrated the second CompanyTemplates slice; exact product/release source `6414e0fbeeca3f60d8bf609bc15fbf66482e5e82`.
