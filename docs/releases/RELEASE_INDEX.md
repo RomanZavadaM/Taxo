@@ -5,7 +5,8 @@
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) | Повний випуск: 2 Windows Setup, 4 portable, START, SHA256; сортування військового обліку та СТОІР, ручне приймання 25/25 PASS. |
-| Поточна тестова portable-only | [10.19-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r3) | Стабілізація редактора CompanyTemplates: Tk-дані зчитуються тільки в UI thread; 4 Portable + START + SHA256. |
+| Поточна тестова portable-only | [10.19-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r4) | Typed fact validation + structural in-memory preview; 4 Portable + START + SHA256. |
+| Попередня тестова portable-only | [10.19-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r3) | Стабілізація editor threading. |
 | Попередня тестова portable-only | [10.19-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r2) | Редактор власних CompanyTemplates: структуровані текстові поля, великі тексти, immutable власні редакції, optimistic concurrency; superseded r3 через UI-thread fix. |
 | Попередня тестова portable-only | [10.19-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r1) | Перший slice CompanyTemplates: власна копія read-only vendor template, provenance/integrity, backup; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.18-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r10) | Security-hardened test checkpoint після Firefox incident: isolated publisher, Defender gate, post-scan SHA256. |
