@@ -19,6 +19,7 @@ from company_template_draft_preview_ui import (
     open_company_template_draft_preview,
 )
 from company_template_fact_choices import load_fact_choice_catalog
+from company_template_fact_defaults import load_fact_defaults
 from company_template_fact_widgets import build_fact_control
 
 _FORM_READER_SLOT = threading.BoundedSemaphore(1)
@@ -125,7 +126,7 @@ def open_company_template_draft_form(
     win.protocol("WM_DELETE_WINDOW", close)
     close_button.configure(command=close)
 
-    def render_form(definition, catalog):
+    def render_form(definition, catalog, defaults):
         state["definition"] = definition
         state["catalog"] = catalog
         state["controls"].clear()
@@ -143,7 +144,10 @@ def open_company_template_draft_form(
             for row_index, variable in enumerate(definition.variables):
                 try:
                     control = build_fact_control(
-                        fields_frame, variable, catalog
+                        fields_frame,
+                        variable,
+                        catalog,
+                        initial_value=defaults.get(variable.name),
                     )
                 except ValueError as exc:
                     ttk.Label(
@@ -185,7 +189,11 @@ def open_company_template_draft_form(
                     workspace_root, company_template_id
                 )
                 catalog = load_fact_choice_catalog(services)
-                messages.put(("load", True, (definition, catalog)))
+                defaults = load_fact_defaults(
+                    services,
+                    tuple(variable.name for variable in definition.variables),
+                )
+                messages.put(("load", True, (definition, catalog, defaults)))
             except Exception as exc:
                 messages.put(("load", False, str(exc)))
 
@@ -255,8 +263,8 @@ def open_company_template_draft_form(
                 kind, ok, payload = messages.get_nowait()
                 if kind == "load":
                     if ok:
-                        definition, catalog = payload
-                        render_form(definition, catalog)
+                        definition, catalog, defaults = payload
+                        render_form(definition, catalog, defaults)
                     else:
                         state["loading"] = False
                         status.configure(

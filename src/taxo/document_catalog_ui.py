@@ -12,6 +12,13 @@ from prepared_document_revision import (
     copy_prepared_document_for_editing,
     import_prepared_document_revision,
 )
+from prepared_document_pdf import (
+    build_prepared_revision_pdf,
+    suggested_prepared_pdf_name,
+)
+from document_viewer import open_document
+from output_files import next_output_copy_path
+from workspace import paths_for
 
 
 _READER_SLOT = threading.BoundedSemaphore(1)
@@ -139,6 +146,9 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     import_revision_button = core.ttk.Button(
         actions, text="Додати редакцію DOCX…", state="disabled"
     )
+    pdf_button = core.ttk.Button(
+        actions, text="PDF / друк…", state="disabled"
+    )
 
     def selected_row():
         selected = tree.selection()
@@ -152,6 +162,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         value = "normal" if prepared else "disabled"
         edit_copy_button.configure(state=value)
         import_revision_button.configure(state=value)
+        pdf_button.configure(state=value)
 
     def render(result):
         state["page"], state["pages"] = result["page"], result["pages"]
@@ -419,6 +430,49 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         ):
             paperwork.open_file(path)
 
+    def create_pdf_for_print():
+        row = selected_row()
+        if not row or not row.get("prepared_snapshot_id"):
+            return
+        output_dir = paths_for(workspace_root)["output"]
+        output_dir.mkdir(parents=True, exist_ok=True)
+        target = output_dir / suggested_prepared_pdf_name(row)
+        if target.exists():
+            target = next_output_copy_path(target)
+        font_path = next(
+            (
+                Path(value)
+                for value in core.report_font_candidates()
+                if Path(value).is_file()
+            ),
+            None,
+        )
+        try:
+            actual = core.write_output_file(
+                lambda out: build_prepared_revision_pdf(
+                    workspace_root,
+                    row["source_id"],
+                    out,
+                    font_path=font_path,
+                    overwrite=True,
+                ),
+                target,
+                parent=win,
+                kind="PDF підготовленого документа",
+                error_title="PDF / друк",
+            )
+            if actual is None:
+                return
+            open_document(
+                win,
+                actual,
+                external_opener=core.open_external,
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "PDF / друк", str(exc), parent=win
+            )
+
     def import_revision():
         row = selected_row()
         if not row or not row.get("prepared_snapshot_id"):
@@ -476,6 +530,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     ).pack(side="left", padx=8)
     edit_copy_button.pack(side="left", padx=(10, 4))
     import_revision_button.pack(side="left", padx=4)
+    pdf_button.pack(side="left", padx=4)
     core.ttk.Button(
         actions,
         text="Відкрити вибране",
@@ -493,6 +548,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
 
     edit_copy_button.configure(command=copy_for_editing)
     import_revision_button.configure(command=import_revision)
+    pdf_button.configure(command=create_pdf_for_print)
     tree.bind("<Double-1>", open_selected)
     tree.bind(
         "<<TreeviewSelect>>", selection_changed, add="+"
@@ -513,6 +569,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_open = open_selected
     win._taxo_catalog_edit_copy = copy_for_editing
     win._taxo_catalog_import_revision = import_revision
+    win._taxo_catalog_pdf_print = create_pdf_for_print
     win.bind("<Destroy>", cancel_pending, add="+")
     refresh(reload_sources=True)
     state["poll"] = win.after(100, poll_results)
