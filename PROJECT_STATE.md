@@ -1,3 +1,15 @@
+## Оновлення 14.11.2026 — r7 опубліковано
+
+Taxo **10.19-r7** завершено. Product PR #434 merged, exact source `0cfccee73eec9bcf0fbb07afc64c5d7a7949dfcc`. Test prerelease [v10.19-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r7) опубліковано (publisher `43627285299` SUCCESS), 4 Portable + START + SHA256.
+
+Результати exact-main CI: START `43625038373`, Windows `43625038453`, Win7 `43625038422`, macOS Intel+ARM `43625038460` — SUCCESS; Defender і post-scan integrity Windows/Win7 PASS.
+
+Додано DOCX renderer/export виключно із перевіреного immutable snapshot-а, з exact provenance в metadata/footer; у preview DOCX доступний лише після успішного збереження snapshot-а. Немає PDF/print, final archive, scan/signature чи автоматичного business fact. TemplateLibrary read-only; CompanyTemplates для власних шаблонів. Stable/Latest **v10.18-r3**, без змін.
+
+**Наступна ревізія 10.19-r8** — окремий PDF/print slice; DocumentArchive пізніше. Перед початком перевірити live GitHub.
+
+---
+
 # PROJECT_STATE — Taxo
 
 **Дата:** 14.11.2026.
