@@ -5,7 +5,8 @@
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) | Повний випуск: 2 Windows Setup, 4 portable, START, SHA256; сортування військового обліку та СТОІР, ручне приймання 25/25 PASS. |
-| Поточна тестова portable-only | [10.19-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r10) | Назва підприємства з БД як default чернетки; PDF/preview/print із вибраної prepared Word-редакції; 4 Portable + START + SHA256. |
+| Поточна тестова portable-only | [10.20-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r1) | Inline-зображення з контрольованої prepared Word-редакції переходять у PDF/print; unsupported complex layout fail-closed; 4 Portable + START + SHA256. |
+| Попередня тестова portable-only | [10.19-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r10) | Назва підприємства з БД як default чернетки; PDF/preview/print із вибраної prepared Word-редакції; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.19-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r9) | Повторне відкриття PreparedDocuments та контрольована історія Word-редакцій r1/r2/r3 без перезапису; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.19-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r8) | Явне збереження DOCX з prepared snapshot у каталог Taxo; source provenance, 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.19-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r7) | DOCX export лише з immutable snapshot-а, exact provenance, 4 Portable + START + SHA256. |

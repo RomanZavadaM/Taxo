@@ -1,3 +1,17 @@
+## 15.11.2026 — 10.20-r1: inline images у prepared DOCX → PDF/print
+
+- Після recovery 10.19-r10 номерна лінія коректно перейшла на 10.20-r1.
+- Додано окремий `prepared_document_pdf_images.py`: безпечне вилучення/нормалізація inline-зображень із exact контрольованого DOCX.
+- Підтримано inline image у body paragraphs та table cells; text/image order і базове paragraph alignment переносяться у ReportLab story.
+- Безпека: limits на image count, compressed blob size, pixel count і normalized payload; зовнішні linked images не завантажуються.
+- Fail-closed лишено для floating drawings, VML/legacy pictures, header/footer drawings, nested/complex table layout. Непідтримані конструкції не губляться мовчки.
+- Перший CI failure був лише historical r10 guard, який вимагав відхиляти **всі** images; guard еволюціоновано так, щоб нові safe inline images дозволялись, а unsupported layouts лишались fail-closed.
+- Product PR #446 merged; final head `1037f5923293ca4c265067537cd19cb6aa5ef589`, exact product/release source `f80a1e583f896f4d0d8f63265e7ab0aadb657185`.
+- Exact-main CI: START `43761081149` — 1369/1369; Windows `43761081164`; Win7 `43761081155`; macOS Intel/ARM `43761081179` — SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #447 merged as `9fc246f335da4c3853e891a219fc7fdc8d839f6a`; publisher `43762135252` SUCCESS → [v10.20-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r1), 6 assets, exact product target. Stable/Latest v10.18-r3 unchanged.
+- Наступний bounded slice **10.20-r2**: DocumentVault core — storage/registry + provenance link to prepared revision; без migration/scans/signatures/implicit signed status.
+- Через повторні `Error in input stream` наступний великий slice переноситься у новий чат після recovery checkpoint.
+
 ## 15.11.2026 — 10.19-r10: назва підприємства з БД та prepared PDF/друк
 
 - За зауваженням власника `company.name` у формі CompanyTemplates більше не вимагає дублювання, якщо значення є у таблиці `company` активного workspace. Це editable default конкретної чернетки; TemplateLibrary/CompanyTemplates не мутуються.

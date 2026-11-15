@@ -2,32 +2,41 @@
 
 **Підтверджений інтегрований стан: 15.11.2026.**
 
-- Завершений product checkpoint: **10.19-r10** (PR #443).
-- Exact product/release source SHA `ff93ab2ddfe92f4eb8079d890ad8e7ffd7fe03e2`.
-- Test prerelease [v10.19-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r10), publisher `43758634481` SUCCESS; 4 portable + START + SHA256.
-- Stable/Latest: **v10.18-r3** unchanged.
-- Release PR #444 merged as `dade651e451f6ba89de7580348cad705ea8e170e`.
+- Завершений product checkpoint: **10.20-r1** (PR #446).
+- Exact product/release source SHA: `f80a1e583f896f4d0d8f63265e7ab0aadb657185`.
+- Test prerelease [v10.20-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r1), publisher `43762135252` SUCCESS; 4 portable + START + SHA256.
+- Release-trigger PR #447 merged as `9fc246f335da4c3853e891a219fc7fdc8d839f6a`.
+- Stable/Latest: **v10.18-r3**, unchanged.
 
 ## Функціональний результат
 
-r10 закриває два практичні місця документного шляху. `company.name` більше не треба дублювати вручну, якщо назва підприємства є у робочій БД: форма чернетки підставляє її як editable default, не змінюючи read-only TemplateLibrary чи власний CompanyTemplates.
+10.20-r1 розширює prepared DOCX → PDF/preview/print: підтримувані inline-зображення з exact контрольованої Word-редакції тепер переносяться у PDF, у тому числі всередині клітинок таблиць. Порядок text/image зберігається на рівні абзацу, базове вирівнювання береться з Word paragraph.
 
-Для вибраної контрольованої prepared Word-редакції додано окремий PDF/print path. PDF створюється як output-копія з конкретної r1/r2/r3…, після чого відкривається існуючим переглядачем Taxo. DOCX, catalog revision history і статус документа залишаються незмінними.
+Зображення нормалізуються через чинний Pillow; нових runtime dependencies немає. Є limits на кількість/розмір/pixels. Зовнішні image links не завантажуються.
 
-Якщо Word-файл містить embedded image, r10 fail-closed: неповний PDF не створюється мовчки. Точніший image/layout перенос — окремий наступний slice.
+Unsupported layout лишається fail-closed: floating drawings, VML/legacy pictures, header/footer drawings, nested/складні таблиці. PDF не змінює DOCX, revision history чи document/signature/business status.
 
 ## CI та security gates
 
-Exact-main: START `43757634383`, Windows `43757634381`, Win7 `43757634387`, macOS Intel/ARM `43757634384` — всі SUCCESS. START: 1362/1362. Windows/Win7 Defender і post-scan integrity PASS. Publisher `43758634481` SUCCESS; release target — exact product SHA, 6 assets. GitHub Latest/Stable підтверджено як v10.18-r3.
+Exact-main product SHA `f80a1e583f896f4d0d8f63265e7ab0aadb657185`: START/source `43761081149` — 1369/1369 SUCCESS; Windows `43761081164`, Win7 `43761081155`, macOS Intel/ARM `43761081179` — SUCCESS. Windows/Win7 Defender та post-scan integrity PASS. Publisher `43762135252` SUCCESS; immutable release target — exact product SHA, 6 assets. GitHub Latest/Stable — v10.18-r3.
 
 ## Наступна ревізія
 
-Після `10.19-r10` наступний кодовий номер — **10.20-r1**. Найближчий slice: підтримка embedded images у prepared DOCX → PDF/print із fail-closed поведінкою для ще непідтриманого складного Word layout. DocumentVault, скани/оригінали та signature/business status не змішувати з цим кроком.
+**10.20-r2** — DocumentVault core як окремий модуль: базова структура сховища та реєстру готових/архівних документів із provenance-посиланням на конкретну prepared-редакцію.
+
+У цей slice не змішувати:
+- auto-migration чинних PaperDocuments;
+- scans/originals;
+- digital signature / підписні докази;
+- автоматичний статус «підписано»;
+- розширення складного Word-layout renderer.
 
 ## Recovery
 
 Читати START_HERE.md → HANDOFF_CURRENT.md → private profile `profile/taxo` → звірити live GitHub. Issue #61 — журнал змін; `WORKLOG.md` — історія.
 
-## Історичний якір (збережено)
+Через повторні input-stream обриви цієї сесії наступний великий slice починати у новому чаті після recovery.
+
+## Історичний якір
 
 Taxo 10.3 / `v10.3`, exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
