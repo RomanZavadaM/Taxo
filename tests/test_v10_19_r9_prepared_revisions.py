@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 import unittest
 from pathlib import Path
 
@@ -184,6 +185,26 @@ class PreparedDocumentRevisionR9Tests(unittest.TestCase):
         self.assertTrue(r2_path.is_file())
         self.assertTrue(r3_result.path.is_file())
         self.assertEqual(len(list_documents(self.root)), 3)
+
+    def test_parallel_catalog_writes_keep_every_record(self):
+        def add(number):
+            doc = Document()
+            doc.add_paragraph("Паралельний документ %d" % number)
+            return save_document(
+                self.root,
+                doc,
+                "Інструктаж",
+                "Паралельний %d" % number,
+                "2026-11-15",
+            )
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            paths = list(pool.map(add, range(12)))
+        records = list_documents(self.root)
+        self.assertEqual(len(records), 12)
+        self.assertEqual(len({row["id"] for row in records}), 12)
+        self.assertEqual(len({row["file"] for row in records}), 12)
+        self.assertTrue(all(path.is_file() for path in paths))
 
     def test_same_bytes_are_not_added_as_fake_new_revision(self):
         _snapshot, original, r1 = self._registered()

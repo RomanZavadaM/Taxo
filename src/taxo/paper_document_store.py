@@ -7,12 +7,14 @@ import json
 import os
 import re
 import tempfile
+import threading
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 CATALOG_NAME = "index.json"
 MAX_STORED_DOCX_BYTES = 64 * 1024 * 1024
+_CATALOG_WRITE_LOCK = threading.RLock()
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _PREPARED_CORE = {
     "origin", "document_status", "prepared_snapshot_id",
@@ -176,7 +178,7 @@ def _new_target(folder, kind, day):
     return doc_id, filename, folder / filename
 
 
-def save_document(root, doc, kind, title, day, person="", *, metadata=None):
+def _save_document_unlocked(root, doc, kind, title, day, person="", *, metadata=None):
     """Never overwrite earlier documents; index is atomically replaced."""
     folder = catalog_dir(root)
     folder.mkdir(parents=True, exist_ok=True)
@@ -219,7 +221,15 @@ def save_document(root, doc, kind, title, day, person="", *, metadata=None):
     return target
 
 
-def save_docx_bytes(
+def save_document(root, doc, kind, title, day, person="", *, metadata=None):
+    """Serialize index updates so two Taxo windows cannot lose each other."""
+    with _CATALOG_WRITE_LOCK:
+        return _save_document_unlocked(
+            root, doc, kind, title, day, person, metadata=metadata
+        )
+
+
+def _save_docx_bytes_unlocked(
     root, payload, kind, title, day, person="", *, metadata
 ):
     """Store exact validated DOCX bytes as a new immutable catalog record."""
@@ -261,6 +271,22 @@ def save_docx_bytes(
         if pending.exists():
             pending.unlink()
     return target
+
+
+def save_docx_bytes(
+    root, payload, kind, title, day, person="", *, metadata
+):
+    """Serialize exact-DOCX appends with all other PaperDocuments writes."""
+    with _CATALOG_WRITE_LOCK:
+        return _save_docx_bytes_unlocked(
+            root,
+            payload,
+            kind,
+            title,
+            day,
+            person,
+            metadata=metadata,
+        )
 
 
 def document_path(root, record):
