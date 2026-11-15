@@ -13,6 +13,7 @@ from tkinter import messagebox, ttk
 from company_template_editor_service import list_editor_templates
 from company_template_editor_ui import open_company_template_editor
 from company_template_draft_form_ui import open_company_template_draft_form
+from prepared_document_list_ui import open_prepared_documents
 
 _LIST_READER_SLOT = threading.BoundedSemaphore(1)
 
@@ -77,8 +78,12 @@ def open_company_templates(parent, services):
         footer, text="Підготувати чернетку", state="disabled"
     )
     draft_button.grid(row=0, column=3, padx=(4, 8))
+    ttk.Button(
+        footer, text="Збережені чернетки",
+        command=lambda: open_prepared_documents(win, services),
+    ).grid(row=0, column=4, padx=(4, 8))
     ttk.Button(footer, text="Закрити", command=lambda: close()).grid(
-        row=0, column=4
+        row=0, column=5
     )
 
     results = queue.Queue()

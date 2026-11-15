@@ -237,7 +237,7 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            ("Version: 10.19-r4", "Version: 10.19-r5", "Version: 10.19-r6", "Version: 10.19-r7", "Version: 10.19-r8"),
+            ("Version: 10.19-r4", "Version: 10.19-r5", "Version: 10.19-r6", "Version: 10.19-r7", "Version: 10.19-r8", "Version: 10.19-r9"),
         )
         main_source = (root / "main.py").read_text("utf-8")
         self.assertTrue(
@@ -246,6 +246,7 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
             or 'APP_VERSION = "10.19-r6"' in main_source
             or 'APP_VERSION = "10.19-r7"' in main_source
             or 'APP_VERSION = "10.19-r8"' in main_source
+            or 'APP_VERSION = "10.19-r9"' in main_source
         )
         start_source = (root / "START.bat").read_text("utf-8")
         self.assertTrue(
@@ -254,6 +255,7 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
             or "Taxo 10.19-r6" in start_source
             or "Taxo 10.19-r7" in start_source
             or "Taxo 10.19-r8" in start_source
+            or "Taxo 10.19-r9" in start_source
         )
 
     def test_typed_facts_render_structurally(self):

@@ -82,15 +82,20 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            ("Version: 10.19-r7", "Version: 10.19-r8"),
+            ("Version: 10.19-r7", "Version: 10.19-r8", "Version: 10.19-r9"),
         )
         self.assertTrue(
             any(v in (root / "main.py").read_text("utf-8") for v in (
                 'APP_VERSION = "10.19-r7"', 'APP_VERSION = "10.19-r8"',
+                'APP_VERSION = "10.19-r9"',
             ))
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertTrue("Taxo 10.19-r7" in start or "Taxo 10.19-r8" in start)
+        self.assertTrue(
+            "Taxo 10.19-r7" in start
+            or "Taxo 10.19-r8" in start
+            or "Taxo 10.19-r9" in start
+        )
         self.assertIn("prepared_document_docx.py", start)
 
     def test_docx_uses_committed_snapshot_and_preserves_provenance(self):
