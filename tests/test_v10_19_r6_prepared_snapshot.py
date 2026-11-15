@@ -122,6 +122,7 @@ class PreparedDocumentR6Tests(unittest.TestCase):
             or 'APP_VERSION = "10.19-r8"' in main_source
             or 'APP_VERSION = "10.19-r9"' in main_source
             or 'APP_VERSION = "10.19-r10"' in main_source
+            or 'APP_VERSION = "10.20-r1"' in main_source
         )
         start_source = (root / "START.bat").read_text("utf-8")
         self.assertTrue(
@@ -130,6 +131,7 @@ class PreparedDocumentR6Tests(unittest.TestCase):
             or "Taxo 10.19-r8" in start_source
             or "Taxo 10.19-r9" in start_source
             or "Taxo 10.19-r10" in start_source
+            or "Taxo 10.20-r1" in start_source
         )
 
     def test_missing_store_listing_has_no_write_side_effect(self):
