@@ -1,3 +1,14 @@
+## 15.11.2026 — 10.19-r8: DOCX до каталогу документів
+
+- Власник виявив розрив між експортом Word та реєстром документів. Змінено план r8 з PDF/print на цю практичну проблему.
+- `prepared_document_registry.py`: явний запис immutable snapshot-backed DOCX у чинний PaperDocuments без бізнес-факту чи статусу підпису.
+- У PaperDocuments index збережено source snapshot ID, CompanyTemplates ID, source revision/SHA, `document_status=prepared`. Без перезапису старих записів; дублі того самого snapshot відхиляються.
+- UI preview: кнопка «Зберегти DOCX у каталозі Taxo» доступна лише після успішного збереження snapshot. Окремий зовнішній експорт DOCX працює як раніше.
+- Product PR #437 merged; exact SHA `4829bc7e3369442cc7cee7ad9ec8797fc26362e5`.
+- Exact-main CI: START `43747281993`, Windows `43747281941`, Win7 `43747281957`, macOS Intel/ARM `43747281991` — SUCCESS; обидва Windows Defender і integrity PASS.
+- Release PR #438 merged; publisher `43748041618` SUCCESS → [v10.19-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r8), 6 файлів, exact source SHA. Stable/Latest v10.18-r3 не змінено.
+- Наступна 10.19-r9: перелік збережених prepared snapshots та безпечний імпорт відредагованого DOCX з історією, без заміни старого файла. PDF/print, скани та повний DocumentVault — окремо.
+
 ## 14.11.2026 — 10.19-r7 завершено й опубліковано
 
 - DOCX export із immutable PreparedDocuments snapshot; окремий модуль, без повторного читання поточного шаблону, зі збереженням exact provenance.

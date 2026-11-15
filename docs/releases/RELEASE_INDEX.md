@@ -1,11 +1,12 @@
 # Випуски Taxo
 
-**Стан:** 14.11.2026.
+**Стан:** 15.11.2026.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) | Повний випуск: 2 Windows Setup, 4 portable, START, SHA256; сортування військового обліку та СТОІР, ручне приймання 25/25 PASS. |
-| Поточна тестова portable-only | [10.19-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r7) | DOCX export лише з immutable snapshot-а, exact provenance, 4 Portable + START + SHA256. |
+| Поточна тестова portable-only | [10.19-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r8) | Явне збереження DOCX з prepared snapshot у каталог Taxo; source provenance, 4 Portable + START + SHA256. |
+| Попередня тестова portable-only | [10.19-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r7) | DOCX export лише з immutable snapshot-а, exact provenance, 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.19-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r6) | Immutable PreparedDocuments snapshot заповненої CompanyTemplates-чернетки: exact source provenance, integrity index, atomic storage і backup/restore; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.19-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r5) | Registry-backed typed fact UI + read-only in-memory draft preview; pair invariant aligned with current assignment rules; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.19-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r4) | Typed fact validation + structural in-memory preview; 4 Portable + START + SHA256. |
