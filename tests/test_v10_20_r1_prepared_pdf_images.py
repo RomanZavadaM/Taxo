@@ -135,7 +135,7 @@ class PreparedPdfImagesR1Tests(unittest.TestCase):
         reader = PdfReader(str(pdf))
         text = "\n".join(page.extract_text() or "" for page in reader.pages)
         self.assertIn("Текст перед зображенням", text)
-        self.assertIn("Текст після зображенням".replace("зображенням", "зображенням"), text)
+        self.assertIn("Текст після зображення", text)
         self.assertEqual(r1_path.read_bytes(), r1_bytes)
         self.assertEqual(
             [row["id"] for row in list_documents(self.work)],
