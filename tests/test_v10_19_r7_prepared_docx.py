@@ -78,18 +78,19 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
         self.work = self.root / "Work"
         self.work.mkdir()
 
-    def test_revision_identity_is_r7_and_package_guard_has_renderer(self):
+    def test_revision_identity_accepts_r7_and_r8(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
-            (root / "VERSION.txt").read_text("utf-8").strip(),
-            "Version: 10.19-r7",
-        )
         self.assertIn(
-            'APP_VERSION = "10.19-r7"',
-            (root / "main.py").read_text("utf-8"),
+            (root / "VERSION.txt").read_text("utf-8").strip(),
+            ("Version: 10.19-r7", "Version: 10.19-r8"),
+        )
+        self.assertTrue(
+            any(v in (root / "main.py").read_text("utf-8") for v in (
+                'APP_VERSION = "10.19-r7"', 'APP_VERSION = "10.19-r8"',
+            ))
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.19-r7", start)
+        self.assertTrue("Taxo 10.19-r7" in start or "Taxo 10.19-r8" in start)
         self.assertIn("prepared_document_docx.py", start)
 
     def test_docx_uses_committed_snapshot_and_preserves_provenance(self):
