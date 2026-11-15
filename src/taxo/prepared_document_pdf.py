@@ -20,6 +20,11 @@ from docx.table import Table as DocxTable
 from docx.text.paragraph import Paragraph as DocxParagraph
 
 from prepared_document_revision import load_controlled_prepared_revision
+from prepared_document_pdf_images import (
+    apply_paragraph_image_alignment,
+    ensure_supported_drawing_scope,
+    paragraph_fragments,
+)
 
 _BAD_FILENAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _RESERVED_NAMES = {
@@ -112,65 +117,130 @@ def _paragraph_style(paragraph, styles):
     return style
 
 
-def _paragraph_story(paragraph, styles):
+def _paragraph_story(
+    paragraph,
+    styles,
+    budget,
+    image_budget,
+    *,
+    max_image_width,
+    max_image_height,
+    allow_page_break=True,
+):
     from reportlab.platypus import PageBreak, Paragraph, Spacer
 
-    text = paragraph.text or ""
     page_break = 'w:type="page"' in paragraph._p.xml
+    if page_break and not allow_page_break:
+        raise ValueError(
+            "DOCX містить розрив сторінки всередині таблиці; "
+            "цей layout Taxo поки не переносить у PDF."
+        )
+
+    fragments = paragraph_fragments(
+        paragraph,
+        image_budget,
+        max_width_pt=max_image_width,
+        max_height_pt=max_image_height,
+    )
     result = []
-    if text:
-        style_name = str(getattr(paragraph.style, "name", "") or "")
-        prefix = ""
-        if style_name.startswith("List Bullet"):
-            prefix = "• "
-        elif style_name.startswith("List Number"):
-            prefix = "• "
-        safe = escape(prefix + text).replace("\n", "<br/>")
-        result.append(Paragraph(safe, _paragraph_style(paragraph, styles)))
-    elif not page_break:
+    style_name = str(getattr(paragraph.style, "name", "") or "")
+    prefix = ""
+    if style_name.startswith("List Bullet"):
+        prefix = "• "
+    elif style_name.startswith("List Number"):
+        prefix = "• "
+
+    text_seen = False
+    content_seen = False
+    for fragment in fragments:
+        if fragment.kind == "text":
+            text = str(fragment.value or "")
+            if not text:
+                continue
+            if not text_seen and prefix:
+                text = prefix + text
+            text_seen = True
+            budget["chars"] += len(text)
+            if budget["chars"] > MAX_TEXT_CHARS:
+                raise ValueError("DOCX містить забагато тексту для PDF")
+            safe = escape(text).replace("\n", "<br/>")
+            result.append(
+                Paragraph(safe, _paragraph_style(paragraph, styles))
+            )
+            content_seen = True
+        elif fragment.kind == "image":
+            result.append(
+                apply_paragraph_image_alignment(
+                    fragment.value, paragraph
+                )
+            )
+            content_seen = True
+        else:
+            raise ValueError("Невідомий фрагмент DOCX під час PDF-export")
+
+    if not content_seen and not page_break:
         result.append(Spacer(1, 5))
     if page_break:
         result.append(PageBreak())
     return result
 
 
-def _table_story(table, font_name, budget):
+def _table_story(table, font_name, budget, image_budget):
     from reportlab.lib import colors
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.platypus import Paragraph, Table, TableStyle
 
-    rows = []
-    width = 0
+    source_rows = [list(row.cells) for row in table.rows]
+    width = max((len(row) for row in source_rows), default=0)
+    if not source_rows or width < 1:
+        return []
+    if width > 40:
+        raise ValueError("DOCX містить таблицю з надмірною кількістю колонок")
+    if any(len(row) != width for row in source_rows):
+        raise ValueError("DOCX містить нерівну таблицю")
+
     cell_style = ParagraphStyle(
         "TaxoPreparedCell",
         fontName=font_name,
         fontSize=8.5,
         leading=10.5,
     )
-    for row in table.rows:
+    cell_styles = {
+        "normal": cell_style,
+        "heading1": cell_style,
+        "heading2": cell_style,
+        "heading3": cell_style,
+    }
+    max_cell_image_width = max(45.0, min(150.0, 470.0 / width))
+    rows = []
+    for source_row in source_rows:
         values = []
-        for cell in row.cells:
+        for cell in source_row:
             budget["cells"] += 1
             if budget["cells"] > MAX_TABLE_CELLS:
                 raise ValueError("DOCX містить завелику таблицю для PDF")
-            value = cell.text or ""
-            budget["chars"] += len(value)
-            if budget["chars"] > MAX_TEXT_CHARS:
-                raise ValueError("DOCX містить забагато тексту для PDF")
-            values.append(
-                Paragraph(
-                    escape(value).replace("\n", "<br/>") or " ",
-                    cell_style,
+            if cell.tables:
+                raise ValueError(
+                    "DOCX містить вкладену таблицю; "
+                    "цей layout Taxo поки не переносить у PDF."
                 )
+            story = []
+            for paragraph in cell.paragraphs:
+                story.extend(
+                    _paragraph_story(
+                        paragraph,
+                        cell_styles,
+                        budget,
+                        image_budget,
+                        max_image_width=max_cell_image_width,
+                        max_image_height=180.0,
+                        allow_page_break=False,
+                    )
+                )
+            values.append(
+                story or [Paragraph(" ", cell_style)]
             )
-        width = max(width, len(values))
         rows.append(values)
-    if not rows or width < 1:
-        return []
-    if width > 40:
-        raise ValueError("DOCX містить таблицю з надмірною кількістю колонок")
-    if any(len(row) != width for row in rows):
-        raise ValueError("DOCX містить нерівну таблицю")
     result = Table(rows, repeatRows=1 if len(rows) > 1 else 0, hAlign="LEFT")
     result.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
@@ -200,12 +270,7 @@ def build_prepared_revision_pdf(
     except Exception as exc:
         raise ValueError("Не вдалося прочитати контрольований DOCX") from exc
 
-    if document.inline_shapes:
-        raise ValueError(
-            "Ця редакція DOCX містить вкладені зображення. "
-            "Щоб не втратити оформлення, друкуйте її через Word; "
-            "PDF-конвертер Taxo поки не переносить зображення."
-        )
+    ensure_supported_drawing_scope(document)
 
     target = Path(target)
     if target.suffix.lower() != ".pdf":
@@ -260,18 +325,29 @@ def build_prepared_revision_pdf(
     }
 
     budget = {"blocks": 0, "cells": 0, "chars": 0}
+    image_budget = {"count": 0}
     story = []
     for block in _iter_blocks(document):
         budget["blocks"] += 1
         if budget["blocks"] > MAX_PDF_BLOCKS:
             raise ValueError("DOCX містить забагато блоків для PDF")
         if isinstance(block, DocxParagraph):
-            budget["chars"] += len(block.text or "")
-            if budget["chars"] > MAX_TEXT_CHARS:
-                raise ValueError("DOCX містить забагато тексту для PDF")
-            story.extend(_paragraph_story(block, styles))
+            story.extend(
+                _paragraph_story(
+                    block,
+                    styles,
+                    budget,
+                    image_budget,
+                    max_image_width=470.0,
+                    max_image_height=650.0,
+                )
+            )
         else:
-            story.extend(_table_story(block, font_name, budget))
+            story.extend(
+                _table_story(
+                    block, font_name, budget, image_budget
+                )
+            )
 
     if not story:
         from reportlab.platypus import Paragraph

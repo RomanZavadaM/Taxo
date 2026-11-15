@@ -84,17 +84,19 @@ def _draft():
 class PreparedPdfPrintR10Tests(unittest.TestCase):
     def test_revision_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
-            (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.19-r10\n",
-        )
         self.assertIn(
-            'APP_VERSION = "10.19-r10"',
-            (root / "main.py").read_text("utf-8"),
+            (root / "VERSION.txt").read_text("utf-8").strip(),
+            ("Version: 10.19-r10", "Version: 10.20-r1"),
         )
-        self.assertIn(
-            "Taxo 10.19-r10",
-            (root / "START.bat").read_text("utf-8"),
+        main_source = (root / "main.py").read_text("utf-8")
+        self.assertTrue(
+            'APP_VERSION = "10.19-r10"' in main_source
+            or 'APP_VERSION = "10.20-r1"' in main_source
+        )
+        start_source = (root / "START.bat").read_text("utf-8")
+        self.assertTrue(
+            "Taxo 10.19-r10" in start_source
+            or "Taxo 10.20-r1" in start_source
         )
 
     def setUp(self):
@@ -219,15 +221,26 @@ class PreparedPdfPrintR10Tests(unittest.TestCase):
         self.assertTrue(name.endswith("_r3_34567890.pdf"))
         self.assertNotIn("/", name)
 
-    def test_pdf_renderer_refuses_images_instead_of_silently_dropping_them(self):
+    def test_pdf_renderer_never_silently_drops_unsupported_images(self):
         _snapshot, _r1_path, r1 = self._registered_r1()
-        # The source guard documents the fail-closed policy even though creating
-        # an image fixture would add binary test data to the repository.
         source = inspect.getsource(
             __import__("prepared_document_pdf")
         )
-        self.assertIn("document.inline_shapes", source)
-        self.assertIn("не переносить зображення", source)
+        self.assertIn("ensure_supported_drawing_scope", source)
+        try:
+            images = inspect.getsource(
+                __import__("prepared_document_pdf_images")
+            )
+        except ModuleNotFoundError:
+            # Historical r10 implementation rejected every inline image.
+            self.assertIn("document.inline_shapes", source)
+            self.assertIn("не переносить зображення", source)
+        else:
+            # r10+ evolution may support safe inline pictures, but unsupported
+            # floating/header/legacy layouts must remain explicit fail-closed.
+            self.assertIn("wp:anchor", images)
+            self.assertIn("колонтитулі", images)
+            self.assertIn("legacy/VML", images)
         self.assertTrue(r1["prepared_snapshot_id"])
 
     def test_catalog_exposes_pdf_print_action_only_for_controlled_prepared_rows(self):
