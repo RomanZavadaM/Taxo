@@ -17,6 +17,15 @@ from prepared_document_revision import (
 _READER_SLOT = threading.BoundedSemaphore(1)
 
 
+def _is_controlled_prepared_row(row):
+    return bool(
+        row
+        and row.get("source") == "paper"
+        and row.get("prepared_snapshot_id")
+        and row.get("file_path") is not None
+    )
+
+
 def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win = core.tk.Toplevel(parent)
     win.title("Документи")
@@ -139,12 +148,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
 
     def selection_changed(_event=None):
         row = selected_row()
-        prepared = bool(
-            row
-            and row.get("source") == "paper"
-            and row.get("prepared_snapshot_id")
-            and row.get("file_path") is not None
-        )
+        prepared = _is_controlled_prepared_row(row)
         value = "normal" if prepared else "disabled"
         edit_copy_button.configure(state=value)
         import_revision_button.configure(state=value)
@@ -326,6 +330,16 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             core.messagebox.showinfo(
                 "Документи", "Виберіть документ.", parent=win
             )
+            return
+        if _is_controlled_prepared_row(row):
+            if core.messagebox.askyesno(
+                "Prepared Word",
+                "Ця редакція зберігається в історії Taxo і не відкривається "
+                "для редагування напряму.\n\n"
+                "Створити окрему копію DOCX для Word?",
+                parent=win,
+            ):
+                copy_for_editing()
             return
         if row["source"] == "order":
             callback = getattr(

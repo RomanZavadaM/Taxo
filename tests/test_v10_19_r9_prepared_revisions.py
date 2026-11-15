@@ -11,6 +11,7 @@ from docx import Document
 
 from company_template_draft import CompanyTemplateDraft
 from document_catalog import read_catalog
+from document_catalog_ui import _is_controlled_prepared_row
 from paper_document_store import list_documents, save_document
 from prepared_document_registry import register_prepared_document
 from prepared_document_revision import (
@@ -81,6 +82,16 @@ class PreparedDocumentRevisionR9Tests(unittest.TestCase):
         doc.add_paragraph(text)
         doc.save(str(path))
         return path
+
+    def test_prepared_catalog_row_is_controlled_before_external_open(self):
+        row = {
+            "source": "paper",
+            "prepared_snapshot_id": "pd-" + "a" * 32,
+            "file_path": Path("controlled.docx"),
+        }
+        self.assertTrue(_is_controlled_prepared_row(row))
+        row["prepared_snapshot_id"] = ""
+        self.assertFalse(_is_controlled_prepared_row(row))
 
     def test_saved_snapshot_can_be_listed_and_loaded_later(self):
         snapshot = create_prepared_snapshot(
