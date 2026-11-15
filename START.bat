@@ -52,6 +52,7 @@ if not exist "src\taxo\company_template_editor_service.py" goto :package_incompl
 if not exist "src\taxo\company_template_draft.py" goto :package_incomplete
 if not exist "src\taxo\company_template_facts.py" goto :package_incomplete
 if not exist "src\taxo\company_template_fact_choices.py" goto :package_incomplete
+if not exist "src\taxo\company_template_fact_defaults.py" goto :package_incomplete
 if not exist "src\taxo\company_template_fact_codec.py" goto :package_incomplete
 if not exist "src\taxo\company_template_fact_widgets.py" goto :package_incomplete
 if not exist "src\taxo\company_template_draft_form_ui.py" goto :package_incomplete
@@ -61,6 +62,7 @@ if not exist "src\taxo\prepared_document_store.py" goto :package_incomplete
 if not exist "src\taxo\prepared_document_docx.py" goto :package_incomplete
 if not exist "src\taxo\prepared_document_registry.py" goto :package_incomplete
 if not exist "src\taxo\prepared_document_revision.py" goto :package_incomplete
+if not exist "src\taxo\prepared_document_pdf.py" goto :package_incomplete
 if not exist "src\taxo\prepared_document_list_ui.py" goto :package_incomplete
 if not exist "src\taxo\company_template_editor_ui.py" goto :package_incomplete
 if not exist "src\taxo\company_template_list_ui.py" goto :package_incomplete

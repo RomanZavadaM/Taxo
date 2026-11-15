@@ -30,6 +30,14 @@ MAX_DOCX_UNCOMPRESSED_BYTES = 256 * 1024 * 1024
 
 
 @dataclass(frozen=True)
+class ControlledPreparedRevision:
+    path: Path
+    payload: bytes
+    sha256: str
+    record: dict
+
+
+@dataclass(frozen=True)
 class PreparedDocumentRevisionResult:
     path: Path
     document_id: str
@@ -168,6 +176,18 @@ def _read_external_docx(source_path):
     except Exception as exc:
         raise ValueError("Word DOCX не вдалося перевірити") from exc
     return path, payload, hashlib.sha256(payload).hexdigest()
+
+
+def load_controlled_prepared_revision(workspace_root, document_id):
+    """Return one exact immutable prepared DOCX revision after integrity checks."""
+    selected = _prepared_record(_record_by_id(workspace_root, document_id))
+    path, payload, digest = _catalog_bytes(workspace_root, selected)
+    return ControlledPreparedRevision(
+        path=path,
+        payload=payload,
+        sha256=digest,
+        record=dict(selected),
+    )
 
 
 def copy_prepared_document_for_editing(

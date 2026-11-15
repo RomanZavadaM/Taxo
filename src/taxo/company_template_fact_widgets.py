@@ -51,10 +51,10 @@ def _help(parent, variable):
     ).pack(fill="x", pady=(3, 0))
 
 
-def scalar_control(parent, variable):
+def scalar_control(parent, variable, initial_value=None):
     frame = ttk.Frame(parent)
     ttk.Label(frame, text=_label_text(variable)).pack(anchor="w")
-    value = StringVar(value="")
+    value = StringVar(value="" if initial_value is None else str(initial_value))
     entry = ttk.Entry(frame, textvariable=value)
     entry.pack(fill="x", pady=(2, 0))
     _help(frame, variable)
@@ -315,11 +315,13 @@ def pair_control(parent, variable, catalog: FactChoiceCatalog):
     )
 
 
-def build_fact_control(parent, variable, catalog: FactChoiceCatalog):
+def build_fact_control(
+    parent, variable, catalog: FactChoiceCatalog, initial_value=None
+):
     """Create one UI-thread control for a declared DraftVariable."""
     typ = variable.variable_type
     if typ in ("text", "date", "integer"):
-        return scalar_control(parent, variable)
+        return scalar_control(parent, variable, initial_value=initial_value)
     if typ == "person_ref":
         return choice_control(parent, variable, catalog.employees)
     if typ == "vehicle_ref":
