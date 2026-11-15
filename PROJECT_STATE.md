@@ -23,3 +23,7 @@ Exact-main: START `43747281993`, Windows `43747281941`, Win7 `43747281957`, macO
 ## Recovery
 
 Читати START_HERE.md → HANDOFF_CURRENT.md → private profile `profile/taxo` → звірити live GitHub. Issue #61 — журнал змін; `WORKLOG.md` — історія.
+
+## Історичний якір (збережено)
+
+Taxo 10.3 / `v10.3`, exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
