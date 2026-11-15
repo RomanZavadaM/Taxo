@@ -1,3 +1,15 @@
+## 15.11.2026 — 10.19-r10: назва підприємства з БД та prepared PDF/друк
+
+- За зауваженням власника `company.name` у формі CompanyTemplates більше не вимагає дублювання, якщо значення є у таблиці `company` активного workspace. Це editable default конкретної чернетки; TemplateLibrary/CompanyTemplates не мутуються.
+- Додано `prepared_document_pdf.py` і дію «PDF / друк…» у каталозі контрольованих prepared DOCX. PDF береться саме з вибраної r1/r2/r3, записується окремо в Output і відкривається існуючим Taxo viewer/Print.
+- PDF path не змінює DOCX, history, prepared/signature/business status і не вводить DocumentVault. Нових залежностей нема: python-docx + ReportLab.
+- Під час pre-merge macOS ARM regression виявив, що системний шрифт може бути symlink. Перевірку виправлено без послаблення вимоги до реального font file; final head `14d41a88fd622547f04ef4eebc07a061210d51a3`.
+- Embedded images у r10 fail-closed: Taxo відмовляється робити неповний PDF і радить Word, доки image/layout fidelity не реалізована окремо.
+- Product PR #443 merged; exact product/release source `ff93ab2ddfe92f4eb8079d890ad8e7ffd7fe03e2`.
+- Exact-main CI: START `43757634383` (1362/1362), Windows `43757634381`, Win7 `43757634387`, macOS Intel/ARM `43757634384` — SUCCESS; Windows/Win7 Defender та integrity PASS.
+- Release-trigger PR #444 зберіг semantic Stable marker `10.18-r3`; publisher `43758634481` SUCCESS → [v10.19-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r10), рівно 6 assets, target exact product SHA. Stable/Latest v10.18-r3 не змінено.
+- Після r10 номерна лінія переходить на **10.20-r1**. Наступний bounded slice: embedded images у prepared PDF/print; DocumentVault/скани/підписи окремо.
+
 ## 15.11.2026 — 10.19-r9: повторне відкриття чернеток і історія Word-редакцій
 
 - Продовжено шлях документа після r8 без повторення збереження DOCX у каталог.
