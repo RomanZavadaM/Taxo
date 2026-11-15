@@ -57,7 +57,7 @@ def _font(font_path):
             "Не знайдено шрифт з підтримкою українського тексту для PDF"
         )
     path = Path(font_path)
-    if not path.is_file() or path.is_symlink():
+    if not path.is_file():
         raise ValueError("Не знайдено шрифт для PDF")
     name = "TaxoPrepared_" + hashlib.sha256(
         str(path.resolve()).encode("utf-8")
