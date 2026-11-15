@@ -53,7 +53,9 @@ def _font(font_path):
     from reportlab.pdfbase.ttfonts import TTFont
 
     if font_path is None:
-        return "Helvetica"
+        raise ValueError(
+            "Не знайдено шрифт з підтримкою українського тексту для PDF"
+        )
     path = Path(font_path)
     if not path.is_file() or path.is_symlink():
         raise ValueError("Не знайдено шрифт для PDF")
@@ -82,6 +84,7 @@ def _iter_blocks(document):
 
 
 def _paragraph_style(paragraph, styles):
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
     from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT, TA_RIGHT
 
     name = str(getattr(paragraph.style, "name", "") or "")
@@ -93,13 +96,13 @@ def _paragraph_style(paragraph, styles):
     style = styles["normal"].clone("TaxoParagraph")
     alignment = paragraph.alignment
     mapping = {
-        0: TA_LEFT,
-        1: TA_CENTER,
-        2: TA_RIGHT,
-        3: TA_JUSTIFY,
+        WD_ALIGN_PARAGRAPH.LEFT: TA_LEFT,
+        WD_ALIGN_PARAGRAPH.CENTER: TA_CENTER,
+        WD_ALIGN_PARAGRAPH.RIGHT: TA_RIGHT,
+        WD_ALIGN_PARAGRAPH.JUSTIFY: TA_JUSTIFY,
     }
     if alignment is not None:
-        style.alignment = mapping.get(int(alignment), TA_LEFT)
+        style.alignment = mapping.get(alignment, TA_LEFT)
     if name.startswith("List Bullet"):
         style.leftIndent = 14
         style.firstLineIndent = -8

@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from docx import Document
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 from pypdf import PdfReader
 
 import company_template_draft_form_ui
@@ -164,7 +165,8 @@ class PreparedPdfPrintR10Tests(unittest.TestCase):
         edited = self.root / "edited.docx"
         doc = Document()
         doc.add_heading("Інструкція підприємства", level=1)
-        doc.add_paragraph("Редакція 2 після перевірки у Word.")
+        centered = doc.add_paragraph("Редакція 2 після перевірки у Word.")
+        centered.alignment = WD_ALIGN_PARAGRAPH.CENTER
         table = doc.add_table(rows=1, cols=2)
         table.rows[0].cells[0].text = "Поле"
         table.rows[0].cells[1].text = "Значення"
@@ -195,6 +197,18 @@ class PreparedPdfPrintR10Tests(unittest.TestCase):
             [row["id"] for row in list_documents(self.work)],
             [row["id"] for row in before_records],
         )
+
+    def test_pdf_requires_a_ukrainian_capable_font(self):
+        _snapshot, _path, r1 = self._registered_r1()
+        target = self.root / "without-font.pdf"
+        with self.assertRaisesRegex(ValueError, "шрифт"):
+            build_prepared_revision_pdf(
+                self.work,
+                r1["id"],
+                target,
+                font_path=None,
+            )
+        self.assertFalse(target.exists())
 
     def test_pdf_name_contains_controlled_revision(self):
         name = suggested_prepared_pdf_name({
