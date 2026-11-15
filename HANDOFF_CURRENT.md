@@ -4,37 +4,38 @@
 
 ## Поточний стан
 
-- Продуктова ревізія: **10.19-r9**. Product PR #440 merged.
-- Exact product/release source: `bc2bb95d26f0d89d40acb98a3c37efaee6ab060b`.
-- Test prerelease: [v10.19-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r9), 6 assets (4 portable, START, SHA256); publisher `43754690935` SUCCESS.
+- Продуктова ревізія: **10.19-r10**. Product PR #443 merged.
+- Exact product/release source: `ff93ab2ddfe92f4eb8079d890ad8e7ffd7fe03e2`.
+- Test prerelease: [v10.19-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r10), 6 assets (4 portable, START, SHA256); publisher `43758634481` SUCCESS.
 - Stable / GitHub Latest: **v10.18-r3**, без змін.
-- Release trigger PR #441 merged; release-trigger main commit `0749e99403c681dbab3701208c02ef79660e2076`.
+- Release trigger PR #444 merged; release-trigger main commit `dade651e451f6ba89de7580348cad705ea8e170e`.
 
-## Що зроблено в r9
+## Що зроблено в r10
 
-Збережені immutable `PreparedDocuments` тепер мають окремий список: після перезапуску Taxo чернетку можна знайти, переглянути, повторно експортувати в DOCX або явно додати до каталогу, не заповнюючи шаблон заново.
+При підготовці документа з власного CompanyTemplates, якщо шаблон використовує `company.name`, Taxo підставляє актуальну назву підприємства з таблиці `company` активної робочої БД. Це лише початкове значення конкретної чернетки: `TemplateLibrary` і `CompanyTemplates` не переписуються, поле залишається редагованим до preview.
 
-Для prepared DOCX додано контрольовану історію Word-редакцій. Taxo створює **зовнішню копію для редагування**, а змінений DOCX приймає назад як нову редакцію `r2`, `r3` і далі. Попередній файл не перезаписується. Зберігаються family ID, номер редакції, ID попередньої редакції та SHA-256 фактичного DOCX. Старі r8 prepared-записи читаються як r1 без міграції.
+У каталозі для контрольованої prepared DOCX-редакції додано **«PDF / друк…»**. PDF формується саме з вибраної r1/r2/r3…, зберігається окремо в `Output` і відкривається чинним переглядачем Taxo, де доступний друк. Створення PDF не змінює DOCX, історію редакцій, prepared/signature/business status.
 
-Prepared-файл із каталогу не відкривається напряму для редагування: Taxo пропонує контрольовану копію. Імпорт перевіряє DOCX і відхиляє незмінений файл, небезпечний шлях та спробу підмінити файл каталогу. Записи `PaperDocuments/index.json` серіалізовані одним store-level lock, щоб два вікна Taxo не втрачали записи при одночасному збереженні.
+Конвертер використовує наявні python-docx + ReportLab, без нової залежності. Він переносить текст, заголовки, таблиці, базове вирівнювання і page breaks. Якщо DOCX має вкладені зображення, Taxo відмовляється від неповного PDF з явним поясненням замість тихої втрати оформлення.
 
 ## Перевірки
 
-- Exact-main START `43753739079` SUCCESS, 1352 regression tests.
-- Windows `43753739074` SUCCESS; Windows 7 `43753739194` SUCCESS.
-- macOS Intel + ARM `43753739130` SUCCESS.
+- Final PR head `14d41a88fd622547f04ef4eebc07a061210d51a3`: START 1362/1362, Windows, Win7, macOS Intel/ARM — SUCCESS; Defender/integrity PASS.
+- Exact-main START `43757634383` SUCCESS, 1362 regression tests.
+- Windows `43757634381` SUCCESS; Windows 7 `43757634387` SUCCESS.
+- macOS Intel + ARM `43757634384` SUCCESS.
 - Windows/Win7 Microsoft Defender + post-scan integrity PASS.
-- Publisher `43754690935` SUCCESS; release target exactly `bc2bb95d26f0d89d40acb98a3c37efaee6ab060b`, 6 assets.
+- Publisher `43758634481` SUCCESS; release target exactly `ff93ab2ddfe92f4eb8079d890ad8e7ffd7fe03e2`, 6 assets.
 - Stable/Latest через GitHub API підтверджено як `v10.18-r3`.
 
 ## Що ще не зроблено
 
-- PDF/print із вибраної контрольованої редакції prepared-документа.
-- Універсальний DocumentVault, скани/оригінали, підписні докази та окремий життєвий цикл фінальних документів.
-- Prepared DOCX і надалі не означає, що документ проведений, затверджений або підписаний.
+- Перенесення вкладених зображень та складнішого Word-layout у prepared PDF.
+- Універсальний DocumentVault, скани/оригінали, підписні докази та життєвий цикл фінальних документів.
+- Prepared DOCX/PDF не означає, що документ проведений, затверджений або підписаний.
 
 ## Одна наступна дія
 
-**Наступна дозволена кодова ревізія: 10.19-r10.** Додати окремий PDF/print path із вибраної контрольованої редакції prepared-документа: без перезапису DOCX, без автоматичного статусу підпису/проведення і без одночасного введення DocumentVault чи сканів. Спершу READ → VERIFY → RECONCILE за `START_HERE.md`, live GitHub і приватним Taxo-profile.
+Після r10 номерна лінія переходить на **10.20-r1**. Наступний безпечний slice: підтримати вкладені зображення у контрольованому prepared DOCX → PDF/print без тихої втрати даних і без одночасного введення DocumentVault чи статусів підпису. Перед кодом — READ → VERIFY → RECONCILE за `START_HERE.md`, live GitHub і приватним Taxo-profile.
 
-Незмінні правила: TemplateLibrary read-only, власні шаблони CompanyTemplates, код не концентрувати в main.py, Stable/Latest тільки за прямою командою власника, не запускати executable для перевірки безпеки.
+Незмінні правила: TemplateLibrary read-only, власні шаблони CompanyTemplates, код не концентрувати в main.py, Stable/Latest тільки за прямою командою власника, executable не запускати для перевірки безпеки.
