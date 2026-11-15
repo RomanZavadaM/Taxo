@@ -18,6 +18,7 @@ from prepared_document_docx import (
     suggested_docx_name,
 )
 from prepared_document_store import create_prepared_snapshot
+from prepared_document_registry import register_prepared_document
 
 _SNAPSHOT_WRITER_SLOT = threading.BoundedSemaphore(1)
 _DOCX_EXPORT_SLOT = threading.BoundedSemaphore(1)
@@ -103,6 +104,11 @@ def open_company_template_draft_preview(parent, services, draft):
     )
     export_button.grid(row=0, column=2, padx=(0, 6))
 
+    register_button = ttk.Button(
+        footer, text="Зберегти DOCX у каталозі Taxo", state="disabled"
+    )
+    register_button.grid(row=1, column=1, columnspan=2, sticky="e", pady=(6, 0))
+
     close_button = ttk.Button(footer, text="Закрити")
     close_button.grid(row=0, column=3)
 
@@ -113,6 +119,8 @@ def open_company_template_draft_preview(parent, services, draft):
         "saved": False,
         "snapshot_id": "",
         "exporting": False,
+        "registering": False,
+        "registered": False,
         "after": None,
     }
     win._taxo_prepared_snapshot_state = state
@@ -120,7 +128,7 @@ def open_company_template_draft_preview(parent, services, draft):
     def close():
         if state["closed"]:
             return
-        if state["saving"] or state["exporting"]:
+        if state["saving"] or state["exporting"] or state["registering"]:
             messagebox.showinfo(
                 "Підготовлена чернетка",
                 "Збереження або експорт документа ще виконується.",
@@ -210,6 +218,32 @@ def open_company_template_draft_preview(parent, services, draft):
 
     export_button.configure(command=export_docx)
 
+    def register_docx():
+        if (state["closed"] or state["saving"] or state["exporting"]
+                or state["registering"] or state["registered"]
+                or not state["snapshot_id"]):
+            return
+        snapshot_id = state["snapshot_id"]
+        state["registering"] = True
+        register_button.configure(state="disabled")
+        status.set("Зберігаю документ у каталозі Taxo…")
+
+        def worker():
+            with _DOCX_EXPORT_SLOT:
+                try:
+                    path = register_prepared_document(workspace_root, snapshot_id)
+                    messages.put(("registered", True, path))
+                except Exception as exc:
+                    messages.put(("registered", False, str(exc)))
+
+        threading.Thread(
+            target=worker,
+            name="Taxo-prepared-document-catalog-register",
+            daemon=True,
+        ).start()
+
+    register_button.configure(command=register_docx)
+
     def poll():
         if state["closed"]:
             return
@@ -223,6 +257,7 @@ def open_company_template_draft_preview(parent, services, draft):
                         state["snapshot_id"] = payload.snapshot_id
                         save_button.configure(state="disabled")
                         export_button.configure(state="normal")
+                        register_button.configure(state="normal")
                         status.set(
                             "Збережено immutable snapshot %s · SHA-256 %s… "
                             "DOCX можна експортувати з цього exact snapshot-а."
@@ -235,6 +270,21 @@ def open_company_template_draft_preview(parent, services, draft):
                             "Підготовлена чернетка",
                             str(payload),
                             parent=win,
+                        )
+                elif kind == "registered":
+                    state["registering"] = False
+                    if ok:
+                        state["registered"] = True
+                        status.set(
+                            "DOCX збережено в каталозі Taxo: %s. "
+                            "Це підготовлений документ, не підтверджений підпис."
+                            % payload.name
+                        )
+                    else:
+                        register_button.configure(state="normal")
+                        status.set("Документ не вдалося зареєструвати.")
+                        messagebox.showerror(
+                            "Каталог документів", str(payload), parent=win
                         )
                 elif kind == "docx":
                     state["exporting"] = False

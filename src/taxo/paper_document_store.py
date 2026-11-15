@@ -49,8 +49,22 @@ def list_documents(root, text_filter=""):
     return [row for _index_value, row in indexed_records]
 
 
-def save_document(root, doc, kind, title, day, person=""):
+def save_document(root, doc, kind, title, day, person="", *, metadata=None):
     """Never overwrite earlier documents; index is atomically replaced."""
+    if metadata is not None:
+        allowed = {
+            "origin", "document_status", "prepared_snapshot_id",
+            "company_template_id", "template_revision", "template_source_sha256",
+        }
+        if not isinstance(metadata, dict) or set(metadata) != allowed:
+            raise ValueError("Некоректні відомості джерела документа")
+        if metadata["origin"] != "prepared_snapshot" or metadata["document_status"] != "prepared":
+            raise ValueError("Некоректний стан підготовленого документа")
+        if not isinstance(metadata["template_revision"], int) or isinstance(metadata["template_revision"], bool) or metadata["template_revision"] < 1:
+            raise ValueError("Некоректна редакція шаблону")
+        for field in ("prepared_snapshot_id", "company_template_id", "template_source_sha256"):
+            if not isinstance(metadata[field], str) or not metadata[field]:
+                raise ValueError("Неповні відомості джерела документа")
     folder = catalog_dir(root)
     folder.mkdir(parents=True, exist_ok=True)
     records = _index(root)
@@ -71,6 +85,8 @@ def save_document(root, doc, kind, title, day, person=""):
         "file": filename, "created_at": datetime.now(timezone.utc).isoformat(),
         "paper_signed": False,
     }
+    if metadata is not None:
+        record.update(metadata)
     records.append(record)
     fd, temp_path = tempfile.mkstemp(dir=str(folder), suffix=".json")
     try:
