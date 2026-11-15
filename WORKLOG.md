@@ -1,3 +1,16 @@
+## 15.11.2026 — 10.19-r9: повторне відкриття чернеток і історія Word-редакцій
+
+- Продовжено шлях документа після r8 без повторення збереження DOCX у каталог.
+- Додано окремий список збережених `PreparedDocuments`: після перезапуску Taxo snapshot можна знайти, переглянути, повторно експортувати в DOCX або явно зареєструвати в каталозі без повторного заповнення шаблону.
+- Prepared DOCX редагується через окрему зовнішню копію. Відредагований Word-файл імпортується як нова незмінна редакція r2/r3…, старий файл не перезаписується. Каталог зберігає family ID, revision, previous document ID і content SHA-256.
+- Пряме редагування prepared-файла з каталогу заблоковано на UI-шляху; імпорт перевіряє DOCX, відхиляє незмінений файл, небезпечні ZIP-шляхи та спробу імпортувати сам файл каталогу.
+- Додано спільний lock запису PaperDocuments та regression на паралельні записи, щоб два вікна Taxo не втрачали записи `index.json`.
+- Під час pre-merge CI знайдено лише пропущений historical version guard r7; виправлено до інтеграції. Final PR head `1e9a6e6b1ea5d81ae3ad4445c3213a935ff5007c` пройшов START/Windows/Win7/macOS; Defender/integrity PASS.
+- Product PR #440 merged; exact product/release source `bc2bb95d26f0d89d40acb98a3c37efaee6ab060b`.
+- Exact-main CI: START `43753739079`, Windows `43753739074`, Win7 `43753739194`, macOS Intel/ARM `43753739130` — SUCCESS; Windows/Win7 Defender та integrity PASS.
+- Release-trigger PR #441 зберіг semantic Stable marker `10.18-r3`; publisher `43754690935` SUCCESS → [v10.19-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.19-r9), рівно 6 assets, target exact product SHA. Stable/Latest v10.18-r3 не змінено.
+- Наступна дозволена ревізія **10.19-r10**: PDF/print із вибраної контрольованої prepared-редакції; DocumentVault, скани та підписні докази — окремо.
+
 ## 15.11.2026 — 10.19-r8: DOCX до каталогу документів
 
 - Власник виявив розрив між експортом Word та реєстром документів. Змінено план r8 з PDF/print на цю практичну проблему.
