@@ -33,11 +33,17 @@ def paper_file(root, value):
     return _paper_file(folder, value)
 
 
+def _paper_revision(item):
+    value = item.get("document_revision")
+    if type(value) is int and value >= 1:
+        return value
+    return 1 if item.get("prepared_snapshot_id") else 0
+
+
 def _read_paper(root):
     folder = Path(root) / "Data" / "PaperDocuments"
     index = folder / "index.json"
     try:
-        # A redirected folder or index must not escape this workspace.
         folder.resolve().relative_to(Path(root).resolve())
         if index.exists() and index.resolve().parent != folder.resolve():
             raise ValueError("індекс поза робочим сховищем")
@@ -48,6 +54,7 @@ def _read_paper(root):
         return [], "Каталог інструктажів і стажування ще не створений."
     except (OSError, ValueError, UnicodeError, RuntimeError) as exc:
         return [], "Помилка каталогу інструктажів і стажування: " + str(exc)
+
     rows, problems, seen = [], 0, set()
     for pos, item in enumerate(data):
         if not isinstance(item, dict):
@@ -64,15 +71,29 @@ def _read_paper(root):
             path = None
             state = "Небезпечний шлях"
             problems += 1
+
+        revision = _paper_revision(item)
         rows.append({
             "key": ("paper", identity, pos),
-            "source": "paper", "source_id": identity,
+            "source": "paper",
+            "source_id": identity,
             "date": str(item.get("date") or ""),
             "created_at": str(item.get("created_at") or item.get("date") or ""),
-            "number": "", "kind": str(item.get("kind") or "Документ"),
+            "number": "",
+            "kind": str(item.get("kind") or "Документ"),
             "title": str(item.get("title") or ""),
             "person": str(item.get("person") or ""),
-            "file_state": state, "file_path": path,
+            "file_state": state,
+            "file_path": path,
+            "origin": str(item.get("origin") or ""),
+            "document_status": str(item.get("document_status") or ""),
+            "prepared_snapshot_id": str(item.get("prepared_snapshot_id") or ""),
+            "company_template_id": str(item.get("company_template_id") or ""),
+            "document_family_id": str(item.get("document_family_id") or ""),
+            "document_revision": revision,
+            "previous_document_id": str(item.get("previous_document_id") or ""),
+            "content_sha256": str(item.get("content_sha256") or ""),
+            "revision_label": ("r%d" % revision) if revision else "",
         })
     status = "Інструктажі й стажування: %d." % len(rows)
     if problems:
@@ -96,17 +117,24 @@ def _read_orders(root):
     except OSError as exc:
         return [], "Помилка доступу до бази наказів: " + str(exc)
     try:
-        # mode=ro prevents SQLite from silently creating a missing database.
-        con = sqlite3.connect(_readonly_sqlite_uri(db.resolve().as_uri()), uri=True, timeout=5)
+        con = sqlite3.connect(
+            _readonly_sqlite_uri(db.resolve().as_uri()),
+            uri=True,
+            timeout=5,
+        )
         try:
             con.execute("PRAGMA query_only=ON")
             exists = con.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='operations_orders'"
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type='table' AND name='operations_orders'"
             ).fetchone()
             if not exists:
                 return [], "Таблиці наказів у цій базі немає."
-            columns = {item[1] for item in con.execute(
-                "PRAGMA table_info(operations_orders)").fetchall()}
+            columns = {
+                item[1] for item in con.execute(
+                    "PRAGMA table_info(operations_orders)"
+                ).fetchall()
+            }
             created = "created_at" if "created_at" in columns else "''"
             raw = con.execute(
                 "SELECT id, order_date, order_no, order_type, subject, "
@@ -116,27 +144,34 @@ def _read_orders(root):
             con.close()
     except (sqlite3.Error, OSError, ValueError, RuntimeError) as exc:
         return [], "Помилка читання наказів: " + str(exc)
+
     rows = [{
         "key": ("order", str(order_id), 0),
-        "source": "order", "source_id": int(order_id),
-        "date": str(day or ""), "created_at": str(created or day or ""),
+        "source": "order",
+        "source_id": int(order_id),
+        "date": str(day or ""),
+        "created_at": str(created or day or ""),
         "number": str(number or ""),
-        "kind": "Наказ", "title": str(subject or ""),
-        "person": "", "order_type": str(kind or ""),
-        "file_state": "Файл не прив'язаний", "file_path": None,
+        "kind": "Наказ",
+        "title": str(subject or ""),
+        "person": "",
+        "order_type": str(kind or ""),
+        "file_state": "Файл не прив'язаний",
+        "file_path": None,
+        "revision_label": "",
+        "prepared_snapshot_id": "",
     } for order_id, day, number, kind, subject, created in raw]
     return rows, "Накази: %d." % len(rows)
 
 
 def _sort_key(row):
-    # Document date is the shared ordering key. Legacy order timestamps are
-    # local and paper timestamps are UTC; comparing them globally is misleading.
-    # Within paper documents retain their original creation-time ordering.
     return (
-        row["date"], row["source"],
+        row["date"],
+        row["source"],
         row["created_at"] if row["source"] == "paper" else "",
         int(row["source_id"]) if row["source"] == "order" else 0,
-        str(row["source_id"]), row["key"][2],
+        str(row["source_id"]),
+        row["key"][2],
     )
 
 
@@ -146,34 +181,59 @@ def read_sources(root):
     orders, order_status = _read_orders(root)
     rows = paper + orders
     rows.sort(key=_sort_key, reverse=True)
-    return {"rows": rows, "paper_status": paper_status,
-            "order_status": order_status}
+    return {
+        "rows": rows,
+        "paper_status": paper_status,
+        "order_status": order_status,
+    }
 
 
-def paginate_sources(snapshot, text_filter="", page=0, page_size=100, source_filter="all"):
+def paginate_sources(
+    snapshot,
+    text_filter="",
+    page=0,
+    page_size=100,
+    source_filter="all",
+):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
     all_rows = list(snapshot["rows"])
     if source_filter in ("paper", "order"):
-        all_rows = [row for row in all_rows if row["source"] == source_filter]
+        all_rows = [
+            row for row in all_rows
+            if row["source"] == source_filter
+        ]
     if source_filter == "paper":
-        # Preserve the original paper catalog's newest-created-first behavior.
-        all_rows.sort(key=lambda row: (row["created_at"], row["key"][2]), reverse=True)
+        all_rows.sort(
+            key=lambda row: (row["created_at"], row["key"][2]),
+            reverse=True,
+        )
     if needle:
-        fields = ("date", "number", "kind", "title", "person", "order_type")
-        all_rows = [row for row in all_rows if needle in " ".join(
-            str(row.get(field, "")) for field in fields).casefold()]
-    # Filtering and, where needed, sorting are executed by the background worker.
+        fields = (
+            "date", "number", "kind", "title", "person",
+            "order_type", "revision_label",
+        )
+        all_rows = [
+            row for row in all_rows
+            if needle in " ".join(
+                str(row.get(field, "")) for field in fields
+            ).casefold()
+        ]
     page_size = max(1, min(int(page_size), 500))
     pages = max(1, (len(all_rows) + page_size - 1) // page_size)
     page = max(0, min(int(page), pages - 1))
     return {
         "rows": all_rows[page * page_size:(page + 1) * page_size],
-        "total": len(all_rows), "page": page, "pages": pages,
-        "paper_status": snapshot["paper_status"], "order_status": snapshot["order_status"],
+        "total": len(all_rows),
+        "page": page,
+        "pages": pages,
+        "paper_status": snapshot["paper_status"],
+        "order_status": snapshot["order_status"],
     }
 
 
 def read_catalog(root, text_filter="", page=0, page_size=100):
     """Convenience one-shot read for callers and tests."""
-    return paginate_sources(read_sources(root), text_filter, page, page_size)
+    return paginate_sources(
+        read_sources(root), text_filter, page, page_size
+    )
