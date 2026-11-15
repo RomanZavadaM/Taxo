@@ -82,7 +82,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            ("Version: 10.19-r7", "Version: 10.19-r8"),
+            ("Version: 10.19-r7", "Version: 10.19-r8", "Version: 10.19-r9"),
         )
         self.assertTrue(
             any(v in (root / "main.py").read_text("utf-8") for v in (
