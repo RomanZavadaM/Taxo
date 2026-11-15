@@ -79,6 +79,21 @@ def _pdf_image_count(path):
 
 
 class PreparedPdfImagesR1Tests(unittest.TestCase):
+    def test_revision_identity(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            (root / "VERSION.txt").read_text("utf-8"),
+            "Version: 10.20-r1\n",
+        )
+        self.assertIn(
+            'APP_VERSION = "10.20-r1"',
+            (root / "main.py").read_text("utf-8"),
+        )
+        self.assertIn(
+            "Taxo 10.20-r1",
+            (root / "START.bat").read_text("utf-8"),
+        )
+
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)

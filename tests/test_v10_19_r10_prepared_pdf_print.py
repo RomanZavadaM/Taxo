@@ -84,17 +84,19 @@ def _draft():
 class PreparedPdfPrintR10Tests(unittest.TestCase):
     def test_revision_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
-            (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.19-r10\n",
-        )
         self.assertIn(
-            'APP_VERSION = "10.19-r10"',
-            (root / "main.py").read_text("utf-8"),
+            (root / "VERSION.txt").read_text("utf-8").strip(),
+            ("Version: 10.19-r10", "Version: 10.20-r1"),
         )
-        self.assertIn(
-            "Taxo 10.19-r10",
-            (root / "START.bat").read_text("utf-8"),
+        main_source = (root / "main.py").read_text("utf-8")
+        self.assertTrue(
+            'APP_VERSION = "10.19-r10"' in main_source
+            or 'APP_VERSION = "10.20-r1"' in main_source
+        )
+        start_source = (root / "START.bat").read_text("utf-8")
+        self.assertTrue(
+            "Taxo 10.19-r10" in start_source
+            or "Taxo 10.20-r1" in start_source
         )
 
     def setUp(self):
