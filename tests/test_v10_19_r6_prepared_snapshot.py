@@ -113,17 +113,19 @@ class PreparedDocumentR6Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            ("Version: 10.19-r6", "Version: 10.19-r7"),
+            ("Version: 10.19-r6", "Version: 10.19-r7", "Version: 10.19-r8"),
         )
         main_source = (root / "main.py").read_text("utf-8")
         self.assertTrue(
             'APP_VERSION = "10.19-r6"' in main_source
             or 'APP_VERSION = "10.19-r7"' in main_source
+            or 'APP_VERSION = "10.19-r8"' in main_source
         )
         start_source = (root / "START.bat").read_text("utf-8")
         self.assertTrue(
             "Taxo 10.19-r6" in start_source
             or "Taxo 10.19-r7" in start_source
+            or "Taxo 10.19-r8" in start_source
         )
 
     def test_missing_store_listing_has_no_write_side_effect(self):
