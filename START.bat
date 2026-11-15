@@ -63,6 +63,7 @@ if not exist "src\taxo\prepared_document_docx.py" goto :package_incomplete
 if not exist "src\taxo\prepared_document_registry.py" goto :package_incomplete
 if not exist "src\taxo\prepared_document_revision.py" goto :package_incomplete
 if not exist "src\taxo\prepared_document_pdf.py" goto :package_incomplete
+if not exist "src\taxo\prepared_document_pdf_images.py" goto :package_incomplete
 if not exist "src\taxo\prepared_document_list_ui.py" goto :package_incomplete
 if not exist "src\taxo\company_template_editor_ui.py" goto :package_incomplete
 if not exist "src\taxo\company_template_list_ui.py" goto :package_incomplete
