@@ -81,6 +81,21 @@ def _draft():
 
 
 class PreparedPdfPrintR10Tests(unittest.TestCase):
+    def test_revision_identity(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            (root / "VERSION.txt").read_text("utf-8"),
+            "Version: 10.19-r10\n",
+        )
+        self.assertIn(
+            'APP_VERSION = "10.19-r10"',
+            (root / "main.py").read_text("utf-8"),
+        )
+        self.assertIn(
+            "Taxo 10.19-r10",
+            (root / "START.bat").read_text("utf-8"),
+        )
+
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
@@ -199,7 +214,7 @@ class PreparedPdfPrintR10Tests(unittest.TestCase):
         )
         self.assertIn("document.inline_shapes", source)
         self.assertIn("не переносить зображення", source)
-        self.assertIn(r1["prepared_snapshot_id"], source if False else r1["prepared_snapshot_id"])
+        self.assertTrue(r1["prepared_snapshot_id"])
 
     def test_catalog_exposes_pdf_print_action_only_for_controlled_prepared_rows(self):
         source = inspect.getsource(document_catalog_ui)

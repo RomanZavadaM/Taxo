@@ -86,17 +86,19 @@ class PreparedDocumentRevisionR9Tests(unittest.TestCase):
 
     def test_revision_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual(
-            (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.19-r9\n",
-        )
         self.assertIn(
-            'APP_VERSION = "10.19-r9"',
-            (root / "main.py").read_text("utf-8"),
+            (root / "VERSION.txt").read_text("utf-8").strip(),
+            ("Version: 10.19-r9", "Version: 10.19-r10"),
         )
-        self.assertIn(
-            "Taxo 10.19-r9",
-            (root / "START.bat").read_text("utf-8"),
+        main_source = (root / "main.py").read_text("utf-8")
+        self.assertTrue(
+            'APP_VERSION = "10.19-r9"' in main_source
+            or 'APP_VERSION = "10.19-r10"' in main_source
+        )
+        start_source = (root / "START.bat").read_text("utf-8")
+        self.assertTrue(
+            "Taxo 10.19-r9" in start_source
+            or "Taxo 10.19-r10" in start_source
         )
 
     def test_prepared_catalog_row_is_controlled_before_external_open(self):
