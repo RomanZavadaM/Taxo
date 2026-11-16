@@ -166,14 +166,12 @@ jobs:
           tag="v${version}"
 
           if gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.id')"
-            assets="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" --paginate --jq '.[].name')"
-            expected="$(find release_files -maxdepth 1 -type f -printf '%f\n' | sort)"
-            test "$(printf '%s\n' "${assets}" | sort)" = "${expected}"
-            body="$(cat release_notes.md)"
-            jq -n --arg name "Taxo ${version} — Stable" --arg body "${body}" \
-              '{name:$name,body:$body,prerelease:false,make_latest:"true"}' \
-              | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --input -
+            # A test prerelease may intentionally contain only portable assets.
+            # Rebuild the canonical stable asset set from successful runs of the
+            # exact historical source, then replace/add release assets by name.
+            gh release upload "${tag}" release_files/* \
+              --repo "${GITHUB_REPOSITORY}" \
+              --clobber
           else
             gh release create "${tag}" release_files/* \
               --repo "${GITHUB_REPOSITORY}" \
@@ -183,6 +181,10 @@ jobs:
           fi
 
           release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq '.id')"
+          assets="$(gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets" --paginate --jq '.[].name')"
+          expected="$(find release_files -maxdepth 1 -type f -printf '%f\n' | sort)"
+          test "$(printf '%s\n' "${assets}" | sort)" = "${expected}"
+
           body="$(cat release_notes.md)"
           jq -n --arg name "Taxo ${version} — Stable" --arg body "${body}" \
             '{name:$name,body:$body,prerelease:false,make_latest:"true"}' \
