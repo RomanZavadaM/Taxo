@@ -132,7 +132,7 @@ class DocumentCatalogVaultR4Tests(unittest.TestCase):
         self.assertIn('"У сховищі": "vault"', ui)
         self.assertIn('"Джерело"', ui)
         self.assertIn("Word + сховище", (root / "src" / "taxo" / "document_catalog.py").read_text("utf-8"))
-        self.assertNotIn("DocumentVault", ui.split("text="Сховище:", 1)[1].split("\n", 1)[0])
+        self.assertNotIn("DocumentVault", ui.split('text="Сховище:', 1)[1].split("\n", 1)[0])
 
 
 if __name__ == "__main__":
