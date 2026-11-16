@@ -5,7 +5,8 @@
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) | Повний випуск: 2 Windows Setup, 4 portable, START, SHA256; сортування військового обліку та СТОІР, ручне приймання 25/25 PASS. |
-| Поточна тестова portable-only | [10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) | Безпечна основа для сканів паперових оригіналів: PDF/JPG/PNG/TIFF, незмінний файл, ID/розмір/SHA-256, backup→restore; без UI/КЕП/авто «підписано»; 4 Portable + START + SHA256. |
+| Поточна тестова portable-only | [10.20-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r6) | У вікні «Документи» доступні «Скани…»: список вкладень і додавання PDF/JPG/PNG/TIFF без блокування інтерфейсу; без КЕП/авто «підписано»; 4 Portable + START + SHA256. |
+| Попередня тестова portable-only | [10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) | Безпечна основа для сканів паперових оригіналів: PDF/JPG/PNG/TIFF, незмінний файл, ID/розмір/SHA-256, backup→restore; без UI/КЕП/авто «підписано»; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.20-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r4) | Сховище видно у звичайному списку «Документи»; точний Word + сховище показується одним рядком, без хибного злиття за назвою/датою; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.20-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r3) | Явне збереження вибраної prepared DOCX-редакції у DocumentVault + read-only список/картка provenance/SHA-256; без migration/сканів/підписів; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.20-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r2) | DocumentVault core: immutable exact prepared DOCX, provenance/hash, ready/archive status і fail-closed integrity; без UI/сканів/підписів; 4 Portable + START + SHA256. |
