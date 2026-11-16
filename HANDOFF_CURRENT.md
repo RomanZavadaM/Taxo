@@ -4,7 +4,7 @@
 
 ## Поточний стан
 
-- `main`: `5e8b65e71ba502fc2116584027881fab099d79fe` після PR #472.
+- Перевірена продуктова база `main` перед цим recovery/docs checkpoint: `5e8b65e71ba502fc2116584027881fab099d79fe` після PR #472. Сам checkpoint змінює лише документацію.
 - Завершена інтегрована продуктова ревізія: **10.20-r6**.
 - Точне джерело Test prerelease r6: `5e2155e281f70dade77c5e4280a75b6634a31ffb`; [v10.20-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r6), 6 файлів.
 - **Stable / GitHub Latest: v10.20-r5**.
