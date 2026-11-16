@@ -1,3 +1,17 @@
+## 16.11.2026 — 10.20-r2: DocumentVault core
+
+- Після recovery 10.20-r1 реалізовано один bounded slice без повторення prepared DOCX/PDF шляху.
+- Додано окремий `document_vault_store.py` з workspace-relative `Data/DocumentVault`, immutable object storage та index schema `taxo.document-vault-index.v1`.
+- Exact prepared DOCX-редакція реєструється лише явно; зберігаються PaperDocuments ID, prepared snapshot, document family/revision, CompanyTemplate provenance, exact SHA-256, title/kind/date і status `ready|archived`.
+- Заборонено дублікати; tampered index/object, unknown fields, orphan files і source/hash mismatch виявляються fail-closed.
+- Не додано auto-migration, scans/originals, signature evidence, digital signature чи implicit «підписано». UI навмисно не входив у цей core slice.
+- Додано 10 нових regression tests; загальний exact-main набір — 1379/1379.
+- Product PR #449 merged; final head `633922f32f4594fc0b6b4db9b8ed181fc4306447`, product merge `1519ebda983649a524a03fe0d14c8924d53fe2ff`.
+- Release-notes PR #450 merged; exact product/release source `21eb1f668fbd6e915321afe40e2c78d105cdd48b`.
+- Exact-main CI: START `43832998489`; Windows `43832998423`; Win7 `43832998510`; macOS Intel/ARM `43832998365` — SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #451 merged as `8ec2d07c4e7332748e419e9c7fad1eb6384888df`; publisher `43834523785` SUCCESS → [v10.20-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r2), 6 assets, exact product target. Stable/Latest v10.18-r3 unchanged.
+- Наступний bounded slice **10.20-r3**: окремий UI-міст prepared revision → DocumentVault і read-only list/detail; без migration/scans/signatures/implicit signed status.
+
 ## 15.11.2026 — 10.20-r1: inline images у prepared DOCX → PDF/print
 
 - Після recovery 10.19-r10 номерна лінія коректно перейшла на 10.20-r1.
