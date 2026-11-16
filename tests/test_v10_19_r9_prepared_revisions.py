@@ -99,6 +99,7 @@ class PreparedDocumentRevisionR9Tests(unittest.TestCase):
             or 'APP_VERSION = "10.20-r3"' in main_source
             or 'APP_VERSION = "10.20-r4"' in main_source
             or 'APP_VERSION = "10.20-r5"' in main_source
+            or 'APP_VERSION = "10.20-r6"' in main_source
         )
         start_source = (root / "START.bat").read_text("utf-8")
         self.assertTrue(
@@ -109,6 +110,7 @@ class PreparedDocumentRevisionR9Tests(unittest.TestCase):
             or "Taxo 10.20-r3" in start_source
             or "Taxo 10.20-r4" in start_source
             or "Taxo 10.20-r5" in start_source
+            or "Taxo 10.20-r6" in start_source
         )
 
     def test_prepared_catalog_row_is_controlled_before_external_open(self):
