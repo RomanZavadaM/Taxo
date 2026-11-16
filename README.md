@@ -17,21 +17,20 @@
 
 Докладніше: [огляд системи](docs/SYSTEM_OVERVIEW.md) · [посібник користувача](docs/guides/USER_MANUAL.md) · [експлуатація та СТОІР](docs/guides/OPERATIONS_STOIR_GUIDE.md).
 
-## Що нового у стабільній 10.18-r3
+## Що нового у стабільній 10.20-r5
 
-- **Сортування реєстрів.** У військово-транспортному обліку, військовому обліку працівників і чотирьох таблицях СТОІР можна сортувати дати, числа, статуси й текст за заголовками; повторний клік змінює напрямок.
-- **Навігація.** Після «Оновити» підтримувані таблиці зберігають сортування та вибір; службові вікна не створюють дублікати.
-- **Захист дій.** Завершення військово-облікової дії потребує підтвердження, а закриття заявки СТОІР — запису результату.
-- **Перевірки.** CI Windows, Windows 7, macOS Intel/ARM — PASS; ручне приймання 25/25 PASS. Окремий DPI-gate лишається відкритим.
-
+- **Власні шаблони і готові документи.** Користувач може створювати власні шаблони на основі бібліотеки, заповнювати чернетку фактичними даними, зберігати контрольовані редакції Word та формувати PDF/друк.
+- **Сховище документів.** Контрольовану готову редакцію можна явно зберегти у сховищі; у звичайному списку «Документи» вона показується разом з іншими документами без хибного об'єднання за назвою чи датою.
+- **Скани паперових оригіналів — основа.** r5 містить безпечне зберігання PDF/JPG/PNG/TIFF зі SHA-256, контролем дубля/підміни та резервуванням. Користувацькі кнопки додавання і перегляду сканів з'явилися лише в тестовій r6 і не входять у stable r5.
+- **Перевірки.** 1400/1400 regression; Windows, Windows 7, macOS Intel/ARM — SUCCESS; Windows Defender та контроль цілісності — PASS.
 ## Завантаження
 
-**Стабільна / Latest версія: [10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).** [Попередня стабільна / rollback 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10).
+**Стабільна / Latest версія: [10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5).** [Попередня стабільна / rollback 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).
 
-- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_Windows_x64_Portable.zip)
-- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_Windows7_x64_Portable.zip)
-- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_macOS_x86_64_Portable.zip)
-- **Запуск із вихідного коду:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [контрольні суми SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
+- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_Windows_x64_Portable.zip)
+- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_Windows7_x64_Portable.zip)
+- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_macOS_x86_64_Portable.zip)
+- **Запуск із вихідного коду:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_START.zip) · [контрольні суми SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/SHA256SUMS_v10_20_r5.txt)
 
 ## Початок роботи та дані
 

@@ -15,17 +15,17 @@ Taxo는 운송업체를 위한 데스크톱 프로그램으로 직원과 차량,
 - 아날로그 타코그래프 차트: 스캔, 보기 및 수동 검토가 필요한 보조 인식.
 - 보고서와 백업: PDF/Excel 보고서와 작업 저장소 백업.
 
-## 10.18-r3 개선 사항
+## 10.20-r5 개선 사항
 
-군 관련 차량·직원 등록부와 정비 업무 표 4개에서 열 제목을 클릭하여 날짜, 숫자, 상태, 텍스트 기준으로 정렬할 수 있습니다. 지원되는 표에서는 새로고침 후 정렬과 선택 항목이 유지됩니다. 군 관련 조치를 완료 처리할 때 확인이 필요하며 수리 요청을 종료하려면 결과를 입력해야 합니다. Windows, Windows 7 및 macOS Intel/Apple Silicon 빌드와 25개 수동 UI 검사를 통과했습니다. 별도의 DPI 배율 검사는 아직 완료되지 않았습니다.
+안정 버전 10.20-r5에서는 사용자 자체 템플릿, 준비된 문서의 관리되는 개정 이력, DOCX/PDF/인쇄 출력, 일반 문서 목록의 DocumentVault, 그리고 선택적인 PDF/JPG/PNG/TIFF 종이 원본 스캔을 무결성 검사와 함께 보관하는 기반이 추가되었습니다. 스캔 추가/목록 UI는 안정 버전 r5에는 포함되지 않으며 테스트 r6에서 처음 제공됩니다. r5는 1400개 회귀 테스트와 Windows, Windows 7, macOS Intel/Apple Silicon 빌드 및 보안/무결성 검사를 통과했습니다.
 
 ## 다운로드
 
-안정 버전: 10.18-r3.
+안정 버전: 10.20-r5.
 
-[10.18-r3 전체 파일](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [이전 안정 버전 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)
+[10.20-r5 전체 파일](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) · [이전 안정 버전 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/SHA256SUMS_v10_20_r5.txt)
 
 ## 시작과 데이터
 
