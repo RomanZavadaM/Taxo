@@ -2,40 +2,38 @@
 
 **Підтверджений інтегрований стан: 16.11.2026.**
 
-- Завершений product checkpoint: **10.20-r2** (PR #449).
-- Product merge commit: `1519ebda983649a524a03fe0d14c8924d53fe2ff`.
-- Exact product/release source SHA після PR #450: `21eb1f668fbd6e915321afe40e2c78d105cdd48b`.
-- Test prerelease [v10.20-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r2), publisher `43834523785` SUCCESS; 4 portable + START + SHA256.
-- Release-trigger PR #451 merged as `8ec2d07c4e7332748e419e9c7fad1eb6384888df`.
+- Завершений product checkpoint: **10.20-r3** (PR #454).
+- Product merge commit: `42e7a1d71fbf80cc1b4c85551bb710d2f4d13496`.
+- Exact product/release source SHA після PR #455: `eec360a965738ecab97f38aeaa5ab8a7452ee1dd`.
+- Test prerelease [v10.20-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r3), publisher `43844149251` SUCCESS; 4 portable + START + SHA256.
+- Release-trigger PR #456 merged as `fefeb885b81b54709e69010a1251051ef7faf842`.
 - Stable/Latest: **v10.18-r3**, unchanged.
 
 ## Функціональний результат
 
-10.20-r2 додає `document_vault_store.py` — окремий core для `Data/DocumentVault`. Exact prepared DOCX-редакція реєструється лише явним викликом і копіюється як незмінний object. Index зберігає повне походження від PaperDocuments/PreparedDocuments/CompanyTemplates, document family/revision, точний content hash і керований статус `ready` або `archived`.
+10.20-r3 підключає r2 DocumentVault core до користувацького шляху. Для вибраної контрольованої prepared DOCX-редакції у каталозі є явна дія збереження у vault; immutable exact copy, provenance і SHA-256 формує чинний core поза Tk UI thread.
 
-Core fail-closed: відхиляє дублі, невідомі/пошкоджені записи, підміну index/object, orphan-файли та невідповідність source/hash. Автоматичної міграції старих документів, сканів, підписних доказів чи implicit «підписано» немає.
-
-UI-шлях у цьому checkpoint ще не підключений. Користувацьку дію та read-only перегляд сховища винесено в наступний bounded slice.
+Додано окремий read-only список/картку DocumentVault. Користувач бачить назву, тип, дату, status, document revision, PaperDocuments/PreparedDocuments/CompanyTemplate provenance і exact content SHA-256. Дублі відхиляються; tamper/integrity помилки не маскуються. Запис у vault не означає підпис, проведення чи інший бізнес-факт.
 
 ## CI та security gates
 
-Exact-main product SHA `21eb1f668fbd6e915321afe40e2c78d105cdd48b`: START/source `43832998489` — 1379/1379 SUCCESS; Windows `43832998423`, Win7 `43832998510`, macOS Intel/ARM `43832998365` — SUCCESS. Windows/Win7 Defender та post-scan integrity PASS. Publisher `43834523785` SUCCESS; immutable release target — exact product SHA, 6 assets. GitHub Latest/Stable — v10.18-r3.
+Exact-main product/release SHA `eec360a965738ecab97f38aeaa5ab8a7452ee1dd`: START/source `43842526461` — **1385/1385 SUCCESS**; Windows `43842526290`, Win7 `43842526261`, macOS Intel/ARM `43842526193` — SUCCESS. Windows/Win7 Defender та post-scan integrity PASS. Publisher `43844149251` SUCCESS; immutable prerelease target — exact source SHA, 6 assets. GitHub Latest/Stable — v10.18-r3.
 
 ## Наступна ревізія
 
-**10.20-r3** — UI-міст для DocumentVault окремим модулем:
+**10.20-r4** — інтегрувати DocumentVault у чинний агрегований каталог «Документи» як read-only source-adapter:
 
-- явна дія для вибраної prepared DOCX-редакції;
-- read-only список і картка запису;
-- видимі title/kind/date/status, document revision, source provenance та SHA-256;
-- зрозумілі повідомлення про дублі й порушення цілісності.
+- показувати vault-джерело у звичайному списку документів;
+- якщо exact prepared-документ уже є у PaperDocuments і DocumentVault, показувати одну логічну картку з обома походженнями;
+- для dedupe використовувати source IDs/provenance, а не схожість назви або дати;
+- пошкоджене vault-джерело не повинно приховувати справний PaperDocuments/інший запис.
 
 У цей slice не змішувати:
 
 - auto-migration чинних PaperDocuments;
-- scans/originals;
-- digital signature / підписні докази;
-- автоматичний статус «підписано»;
+- scans/originals/attachments;
+- signature evidence / digital signature;
+- автоматичний статус «підписано» або інші бізнес-факти;
 - нове розширення Word-layout renderer.
 
 ## Recovery
