@@ -82,7 +82,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            ("Version: 10.19-r7", "Version: 10.19-r8", "Version: 10.19-r9", "Version: 10.19-r10", "Version: 10.20-r1", "Version: 10.20-r2"),
+            ("Version: 10.19-r7", "Version: 10.19-r8", "Version: 10.19-r9", "Version: 10.19-r10", "Version: 10.20-r1", "Version: 10.20-r2", "Version: 10.20-r3"),
         )
         self.assertTrue(
             any(v in (root / "main.py").read_text("utf-8") for v in (
@@ -91,6 +91,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
                 'APP_VERSION = "10.19-r10"',
                 'APP_VERSION = "10.20-r1"',
                 'APP_VERSION = "10.20-r2"',
+                'APP_VERSION = "10.20-r3"',
             ))
         )
         start = (root / "START.bat").read_text("utf-8")
@@ -101,6 +102,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
             or "Taxo 10.19-r10" in start
             or "Taxo 10.20-r1" in start
             or "Taxo 10.20-r2" in start
+            or "Taxo 10.20-r3" in start
         )
         self.assertIn("prepared_document_docx.py", start)
 

@@ -17,6 +17,10 @@ from prepared_document_pdf import (
     suggested_prepared_pdf_name,
 )
 from document_viewer import open_document
+from document_vault_ui import (
+    open_document_vault,
+    start_prepared_revision_registration,
+)
 from output_files import next_output_copy_path
 from workspace import paths_for
 
@@ -138,6 +142,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "wanted": None,
         "needs_reload": False,
         "results": queue.Queue(),
+        "vault_results": queue.Queue(),
+        "vault_busy": False,
     }
 
     edit_copy_button = core.ttk.Button(
@@ -148,6 +154,15 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     pdf_button = core.ttk.Button(
         actions, text="PDF / друк…", state="disabled"
+    )
+    vault_store_button = core.ttk.Button(
+        body,
+        text="Зберегти вибрану редакцію у сховищі",
+        state="disabled",
+    )
+    vault_open_button = core.ttk.Button(
+        body,
+        text="Переглянути сховище документів",
     )
 
     def selected_row():
@@ -163,6 +178,13 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         edit_copy_button.configure(state=value)
         import_revision_button.configure(state=value)
         pdf_button.configure(state=value)
+        vault_store_button.configure(
+            state=(
+                "normal"
+                if prepared and not state["vault_busy"]
+                else "disabled"
+            )
+        )
 
     def render(result):
         state["page"], state["pages"] = result["page"], result["pages"]
@@ -301,6 +323,34 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 state["snapshot"] = snapshot
                 state["needs_reload"] = False
                 render(result)
+
+        while True:
+            try:
+                ok, payload = state["vault_results"].get_nowait()
+            except queue.Empty:
+                break
+            state["vault_busy"] = False
+            if ok:
+                core.messagebox.showinfo(
+                    "Сховище документів",
+                    (
+                        "Точну редакцію r%d збережено у DocumentVault.\n\n"
+                        "Це готова незмінна копія, але не автоматичний "
+                        "факт підпису."
+                    ) % payload.document_revision,
+                    parent=win,
+                )
+                source_status.set(
+                    "Документ додано у сховище: %s · SHA-256 %s…"
+                    % (payload.vault_id, payload.content_sha256[:12])
+                )
+            else:
+                core.messagebox.showerror(
+                    "Сховище документів",
+                    str(payload),
+                    parent=win,
+                )
+            selection_changed()
         state["poll"] = win.after(100, poll_results)
 
     def cancel_pending(event):
@@ -473,6 +523,44 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 "PDF / друк", str(exc), parent=win
             )
 
+    def store_selected_in_vault():
+        row = selected_row()
+        if not _is_controlled_prepared_row(row) or state["vault_busy"]:
+            return
+        if not core.messagebox.askyesno(
+            "Зберегти у сховищі документів",
+            (
+                "Taxo збереже точну редакцію %s як окрему незмінну "
+                "копію у DocumentVault.\n\n"
+                "Ця дія не означає, що документ підписано або проведено. "
+                "Продовжити?"
+            ) % row.get("revision_label", ""),
+            parent=win,
+        ):
+            return
+        state["vault_busy"] = True
+        selection_changed()
+        try:
+            start_prepared_revision_registration(
+                workspace_root,
+                row["source_id"],
+                state["vault_results"],
+            )
+        except Exception as exc:
+            state["vault_busy"] = False
+            selection_changed()
+            core.messagebox.showerror(
+                "Сховище документів", str(exc), parent=win
+            )
+
+    def browse_document_vault():
+        try:
+            open_document_vault(win, core, workspace_root)
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Сховище документів", str(exc), parent=win
+            )
+
     def import_revision():
         row = selected_row()
         if not row or not row.get("prepared_snapshot_id"):
@@ -537,6 +625,20 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         command=open_selected,
     ).pack(side="right")
 
+    vault_actions = core.ttk.Frame(body)
+    vault_actions.grid(row=5, column=0, sticky="ew", pady=(8, 0))
+    core.ttk.Label(
+        vault_actions,
+        text="DocumentVault: exact DOCX + походження + SHA-256.",
+        style="Muted.TLabel",
+    ).pack(side="left")
+    vault_open_button.configure(command=browse_document_vault)
+    vault_open_button.pack(in_=vault_actions, side="right")
+    vault_store_button.configure(command=store_selected_in_vault)
+    vault_store_button.pack(
+        in_=vault_actions, side="right", padx=(0, 6)
+    )
+
     core.ttk.Label(
         body,
         text=(
@@ -544,7 +646,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             "а потім додайте її як нову редакцію. Старі файли не перезаписуються."
         ),
         style="Muted.TLabel",
-    ).grid(row=5, column=0, sticky="w", pady=(6, 0))
+    ).grid(row=6, column=0, sticky="w", pady=(6, 0))
 
     edit_copy_button.configure(command=copy_for_editing)
     import_revision_button.configure(command=import_revision)
@@ -570,6 +672,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_edit_copy = copy_for_editing
     win._taxo_catalog_import_revision = import_revision
     win._taxo_catalog_pdf_print = create_pdf_for_print
+    win._taxo_catalog_vault_store = store_selected_in_vault
+    win._taxo_catalog_vault_open = browse_document_vault
     win.bind("<Destroy>", cancel_pending, add="+")
     refresh(reload_sources=True)
     state["poll"] = win.after(100, poll_results)
