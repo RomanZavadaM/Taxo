@@ -102,6 +102,7 @@ class PreparedPdfPrintR10Tests(unittest.TestCase):
             or "Taxo 10.20-r1" in start_source
             or "Taxo 10.20-r2" in start_source
             or "Taxo 10.20-r3" in start_source
+            or "Taxo 10.20-r4" in start_source
         )
 
     def setUp(self):
