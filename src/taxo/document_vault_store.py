@@ -295,10 +295,14 @@ def _verified_payload(root: Path, record: DocumentVaultRecord) -> bytes:
 
 
 def _load_index(root: Path) -> Tuple[DocumentVaultRecord, ...]:
-    allowed_root_names = {INDEX_NAME, "objects"}
+    allowed_root_names = {INDEX_NAME, "objects", "attachments"}
     for child in root.iterdir():
         if child.name not in allowed_root_names:
             raise ValueError("DocumentVault містить невідомий об'єкт")
+        if child.name == "attachments" and (
+            not child.is_dir() or child.is_symlink()
+        ):
+            raise ValueError("Некоректна папка вкладень DocumentVault")
 
     index_path = root / INDEX_NAME
     actual = _actual_objects(root)
