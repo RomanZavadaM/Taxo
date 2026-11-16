@@ -46,6 +46,14 @@ class PaperScanOpenR7Tests(unittest.TestCase):
             source,
         )
 
+    def test_close_invalidates_pending_background_open(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (
+            root / "src" / "taxo" / "document_vault_paper_scans_ui.py"
+        ).read_text("utf-8")
+        self.assertIn('state["generation"] += 1', source)
+        self.assertIn('if generation != state["generation"]', source)
+
 
 if __name__ == "__main__":
     unittest.main()
