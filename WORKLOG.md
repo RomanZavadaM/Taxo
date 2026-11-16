@@ -1,3 +1,15 @@
+## 16.11.2026 — 10.20-r3: DocumentVault UI bridge
+
+- Recovery виявив уже розпочату гілку `work/v10.20-r3-document-vault-ui`; реалізацію не повторювали, а продовжили з фактичного head.
+- Додано явну дію збереження вибраної контрольованої prepared DOCX-редакції у чинний DocumentVault та окремий read-only browser/list/detail.
+- Картка показує title/kind/date/status, revision, PaperDocuments/PreparedDocuments/CompanyTemplate provenance та exact SHA-256. Vault record не трактує файл як «підписано» чи інший бізнес-факт.
+- Запис виконується через r2 immutable core поза Tk UI thread; duplicate/tamper/index/object/hash помилки лишаються fail-closed. `main.py` не роздувався.
+- Перший CI на проміжному head знайшов лише два пропущені historical VERSION.txt guards; їх доповнено без зміни функціональної логіки. Final product head `b5fd4e2a4223d3cfef2d1ea09279b7e7cee3a376`.
+- Product PR #454 merged as `42e7a1d71fbf80cc1b4c85551bb710d2f4d13496`. Release-notes PR #455 merged; exact product/release source `eec360a965738ecab97f38aeaa5ab8a7452ee1dd`.
+- Exact-main CI: START `43842526461` — 1385/1385; Windows `43842526290`; Win7 `43842526261`; macOS Intel/ARM `43842526193` — SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #456 merged as `fefeb885b81b54709e69010a1251051ef7faf842`; publisher `43844149251` SUCCESS → [v10.20-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r3), exactly 6 assets, target exact source SHA. Stable/Latest v10.18-r3 unchanged.
+- Наступний bounded slice **10.20-r4**: DocumentVault як read-only source у чинному агрегованому каталозі «Документи» + exact provenance-based dedupe PaperDocuments/Vault; без migration/scans/signatures/business-status changes.
+
 ## 16.11.2026 — 10.20-r2: DocumentVault core
 
 - Після recovery 10.20-r1 реалізовано один bounded slice без повторення prepared DOCX/PDF шляху.
