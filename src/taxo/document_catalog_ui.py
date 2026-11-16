@@ -66,6 +66,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     source_options = {
         "Усі — за датою": "all",
         "Підготовлені Word — новіші": "paper",
+        "У сховищі": "vault",
         "Накази": "order",
     }
     selected_label = next(
@@ -97,7 +98,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     frame.grid(row=3, column=0, sticky="nsew", pady=6)
     frame.rowconfigure(0, weight=1)
     frame.columnconfigure(0, weight=1)
-    cols = ("date", "number", "kind", "title", "person", "revision", "file")
+    cols = ("date", "number", "kind", "title", "person", "revision", "source", "file")
     tree = core.ttk.Treeview(
         frame, columns=cols, show="headings", selectmode="browse"
     )
@@ -108,7 +109,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         ("title", "Тема / назва", 300),
         ("person", "Працівники", 165),
         ("revision", "Ред.", 65),
-        ("file", "Стан файла", 145),
+        ("source", "Джерело", 135),
+        ("file", "Стан файла", 185),
     ):
         tree.heading(key, text=label)
         tree.column(key, width=width, minwidth=55)
@@ -188,9 +190,14 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
 
     def render(result):
         state["page"], state["pages"] = result["page"], result["pages"]
-        source_status.set(
-            result["order_status"] + " " + result["paper_status"]
-        )
+        source_status.set(" ".join(
+            value for value in (
+                result.get("order_status", ""),
+                result.get("paper_status", ""),
+                result.get("vault_status", ""),
+            )
+            if value
+        ))
         page_text.set(
             "Сторінка %d з %d · записів: %d"
             % (result["page"] + 1, result["pages"], result["total"])
@@ -217,6 +224,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     row["title"],
                     row["person"],
                     row.get("revision_label", ""),
+                    row.get("source_label", ""),
                     row["file_state"],
                 ),
             )
@@ -344,6 +352,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     "Документ додано у сховище: %s · SHA-256 %s…"
                     % (payload.vault_id, payload.content_sha256[:12])
                 )
+                refresh(reset=True, reload_sources=True)
             else:
                 core.messagebox.showerror(
                     "Сховище документів",
@@ -421,6 +430,18 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 core.messagebox.showerror(
                     "Наказ", str(exc), parent=win
                 )
+            return
+        if row["source"] == "vault":
+            core.messagebox.showinfo(
+                "Документ зі сховища",
+                (
+                    "Це незмінна копія у сховищі Taxo. "
+                    "Taxo не відкриває її напряму для редагування.\n\n"
+                    "Для перегляду походження скористайтесь кнопкою "
+                    "«Переглянути сховище документів»."
+                ),
+                parent=win,
+            )
             return
         try:
             path = row["file_path"]
@@ -629,7 +650,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     vault_actions.grid(row=5, column=0, sticky="ew", pady=(8, 0))
     core.ttk.Label(
         vault_actions,
-        text="DocumentVault: exact DOCX + походження + SHA-256.",
+        text="Сховище: незмінна копія документа + його походження.",
         style="Muted.TLabel",
     ).pack(side="left")
     vault_open_button.configure(command=browse_document_vault)
