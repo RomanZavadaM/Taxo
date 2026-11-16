@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
-"""Read-only view of existing orders and prepared paper documents.
+"""Read-only view of orders, prepared Word documents and DocumentVault.
 
-The catalog does not create or migrate a database or an index. The two sources
-are read independently, so a damaged source never hides records from the other.
+Each source is read independently. A damaged source never hides valid records
+from the other sources. Exact PaperDocuments/DocumentVault identities are shown
+as one logical row; names and dates are never used for automatic merging.
 """
 from __future__ import annotations
 
 import json
 import sqlite3
 from pathlib import Path
+
+from document_vault_store import list_document_vault
 
 
 def _paper_file(folder, value):
@@ -76,6 +79,8 @@ def _read_paper(root):
         rows.append({
             "key": ("paper", identity, pos),
             "source": "paper",
+            "sources": ("paper",),
+            "source_label": "Word",
             "source_id": identity,
             "date": str(item.get("date") or ""),
             "created_at": str(item.get("created_at") or item.get("date") or ""),
@@ -94,11 +99,80 @@ def _read_paper(root):
             "previous_document_id": str(item.get("previous_document_id") or ""),
             "content_sha256": str(item.get("content_sha256") or ""),
             "revision_label": ("r%d" % revision) if revision else "",
+            "vault_id": "",
+            "vault_status": "",
+            "vault_created_at": "",
+            "vault_content_sha256": "",
         })
     status = "Інструктажі й стажування: %d." % len(rows)
     if problems:
         status += " Проблемних записів або шляхів: %d." % problems
     return rows, status
+
+
+def _read_vault(root):
+    try:
+        records = list_document_vault(Path(root))
+    except (OSError, ValueError, UnicodeError, RuntimeError) as exc:
+        return [], "Помилка сховища документів: " + str(exc)
+
+    rows = []
+    for record in records:
+        rows.append({
+            "key": ("vault", record.vault_id, 0),
+            "source": "vault",
+            "sources": ("vault",),
+            "source_label": "Сховище",
+            "source_id": record.vault_id,
+            "source_document_id": record.source_document_id,
+            "date": record.document_date,
+            "created_at": record.created_at,
+            "number": "",
+            "kind": record.kind,
+            "title": record.title,
+            "person": "",
+            "file_state": "Незмінна копія у сховищі",
+            "file_path": None,
+            "origin": "document_vault",
+            "document_status": record.status,
+            "prepared_snapshot_id": record.prepared_snapshot_id,
+            "company_template_id": record.company_template_id,
+            "document_family_id": record.document_family_id,
+            "document_revision": record.document_revision,
+            "previous_document_id": "",
+            "content_sha256": record.content_sha256,
+            "revision_label": "r%d" % record.document_revision,
+            "vault_id": record.vault_id,
+            "vault_status": record.status,
+            "vault_created_at": record.created_at,
+            "vault_content_sha256": record.content_sha256,
+        })
+    return rows, "Сховище документів: %d." % len(rows)
+
+
+def _merge_paper_and_vault(paper_rows, vault_rows):
+    """Merge only a vault record that points to the exact PaperDocuments ID."""
+    paper_by_id = {}
+    for row in paper_rows:
+        identity = row.get("source_id")
+        if identity and identity not in paper_by_id:
+            paper_by_id[identity] = row
+
+    standalone = []
+    for vault in vault_rows:
+        source_document_id = str(vault.get("source_document_id") or "")
+        paper = paper_by_id.get(source_document_id)
+        if paper is None:
+            standalone.append(vault)
+            continue
+        paper["sources"] = ("paper", "vault")
+        paper["source_label"] = "Word + сховище"
+        paper["vault_id"] = vault["vault_id"]
+        paper["vault_status"] = vault["vault_status"]
+        paper["vault_created_at"] = vault["vault_created_at"]
+        paper["vault_content_sha256"] = vault["vault_content_sha256"]
+        paper["file_state"] = paper["file_state"] + " · копія у сховищі"
+    return paper_rows + standalone
 
 
 def _readonly_sqlite_uri(file_uri):
@@ -148,6 +222,8 @@ def _read_orders(root):
     rows = [{
         "key": ("order", str(order_id), 0),
         "source": "order",
+        "sources": ("order",),
+        "source_label": "Наказ",
         "source_id": int(order_id),
         "date": str(day or ""),
         "created_at": str(created or day or ""),
@@ -160,6 +236,10 @@ def _read_orders(root):
         "file_path": None,
         "revision_label": "",
         "prepared_snapshot_id": "",
+        "vault_id": "",
+        "vault_status": "",
+        "vault_created_at": "",
+        "vault_content_sha256": "",
     } for order_id, day, number, kind, subject, created in raw]
     return rows, "Накази: %d." % len(rows)
 
@@ -168,7 +248,7 @@ def _sort_key(row):
     return (
         row["date"],
         row["source"],
-        row["created_at"] if row["source"] == "paper" else "",
+        row["created_at"] if row["source"] != "order" else "",
         int(row["source_id"]) if row["source"] == "order" else 0,
         str(row["source_id"]),
         row["key"][2],
@@ -176,14 +256,16 @@ def _sort_key(row):
 
 
 def read_sources(root):
-    """Read both sources and sort by document date; keep errors independent."""
+    """Read all sources, merge only exact PaperDocuments/Vault identities."""
     paper, paper_status = _read_paper(root)
+    vault, vault_status = _read_vault(root)
     orders, order_status = _read_orders(root)
-    rows = paper + orders
+    rows = _merge_paper_and_vault(paper, vault) + orders
     rows.sort(key=_sort_key, reverse=True)
     return {
         "rows": rows,
         "paper_status": paper_status,
+        "vault_status": vault_status,
         "order_status": order_status,
     }
 
@@ -198,20 +280,28 @@ def paginate_sources(
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
     all_rows = list(snapshot["rows"])
-    if source_filter in ("paper", "order"):
+    if source_filter in ("paper", "vault", "order"):
         all_rows = [
             row for row in all_rows
-            if row["source"] == source_filter
+            if source_filter in row.get("sources", (row.get("source"),))
         ]
     if source_filter == "paper":
         all_rows.sort(
             key=lambda row: (row["created_at"], row["key"][2]),
             reverse=True,
         )
+    if source_filter == "vault":
+        all_rows.sort(
+            key=lambda row: (
+                row.get("vault_created_at") or row["created_at"],
+                str(row.get("vault_id") or row["source_id"]),
+            ),
+            reverse=True,
+        )
     if needle:
         fields = (
             "date", "number", "kind", "title", "person",
-            "order_type", "revision_label",
+            "order_type", "revision_label", "source_label",
         )
         all_rows = [
             row for row in all_rows
@@ -228,6 +318,7 @@ def paginate_sources(
         "page": page,
         "pages": pages,
         "paper_status": snapshot["paper_status"],
+        "vault_status": snapshot.get("vault_status", ""),
         "order_status": snapshot["order_status"],
     }
 
