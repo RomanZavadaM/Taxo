@@ -137,7 +137,7 @@ class DocumentVaultPaperScanR5Tests(unittest.TestCase):
         vault = self._vault_document()
         source, _ = self._scan()
         register_paper_scan(self.workspace, vault.vault_id, source)
-        with self.assertRaisesRegex(ValueError, "вже додано"):
+        with self.assertRaisesRegex(ValueError, "уже додано"):
             register_paper_scan(self.workspace, vault.vault_id, source)
         self.assertEqual(len(list_paper_scans(self.workspace)), 1)
 
