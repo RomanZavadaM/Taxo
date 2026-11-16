@@ -21,6 +21,7 @@ from document_vault_ui import (
     open_document_vault,
     start_prepared_revision_registration,
 )
+from document_vault_paper_scans_ui import open_paper_scans_dialog
 from output_files import next_output_copy_path
 from workspace import paths_for
 
@@ -166,6 +167,11 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         body,
         text="Переглянути сховище документів",
     )
+    paper_scans_button = core.ttk.Button(
+        body,
+        text="Скани…",
+        state="disabled",
+    )
 
     def selected_row():
         selected = tree.selection()
@@ -184,6 +190,13 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             state=(
                 "normal"
                 if prepared and not state["vault_busy"]
+                else "disabled"
+            )
+        )
+        paper_scans_button.configure(
+            state=(
+                "normal"
+                if row and row.get("vault_id")
                 else "disabled"
             )
         )
@@ -582,6 +595,23 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 "Сховище документів", str(exc), parent=win
             )
 
+    def manage_paper_scans():
+        row = selected_row()
+        if not row or not row.get("vault_id"):
+            return
+        try:
+            open_paper_scans_dialog(
+                win,
+                core,
+                workspace_root,
+                row["vault_id"],
+                row.get("title", ""),
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Скан-копії документа", str(exc), parent=win
+            )
+
     def import_revision():
         row = selected_row()
         if not row or not row.get("prepared_snapshot_id"):
@@ -655,6 +685,10 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     ).pack(side="left")
     vault_open_button.configure(command=browse_document_vault)
     vault_open_button.pack(in_=vault_actions, side="right")
+    paper_scans_button.configure(command=manage_paper_scans)
+    paper_scans_button.pack(
+        in_=vault_actions, side="right", padx=(0, 6)
+    )
     vault_store_button.configure(command=store_selected_in_vault)
     vault_store_button.pack(
         in_=vault_actions, side="right", padx=(0, 6)
@@ -695,6 +729,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_pdf_print = create_pdf_for_print
     win._taxo_catalog_vault_store = store_selected_in_vault
     win._taxo_catalog_vault_open = browse_document_vault
+    win._taxo_catalog_paper_scans = manage_paper_scans
     win.bind("<Destroy>", cancel_pending, add="+")
     refresh(reload_sources=True)
     state["poll"] = win.after(100, poll_results)
