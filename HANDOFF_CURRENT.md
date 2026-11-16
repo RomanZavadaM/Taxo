@@ -4,50 +4,49 @@
 
 ## Поточний стан
 
-- Завершена продуктова ревізія: **10.20-r3**.
-- Product PR #454 merged; product merge commit: `42e7a1d71fbf80cc1b4c85551bb710d2f4d13496`.
-- Release-notes PR #455; exact product/release source: `eec360a965738ecab97f38aeaa5ab8a7452ee1dd`.
-- Test prerelease: [v10.20-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r3), 6 assets (Windows, Win7, macOS Intel, macOS ARM, START, SHA256).
-- Release-trigger PR #456 merged as `fefeb885b81b54709e69010a1251051ef7faf842`; publisher `43844149251` SUCCESS.
+- Завершена продуктова ревізія: **10.20-r4**.
+- Product PR #458 merged; product merge commit: `7991806cedb3b2a19db431a40145f6fbab42d00c`.
+- Release-notes PR #459; точне джерело релізу: `e38cb58a48e7d9b10f9b5d5006fed937b79c259e`.
+- Test prerelease: [v10.20-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r4), 6 файлів (Windows, Win7, macOS Intel, macOS ARM, START, SHA256).
+- Release-trigger PR #460 merged as `7678f720e2f8a4d8ae9f398b0371c941a16e4531`; publisher `43851460354` SUCCESS.
 - Stable / GitHub Latest: **v10.18-r3**, без змін.
 
-## Що зроблено в 10.20-r3
+## Що зроблено в 10.20-r4
 
-Завершено користувацький міст між контрольованою prepared DOCX-редакцією та DocumentVault без повторення r2 core.
+Сховище документів підключене до звичайного вікна **«Документи»**.
 
-- у каталозі підготовлених документів є явна дія **«Зберегти вибрану редакцію у сховищі»**;
-- у DocumentVault реєструється тільки конкретна вибрана prepared DOCX-редакція через чинний immutable core;
-- запис виконується поза Tk UI thread, а UI отримує лише результат;
-- додано окремий read-only перегляд DocumentVault зі списком і карткою;
-- видно title/kind/date/status, document revision, PaperDocuments/PreparedDocuments/CompanyTemplate provenance та exact SHA-256;
-- повторне збереження тієї самої редакції дає зрозуміле повідомлення, а порушення index/object/hash лишаються fail-closed;
-- `main.py` не отримав нової бізнес-логіки;
-- auto-migration, scans/originals, digital signature та implicit «підписано» не додавались.
+- документи зі сховища видно разом із наказами та підготовленими Word-документами;
+- якщо одна й та сама Word-редакція є і в каталозі, і у сховищі, показується один рядок **«Word + сховище»**;
+- однакова назва чи дата не є підставою об'єднати два різні документи;
+- додано фільтр **«У сховищі»** та колонку **«Джерело»**;
+- після збереження документа у сховище список одразу оновлюється;
+- якщо сховище пошкоджене або недоступне, справні Word-документи та накази залишаються видимими;
+- старі документи не переносились і не переписувались.
 
 ## Перевірки
 
-- Final product PR head: `b5fd4e2a4223d3cfef2d1ea09279b7e7cee3a376`.
-- Product merge: `42e7a1d71fbf80cc1b4c85551bb710d2f4d13496`.
-- Exact product/release source: `eec360a965738ecab97f38aeaa5ab8a7452ee1dd`.
-- Exact-main START/source `43842526461` — SUCCESS, **1385/1385**.
-- Windows `43842526290` — SUCCESS.
-- Windows 7 `43842526261` — SUCCESS.
-- macOS Intel + ARM `43842526193` — SUCCESS.
-- Windows/Win7 Defender malware gates + post-scan integrity — PASS.
-- Publisher `43844149251` — SUCCESS; release target exactly product/release source above, 6 assets.
-- Stable/Latest через GitHub API: `v10.18-r3`.
+- Final product PR head: `e9fa93d17d9e5508d59dcd22ec4fcde1aef5a0cb`.
+- Product merge: `7991806cedb3b2a19db431a40145f6fbab42d00c`.
+- Точне джерело релізу: `e38cb58a48e7d9b10f9b5d5006fed937b79c259e`.
+- START/source `43849898433` — SUCCESS, **1390/1390**.
+- Windows `43849898492` — SUCCESS.
+- Windows 7 `43849898530` — SUCCESS.
+- macOS Intel + ARM `43849898512` — SUCCESS.
+- Windows/Win7 Defender + перевірка цілісності — PASS.
+- Publisher `43851460354` — SUCCESS; реліз містить 6 файлів і вказує точно на джерело вище.
+- Stable/Latest: `v10.18-r3`.
 
 ## Що ще не зроблено
 
-- DocumentVault поки відкривається окремим read-only переглядом, а не як джерело в основному агрегованому списку «Документи».
-- Один і той самий логічний документ у PaperDocuments і DocumentVault ще не об'єднується в одну картку з двома походженнями.
-- Auto-migration чинних PaperDocuments.
-- Опціональні scans/originals і вкладення.
-- Signature evidence / digital signature та будь-який автоматичний статус «підписано».
+- добровільне прикріплення сканів/фото паперових оригіналів;
+- інші вкладення до документа;
+- перенесення старих PaperDocuments у нове сховище;
+- електронний підпис та його справжня перевірка;
+- автоматичний статус «підписано» — його не вводити лише через наявність файла.
 
 ## Одна наступна дія
 
-**Наступна дозволена кодова ревізія: 10.20-r4.** Додати DocumentVault як read-only source-adapter до чинного агрегованого каталогу «Документи» й безпечно об'єднати той самий prepared-документ із PaperDocuments + Vault в одну логічну картку з видимими джерелами. Не зливати записи лише за назвою/датою; ідентичність має спиратися на збережені source IDs/provenance. Без auto-migration, scans/originals, signatures, зміни бізнес-статусів або роздування `main.py`.
+**Наступна дозволена кодова ревізія: 10.20-r5.** Зробити окрему основу для добровільних сканів паперових оригіналів у DocumentVault: зберігати точні байти файла як окреме незмінне вкладення до конкретного документа, з ID, розміром і SHA-256; не перезаписувати старе вкладення. Підтримати безпечні PDF/JPG/PNG/TIFF. У r5 не робити електронний підпис, не виставляти «підписано», не переносити старі документи автоматично і не роздувати `main.py`. Користувацьку кнопку «Додати скан» залишити наступним окремим кроком після перевірки цієї основи.
 
 Перед кодом: START_HERE → HANDOFF_CURRENT → private profile → live GitHub → READ/VERIFY/RECONCILE.
 
