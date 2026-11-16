@@ -15,17 +15,17 @@ Taxo is a desktop system for a transport company: staff and vehicles, driver sch
 - Analogue tachograph charts: scans, viewing and assisted recognition with manual review.
 - Reports and backups: PDF/Excel reports and working-storage backups.
 
-## Improvements in 10.18-r3
+## Improvements in 10.20-r5
 
-Military transport and personnel registers and four maintenance tables support click-to-sort headings for dates, numbers, statuses and text. Sorting and selected records are retained after refresh where supported. Completing a military-accounting action requires confirmation; closing a repair request requires a recorded result. Windows, Windows 7 and macOS Intel/Apple Silicon builds passed CI and 25 manual UI scenarios passed. Separate DPI checks remain pending.
+Stable 10.20-r5 extends the document workflow with user-owned templates, controlled prepared-document revisions, DOCX/PDF/print output, DocumentVault in the normal Documents catalog, and integrity-checked storage for optional PDF/JPG/PNG/TIFF paper scans. The scan add/list UI is not part of stable r5; it first appears in test r6. The r5 checkpoint passed 1400 regression tests plus Windows, Windows 7 and macOS Intel/Apple Silicon builds with security and integrity gates.
 
 ## Downloads
 
-Stable release: 10.18-r3.
+Stable release: 10.20-r5.
 
-[All 10.18-r3 files](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [Previous stable 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)
+[All 10.20-r5 files](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) · [Previous stable 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/SHA256SUMS_v10_20_r5.txt)
 
 ## Getting started and data
 

@@ -1,3 +1,14 @@
+## 16.11.2026 — звірка після переведення 10.20-r5 у Stable
+
+- Live GitHub показав новіший стан, ніж HANDOFF: за рішенням власника PR #470 перевів історичний checkpoint **10.20-r5** у Stable/Latest.
+- Початкове підвищення існуючого portable-only prerelease не могло сформувати повний stable-комплект; PR #472 виправив цей шлях. PR #473 закрито як дубль.
+- Workflow `43910071886` на main `5e8b65e71ba502fc2116584027881fab099d79fe` — SUCCESS. GitHub Latest тепер [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5), exact source `8a56a2da438777e1fa4549ad2a63883a2ac67e31`, 8 assets.
+- 10.20-r6 лишається Test prerelease і поточною інтегрованою продуктовою ревізією main.
+- Виявлено, що **10.20-r7 уже реалізована** у draft PR #471, head `bd2ff059f88f38a50e730705a785dce1bf91e962`; START/Windows/Win7/macOS перевірки SUCCESS. Реалізацію не повторювати.
+- Гілка r7 відстає від main лише на службові stable-promotion файли; продуктових конфліктів не виявлено.
+- Поточні README, переклади, QUICK_START, recovery/state і release index приведено до фактичного Stable r5. Історичні release notes не переписуються.
+- Наступна дія: після merge цього recovery/docs checkpoint повторно звірити PR #471 і інтегрувати готову r7, якщо live GitHub лишається зеленим.
+
 ## 16.11.2026 — 10.20-r6: додавання і перегляд списку сканів
 
 - У звичайному вікні «Документи» для документа зі сховища додано «Скани…».

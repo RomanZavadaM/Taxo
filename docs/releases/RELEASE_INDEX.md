@@ -4,9 +4,9 @@
 
 | Лінія | Версія | Призначення |
 |---|---|---|
-| Стабільна / Latest | [10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) | Повний випуск: 2 Windows Setup, 4 portable, START, SHA256; сортування військового обліку та СТОІР, ручне приймання 25/25 PASS. |
+| Стабільна / Latest | [10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) | Повний випуск: 2 Windows Setup, 4 portable, START, SHA256; власні шаблони й prepared-document шлях, DocumentVault та безпечна основа для сканів паперових оригіналів; 1400/1400 tests, Defender/integrity PASS. |
 | Поточна тестова portable-only | [10.20-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r6) | У вікні «Документи» доступні «Скани…»: список вкладень і додавання PDF/JPG/PNG/TIFF без блокування інтерфейсу; без КЕП/авто «підписано»; 4 Portable + START + SHA256. |
-| Попередня тестова portable-only | [10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) | Безпечна основа для сканів паперових оригіналів: PDF/JPG/PNG/TIFF, незмінний файл, ID/розмір/SHA-256, backup→restore; без UI/КЕП/авто «підписано»; 4 Portable + START + SHA256. |
+| Попередня стабільна / rollback | [10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) | Повний випуск: 2 Windows Setup, 4 portable, START, SHA256; сортування військового обліку та СТОІР, ручне приймання 25/25 PASS. |
 | Попередня тестова portable-only | [10.20-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r4) | Сховище видно у звичайному списку «Документи»; точний Word + сховище показується одним рядком, без хибного злиття за назвою/датою; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.20-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r3) | Явне збереження вибраної prepared DOCX-редакції у DocumentVault + read-only список/картка provenance/SHA-256; без migration/сканів/підписів; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.20-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r2) | DocumentVault core: immutable exact prepared DOCX, provenance/hash, ready/archive status і fail-closed integrity; без UI/сканів/підписів; 4 Portable + START + SHA256. |
@@ -30,7 +30,7 @@
 | Архівна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |
 | Архівна | [10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | Попередній контрольний випуск. |
 
-[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Примітки stable 10.18-r3](RELEASE_NOTES_v10.18-r3.md) · [Поточний стан](../../PROJECT_STATE.md).
+[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) · [Поточний стан](../../PROJECT_STATE.md).
 
 Номери виданих ревізій і теги не перевикористовуються. Призначення stable змінюється лише окремим рішенням власника. Детальна історія попередніх контрольних точок збережена у приватній гілці проєктного профілю та в історії Git.
 

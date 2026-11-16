@@ -2,33 +2,34 @@
 
 **Підтверджений інтегрований стан: 16.11.2026.**
 
-- Завершений checkpoint: **10.20-r6** (PR #466).
-- Product merge: `aae93d168b0054cb106d8bfc9f58e1e766827f81`.
-- Точне джерело релізу після PR #467: `5e2155e281f70dade77c5e4280a75b6634a31ffb`.
-- Test prerelease [v10.20-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r6): 4 portable + START + SHA256.
-- Release-trigger PR #468 merged: `60078a8193efc309e0ff509cef64b7452d452796`.
-- Publisher `43904948481` — SUCCESS.
-- Stable/Latest: **v10.18-r3**, без змін.
+- Перевірена продуктова база `main` перед цим recovery/docs checkpoint: `5e8b65e71ba502fc2116584027881fab099d79fe`. Сам checkpoint не змінює код продукту.
+- Завершений продуктовий checkpoint: **10.20-r6** (PR #466).
+- Product merge r6: `aae93d168b0054cb106d8bfc9f58e1e766827f81`.
+- Точне джерело Test prerelease r6: `5e2155e281f70dade77c5e4280a75b6634a31ffb`.
+- [v10.20-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r6): Test prerelease, 4 portable + START + SHA256.
+- **Stable/Latest: [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5)**.
+- Точне джерело Stable r5: `8a56a2da438777e1fa4549ad2a63883a2ac67e31`; 8 release assets.
+- PR #470 перевів r5 у Stable; PR #472 виправив підвищення portable-only prerelease до повного Stable. Workflow `43910071886` — SUCCESS.
 
-## Результат
+## Інтегрований результат 10.20-r6
 
 У звичайному вікні «Документи» для документа зі сховища є **«Скани…»**. Вікно показує вже прикріплені скани та дозволяє додати PDF/JPG/JPEG/PNG/TIFF. Великі файли копіюються у фоні. Після додавання список одразу оновлюється.
 
 Скан лишається окремим вкладенням. Його наявність не означає, що документ підписано.
 
-## Перевірки
+## Активна, але ще не інтегрована ревізія
 
-Джерело `5e2155e281f70dade77c5e4280a75b6634a31ffb`: **1404/1404**; Windows, Win7, macOS Intel/ARM — SUCCESS; Defender/integrity PASS. Реліз v10.20-r6 — Test Portable. Stable/Latest — v10.18-r3.
+**10.20-r7**, PR #471, head `bd2ff059f88f38a50e730705a785dce1bf91e962`.
 
-## Наступна ревізія
+Уже реалізовано явне відкриття вибраного скана після повторної перевірки цілісності. START, Windows, Windows 7 і macOS перевірки PR — SUCCESS. PR відкритий, draft і mergeable.
 
-**10.20-r7** — явне відкриття вибраного скана з вікна вкладень.
+Цей стан **не вважається інтегрованим**, доки PR #471 не merged у main.
 
-Межі:
-- кнопка «Відкрити» активна лише при вибраному скані;
-- перед відкриттям файл повторно перевіряється;
-- відкриття лише за дією користувача, ніколи автоматично;
-- без КЕП, автоматичного «підписано», міграції старих документів і нових бізнес-статусів.
+## Наступна дія
+
+Після recovery/docs reconciliation повторно звірити PR #471 з live main та інтегрувати готову r7, якщо mergeability/CI лишаються зеленими. Далі — exact-main перевірки і Test prerelease за чинним правилом.
+
+Межі r7: без КЕП, автоматичного «підписано», міграції старих документів і нових бізнес-статусів.
 
 ## Recovery
 

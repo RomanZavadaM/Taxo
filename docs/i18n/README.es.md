@@ -15,17 +15,17 @@ Taxo es una aplicación de escritorio para empresas de transporte: personal y ve
 - Discos de tacógrafo analógico: escaneos, visualización y reconocimiento asistido con revisión manual.
 - Informes y copias: informes PDF/Excel y copias del almacenamiento de trabajo.
 
-## Novedades de 10.18-r3
+## Novedades de 10.20-r5
 
-Los registros de transporte y personal de contabilidad militar y cuatro tablas de mantenimiento permiten ordenar por fecha, número, estado o texto desde sus encabezados. El orden y la selección se conservan tras actualizar cuando corresponde. Completar una acción militar requiere confirmación; cerrar una solicitud de reparación exige registrar el resultado. Las compilaciones Windows, Windows 7 y macOS Intel/Apple Silicon y 25 pruebas manuales pasaron. Quedan pendientes las pruebas específicas de escalado DPI.
+La versión estable 10.20-r5 amplía el flujo documental con plantillas propias, revisiones controladas de documentos preparados, salida DOCX/PDF e impresión, DocumentVault dentro del catálogo normal de Documentos y almacenamiento con verificación de integridad para escaneos opcionales PDF/JPG/PNG/TIFF. La interfaz para añadir y listar escaneos no forma parte de la versión estable r5; aparece por primera vez en la versión de prueba r6. r5 superó 1400 pruebas de regresión y las compilaciones de Windows, Windows 7 y macOS Intel/Apple Silicon con controles de seguridad e integridad.
 
 ## Descargas
 
-Versión estable: 10.18-r3.
+Versión estable: 10.20-r5.
 
-[Todos los archivos 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3) · [Versión estable anterior 10.17-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.17-r10)
+[Todos los archivos 10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) · [Versión estable anterior 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/Taxo_v10_18_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.18-r3/SHA256SUMS_v10_18_r3.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/SHA256SUMS_v10_20_r5.txt)
 
 ## Primeros pasos y datos
 
