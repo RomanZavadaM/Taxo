@@ -106,6 +106,7 @@ class PreparedDocumentRevisionR9Tests(unittest.TestCase):
             or "Taxo 10.20-r1" in start_source
             or "Taxo 10.20-r2" in start_source
             or "Taxo 10.20-r3" in start_source
+            or "Taxo 10.20-r4" in start_source
         )
 
     def test_prepared_catalog_row_is_controlled_before_external_open(self):
