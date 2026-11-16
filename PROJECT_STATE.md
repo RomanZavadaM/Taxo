@@ -2,7 +2,7 @@
 
 **Підтверджений інтегрований стан: 16.11.2026.**
 
-- Поточний `main`: `5e8b65e71ba502fc2116584027881fab099d79fe`.
+- Перевірена продуктова база `main` перед цим recovery/docs checkpoint: `5e8b65e71ba502fc2116584027881fab099d79fe`. Сам checkpoint не змінює код продукту.
 - Завершений продуктовий checkpoint: **10.20-r6** (PR #466).
 - Product merge r6: `aae93d168b0054cb106d8bfc9f58e1e766827f81`.
 - Точне джерело Test prerelease r6: `5e2155e281f70dade77c5e4280a75b6634a31ffb`.
