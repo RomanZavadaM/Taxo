@@ -94,6 +94,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
                 'APP_VERSION = "10.20-r3"',
                 'APP_VERSION = "10.20-r4"',
                 'APP_VERSION = "10.20-r5"',
+                'APP_VERSION = "10.20-r6"',
             ))
         )
         start = (root / "START.bat").read_text("utf-8")
@@ -107,6 +108,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
             or "Taxo 10.20-r3" in start
             or "Taxo 10.20-r4" in start
             or "Taxo 10.20-r5" in start
+            or "Taxo 10.20-r6" in start
         )
         self.assertIn("prepared_document_docx.py", start)
 
