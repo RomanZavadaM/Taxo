@@ -2,39 +2,34 @@
 
 **Підтверджений інтегрований стан: 16.11.2026.**
 
-- Завершений product checkpoint: **10.20-r3** (PR #454).
-- Product merge commit: `42e7a1d71fbf80cc1b4c85551bb710d2f4d13496`.
-- Exact product/release source SHA після PR #455: `eec360a965738ecab97f38aeaa5ab8a7452ee1dd`.
-- Test prerelease [v10.20-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r3), publisher `43844149251` SUCCESS; 4 portable + START + SHA256.
-- Release-trigger PR #456 merged as `fefeb885b81b54709e69010a1251051ef7faf842`.
-- Stable/Latest: **v10.18-r3**, unchanged.
+- Завершений checkpoint: **10.20-r4** (PR #458).
+- Product merge commit: `7991806cedb3b2a19db431a40145f6fbab42d00c`.
+- Точне джерело релізу після PR #459: `e38cb58a48e7d9b10f9b5d5006fed937b79c259e`.
+- Test prerelease [v10.20-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r4), publisher `43851460354` SUCCESS; 4 portable + START + SHA256.
+- Release-trigger PR #460 merged as `7678f720e2f8a4d8ae9f398b0371c941a16e4531`.
+- Stable/Latest: **v10.18-r3**, без змін.
 
-## Функціональний результат
+## Результат для користувача
 
-10.20-r3 підключає r2 DocumentVault core до користувацького шляху. Для вибраної контрольованої prepared DOCX-редакції у каталозі є явна дія збереження у vault; immutable exact copy, provenance і SHA-256 формує чинний core поза Tk UI thread.
+У звичайному вікні «Документи» тепер видно також записи зі сховища. Якщо конкретна контрольована Word-редакція вже збережена у сховищі, вона не дублюється другим рядком, а показується як **«Word + сховище»**.
 
-Додано окремий read-only список/картку DocumentVault. Користувач бачить назву, тип, дату, status, document revision, PaperDocuments/PreparedDocuments/CompanyTemplate provenance і exact content SHA-256. Дублі відхиляються; tamper/integrity помилки не маскуються. Запис у vault не означає підпис, проведення чи інший бізнес-факт.
+Об'єднання відбувається лише за точним внутрішнім зв'язком. Схожі назви або однакові дати не склеюються. Несправне сховище не ховає справні Word-документи та накази.
 
-## CI та security gates
+## Перевірки
 
-Exact-main product/release SHA `eec360a965738ecab97f38aeaa5ab8a7452ee1dd`: START/source `43842526461` — **1385/1385 SUCCESS**; Windows `43842526290`, Win7 `43842526261`, macOS Intel/ARM `43842526193` — SUCCESS. Windows/Win7 Defender та post-scan integrity PASS. Publisher `43844149251` SUCCESS; immutable prerelease target — exact source SHA, 6 assets. GitHub Latest/Stable — v10.18-r3.
+Джерело `e38cb58a48e7d9b10f9b5d5006fed937b79c259e`: START/source `43849898433` — **1390/1390 SUCCESS**; Windows `43849898492`, Win7 `43849898530`, macOS Intel/ARM `43849898512` — SUCCESS. Windows/Win7 Defender та контроль цілісності PASS. Publisher `43851460354` SUCCESS. Stable/Latest — v10.18-r3.
 
 ## Наступна ревізія
 
-**10.20-r4** — інтегрувати DocumentVault у чинний агрегований каталог «Документи» як read-only source-adapter:
+**10.20-r5** — безпечна основа для добровільного скана паперового оригіналу:
 
-- показувати vault-джерело у звичайному списку документів;
-- якщо exact prepared-документ уже є у PaperDocuments і DocumentVault, показувати одну логічну картку з обома походженнями;
-- для dedupe використовувати source IDs/provenance, а не схожість назви або дати;
-- пошкоджене vault-джерело не повинно приховувати справний PaperDocuments/інший запис.
+- окреме незмінне вкладення до конкретного документа у сховищі;
+- PDF/JPG/PNG/TIFF;
+- власний ID, розмір, SHA-256 та зв'язок із документом;
+- нове вкладення не перезаписує попереднє;
+- відсутність або наявність скана не змінює статус документа на «підписано».
 
-У цей slice не змішувати:
-
-- auto-migration чинних PaperDocuments;
-- scans/originals/attachments;
-- signature evidence / digital signature;
-- автоматичний статус «підписано» або інші бізнес-факти;
-- нове розширення Word-layout renderer.
+У цей крок не змішувати UI-кнопку додавання скана, електронний підпис/КЕП, автоматичне перенесення старих документів або зміни інших бізнес-статусів.
 
 ## Recovery
 
