@@ -8,8 +8,10 @@ from pathlib import Path
 
 from document_vault_paper_scans import (
     list_paper_scans,
+    load_paper_scan,
     register_paper_scan,
 )
+from document_viewer import open_document
 
 
 _IO_SLOT = threading.BoundedSemaphore(1)
@@ -131,13 +133,17 @@ def open_paper_scans_dialog(
     actions.grid(row=5, column=0, sticky="ew", pady=(10, 0))
     actions.columnconfigure(0, weight=1)
 
+    open_button = core.ttk.Button(
+        actions, text="Відкрити", state="disabled"
+    )
     add_button = core.ttk.Button(actions, text="Додати скан…")
     refresh_button = core.ttk.Button(actions, text="Оновити")
-    refresh_button.grid(row=0, column=1, padx=(4, 6))
-    add_button.grid(row=0, column=2, padx=(0, 6))
+    open_button.grid(row=0, column=1, padx=(4, 6))
+    refresh_button.grid(row=0, column=2, padx=(0, 6))
+    add_button.grid(row=0, column=3, padx=(0, 6))
     core.ttk.Button(
         actions, text="Закрити", command=win.destroy
-    ).grid(row=0, column=3)
+    ).grid(row=0, column=4)
 
     core.ttk.Label(
         body,
@@ -165,16 +171,27 @@ def open_paper_scans_dialog(
         button_state = "disabled" if value else "normal"
         add_button.configure(state=button_state)
         refresh_button.configure(state=button_state)
+        open_button.configure(
+            state=(
+                "disabled"
+                if value or not tree.selection()
+                else "normal"
+            )
+        )
 
     def selection_changed(_event=None):
         selected = tree.selection()
         record = state["rows"].get(selected[0]) if selected else None
         if record is None:
             details.set("")
+            open_button.configure(state="disabled")
             return
         details.set(
             "ID: %s · SHA-256: %s"
             % (record.attachment_id, record.sha256)
+        )
+        open_button.configure(
+            state="disabled" if state["busy"] else "normal"
         )
 
     def render(records, message=""):
@@ -249,6 +266,22 @@ def open_paper_scans_dialog(
             lambda: list_paper_scans(Path(workspace_root), vault_id),
         )
 
+    def open_scan():
+        if state["busy"]:
+            return
+        selected = tree.selection()
+        record = state["rows"].get(selected[0]) if selected else None
+        if record is None:
+            return
+        status.set("Перевіряю скан перед відкриттям…")
+        start_background(
+            "open",
+            lambda: load_paper_scan(
+                Path(workspace_root),
+                record.attachment_id,
+            ),
+        )
+
     def add_scan():
         if state["busy"]:
             return
@@ -310,6 +343,22 @@ def open_paper_scans_dialog(
                             "Скан додано: %s."
                             % record.original_name,
                         )
+                    elif kind == "open":
+                        status.set(
+                            "Скан перевірено: %s."
+                            % payload.record.original_name
+                        )
+                        try:
+                            open_document(win, payload.path)
+                        except Exception as exc:
+                            status.set(
+                                "Не вдалося відкрити скан: " + str(exc)
+                            )
+                            core.messagebox.showerror(
+                                "Відкрити скан",
+                                str(exc),
+                                parent=win,
+                            )
                     else:
                         render(payload)
                 else:
@@ -337,9 +386,11 @@ def open_paper_scans_dialog(
             state["after"] = None
 
     tree.bind("<<TreeviewSelect>>", selection_changed, add="+")
+    open_button.configure(command=open_scan)
     add_button.configure(command=add_scan)
     refresh_button.configure(command=refresh)
     win._taxo_paper_scans_tree = tree
+    win._taxo_paper_scans_open = open_scan
     win._taxo_paper_scans_add = add_scan
     win._taxo_paper_scans_refresh = refresh
     win.bind("<Destroy>", close_state, add="+")
