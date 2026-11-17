@@ -314,6 +314,7 @@ def paginate_sources(
     page=0,
     page_size=100,
     source_filter="all",
+    scan_filter="all",
 ):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
@@ -322,6 +323,23 @@ def paginate_sources(
         all_rows = [
             row for row in all_rows
             if source_filter in row.get("sources", (row.get("source"),))
+        ]
+    if scan_filter == "present":
+        all_rows = [
+            row for row in all_rows
+            if row.get("vault_id")
+            and isinstance(row.get("paper_scan_count"), int)
+            and row["paper_scan_count"] > 0
+        ]
+    elif scan_filter == "absent":
+        all_rows = [
+            row for row in all_rows
+            if row.get("vault_id") and row.get("paper_scan_count") == 0
+        ]
+    elif scan_filter == "error":
+        all_rows = [
+            row for row in all_rows
+            if row.get("vault_id") and row.get("paper_scan_count") is None
         ]
     if source_filter == "paper":
         all_rows.sort(
@@ -363,8 +381,18 @@ def paginate_sources(
     }
 
 
-def read_catalog(root, text_filter="", page=0, page_size=100):
+def read_catalog(
+    root,
+    text_filter="",
+    page=0,
+    page_size=100,
+    scan_filter="all",
+):
     """Convenience one-shot read for callers and tests."""
     return paginate_sources(
-        read_sources(root), text_filter, page, page_size
+        read_sources(root),
+        text_filter,
+        page,
+        page_size,
+        scan_filter=scan_filter,
     )

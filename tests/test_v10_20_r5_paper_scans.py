@@ -80,14 +80,14 @@ class DocumentVaultPaperScanR5Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.20-r10\n",
+            "Version: 10.21-r1\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.20-r10"',
+            'APP_VERSION = "10.21-r1"',
             (root / "main.py").read_text("utf-8"),
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.20-r10", start)
+        self.assertIn("Taxo 10.21-r1", start)
         self.assertIn("document_vault_paper_scans.py", start)
 
     def test_scan_is_copied_and_linked_to_exact_document(self):
@@ -214,7 +214,7 @@ class DocumentVaultPaperScanR5Tests(unittest.TestCase):
 
         archive = self.base / "backup.zip"
         create_workspace_backup_archive(
-            self.workspace, archive, app_version="10.20-r10"
+            self.workspace, archive, app_version="10.21-r1"
         )
         restored = self.base / "Restored"
         restore_workspace_backup_archive(archive, restored)
