@@ -78,6 +78,7 @@ from employee_document_control_r7 import install as install_employee_document_co
 from personnel_month_schedule_r8 import install as install_personnel_month_schedule_r8
 from template_library_feature import install as install_template_library_feature
 from template_library_operations_entry import install as install_template_library_operations_entry
+from waybill_date_navigation import install as install_waybill_date_navigation
 
 Installer = Callable[..., type]
 
