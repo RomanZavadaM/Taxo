@@ -1,3 +1,10 @@
+## 17.11.2026 — Promotion 10.21-r2 → Stable/Latest
+
+- Пряма команда власника: зробити саме 10.21-r2 стабільною. PR #499 merged `cdaaafe6078d55bbc7a2b3f5d605fc840d2d1cb6`; історичний promoter `44116866634` SUCCESS.
+- Stable/Latest `v10.21-r2` — 8 assets: 2 Windows installers, 4 portable, START, SHA256; immutable source `b104f94ace0ae355df79c914b3be6f39417bd6e9` з exact-source 1442/1442 і Defender/integrity PASS.
+- `v10.21-r3` залишається test prerelease 6 assets, code source `f8a30882c473568293b3123e1f23feca22e54334`. Main не повернуто на r2; product code r3 лишився інтегрованим.
+- Звичайний publish-current на службовому merge #499 відхилив дублювання вже існуючого release, спеціальний stable promoter завершився успішно.
+
 ## 17.11.2026 — 10.21-r3: фільтр документів за типом
 
 - Fresh verification почався з main `2145f025c82471b4917e5fafa20f2a821e7b169e`; перевірено 408 refs, включно з гілками без PR. 10.21-r2 вже була завершена/recovery-закрита; готової r3 гілки/PR не було.
@@ -8,7 +15,7 @@
 - Exact-source CI: START `44111408334` — **1448/1448**; Windows `44111408360`; Win7 `44111408405`; macOS Intel/ARM `44111408772` — SUCCESS. Defender та post-scan integrity PASS.
 - Trigger PR #497 змінив лише кінцевий перенос рядка stable marker; значення `10.20-r5` лишилось незмінним. Merged `a301ed020d62831257748c7658d5bc61987d4e98`; publisher `44113848030` SUCCESS.
 - [v10.21-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r3) опубліковано як Test prerelease; tag exact source `f8a30882c473568293b3123e1f23feca22e54334`; рівно 6 uploaded assets: 4 Portable + START + SHA256.
-- Stable/GitHub Latest лишається **v10.20-r5**, 8 assets. Сховище/файли/скани/backup/status не змінювались; без КЕП/e-signature, auto «підписано», physical purge, migration або нових залежностей.
+- На момент публікації r3 Stable/Latest ще була **v10.20-r5**; пізніше за прямою командою власника r2 підвищено до Stable/Latest (див. запис вище). Сховище/файли/скани/backup/status не змінювались; без КЕП/e-signature, auto «підписано», physical purge, migration або нових залежностей.
 - **10.21-r4 не розпочата.** Наступний крок визначати лише після fresh recovery. Детальний аудит: `docs/maintenance/AUDIT_DOCUMENT_TYPE_FILTER_10_21_R3.md`.
 
 ## 17.11.2026 — 10.21-r2: фільтр документів за періодом «Від / До»
