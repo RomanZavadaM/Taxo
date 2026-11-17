@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""User-facing read-only paper-scan list and explicit add action."""
+"""User-facing paper-scan list with safe add/open/removal history."""
 from __future__ import annotations
 
 import queue
@@ -8,8 +8,10 @@ from pathlib import Path
 
 from document_vault_paper_scans import (
     list_paper_scans,
+    list_removed_paper_scans,
     load_paper_scan,
     register_paper_scan,
+    remove_paper_scan,
 )
 from document_viewer import open_document
 
@@ -136,14 +138,20 @@ def open_paper_scans_dialog(
     open_button = core.ttk.Button(
         actions, text="Відкрити", state="disabled"
     )
+    remove_button = core.ttk.Button(
+        actions, text="Прибрати", state="disabled"
+    )
+    history_button = core.ttk.Button(actions, text="Історія…")
     add_button = core.ttk.Button(actions, text="Додати скан…")
     refresh_button = core.ttk.Button(actions, text="Оновити")
     open_button.grid(row=0, column=1, padx=(4, 6))
-    refresh_button.grid(row=0, column=2, padx=(0, 6))
-    add_button.grid(row=0, column=3, padx=(0, 6))
+    remove_button.grid(row=0, column=2, padx=(0, 6))
+    history_button.grid(row=0, column=3, padx=(0, 6))
+    refresh_button.grid(row=0, column=4, padx=(0, 6))
+    add_button.grid(row=0, column=5, padx=(0, 6))
     core.ttk.Button(
         actions, text="Закрити", command=win.destroy
-    ).grid(row=0, column=4)
+    ).grid(row=0, column=6)
 
     core.ttk.Label(
         body,
@@ -171,13 +179,14 @@ def open_paper_scans_dialog(
         button_state = "disabled" if value else "normal"
         add_button.configure(state=button_state)
         refresh_button.configure(state=button_state)
-        open_button.configure(
-            state=(
-                "disabled"
-                if value or not tree.selection()
-                else "normal"
-            )
+        history_button.configure(state=button_state)
+        selected_state = (
+            "disabled"
+            if value or not tree.selection()
+            else "normal"
         )
+        open_button.configure(state=selected_state)
+        remove_button.configure(state=selected_state)
 
     def selection_changed(_event=None):
         selected = tree.selection()
@@ -185,12 +194,16 @@ def open_paper_scans_dialog(
         if record is None:
             details.set("")
             open_button.configure(state="disabled")
+            remove_button.configure(state="disabled")
             return
         details.set(
             "ID: %s · SHA-256: %s"
             % (record.attachment_id, record.sha256)
         )
         open_button.configure(
+            state="disabled" if state["busy"] else "normal"
+        )
+        remove_button.configure(
             state="disabled" if state["busy"] else "normal"
         )
 
@@ -228,6 +241,104 @@ def open_paper_scans_dialog(
         else:
             status.set("Прикріплених сканів ще немає.")
         selection_changed()
+
+    def show_history(items):
+        if not items:
+            core.messagebox.showinfo(
+                "Історія сканів",
+                "Прибраних сканів для цього документа немає.",
+                parent=win,
+            )
+            return
+
+        history = core.tk.Toplevel(win)
+        history.title("Taxo — Історія сканів")
+        try:
+            core.fit_window_to_screen(history, 900, 440, 680, 340)
+        except Exception:
+            history.geometry("900x440")
+
+        history_body = core.ttk.Frame(history, padding=12)
+        history_body.pack(fill="both", expand=True)
+        history_body.columnconfigure(0, weight=1)
+        history_body.rowconfigure(1, weight=1)
+
+        core.ttk.Label(
+            history_body,
+            text=(
+                "Прибрані скани не показуються в активному списку, "
+                "але їхні незмінні файли та запис дії зберігаються "
+                "у workspace і резервній копії."
+            ),
+            wraplength=860,
+            justify="left",
+        ).grid(row=0, column=0, sticky="ew", pady=(0, 8))
+
+        history_frame = core.ttk.Frame(history_body)
+        history_frame.grid(row=1, column=0, sticky="nsew")
+        history_frame.columnconfigure(0, weight=1)
+        history_frame.rowconfigure(0, weight=1)
+
+        columns = ("removed", "name", "type", "size", "sha")
+        history_tree = core.ttk.Treeview(
+            history_frame,
+            columns=columns,
+            show="headings",
+            selectmode="browse",
+        )
+        for key, label, width, stretch in (
+            ("removed", "Прибрано", 165, False),
+            ("name", "Файл", 280, True),
+            ("type", "Тип", 70, False),
+            ("size", "Розмір", 90, False),
+            ("sha", "SHA-256", 180, True),
+        ):
+            history_tree.heading(key, text=label)
+            history_tree.column(
+                key,
+                width=width,
+                minwidth=60,
+                stretch=stretch,
+            )
+
+        history_ybar = core.ttk.Scrollbar(
+            history_frame,
+            orient="vertical",
+            command=history_tree.yview,
+        )
+        history_xbar = core.ttk.Scrollbar(
+            history_frame,
+            orient="horizontal",
+            command=history_tree.xview,
+        )
+        history_tree.configure(
+            yscrollcommand=history_ybar.set,
+            xscrollcommand=history_xbar.set,
+        )
+        history_tree.grid(row=0, column=0, sticky="nsew")
+        history_ybar.grid(row=0, column=1, sticky="ns")
+        history_xbar.grid(row=1, column=0, sticky="ew")
+
+        for item in items:
+            record = item.record
+            history_tree.insert(
+                "",
+                "end",
+                iid=item.history.action_id,
+                values=(
+                    item.history.created_at.replace("T", " "),
+                    record.original_name,
+                    _MEDIA_LABELS.get(record.media_type, record.media_type),
+                    _size_label(record.size_bytes),
+                    record.sha256[:16] + "…",
+                ),
+            )
+
+        core.ttk.Button(
+            history_body,
+            text="Закрити",
+            command=history.destroy,
+        ).grid(row=2, column=0, sticky="e", pady=(10, 0))
 
     def start_background(kind, worker):
         if state["closed"] or state["busy"]:
@@ -279,6 +390,53 @@ def open_paper_scans_dialog(
             lambda: load_paper_scan(
                 Path(workspace_root),
                 record.attachment_id,
+            ),
+        )
+
+    def remove_scan():
+        if state["busy"]:
+            return
+        selected = tree.selection()
+        record = state["rows"].get(selected[0]) if selected else None
+        if record is None:
+            return
+        if not core.messagebox.askyesno(
+            "Прибрати скан",
+            (
+                "Прибрати вибраний скан зі звичайного списку?\n\n"
+                "Taxo НЕ видалить незмінний файл: він і запис цієї дії "
+                "залишаться в історії та резервній копії.\n\n"
+                "Це не змінює статус документа і не означає "
+                "«підписано»."
+            ),
+            parent=win,
+        ):
+            return
+
+        status.set("Прибираю скан з активного списку…")
+
+        def worker():
+            removed = remove_paper_scan(
+                Path(workspace_root),
+                record.attachment_id,
+            )
+            records = list_paper_scans(
+                Path(workspace_root),
+                vault_id,
+            )
+            return removed, records
+
+        start_background("remove", worker)
+
+    def view_history():
+        if state["busy"]:
+            return
+        status.set("Перевіряю історію сканів…")
+        start_background(
+            "history",
+            lambda: list_removed_paper_scans(
+                Path(workspace_root),
+                vault_id,
             ),
         )
 
@@ -343,6 +501,22 @@ def open_paper_scans_dialog(
                             "Скан додано: %s."
                             % record.original_name,
                         )
+                    elif kind == "remove":
+                        removed, records = payload
+                        render(
+                            records,
+                            (
+                                "Скан прибрано: %s. "
+                                "Файл збережено в історії."
+                            )
+                            % removed.record.original_name,
+                        )
+                    elif kind == "history":
+                        show_history(payload)
+                        status.set(
+                            "Історію сканів перевірено. "
+                            "Прибраних записів: %d." % len(payload)
+                        )
                     elif kind == "open":
                         status.set(
                             "Скан перевірено: %s."
@@ -387,10 +561,14 @@ def open_paper_scans_dialog(
 
     tree.bind("<<TreeviewSelect>>", selection_changed, add="+")
     open_button.configure(command=open_scan)
+    remove_button.configure(command=remove_scan)
+    history_button.configure(command=view_history)
     add_button.configure(command=add_scan)
     refresh_button.configure(command=refresh)
     win._taxo_paper_scans_tree = tree
     win._taxo_paper_scans_open = open_scan
+    win._taxo_paper_scans_remove = remove_scan
+    win._taxo_paper_scans_history = view_history
     win._taxo_paper_scans_add = add_scan
     win._taxo_paper_scans_refresh = refresh
     win.bind("<Destroy>", close_state, add="+")

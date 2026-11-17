@@ -24,10 +24,14 @@ from prepared_document_codec import canonical_json_bytes, strict_json_object
 ATTACHMENTS_NAME = "attachments"
 INDEX_NAME = "index.json"
 INDEX_FORMAT = "taxo.document-vault-paper-scan-index.v1"
+HISTORY_NAME = "history.json"
+HISTORY_FORMAT = "taxo.document-vault-paper-scan-history.v1"
 MAX_INDEX_BYTES = 8 * 1024 * 1024
+MAX_HISTORY_BYTES = 8 * 1024 * 1024
 MAX_SCAN_BYTES = 256 * 1024 * 1024
 _CHUNK_BYTES = 1024 * 1024
 _ATTACHMENT_ID = re.compile(r"^va-[a-f0-9]{32}$")
+_HISTORY_ID = re.compile(r"^vh-[a-f0-9]{32}$")
 _VAULT_ID = re.compile(r"^vd-[a-f0-9]{32}$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _STORAGE_KEY = re.compile(
@@ -68,6 +72,25 @@ class PaperScanObject:
     path: Path
 
 
+@dataclass(frozen=True)
+class PaperScanHistoryRecord:
+    """One append-only user action affecting an immutable scan."""
+
+    action_id: str
+    attachment_id: str
+    vault_id: str
+    created_at: str
+    action: str
+
+
+@dataclass(frozen=True)
+class RemovedPaperScan:
+    """Removed scan metadata paired with its preserved immutable record."""
+
+    history: PaperScanHistoryRecord
+    record: PaperScanRecord
+
+
 def paper_scan_root(workspace_root: Path) -> Path:
     """Return the attachment area inside the selected workspace vault."""
 
@@ -93,28 +116,28 @@ def _atomic_write(path: Path, payload: bytes) -> None:
             pass
 
 
-def _read_index_bytes(path: Path) -> bytes:
+def _read_limited_bytes(path: Path, limit: int, description: str) -> bytes:
     if not path.is_file() or path.is_symlink():
-        raise ValueError("Індекс сканів відсутній або небезпечний")
+        raise ValueError("%s відсутній або небезпечний" % description)
     size = path.stat().st_size
-    if size < 1 or size > MAX_INDEX_BYTES:
-        raise ValueError("Індекс сканів має некоректний розмір")
+    if size < 1 or size > limit:
+        raise ValueError("%s має некоректний розмір" % description)
     with path.open("rb") as stream:
-        payload = stream.read(MAX_INDEX_BYTES + 1)
-    if len(payload) > MAX_INDEX_BYTES:
-        raise ValueError("Індекс сканів завеликий")
+        payload = stream.read(limit + 1)
+    if len(payload) > limit:
+        raise ValueError("%s завеликий" % description)
     return payload
 
 
-def _parse_created_at(value):
+def _parse_created_at(value, description="додавання скана"):
     if not isinstance(value, str) or not value:
-        raise ValueError("Некоректний час додавання скана")
+        raise ValueError("Некоректний час %s" % description)
     try:
         parsed = datetime.fromisoformat(value)
     except ValueError as exc:
-        raise ValueError("Некоректний час додавання скана") from exc
+        raise ValueError("Некоректний час %s" % description) from exc
     if parsed.tzinfo is None:
-        raise ValueError("Час додавання скана не містить timezone")
+        raise ValueError("Час %s не містить timezone" % description)
     return value
 
 
@@ -183,6 +206,37 @@ def _record(entry) -> PaperScanRecord:
         storage_key=storage_key,
         size_bytes=size_bytes,
         sha256=digest,
+    )
+
+
+def _history_record(entry) -> PaperScanHistoryRecord:
+    if not isinstance(entry, dict) or set(entry) != {
+        "id", "attachment_id", "vault_id", "created_at", "action",
+    }:
+        raise ValueError("Некоректний запис історії скана")
+
+    action_id = _required_text(entry, "id", "history id")
+    attachment_id = _required_text(entry, "attachment_id", "attachment id")
+    vault_id = _required_text(entry, "vault_id", "vault id")
+    if _HISTORY_ID.fullmatch(action_id) is None:
+        raise ValueError("Некоректний ID історії скана")
+    if _ATTACHMENT_ID.fullmatch(attachment_id) is None:
+        raise ValueError("Некоректний ID скана в історії")
+    if _VAULT_ID.fullmatch(vault_id) is None:
+        raise ValueError("Некоректний ID документа в історії скана")
+    created_at = _parse_created_at(
+        entry.get("created_at"),
+        "дії зі сканом",
+    )
+    if entry.get("action") != "removed":
+        raise ValueError("Непідтримана дія в історії скана")
+
+    return PaperScanHistoryRecord(
+        action_id=action_id,
+        attachment_id=attachment_id,
+        vault_id=vault_id,
+        created_at=created_at,
+        action="removed",
     )
 
 
@@ -294,11 +348,21 @@ def _entry(record: PaperScanRecord):
     }
 
 
+def _history_entry(record: PaperScanHistoryRecord):
+    return {
+        "id": record.action_id,
+        "attachment_id": record.attachment_id,
+        "vault_id": record.vault_id,
+        "created_at": record.created_at,
+        "action": record.action,
+    }
+
+
 def _load_index(
     root: Path,
     valid_vault_ids,
 ) -> Tuple[PaperScanRecord, ...]:
-    allowed = {INDEX_NAME, "objects"}
+    allowed = {INDEX_NAME, HISTORY_NAME, "objects"}
     for child in root.iterdir():
         if child.name not in allowed:
             raise ValueError("Сховище сканів містить невідомий об'єкт")
@@ -311,7 +375,11 @@ def _load_index(
         return ()
 
     data = strict_json_object(
-        _read_index_bytes(index_path),
+        _read_limited_bytes(
+            index_path,
+            MAX_INDEX_BYTES,
+            "Індекс сканів",
+        ),
         "DocumentVault/attachments/index.json",
     )
     if data.get("format") != INDEX_FORMAT or set(data) != {"format", "items"}:
@@ -348,6 +416,50 @@ def _load_index(
     ))
 
 
+def _load_history(
+    root: Path,
+    records: Tuple[PaperScanRecord, ...],
+) -> Tuple[PaperScanHistoryRecord, ...]:
+    path = root / HISTORY_NAME
+    if not path.exists():
+        return ()
+
+    data = strict_json_object(
+        _read_limited_bytes(
+            path,
+            MAX_HISTORY_BYTES,
+            "Історія сканів",
+        ),
+        "DocumentVault/attachments/history.json",
+    )
+    if data.get("format") != HISTORY_FORMAT or set(data) != {"format", "items"}:
+        raise ValueError("Некоректна історія сканів")
+    if not isinstance(data.get("items"), list):
+        raise ValueError("Історія сканів не містить списку")
+
+    history = tuple(_history_record(item) for item in data["items"])
+    action_ids = [item.action_id for item in history]
+    attachment_ids = [item.attachment_id for item in history]
+    if len(action_ids) != len(set(action_ids)):
+        raise ValueError("Історія сканів містить дублікати дій")
+    if len(attachment_ids) != len(set(attachment_ids)):
+        raise ValueError("Скан не може бути прибраний двічі")
+
+    by_id = {item.attachment_id: item for item in records}
+    for item in history:
+        scan = by_id.get(item.attachment_id)
+        if scan is None:
+            raise ValueError("Історія посилається на відсутній скан")
+        if scan.vault_id != item.vault_id:
+            raise ValueError("Історія скана посилається на інший документ")
+
+    return tuple(sorted(
+        history,
+        key=lambda item: (item.created_at, item.action_id),
+        reverse=True,
+    ))
+
+
 def list_paper_scans(
     workspace_root: Path,
     vault_id: str = "",
@@ -362,9 +474,95 @@ def list_paper_scans(
     if not root.exists():
         return ()
     records = _load_index(root, valid_ids)
+    history = _load_history(root, records)
+    removed_ids = {item.attachment_id for item in history}
+    records = tuple(
+        item for item in records
+        if item.attachment_id not in removed_ids
+    )
     if vault_id:
         records = tuple(item for item in records if item.vault_id == vault_id)
     return records
+
+
+def list_removed_paper_scans(
+    workspace_root: Path,
+    vault_id: str = "",
+) -> Tuple[RemovedPaperScan, ...]:
+    """List verified scans removed from the active list, newest action first."""
+
+    vault_records = list_document_vault(Path(workspace_root))
+    valid_ids = {item.vault_id for item in vault_records}
+    if vault_id and vault_id not in valid_ids:
+        raise ValueError("Документ у сховищі не знайдено")
+    root = _attachment_root(Path(workspace_root), create=False)
+    if not root.exists():
+        return ()
+
+    records = _load_index(root, valid_ids)
+    by_id = {item.attachment_id: item for item in records}
+    history = _load_history(root, records)
+    removed = tuple(
+        RemovedPaperScan(history=item, record=by_id[item.attachment_id])
+        for item in history
+        if not vault_id or item.vault_id == vault_id
+    )
+    return removed
+
+
+def remove_paper_scan(
+    workspace_root: Path,
+    attachment_id: str,
+) -> RemovedPaperScan:
+    """Remove a scan from the active list without deleting immutable bytes."""
+
+    if (
+        not isinstance(attachment_id, str)
+        or _ATTACHMENT_ID.fullmatch(attachment_id) is None
+    ):
+        raise ValueError("Некоректний ID скана")
+    workspace_root = Path(workspace_root)
+
+    with _WRITE_LOCK:
+        vault_records = list_document_vault(workspace_root)
+        valid_ids = {item.vault_id for item in vault_records}
+        root = _attachment_root(workspace_root, create=False)
+        if not root.exists():
+            raise ValueError("Скан не знайдено")
+
+        records = _load_index(root, valid_ids)
+        by_id = {item.attachment_id: item for item in records}
+        scan = by_id.get(attachment_id)
+        if scan is None:
+            raise ValueError("Скан не знайдено")
+
+        history = list(_load_history(root, records))
+        if any(item.attachment_id == attachment_id for item in history):
+            raise ValueError("Скан уже прибрано з активного списку")
+
+        action = PaperScanHistoryRecord(
+            action_id="vh-" + uuid.uuid4().hex,
+            attachment_id=attachment_id,
+            vault_id=scan.vault_id,
+            created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            action="removed",
+        )
+        payload = canonical_json_bytes({
+            "format": HISTORY_FORMAT,
+            "items": [_history_entry(item) for item in history + [action]],
+        })
+        if len(payload) > MAX_HISTORY_BYTES:
+            raise ValueError("Історія сканів завелика")
+        _atomic_write(root / HISTORY_NAME, payload)
+
+        committed = {
+            item.history.attachment_id: item
+            for item in list_removed_paper_scans(
+                workspace_root,
+                scan.vault_id,
+            )
+        }
+        return committed[attachment_id]
 
 
 def register_paper_scan(
@@ -399,6 +597,7 @@ def register_paper_scan(
 
         root = _attachment_root(workspace_root, create=True)
         existing = list(_load_index(root, valid_ids))
+        _load_history(root, tuple(existing))
 
         attachment_id = "va-" + uuid.uuid4().hex
         shard = attachment_id[3:5]
