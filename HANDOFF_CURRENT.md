@@ -4,7 +4,7 @@
 
 ## Поточний стан
 
-- Поточний `main`: `3239e6dd87a44a7210ea7ae1f6d3d0deeffaf5c2`.
+- Перевірена продуктова база `main` перед цим docs-only checkpoint: `3239e6dd87a44a7210ea7ae1f6d3d0deeffaf5c2`; сам checkpoint змінює лише документацію.
 - Завершена інтегрована продуктова ревізія: **10.20-r7**.
 - Product PR #471 merged: `48ef40c77aa43da4140a390dbc14cc3ef3483b47`.
 - Точне джерело Test prerelease r7: `172cc44d863c60e63d89f45dcc11d31fa575db46`.
