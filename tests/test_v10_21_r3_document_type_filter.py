@@ -57,7 +57,7 @@ class DocumentTypeFilterR3Tests(unittest.TestCase):
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.21-r7",
+            "Taxo 10.21-r8",
             (root / "START.bat").read_text("utf-8"),
         )
 
