@@ -99,7 +99,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     frame.grid(row=3, column=0, sticky="nsew", pady=6)
     frame.rowconfigure(0, weight=1)
     frame.columnconfigure(0, weight=1)
-    cols = ("date", "number", "kind", "title", "person", "revision", "source", "file")
+    cols = ("date", "number", "kind", "title", "person", "revision", "source", "scans", "file")
     tree = core.ttk.Treeview(
         frame, columns=cols, show="headings", selectmode="browse"
     )
@@ -111,6 +111,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         ("person", "Працівники", 165),
         ("revision", "Ред.", 65),
         ("source", "Джерело", 135),
+        ("scans", "Скани", 90),
         ("file", "Стан файла", 185),
     ):
         tree.heading(key, text=label)
@@ -208,6 +209,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 result.get("order_status", ""),
                 result.get("paper_status", ""),
                 result.get("vault_status", ""),
+                result.get("paper_scan_status", ""),
             )
             if value
         ))
@@ -238,6 +240,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     row["person"],
                     row.get("revision_label", ""),
                     row.get("source_label", ""),
+                    row.get("paper_scan_state", "—"),
                     row["file_state"],
                 ),
             )
