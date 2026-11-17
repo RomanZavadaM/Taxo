@@ -1,39 +1,35 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджений інтегрований стан: 16.11.2026.**
+**Підтверджений інтегрований стан: 17.11.2026.**
 
-- Перевірена продуктова база `main` перед цим recovery/docs checkpoint: `5e8b65e71ba502fc2116584027881fab099d79fe`. Сам checkpoint не змінює код продукту.
-- Завершений продуктовий checkpoint: **10.20-r6** (PR #466).
-- Product merge r6: `aae93d168b0054cb106d8bfc9f58e1e766827f81`.
-- Точне джерело Test prerelease r6: `5e2155e281f70dade77c5e4280a75b6634a31ffb`.
-- [v10.20-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r6): Test prerelease, 4 portable + START + SHA256.
-- **Stable/Latest: [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5)**.
-- Точне джерело Stable r5: `8a56a2da438777e1fa4549ad2a63883a2ac67e31`; 8 release assets.
-- PR #470 перевів r5 у Stable; PR #472 виправив підвищення portable-only prerelease до повного Stable. Workflow `43910071886` — SUCCESS.
+- Поточний `main` перед цим docs-only checkpoint: `3239e6dd87a44a7210ea7ae1f6d3d0deeffaf5c2`.
+- Завершений продуктовий checkpoint: **10.20-r7**.
+- Product PR #471 merged: `48ef40c77aa43da4140a390dbc14cc3ef3483b47`.
+- Точне джерело Test prerelease r7: `172cc44d863c60e63d89f45dcc11d31fa575db46`.
+- [v10.20-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r7): Test prerelease, 4 Portable + START + SHA256.
+- Exact-source CI: START `43918902181` (**1408/1408**), Windows `43918902255`, Windows 7 `43918902260`, macOS Intel/ARM `43918902511` — SUCCESS.
+- Windows Defender та post-build integrity — PASS.
+- Release publisher `44054730816` — SUCCESS.
+- **Stable/Latest: [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5)**, повний комплект із 8 файлів.
+- Точне джерело Stable r5: `8a56a2da438777e1fa4549ad2a63883a2ac67e31`.
 
-## Інтегрований результат 10.20-r6
+## Інтегрований результат 10.20-r7
 
-У звичайному вікні «Документи» для документа зі сховища є **«Скани…»**. Вікно показує вже прикріплені скани та дозволяє додати PDF/JPG/JPEG/PNG/TIFF. Великі файли копіюються у фоні. Після додавання список одразу оновлюється.
+У вікні «Скани паперових оригіналів» для вибраного вкладення є явна дія **«Відкрити»**. Перед показом файл повторно проходить перевірку типу/розміру/SHA-256 через чинний захищений шлях. Перевірка виконується у фоні. Закриття вікна під час перевірки скасовує подальше відкриття.
 
-Скан лишається окремим вкладенням. Його наявність не означає, що документ підписано.
+Наявність або перегляд скана не змінює бізнес-статус документа і не означає «підписано». КЕП та автоматичний підпис не реалізовані.
 
-## Активна, але ще не інтегрована ревізія
+## Активна кодова ревізія
 
-**10.20-r7**, PR #471, head `bd2ff059f88f38a50e730705a785dce1bf91e962`.
+Немає. **10.20-r8 ще не розпочата**: гілки/PR/коду r8 у live GitHub не знайдено.
 
-Уже реалізовано явне відкриття вибраного скана після повторної перевірки цілісності. START, Windows, Windows 7 і macOS перевірки PR — SUCCESS. PR відкритий, draft і mergeable.
+## Наступна дозволена ревізія
 
-Цей стан **не вважається інтегрованим**, доки PR #471 не merged у main.
-
-## Наступна дія
-
-Після recovery/docs reconciliation повторно звірити PR #471 з live main та інтегрувати готову r7, якщо mergeability/CI лишаються зеленими. Далі — exact-main перевірки і Test prerelease за чинним правилом.
-
-Межі r7: без КЕП, автоматичного «підписано», міграції старих документів і нових бізнес-статусів.
+**10.20-r8.** Перед створенням гілки взяти один обмежений наступний slice з чинного плану DocumentVault/сканів, не розширюючи його «заодно» на КЕП, авто-статуси чи міграцію.
 
 ## Recovery
 
-Читати START_HERE.md → HANDOFF_CURRENT.md → private profile `profile/taxo` → звірити live GitHub. Issue #61 — журнал змін; WORKLOG.md — історія.
+Читати `START_HERE.md` → `HANDOFF_CURRENT.md` → private profile `profile/taxo` → звірити live GitHub. Issue #61 — журнал змін; WORKLOG.md — історія.
 
 ## Історичний якір
 
