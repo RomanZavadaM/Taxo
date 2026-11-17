@@ -68,6 +68,21 @@ def go_to_entered_waybill_date(app, parent=None):
     return True
 
 
+def open_waybill_calendar(app, picker, parent):
+    """Reuse the schedule calendar; refresh only after an actual day selection."""
+    variable = getattr(app, "waybill_date_label", None)
+    current = getattr(app, "waybill_date", None)
+    if variable is None or not isinstance(current, date):
+        return False
+    # The displayed date may be an unsubmitted draft. Start from the active day.
+    old_value = current.strftime(DATE_FORMAT)
+    variable.set(old_value)
+    picker(parent, variable)
+    if variable.get() == old_value:
+        return False  # Calendar cancelled or same day selected.
+    return go_to_entered_waybill_date(app, parent)
+
+
 def shift_waybill_date(app, days):
     """Move the waybill window by a whole number of calendar days."""
     current = getattr(app, "waybill_date", None)
@@ -110,7 +125,7 @@ def _remove_old_value_label(frame, variable):
     return None
 
 
-def add_waybill_date_navigation(window, app):
+def add_waybill_date_navigation(window, app, calendar_button=None, calendar_picker=None):
     """Add one independent date field to the already constructed waybill window."""
     if window is None or getattr(window, _MARKER, False):
         return False
@@ -124,6 +139,11 @@ def add_waybill_date_navigation(window, app):
     _remove_old_value_label(frame, variable)
     entry = ttk.Entry(frame, textvariable=variable, width=12)
     entry.pack(side="left", padx=(4, 5))
+    if calendar_button is not None and calendar_picker is not None:
+        # Actual shared «Дата…» control from the main schedule (same calendar).
+        calendar = calendar_button(frame, variable)
+        calendar.configure(command=lambda: open_waybill_calendar(app, calendar_picker, window))
+        calendar.pack(side="left", padx=(0, 5))
     ttk.Button(frame, text="День -", width=8,
                command=lambda: shift_waybill_date(app, -1)).pack(side="left", padx=2)
     ttk.Button(frame, text="Сьогодні", width=9,
@@ -150,7 +170,11 @@ def install(_core, base_app):
             except (AttributeError, RuntimeError):
                 exists = False
             if exists:
-                add_waybill_date_navigation(window, self)
+                add_waybill_date_navigation(
+                    window, self,
+                    calendar_button=_core.calendar_button,
+                    calendar_picker=_core.show_calendar_picker,
+                )
             return result
 
     TaxoWaybillDateNavigationApp.__name__ = "App"
