@@ -111,6 +111,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
             or "Taxo 10.20-r5" in start
             or "Taxo 10.20-r6" in start
             or "Taxo 10.21-r7" in start
+            or "Taxo 10.21-r8" in start
         )
         self.assertIn("prepared_document_docx.py", start)
 
