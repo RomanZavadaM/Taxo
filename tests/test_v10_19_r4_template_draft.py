@@ -273,6 +273,7 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
             or "Taxo 10.20-r5" in start_source
             or "Taxo 10.20-r6" in start_source
             or "Taxo 10.21-r7" in start_source
+            or "Taxo 10.21-r8" in start_source
         )
 
     def test_typed_facts_render_structurally(self):
