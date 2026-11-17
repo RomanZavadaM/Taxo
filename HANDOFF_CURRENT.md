@@ -1,27 +1,28 @@
 # HANDOFF_CURRENT — Taxo
 
-**Актуальний стан 17.11.2026, підтверджено live GitHub.**
+**Актуально 17.11.2026, за live GitHub.**
 
 ## Поточний стан
 
-- База перед recovery: main `d575f1b51caaf8f659dd2c2dc5f24b73271138af`.
-- **10.21-r4 завершена, інтегрована й опублікована як Test prerelease.**
-- Product PR #500 merged: immutable product/release source `abc0d8848752b70d50f8d2d55983ed83159f24a7`; final PR head `4540da0b17b85348195701f108adeaf33f5ad3f7`.
-- Exact-source CI: START run `44125366421` — **1454/1454**; Windows `44125366461`; Win7 `44125366427`; macOS Intel/ARM `44125366431` — SUCCESS. Defender та post-scan integrity PASS.
-- Release-trigger PR #501 merged як `d575f1b51caaf8f659dd2c2dc5f24b73271138af`; publisher run `44127599704` attempt 2 — SUCCESS. Attempt 1 зупинився на тимчасовому HTTP 503 (artifact egress) під час скачування вже зібраного Mac Intel; повторено лише публікатор, без зміни продукту.
-- [v10.21-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r4): Test prerelease, **6 файлів** (4 Portable + START + SHA256); tag прив'язаний до exact `abc0d8848752b70d50f8d2d55983ed83159f24a7`.
-- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 файлів, без змін; stable marker `10.21-r2`.
+- Продуктова ревізія **10.21-r5 завершена, інтегрована й опублікована як Test prerelease**.
+- Product PR #503 merged; exact immutable release source `d3f01d1cefd11ac5cab15054dfab85d962c0a84c`, фінальний PR head `639d4461b2119dd7caebd37f8fb18e3ded5a890e`.
+- Exact-source START `44141706069` — **1459/1459**, Windows `44141706165`, Win7 `44141706293`, macOS Intel/ARM `44141706021` — SUCCESS, Microsoft Defender та integrity PASS.
+- Release-trigger PR #504 merged `1515b1b52fe0a9e9d38d49bed7fd4f06f0de674f`. Publisher run `44143863239` — SUCCESS з першої спроби.
+- [v10.21-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r5) — Test prerelease, **6 файлів**: Windows/Win7/macOS Intel/ARM Portable, START, SHA256; tag immutable exact source `d3f01d1cefd11ac5cab15054dfab85d962c0a84c`.
+- **Stable/Latest** — [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 файлів, без змін, marker `10.21-r2`.
 
-## Зміни 10.21-r4
+## Що зроблено в r5
 
-У загальному каталозі «Документи» натискання заголовка **«Дата»** перемикає новіші ▼ / старіші ▲. Сортується **повний відфільтрований список до пагінації**; записи без дати/з некоректною датою — останніми в обох напрямках. Однакові дати зберігають початковий відносний порядок. Сортування поєднується з пошуком, джерелом, типом, сканами та періодом.
+У єдиному каталозі «Документи» клік заголовка **«№»** перемикає числово-природне сортування ▲/▼ (2 перед 10, 2-А перед 10-А). Порожні номери завжди в кінці. Відбір усім набором пошуку/джерела/типу/сканів/періоду й сортування виконуються **до пагінації**. Перемикання повертає першу сторінку. Сортування «Дата» з r4 збережено.
 
-Не змінено даних, сховища, файлів, scan/backup/restore, бізнес-статусів і доступу. Немає міграції, OCR, КЕП чи auto «підписано». Інші колонки не змінювались.
+Лише read-only: без зміни сховища, сканів, даних, backup/restore, статусів, КЕП або залежностей.
 
-## Recovery та наступна дія
+## Recovery
 
-Fresh verification r4: main `96c3fd4516addc0e95a93f3df024f8e97a62f3ac`, 412 refs, гілок r4 не було; єдиний старий PR #395 — docs-only. Перший тест r4 знайшов одну невідповідність очікування порядку рівних дат; виправлено **лише тест**, продукт не змінювали. Після цього всі exact-source перевірки SUCCESS.
+Fresh verification перед r5: `main` `fd0e97f9af7cb54bf5112188cd1004e414d829fe`, 415 refs, жодної r5 гілки, старий docs-only PR #395. START/Windows/Win7/macOS попереднього main SUCCESS.
 
-**10.21-r5 не розпочата.** Після наступної fresh GitHub verification вибрати один вузький пункт Issue #289. Не повторювати r4; не рухати Stable без прямої команди.
+Перший проміжний START r5 знайшов помилкову regex-екранізацію числових груп. Виправлено до продуктового merge; фінальний head пройшов 1459/1459 і платформи. Не повторювати перші невдалі runs.
 
-Порядок відновлення: `START_HERE.md` → `HANDOFF_CURRENT.md` → private `profile/taxo` → live GitHub (включно з refs без PR). TemplateLibrary read-only; власні шаблони — CompanyTemplates. Працювати через GitHub і хмарні перевірки, не запускати локальні executable.
+**10.21-r6 ще не розпочата.** Наступна дія: fresh verification live GitHub, включно з refs без PR, далі один вузький крок Issue #289. Не перевикористовувати r5/tag/release. Stable змінюється лише за прямою командою.
+
+Читати `START_HERE.md` → `HANDOFF_CURRENT.md` → `PROJECT_STATE.md` → private `profile/taxo` → live GitHub. TemplateLibrary read-only; власні шаблони — CompanyTemplates. Не запускати executable локально.
