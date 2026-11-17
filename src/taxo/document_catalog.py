@@ -343,6 +343,7 @@ def paginate_sources(
     date_from="",
     date_to="",
     kind_filter="all",
+    date_sort="default",
 ):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
@@ -418,6 +419,22 @@ def paginate_sources(
                 str(row.get(field, "")) for field in fields
             ).casefold()
         ]
+    if date_sort in ("newest", "oldest"):
+        def date_order_key(row):
+            try:
+                document_day = date.fromisoformat(
+                    str(row.get("date") or "").strip()
+                )
+            except ValueError:
+                document_day = None
+            if document_day is None:
+                return (1, 0)
+            day_number = document_day.toordinal()
+            return (0, -day_number if date_sort == "newest" else day_number)
+
+        # Stable ties preserve the existing source-specific order.
+        # Missing/invalid dates stay after dated records in both directions.
+        all_rows.sort(key=date_order_key)
     page_size = max(1, min(int(page_size), 500))
     pages = max(1, (len(all_rows) + page_size - 1) // page_size)
     page = max(0, min(int(page), pages - 1))
@@ -443,6 +460,7 @@ def read_catalog(
     date_from="",
     date_to="",
     kind_filter="all",
+    date_sort="default",
 ):
     """Convenience one-shot read for callers and tests."""
     return paginate_sources(
@@ -454,4 +472,5 @@ def read_catalog(
         date_from=date_from,
         date_to=date_to,
         kind_filter=kind_filter,
+        date_sort=date_sort,
     )
