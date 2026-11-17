@@ -164,6 +164,7 @@ class PairWorkflowR9Tests(unittest.TestCase):
             self.con, order_date="17.11.2026",
             initial_pairs=[(10, 1), (20, 2)]
         )
+        self.con.commit()
         rows = ops.order_assignments(self.con, order)
         with self.assertRaisesRegex(ValueError, "вже є"):
             ops.update_vehicle_assignment(
@@ -173,20 +174,17 @@ class PairWorkflowR9Tests(unittest.TestCase):
             )
         self.con.rollback()
         self.assertEqual(ops.vehicle_assignment_pairs(self.con, order),
-                         [])  # create was uncommitted and rolled back
+                         [(10, 1), (20, 2)])
 
     def test_delete_cancel_preserves_pair(self):
-        order = ops.create_vehicle_assignment_order(
-            self.con, order_date="17.11.2026", initial_pairs=[(10, 1)]
-        )
-        self.con.commit()
-        row = ops.order_assignments(self.con, order)[0]
-        self.con.execute("SAVEPOINT test_delete")
-        ops.delete_vehicle_assignment(self.con, row["id"])
-        self.con.execute("ROLLBACK TO test_delete")
-        self.con.execute("RELEASE test_delete")
-        self.assertEqual(ops.vehicle_assignment_pairs(self.con, order),
-                         [(10, 1)])
+        sec = self.section()
+        sec.existing_pair_tree = mock.Mock()
+        sec.existing_pair_tree.selection.return_value = ("31",)
+        sec.core.messagebox.askyesno.return_value = False
+        sec.core.db = mock.Mock()
+        sec._remove_existing_pair()
+        sec.core.db.assert_not_called()
+        sec.core.messagebox.askyesno.assert_called_once()
 
     def test_existing_editor_edits_in_place_without_tab_switch(self):
         source = inspect.getsource(
