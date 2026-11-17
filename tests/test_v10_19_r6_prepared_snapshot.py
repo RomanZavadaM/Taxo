@@ -145,6 +145,7 @@ class PreparedDocumentR6Tests(unittest.TestCase):
             or "Taxo 10.20-r5" in start_source
             or "Taxo 10.20-r6" in start_source
             or "Taxo 10.21-r7" in start_source
+            or "Taxo 10.21-r8" in start_source
         )
 
     def test_missing_store_listing_has_no_write_side_effect(self):
