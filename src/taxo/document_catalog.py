@@ -453,7 +453,7 @@ def paginate_sources(
             value = str(row.get("number") or "").strip().casefold()
             return tuple(
                 (0, int(part)) if part.isdecimal() else (1, part)
-                for part in re.split(r"(\\d+)", value) if part
+                for part in re.split(r"(\d+)", value) if part
             )
 
         numbered.sort(
