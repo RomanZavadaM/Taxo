@@ -12,6 +12,7 @@ import sqlite3
 from pathlib import Path
 
 from document_vault_store import list_document_vault
+from document_vault_paper_scans import list_paper_scans
 
 
 def _paper_file(folder, value):
@@ -150,6 +151,40 @@ def _read_vault(root):
     return rows, "Сховище документів: %d." % len(rows)
 
 
+def _read_paper_scan_counts(root, vault_rows):
+    """Read active paper-scan counts without making the catalog depend on scans."""
+
+    if not vault_rows:
+        return {}, "Скани: у сховищі ще немає документів."
+    try:
+        records = list_paper_scans(Path(root))
+    except (OSError, ValueError, UnicodeError, RuntimeError) as exc:
+        return None, "Помилка перевірки сканів: " + str(exc)
+
+    counts = {}
+    for record in records:
+        counts[record.vault_id] = counts.get(record.vault_id, 0) + 1
+    return counts, "Активні скани: %d." % len(records)
+
+
+def _attach_paper_scan_state(rows, counts):
+    """Add a read-only active-scan indicator to every catalog row."""
+
+    for row in rows:
+        vault_id = str(row.get("vault_id") or "")
+        if not vault_id:
+            row["paper_scan_count"] = 0
+            row["paper_scan_state"] = "—"
+        elif counts is None:
+            row["paper_scan_count"] = None
+            row["paper_scan_state"] = "Помилка перевірки"
+        else:
+            count = int(counts.get(vault_id, 0))
+            row["paper_scan_count"] = count
+            row["paper_scan_state"] = "Є: %d" % count if count else "Немає"
+    return rows
+
+
 def _merge_paper_and_vault(paper_rows, vault_rows):
     """Merge only a vault record that points to the exact PaperDocuments ID."""
     paper_by_id = {}
@@ -259,13 +294,16 @@ def read_sources(root):
     """Read all sources, merge only exact PaperDocuments/Vault identities."""
     paper, paper_status = _read_paper(root)
     vault, vault_status = _read_vault(root)
+    scan_counts, paper_scan_status = _read_paper_scan_counts(root, vault)
     orders, order_status = _read_orders(root)
     rows = _merge_paper_and_vault(paper, vault) + orders
+    _attach_paper_scan_state(rows, scan_counts)
     rows.sort(key=_sort_key, reverse=True)
     return {
         "rows": rows,
         "paper_status": paper_status,
         "vault_status": vault_status,
+        "paper_scan_status": paper_scan_status,
         "order_status": order_status,
     }
 
@@ -302,6 +340,7 @@ def paginate_sources(
         fields = (
             "date", "number", "kind", "title", "person",
             "order_type", "revision_label", "source_label",
+            "paper_scan_state",
         )
         all_rows = [
             row for row in all_rows
@@ -319,6 +358,7 @@ def paginate_sources(
         "pages": pages,
         "paper_status": snapshot["paper_status"],
         "vault_status": snapshot.get("vault_status", ""),
+        "paper_scan_status": snapshot.get("paper_scan_status", ""),
         "order_status": snapshot["order_status"],
     }
 
