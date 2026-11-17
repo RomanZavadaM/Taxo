@@ -85,8 +85,8 @@ class TaxoR8BulkAssignmentSafetyTests(unittest.TestCase):
             [(10,1),(10,2),(10,3)],
         )
 
-    def test_equal_multiple_distinct_pairs_can_be_approved(self):
-        pairs=ops.build_assignment_pairs([10,20,30],[1,2,3])
+    def test_explicit_multiple_distinct_pairs_can_be_approved(self):
+        pairs=[(10,1),(20,2),(30,3)]
         oid=ops.create_vehicle_assignment_order(
             self.con,order_date="08.11.2026",initial_pairs=pairs
         )
