@@ -2,7 +2,7 @@
 
 **Підтверджений інтегрований стан: 17.11.2026.**
 
-- Перевірена база main перед цим docs-only checkpoint: `a301ed020d62831257748c7658d5bc61987d4e98`.
+- Перевірена база main перед цим docs-only checkpoint: `cdaaafe6078d55bbc7a2b3f5d605fc840d2d1cb6`.
 - Завершений продуктовий checkpoint: **10.21-r3**.
 - Product PR #496 merged / exact immutable release source: `f8a30882c473568293b3123e1f23feca22e54334`.
 - Final product head before merge: `7ad2df8ba4dd08d754cb1f47ea29b804438a4979`.
@@ -10,7 +10,7 @@
 - Microsoft Defender і post-scan integrity — PASS.
 - Release-trigger PR #497 merged: `a301ed020d62831257748c7658d5bc61987d4e98`; publisher `44113848030` — SUCCESS.
 - [v10.21-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r3): Test prerelease, 4 Portable + START + SHA256, exact target `f8a30882c473568293b3123e1f23feca22e54334`. Усі 6 assets завантажені.
-- **Stable/Latest: [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5)**, повний комплект із 8 файлів; source `8a56a2da438777e1fa4549ad2a63883a2ac67e31`.
+- **Stable/Latest: [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2)**, повний комплект із 8 файлів; immutable source `b104f94ace0ae355df79c914b3be6f39417bd6e9`. За прямою командою власника PR #499 merged `cdaaafe6078d55bbc7a2b3f5d605fc840d2d1cb6`; historical promoter `44116866634` SUCCESS. Тестова `v10.21-r3` лишається prerelease.
 
 ## Інтегрований результат 10.21-r3
 
