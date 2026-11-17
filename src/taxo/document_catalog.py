@@ -323,6 +323,16 @@ def _date_bound(value, label):
         )
 
 
+def document_kinds(snapshot):
+    """Return exact document types already present in the catalog snapshot."""
+    values = {
+        str(row.get("kind") or "").strip()
+        for row in snapshot.get("rows", ())
+    }
+    values.discard("")
+    return tuple(sorted(values, key=str.casefold))
+
+
 def paginate_sources(
     snapshot,
     text_filter="",
@@ -332,6 +342,7 @@ def paginate_sources(
     scan_filter="all",
     date_from="",
     date_to="",
+    kind_filter="all",
 ):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
@@ -358,6 +369,12 @@ def paginate_sources(
         all_rows = [
             row for row in all_rows
             if source_filter in row.get("sources", (row.get("source"),))
+        ]
+    selected_kind = str(kind_filter or "all").strip()
+    if selected_kind and selected_kind != "all":
+        all_rows = [
+            row for row in all_rows
+            if str(row.get("kind") or "").strip() == selected_kind
         ]
     if scan_filter == "present":
         all_rows = [
@@ -409,6 +426,7 @@ def paginate_sources(
         "total": len(all_rows),
         "page": page,
         "pages": pages,
+        "available_kinds": document_kinds(snapshot),
         "paper_status": snapshot["paper_status"],
         "vault_status": snapshot.get("vault_status", ""),
         "paper_scan_status": snapshot.get("paper_scan_status", ""),
@@ -424,6 +442,7 @@ def read_catalog(
     scan_filter="all",
     date_from="",
     date_to="",
+    kind_filter="all",
 ):
     """Convenience one-shot read for callers and tests."""
     return paginate_sources(
@@ -434,4 +453,5 @@ def read_catalog(
         scan_filter=scan_filter,
         date_from=date_from,
         date_to=date_to,
+        kind_filter=kind_filter,
     )
