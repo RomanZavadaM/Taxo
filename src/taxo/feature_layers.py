@@ -159,6 +159,7 @@ FEATURE_LAYERS: Tuple[FeatureLayer, ...] = (
                  domain="documents", uses_services=True),
     FeatureLayer("v1018-r7-visible-library-entry", install_template_library_operations_entry,
                  domain="documents", uses_services=True),
+    FeatureLayer("v1021-r6-waybill-date-navigation", install_waybill_date_navigation, domain="waybills"),
 )
 
 
