@@ -86,7 +86,7 @@ class PreparedPdfImagesR1Tests(unittest.TestCase):
             "Version: 10.21-r7\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.21-r7"',
+            'APP_VERSION = "10.21-r8"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
