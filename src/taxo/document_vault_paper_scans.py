@@ -597,6 +597,7 @@ def register_paper_scan(
 
         root = _attachment_root(workspace_root, create=True)
         existing = list(_load_index(root, valid_ids))
+        _load_history(root, tuple(existing))
 
         attachment_id = "va-" + uuid.uuid4().hex
         shard = attachment_id[3:5]
