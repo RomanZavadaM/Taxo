@@ -212,6 +212,11 @@ class PairWorkflowR9Tests(unittest.TestCase):
         source = inspect.getsource(order_editor_ui.open_order_editor)
         self.assertIn("assignment_section.initial_pairs_for_save", source)
 
+    def test_saved_order_never_jumps_to_unrelated_assignment_tab(self):
+        source = inspect.getsource(order_editor_ui.open_order_editor)
+        self.assertNotIn("book.select(assignments_tab)", source)
+        self.assertIn("book.select(orders_tab)", source)
+
 
 if __name__ == "__main__":
     unittest.main()
