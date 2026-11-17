@@ -2,34 +2,34 @@
 
 **Підтверджений інтегрований стан: 17.11.2026.**
 
-- Перевірена база `main` перед цим docs-only checkpoint: `6aa04d1229f18b9ac67409b2af34d5868353f5ec`.
-- Завершений продуктовий checkpoint: **10.20-r8**.
-- Product PR #478 merged: `05e3132003f21054e63707ec231b017bba9ec7b1`.
-- Final product head before merge: `5591f01459c17277cf486b04047c2dfe1babd5b6`.
-- Exact immutable release source after PR #479: `5c8513af9ee6d919d5812ebc39ee9769a83b1c44`.
-- Exact-source CI: START `44061025151` (**1414/1414**), Windows `44061025064`, Win7 `44061025223`, macOS Intel/ARM `44061025032` — SUCCESS.
+- Перевірена база `main` перед цим docs-only checkpoint: `d16617ed7e094405ece7e8bb90eecd3bd778b429`.
+- Завершений продуктовий checkpoint: **10.20-r9**.
+- Product PR #482 merged: `3669470cd80304f0f82f6eb542664e59fbfcca1e`.
+- Final product head before merge: `e490e1cdac9624d288ae38cceab08e306bafeb25`.
+- Exact immutable release source after PR #483: `a607024d25557136b92c5de4a91ee1d6c7e8b1e1`.
+- Exact-source CI: START `44074962416` (**1419/1419**), Windows `44074962450`, Win7 `44074962376`, macOS Intel/ARM `44074962435` — SUCCESS.
 - Windows Defender та post-build/post-scan integrity — PASS.
-- Release-trigger PR #480 merged: `6aa04d1229f18b9ac67409b2af34d5868353f5ec`; publisher `44065537111` — SUCCESS.
-- [v10.20-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r8): Test prerelease, 4 Portable + START + SHA256, exact target `5c8513af9ee6d919d5812ebc39ee9769a83b1c44`.
+- Release-trigger PR #484 merged: `d16617ed7e094405ece7e8bb90eecd3bd778b429`; publisher `44076489530` — SUCCESS.
+- [v10.20-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r9): Test prerelease, 4 Portable + START + SHA256, exact target `a607024d25557136b92c5de4a91ee1d6c7e8b1e1`.
 - **Stable/Latest: [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5)**, повний комплект із 8 файлів.
 - Точне джерело Stable r5: `8a56a2da438777e1fa4549ad2a63883a2ac67e31`.
 
-## Інтегрований результат 10.20-r8
+## Інтегрований результат 10.20-r9
 
-- Вибраний скан можна явно прибрати з активного списку після підтвердження.
-- Immutable-файл фізично не видаляється.
-- Окремий history record зберігає дію; «Історія…» показує прибрані скани.
-- Прибрані файли лишаються під integrity-контролем і входять у чинний повний backup/restore.
+- У каталозі «Документи» є окрема колонка «Скани».
+- Для документа DocumentVault видно «Немає» або «Є: N» за активними сканами.
+- Прибрані r8 скани не входять у лічильник.
+- Помилка перевірки сканів не приховує каталог документів; стан явно показується користувачу.
 - Бізнес-статус документа не змінюється.
-- КЕП/e-signature, auto «підписано», physical purge та migration старих документів не реалізовані.
+- КЕП/e-signature, auto «підписано», physical purge, migration старих документів та нові формати зберігання не реалізовані.
 
 ## Активна кодова ревізія
 
-Немає. **10.20-r9 ще не розпочата.**
+Немає. **10.20-r10 ще не розпочата.**
 
 ## Наступна дозволена ревізія
 
-**10.20-r9**, але лише після fresh GitHub verification та окремого визначення одного вузького slice. Номер r8, tag і release не перевикористовувати.
+**10.20-r10**, але лише після fresh GitHub verification та окремого визначення одного вузького slice з Issue #289. Номер r9, tag і release не перевикористовувати.
 
 ## Recovery
 

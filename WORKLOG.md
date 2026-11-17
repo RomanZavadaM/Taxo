@@ -1,3 +1,17 @@
+## 17.11.2026 — 10.20-r9: індикатор активних сканів у каталозі документів
+
+- Після fresh recovery з `main` `8743f964ce30740b463defe2c3cc1663cb883926` r8 не повторювали; вибрано один bounded slice Issue #289.
+- У загальному вікні «Документи» додано колонку «Скани»: для DocumentVault показується «Немає» або «Є: N» за активними сканами. Прибрані у r8 скани не рахуються.
+- Пошкодження/помилка перевірки сховища сканів не приховує каталог: показується «Помилка перевірки». КЕП, auto «підписано», physical purge, migration і нові формати даних не додавались.
+- Перший START CI на проміжному head виявив 41 legacy version-guard із верхньою межею 10.20-r8. Оновлено тільки дозволи поточної версії; предметна логіка старих тестів не змінювалась.
+- Product PR #482 merged as `3669470cd80304f0f82f6eb542664e59fbfcca1e`; final product head `e490e1cdac9624d288ae38cceab08e306bafeb25`.
+- Release-notes PR #483 merged; exact release source `a607024d25557136b92c5de4a91ee1d6c7e8b1e1`.
+- Exact-source CI: START `44074962416` — **1419/1419**; Windows `44074962450`; Win7 `44074962376`; macOS Intel/ARM `44074962435` — SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #484 merged as `d16617ed7e094405ece7e8bb90eecd3bd778b429`; publisher `44076489530` SUCCESS.
+- [v10.20-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r9) published as immutable **Test Portable** prerelease, exactly 6 assets, tag target exact source `a607024d...`.
+- Stable/GitHub Latest remains **v10.20-r5**, 8 assets.
+- **10.20-r10 не розпочата.** Наступний bounded slice визначати лише після нового live recovery.
+
 ## 16.11.2026 — звірка після переведення 10.20-r5 у Stable
 
 - Live GitHub показав новіший стан, ніж HANDOFF: за рішенням власника PR #470 перевів історичний checkpoint **10.20-r5** у Stable/Latest.
