@@ -1,3 +1,16 @@
+## 17.11.2026 — 10.20-r10: заміна скана зі збереженням історії
+
+- PR #486 з виправленням RELEASE_INDEX перевірено й інтегровано: `2aa5f104d2b74a3e23fefbee626ae9e814adec87`. Fresh verification всіх refs виявив уже розпочату r10 гілку `6b798332c18c1adbe2ad299020c7b06e16867b70`, попри старий HANDOFF «не розпочата». Існуючу роботу збережено, дублювання не створювалось.
+- Один slice #289: явна «Замінити…» для активного скана. Попередній файл фізично зберігається, історія показує «Замінено», full backup/restore зберігає обидві копії.
+- Завершено legacy version guards; їхня предметна логіка не змінена. Додано відмову заміни неактивного скана, дві помилки запису/відкату без втрати байтів, tamper detection старого файла, реальне Tk-скасування/відмову і геометрію кнопок на 900×600 / 1024×700 / 1366×768 зі збільшеним шрифтом.
+- Перша відновлена перевірка Win7 знайшла несумісний з Python 3.8 виклик `nametofont(root=...)` у новому тесті; виправлено через сумісний `Font(..., exists=True)`, без зміни продукту.
+- Product PR #487 merged / exact immutable release source: `4661c929c2056f449a30152ed7fb231b1c9ba553`; final product head `c09842704889a1da1fab00e5280aa7561daa7ad6`. Release notes включено у product PR.
+- Exact-source CI: START `44086412942` — **1430/1430**; Windows `44086412912`; Win7 `44086412809`; macOS Intel/ARM `44086412799` — SUCCESS. Defender та post-scan integrity PASS.
+- Trigger PR #488 змінює лише HANDOFF і кінцевий перенос рядка stable marker (значення `10.20-r5` незмінне); merged `71f5bec74f2dad469a0dc7c67be1d232db77bf89`. Publisher `44087486860` SUCCESS.
+- [v10.20-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r10) опубліковано як Test prerelease; tag exact source `4661c929c2056f449a30152ed7fb231b1c9ba553`; рівно 6 uploaded assets: 4 Portable + START + SHA256.
+- Stable/GitHub Latest лишається **v10.20-r5**, 8 assets. Без КЕП/e-signature, auto «підписано», physical purge, migration, нових бізнес-статусів або залежностей.
+- Scan-filter відкладений і не реалізований. **10.21-r1 не розпочата**; наступний крок визначати після fresh recovery. Детальний аудит: `docs/maintenance/AUDIT_DOCUMENT_SCAN_REPLACEMENT_10_20_R10.md`.
+
 ## 17.11.2026 — 10.20-r9: індикатор активних сканів у каталозі документів
 
 - Після fresh recovery з `main` `8743f964ce30740b463defe2c3cc1663cb883926` r8 не повторювали; вибрано один bounded slice Issue #289.

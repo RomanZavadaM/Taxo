@@ -2,38 +2,39 @@
 
 **Підтверджений інтегрований стан: 17.11.2026.**
 
-- Перевірена база `main` перед цим docs-only checkpoint: `d16617ed7e094405ece7e8bb90eecd3bd778b429`.
-- Завершений продуктовий checkpoint: **10.20-r9**.
-- Product PR #482 merged: `3669470cd80304f0f82f6eb542664e59fbfcca1e`.
-- Final product head before merge: `e490e1cdac9624d288ae38cceab08e306bafeb25`.
-- Exact immutable release source after PR #483: `a607024d25557136b92c5de4a91ee1d6c7e8b1e1`.
-- Exact-source CI: START `44074962416` (**1419/1419**), Windows `44074962450`, Win7 `44074962376`, macOS Intel/ARM `44074962435` — SUCCESS.
-- Windows Defender та post-build/post-scan integrity — PASS.
-- Release-trigger PR #484 merged: `d16617ed7e094405ece7e8bb90eecd3bd778b429`; publisher `44076489530` — SUCCESS.
-- [v10.20-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r9): Test prerelease, 4 Portable + START + SHA256, exact target `a607024d25557136b92c5de4a91ee1d6c7e8b1e1`.
-- **Stable/Latest: [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5)**, повний комплект із 8 файлів.
-- Точне джерело Stable r5: `8a56a2da438777e1fa4549ad2a63883a2ac67e31`.
+- Перевірена база main перед цим docs-only checkpoint: `71f5bec74f2dad469a0dc7c67be1d232db77bf89`.
+- Завершений продуктовий checkpoint: **10.20-r10**.
+- Product PR #487 merged / exact immutable release source: `4661c929c2056f449a30152ed7fb231b1c9ba553`.
+- Final product head before merge: `c09842704889a1da1fab00e5280aa7561daa7ad6`.
+- Exact-source CI: START `44086412942` (**1430/1430**), Windows `44086412912`, Win7 `44086412809`, macOS Intel/ARM `44086412799` — SUCCESS.
+- Microsoft Defender і post-scan integrity — PASS.
+- Release-trigger PR #488 merged: `71f5bec74f2dad469a0dc7c67be1d232db77bf89`; publisher `44087486860` — SUCCESS.
+- [v10.20-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r10): Test prerelease, 4 Portable + START + SHA256, exact target `4661c929c2056f449a30152ed7fb231b1c9ba553`. Усі 6 assets завантажені та перевірені за назвами/наявністю.
+- **Stable/Latest: [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5)**, повний комплект із 8 файлів; source `8a56a2da438777e1fa4549ad2a63883a2ac67e31`.
+- Docs-only PR #486 merged `2aa5f104d2b74a3e23fefbee626ae9e814adec87`: форматування RELEASE_INDEX виправлено.
 
-## Інтегрований результат 10.20-r9
+## Інтегрований результат 10.20-r10
 
-- У каталозі «Документи» є окрема колонка «Скани».
-- Для документа DocumentVault видно «Немає» або «Є: N» за активними сканами.
-- Прибрані r8 скани не входять у лічильник.
-- Помилка перевірки сканів не приховує каталог документів; стан явно показується користувачу.
-- Бізнес-статус документа не змінюється.
-- КЕП/e-signature, auto «підписано», physical purge, migration старих документів та нові формати зберігання не реалізовані.
+- Явна заміна вибраного активного скана у «Документи» → «Скани…».
+- Попередня незмінна копія зберігається, а історія показує «Замінено».
+- Повна резервна копія/відновлення зберігають обидва файли та історію.
+- Відмова/скасування і помилковий файл не забирають попередній скан.
+- Важкі збої запису/відкату не приховують помилку і не стирають попередні байти.
+- Кнопки доступні у два ряди на малих вікнах зі збільшеними шрифтами.
+- Бізнес-статус документа незмінний; КЕП/e-signature, auto «підписано», physical purge, migration та нові залежності не додавались.
+- Scan-filter у r10 не реалізований. Issue #289 лишається відкритим як ширший напрям.
 
 ## Активна кодова ревізія
 
-Немає. **10.20-r10 ще не розпочата.**
+Немає. **10.21-r1 ще не розпочата.**
 
 ## Наступна дозволена ревізія
 
-**10.20-r10**, але лише після fresh GitHub verification та окремого визначення одного вузького slice з Issue #289. Номер r9, tag і release не перевикористовувати.
+**10.21-r1**, лише після fresh GitHub verification і визначення одного вузького кроку. Після r10 піднято minor згідно з PROJECT_RULES. Номер r10, tag і release не перевикористовувати.
 
 ## Recovery
 
-Читати `START_HERE.md` → `HANDOFF_CURRENT.md` → private profile `profile/taxo` → звірити live GitHub. Issue #61 — журнал змін; WORKLOG.md — історія.
+Читати START_HERE → HANDOFF_CURRENT → private profile profile/taxo → live GitHub, включно з усіма refs. Issue #61 — журнал змін; WORKLOG — історія. Детальний аудит: [заміна сканів r10](docs/maintenance/AUDIT_DOCUMENT_SCAN_REPLACEMENT_10_20_R10.md).
 
 ## Історичний якір
 
