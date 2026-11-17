@@ -193,6 +193,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     page_text = core.tk.StringVar(value="")
     state = {
         "date_sort": "newest",
+        "sort_field": "date",
+        "number_sort": "ascending",
         "page": 0,
         "pages": 1,
         "rows": {},
@@ -265,7 +267,17 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         state["page"], state["pages"] = result["page"], result["pages"]
         tree.heading(
             "date",
-            text="Дата ▼" if state["date_sort"] == "newest" else "Дата ▲",
+            text=(
+                ("Дата ▼" if state["date_sort"] == "newest" else "Дата ▲")
+                if state["sort_field"] == "date" else "Дата"
+            ),
+        )
+        tree.heading(
+            "number",
+            text=(
+                ("№ ▲" if state["number_sort"] == "ascending" else "№ ▼")
+                if state["sort_field"] == "number" else "№"
+            ),
         )
         available_kinds = tuple(result.get("available_kinds", ()))
         selected_kind = kind_choice.get()
@@ -326,9 +338,24 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         selection_changed()
 
     def toggle_date_sort():
-        state["date_sort"] = (
-            "oldest" if state["date_sort"] == "newest" else "newest"
-        )
+        if state["sort_field"] == "date":
+            state["date_sort"] = (
+                "oldest" if state["date_sort"] == "newest" else "newest"
+            )
+        else:
+            state["sort_field"] = "date"
+            state["date_sort"] = "newest"
+        refresh(reset=True)
+
+    def toggle_number_sort():
+        if state["sort_field"] == "number":
+            state["number_sort"] = (
+                "descending"
+                if state["number_sort"] == "ascending" else "ascending"
+            )
+        else:
+            state["sort_field"] = "number"
+            state["number_sort"] = "ascending"
         refresh(reset=True)
 
     def refresh(reset=False, reload_sources=False):
@@ -345,7 +372,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_from.get(),
             date_to.get(),
             kind_choice.get(),
-            state["date_sort"],
+            state["date_sort"] if state["sort_field"] == "date" else "default",
+            state["number_sort"] if state["sort_field"] == "number" else "default",
         )
         source_status.set("Завантаження документів…")
         if not state["busy"]:
@@ -380,6 +408,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_to_filter,
             kind_filter_label,
             date_sort,
+            number_sort,
         ) = wanted
         previous = state["snapshot"]
         must_reload = (
@@ -408,6 +437,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                         else kind_filter_label
                     ),
                     date_sort=date_sort,
+                    number_sort=number_sort,
                 )
                 state["results"].put(
                     (generation, snapshot, result, None)
@@ -813,6 +843,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     import_revision_button.configure(command=import_revision)
     pdf_button.configure(command=create_pdf_for_print)
     tree.heading("date", text="Дата ▼", command=toggle_date_sort)
+    tree.heading("number", text="№", command=toggle_number_sort)
     tree.bind("<Double-1>", open_selected)
     tree.bind(
         "<<TreeviewSelect>>", selection_changed, add="+"
@@ -840,6 +871,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     win._taxo_catalog_tree = tree
     win._taxo_catalog_date_sort = toggle_date_sort
+    win._taxo_catalog_number_sort = toggle_number_sort
     win._taxo_catalog_search = search
     win._taxo_catalog_source = source_choice
     win._taxo_catalog_source_box = source_box
