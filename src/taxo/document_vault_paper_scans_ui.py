@@ -12,6 +12,7 @@ from document_vault_paper_scans import (
     load_paper_scan,
     register_paper_scan,
     remove_paper_scan,
+    replace_paper_scan,
 )
 from document_viewer import open_document
 
@@ -138,6 +139,9 @@ def open_paper_scans_dialog(
     open_button = core.ttk.Button(
         actions, text="Відкрити", state="disabled"
     )
+    replace_button = core.ttk.Button(
+        actions, text="Замінити…", state="disabled"
+    )
     remove_button = core.ttk.Button(
         actions, text="Прибрати", state="disabled"
     )
@@ -145,13 +149,14 @@ def open_paper_scans_dialog(
     add_button = core.ttk.Button(actions, text="Додати скан…")
     refresh_button = core.ttk.Button(actions, text="Оновити")
     open_button.grid(row=0, column=1, padx=(4, 6))
-    remove_button.grid(row=0, column=2, padx=(0, 6))
-    history_button.grid(row=0, column=3, padx=(0, 6))
-    refresh_button.grid(row=0, column=4, padx=(0, 6))
-    add_button.grid(row=0, column=5, padx=(0, 6))
+    replace_button.grid(row=0, column=2, padx=(0, 6))
+    remove_button.grid(row=0, column=3, padx=(0, 6))
+    history_button.grid(row=0, column=4, padx=(0, 6))
+    refresh_button.grid(row=0, column=5, padx=(0, 6))
+    add_button.grid(row=0, column=6, padx=(0, 6))
     core.ttk.Button(
         actions, text="Закрити", command=win.destroy
-    ).grid(row=0, column=6)
+    ).grid(row=0, column=7)
 
     core.ttk.Label(
         body,
@@ -186,6 +191,7 @@ def open_paper_scans_dialog(
             else "normal"
         )
         open_button.configure(state=selected_state)
+        replace_button.configure(state=selected_state)
         remove_button.configure(state=selected_state)
 
     def selection_changed(_event=None):
@@ -194,6 +200,7 @@ def open_paper_scans_dialog(
         if record is None:
             details.set("")
             open_button.configure(state="disabled")
+            replace_button.configure(state="disabled")
             remove_button.configure(state="disabled")
             return
         details.set(
@@ -201,6 +208,9 @@ def open_paper_scans_dialog(
             % (record.attachment_id, record.sha256)
         )
         open_button.configure(
+            state="disabled" if state["busy"] else "normal"
+        )
+        replace_button.configure(
             state="disabled" if state["busy"] else "normal"
         )
         remove_button.configure(
@@ -279,7 +289,7 @@ def open_paper_scans_dialog(
         history_frame.columnconfigure(0, weight=1)
         history_frame.rowconfigure(0, weight=1)
 
-        columns = ("removed", "name", "type", "size", "sha")
+        columns = ("action", "changed", "name", "type", "size", "sha")
         history_tree = core.ttk.Treeview(
             history_frame,
             columns=columns,
@@ -287,8 +297,9 @@ def open_paper_scans_dialog(
             selectmode="browse",
         )
         for key, label, width, stretch in (
-            ("removed", "Прибрано", 165, False),
-            ("name", "Файл", 280, True),
+            ("action", "Дія", 90, False),
+            ("changed", "Дата дії", 165, False),
+            ("name", "Файл", 230, True),
             ("type", "Тип", 70, False),
             ("size", "Розмір", 90, False),
             ("sha", "SHA-256", 180, True),
@@ -326,6 +337,11 @@ def open_paper_scans_dialog(
                 "end",
                 iid=item.history.action_id,
                 values=(
+                    (
+                        "Замінено"
+                        if item.history.action == "replaced"
+                        else "Прибрано"
+                    ),
                     item.history.created_at.replace("T", " "),
                     record.original_name,
                     _MEDIA_LABELS.get(record.media_type, record.media_type),
@@ -440,6 +456,56 @@ def open_paper_scans_dialog(
             ),
         )
 
+    def replace_scan():
+        if state["busy"]:
+            return
+        selected = tree.selection()
+        record = state["rows"].get(selected[0]) if selected else None
+        if record is None:
+            return
+        source = core.filedialog.askopenfilename(
+            parent=win,
+            title="Виберіть новий скан замість вибраного",
+            filetypes=[
+                ("Підтримувані скани", "*.pdf *.jpg *.jpeg *.png *.tif *.tiff"),
+                ("PDF", "*.pdf"),
+                ("JPEG", "*.jpg *.jpeg"),
+                ("PNG", "*.png"),
+                ("TIFF", "*.tif *.tiff"),
+            ],
+        )
+        if not source:
+            return
+        if not core.messagebox.askyesno(
+            "Замінити скан",
+            (
+                "Замінити вибраний скан новою незмінною копією?\n\n"
+                "Старий файл НЕ буде фізично стерто: він залишиться "
+                "в історії та резервній копії з дією «Замінено».\n\n"
+                "Це не змінює статус документа і не означає "
+                "«підписано»."
+            ),
+            parent=win,
+        ):
+            return
+
+        source_path = Path(source)
+        status.set("Зберігаю новий скан і фіксую заміну…")
+
+        def worker():
+            replacement = replace_paper_scan(
+                Path(workspace_root),
+                record.attachment_id,
+                source_path,
+            )
+            records = list_paper_scans(
+                Path(workspace_root),
+                vault_id,
+            )
+            return replacement, records
+
+        start_background("replace", worker)
+
     def add_scan():
         if state["busy"]:
             return
@@ -501,6 +567,19 @@ def open_paper_scans_dialog(
                             "Скан додано: %s."
                             % record.original_name,
                         )
+                    elif kind == "replace":
+                        replacement, records = payload
+                        render(
+                            records,
+                            (
+                                "Скан замінено: %s → %s. "
+                                "Старий файл збережено в історії."
+                            )
+                            % (
+                                replacement.previous.record.original_name,
+                                replacement.current.original_name,
+                            ),
+                        )
                     elif kind == "remove":
                         removed, records = payload
                         render(
@@ -561,12 +640,14 @@ def open_paper_scans_dialog(
 
     tree.bind("<<TreeviewSelect>>", selection_changed, add="+")
     open_button.configure(command=open_scan)
+    replace_button.configure(command=replace_scan)
     remove_button.configure(command=remove_scan)
     history_button.configure(command=view_history)
     add_button.configure(command=add_scan)
     refresh_button.configure(command=refresh)
     win._taxo_paper_scans_tree = tree
     win._taxo_paper_scans_open = open_scan
+    win._taxo_paper_scans_replace = replace_scan
     win._taxo_paper_scans_remove = remove_scan
     win._taxo_paper_scans_history = view_history
     win._taxo_paper_scans_add = add_scan

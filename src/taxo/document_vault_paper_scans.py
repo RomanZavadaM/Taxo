@@ -85,10 +85,18 @@ class PaperScanHistoryRecord:
 
 @dataclass(frozen=True)
 class RemovedPaperScan:
-    """Removed scan metadata paired with its preserved immutable record."""
+    """Inactive scan metadata paired with its preserved immutable record."""
 
     history: PaperScanHistoryRecord
     record: PaperScanRecord
+
+
+@dataclass(frozen=True)
+class ReplacedPaperScan:
+    """One completed user-requested replacement of an active scan."""
+
+    previous: RemovedPaperScan
+    current: PaperScanRecord
 
 
 def paper_scan_root(workspace_root: Path) -> Path:
@@ -228,7 +236,8 @@ def _history_record(entry) -> PaperScanHistoryRecord:
         entry.get("created_at"),
         "дії зі сканом",
     )
-    if entry.get("action") != "removed":
+    action = entry.get("action")
+    if action not in {"removed", "replaced"}:
         raise ValueError("Непідтримана дія в історії скана")
 
     return PaperScanHistoryRecord(
@@ -236,7 +245,7 @@ def _history_record(entry) -> PaperScanHistoryRecord:
         attachment_id=attachment_id,
         vault_id=vault_id,
         created_at=created_at,
-        action="removed",
+        action=action,
     )
 
 
@@ -443,7 +452,7 @@ def _load_history(
     if len(action_ids) != len(set(action_ids)):
         raise ValueError("Історія сканів містить дублікати дій")
     if len(attachment_ids) != len(set(attachment_ids)):
-        raise ValueError("Скан не може бути прибраний двічі")
+        raise ValueError("Скан не може бути деактивований двічі")
 
     by_id = {item.attachment_id: item for item in records}
     for item in history:
@@ -489,7 +498,7 @@ def list_removed_paper_scans(
     workspace_root: Path,
     vault_id: str = "",
 ) -> Tuple[RemovedPaperScan, ...]:
-    """List verified scans removed from the active list, newest action first."""
+    """List verified inactive scans, newest action first."""
 
     vault_records = list_document_vault(Path(workspace_root))
     valid_ids = {item.vault_id for item in vault_records}
@@ -508,6 +517,37 @@ def list_removed_paper_scans(
         if not vault_id or item.vault_id == vault_id
     )
     return removed
+
+
+def _append_inactive_history(
+    root: Path,
+    records: Tuple[PaperScanRecord, ...],
+    history,
+    scan: PaperScanRecord,
+    action_name: str,
+) -> PaperScanHistoryRecord:
+    """Persist one append-only deactivation action for an immutable scan."""
+
+    if action_name not in {"removed", "replaced"}:
+        raise ValueError("Непідтримана дія зі сканом")
+    if any(item.attachment_id == scan.attachment_id for item in history):
+        raise ValueError("Скан уже неактивний")
+
+    action = PaperScanHistoryRecord(
+        action_id="vh-" + uuid.uuid4().hex,
+        attachment_id=scan.attachment_id,
+        vault_id=scan.vault_id,
+        created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        action=action_name,
+    )
+    payload = canonical_json_bytes({
+        "format": HISTORY_FORMAT,
+        "items": [_history_entry(item) for item in list(history) + [action]],
+    })
+    if len(payload) > MAX_HISTORY_BYTES:
+        raise ValueError("Історія сканів завелика")
+    _atomic_write(root / HISTORY_NAME, payload)
+    return action
 
 
 def remove_paper_scan(
@@ -540,29 +580,14 @@ def remove_paper_scan(
         if any(item.attachment_id == attachment_id for item in history):
             raise ValueError("Скан уже прибрано з активного списку")
 
-        action = PaperScanHistoryRecord(
-            action_id="vh-" + uuid.uuid4().hex,
-            attachment_id=attachment_id,
-            vault_id=scan.vault_id,
-            created_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            action="removed",
+        action = _append_inactive_history(
+            root,
+            records,
+            history,
+            scan,
+            "removed",
         )
-        payload = canonical_json_bytes({
-            "format": HISTORY_FORMAT,
-            "items": [_history_entry(item) for item in history + [action]],
-        })
-        if len(payload) > MAX_HISTORY_BYTES:
-            raise ValueError("Історія сканів завелика")
-        _atomic_write(root / HISTORY_NAME, payload)
-
-        committed = {
-            item.history.attachment_id: item
-            for item in list_removed_paper_scans(
-                workspace_root,
-                scan.vault_id,
-            )
-        }
-        return committed[attachment_id]
+        return RemovedPaperScan(history=action, record=scan)
 
 
 def register_paper_scan(
@@ -700,6 +725,112 @@ def register_paper_scan(
             for item in _load_index(root, valid_ids)
         }
         return committed[attachment_id]
+
+
+def replace_paper_scan(
+    workspace_root: Path,
+    attachment_id: str,
+    source_path: Path,
+) -> ReplacedPaperScan:
+    """Replace one active scan while preserving the previous immutable bytes.
+
+    The new immutable object is committed first. Only after that succeeds is
+    the previous scan marked inactive as replaced. If writing replacement
+    history fails normally, the just-created object/index entry is rolled back.
+    A hard process interruption therefore favours duplicate active copies over
+    silent loss of the previous scan.
+    """
+
+    if (
+        not isinstance(attachment_id, str)
+        or _ATTACHMENT_ID.fullmatch(attachment_id) is None
+    ):
+        raise ValueError("Некоректний ID скана")
+    workspace_root = Path(workspace_root)
+    source_path = Path(source_path)
+
+    with _WRITE_LOCK:
+        vault_records = list_document_vault(workspace_root)
+        valid_ids = {item.vault_id for item in vault_records}
+        root = _attachment_root(workspace_root, create=False)
+        if not root.exists():
+            raise ValueError("Скан не знайдено")
+
+        before_records = _load_index(root, valid_ids)
+        before_by_id = {item.attachment_id: item for item in before_records}
+        previous = before_by_id.get(attachment_id)
+        if previous is None:
+            raise ValueError("Скан не знайдено")
+        before_history = list(_load_history(root, before_records))
+        if any(item.attachment_id == attachment_id for item in before_history):
+            raise ValueError("Скан уже неактивний")
+
+        current = register_paper_scan(
+            workspace_root,
+            previous.vault_id,
+            source_path,
+        )
+
+        records = _load_index(root, valid_ids)
+        history = list(_load_history(root, records))
+        try:
+            action = _append_inactive_history(
+                root,
+                records,
+                history,
+                previous,
+                "replaced",
+            )
+        except Exception as original_error:
+            rollback_records = tuple(
+                item for item in records
+                if item.attachment_id != current.attachment_id
+            )
+            rollback_payload = canonical_json_bytes({
+                "format": INDEX_FORMAT,
+                "items": [_entry(item) for item in rollback_records],
+            })
+            rollback_ok = False
+            try:
+                _atomic_write(root / INDEX_NAME, rollback_payload)
+                rollback_ok = True
+            except Exception:
+                rollback_ok = False
+
+            if rollback_ok:
+                current_path = _object_path(root, current.storage_key)
+                try:
+                    if current_path.exists():
+                        current_path.unlink()
+                except OSError as cleanup_error:
+                    raise RuntimeError(
+                        "Заміну не завершено; новий файл не вдалося "
+                        "прибрати після відкату"
+                    ) from cleanup_error
+                _load_index(root, valid_ids)
+                _load_history(root, rollback_records)
+                raise original_error
+
+            raise RuntimeError(
+                "Не вдалося завершити або безпечно відкотити заміну скана; "
+                "потрібна перевірка сховища"
+            ) from original_error
+
+        committed_records = _load_index(root, valid_ids)
+        committed_history = _load_history(root, committed_records)
+        committed_actions = {
+            item.attachment_id: item for item in committed_history
+        }
+        committed_new = {
+            item.attachment_id: item for item in committed_records
+        }[current.attachment_id]
+        return ReplacedPaperScan(
+            previous=RemovedPaperScan(
+                history=committed_actions[previous.attachment_id],
+                record=previous,
+            ),
+            current=committed_new,
+        )
 
 
 def load_paper_scan(
