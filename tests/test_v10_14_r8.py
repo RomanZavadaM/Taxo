@@ -255,7 +255,7 @@ class AssignmentPersistenceR8Tests(unittest.TestCase):
 
 class ExistingAssignmentEditGuardR8Tests(unittest.TestCase):
     def test_r8_identity_and_registry(self):
-        self.assertIn(main.APP_VERSION, ("10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8", "10.18-r10", "10.19-r1", "10.19-r2", "10.19-r3", "10.19-r4", "10.19-r5", "10.19-r6", "10.19-r7", "10.19-r8", "10.19-r9", "10.19-r10", "10.20-r1", "10.20-r2", "10.20-r3", "10.20-r4", "10.20-r5", "10.20-r6", "10.21-r7", "10.21-r8"))
+        self.assertIn(main.APP_VERSION, ("10.14-r8", "10.14-r9", "10.14-r10", "10.15-r1", "10.15-r2", "10.15-r3", "10.15-r4", "10.15-r5", "10.15-r7", "10.15-r8", "10.15-r9", "10.15-r10", "10.16-r1", "10.16-r2", "10.16-r3", "10.16-r4", "10.16-r5", "10.16-r6", "10.16-r7", "10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8", "10.18-r10", "10.19-r1", "10.19-r2", "10.19-r3", "10.19-r4", "10.19-r5", "10.19-r6", "10.19-r7", "10.19-r8", "10.19-r9", "10.19-r10", "10.20-r1", "10.20-r2", "10.20-r3", "10.20-r4", "10.20-r5", "10.20-r6", "10.21-r7", "10.21-r8", "10.21-r9"))
         routes = {route.function_id: route for route in function_registry.FUNCTION_ROUTES}
         self.assertIn("operations.assignment_existing", routes)
         self.assertTrue(routes["operations.assignment_existing"].runtime_smoke)
@@ -381,22 +381,50 @@ class ExistingAssignmentEditGuardR8Tests(unittest.TestCase):
                 app.update_idletasks()
                 app.update()
 
-                bulk_dialogs = [
+                pair_dialogs = [
                     w for w in walk(win)
                     if isinstance(w, tk.Toplevel) and w is not win
-                    and str(w.title()) == "Додати кілька закріплень"
+                    and str(w.title()) == "Додати пару до цього наказу"
                 ]
-                self.assertEqual(len(bulk_dialogs), 1)
-                bulk_dialog = bulk_dialogs[0]
-                assert_widget_reachable(bulk_dialog, route_id)
-                listboxes = [
-                    w for w in walk(bulk_dialog)
-                    if str(w.winfo_class()) == "Listbox"
+                self.assertEqual(len(pair_dialogs), 1)
+                pair_dialog = pair_dialogs[0]
+                assert_widget_reachable(pair_dialog, route_id)
+                self.assertEqual(
+                    len([w for w in walk(pair_dialog)
+                         if str(w.winfo_class()) == "TCombobox"]),
+                    2,
+                )
+                # The order editor remains open: no navigation to a giant
+                # unrelated table and no loss of other pair rows.
+                self.assertTrue(dialog.winfo_exists())
+                self.assertEqual(len(current_tree.get_children()), 2)
+
+                # No jumping to the global pair tab: edit the exact selected
+                # row while the original order form remains visible.
+                pair_dialog.destroy()
+                current_tree.selection_set("101")
+                current_tree.focus("101")
+                edit_pair = getattr(dialog, "_taxo_existing_assignment_edit_button")
+                with mock.patch.object(
+                    operations_orders_ui.ops, "get_vehicle_assignment",
+                    return_value=assignments[0],
+                ):
+                    activate_widget(edit_pair, route_id, container=dialog)
+                    app.update_idletasks()
+                    app.update()
+                edit_dialogs = [
+                    w for w in walk(win)
+                    if isinstance(w, tk.Toplevel) and w is not win
+                    and str(w.title()) == "Редагувати пару цього наказу"
                 ]
-                self.assertEqual(len(listboxes), 2)
-                for lb in listboxes:
-                    assert_widget_reachable(lb, route_id, container=bulk_dialog)
-                    self.assertEqual(lb.size(), 2)
+                self.assertEqual(len(edit_dialogs), 1)
+                assert_widget_reachable(edit_dialogs[0], route_id)
+                self.assertTrue(dialog.winfo_exists())
+                self.assertEqual(len(current_tree.get_children()), 2)
+                button_by_text(edit_dialogs[0], "Скасувати").invoke()
+                app.update_idletasks()
+                app.update()
+                self.assertEqual(len(current_tree.get_children()), 2)
         finally:
             app.destroy()
 

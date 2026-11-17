@@ -246,7 +246,7 @@ def install_order_register(
             type_labels, type_by_label, employee_labels, employee_by_label,
             book, assignments_tab, orders_tab, refresh_assignments,
             add_assignments_bulk, refresh_orders, refresh_open_order_previews,
-            order_cache, preview_order,
+            order_cache, preview_order, edit_assignment_by_id, focus_assignments,
         )
 
     def order_mutability_message(row):
@@ -517,7 +517,8 @@ def install_order_register(
         )
     order_tree.bind("<Double-1>",lambda _e:preview_order(),add="+")
 
-    refresh_assignments, add_assignments_bulk = install_assignment_tab(
+    (refresh_assignments, add_assignments_bulk,
+     edit_assignment_by_id, focus_assignments) = install_assignment_tab(
         core, ops, win, assignments_tab, order_tree, create_assignment_order,
         selected_order, require_mutable_order, refresh_open_order_previews,
     )

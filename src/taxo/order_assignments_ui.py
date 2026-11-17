@@ -143,8 +143,49 @@ def install_assignment_tab(core, ops, win, assignments_tab, order_tree,
 
     def edit_assignment():
         sel=atree.selection()
-        if not sel: core.messagebox.showinfo("Закріплення","Виберіть рядок ТЗ / водія.",parent=win); return
-        assignment_dialog(assignment_cache.get(int(sel[0])))
+        if not sel:
+            core.messagebox.showinfo(
+                "Закріплення",
+                "Спочатку виберіть конкретну пару в таблиці, потім натисніть «Редагувати».",
+                parent=win,
+            )
+            return
+        chosen=assignment_cache.get(int(sel[0]))
+        if chosen is None:
+            refresh_assignments()
+            core.messagebox.showerror("Закріплення","Пара змінилася. Оновіть вибір.",parent=win)
+            return
+        assignment_dialog(chosen)
+
+    def edit_assignment_by_id(assignment_id):
+        """Open the exact pair requested from the order editor, not a blank tab."""
+        refresh_assignments()
+        iid=str(int(assignment_id))
+        if iid not in atree.get_children():
+            core.messagebox.showerror(
+                "Закріплення","Обрана пара вже відсутня в цьому наказі.",parent=win
+            )
+            return
+        atree.selection_set(iid)
+        atree.focus(iid)
+        atree.see(iid)
+        edit_assignment()
+
+    def focus_assignments():
+        """Show the selected order's actual pairs and focus their first row."""
+        refresh_assignments()
+        children=atree.get_children()
+        if children:
+            atree.selection_set(children[0])
+            atree.focus(children[0])
+            atree.see(children[0])
+            atree.focus_set()
+        else:
+            core.messagebox.showinfo(
+                "Закріплення",
+                "У цьому наказі ще немає пар. Скористайтеся «Додати одну пару» або «Додати багато…».",
+                parent=win,
+            )
     def remove_assignment():
         order=current_assignment_order(); sel=atree.selection()
         if order is None or not sel:return
@@ -161,5 +202,5 @@ def install_assignment_tab(core, ops, win, assignments_tab, order_tree,
     core.ttk.Button(abar,text="Редагувати",command=edit_assignment).pack(side="left",padx=6)
     core.ttk.Button(abar,text="Прибрати",command=remove_assignment).pack(side="left",padx=6)
 
-    return refresh_assignments, add_assignments_bulk
+    return refresh_assignments, add_assignments_bulk, edit_assignment_by_id, focus_assignments
 

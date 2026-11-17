@@ -30,6 +30,8 @@ def open_order_editor(
     refresh_open_order_previews,
     order_cache,
     preview_order,
+    edit_assignment_by_id,
+    focus_assignments,
 ):
     """Open the order form and coordinate its specialized sections."""
     dialog = core.tk.Toplevel(win)
@@ -128,6 +130,8 @@ def open_order_editor(
         assignments_tab=assignments_tab,
         refresh_assignments=refresh_assignments,
         add_assignments_bulk=add_assignments_bulk,
+        edit_assignment_by_id=edit_assignment_by_id,
+        focus_assignments=focus_assignments,
     )
     assignment_section.show_for_type(initial_type)
 
@@ -239,13 +243,11 @@ def open_order_editor(
         dialog.destroy(); refresh_orders(oid)
         refresh_open_order_previews(oid)
         created_order=order_cache.get(int(oid))
-        if order_type==ops.TYPE_VEHICLE_ASSIGNMENT and not initial_pairs:
-            book.select(assignments_tab)
-            refresh_assignments()
-        else:
-            book.select(orders_tab)
-            if created_order is not None:
-                preview_order(created_order)
+        # Saving a new order always returns to that order. Do not silently
+        # jump to the global pairs tab, even when the order is empty.
+        book.select(orders_tab)
+        if created_order is not None:
+            preview_order(created_order)
     bar=core.ttk.Frame(frm); bar.grid(row=12,column=0,columnspan=2,sticky="ew",pady=(10,0))
     core.ttk.Button(bar,text="Скасувати",command=dialog.destroy).pack(side="right")
     core.ttk.Button(bar,text="Вставити заготовку",command=apply_template).pack(side="left")
