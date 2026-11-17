@@ -101,9 +101,9 @@ def install_assignment_tab(core, ops, win, assignments_tab, order_tree,
         core.ttk.Label(frm,textvariable=count_var,style="Subtitle.TLabel").grid(row=2,column=0,columnspan=2,sticky="w",pady=(4,2))
         core.ttk.Label(
             frm,
-            text=("1 ТЗ + кілька водіїв або однакова кількість ТЗ і водіїв. "
-                  "При однаковій кількості пари формуються за порядком вибору. "
-                  "Один водій не закріплюється одночасно за кількома ТЗ."),
+            text=("Виберіть рівно один ТЗ і одного або кількох водіїв. "
+                  "Для іншого ТЗ повторіть додавання окремо. Taxo не формує "
+                  "пари автоматично з двох незалежних списків."),
             style="Muted.TLabel",wraplength=760,justify="left",
         ).grid(row=3,column=0,columnspan=2,sticky="w",pady=(0,6))
         dates=core.ttk.Frame(frm); dates.grid(row=4,column=0,columnspan=2,sticky="ew"); dates.columnconfigure(1,weight=1); dates.columnconfigure(3,weight=1)
@@ -118,9 +118,12 @@ def install_assignment_tab(core, ops, win, assignments_tab, order_tree,
             vehicle_ids=[vehicles[int(i)]["id"] for i in vlist.curselection()]
             driver_ids=[drivers[int(i)]["id"] for i in dlist.curselection()]
             try:
+                if len(vehicle_ids) != 1 or not driver_ids:
+                    raise ValueError(
+                        "Виберіть рівно один ТЗ і одного або кількох водіїв. "
+                        "Для іншого ТЗ повторіть додавання окремо."
+                    )
                 pairs=ops.build_assignment_pairs(vehicle_ids,driver_ids)
-                if not pairs:
-                    raise ValueError("Виберіть транспорт і водіїв.")
             except Exception as exc:
                 core.messagebox.showerror("Закріплення",str(exc),parent=dlg); return
             con3=core.db()
