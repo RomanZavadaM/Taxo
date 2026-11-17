@@ -1,3 +1,13 @@
+## 17.11.2026 — 10.21-r5: сортування каталогу за «№»
+
+- Fresh verification: main `fd0e97f9af7cb54bf5112188cd1004e414d829fe`, 415 refs, r5 не було, старий docs-only PR #395. Попередній main CI успішний.
+- Один вузький Issue #289 крок: у «Документи» клік «№» перемикає natural numeric сортування ▲/▼ (2 перед 10; 2-А перед 10-А); порожні номери наприкінці. Фільтри перед сортуванням, сортування до пагінації, перемикання на першу сторінку. Сортування за датою r4 збережено.
+- Перший проміжний START помітив неправильне regex-екранування числових частин у новій реалізації; виправлено до merge, старі проміжні runs не враховуються.
+- Product PR #503 merged; final PR head `639d4461b2119dd7caebd37f8fb18e3ded5a890e`, exact release source `d3f01d1cefd11ac5cab15054dfab85d962c0a84c`.
+- Exact-source CI: START `44141706069` **1459/1459**, Windows `44141706165`, Win7 `44141706293`, macOS Intel/ARM `44141706021` SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #504 merged `1515b1b52fe0a9e9d38d49bed7fd4f06f0de674f`; publisher `44143863239` SUCCESS. [v10.21-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r5) Test prerelease, immutable exact tag `d3f01d1c…`, 6 assets = 4 Portable + START + SHA256.
+- Stable/Latest **v10.21-r2** unchanged, 8 assets. Сховище, файли, скани, backup/restore, бізнес-статуси, schema і КЕП не змінювалися. **10.21-r6 не розпочата**.
+
 ## 17.11.2026 — 10.21-r4: сортування дати в каталозі «Документи»
 
 - Fresh GitHub verification: `main` `96c3fd4516addc0e95a93f3df024f8e97a62f3ac`, 412 refs (включно з гілками без PR), жодної r4 гілки; старий docs-only PR #395 не є продуктовою роботою.

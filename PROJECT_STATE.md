@@ -2,35 +2,30 @@
 
 **Підтверджений інтегрований стан: 17.11.2026.**
 
-- Актуальна продуктова ревізія: **10.21-r4**, інтегрована й опублікована як Test prerelease.
-- Product PR #500 merged; exact immutable release source `abc0d8848752b70d50f8d2d55983ed83159f24a7`.
-- Exact-source CI: START `44125366421` — **1454/1454**; Windows `44125366461`, Win7 `44125366427`, macOS Intel/ARM `44125366431` — SUCCESS. Defender та post-scan integrity PASS.
-- Release-trigger PR #501 merged `d575f1b51caaf8f659dd2c2dc5f24b73271138af`; publisher `44127599704`, attempt 2 SUCCESS після transient HTTP 503 artifact egress в attempt 1.
-- [v10.21-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r4): Test prerelease, 6 файлів — 4 Portable, START і SHA256, exact tag target `abc0d8848752b70d50f8d2d55983ed83159f24a7`.
-- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), повний випуск із 8 файлів, source `b104f94ace0ae355df79c914b3be6f39417bd6e9`, без змін.
+- Завершена продуктова ревізія: **10.21-r5**, product PR #503 merged, exact immutable source `d3f01d1cefd11ac5cab15054dfab85d962c0a84c`.
+- Exact-source CI: START `44141706069` — **1459/1459**; Windows `44141706165`, Win7 `44141706293`, macOS Intel/ARM `44141706021` — SUCCESS, Defender/integrity PASS.
+- Release-trigger PR #504 merged `1515b1b52fe0a9e9d38d49bed7fd4f06f0de674f`; publisher run `44143863239` SUCCESS.
+- [v10.21-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r5): Test prerelease, 6 assets (4 Portable + START + SHA256), immutable tag target `d3f01d1cefd11ac5cab15054dfab85d962c0a84c`.
+- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 assets, unchanged, immutable source `b104f94ace0ae355df79c914b3be6f39417bd6e9`.
 
-## Інтегрований результат 10.21-r4
+## Результат 10.21-r5
 
-- Натискання заголовка «Дата» в каталозі «Документи» перемикає сортування: новіші ▼ / старіші ▲.
-- Сортування відбувається після існуючих пошуку та фільтрів, але до пагінації.
-- Порожні й некоректні дати показуються в кінці незалежно від напряму.
-- Однакові дати не втрачають відносний порядок поточного джерела.
-- Зміна суто read-only: сховище, скани, готові файли, backup/restore, бізнес-статуси та схема БД без змін.
-- КЕП, OCR, auto «підписано» та нові залежності не додавалися.
+- Натискання заголовка «№» у «Документи» перемикає натуральне сортування номерів: 2 перед 10, 2-А перед 10-А; порожні номери наприкінці.
+- Обробка всього відфільтрованого списку перед пагінацією; комбінація з пошуком, джерелом, типом, сканами, періодом «Від / До».
+- Після перемикання — перша сторінка; сортування «Дата» з r4 не втрачено.
+- Немає змін сховища, файлів, scan/backup/restore, статусів, БД, OCR, КЕП та залежностей.
 
 ## Активна кодова ревізія
 
-Немає. **10.21-r5 ще не розпочата.**
+Немає. **10.21-r6 ще не розпочата.**
 
-## Наступна дозволена ревізія
+## Наступний крок
 
-**10.21-r5** після fresh GitHub verification і вибору одного вузького кроку з Issue #289. Старі ревізії та immutable теги не використовувати повторно; Stable змінюється лише прямою командою власника.
+Після live GitHub verification, включно з гілками без PR, вибрати один новий вузький крок Issue #289 для **10.21-r6**. Stable не змінювати без прямої команди.
 
 ## Recovery
 
-Читати `START_HERE.md` → `HANDOFF_CURRENT.md` → private `profile/taxo` → live GitHub (у тому числі гілки без PR). Issue #61 — live журнал, WORKLOG — технічна історія. Детальний аудит r4: [сортування дати](docs/maintenance/AUDIT_DOCUMENT_DATE_SORT_10_21_R4.md).
-
-На старті r4 перевірено 412 refs; r4 branch/PR не існували. Перший START на проміжному head мав одну помилку нового тесту (порядок документів з однаковою датою), виправлено очікування без продуктових змін. Після цього 1454/1454 і повні платформи PASS.
+Перед r5: main `fd0e97f9af7cb54bf5112188cd1004e414d829fe`, 415 refs, r5 не була почата. Спочатку тест знайшов неправильне екранування `\\d` у regex; виправлено до merge, final 1459/1459. Основний журнал — Issue #61, історія — WORKLOG. Докладний аудит r5: [номер](docs/maintenance/AUDIT_DOCUMENT_NUMBER_SORT_10_21_R5.md).
 
 ## Історичний якір
 
