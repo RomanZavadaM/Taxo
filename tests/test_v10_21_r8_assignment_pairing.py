@@ -2,6 +2,7 @@
 """10.21-r8: driver/vehicle pairs must be explicit, never positional zip."""
 import inspect
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
@@ -10,6 +11,21 @@ import order_editor_assignments_ui
 
 
 class AssignmentPairingR8Tests(unittest.TestCase):
+    def test_current_identity_is_r8(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            (root / "VERSION.txt").read_text(encoding="utf-8"),
+            "Version: 10.21-r8\n",
+        )
+        self.assertIn(
+            'APP_VERSION = "10.21-r8"',
+            (root / "main.py").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "Taxo 10.21-r8",
+            (root / "START.bat").read_text(encoding="utf-8"),
+        )
+
     def test_core_rejects_positional_zip_for_multiple_vehicles(self):
         with self.assertRaisesRegex(ValueError, "Автоматичне парування"):
             ops.build_assignment_pairs([20, 10], [1, 2])
