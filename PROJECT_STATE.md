@@ -2,23 +2,23 @@
 
 **Confirmed integrated: 17.11.2026.**
 
-- Latest completed code revision **10.21-r7**. Product PR #509 merged, immutable exact source `b3185f5f558d96880cc8c2614529d0fb2d0de660`.
-- Exact-source START #44159339508 **1469/1469**; Windows #44159339500, Win7 #44159340068, macOS Intel/ARM #44159339556 SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #510 merged `4f9eafa9729f15b25dd1bf26385e87e3fe1aa520`; publisher #44161402744 SUCCESS.
-- [v10.21-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r7) — Test prerelease, 6 assets, exact immutable source above.
+- Latest completed code revision **10.21-r8**. Product PR #513 merged, immutable exact source `c9dc9799c22565b56c737216983dd900265c29bd`.
+- Exact-source START #44167952855 **1475/1475**; Windows #44167952924, Win7 #44167952849, macOS Intel/ARM #44167952840 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #514 merged `293ddccfcf88433e7a331d79372e4fe1c71239b4`; publisher #44169744409 SUCCESS.
+- [v10.21-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r8) — Test prerelease, 6 assets, exact immutable source above.
 - **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 assets, unchanged.
 
-## Result r7
+## Result r8
 
-Existing schedule calendar «Дата…» reused in the «Шляхівки» window. Selecting a new day immediately refreshes this window, cancelling does not; the r6 manual date/day navigation is preserved. No DB/schema, mileage/waybill business logic, backup/restore, security, dependency changes. Manual UI acceptance of r7 not yet recorded.
+Unsafe positional pairing of independent vehicle and driver selections was removed. A new assignment order now stages concrete pairs explicitly: exactly one vehicle + one or more drivers per action, with the resulting pairs visible before save; another vehicle is added separately. Unstaged selection blocks save instead of silently re-pairing. The existing-order bulk path follows the same rule. Historical stored orders are not rewritten. The 12-pair regression still validates persistence, reopen, DOCX/PDF/JPG and backup/restore.
 
 ## Active code revision
 
-None. **10.21-r8 not started.**
+None. **10.21-r9 not started.**
 
 ## Next action
 
-Address owner-reported **Issue #511**: wrong pair grouping of chosen drivers/vehicles in order UI **and inability to import prepared pairs from «Експлуатація»**. Validate exact driver↔vehicle associations in select/stage/store/reopen/generate paths and add regressions; no silent positional re-pairing or automatic alteration of older orders. Perform fresh live GitHub reconciliation before modifications; leave stable unchanged.
+Continue only the still-open part of **Issue #511**: owner cannot reuse already prepared driver↔vehicle pairs from «Експлуатація» when creating the order. Trace that prepared-pair source through selection/import, stage/store/reopen/generate and add regression coverage without restoring positional pairing. Perform fresh live GitHub reconciliation before modifications; leave stable unchanged.
 
 ## History
 
