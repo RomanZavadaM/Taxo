@@ -398,6 +398,33 @@ class ExistingAssignmentEditGuardR8Tests(unittest.TestCase):
                 # unrelated table and no loss of other pair rows.
                 self.assertTrue(dialog.winfo_exists())
                 self.assertEqual(len(current_tree.get_children()), 2)
+
+                # No jumping to the global pair tab: edit the exact selected
+                # row while the original order form remains visible.
+                pair_dialog.destroy()
+                current_tree.selection_set("101")
+                current_tree.focus("101")
+                edit_pair = getattr(dialog, "_taxo_existing_assignment_edit_button")
+                with mock.patch.object(
+                    operations_orders_ui.ops, "get_vehicle_assignment",
+                    return_value=assignments[0],
+                ):
+                    activate_widget(edit_pair, route_id, container=dialog)
+                    app.update_idletasks()
+                    app.update()
+                edit_dialogs = [
+                    w for w in walk(win)
+                    if isinstance(w, tk.Toplevel) and w is not win
+                    and str(w.title()) == "Редагувати пару цього наказу"
+                ]
+                self.assertEqual(len(edit_dialogs), 1)
+                assert_widget_reachable(edit_dialogs[0], route_id)
+                self.assertTrue(dialog.winfo_exists())
+                self.assertEqual(len(current_tree.get_children()), 2)
+                button_by_text(edit_dialogs[0], "Скасувати").invoke()
+                app.update_idletasks()
+                app.update()
+                self.assertEqual(len(current_tree.get_children()), 2)
         finally:
             app.destroy()
 
