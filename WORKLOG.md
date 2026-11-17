@@ -1,3 +1,15 @@
+## 17.11.2026 — 10.21-r2: фільтр документів за періодом «Від / До»
+
+- На старті live GitHub випереджав HANDOFF: 10.21-r1 уже була інтегрована й опублікована, відкритим лишався recovery PR #492. r1 не повторювали. У #492 macOS arm64 мав лише DNS `ENOTFOUND` під час upload artifact; перезапущено один job, після SUCCESS recovery merged як `bc63503e3b87bb0c5767c9c14ebd2f8b804aa6e3`.
+- Після fresh verification готової r2 гілки/PR не було. Один bounded slice Issue #289: у загальному каталозі «Документи» додано необов'язковий read-only період «Від / До» у форматі РРРР-ММ-ДД.
+- Межі включні, застосовуються до повного snapshot до пагінації та комбінуються з пошуком, джерелом і фільтром сканів. Некоректні межі дають явну помилку; записи без коректної дати не вважаються такими, що входять у активний період.
+- Product PR #493 merged; final product head `96c9a551e031adf44846263d4f44cc3acb533083`; exact immutable release source `b104f94ace0ae355df79c914b3be6f39417bd6e9`.
+- Exact-source CI: START `44102833144` — **1442/1442**; Windows `44102833224`; Win7 `44102833082`; macOS Intel/ARM `44102833261` — SUCCESS. Defender та post-scan integrity PASS.
+- Trigger PR #494 змінив лише кінцевий перенос рядка stable marker; значення `10.20-r5` лишилось незмінним. Merged `751480375503f74cdc205d1d20ba5b34ff44cffe`; publisher `44105145533` SUCCESS.
+- [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2) опубліковано як Test prerelease; tag exact source `b104f94ace0ae355df79c914b3be6f39417bd6e9`; рівно 6 uploaded assets: 4 Portable + START + SHA256.
+- Stable/GitHub Latest лишається **v10.20-r5**, 8 assets. Сховище/файли/скани/backup/status не змінювались; без КЕП/e-signature, auto «підписано», physical purge, migration або нових залежностей.
+- **10.21-r3 не розпочата.** Наступний крок визначати лише після fresh recovery. Детальний аудит: `docs/maintenance/AUDIT_DOCUMENT_DATE_FILTER_10_21_R2.md`.
+
 ## 17.11.2026 — 10.21-r1: фільтр документів за наявністю сканів
 
 - Fresh verification почався з main `9965827de5a75c64872848b54df2ccb6012d6a52`; перевірено 402 refs, включно з гілками без PR. Готової 10.21-r1 не було, тому стару роботу не повторювали.
