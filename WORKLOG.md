@@ -1,3 +1,16 @@
+## 17.11.2026 — 10.21-r3: фільтр документів за типом
+
+- Fresh verification почався з main `2145f025c82471b4917e5fafa20f2a821e7b169e`; перевірено 408 refs, включно з гілками без PR. 10.21-r2 вже була завершена/recovery-закрита; готової r3 гілки/PR не було.
+- Один bounded slice Issue #289: у загальному каталозі «Документи» додано read-only фільтр «Тип». Значення формуються з уже наявного структурованого поля `kind`; без вгадування категорій і без міграції.
+- Точний тип застосовується до повного snapshot до пагінації й комбінується з пошуком, джерелом, сканами та періодом «Від / До». Категорії БДР/ОП/кадрові та employee/vehicle navigation лишились поза r3.
+- Перший START на проміжному head: 1448 тестів, 1 failure лише у новому тесті через жорстке очікування Unicode-порядку українських назв. Виправлено тест на перевірку складу значень; продукт не змінювався.
+- Product PR #496 merged; final product head `7ad2df8ba4dd08d754cb1f47ea29b804438a4979`; exact immutable release source `f8a30882c473568293b3123e1f23feca22e54334`.
+- Exact-source CI: START `44111408334` — **1448/1448**; Windows `44111408360`; Win7 `44111408405`; macOS Intel/ARM `44111408772` — SUCCESS. Defender та post-scan integrity PASS.
+- Trigger PR #497 змінив лише кінцевий перенос рядка stable marker; значення `10.20-r5` лишилось незмінним. Merged `a301ed020d62831257748c7658d5bc61987d4e98`; publisher `44113848030` SUCCESS.
+- [v10.21-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r3) опубліковано як Test prerelease; tag exact source `f8a30882c473568293b3123e1f23feca22e54334`; рівно 6 uploaded assets: 4 Portable + START + SHA256.
+- Stable/GitHub Latest лишається **v10.20-r5**, 8 assets. Сховище/файли/скани/backup/status не змінювались; без КЕП/e-signature, auto «підписано», physical purge, migration або нових залежностей.
+- **10.21-r4 не розпочата.** Наступний крок визначати лише після fresh recovery. Детальний аудит: `docs/maintenance/AUDIT_DOCUMENT_TYPE_FILTER_10_21_R3.md`.
+
 ## 17.11.2026 — 10.21-r2: фільтр документів за періодом «Від / До»
 
 - На старті live GitHub випереджав HANDOFF: 10.21-r1 уже була інтегрована й опублікована, відкритим лишався recovery PR #492. r1 не повторювали. У #492 macOS arm64 мав лише DNS `ENOTFOUND` під час upload artifact; перезапущено один job, після SUCCESS recovery merged як `bc63503e3b87bb0c5767c9c14ebd2f8b804aa6e3`.
