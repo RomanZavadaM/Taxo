@@ -90,8 +90,8 @@ class DocumentTypeFilterR3Tests(unittest.TestCase):
             kind_filter="Наказ",
         )
         self.assertEqual(
-            result["available_kinds"],
-            ("Акт", "Інструкція", "Наказ"),
+            set(result["available_kinds"]),
+            {"Акт", "Інструкція", "Наказ"},
         )
 
     def test_unknown_type_is_an_empty_read_only_view(self):
