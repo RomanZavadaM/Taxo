@@ -86,7 +86,7 @@ class PreparedPdfPrintR10Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            ("Version: 10.19-r10", "Version: 10.20-r1", "Version: 10.20-r2", "Version: 10.20-r3", "Version: 10.20-r4", "Version: 10.20-r5", "Version: 10.20-r6", "Version: 10.21-r3"),
+            ("Version: 10.19-r10", "Version: 10.20-r1", "Version: 10.20-r2", "Version: 10.20-r3", "Version: 10.20-r4", "Version: 10.20-r5", "Version: 10.20-r6", "Version: 10.21-r4"),
         )
         main_source = (root / "main.py").read_text("utf-8")
         self.assertTrue(
@@ -97,7 +97,7 @@ class PreparedPdfPrintR10Tests(unittest.TestCase):
             or 'APP_VERSION = "10.20-r4"' in main_source
             or 'APP_VERSION = "10.20-r5"' in main_source
             or 'APP_VERSION = "10.20-r6"' in main_source
-            or 'APP_VERSION = "10.21-r3"' in main_source
+            or 'APP_VERSION = "10.21-r4"' in main_source
         )
         start_source = (root / "START.bat").read_text("utf-8")
         self.assertTrue(
@@ -108,7 +108,7 @@ class PreparedPdfPrintR10Tests(unittest.TestCase):
             or "Taxo 10.20-r4" in start_source
             or "Taxo 10.20-r5" in start_source
             or "Taxo 10.20-r6" in start_source
-            or "Taxo 10.21-r3" in start_source
+            or "Taxo 10.21-r4" in start_source
         )
 
     def setUp(self):

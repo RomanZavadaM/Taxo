@@ -72,14 +72,14 @@ class PaperScanReplaceR10Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.21-r3\n",
+            "Version: 10.21-r4\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.21-r3"',
+            'APP_VERSION = "10.21-r4"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.21-r3",
+            "Taxo 10.21-r4",
             (root / "START.bat").read_text("utf-8"),
         )
 
@@ -226,7 +226,7 @@ class PaperScanReplaceR10Tests(unittest.TestCase):
 
         archive = self.base / "backup.zip"
         create_workspace_backup_archive(
-            self.workspace, archive, app_version="10.21-r3",
+            self.workspace, archive, app_version="10.21-r4",
         )
         restored = self.base / "Restored"
         restore_workspace_backup_archive(archive, restored)
