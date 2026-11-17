@@ -202,6 +202,7 @@ class OrderEditorAssignmentSection:
                 "Пари, які реально підуть у наказ, показані в таблиці вище. "
                 "Виберіть рівно один ТЗ і одного або кількох водіїв, натисніть "
                 "«Додати вибране як пари», потім повторіть для іншого ТЗ. "
+                "Taxo не групує два незалежні списки автоматично. "
                 "Для виправлення: двічі клацніть готовий рядок, "
                 "виберіть потрібний ТЗ і водія, натисніть «Замінити вибрану пару». "
                 "Можна також узяти пари з раніше створених наказів."
@@ -389,8 +390,8 @@ class OrderEditorAssignmentSection:
             % (index + 1, len(self.staged_initial_pairs))
         )
 
-    def _import_prepared_pairs(self):
-        """Copy exact, explicitly selected existing pairs; never infer by list order."""
+    def _available_prepared_pairs(self):
+        """Read exact prior order pairs; do not mutate their source orders."""
         con = self.core.db()
         try:
             sources = []
@@ -406,10 +407,30 @@ class OrderEditorAssignmentSection:
                     ))
         finally:
             con.close()
+        active_vehicles = {int(row["id"]) for row in self.initial_vehicles}
+        active_drivers = {int(row["id"]) for row in self.initial_drivers}
+        return [
+            item for item in sources
+            if item[0] in active_vehicles and item[1] in active_drivers
+        ]
+
+    def _merge_prepared_pairs(self, pairs):
+        """Append each chosen association once; never pair independent lists."""
+        existing = set(self.staged_initial_pairs)
+        added = 0
+        for vehicle_id, driver_id in pairs:
+            pair = (int(vehicle_id), int(driver_id))
+            if pair not in existing:
+                self.staged_initial_pairs.append(pair)
+                existing.add(pair)
+                added += 1
+        return added
+
+    def _import_prepared_pairs(self):
+        """Copy exact, explicitly selected existing pairs; never infer by list order."""
+        available = self._available_prepared_pairs()
         active_vehicles = {int(row["id"]): row["label"] for row in self.initial_vehicles}
         active_drivers = {int(row["id"]): row["label"] for row in self.initial_drivers}
-        available = [item for item in sources
-                     if item[0] in active_vehicles and item[1] in active_drivers]
         if not available:
             self.core.messagebox.showinfo(
                 "Готові пари з Експлуатації",
@@ -458,15 +479,10 @@ class OrderEditorAssignmentSection:
                     parent=dlg,
                 )
                 return
-            existing_pairs = set(self.staged_initial_pairs)
-            added = 0
-            for item_id in selected:
-                vehicle, driver, _, _ = available[int(item_id)]
-                pair = (vehicle, driver)
-                if pair not in existing_pairs:
-                    self.staged_initial_pairs.append(pair)
-                    existing_pairs.add(pair)
-                    added += 1
+            added = self._merge_prepared_pairs(
+                (available[int(item_id)][0], available[int(item_id)][1])
+                for item_id in selected
+            )
             self._render_staged_pairs()
             self.assignment_count_var.set(
                 "Перенесено готових пар: %d. У новому наказі всього: %d."
