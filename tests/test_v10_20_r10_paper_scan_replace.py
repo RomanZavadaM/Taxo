@@ -346,7 +346,7 @@ class PaperScanReplaceUiR10Tests(unittest.TestCase):
             self.skipTest("Tk display unavailable: %s" % exc)
         root.withdraw()
         self.addCleanup(root.destroy)
-        default_font = font.nametofont("TkDefaultFont", root=root)
+        default_font = font.Font(root=root, name="TkDefaultFont", exists=True)
         original_size = default_font.cget("size")
         self.addCleanup(lambda: default_font.configure(size=original_size))
         record = SimpleNamespace(
