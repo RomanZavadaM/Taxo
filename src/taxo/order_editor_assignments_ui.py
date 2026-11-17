@@ -546,7 +546,7 @@ class OrderEditorAssignmentSection:
             padding=8,
         )
         self.box.grid(
-            row=7,
+            row=8,
             column=0,
             columnspan=2,
             sticky="ew",
