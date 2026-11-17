@@ -1149,3 +1149,18 @@
 - Release promotion workflow 43077555581 спочатку зупинився на SIGPIPE `exit 141` у `git show | grep -Fq`; gate виправлено, failure не приховано. Повторний run [43077702929](https://github.com/RomanZavadaM/Taxo/actions/runs/43077702929) — **SUCCESS**, перевірив exact source/tag, оригінальні 6 assets і контрольні суми; витягнув Setup_Windows_x64.exe і Setup_Windows7_x64.exe з перевірених exact-r8 CI artifacts; оновив повний SHA256, перевів release у Stable/Latest; фінально завантажив усі 8 assets і перевірив SHA256.
 - Release [v10.16-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.16-r8) — Stable/Latest, exact tag як і був. Реліз 10.15-r5 залишився незмінною rollback.
 - Зауваження власника до типових документів: бібліотека повинна бути **своя редагована для кожного користувача**, підтримувати створення власних шаблонів; шаблон не є фінальним документом. Заповнювати конкретними датами, ПІБ, транспортом та іншими реквізитами з робочих даних; не вигадувати зайві положення для простих наказів про закріплення. Історичні накази власника (до 20 років) можуть використовуватися для аналізу за умови приватності. Детальна карта: `docs/planning/ORDER_TEMPLATE_LIBRARY_PLAN_2026-11-11.md`.
+
+## 17.11.2026 — 10.20-r7 завершено та опубліковано
+
+- Після обриву попереднього чату виконано live GitHub reconciliation; повторної реалізації або повторної публікації r7 не робилось.
+- Product PR #471 merged як `48ef40c77aa43da4140a390dbc14cc3ef3483b47`.
+- Release-notes PR #475 дав exact issued source `172cc44d863c60e63d89f45dcc11d31fa575db46`.
+- r7 додає явне відкриття вибраного паперового скана тільки після свіжої перевірки цілісності. Якщо користувач закрив вікно під час фонової перевірки, результат ігнорується і файл не відкривається.
+- Скан не означає «підписано»; КЕП, автоматичний статус підпису, міграція старих документів і нові бізнес-статуси не додавались.
+- Exact-source checks: START `43918902181` — SUCCESS, **1408/1408**; Windows `43918902255` — SUCCESS; Win7 `43918902260` — SUCCESS; macOS Intel/ARM `43918902511` — SUCCESS; Defender/integrity PASS.
+- Trigger PR #476 merged `3239e6dd87a44a7210ea7ae1f6d3d0deeffaf5c2`; publisher `44054730816` — SUCCESS.
+- [v10.20-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r7) — Test prerelease, exact target `172cc44d863c60e63d89f45dcc11d31fa575db46`, рівно 6 assets: 4 Portable, START, SHA256.
+- Stable/Latest лишається [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5), 8 assets.
+- Issue #61 вже містить аварійний підсумок r7 після збою доставки.
+- На момент recovery **10.20-r8 не розпочата**: відповідної гілки, PR або коду немає. Наступний крок — після цього docs checkpoint вибрати один обмежений r8 slice з чинного плану DocumentVault/сканів.
+
