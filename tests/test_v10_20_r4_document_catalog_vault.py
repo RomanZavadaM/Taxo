@@ -122,7 +122,7 @@ class DocumentCatalogVaultR4Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.21-r7\n",
+            "Version: 10.21-r8\n",
         )
         self.assertIn(
             'APP_VERSION = "10.21-r8"',
