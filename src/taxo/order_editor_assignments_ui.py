@@ -395,15 +395,20 @@ class OrderEditorAssignmentSection:
         con = self.core.db()
         try:
             sources = []
+            seen = set()
             for order in self.ops.list_orders(con):
                 if str(order["order_type"]) != self.ops.TYPE_VEHICLE_ASSIGNMENT:
                     continue
+                if str(order["status"]) == self.ops.ORDER_CANCELLED:
+                    continue
                 for pair in self.ops.order_assignments(con, order["id"]):
+                    key = (int(pair["vehicle_id"]), int(pair["employee_id"]))
+                    if key in seen:
+                        continue
+                    seen.add(key)
                     sources.append((
-                        int(pair["vehicle_id"]),
-                        int(pair["employee_id"]),
-                        str(order["order_no"]),
-                        str(order["order_date"]),
+                        key[0], key[1],
+                        str(order["order_no"]), str(order["order_date"]),
                     ))
         finally:
             con.close()
@@ -455,8 +460,21 @@ class OrderEditorAssignmentSection:
             wraplength=760,
             justify="left",
         ).pack(anchor="w", pady=(0, 8))
+        filter_var = self.core.tk.StringVar(value="")
+        filter_row = self.core.ttk.Frame(body)
+        filter_row.pack(fill="x", pady=(0, 6))
+        self.core.ttk.Label(
+            filter_row, text="Пошук: наказ, ТЗ або водій"
+        ).pack(side="left")
+        self.core.ttk.Entry(
+            filter_row, textvariable=filter_var
+        ).pack(side="left", fill="x", expand=True, padx=(8, 0))
+        table_frame = self.core.ttk.Frame(body)
+        table_frame.pack(fill="both", expand=True)
+        table_frame.rowconfigure(0, weight=1)
+        table_frame.columnconfigure(0, weight=1)
         table = self.core.ttk.Treeview(
-            body, columns=("order", "vehicle", "driver"),
+            table_frame, columns=("order", "vehicle", "driver"),
             show="headings", selectmode="extended", height=12,
         )
         for key, name, width in (
@@ -466,11 +484,36 @@ class OrderEditorAssignmentSection:
         ):
             table.heading(key, text=name)
             table.column(key, width=width, anchor="w")
-        table.pack(fill="both", expand=True)
-        for offset, (vehicle, driver, number, day) in enumerate(available):
-            table.insert("", "end", iid=str(offset),
-                         values=("%s (%s)" % (number, self.ops.display_day(day)),
-                                 active_vehicles[vehicle], active_drivers[driver]))
+        scrollbar = self.core.ttk.Scrollbar(
+            table_frame, orient="vertical", command=table.yview
+        )
+        table.configure(yscrollcommand=scrollbar.set)
+        table.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        visible_count = self.core.tk.StringVar(value="")
+        self.core.ttk.Label(
+            body, textvariable=visible_count
+        ).pack(anchor="w", pady=(4, 0))
+
+        def filter_source_pairs(*_args):
+            for item_id in table.get_children():
+                table.delete(item_id)
+            query = filter_var.get().strip().casefold()
+            shown = 0
+            for offset, (vehicle, driver, number, day) in enumerate(available):
+                labels = (
+                    "%s (%s)" % (number, self.ops.display_day(day)),
+                    active_vehicles[vehicle],
+                    active_drivers[driver],
+                )
+                if query and query not in " ".join(labels).casefold():
+                    continue
+                table.insert("", "end", iid=str(offset), values=labels)
+                shown += 1
+            visible_count.set("Знайдено готових пар: %d" % shown)
+
+        filter_var.trace_add("write", filter_source_pairs)
+        filter_source_pairs()
         def copy_selected():
             selected = table.selection()
             if not selected:
