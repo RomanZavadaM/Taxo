@@ -554,9 +554,12 @@ class OrderEditorAssignmentSection:
         )
         self.box.columnconfigure(0, weight=1)
 
+        self.existing_pair_count = self.core.tk.StringVar(
+            value="Поточні закріплення: %d" % len(assignments)
+        )
         self.core.ttk.Label(
             self.box,
-            text="Поточні закріплення: %d" % len(assignments),
+            textvariable=self.existing_pair_count,
             style="Subtitle.TLabel",
         ).grid(row=0, column=0, sticky="w", pady=(0, 4))
 
@@ -576,7 +579,7 @@ class OrderEditorAssignmentSection:
             tree.column(key, width=width, anchor="w")
         tree.grid(row=1, column=0, sticky="ew", pady=(0, 6))
 
-        self.existing_assignment_ids = [int(item["id"]) for item in assignments]
+        self.existing_pair_tree = tree
         for item in assignments:
             driver_name = " ".join(
                 str(item[key] or "").strip()
@@ -603,18 +606,16 @@ class OrderEditorAssignmentSection:
             command=lambda: self._edit_existing_pair(tree),
         )
         edit_button.pack(side="left")
-        bulk_button = self.core.ttk.Button(
+        self.core.ttk.Button(
             buttons,
-            text="Додати пари…",
-            command=lambda: self._open_existing_assignment_manager(True),
-        )
-        bulk_button.pack(side="left", padx=6)
-        manage_button = self.core.ttk.Button(
+            text="Додати пару…",
+            command=self._add_existing_pair,
+        ).pack(side="left", padx=6)
+        self.core.ttk.Button(
             buttons,
-            text="Відкрити всі пари…",
-            command=lambda: self._open_existing_assignment_manager(False),
-        )
-        manage_button.pack(side="left", padx=6)
+            text="Прибрати вибрану пару",
+            command=self._remove_existing_pair,
+        ).pack(side="left", padx=6)
         tree.bind("<Double-1>", lambda _event: self._edit_existing_pair(tree))
 
         self.core.ttk.Label(
@@ -635,42 +636,217 @@ class OrderEditorAssignmentSection:
         self.dialog._taxo_existing_assignment_bulk_button = bulk_button
         self.dialog._taxo_existing_assignment_manage_button = manage_button
 
-    def _confirm_leave_existing_order(self):
-        return self.core.messagebox.askyesno(
-            "Перейти до пар цього наказу?",
-            "Відкриється окрема форма пар. Незбережені зміни тексту наказу "
-            "не будуть записані. Продовжити?",
-            parent=self.dialog,
+    def _refresh_existing_pairs(self, focus_id=None):
+        """Refresh the current order's own list without switching tabs."""
+        con = self.core.db()
+        try:
+            assignments = self.ops.order_assignments(con, self.existing["id"])
+        finally:
+            con.close()
+        tree = self.existing_pair_tree
+        for iid in tree.get_children():
+            tree.delete(iid)
+        for item in assignments:
+            driver_name = " ".join(
+                str(item[key] or "").strip()
+                for key in ("last_name", "first_name", "middle_name")
+                if str(item[key] or "").strip()
+            )
+            tree.insert("", "end", iid=str(item["id"]), values=(
+                item["make_model"] or item["vehicle_name"],
+                item["plate"] or "—",
+                driver_name or "—",
+            ))
+        self.existing_pair_count.set(
+            "Поточні закріплення: %d" % len(assignments)
         )
+        target = str(focus_id) if focus_id is not None else None
+        if target in tree.get_children():
+            tree.selection_set(target)
+            tree.focus(target)
+            tree.see(target)
+        self.refresh_assignments()
 
     def _edit_existing_pair(self, tree):
         selected = tree.selection()
         if not selected:
             self.core.messagebox.showinfo(
                 "Пари цього наказу",
-                "Спочатку виберіть конкретну пару в таблиці. "
-                "Можна також двічі клацнути її рядок.",
+                "Виберіть конкретний рядок, який потрібно відредагувати.",
                 parent=self.dialog,
             )
             return
-        if not self._confirm_leave_existing_order():
+        self._pair_dialog(int(selected[0]))
+
+    def _add_existing_pair(self):
+        self._pair_dialog(None)
+
+    def _pair_dialog(self, assignment_id):
+        """Edit exactly one pair in its order, keeping the order form open."""
+        con = self.core.db()
+        try:
+            existing_pair = (
+                self.ops.get_vehicle_assignment(con, assignment_id)
+                if assignment_id is not None else None
+            )
+            if assignment_id is not None and (
+                existing_pair is None
+                or int(existing_pair["order_id"]) != int(self.existing["id"])
+            ):
+                self.core.messagebox.showerror(
+                    "Пари цього наказу",
+                    "Вибрана пара більше не належить цьому наказу.",
+                    parent=self.dialog,
+                )
+                return
+            vehicles = list(self.ops.list_vehicle_choices(
+                con, active_only=assignment_id is None
+            ))
+            drivers = list(self.ops.list_driver_choices(
+                con, active_only=assignment_id is None
+            ))
+        finally:
+            con.close()
+        vehicle_by_label = {item["label"]: int(item["id"]) for item in vehicles}
+        driver_by_label = {item["label"]: int(item["id"]) for item in drivers}
+        vehicle_by_id = {int(item["id"]): item["label"] for item in vehicles}
+        driver_by_id = {int(item["id"]): item["label"] for item in drivers}
+        if existing_pair and (
+            int(existing_pair["vehicle_id"]) not in vehicle_by_id
+            or int(existing_pair["employee_id"]) not in driver_by_id
+        ):
+            self.core.messagebox.showerror(
+                "Пари цього наказу",
+                "Поточний ТЗ або водій відсутній у довіднику. "
+                "Пару не змінено.",
+                parent=self.dialog,
+            )
+            return
+        dlg = self.core.tk.Toplevel(self.dialog)
+        dlg.title("Редагувати пару цього наказу" if existing_pair else
+                  "Додати пару до цього наказу")
+        frm = self.core.ttk.Frame(dlg, padding=14)
+        frm.pack(fill="both", expand=True)
+        frm.columnconfigure(1, weight=1)
+        vehicle_var = self.core.tk.StringVar(value=(
+            vehicle_by_id.get(int(existing_pair["vehicle_id"]), "")
+            if existing_pair else ""
+        ))
+        driver_var = self.core.tk.StringVar(value=(
+            driver_by_id.get(int(existing_pair["employee_id"]), "")
+            if existing_pair else ""
+        ))
+        from_var = self.core.tk.StringVar(value=self.ops.display_day(
+            existing_pair["valid_from"] if existing_pair else
+            self.existing["order_date"]
+        ))
+        until_var = self.core.tk.StringVar(value=self.ops.display_day(
+            existing_pair["valid_until"]
+        ) if existing_pair else "")
+        for row, (label, var, choices) in enumerate((
+            ("Транспортний засіб", vehicle_var, list(vehicle_by_label)),
+            ("Водій", driver_var, list(driver_by_label)),
+            ("Діє з", from_var, None),
+            ("Діє до (необов'язково)", until_var, None),
+        )):
+            self.core.ttk.Label(frm, text=label).grid(
+                row=row, column=0, sticky="w", padx=(0, 8), pady=5
+            )
+            widget = (
+                self.core.ttk.Combobox(
+                    frm, textvariable=var, values=choices, state="readonly"
+                ) if choices is not None
+                else self.core.ttk.Entry(frm, textvariable=var)
+            )
+            widget.grid(row=row, column=1, sticky="ew", pady=5)
+        self.core.ttk.Label(
+            frm,
+            text="Зміна цієї пари зберігається одразу в наказі. "
+                 "Інші пари та незбережений текст наказу не змінюються.",
+            wraplength=440, justify="left",
+        ).grid(row=4, column=0, columnspan=2, sticky="ew", pady=8)
+
+        def save_pair():
+            if (vehicle_var.get() not in vehicle_by_label
+                    or driver_var.get() not in driver_by_label):
+                self.core.messagebox.showerror(
+                    "Пара", "Виберіть ТЗ і водія.", parent=dlg
+                )
+                return
+            con2 = self.core.db()
+            try:
+                pair = (vehicle_by_label[vehicle_var.get()],
+                        driver_by_label[driver_var.get()])
+                if existing_pair:
+                    self.ops.update_vehicle_assignment(
+                        con2, assignment_id, vehicle_id=pair[0],
+                        employee_id=pair[1], valid_from=from_var.get(),
+                        valid_until=until_var.get(),
+                        history_note="Редагування пари у наказі",
+                    )
+                    focus_id = assignment_id
+                else:
+                    focus_id = self.ops.add_vehicle_assignment(
+                        con2, self.existing["id"], pair[0], pair[1],
+                        valid_from=from_var.get(), valid_until=until_var.get(),
+                    )
+                self.ops.verify_vehicle_assignment_pairs(
+                    con2, self.existing["id"], [pair]
+                )
+                con2.commit()
+            except Exception as exc:
+                con2.rollback()
+                self.core.messagebox.showerror("Пара", str(exc), parent=dlg)
+                return
+            finally:
+                con2.close()
+            dlg.destroy()
+            self._refresh_existing_pairs(focus_id)
+        bar = self.core.ttk.Frame(frm)
+        bar.grid(row=5, column=0, columnspan=2, sticky="ew")
+        self.core.ttk.Button(
+            bar, text="Скасувати", command=dlg.destroy
+        ).pack(side="right")
+        self.core.ttk.Button(
+            bar, text="Зберегти пару", command=save_pair
+        ).pack(side="right", padx=6)
+        dlg.transient(self.dialog)
+
+    def _remove_existing_pair(self):
+        selected = self.existing_pair_tree.selection()
+        if not selected:
+            self.core.messagebox.showinfo(
+                "Пари цього наказу",
+                "Виберіть рядок пари для видалення.",
+                parent=self.dialog,
+            )
             return
         assignment_id = int(selected[0])
-        self.dialog.destroy()
-        self.book.select(self.assignments_tab)
-        self.refresh_assignments()
-        self.owner_window.after_idle(
-            lambda: self.edit_assignment_by_id(assignment_id)
-        )
-
-    def _open_existing_assignment_manager(self, open_bulk=False):
-        if not self._confirm_leave_existing_order():
+        if not self.core.messagebox.askyesno(
+            "Прибрати пару?",
+            "Прибрати вибрану пару з цього наказу? "
+            "Інші пари залишаться без змін.",
+            parent=self.dialog,
+        ):
             return
-        self.dialog.destroy()
-        self.book.select(self.assignments_tab)
-        self.refresh_assignments()
-        action = self.add_assignments_bulk if open_bulk else self.focus_assignments
-        self.owner_window.after_idle(action)
+        con = self.core.db()
+        try:
+            row = self.ops.get_vehicle_assignment(con, assignment_id)
+            if row is None or int(row["order_id"]) != int(self.existing["id"]):
+                raise ValueError("Пара більше не належить цьому наказу.")
+            self.ops.delete_vehicle_assignment(
+                con, assignment_id, history_note="Видалення пари у наказі"
+            )
+            con.commit()
+        except Exception as exc:
+            con.rollback()
+            self.core.messagebox.showerror(
+                "Пари цього наказу", str(exc), parent=self.dialog
+            )
+            return
+        finally:
+            con.close()
+        self._refresh_existing_pairs()
 
     def show_for_type(self, order_type):
         """Show assignment controls only for vehicle-assignment orders."""
