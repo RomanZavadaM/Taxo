@@ -1,3 +1,14 @@
+## 17.11.2026 — 10.21-r4: сортування дати в каталозі «Документи»
+
+- Fresh GitHub verification: `main` `96c3fd4516addc0e95a93f3df024f8e97a62f3ac`, 412 refs (включно з гілками без PR), жодної r4 гілки; старий docs-only PR #395 не є продуктовою роботою.
+- Один bounded slice Issue #289: натискання на заголовок «Дата» перемикає новіші ▼ / старіші ▲ на всьому відфільтрованому списку **до пагінації**. Некоректні й порожні дати в кінці; однакові дати зберігають вихідний порядок джерела.
+- Новий regression `tests/test_v10_21_r4_document_date_sort.py`, оновлення version guards. Перший START: 1454 тестів, 1 failure лише через неправильне очікування порядку рівних дат у новому тесті; виправлено сам тест, продукт без змін.
+- Product PR #500 merged; final PR head `4540da0b17b85348195701f108adeaf33f5ad3f7`, immutable release source `abc0d8848752b70d50f8d2d55983ed83159f24a7`.
+- Exact-source CI: START `44125366421` **1454/1454**; Windows `44125366461`, Win7 `44125366427`, macOS Intel/ARM `44125366431` SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #501 merged як `d575f1b51caaf8f659dd2c2dc5f24b73271138af`, stable marker value `10.21-r2` не змінено. Publisher `44127599704` attempt 1 failure: remote artifact HTTP 503 egress during Mac Intel download; prerelease/tag ще не було. Rerun only publisher attempt 2 SUCCESS.
+- [v10.21-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r4) опубліковано Test prerelease: exact tag source `abc0d8848752b70d50f8d2d55983ed83159f24a7`, 6 assets — 4 Portable + START + SHA256. Stable/GitHub Latest **v10.21-r2** незмінний (8 assets).
+- Документна модель, файли, скани, backup/restore, бізнес-статуси, КЕП та залежності не змінювалися. **10.21-r5 ще не розпочата**; наступний вузький крок тільки після fresh verification.
+
 ## 17.11.2026 — Promotion 10.21-r2 → Stable/Latest
 
 - Пряма команда власника: зробити саме 10.21-r2 стабільною. PR #499 merged `cdaaafe6078d55bbc7a2b3f5d605fc840d2d1cb6`; історичний promoter `44116866634` SUCCESS.
