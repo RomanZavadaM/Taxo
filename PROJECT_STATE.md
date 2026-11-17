@@ -2,30 +2,31 @@
 
 **Підтверджений інтегрований стан: 17.11.2026.**
 
-- Завершена продуктова ревізія: **10.21-r5**, product PR #503 merged, exact immutable source `d3f01d1cefd11ac5cab15054dfab85d962c0a84c`.
-- Exact-source CI: START `44141706069` — **1459/1459**; Windows `44141706165`, Win7 `44141706293`, macOS Intel/ARM `44141706021` — SUCCESS, Defender/integrity PASS.
-- Release-trigger PR #504 merged `1515b1b52fe0a9e9d38d49bed7fd4f06f0de674f`; publisher run `44143863239` SUCCESS.
-- [v10.21-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r5): Test prerelease, 6 assets (4 Portable + START + SHA256), immutable tag target `d3f01d1cefd11ac5cab15054dfab85d962c0a84c`.
+- Завершена продуктова ревізія: **10.21-r6**, product PR #506 merged, exact immutable source `ef444e7753ee0f112baf8729ca6cceefea738652`.
+- Exact-source CI: START `44150116439` — **1464/1464**; Windows `44150116540`, Win7 `44150116763`, macOS Intel/ARM `44150116499` — SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #507 merged `f89351973061538407e64e5c9746a0aec358bca9`; publisher `44151934906` SUCCESS.
+- [v10.21-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r6): Test prerelease, 6 assets (4 Portable + START + SHA256), immutable tag target `ef444e7753ee0f112baf8729ca6cceefea738652`.
 - **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 assets, unchanged, immutable source `b104f94ace0ae355df79c914b3be6f39417bd6e9`.
 
-## Результат 10.21-r5
+## Результат 10.21-r6
 
-- Натискання заголовка «№» у «Документи» перемикає натуральне сортування номерів: 2 перед 10, 2-А перед 10-А; порожні номери наприкінці.
-- Обробка всього відфільтрованого списку перед пагінацією; комбінація з пошуком, джерелом, типом, сканами, періодом «Від / До».
-- Після перемикання — перша сторінка; сортування «Дата» з r4 не втрачено.
-- Немає змін сховища, файлів, scan/backup/restore, статусів, БД, OCR, КЕП та залежностей.
+- Вікно «Шляхівки» має власне редаговане поле дати `ДД.ММ.РРРР`.
+- Enter або «Перейти» показує шляхівки вибраного дня; «День -», «Сьогодні», «День +» дають послідовну навігацію при перенесенні кілометражу.
+- Навігація змінює лише `waybill_date` відкритого вікна та оновлює його список; головна дата графіка не переписується.
+- UI-логіка винесена в окремий `src/taxo/waybill_date_navigation.py`; `main.py` не роздувався новою реалізацією.
+- Немає змін БД/schema, правил пробігу, видачі/анулювання шляхівок, plan/fact, backup/restore, security або залежностей.
 
 ## Активна кодова ревізія
 
-Немає. **10.21-r6 ще не розпочата.**
+Немає. **10.21-r7 ще не розпочата.**
 
 ## Наступний крок
 
-Після live GitHub verification, включно з гілками без PR, вибрати один новий вузький крок Issue #289 для **10.21-r6**. Stable не змінювати без прямої команди.
+Після fresh GitHub verification, включно з гілками без PR, врахувати ручний результат перевірки r6 або вибрати один новий вузький крок. Stable не змінювати без прямої команди власника.
 
 ## Recovery
 
-Перед r5: main `fd0e97f9af7cb54bf5112188cd1004e414d829fe`, 415 refs, r5 не була почата. Спочатку тест знайшов неправильне екранування `\\d` у regex; виправлено до merge, final 1459/1459. Основний журнал — Issue #61, історія — WORKLOG. Докладний аудит r5: [номер](docs/maintenance/AUDIT_DOCUMENT_NUMBER_SORT_10_21_R5.md).
+На проміжному head r6 перший START мав 1/1464 failure лише через відсутній descriptor нового layer у `feature_layers.py`; виправлено до merge. Final work head `e94c39080e2d2ab0e3db25bc7639edd50483c70f`; exact release source `ef444e7753ee0f112baf8729ca6cceefea738652`; усі final/exact checks SUCCESS. Докладний аудит: [навігація дати шляхівок](docs/maintenance/AUDIT_WAYBILL_DATE_NAVIGATION_10_21_R6.md).
 
 ## Історичний якір
 

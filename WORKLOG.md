@@ -1,3 +1,15 @@
+## 17.11.2026 — 10.21-r6: власна навігація по даті у «Шляхівках»
+
+- Після recovery live GitHub випереджав HANDOFF: 10.21-r5 вже була product/release завершена, але recovery PR #505 ще був open. #505 перевірено як docs-only і merged `e6658d1d1f1c374ff9e074d6ca95a1b924f50205`; лише після цього почато r6.
+- Зауваження власника зі скриншота: у вікні «Шляхівки» незручно послідовно вводити кілометраж із паперових шляхівок, бо немає власного переходу по даті.
+- Вузький UX slice: редаговане `ДД.ММ.РРРР`, Enter/«Перейти», «День -», «Сьогодні», «День +». Змінюється тільки день відкритого waybill-window; головний графік і дані не переписуються.
+- Реалізація винесена в `src/taxo/waybill_date_navigation.py` і підключена через feature registry. БД/schema, odometer rules, issuance/voiding, plan/fact, backup/restore, security та dependencies без змін.
+- Проміжний START `44148899029`: 1464 tests, 1 failure — layer imported, але descriptor не був внесений у registry через невдале текстове вставлення. Виправлено до merge; це не продуктова помилка логіки дати.
+- Product PR #506 merged. Final PR head `e94c39080e2d2ab0e3db25bc7639edd50483c70f`; exact immutable source `ef444e7753ee0f112baf8729ca6cceefea738652`.
+- Exact-source: START `44150116439` **1464/1464**; Windows `44150116540`; Win7 `44150116763`; macOS Intel/ARM `44150116499` SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #507 merged `f89351973061538407e64e5c9746a0aec358bca9`; publisher `44151934906` SUCCESS. [v10.21-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r6) — Test prerelease, exact tag source `ef444e7753ee…`, 6 assets = 4 Portable + START + SHA256.
+- Stable/Latest **v10.21-r2** unchanged. Ручна UI-перевірка власником нового поля дати ще не зафіксована. **10.21-r7 не розпочата**.
+
 ## 17.11.2026 — 10.21-r5: сортування каталогу за «№»
 
 - Fresh verification: main `fd0e97f9af7cb54bf5112188cd1004e414d829fe`, 415 refs, r5 не було, старий docs-only PR #395. Попередній main CI успішний.
