@@ -1,30 +1,19 @@
 # HANDOFF_CURRENT — Taxo
 
-**Актуально 17.11.2026, підтверджено live GitHub.**
+**Live GitHub state — 17.11.2026.**
 
-## Поточний стан
+- **10.21-r7 fully completed:** product PR #509 merged; immutable product source `b3185f5f558d96880cc8c2614529d0fb2d0de660`, final PR head `dcbc81b363c4de737a20bcbf7d9869c0e61a8ef3`.
+- Exact-source START #44159339508: **1469/1469**; Windows #44159339500, Win7 #44159340068, macOS Intel/ARM #44159339556 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #510 merged `4f9eafa9729f15b25dd1bf26385e87e3fe1aa520`; publisher #44161402744 SUCCESS.
+- [v10.21-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r7): Test prerelease, 6 files (Windows/Win7/macOS Intel/ARM Portable, START, SHA256). Tag points exactly to product source `b3185f5f558d96880cc8c2614529d0fb2d0de660`.
+- **Stable/Latest remains [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2)**, 8 files.
 
-- **10.21-r6 завершена, інтегрована й опублікована як Test prerelease.**
-- Product PR #506 merged; exact immutable release source `ef444e7753ee0f112baf8729ca6cceefea738652`, фінальний PR head `e94c39080e2d2ab0e3db25bc7639edd50483c70f`.
-- Exact-source CI: START `44150116439` — **1464/1464**; Windows `44150116540`; Win7 `44150116763`; macOS Intel/ARM `44150116499` — SUCCESS. Defender/integrity PASS.
-- Release-trigger PR #507 merged `f89351973061538407e64e5c9746a0aec358bca9`; publisher `44151934906` — SUCCESS.
-- [v10.21-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r6) — Test prerelease, **6 файлів**: Windows/Win7/macOS Intel/ARM Portable, START, SHA256; tag immutable exact source `ef444e7753ee0f112baf8729ca6cceefea738652`.
-- **Stable/Latest** — [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 файлів, без змін.
+## Що зроблено
 
-## Що зроблено в r6
+У вікно «Шляхівки» додано штатну кнопку **«Дата…»**: використовує той самий календар, що й графіки, вибір іншої дати відразу оновлює шляхівки. Закриття без вибору нічого не змінює. Ручне введення/Enter/«Перейти» та День-/Сьогодні/День+ із r6 збережено. Без змін БД, пробігу, видачі шляхівок, backup/restore, security чи залежностей. Ручне приймання власником нової кнопки ще не зафіксовано.
 
-У вікні **«Шляхівки»** додана власна навігація по даті для зручного внесення кілометражу з паперових шляхівок:
-- поле `ДД.ММ.РРРР`;
-- Enter або **«Перейти»** відкриває вибраний день;
-- **«День -» / «Сьогодні» / «День +»** швидко перемикають дні;
-- змінюється лише день, показаний у вікні шляхівок; дата головного графіка не переписується.
+## Критичний дефект, наступна задача
 
-Логіку кілометражу, видачу/анулювання шляхівок, БД/schema, plan/fact, backup/restore, security та залежності не змінювали. Реалізація винесена в окремий `waybill_date_navigation.py`, а не додана в монолітний `main.py`.
+Власник надав два скриншоти: (1) обрані водії/ТЗ у наказах неправильно групуються в пари; (2) **готові пари з «Експлуатації» теж не вдається забрати**. Зафіксовано в [Issue #511](https://github.com/RomanZavadaM/Taxo/issues/511), також у Issue #61. Початковий аналіз показав автоматичне `zip` індексних списків в `operations_orders.build_assignment_pairs`, виклики з `order_editor_assignments_ui.py` і `order_assignments_ui.py`; це гіпотеза для відтворення, а не підтверджена повна причина. Потрібно явно добирати й перевіряти конкретні пари, включно з перенесенням підготовлених пар з «Експлуатації», без тихого перегрупування.
 
-## Recovery
-
-Перший фінальний START на проміжному head `43bdb5a…` мав 1 failure із 1464: новий feature layer був імпортований, але не внесений у реєстр. Виправлено одним рядком до final head `e94c390…`; після цього work-branch і exact-main checks SUCCESS. Не повторювати проміжний failed run.
-
-**10.21-r7 не розпочата.** Ручну UI-перевірку нового поля дати власником ще не зафіксовано. Наступна сесія: fresh live GitHub verification, включно з refs/гілками без PR; потім або врахувати результат ручного тесту r6, або вибрати один новий вузький крок. Stable не рухати без прямої команди.
-
-Читати `START_HERE.md` → `HANDOFF_CURRENT.md` → `PROJECT_STATE.md` → private `profile/taxo` → live GitHub. TemplateLibrary read-only; власні шаблони — CompanyTemplates. Не запускати executable локально.
+**10.21-r8 ще не починалася.** Наступна дія: відкрити START_HERE.md, звірити main/HANDOFF/open PR/branches without PR, потім працювати над #511 як окремою r8. Не повторювати r7; Stable не змінювати без прямої команди.

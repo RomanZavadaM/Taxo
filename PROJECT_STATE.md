@@ -1,33 +1,25 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджений інтегрований стан: 17.11.2026.**
+**Confirmed integrated: 17.11.2026.**
 
-- Завершена продуктова ревізія: **10.21-r6**, product PR #506 merged, exact immutable source `ef444e7753ee0f112baf8729ca6cceefea738652`.
-- Exact-source CI: START `44150116439` — **1464/1464**; Windows `44150116540`, Win7 `44150116763`, macOS Intel/ARM `44150116499` — SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #507 merged `f89351973061538407e64e5c9746a0aec358bca9`; publisher `44151934906` SUCCESS.
-- [v10.21-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r6): Test prerelease, 6 assets (4 Portable + START + SHA256), immutable tag target `ef444e7753ee0f112baf8729ca6cceefea738652`.
-- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 assets, unchanged, immutable source `b104f94ace0ae355df79c914b3be6f39417bd6e9`.
+- Latest completed code revision **10.21-r7**. Product PR #509 merged, immutable exact source `b3185f5f558d96880cc8c2614529d0fb2d0de660`.
+- Exact-source START #44159339508 **1469/1469**; Windows #44159339500, Win7 #44159340068, macOS Intel/ARM #44159339556 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #510 merged `4f9eafa9729f15b25dd1bf26385e87e3fe1aa520`; publisher #44161402744 SUCCESS.
+- [v10.21-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r7) — Test prerelease, 6 assets, exact immutable source above.
+- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 assets, unchanged.
 
-## Результат 10.21-r6
+## Result r7
 
-- Вікно «Шляхівки» має власне редаговане поле дати `ДД.ММ.РРРР`.
-- Enter або «Перейти» показує шляхівки вибраного дня; «День -», «Сьогодні», «День +» дають послідовну навігацію при перенесенні кілометражу.
-- Навігація змінює лише `waybill_date` відкритого вікна та оновлює його список; головна дата графіка не переписується.
-- UI-логіка винесена в окремий `src/taxo/waybill_date_navigation.py`; `main.py` не роздувався новою реалізацією.
-- Немає змін БД/schema, правил пробігу, видачі/анулювання шляхівок, plan/fact, backup/restore, security або залежностей.
+Existing schedule calendar «Дата…» reused in the «Шляхівки» window. Selecting a new day immediately refreshes this window, cancelling does not; the r6 manual date/day navigation is preserved. No DB/schema, mileage/waybill business logic, backup/restore, security, dependency changes. Manual UI acceptance of r7 not yet recorded.
 
-## Активна кодова ревізія
+## Active code revision
 
-Немає. **10.21-r7 ще не розпочата.**
+None. **10.21-r8 not started.**
 
-## Наступний крок
+## Next action
 
-Після fresh GitHub verification, включно з гілками без PR, врахувати ручний результат перевірки r6 або вибрати один новий вузький крок. Stable не змінювати без прямої команди власника.
+Address owner-reported **Issue #511**: wrong pair grouping of chosen drivers/vehicles in order UI **and inability to import prepared pairs from «Експлуатація»**. Validate exact driver↔vehicle associations in select/stage/store/reopen/generate paths and add regressions; no silent positional re-pairing or automatic alteration of older orders. Perform fresh live GitHub reconciliation before modifications; leave stable unchanged.
 
-## Recovery
+## History
 
-На проміжному head r6 перший START мав 1/1464 failure лише через відсутній descriptor нового layer у `feature_layers.py`; виправлено до merge. Final work head `e94c39080e2d2ab0e3db25bc7639edd50483c70f`; exact release source `ef444e7753ee0f112baf8729ca6cceefea738652`; усі final/exact checks SUCCESS. Докладний аудит: [навігація дати шляхівок](docs/maintenance/AUDIT_WAYBILL_DATE_NAVIGATION_10_21_R6.md).
-
-## Історичний якір
-
-Taxo 10.3 / `v10.3`, exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+Historic Taxo 10.3 / v10.3 exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Development log: WORKLOG.md and Issue #61.

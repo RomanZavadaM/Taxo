@@ -1,3 +1,12 @@
+## 17.11.2026 — 10.21-r7: календар «Дата…» у шляхівках
+
+- Started after r6 recovery closed, from main `e086dbde708f8564c966793d70ed0976aabd01ac`; no existing r7 branch. Used existing `calendar_button` and `show_calendar_picker` from the main schedule, without new dependencies.
+- Selecting a new date refreshes only waybill-window day; cancel or same day does not cause refresh; r6 navigation remains. Separate regression tests added; no DB/waybill data or security changes.
+- Product PR #509 merged, final PR head `dcbc81b363c4de737a20bcbf7d9869c0e61a8ef3`; immutable exact source `b3185f5f558d96880cc8c2614529d0fb2d0de660`.
+- Exact-source START #44159339508 **1469/1469**; Windows #44159339500, Win7 #44159340068, macOS Intel/ARM #44159339556 SUCCESS; Defender/integrity PASS.
+- Trigger PR #510 merged `4f9eafa9729f15b25dd1bf26385e87e3fe1aa520`; publisher #44161402744 SUCCESS. [v10.21-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r7) Test prerelease, 6 assets, exact source verified. Stable/Latest v10.21-r2 unchanged.
+- New high-priority owner defect, two screenshots: wrong pairs when choosing drivers and vehicles, plus inability to select prepared pairs from «Експлуатація». Separate [Issue #511](https://github.com/RomanZavadaM/Taxo/issues/511) created; no r8 work started. Manual owner UI acceptance r7 not yet recorded.
+
 ## 17.11.2026 — 10.21-r6: власна навігація по даті у «Шляхівках»
 
 - Після recovery live GitHub випереджав HANDOFF: 10.21-r5 вже була product/release завершена, але recovery PR #505 ще був open. #505 перевірено як docs-only і merged `e6658d1d1f1c374ff9e074d6ca95a1b924f50205`; лише після цього почато r6.
