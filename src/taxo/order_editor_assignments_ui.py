@@ -25,6 +25,8 @@ class OrderEditorAssignmentSection:
         assignments_tab,
         refresh_assignments,
         add_assignments_bulk,
+        edit_assignment_by_id,
+        focus_assignments,
     ):
         self.core = core
         self.ops = ops
@@ -36,6 +38,8 @@ class OrderEditorAssignmentSection:
         self.assignments_tab = assignments_tab
         self.refresh_assignments = refresh_assignments
         self.add_assignments_bulk = add_assignments_bulk
+        self.edit_assignment_by_id = edit_assignment_by_id
+        self.focus_assignments = focus_assignments
 
         self.box = None
         self.initial_vehicles = []
@@ -376,6 +380,7 @@ class OrderEditorAssignmentSection:
             tree.column(key, width=width, anchor="w")
         tree.grid(row=1, column=0, sticky="ew", pady=(0, 6))
 
+        self.existing_assignment_ids = [int(item["id"]) for item in assignments]
         for item in assignments:
             driver_name = " ".join(
                 str(item[key] or "").strip()
@@ -385,6 +390,7 @@ class OrderEditorAssignmentSection:
             tree.insert(
                 "",
                 "end",
+                iid=str(item["id"]),
                 values=(
                     item["make_model"] or item["vehicle_name"],
                     item["plate"] or "—",
@@ -394,27 +400,34 @@ class OrderEditorAssignmentSection:
 
         buttons = self.core.ttk.Frame(self.box)
         buttons.grid(row=2, column=0, sticky="ew")
+        edit_button = self.core.ttk.Button(
+            buttons,
+            text="Редагувати вибрану пару…",
+            style="Accent.TButton",
+            command=lambda: self._edit_existing_pair(tree),
+        )
+        edit_button.pack(side="left")
         bulk_button = self.core.ttk.Button(
             buttons,
-            text="Додати багато…",
-            style="Accent.TButton",
+            text="Додати пари…",
             command=lambda: self._open_existing_assignment_manager(True),
         )
-        bulk_button.pack(side="left")
+        bulk_button.pack(side="left", padx=6)
         manage_button = self.core.ttk.Button(
             buttons,
-            text="Керувати закріпленнями",
+            text="Відкрити всі пари…",
             command=lambda: self._open_existing_assignment_manager(False),
         )
         manage_button.pack(side="left", padx=6)
+        tree.bind("<Double-1>", lambda _event: self._edit_existing_pair(tree))
 
         self.core.ttk.Label(
             self.box,
             text=(
                 "Закріплення є частиною цього наказу. Тут видно поточний перелік; "
-                "для додавання кількох водіїв/ТЗ натисніть «Додати багато…», "
-                "для редагування або видалення окремих пар — "
-                "«Керувати закріпленнями»."
+                "Виберіть рядок і натисніть «Редагувати вибрану пару…». "
+                "«Додати пари…» відкриє додавання для цього наказу. "
+                "«Відкрити всі пари…» відкриє повний список з діями «Прибрати»."
             ),
             style="Muted.TLabel",
             wraplength=700,
@@ -422,18 +435,46 @@ class OrderEditorAssignmentSection:
         ).grid(row=3, column=0, sticky="w", pady=(6, 0))
 
         self.dialog._taxo_existing_assignment_tree = tree
+        self.dialog._taxo_existing_assignment_edit_button = edit_button
         self.dialog._taxo_existing_assignment_bulk_button = bulk_button
         self.dialog._taxo_existing_assignment_manage_button = manage_button
 
-    def _open_existing_assignment_manager(self, open_bulk=False):
+    def _confirm_leave_existing_order(self):
+        return self.core.messagebox.askyesno(
+            "Перейти до пар цього наказу?",
+            "Відкриється окрема форма пар. Незбережені зміни тексту наказу "
+            "не будуть записані. Продовжити?",
+            parent=self.dialog,
+        )
+
+    def _edit_existing_pair(self, tree):
+        selected = tree.selection()
+        if not selected:
+            self.core.messagebox.showinfo(
+                "Пари цього наказу",
+                "Спочатку виберіть конкретну пару в таблиці. "
+                "Можна також двічі клацнути її рядок.",
+                parent=self.dialog,
+            )
+            return
+        if not self._confirm_leave_existing_order():
+            return
+        assignment_id = int(selected[0])
         self.dialog.destroy()
         self.book.select(self.assignments_tab)
         self.refresh_assignments()
-        if open_bulk:
-            try:
-                self.owner_window.after_idle(self.add_assignments_bulk)
-            except Exception:
-                self.add_assignments_bulk()
+        self.owner_window.after_idle(
+            lambda: self.edit_assignment_by_id(assignment_id)
+        )
+
+    def _open_existing_assignment_manager(self, open_bulk=False):
+        if not self._confirm_leave_existing_order():
+            return
+        self.dialog.destroy()
+        self.book.select(self.assignments_tab)
+        self.refresh_assignments()
+        action = self.add_assignments_bulk if open_bulk else self.focus_assignments
+        self.owner_window.after_idle(action)
 
     def show_for_type(self, order_type):
         """Show assignment controls only for vehicle-assignment orders."""
