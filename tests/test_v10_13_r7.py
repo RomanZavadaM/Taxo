@@ -149,19 +149,21 @@ class TaxoR7BulkAssignmentAndNumberingTests(unittest.TestCase):
         finally:
             con.close()
 
-    def test_pair_builder_supports_vehicle_to_many_drivers_and_equal_many_to_many(self):
+    def test_pair_builder_supports_vehicle_to_many_drivers_and_single_pair(self):
         self.assertEqual(
             ops.build_assignment_pairs([10],[1,2,3]),
             [(10,1),(10,2),(10,3)],
         )
         self.assertEqual(
-            ops.build_assignment_pairs([10,20,30],[1,2,3]),
-            [(10,1),(20,2),(30,3)],
+            ops.build_assignment_pairs([20],[2]),
+            [(20,2)],
         )
 
-    def test_pair_builder_blocks_ambiguous_unequal_many_to_many(self):
-        with self.assertRaisesRegex(ValueError,"однакову кількість"):
+    def test_pair_builder_blocks_implicit_many_to_many(self):
+        with self.assertRaisesRegex(ValueError,"Автоматичне парування"):
             ops.build_assignment_pairs([10,20,30],[1,2])
+        with self.assertRaisesRegex(ValueError,"Автоматичне парування"):
+            ops.build_assignment_pairs([10,20],[1,2])
         with self.assertRaisesRegex(ValueError,"Виберіть і"):
             ops.build_assignment_pairs([10,20],[])
 

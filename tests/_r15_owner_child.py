@@ -83,9 +83,16 @@ button(win,"Закріпити ТЗ за водіями").invoke(); app.update_i
 dialog=tops(win,"Створити наказ")[-1]
 boxes=[w for w in walk(dialog) if isinstance(w,tk.Listbox)]
 assert len(boxes)==2 and boxes[0].size()==12 and boxes[1].size()==12
-boxes[0].selection_set(0,11); boxes[1].selection_set(0,11)
-boxes[0].event_generate("<<ListboxSelect>>"); boxes[1].event_generate("<<ListboxSelect>>")
-app.update_idletasks(); app.update()
+# r8 requires explicit concrete pairs. Build the same twelve intended pairs
+# one vehicle at a time instead of relying on positional zip of two lists.
+for index in range(12):
+    boxes[0].selection_set(index)
+    boxes[1].selection_set(index)
+    boxes[0].event_generate("<<ListboxSelect>>")
+    boxes[1].event_generate("<<ListboxSelect>>")
+    app.update_idletasks(); app.update()
+    button(dialog,"Додати вибране як пари").invoke()
+    app.update_idletasks(); app.update()
 staged=getattr(dialog,"_taxo_staged_assignment_pairs")
 staged_tree=getattr(dialog,"_taxo_staged_assignment_tree")
 assert len(staged)==12, staged

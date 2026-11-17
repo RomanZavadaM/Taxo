@@ -85,8 +85,8 @@ class TaxoR8BulkAssignmentSafetyTests(unittest.TestCase):
             [(10,1),(10,2),(10,3)],
         )
 
-    def test_equal_multiple_distinct_pairs_can_be_approved(self):
-        pairs=ops.build_assignment_pairs([10,20,30],[1,2,3])
+    def test_explicit_multiple_distinct_pairs_can_be_approved(self):
+        pairs=[(10,1),(20,2),(30,3)]
         oid=ops.create_vehicle_assignment_order(
             self.con,order_date="08.11.2026",initial_pairs=pairs
         )
@@ -108,7 +108,8 @@ class TaxoR8BulkAssignmentSafetyTests(unittest.TestCase):
     def test_ui_no_longer_advertises_one_driver_many_vehicles(self):
         text=Path("src/taxo/operations_orders_ui.py").read_text(encoding="utf-8")
         text+=Path("src/taxo/order_assignments_ui.py").read_text(encoding="utf-8")
-        self.assertIn("Один водій не закріплюється одночасно за кількома ТЗ",text)
+        self.assertIn("Taxo не формує",text)
+        self.assertIn("пари автоматично з двох незалежних списків.",text)
         self.assertNotIn("1 водій + кілька ТЗ",text)
 
 

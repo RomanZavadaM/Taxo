@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class OrderEditorAssignmentsR8Tests(unittest.TestCase):
     def test_version_and_start_require_assignment_module(self):
-        self.assertIn(main.APP_VERSION, ("10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8", "10.18-r10", "10.19-r1", "10.19-r2", "10.19-r3", "10.19-r4", "10.19-r5", "10.19-r6", "10.19-r7", "10.19-r8", "10.19-r9", "10.19-r10", "10.20-r1", "10.20-r2", "10.20-r3", "10.20-r4", "10.20-r5", "10.20-r6", "10.21-r7"))
+        self.assertIn(main.APP_VERSION, ("10.16-r8", "10.16-r9", "10.16-r10", "10.17-r1", "10.17-r2", "10.17-r3", "10.17-r4", "10.17-r5", "10.17-r6", "10.17-r7", "10.17-r8", "10.17-r9", "10.17-r10", "10.18-r1", "10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8", "10.18-r10", "10.19-r1", "10.19-r2", "10.19-r3", "10.19-r4", "10.19-r5", "10.19-r6", "10.19-r7", "10.19-r8", "10.19-r9", "10.19-r10", "10.20-r1", "10.20-r2", "10.20-r3", "10.20-r4", "10.20-r5", "10.20-r6", "10.21-r7", "10.21-r8"))
         self.assertEqual(
             (ROOT / "VERSION.txt").read_text(encoding="utf-8"),
             "Version: " + main.APP_VERSION + "\n",
@@ -72,7 +72,7 @@ class OrderEditorAssignmentsR8Tests(unittest.TestCase):
     def test_selected_pairs_are_staged_and_survive_focus_loss(self):
         section = self._section_without_tk()
 
-        first = section.initial_pairs_for_save("vehicle_assignment")
+        first = section._stage_current_selection(show_error=True)
         self.assertEqual(first, [(10, 1), (10, 2)])
         section.ops.build_assignment_pairs.assert_called_once_with(
             [10],
@@ -86,6 +86,15 @@ class OrderEditorAssignmentsR8Tests(unittest.TestCase):
         self.assertEqual(second, [(10, 1), (10, 2)])
         self.assertEqual(section.staged_initial_pairs, [(10, 1), (10, 2)])
         section.core.messagebox.askyesno.assert_not_called()
+
+    def test_unstaged_selection_blocks_save_instead_of_pairing_silently(self):
+        section = self._section_without_tk()
+
+        self.assertIsNone(
+            section.initial_pairs_for_save("vehicle_assignment")
+        )
+        section.ops.build_assignment_pairs.assert_not_called()
+        section.core.messagebox.showerror.assert_called_once()
 
     def test_empty_assignment_order_still_requires_confirmation(self):
         section = self._section_without_tk()
