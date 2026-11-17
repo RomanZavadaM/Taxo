@@ -1,3 +1,15 @@
+## 17.11.2026 — 10.21-r1: фільтр документів за наявністю сканів
+
+- Fresh verification почався з main `9965827de5a75c64872848b54df2ccb6012d6a52`; перевірено 402 refs, включно з гілками без PR. Готової 10.21-r1 не було, тому стару роботу не повторювали.
+- Один bounded slice Issue #289: у загальному каталозі «Документи» додано read-only фільтр «Усі» / «Є скани» / «Немає сканів» / «Помилка перевірки».
+- Фільтр працює на повному snapshot до пагінації та поєднується з пошуком і джерелом. Вузькі режими стосуються лише DocumentVault; помилка перевірки не маскується як відсутність сканів.
+- Product PR #490 merged; final product head `d0c2f0f34821f7443a877f556cb3152837422616`; exact immutable release source `c5e17aec02e60d8b87fc518165b7f62086dc5a9f`.
+- Exact-source CI: START `44095180937` — **1436/1436**; Windows `44095181008`; Win7 `44095180907`; macOS Intel/ARM `44095180721` — SUCCESS. Defender та post-scan integrity PASS.
+- Trigger PR #491 змінив лише кінцевий перенос рядка stable marker; значення `10.20-r5` лишилось незмінним. Merged `086b0c5dfbbbf707717dbabe97f4698d7d09f8f3`; publisher `44097198739` SUCCESS.
+- [v10.21-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r1) опубліковано як Test prerelease; tag exact source `c5e17aec02e60d8b87fc518165b7f62086dc5a9f`; рівно 6 uploaded assets: 4 Portable + START + SHA256.
+- Stable/GitHub Latest лишається **v10.20-r5**, 8 assets. Файли/статуси/backup не змінювались; без КЕП/e-signature, auto «підписано», physical purge, migration, нових бізнес-статусів або залежностей.
+- **10.21-r2 не розпочата.** Наступний крок визначати лише після fresh recovery. Детальний аудит: `docs/maintenance/AUDIT_DOCUMENT_SCAN_FILTER_10_21_R1.md`.
+
 ## 17.11.2026 — 10.20-r10: заміна скана зі збереженням історії
 
 - PR #486 з виправленням RELEASE_INDEX перевірено й інтегровано: `2aa5f104d2b74a3e23fefbee626ae9e814adec87`. Fresh verification всіх refs виявив уже розпочату r10 гілку `6b798332c18c1adbe2ad299020c7b06e16867b70`, попри старий HANDOFF «не розпочата». Існуючу роботу збережено, дублювання не створювалось.
