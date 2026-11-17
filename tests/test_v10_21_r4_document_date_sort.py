@@ -90,7 +90,8 @@ class DocumentDateSortR4Tests(unittest.TestCase):
         )
         self.assertEqual(page["total"], 3)
         self.assertEqual(page["pages"], 3)
-        self.assertEqual(page["rows"][0]["source_id"], "same")
+        # Same-day ties retain the pre-existing source-specific order.
+        self.assertEqual(page["rows"][0]["source_id"], "middle")
 
     def test_default_path_keeps_legacy_snapshot_order(self):
         self.assertEqual(
