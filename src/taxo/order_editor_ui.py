@@ -30,6 +30,8 @@ def open_order_editor(
     refresh_open_order_previews,
     order_cache,
     preview_order,
+    edit_assignment_by_id,
+    focus_assignments,
 ):
     """Open the order form and coordinate its specialized sections."""
     dialog = core.tk.Toplevel(win)
@@ -128,6 +130,8 @@ def open_order_editor(
         assignments_tab=assignments_tab,
         refresh_assignments=refresh_assignments,
         add_assignments_bulk=add_assignments_bulk,
+        edit_assignment_by_id=edit_assignment_by_id,
+        focus_assignments=focus_assignments,
     )
     assignment_section.show_for_type(initial_type)
 
