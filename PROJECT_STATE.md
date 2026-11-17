@@ -22,4 +22,4 @@ Address owner-reported **Issue #511**: wrong pair grouping of chosen drivers/veh
 
 ## History
 
-Historic Taxo 10.3 / v10.3 exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Development log: WORKLOG.md and Issue #61.
+Taxo 10.3 / `v10.3` exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Development log: WORKLOG.md and Issue #61.
