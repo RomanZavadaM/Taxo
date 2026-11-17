@@ -72,7 +72,7 @@ class OrderEditorAssignmentsR8Tests(unittest.TestCase):
     def test_selected_pairs_are_staged_and_survive_focus_loss(self):
         section = self._section_without_tk()
 
-        first = section.initial_pairs_for_save("vehicle_assignment")
+        first = section._stage_current_selection(show_error=True)
         self.assertEqual(first, [(10, 1), (10, 2)])
         section.ops.build_assignment_pairs.assert_called_once_with(
             [10],
@@ -86,6 +86,15 @@ class OrderEditorAssignmentsR8Tests(unittest.TestCase):
         self.assertEqual(second, [(10, 1), (10, 2)])
         self.assertEqual(section.staged_initial_pairs, [(10, 1), (10, 2)])
         section.core.messagebox.askyesno.assert_not_called()
+
+    def test_unstaged_selection_blocks_save_instead_of_pairing_silently(self):
+        section = self._section_without_tk()
+
+        self.assertIsNone(
+            section.initial_pairs_for_save("vehicle_assignment")
+        )
+        section.ops.build_assignment_pairs.assert_not_called()
+        section.core.messagebox.showerror.assert_called_once()
 
     def test_empty_assignment_order_still_requires_confirmation(self):
         section = self._section_without_tk()
