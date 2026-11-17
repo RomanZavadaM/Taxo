@@ -192,6 +192,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     actions.grid(row=4, column=0, sticky="ew", pady=(4, 0))
     page_text = core.tk.StringVar(value="")
     state = {
+        "date_sort": "newest",
         "page": 0,
         "pages": 1,
         "rows": {},
@@ -262,6 +263,10 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
 
     def render(result):
         state["page"], state["pages"] = result["page"], result["pages"]
+        tree.heading(
+            "date",
+            text="Дата ▼" if state["date_sort"] == "newest" else "Дата ▲",
+        )
         available_kinds = tuple(result.get("available_kinds", ()))
         selected_kind = kind_choice.get()
         kind_values = (all_kinds_label,) + available_kinds
@@ -320,6 +325,12 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             tree.see(selected_iid)
         selection_changed()
 
+    def toggle_date_sort():
+        state["date_sort"] = (
+            "oldest" if state["date_sort"] == "newest" else "newest"
+        )
+        refresh(reset=True)
+
     def refresh(reset=False, reload_sources=False):
         if reset:
             state["page"] = 0
@@ -334,6 +345,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_from.get(),
             date_to.get(),
             kind_choice.get(),
+            state["date_sort"],
         )
         source_status.set("Завантаження документів…")
         if not state["busy"]:
@@ -367,6 +379,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_from_filter,
             date_to_filter,
             kind_filter_label,
+            date_sort,
         ) = wanted
         previous = state["snapshot"]
         must_reload = (
@@ -394,6 +407,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                         if kind_filter_label == all_kinds_label
                         else kind_filter_label
                     ),
+                    date_sort=date_sort,
                 )
                 state["results"].put(
                     (generation, snapshot, result, None)
@@ -798,6 +812,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     edit_copy_button.configure(command=copy_for_editing)
     import_revision_button.configure(command=import_revision)
     pdf_button.configure(command=create_pdf_for_print)
+    tree.heading("date", text="Дата ▼", command=toggle_date_sort)
     tree.bind("<Double-1>", open_selected)
     tree.bind(
         "<<TreeviewSelect>>", selection_changed, add="+"
@@ -824,6 +839,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "<Return>", lambda _event: refresh(reset=True)
     )
     win._taxo_catalog_tree = tree
+    win._taxo_catalog_date_sort = toggle_date_sort
     win._taxo_catalog_search = search
     win._taxo_catalog_source = source_choice
     win._taxo_catalog_source_box = source_box
