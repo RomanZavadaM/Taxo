@@ -2,7 +2,7 @@
 
 **Актуально:** 17.11.2026
 
-- **Стабільна / Latest:** [10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5), повний комплект із 8 файлів.
+- **Стабільна / Latest:** [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), повний комплект із 8 файлів.
 - **Поточна тестова:** [10.21-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r3), 4 Portable + START + SHA256.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
