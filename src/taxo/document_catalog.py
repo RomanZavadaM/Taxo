@@ -8,6 +8,7 @@ as one logical row; names and dates are never used for automatic merging.
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from datetime import date
 from pathlib import Path
@@ -344,6 +345,7 @@ def paginate_sources(
     date_to="",
     kind_filter="all",
     date_sort="default",
+    number_sort="default",
 ):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
@@ -435,6 +437,29 @@ def paginate_sources(
         # Stable ties preserve the existing source-specific order.
         # Missing/invalid dates stay after dated records in both directions.
         all_rows.sort(key=date_order_key)
+    if number_sort in ("ascending", "descending"):
+        numbered = []
+        unnumbered = []
+        for row in all_rows:
+            number = str(row.get("number") or "").strip()
+            if number:
+                numbered.append(row)
+            else:
+                unnumbered.append(row)
+
+        def number_key(row):
+            # Natural order: 2 comes before 10, including mixed values
+            # such as 2-А, 10-А. Preserve stable order on equal keys.
+            value = str(row.get("number") or "").strip().casefold()
+            return tuple(
+                (0, int(part)) if part.isdecimal() else (1, part)
+                for part in re.split(r"(\\d+)", value) if part
+            )
+
+        numbered.sort(
+            key=number_key, reverse=number_sort == "descending"
+        )
+        all_rows = numbered + unnumbered
     page_size = max(1, min(int(page_size), 500))
     pages = max(1, (len(all_rows) + page_size - 1) // page_size)
     page = max(0, min(int(page), pages - 1))
@@ -461,6 +486,7 @@ def read_catalog(
     date_to="",
     kind_filter="all",
     date_sort="default",
+    number_sort="default",
 ):
     """Convenience one-shot read for callers and tests."""
     return paginate_sources(
@@ -473,4 +499,5 @@ def read_catalog(
         date_to=date_to,
         kind_filter=kind_filter,
         date_sort=date_sort,
+        number_sort=number_sort,
     )
