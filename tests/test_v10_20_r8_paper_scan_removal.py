@@ -80,14 +80,14 @@ class PaperScanRemovalHistoryR8Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.21-r2\n",
+            "Version: 10.21-r3\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.21-r2"',
+            'APP_VERSION = "10.21-r3"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.21-r2",
+            "Taxo 10.21-r3",
             (root / "START.bat").read_text("utf-8"),
         )
 
@@ -163,7 +163,7 @@ class PaperScanRemovalHistoryR8Tests(unittest.TestCase):
         create_workspace_backup_archive(
             self.workspace,
             archive,
-            app_version="10.21-r2",
+            app_version="10.21-r3",
         )
         restored = self.base / "Restored"
         restore_workspace_backup_archive(archive, restored)

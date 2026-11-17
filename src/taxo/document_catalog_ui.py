@@ -87,6 +87,22 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     source_box.grid(row=0, column=2, sticky="e")
 
+    all_kinds_label = "Усі типи"
+    kind_choice = core.tk.StringVar(value=all_kinds_label)
+    core.ttk.Label(bar, text="Тип:").grid(
+        row=2, column=0, sticky="w", pady=(6, 0)
+    )
+    kind_box = core.ttk.Combobox(
+        bar,
+        textvariable=kind_choice,
+        state="readonly",
+        values=(all_kinds_label,),
+        width=28,
+    )
+    kind_box.grid(
+        row=2, column=1, sticky="w", padx=8, pady=(6, 0)
+    )
+
     scan_options = {
         "Усі": "all",
         "Є скани": "present",
@@ -246,6 +262,16 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
 
     def render(result):
         state["page"], state["pages"] = result["page"], result["pages"]
+        available_kinds = tuple(result.get("available_kinds", ()))
+        selected_kind = kind_choice.get()
+        kind_values = (all_kinds_label,) + available_kinds
+        if (
+            selected_kind
+            and selected_kind != all_kinds_label
+            and selected_kind not in available_kinds
+        ):
+            kind_values = (all_kinds_label, selected_kind) + available_kinds
+        kind_box.configure(values=kind_values)
         source_status.set(" ".join(
             value for value in (
                 result.get("order_status", ""),
@@ -307,6 +333,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             scan_options.get(scan_choice.get(), "all"),
             date_from.get(),
             date_to.get(),
+            kind_choice.get(),
         )
         source_status.set("Завантаження документів…")
         if not state["busy"]:
@@ -339,6 +366,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             scan_filter,
             date_from_filter,
             date_to_filter,
+            kind_filter_label,
         ) = wanted
         previous = state["snapshot"]
         must_reload = (
@@ -361,6 +389,11 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     scan_filter=scan_filter,
                     date_from=date_from_filter,
                     date_to=date_to_filter,
+                    kind_filter=(
+                        "all"
+                        if kind_filter_label == all_kinds_label
+                        else kind_filter_label
+                    ),
                 )
                 state["results"].put(
                     (generation, snapshot, result, None)
@@ -780,6 +813,10 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "<<ComboboxSelected>>",
         lambda _event: refresh(reset=True),
     )
+    kind_box.bind(
+        "<<ComboboxSelected>>",
+        lambda _event: refresh(reset=True),
+    )
     date_from_entry.bind(
         "<Return>", lambda _event: refresh(reset=True)
     )
@@ -792,6 +829,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_source_box = source_box
     win._taxo_catalog_scan_filter = scan_choice
     win._taxo_catalog_scan_filter_box = scan_box
+    win._taxo_catalog_kind_filter = kind_choice
+    win._taxo_catalog_kind_filter_box = kind_box
     win._taxo_catalog_date_from = date_from
     win._taxo_catalog_date_to = date_to
     win._taxo_catalog_date_from_entry = date_from_entry
