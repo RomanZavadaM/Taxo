@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import date
 from pathlib import Path
 
 from document_vault_store import list_document_vault
@@ -308,6 +309,20 @@ def read_sources(root):
     }
 
 
+
+def _date_bound(value, label):
+    """Parse an optional inclusive YYYY-MM-DD catalog boundary."""
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        raise ValueError(
+            "%s: введіть дату у форматі РРРР-ММ-ДД" % label
+        )
+
+
 def paginate_sources(
     snapshot,
     text_filter="",
@@ -315,10 +330,30 @@ def paginate_sources(
     page_size=100,
     source_filter="all",
     scan_filter="all",
+    date_from="",
+    date_to="",
 ):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
     all_rows = list(snapshot["rows"])
+    start_day = _date_bound(date_from, "Період від")
+    end_day = _date_bound(date_to, "Період до")
+    if start_day is not None and end_day is not None and start_day > end_day:
+        raise ValueError("Період від не може бути пізніше за період до")
+    if start_day is not None or end_day is not None:
+        filtered = []
+        for row in all_rows:
+            raw_day = str(row.get("date") or "").strip()
+            try:
+                row_day = date.fromisoformat(raw_day)
+            except ValueError:
+                continue
+            if start_day is not None and row_day < start_day:
+                continue
+            if end_day is not None and row_day > end_day:
+                continue
+            filtered.append(row)
+        all_rows = filtered
     if source_filter in ("paper", "vault", "order"):
         all_rows = [
             row for row in all_rows
@@ -387,6 +422,8 @@ def read_catalog(
     page=0,
     page_size=100,
     scan_filter="all",
+    date_from="",
+    date_to="",
 ):
     """Convenience one-shot read for callers and tests."""
     return paginate_sources(
@@ -395,4 +432,6 @@ def read_catalog(
         page,
         page_size,
         scan_filter=scan_filter,
+        date_from=date_from,
+        date_to=date_to,
     )
