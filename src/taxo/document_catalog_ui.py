@@ -108,6 +108,27 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         row=1, column=1, sticky="w", padx=8, pady=(6, 0)
     )
 
+    date_from = core.tk.StringVar(value="")
+    date_to = core.tk.StringVar(value="")
+    date_bar = core.ttk.Frame(bar)
+    date_bar.grid(row=1, column=2, sticky="e", pady=(6, 0))
+    core.ttk.Label(date_bar, text="Від:").pack(side="left")
+    date_from_entry = core.ttk.Entry(
+        date_bar, textvariable=date_from, width=11
+    )
+    date_from_entry.pack(side="left", padx=(4, 8))
+    core.ttk.Label(date_bar, text="До:").pack(side="left")
+    date_to_entry = core.ttk.Entry(
+        date_bar, textvariable=date_to, width=11
+    )
+    date_to_entry.pack(side="left", padx=(4, 8))
+    apply_date_button = core.ttk.Button(
+        date_bar,
+        text="Застосувати",
+        command=lambda: refresh(reset=True),
+    )
+    apply_date_button.pack(side="left")
+
     source_status = core.tk.StringVar(value="")
     core.ttk.Label(
         body,
@@ -284,6 +305,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             reload_sources,
             source_options.get(source_choice.get(), "all"),
             scan_options.get(scan_choice.get(), "all"),
+            date_from.get(),
+            date_to.get(),
         )
         source_status.set("Завантаження документів…")
         if not state["busy"]:
@@ -314,6 +337,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             reload_sources,
             source_filter,
             scan_filter,
+            date_from_filter,
+            date_to_filter,
         ) = wanted
         previous = state["snapshot"]
         must_reload = (
@@ -334,6 +359,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     page,
                     source_filter=source_filter,
                     scan_filter=scan_filter,
+                    date_from=date_from_filter,
+                    date_to=date_to_filter,
                 )
                 state["results"].put(
                     (generation, snapshot, result, None)
@@ -753,12 +780,23 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "<<ComboboxSelected>>",
         lambda _event: refresh(reset=True),
     )
+    date_from_entry.bind(
+        "<Return>", lambda _event: refresh(reset=True)
+    )
+    date_to_entry.bind(
+        "<Return>", lambda _event: refresh(reset=True)
+    )
     win._taxo_catalog_tree = tree
     win._taxo_catalog_search = search
     win._taxo_catalog_source = source_choice
     win._taxo_catalog_source_box = source_box
     win._taxo_catalog_scan_filter = scan_choice
     win._taxo_catalog_scan_filter_box = scan_box
+    win._taxo_catalog_date_from = date_from
+    win._taxo_catalog_date_to = date_to
+    win._taxo_catalog_date_from_entry = date_from_entry
+    win._taxo_catalog_date_to_entry = date_to_entry
+    win._taxo_catalog_apply_date = apply_date_button
     win._taxo_catalog_status = source_status
     win._taxo_catalog_refresh = refresh
     win._taxo_catalog_open = open_selected
