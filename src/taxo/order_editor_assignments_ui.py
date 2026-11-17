@@ -119,7 +119,7 @@ class OrderEditorAssignmentSection:
             columns=("vehicle", "driver"),
             show="headings",
             height=3,
-            selectmode="none",
+            selectmode="extended",
         )
         self.staged_pair_tree.heading("vehicle", text="Підготовлений ТЗ")
         self.staged_pair_tree.heading("driver", text="Підготовлений водій")
@@ -137,11 +137,11 @@ class OrderEditorAssignmentSection:
 
         self.initial_vehicle_list.bind(
             "<<ListboxSelect>>",
-            self._stage_current_selection,
+            self._update_selection_summary,
         )
         self.initial_driver_list.bind(
             "<<ListboxSelect>>",
-            self._stage_current_selection,
+            self._update_selection_summary,
         )
 
         self.core.ttk.Label(
@@ -166,23 +166,28 @@ class OrderEditorAssignmentSection:
         )
         self.core.ttk.Button(
             controls,
-            text="Зафіксувати поточний вибір",
+            text="Додати вибране як пари",
             command=lambda: self._stage_current_selection(show_error=True),
         ).pack(side="left")
         self.core.ttk.Button(
             controls,
+            text="Прибрати вибрані пари",
+            command=self._remove_selected_pairs,
+        ).pack(side="left", padx=6)
+        self.core.ttk.Button(
+            controls,
             text="Очистити підготовлені пари",
             command=self._clear_staged_pairs,
-        ).pack(side="left", padx=6)
+        ).pack(side="left")
 
         self.assignment_count_var.set("Підготовлено пар: 0.")
         self.core.ttk.Label(
             self.box,
             text=(
                 "Пари, які реально підуть у наказ, показані в таблиці вище. "
-                "Вибір зберігається окремо від підсвічування списків, тому не "
-                "зникає при зміні фокусу. Правило: 1 ТЗ + кілька водіїв або "
-                "однакова кількість ТЗ і водіїв."
+                "Виберіть рівно один ТЗ і одного або кількох водіїв, натисніть "
+                "«Додати вибране як пари», потім повторіть для іншого ТЗ. "
+                "Taxo не групує два незалежні списки автоматично."
             ),
             style="Muted.TLabel",
             wraplength=700,
@@ -223,6 +228,14 @@ class OrderEditorAssignmentSection:
                 ),
             )
 
+    def _update_selection_summary(self, _event=None):
+        vehicle_count = len(self.initial_vehicle_list.curselection())
+        driver_count = len(self.initial_driver_list.curselection())
+        self.assignment_count_var.set(
+            "Підготовлено пар: %d. Поточний вибір: ТЗ — %d; водіїв — %d."
+            % (len(self.staged_initial_pairs), vehicle_count, driver_count)
+        )
+
     def _stage_current_selection(self, _event=None, *, show_error=False):
         vehicle_ids = [
             self.initial_vehicles[int(index)]["id"]
@@ -233,12 +246,22 @@ class OrderEditorAssignmentSection:
             for index in self.initial_driver_list.curselection()
         ]
 
-        if not vehicle_ids and not driver_ids:
+        if len(vehicle_ids) != 1 or not driver_ids:
+            message = (
+                "Для явного формування пар виберіть рівно один ТЗ і одного "
+                "або кількох водіїв. Для іншого ТЗ додайте наступні пари окремо."
+            )
             self.assignment_count_var.set(
-                "Підготовлено пар: %d. Поточне виділення порожнє."
+                "Підготовлено пар: %d. Поточний вибір потребує уточнення."
                 % len(self.staged_initial_pairs)
             )
-            return list(self.staged_initial_pairs)
+            if show_error:
+                self.core.messagebox.showerror(
+                    "Наказ про закріплення",
+                    message,
+                    parent=self.dialog,
+                )
+            return None
 
         try:
             pairs = self.ops.build_assignment_pairs(vehicle_ids, driver_ids)
@@ -255,20 +278,47 @@ class OrderEditorAssignmentSection:
                 )
             return None
 
-        self.staged_initial_pairs[:] = [
-            (int(vehicle_id), int(driver_id))
-            for vehicle_id, driver_id in pairs
-        ]
+        existing = set(self.staged_initial_pairs)
+        for vehicle_id, driver_id in pairs:
+            pair = (int(vehicle_id), int(driver_id))
+            if pair not in existing:
+                self.staged_initial_pairs.append(pair)
+                existing.add(pair)
+
         self._render_staged_pairs()
+        try:
+            self.initial_vehicle_list.selection_clear(0, "end")
+            self.initial_driver_list.selection_clear(0, "end")
+        except Exception:
+            pass
         self.assignment_count_var.set(
-            "Вибрано: ТЗ — %d; водіїв — %d. Підготовлено пар: %d."
-            % (
-                len(vehicle_ids),
-                len(driver_ids),
-                len(self.staged_initial_pairs),
-            )
+            "Підготовлено пар: %d. Додано для одного ТЗ: %d."
+            % (len(self.staged_initial_pairs), len(pairs))
         )
         return list(self.staged_initial_pairs)
+
+    def _remove_selected_pairs(self):
+        selected = []
+        try:
+            selected = [
+                int(item_id) - 1
+                for item_id in self.staged_pair_tree.selection()
+            ]
+        except Exception:
+            selected = []
+        if not selected:
+            self.assignment_count_var.set(
+                "Підготовлено пар: %d. Виберіть рядок у таблиці для видалення."
+                % len(self.staged_initial_pairs)
+            )
+            return
+        for index in sorted(set(selected), reverse=True):
+            if 0 <= index < len(self.staged_initial_pairs):
+                del self.staged_initial_pairs[index]
+        self._render_staged_pairs()
+        self.assignment_count_var.set(
+            "Підготовлено пар: %d." % len(self.staged_initial_pairs)
+        )
 
     def _clear_staged_pairs(self):
         self.staged_initial_pairs.clear()
@@ -412,9 +462,15 @@ class OrderEditorAssignmentSection:
             for index in self.initial_driver_list.curselection()
         ]
         if current_vehicle_ids or current_driver_ids:
-            staged = self._stage_current_selection(show_error=True)
-            if staged is None:
-                return None
+            self.core.messagebox.showerror(
+                "Наказ про закріплення",
+                (
+                    "Є вибір, який ще не додано до таблиці пар. Натисніть "
+                    "«Додати вибране як пари», перевірте таблицю і повторіть збереження."
+                ),
+                parent=self.dialog,
+            )
+            return None
 
         initial_pairs = list(self.staged_initial_pairs)
         if initial_pairs:
