@@ -265,5 +265,155 @@ class PaperScanReplaceR10Tests(unittest.TestCase):
         self.assertIn("не змінює статус документа", source)
 
 
+    def test_inactive_scan_cannot_be_replaced_again(self):
+        vault = self._vault_document()
+        old_source, _ = self._pdf("inactive-old.pdf", "inactive-old")
+        new_source, _ = self._pdf("inactive-new.pdf", "inactive-new")
+        old = register_paper_scan(self.workspace, vault.vault_id, old_source)
+        replacement = replace_paper_scan(
+            self.workspace, old.attachment_id, new_source,
+        )
+        with self.assertRaisesRegex(ValueError, "неактивний"):
+            replace_paper_scan(
+                self.workspace, old.attachment_id, new_source,
+            )
+        self.assertEqual(
+            [item.attachment_id for item in list_paper_scans(self.workspace)],
+            [replacement.current.attachment_id],
+        )
+        self.assertEqual(len(list_removed_paper_scans(self.workspace)), 1)
+
+    def test_failed_history_and_failed_rollback_preserve_both_copies(self):
+        vault = self._vault_document()
+        old_source, old_bytes = self._pdf("fail-old.pdf", "fail-old")
+        new_source, new_bytes = self._pdf("fail-new.pdf", "fail-new")
+        old = register_paper_scan(self.workspace, vault.vault_id, old_source)
+        original_write = scans._atomic_write
+        index_writes = []
+
+        def fail_history_and_rollback(path, payload):
+            if path.name == scans.HISTORY_NAME:
+                raise OSError("history unavailable")
+            if path.name == scans.INDEX_NAME:
+                index_writes.append(path)
+                if len(index_writes) == 2:
+                    raise OSError("rollback unavailable")
+            return original_write(path, payload)
+
+        with patch.object(
+            scans, "_atomic_write", side_effect=fail_history_and_rollback,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "безпечно відкотити"):
+                replace_paper_scan(
+                    self.workspace, old.attachment_id, new_source,
+                )
+        active = list_paper_scans(self.workspace)
+        self.assertEqual(len(active), 2)
+        self.assertEqual(
+            {load_paper_scan(self.workspace, row.attachment_id).path.read_bytes()
+             for row in active},
+            {old_bytes, new_bytes},
+        )
+        self.assertEqual(list_removed_paper_scans(self.workspace), ())
+
+    def test_tampering_with_replaced_scan_is_still_detected(self):
+        vault = self._vault_document()
+        old_source, _ = self._pdf("tamper-old.pdf", "tamper-old")
+        new_source, _ = self._pdf("tamper-new.pdf", "tamper-new")
+        old = register_paper_scan(self.workspace, vault.vault_id, old_source)
+        old_path = load_paper_scan(self.workspace, old.attachment_id).path
+        replace_paper_scan(self.workspace, old.attachment_id, new_source)
+        old_path.write_bytes(b"%PDF-1.4\\ntampered\\n%%EOF")
+        with self.assertRaises(ValueError):
+            list_paper_scans(self.workspace)
+        with self.assertRaises(ValueError):
+            list_removed_paper_scans(self.workspace)
+
+
+class PaperScanReplaceUiR10Tests(unittest.TestCase):
+    def test_cancel_and_decline_do_not_replace_and_buttons_fit(self):
+        import threading
+        import time
+        import tkinter as tk
+        from tkinter import font, ttk
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        import document_vault_paper_scans_ui as ui
+
+        try:
+            root = tk.Tk()
+        except tk.TclError as exc:
+            self.skipTest("Tk display unavailable: %s" % exc)
+        root.withdraw()
+        self.addCleanup(root.destroy)
+        default_font = font.nametofont("TkDefaultFont", root=root)
+        original_size = default_font.cget("size")
+        self.addCleanup(lambda: default_font.configure(size=original_size))
+        record = SimpleNamespace(
+            attachment_id="va-" + "1" * 32,
+            created_at="2026-11-17T12:00:00+00:00",
+            original_name="existing.pdf",
+            media_type="application/pdf",
+            size_bytes=100,
+            sha256="a" * 64,
+        )
+        core = SimpleNamespace(
+            tk=tk,
+            ttk=ttk,
+            fit_window_to_screen=lambda win, *args: win.geometry("900x600"),
+            filedialog=SimpleNamespace(askopenfilename=Mock(return_value="")),
+            messagebox=SimpleNamespace(
+                askyesno=Mock(return_value=False),
+                showinfo=Mock(),
+                showerror=Mock(),
+            ),
+        )
+        with patch.object(ui, "list_paper_scans", return_value=(record,)), \
+             patch.object(ui, "replace_paper_scan") as replace, \
+             patch.object(ui, "_IO_SLOT", threading.BoundedSemaphore(1)):
+            win = ui.open_paper_scans_dialog(
+                root, core, "synthetic-workspace", "vd-" + "2" * 32,
+            )
+            self.addCleanup(lambda: win.destroy() if win.winfo_exists() else None)
+            deadline = time.monotonic() + 5
+            while win._taxo_paper_scans_state["busy"] and time.monotonic() < deadline:
+                root.update()
+                time.sleep(0.01)
+            self.assertFalse(win._taxo_paper_scans_state["busy"])
+            win._taxo_paper_scans_replace()
+            core.messagebox.askyesno.assert_not_called()
+            replace.assert_not_called()
+            core.filedialog.askopenfilename.return_value = "replacement.pdf"
+            win._taxo_paper_scans_replace()
+            core.messagebox.askyesno.assert_called_once()
+            replace.assert_not_called()
+            self.assertFalse(win._taxo_paper_scans_state["busy"])
+
+            def buttons(widget):
+                result = []
+                for child in widget.winfo_children():
+                    if isinstance(child, ttk.Button):
+                        result.append(child)
+                    result.extend(buttons(child))
+                return result
+
+            for size in (original_size, 16):
+                default_font.configure(size=size)
+                for width, height in ((900, 600), (1024, 700), (1366, 768)):
+                    with self.subTest(font=size, viewport=(width, height)):
+                        win.geometry("%dx%d" % (width, height))
+                        root.update_idletasks()
+                        found = {button.cget("text"): button for button in buttons(win)}
+                        self.assertIn("Замінити…", found)
+                        self.assertIn("Закрити", found)
+                        for button in found.values():
+                            left = button.winfo_rootx() - win.winfo_rootx()
+                            top = button.winfo_rooty() - win.winfo_rooty()
+                            self.assertGreaterEqual(left, 0)
+                            self.assertGreaterEqual(top, 0)
+                            self.assertLessEqual(left + button.winfo_width(), width)
+                            self.assertLessEqual(top + button.winfo_height(), height)
+
+
 if __name__ == "__main__":
     unittest.main()

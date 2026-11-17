@@ -152,11 +152,11 @@ def open_paper_scans_dialog(
     replace_button.grid(row=0, column=2, padx=(0, 6))
     remove_button.grid(row=0, column=3, padx=(0, 6))
     history_button.grid(row=0, column=4, padx=(0, 6))
-    refresh_button.grid(row=0, column=5, padx=(0, 6))
-    add_button.grid(row=0, column=6, padx=(0, 6))
+    refresh_button.grid(row=1, column=1, padx=(4, 6), pady=(6, 0))
+    add_button.grid(row=1, column=2, padx=(0, 6), pady=(6, 0))
     core.ttk.Button(
         actions, text="Закрити", command=win.destroy
-    ).grid(row=0, column=7)
+    ).grid(row=1, column=4, pady=(6, 0), sticky="e")
 
     core.ttk.Label(
         body,
