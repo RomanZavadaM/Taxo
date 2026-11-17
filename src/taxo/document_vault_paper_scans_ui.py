@@ -200,9 +200,12 @@ def open_paper_scans_dialog(
             "ID: %s · SHA-256: %s"
             % (record.attachment_id, record.sha256)
         )
-        selected_state = "disabled" if state["busy"] else "normal"
-        open_button.configure(state=selected_state)
-        remove_button.configure(state=selected_state)
+        open_button.configure(
+            state="disabled" if state["busy"] else "normal"
+        )
+        remove_button.configure(
+            state="disabled" if state["busy"] else "normal"
+        )
 
     def render(records, message=""):
         previous = tree.selection()
