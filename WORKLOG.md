@@ -1,3 +1,14 @@
+## 17.11.2026 — 10.21-r8: явні пари водій↔ТЗ у наказах
+
+- Fresh recovery found live GitHub ahead of the user-provided checkpoint: 10.21-r7 was already product/release/recovery complete on main `874dbc8bb3ce5a92f31653deffa02412e9f5963a`; no pre-existing r8/#511 work branch was found.
+- Root cause of the first Issue #511 screenshot confirmed in code: equal-sized independent vehicle/driver selections were paired by positional `zip`. r8 removes that silent behavior.
+- New-order editor now stages explicit concrete pairs into a visible table: exactly one vehicle + one/more drivers per action, repeat for another vehicle. Unstaged selections block save. Existing-order bulk add follows the same safe rule; older stored orders are not rewritten.
+- The owner regression with 12 pairs was converted from implicit 12+12 list zipping to explicit pair staging while retaining DB, reopen, DOCX/PDF/JPG and backup/restore checks.
+- Intermediate CI exposed only stale regression/version guards that still expected the former implicit behavior or literal r7 identity; these were corrected before merge. Final product PR #513 merged; final PR head `55056ffccb9eb4c5de523e4d3109f2304cba0620`; immutable exact product source `c9dc9799c22565b56c737216983dd900265c29bd`.
+- Exact-source START #44167952855 **1475/1475**; Windows #44167952924, Win7 #44167952849, macOS Intel/ARM #44167952840 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #514 merged `293ddccfcf88433e7a331d79372e4fe1c71239b4`; publisher #44169744409 SUCCESS. [v10.21-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r8) is an immutable Test Portable prerelease with 6 assets and exact tag source `c9dc9799c22565b56c737216983dd900265c29bd`. Stable/Latest remains v10.21-r2.
+- The second owner-reported problem — taking prepared pairs from «Експлуатація» — is intentionally **not** marked fixed by r8 and remains the next narrow part of Issue #511. **10.21-r9 not started.**
+
 ## 17.11.2026 — 10.21-r7: календар «Дата…» у шляхівках
 
 - Started after r6 recovery closed, from main `e086dbde708f8564c966793d70ed0976aabd01ac`; no existing r7 branch. Used existing `calendar_button` and `show_calendar_picker` from the main schedule, without new dependencies.
