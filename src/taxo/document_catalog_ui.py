@@ -87,6 +87,27 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     source_box.grid(row=0, column=2, sticky="e")
 
+    scan_options = {
+        "Усі": "all",
+        "Є скани": "present",
+        "Немає сканів": "absent",
+        "Помилка перевірки": "error",
+    }
+    scan_choice = core.tk.StringVar(value="Усі")
+    core.ttk.Label(bar, text="Скани:").grid(
+        row=1, column=0, sticky="w", pady=(6, 0)
+    )
+    scan_box = core.ttk.Combobox(
+        bar,
+        textvariable=scan_choice,
+        state="readonly",
+        values=tuple(scan_options),
+        width=22,
+    )
+    scan_box.grid(
+        row=1, column=1, sticky="w", padx=8, pady=(6, 0)
+    )
+
     source_status = core.tk.StringVar(value="")
     core.ttk.Label(
         body,
@@ -262,6 +283,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             state["page"],
             reload_sources,
             source_options.get(source_choice.get(), "all"),
+            scan_options.get(scan_choice.get(), "all"),
         )
         source_status.set("Завантаження документів…")
         if not state["busy"]:
@@ -286,7 +308,13 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             win.after_cancel(state["retry"])
             state["retry"] = None
         state["busy"] = True
-        text_filter, page, reload_sources, source_filter = wanted
+        (
+            text_filter,
+            page,
+            reload_sources,
+            source_filter,
+            scan_filter,
+        ) = wanted
         previous = state["snapshot"]
         must_reload = (
             state["needs_reload"]
@@ -305,6 +333,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     text_filter,
                     page,
                     source_filter=source_filter,
+                    scan_filter=scan_filter,
                 )
                 state["results"].put(
                     (generation, snapshot, result, None)
@@ -720,10 +749,16 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             reset=True, reload_sources=True
         ),
     )
+    scan_box.bind(
+        "<<ComboboxSelected>>",
+        lambda _event: refresh(reset=True),
+    )
     win._taxo_catalog_tree = tree
     win._taxo_catalog_search = search
     win._taxo_catalog_source = source_choice
     win._taxo_catalog_source_box = source_box
+    win._taxo_catalog_scan_filter = scan_choice
+    win._taxo_catalog_scan_filter_box = scan_box
     win._taxo_catalog_status = source_status
     win._taxo_catalog_refresh = refresh
     win._taxo_catalog_open = open_selected
