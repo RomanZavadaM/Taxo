@@ -38,4 +38,4 @@
 
 ## Історичний якір
 
-Taxo 10.3 / v10.3, exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+Taxo 10.3 / `v10.3`, exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
