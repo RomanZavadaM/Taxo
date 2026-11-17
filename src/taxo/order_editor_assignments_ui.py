@@ -25,8 +25,8 @@ class OrderEditorAssignmentSection:
         assignments_tab,
         refresh_assignments,
         add_assignments_bulk,
-        edit_assignment_by_id,
-        focus_assignments,
+        edit_assignment_by_id=None,
+        focus_assignments=None,
     ):
         self.core = core
         self.ops = ops
@@ -90,7 +90,7 @@ class OrderEditorAssignmentSection:
         self.core.ttk.Label(left, text="Транспортний засіб").pack(anchor="w")
         self.initial_vehicle_list = self.core.tk.Listbox(
             left,
-            selectmode="extended",
+            selectmode="browse",
             exportselection=False,
             height=5,
         )
@@ -138,6 +138,7 @@ class OrderEditorAssignmentSection:
         )
         self.dialog._taxo_staged_assignment_tree = self.staged_pair_tree
         self.dialog._taxo_staged_assignment_pairs = self.staged_initial_pairs
+        self.staged_pair_tree.bind("<Double-1>", self._load_selected_staged_pair)
 
         self.initial_vehicle_list.bind(
             "<<ListboxSelect>>",
@@ -175,6 +176,11 @@ class OrderEditorAssignmentSection:
         ).pack(side="left")
         self.core.ttk.Button(
             controls,
+            text="Замінити вибрану пару",
+            command=self._replace_selected_pair,
+        ).pack(side="left", padx=6)
+        self.core.ttk.Button(
+            controls,
             text="Прибрати вибрані пари",
             command=self._remove_selected_pairs,
         ).pack(side="left", padx=6)
@@ -183,6 +189,11 @@ class OrderEditorAssignmentSection:
             text="Очистити підготовлені пари",
             command=self._clear_staged_pairs,
         ).pack(side="left")
+        self.core.ttk.Button(
+            controls,
+            text="Взяти готові пари з наказів…",
+            command=self._import_prepared_pairs,
+        ).pack(side="left", padx=6)
 
         self.assignment_count_var.set("Підготовлено пар: 0.")
         self.core.ttk.Label(
@@ -191,7 +202,9 @@ class OrderEditorAssignmentSection:
                 "Пари, які реально підуть у наказ, показані в таблиці вище. "
                 "Виберіть рівно один ТЗ і одного або кількох водіїв, натисніть "
                 "«Додати вибране як пари», потім повторіть для іншого ТЗ. "
-                "Taxo не групує два незалежні списки автоматично."
+                "Для виправлення: двічі клацніть готовий рядок, "
+                "виберіть потрібний ТЗ і водія, натисніть «Замінити вибрану пару». "
+                "Можна також узяти пари з раніше створених наказів."
             ),
             style="Muted.TLabel",
             wraplength=700,
@@ -300,6 +313,173 @@ class OrderEditorAssignmentSection:
             % (len(self.staged_initial_pairs), len(pairs))
         )
         return list(self.staged_initial_pairs)
+
+    def _selected_staged_index(self):
+        selected = self.staged_pair_tree.selection()
+        if len(selected) != 1:
+            return None
+        try:
+            index = int(selected[0]) - 1
+        except (TypeError, ValueError):
+            return None
+        return index if 0 <= index < len(self.staged_initial_pairs) else None
+
+    def _load_selected_staged_pair(self, _event=None):
+        index = self._selected_staged_index()
+        if index is None:
+            return
+        vehicle_id, driver_id = self.staged_initial_pairs[index]
+        self.initial_vehicle_list.selection_clear(0, "end")
+        self.initial_driver_list.selection_clear(0, "end")
+        for offset, item in enumerate(self.initial_vehicles):
+            if int(item["id"]) == int(vehicle_id):
+                self.initial_vehicle_list.selection_set(offset)
+                self.initial_vehicle_list.see(offset)
+                break
+        for offset, item in enumerate(self.initial_drivers):
+            if int(item["id"]) == int(driver_id):
+                self.initial_driver_list.selection_set(offset)
+                self.initial_driver_list.see(offset)
+                break
+        self.assignment_count_var.set(
+            "Редагування пари №%d: змініть ТЗ або водія і натисніть «Замінити вибрану пару»."
+            % (index + 1)
+        )
+
+    def _replace_selected_pair(self):
+        index = self._selected_staged_index()
+        if index is None:
+            self.core.messagebox.showinfo(
+                "Пари наказу",
+                "Виберіть рівно один рядок у таблиці підготовлених пар.",
+                parent=self.dialog,
+            )
+            return
+        vehicle_selection = self.initial_vehicle_list.curselection()
+        driver_selection = self.initial_driver_list.curselection()
+        if len(vehicle_selection) != 1 or len(driver_selection) != 1:
+            self.core.messagebox.showerror(
+                "Пари наказу",
+                "Для заміни виберіть один ТЗ і одного водія. "
+                "Заміна не виконується, доки вибір неоднозначний.",
+                parent=self.dialog,
+            )
+            return
+        candidate = (
+            int(self.initial_vehicles[int(vehicle_selection[0])]["id"]),
+            int(self.initial_drivers[int(driver_selection[0])]["id"]),
+        )
+        if candidate in (
+            pair for i, pair in enumerate(self.staged_initial_pairs) if i != index
+        ):
+            self.core.messagebox.showerror(
+                "Пари наказу",
+                "Ця пара вже додана. Зміни не збережені.",
+                parent=self.dialog,
+            )
+            return
+        self.staged_initial_pairs[index] = candidate
+        self._render_staged_pairs()
+        self.staged_pair_tree.selection_set(str(index + 1))
+        self.staged_pair_tree.see(str(index + 1))
+        self.initial_vehicle_list.selection_clear(0, "end")
+        self.initial_driver_list.selection_clear(0, "end")
+        self.assignment_count_var.set(
+            "Пару №%d замінено. Підготовлено пар: %d."
+            % (index + 1, len(self.staged_initial_pairs))
+        )
+
+    def _import_prepared_pairs(self):
+        """Copy exact, explicitly selected existing pairs; never infer by list order."""
+        con = self.core.db()
+        try:
+            sources = []
+            for order in self.ops.list_orders(con):
+                if str(order["order_type"]) != self.ops.TYPE_VEHICLE_ASSIGNMENT:
+                    continue
+                for pair in self.ops.order_assignments(con, order["id"]):
+                    sources.append((
+                        int(pair["vehicle_id"]),
+                        int(pair["employee_id"]),
+                        str(order["order_no"]),
+                        str(order["order_date"]),
+                    ))
+        finally:
+            con.close()
+        active_vehicles = {int(row["id"]): row["label"] for row in self.initial_vehicles}
+        active_drivers = {int(row["id"]): row["label"] for row in self.initial_drivers}
+        available = [item for item in sources
+                     if item[0] in active_vehicles and item[1] in active_drivers]
+        if not available:
+            self.core.messagebox.showinfo(
+                "Готові пари з Експлуатації",
+                "Немає доступних пар з інших наказів для активних ТЗ і водіїв. "
+                "Спочатку створіть пару або перевірте статуси карток.",
+                parent=self.dialog,
+            )
+            return
+        dlg = self.core.tk.Toplevel(self.dialog)
+        dlg.title("Готові пари з Експлуатації")
+        try:
+            self.core.configure_toplevel(dlg, title=dlg.title(), minsize=(700, 440))
+        except Exception:
+            dlg.geometry("860x500")
+        body = self.core.ttk.Frame(dlg, padding=12)
+        body.pack(fill="both", expand=True)
+        self.core.ttk.Label(
+            body,
+            text=("Виберіть конкретні пари з раніше створених наказів. "
+                  "Вони будуть лише скопійовані в таблицю нового наказу. "
+                  "Дата закріплення буде датою нового наказу; оригінали не змінюються."),
+            wraplength=760,
+            justify="left",
+        ).pack(anchor="w", pady=(0, 8))
+        table = self.core.ttk.Treeview(
+            body, columns=("order", "vehicle", "driver"),
+            show="headings", selectmode="extended", height=12,
+        )
+        for key, name, width in (
+            ("order", "Наказ-джерело", 170),
+            ("vehicle", "ТЗ", 270),
+            ("driver", "Водій", 270),
+        ):
+            table.heading(key, text=name)
+            table.column(key, width=width, anchor="w")
+        table.pack(fill="both", expand=True)
+        for offset, (vehicle, driver, number, day) in enumerate(available):
+            table.insert("", "end", iid=str(offset),
+                         values=("%s (%s)" % (number, self.ops.display_day(day)),
+                                 active_vehicles[vehicle], active_drivers[driver]))
+        def copy_selected():
+            selected = table.selection()
+            if not selected:
+                self.core.messagebox.showinfo(
+                    "Готові пари", "Позначте хоча б один рядок для перенесення.",
+                    parent=dlg,
+                )
+                return
+            existing_pairs = set(self.staged_initial_pairs)
+            added = 0
+            for item_id in selected:
+                vehicle, driver, _, _ = available[int(item_id)]
+                pair = (vehicle, driver)
+                if pair not in existing_pairs:
+                    self.staged_initial_pairs.append(pair)
+                    existing_pairs.add(pair)
+                    added += 1
+            self._render_staged_pairs()
+            self.assignment_count_var.set(
+                "Перенесено готових пар: %d. У новому наказі всього: %d."
+                % (added, len(self.staged_initial_pairs))
+            )
+            dlg.destroy()
+        bar = self.core.ttk.Frame(body)
+        bar.pack(fill="x", pady=(8, 0))
+        self.core.ttk.Button(bar, text="Скасувати", command=dlg.destroy).pack(side="right")
+        self.core.ttk.Button(
+            bar, text="Взяти вибрані пари", command=copy_selected,
+        ).pack(side="right", padx=6)
+        dlg.transient(self.dialog)
 
     def _remove_selected_pairs(self):
         selected = []
