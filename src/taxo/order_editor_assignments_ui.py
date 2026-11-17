@@ -606,16 +606,18 @@ class OrderEditorAssignmentSection:
             command=lambda: self._edit_existing_pair(tree),
         )
         edit_button.pack(side="left")
-        self.core.ttk.Button(
+        add_button = self.core.ttk.Button(
             buttons,
             text="Додати пару…",
             command=self._add_existing_pair,
-        ).pack(side="left", padx=6)
-        self.core.ttk.Button(
+        )
+        add_button.pack(side="left", padx=6)
+        remove_button = self.core.ttk.Button(
             buttons,
             text="Прибрати вибрану пару",
             command=self._remove_existing_pair,
-        ).pack(side="left", padx=6)
+        )
+        remove_button.pack(side="left", padx=6)
         tree.bind("<Double-1>", lambda _event: self._edit_existing_pair(tree))
 
         self.core.ttk.Label(
@@ -623,8 +625,9 @@ class OrderEditorAssignmentSection:
             text=(
                 "Закріплення є частиною цього наказу. Тут видно поточний перелік; "
                 "Виберіть рядок і натисніть «Редагувати вибрану пару…». "
-                "«Додати пари…» відкриє додавання для цього наказу. "
-                "«Відкрити всі пари…» відкриє повний список з діями «Прибрати»."
+                "«Додати пару…» відкриє форму нової пари для цього наказу. "
+                "«Прибрати вибрану пару» попросить підтвердження. "
+                "Після збереження список одразу оновлюється."
             ),
             style="Muted.TLabel",
             wraplength=700,
@@ -633,8 +636,8 @@ class OrderEditorAssignmentSection:
 
         self.dialog._taxo_existing_assignment_tree = tree
         self.dialog._taxo_existing_assignment_edit_button = edit_button
-        self.dialog._taxo_existing_assignment_bulk_button = bulk_button
-        self.dialog._taxo_existing_assignment_manage_button = manage_button
+        self.dialog._taxo_existing_assignment_bulk_button = add_button
+        self.dialog._taxo_existing_assignment_manage_button = remove_button
 
     def _refresh_existing_pairs(self, focus_id=None):
         """Refresh the current order's own list without switching tabs."""
