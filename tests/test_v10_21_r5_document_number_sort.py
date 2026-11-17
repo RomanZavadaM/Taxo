@@ -52,7 +52,7 @@ class DocumentNumberSortR5Tests(unittest.TestCase):
             (root / "VERSION.txt").read_text("utf-8"),
             "Version: 10.21-r9\n",
         )
-        self.assertIn('APP_VERSION = "10.21-r8", "10.21-r9"', (root / "main.py").read_text("utf-8"))
+        self.assertIn('APP_VERSION = "10.21-r9"', (root / "main.py").read_text("utf-8"))
         self.assertIn("Taxo 10.21-r9", (root / "START.bat").read_text("utf-8"))
 
     def test_natural_numeric_and_mixed_numbers(self):

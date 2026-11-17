@@ -137,7 +137,7 @@ class CompanyTemplateEditorR2Tests(unittest.TestCase):
             or 'APP_VERSION = "10.20-r5"' in main_source
             or 'APP_VERSION = "10.20-r6"' in main_source
             or 'APP_VERSION = "10.21-r7"' in main_source
-            or 'APP_VERSION = "10.21-r8", "10.21-r9"' in main_source
+            or 'APP_VERSION = "10.21-r9"' in main_source
         )
         start_source = (root / "START.bat").read_text("utf-8")
         self.assertTrue(

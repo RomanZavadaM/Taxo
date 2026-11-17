@@ -95,7 +95,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
                 'APP_VERSION = "10.20-r4"',
                 'APP_VERSION = "10.20-r5"',
                 'APP_VERSION = "10.20-r6"',
-                'APP_VERSION = "10.21-r8", "10.21-r9"',
+                'APP_VERSION = "10.21-r9"',
             ))
         )
         start = (root / "START.bat").read_text("utf-8")

@@ -55,7 +55,7 @@ class DocumentScanFilterR1Tests(unittest.TestCase):
             "Version: 10.21-r9\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.21-r8", "10.21-r9"',
+            'APP_VERSION = "10.21-r9"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
