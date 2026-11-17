@@ -1164,3 +1164,18 @@
 - Issue #61 вже містить аварійний підсумок r7 після збою доставки.
 - На момент recovery **10.20-r8 не розпочата**: відповідної гілки, PR або коду немає. Наступний крок — після цього docs checkpoint вибрати один обмежений r8 slice з чинного плану DocumentVault/сканів.
 
+## 17.11.2026 — 10.20-r8: безпечне прибирання помилкового скана з історією
+
+- Після повного recovery r7 створено `work/v10.20-r8-paper-scan-removal-history` від `77aca7f68823ec86a139223cc6e46246dc79e18f`; Product PR #478 merged як `05e3132003f21054e63707ec231b017bba9ec7b1`.
+- r8 додає явне **«Прибрати»** для вибраного скана після підтвердження. Скан зникає з активного списку, але immutable-файл фізично не стирається.
+- Дія записується в окрему перевірювану історію; **«Історія…»** показує прибрані скани. Збережені байти лишаються під SHA-256/integrity контролем і входять у чинний повний backup/restore.
+- Прибирання/історія не змінюють бізнес-статус документа і не означають «підписано». КЕП/e-signature validation, auto signed status, physical purge та migration старих документів не додавались.
+- Перший exact head `88b430e82dbd34b98e9fb8377fc6df9f8ac22d2d` виявив **один** legacy static regression із r7: тест вимагав зберегти точну форму керування кнопкою «Відкрити». Сумісну форму повернуто без зміни поведінки r8.
+- Final product head `5591f01459c17277cf486b04047c2dfe1babd5b6`: START `44059242234`, Windows `44059242262`, Win7 `44059242222`, macOS `44059242233` — SUCCESS; **1414/1414**; Defender/integrity PASS.
+- Release-notes PR #479 merged як exact issued source `5c8513af9ee6d919d5812ebc39ee9769a83b1c44`.
+- Exact release-source CI: START `44061025151` — **1414/1414**; Windows `44061025064`; Win7 `44061025223`; macOS Intel/ARM `44061025032` — SUCCESS; Defender/integrity PASS.
+- Trigger PR #480 semantic marker залишив `10.20-r5`; merged `6aa04d1229f18b9ac67409b2af34d5868353f5ec`. Publisher `44065537111` — SUCCESS.
+- [v10.20-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r8) — Test prerelease, exact target `5c8513af9ee6d919d5812ebc39ee9769a83b1c44`, рівно 6 assets: 4 Portable, START, SHA256.
+- GitHub Latest/Stable лишається [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5), 8 assets.
+- **10.20-r9 не розпочата.** Наступний slice визначати лише після fresh live verification; r8/tag/release не перевикористовувати.
+
