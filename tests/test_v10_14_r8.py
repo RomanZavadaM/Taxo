@@ -381,22 +381,23 @@ class ExistingAssignmentEditGuardR8Tests(unittest.TestCase):
                 app.update_idletasks()
                 app.update()
 
-                bulk_dialogs = [
+                pair_dialogs = [
                     w for w in walk(win)
                     if isinstance(w, tk.Toplevel) and w is not win
-                    and str(w.title()) == "Додати кілька закріплень"
+                    and str(w.title()) == "Додати пару до цього наказу"
                 ]
-                self.assertEqual(len(bulk_dialogs), 1)
-                bulk_dialog = bulk_dialogs[0]
-                assert_widget_reachable(bulk_dialog, route_id)
-                listboxes = [
-                    w for w in walk(bulk_dialog)
-                    if str(w.winfo_class()) == "Listbox"
-                ]
-                self.assertEqual(len(listboxes), 2)
-                for lb in listboxes:
-                    assert_widget_reachable(lb, route_id, container=bulk_dialog)
-                    self.assertEqual(lb.size(), 2)
+                self.assertEqual(len(pair_dialogs), 1)
+                pair_dialog = pair_dialogs[0]
+                assert_widget_reachable(pair_dialog, route_id)
+                self.assertEqual(
+                    len([w for w in walk(pair_dialog)
+                         if str(w.winfo_class()) == "TCombobox"]),
+                    2,
+                )
+                # The order editor remains open: no navigation to a giant
+                # unrelated table and no loss of other pair rows.
+                self.assertTrue(dialog.winfo_exists())
+                self.assertEqual(len(current_tree.get_children()), 2)
         finally:
             app.destroy()
 
