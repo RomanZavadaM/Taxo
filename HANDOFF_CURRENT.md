@@ -4,7 +4,7 @@
 
 ## Поточний стан
 
-- Перевірена база main перед цим docs-only checkpoint: `a301ed020d62831257748c7658d5bc61987d4e98`; checkpoint змінює лише документацію.
+- Перевірена база main перед цим docs-only checkpoint: `cdaaafe6078d55bbc7a2b3f5d605fc840d2d1cb6`; checkpoint змінює лише документацію.
 - **10.21-r3 завершена, інтегрована й опублікована.**
 - Product PR #496 merged / exact immutable release source: `f8a30882c473568293b3123e1f23feca22e54334`.
 - Final product head before merge: `7ad2df8ba4dd08d754cb1f47ea29b804438a4979`.
@@ -12,7 +12,7 @@
 - Microsoft Defender та post-scan integrity — PASS для Windows/Win7.
 - Release-trigger PR #497 merged: `a301ed020d62831257748c7658d5bc61987d4e98`; publisher `44113848030` — SUCCESS.
 - [v10.21-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r3) — Test prerelease, рівно 6 завантажених файлів: 4 Portable + START + SHA256; tag target `f8a30882c473568293b3123e1f23feca22e54334`.
-- **Stable / GitHub Latest:** [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5), 8 файлів, без змін.
+- **Stable / GitHub Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 файлів; PR #499 merged `cdaaafe6078d55bbc7a2b3f5d605fc840d2d1cb6`, historical promotion `44116866634` SUCCESS. Стабільний реліз побудовано з незмінного r2 source `b104f94ace0ae355df79c914b3be6f39417bd6e9`; r3 лишається тестовою.
 
 ## Що завершено в r3
 
@@ -27,6 +27,8 @@
 Fresh verification почався з main `2145f025c82471b4917e5fafa20f2a821e7b169e`: перевірено 408 refs, включно з гілками без PR; готової 10.21-r3 гілки/PR не було. r2 не повторювали.
 
 Перший START на проміжному r3 head запустив 1448 тестів і знайшов одну помилку лише у новому тесті: він жорстко очікував конкретний Unicode-порядок українських назв типів. Тест виправлено на перевірку складу значень без зміни продукту; фінальний PR head `7ad2df8ba4dd08d754cb1f47ea29b804438a4979` пройшов усі перевірки.
+
+Після публікації r3 власник окремо наказав перевести **10.21-r2** у Stable/Latest. Команду виконано через PR #499, не змінюючи код або тестовий тег r3. Звичайний publisher на merge #499 відмовився повторно випускати існуючу ревізію; спеціальний stable promotion завершився SUCCESS.
 
 ## Одна наступна дія
 
