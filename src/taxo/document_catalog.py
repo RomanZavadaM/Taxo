@@ -17,6 +17,40 @@ from document_vault_store import list_document_vault
 from document_vault_paper_scans import list_paper_scans
 
 
+CATEGORY_PERSONNEL = "Кадрові"
+CATEGORY_OPERATIONAL = "Експлуатаційні"
+CATEGORY_OCCUPATIONAL_SAFETY = "Охорона праці"
+CATEGORY_ROAD_SAFETY = "БДР"
+CATEGORY_FIRE_SAFETY = "Пожежна безпека"
+CATEGORY_UNCLASSIFIED = "Не визначено"
+DOCUMENT_CATEGORIES = (
+    CATEGORY_PERSONNEL,
+    CATEGORY_OPERATIONAL,
+    CATEGORY_OCCUPATIONAL_SAFETY,
+    CATEGORY_ROAD_SAFETY,
+    CATEGORY_FIRE_SAFETY,
+    CATEGORY_UNCLASSIFIED,
+)
+
+_ROAD_SAFETY_ORDER_TYPES = {"road_safety", "accident_commission"}
+_OCCUPATIONAL_SAFETY_ORDER_TYPES = {"occupational_safety", "safety_training"}
+_FIRE_SAFETY_ORDER_TYPES = {"fire_safety"}
+
+
+def _order_category(order_series, order_type):
+    """Classify only structured order metadata; never infer from free text."""
+    if str(order_series or "").strip() == "personnel":
+        return CATEGORY_PERSONNEL
+    order_type = str(order_type or "").strip()
+    if order_type in _ROAD_SAFETY_ORDER_TYPES:
+        return CATEGORY_ROAD_SAFETY
+    if order_type in _OCCUPATIONAL_SAFETY_ORDER_TYPES:
+        return CATEGORY_OCCUPATIONAL_SAFETY
+    if order_type in _FIRE_SAFETY_ORDER_TYPES:
+        return CATEGORY_FIRE_SAFETY
+    return CATEGORY_OPERATIONAL
+
+
 def _paper_file(folder, value):
     """Accept only a DOCX inside PaperDocuments, including after symlink resolution."""
     if not isinstance(value, str) or not value or "/" in value or "\\" in value:
@@ -91,6 +125,7 @@ def _read_paper(root):
             "kind": str(item.get("kind") or "Документ"),
             "title": str(item.get("title") or ""),
             "person": str(item.get("person") or ""),
+            "category": CATEGORY_UNCLASSIFIED,
             "file_state": state,
             "file_path": path,
             "origin": str(item.get("origin") or ""),
@@ -134,6 +169,7 @@ def _read_vault(root):
             "kind": record.kind,
             "title": record.title,
             "person": "",
+            "category": CATEGORY_UNCLASSIFIED,
             "file_state": "Незмінна копія у сховищі",
             "file_path": None,
             "origin": "document_vault",
@@ -247,9 +283,10 @@ def _read_orders(root):
                 ).fetchall()
             }
             created = "created_at" if "created_at" in columns else "''"
+            series = "order_series" if "order_series" in columns else "''"
             raw = con.execute(
                 "SELECT id, order_date, order_no, order_type, subject, "
-                + created + " FROM operations_orders"
+                + series + ", " + created + " FROM operations_orders"
             ).fetchall()
         finally:
             con.close()
@@ -269,6 +306,8 @@ def _read_orders(root):
         "title": str(subject or ""),
         "person": "",
         "order_type": str(kind or ""),
+        "order_series": str(series or ""),
+        "category": _order_category(series, kind),
         "file_state": "Файл не прив'язаний",
         "file_path": None,
         "revision_label": "",
@@ -277,7 +316,7 @@ def _read_orders(root):
         "vault_status": "",
         "vault_created_at": "",
         "vault_content_sha256": "",
-    } for order_id, day, number, kind, subject, created in raw]
+    } for order_id, day, number, kind, subject, series, created in raw]
     return rows, "Накази: %d." % len(rows)
 
 
@@ -334,6 +373,15 @@ def document_kinds(snapshot):
     return tuple(sorted(values, key=str.casefold))
 
 
+def document_categories(snapshot):
+    """Return known categories in a stable user-facing order."""
+    present = {
+        str(row.get("category") or CATEGORY_UNCLASSIFIED).strip()
+        for row in snapshot.get("rows", ())
+    }
+    return tuple(category for category in DOCUMENT_CATEGORIES if category in present)
+
+
 def paginate_sources(
     snapshot,
     text_filter="",
@@ -344,6 +392,7 @@ def paginate_sources(
     date_from="",
     date_to="",
     kind_filter="all",
+    category_filter="all",
     date_sort="default",
     number_sort="default",
 ):
@@ -379,6 +428,13 @@ def paginate_sources(
             row for row in all_rows
             if str(row.get("kind") or "").strip() == selected_kind
         ]
+    selected_category = str(category_filter or "all").strip()
+    if selected_category and selected_category != "all":
+        all_rows = [
+            row for row in all_rows
+            if str(row.get("category") or CATEGORY_UNCLASSIFIED).strip()
+            == selected_category
+        ]
     if scan_filter == "present":
         all_rows = [
             row for row in all_rows
@@ -412,8 +468,8 @@ def paginate_sources(
     if needle:
         fields = (
             "date", "number", "kind", "title", "person",
-            "order_type", "revision_label", "source_label",
-            "paper_scan_state",
+            "order_type", "order_series", "category", "revision_label",
+            "source_label", "paper_scan_state",
         )
         all_rows = [
             row for row in all_rows
@@ -469,6 +525,7 @@ def paginate_sources(
         "page": page,
         "pages": pages,
         "available_kinds": document_kinds(snapshot),
+        "available_categories": document_categories(snapshot),
         "paper_status": snapshot["paper_status"],
         "vault_status": snapshot.get("vault_status", ""),
         "paper_scan_status": snapshot.get("paper_scan_status", ""),
@@ -485,6 +542,7 @@ def read_catalog(
     date_from="",
     date_to="",
     kind_filter="all",
+    category_filter="all",
     date_sort="default",
     number_sort="default",
 ):
@@ -498,6 +556,7 @@ def read_catalog(
         date_from=date_from,
         date_to=date_to,
         kind_filter=kind_filter,
+        category_filter=category_filter,
         date_sort=date_sort,
         number_sort=number_sort,
     )
