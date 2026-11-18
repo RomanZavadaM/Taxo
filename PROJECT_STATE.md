@@ -2,23 +2,23 @@
 
 **Confirmed integrated: 17.11.2026.**
 
-- Latest completed code revision **10.21-r8**. Product PR #513 merged, immutable exact source `c9dc9799c22565b56c737216983dd900265c29bd`.
-- Exact-source START #44167952855 **1475/1475**; Windows #44167952924, Win7 #44167952849, macOS Intel/ARM #44167952840 SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #514 merged `293ddccfcf88433e7a331d79372e4fe1c71239b4`; publisher #44169744409 SUCCESS.
-- [v10.21-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r8) — Test prerelease, 6 assets, exact immutable source above.
+- Latest completed code revision **10.21-r9**. Product PR #516 merged, immutable exact source `77b80c77f9fd084208d32847c62a5d16c4640262`.
+- Exact-source START #44180404692 **1491/1491**; Windows #44180404613, Win7 #44180404568, macOS Intel/ARM #44180404629 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #517 merged `95d3405c25c7ad7bcc5aa6a2e29991bd74753a8a`; publisher #44181523720 SUCCESS.
+- [v10.21-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r9) — Test Portable prerelease, 6 assets, exact immutable source above.
 - **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), 8 assets, unchanged.
 
-## Result r8
+## Result r9
 
-Unsafe positional pairing of independent vehicle and driver selections was removed. A new assignment order now stages concrete pairs explicitly: exactly one vehicle + one or more drivers per action, with the resulting pairs visible before save; another vehicle is added separately. Unstaged selection blocks save instead of silently re-pairing. The existing-order bulk path follows the same rule. Historical stored orders are not rewritten. The 12-pair regression still validates persistence, reopen, DOCX/PDF/JPG and backup/restore.
+Owner reported broken, unclear driver–vehicle pair editing in r8 and a confusing switch from a saved/edited order to the general pair tab. r9 removes both automatic redirects. Existing order edits, additions and deletions now target the concrete pair inside the order, with immediate refresh; save of the separate pair dialog is explicit and committed immediately, independent of unsaved order text. New order staging supports replacing a pair and importing exact prior non-cancelled associations from «Експлуатація» with search and deduplication. No schema, bulk rewriting of historical orders, document format, backup format, security or dependency changes.
 
 ## Active code revision
 
-None. **10.21-r9 not started.**
+None. **10.21-r10 not started.**
 
 ## Next action
 
-Continue only the still-open part of **Issue #511**: owner cannot reuse already prepared driver↔vehicle pairs from «Експлуатація» when creating the order. Trace that prepared-pair source through selection/import, stage/store/reopen/generate and add regression coverage without restoring positional pairing. Perform fresh live GitHub reconciliation before modifications; leave stable unchanged.
+Collect owner manual UI acceptance for **Issue #511** on v10.21-r9. Run a fresh live GitHub reconciliation before any new changes; if acceptance finds defects, address only one scoped failure and keep stable unchanged.
 
 ## History
 
