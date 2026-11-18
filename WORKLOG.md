@@ -1,3 +1,14 @@
+## 18.11.2026 — 10.22-r6: окремий напрям «Сезонні заходи»
+
+- Після fresh recovery взято один вузький пункт Issue #289: накази `seasonal_operation` у спільному каталозі «Документи» тепер мають окрему категорію «Сезонні заходи».
+- Класифікація лише зі структурованого `order_type`; вільний текст не аналізується. Кадрова серія має пріоритет.
+- Перший START у PR #537 знайшов один застарілий regression fixture без сезонного рядка. Виправлено тільки тестові дані; production-логіку не послаблювали.
+- Product PR #537 merged; final head `d764e56596dc30a0b4c717a0a6b0a5b56a7f39c9`; immutable exact source `28d2b838dae51a8ed009dd4b14fe1a0afa561384`.
+- Exact-source START #44386227495 **1535/1535**; Windows #44386227504, Win7 #44386227480, macOS Intel/ARM #44386227490 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #538 merged `c42d3554797ed3bfc133fd1337ab1288b8facc37`; publisher #44388264823 SUCCESS. [v10.22-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r6) Test Portable — 6 assets; tag points exactly to product source.
+- DocumentVault, скани, паперовий підпис, backup/restore, схема БД, пари водій↔ТЗ і Stable не змінювалися.
+- Stable/Latest **v10.21-r2** unchanged. **10.22-r7 not started.**
+
 ## 18.11.2026 — 10.22-r5: ручна позначка підписаного паперового документа
 
 - Після прямого зауваження власника додано окрему колонку «Папір / підпис» та дію «Паперовий підпис…» з явною датою підписання. Відмітку можна скасувати без стирання історії.

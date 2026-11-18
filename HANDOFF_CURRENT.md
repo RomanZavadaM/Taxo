@@ -2,18 +2,22 @@
 
 **Live GitHub state — 18.11.2026.**
 
-- **10.22-r5 інтегрована й опублікована:** product PR #534 merged; immutable exact source `576f93acd7d070a6786cfcd3c28af1d5f29d98c0`, final work head `c7f79db2384ec359dc9cd5e62902f58c0a3fcdd9`.
-- Exact-source START #44375223718 **1531/1531**; Windows #44375224479, Win7 #44375223666, macOS Intel/ARM #44375223669 SUCCESS; Windows/Win7 Defender/integrity PASS.
-- Release-trigger PR #535 merged `ef8f63bdf5771d2a365509d5786bbf9ab6a115e8`; publisher #44376388134 SUCCESS.
-- [v10.22-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r5): Test Portable prerelease, 6 assets, tag points exactly to product source above.
+- **10.22-r6 повністю завершена, інтегрована й опублікована:** product PR #537 merged; final work head `d764e56596dc30a0b4c717a0a6b0a5b56a7f39c9`; immutable exact product source `28d2b838dae51a8ed009dd4b14fe1a0afa561384`.
+- Exact-source START #44386227495 **1535/1535**; Windows #44386227504, Win7 #44386227480, macOS Intel/ARM #44386227490 — SUCCESS; Windows/Win7 Defender/integrity PASS.
+- Release-trigger PR #538 merged `c42d3554797ed3bfc133fd1337ab1288b8facc37`; publisher #44388264823 SUCCESS.
+- [v10.22-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r6): Test Portable prerelease, 6 assets; tag points exactly to the product source above.
 - **Stable/Latest remains [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2)**.
 
-## Що зроблено у r5
+## Що зроблено у r6
 
-У загальному каталозі **«Документи»** для запису DocumentVault з'явилась окрема колонка **«Папір / підпис»** та дія **«Паперовий підпис…»**. Користувач явно вказує дату фактичного паперового підписання. Позначку можна скасувати, попередній запис залишається в історії. Скан не позначає документ підписаним автоматично; можна мати підпис без скана і скан без позначки підпису. Це облікова позначка, не електронний підпис та не криптографічне підтвердження.
+У загальному каталозі **«Документи»** накази типу `seasonal_operation` тепер мають окремий напрям **«Сезонні заходи»** замість загального «Експлуатаційні». Категорія визначається тільки зі структурованого типу наказу; слова у темі чи тексті нічого автоматично не змінюють. Кадрова серія як і раніше має пріоритет.
 
-Журнал `Data/DocumentVault/paper_original_events.json` входить до повного backup/restore. Суворе сховище приймає саме цей валідований файл; інші невідомі файли, пошкоджений журнал і небезпечні посилання не допускаються. Документи, скани, SQLite, бізнес-статуси, накази, пари та Stable не змінювалися.
+DocumentVault, файли й скани, паперовий підпис, backup/restore, схема БД, накази та пари водій↔ТЗ не змінювалися.
+
+## Що не спрацювало і що виправлено
+
+Перший START у PR #537 знайшов один застарілий regression-набір: у його тестових даних не було сезонного наказу, тому список доступних категорій не міг містити новий напрям. Тестові дані виправлено; повторно **1535/1535** і всі платформи зелені. Логіку каталогу заради тесту не послаблювали.
 
 ## Що далі
 
-**10.22-r6 ще не починалася.** Спочатку `START_HERE.md` і звірка live GitHub з цим HANDOFF, включно з гілками без PR та CI. Потім один наступний вузький крок з Issue #289 або нове зауваження власника. Stable не змінювати без прямої команди.
+**10.22-r7 ще не починалася.** Спочатку `START_HERE.md` і fresh-звірка live GitHub з цим HANDOFF, включно з гілками без PR та CI. Далі один наступний вузький крок з Issue #289 або новий дефект ручного тестування. Stable не змінювати без прямої команди власника.
