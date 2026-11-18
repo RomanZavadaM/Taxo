@@ -1,3 +1,14 @@
+## 18.11.2026 — 10.22-r7: сортування каталогу за категорією
+
+- Після fresh recovery взято один вузький пункт Issue #289: заголовок «Категорія» у спільному каталозі «Документи» тепер сортує А→Я / Я→А.
+- Сортування застосовується до всього вже відфільтрованого списку до pagination. «Не визначено» залишається внизу в обох напрямках; «Скинути фільтри» повертає стандартний порядок за датою.
+- Product PR #540 merged; final head `b7daf5f3b69bddf9240805c7608118145fc6c2e9`; immutable exact source `544da915100744f4fcf1e094f374d13c76c36c80`.
+- Exact-source START #44404136276 **1540/1540**; Windows #44404136133, Win7 #44404136553, macOS Intel/ARM #44404136897 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #541: перший required Win7 check впав лише через timeout оновлення Defender `0x80072ee2`; повторний запуск SUCCESS без змін коду.
+- Release-trigger PR #541 merged `7494e415a005a3c30c453069fabce7deefe2c457`; publisher #44406105602 SUCCESS. [v10.22-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r7) Test Portable — 6 assets; tag points exactly to product source.
+- DocumentVault, скани, паперовий підпис, backup/restore, схема БД, пари водій↔ТЗ і Stable не змінювалися.
+- Stable/Latest **v10.21-r2** unchanged. **10.22-r8 not started.**
+
 ## 18.11.2026 — 10.22-r6: окремий напрям «Сезонні заходи»
 
 - Після fresh recovery взято один вузький пункт Issue #289: накази `seasonal_operation` у спільному каталозі «Документи» тепер мають окрему категорію «Сезонні заходи».
