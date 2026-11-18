@@ -1,11 +1,12 @@
 # Випуски Taxo
 
-**Стан:** 17.11.2026.
+**Стан:** 18.11.2026.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2) | Повний випуск із 8 файлів: 2 Windows Setup, 4 Portable, START, SHA256. Каталог «Документи» з пошуком, фільтром сканів і періодом «Від / До»; immutable source `b104f94ace0ae355df79c914b3be6f39417bd6e9`, 1442/1442 tests, Defender/integrity PASS. |
-| Поточна тестова portable-only | [10.21-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r9) | Накази: пряме редагування/додавання/прибирання конкретної пари без переходу у загальну вкладку; перенесення готових пар з пошуком; 1491/1491, Defender/integrity PASS; 4 Portable + START + SHA256. |
+| Поточна тестова portable-only | [10.21-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r10) | Каталог «Документи»: колонка/фільтр «Категорія» з даних наказу, без вгадування по темі; старі неструктуровані записи — «Не визначено»; 1501/1501, Defender/integrity PASS; 4 Portable + START + SHA256. |
+| Попередня тестова portable-only | [10.21-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r9) | Накази: пряме редагування/додавання/прибирання конкретної пари без переходу у загальну вкладку; перенесення готових пар з пошуком; 1491/1491, Defender/integrity PASS; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.21-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r8) | Накази про закріплення: конкретні пари водій↔ТЗ додаються явно в таблицю; тихе позиційне з’єднання незалежних списків вимкнено; 1475/1475, Defender/integrity PASS; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.21-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r7) | «Шляхівки»: кнопка «Дата…» відкриває штатний календар графіків; вибір іншої дати одразу оновлює список, скасування не змінює день; 1469/1469, Defender/integrity PASS; 4 Portable + START + SHA256. |
 | Попередня тестова portable-only | [10.21-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r6) | «Шляхівки»: власне поле дати ДД.ММ.РРРР, Enter/«Перейти», День-/Сьогодні/День+ для послідовного внесення кілометражу; 1464/1464, Defender/integrity PASS; 4 Portable + START + SHA256. |
