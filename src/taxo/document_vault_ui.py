@@ -8,12 +8,16 @@ reads and verifies the immutable vault.
 from __future__ import annotations
 
 import queue
+import stat
+import tempfile
 import threading
+import uuid
 from pathlib import Path
 
 from document_vault_store import (
     DocumentVaultRecord,
     list_document_vault,
+    load_document_vault_object,
     register_prepared_revision,
 )
 
@@ -23,6 +27,43 @@ _STATUS_LABELS = {
     "ready": "Готовий документ",
     "archived": "Архівний документ",
 }
+
+_VIEW_COPY_LOCK = threading.RLock()
+_VIEW_COPY_TEMP = None
+
+
+def prepare_document_vault_view_copy(workspace_root: Path, vault_id: str) -> Path:
+    """Materialize one verified immutable DOCX as a temporary read-only copy.
+
+    External viewers never receive the path of the immutable DocumentVault
+    object. The source index, size and SHA-256 are verified first by the store.
+    """
+
+    global _VIEW_COPY_TEMP
+    verified = load_document_vault_object(
+        Path(workspace_root), str(vault_id or "")
+    )
+    with _VIEW_COPY_LOCK:
+        if _VIEW_COPY_TEMP is None:
+            _VIEW_COPY_TEMP = tempfile.TemporaryDirectory(
+                prefix="taxo_document_vault_view_"
+            )
+        root = Path(_VIEW_COPY_TEMP.name)
+        target = root / (
+            "%s_%s.docx" % (verified.record.vault_id, uuid.uuid4().hex)
+        )
+        try:
+            target.write_bytes(verified.payload)
+            target.chmod(
+                stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+            )
+        except Exception:
+            try:
+                target.unlink()
+            except OSError:
+                pass
+            raise
+        return target
 
 
 def format_document_vault_details(record: DocumentVaultRecord) -> str:

@@ -19,6 +19,7 @@ from prepared_document_pdf import (
 from document_viewer import open_document
 from document_vault_ui import (
     open_document_vault,
+    prepare_document_vault_view_copy,
     start_prepared_revision_registration,
 )
 from document_vault_paper_scans_ui import open_paper_scans_dialog
@@ -791,16 +792,19 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 )
             return
         if row["source"] == "vault":
-            core.messagebox.showinfo(
-                "Документ зі сховища",
-                (
-                    "Це незмінна копія у сховищі Taxo. "
-                    "Taxo не відкриває її напряму для редагування.\n\n"
-                    "Для перегляду походження скористайтесь кнопкою "
-                    "«Переглянути сховище документів»."
-                ),
-                parent=win,
-            )
+            try:
+                view_path = prepare_document_vault_view_copy(
+                    workspace_root, row["vault_id"]
+                )
+                open_document(
+                    win,
+                    view_path,
+                    external_opener=core.open_external,
+                )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Документ зі сховища", str(exc), parent=win
+                )
             return
         try:
             path = row["file_path"]
