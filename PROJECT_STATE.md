@@ -12,7 +12,7 @@
 
 Unified «Документи» catalog now exposes a structured category column/filter. Order categories are derived only from `order_series` and `order_type`: personnel, operational, occupational safety, road safety, fire safety. Legacy Word/DocumentVault rows without structured direction remain visible as «Не визначено» rather than being guessed from free text. Category filtering combines with existing search/source/scans/date/type filters before pagination. No file, vault, scan, DB-schema, backup-format, security or dependency changes.
 
-Driver↔vehicle pair UI from r9 was not changed in r10 and still awaits owner manual acceptance.
+Driver↔vehicle pair UI from r9 was not changed in r10. Owner manually checked r9 on 18.11.2026 and reported no defects; the pair workflow is accepted and Issue #511 is closed.
 
 ## Active code revision
 
