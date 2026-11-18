@@ -200,6 +200,28 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     month_box.pack(side="left", padx=(8, 0))
 
+    all_employees_label = "Усі працівники"
+    all_vehicles_label = "Усі ТЗ"
+    employee_choice = core.tk.StringVar(value=all_employees_label)
+    vehicle_choice = core.tk.StringVar(value=all_vehicles_label)
+    employee_values = {}
+    vehicle_values = {}
+    core.ttk.Label(bar, text="Працівник / ТЗ:").grid(
+        row=4, column=0, sticky="w", pady=(6, 0)
+    )
+    entity_bar = core.ttk.Frame(bar)
+    entity_bar.grid(row=4, column=1, columnspan=2, sticky="w", padx=8, pady=(6, 0))
+    employee_box = core.ttk.Combobox(
+        entity_bar, textvariable=employee_choice, state="readonly",
+        values=(all_employees_label,), width=34,
+    )
+    employee_box.pack(side="left")
+    vehicle_box = core.ttk.Combobox(
+        entity_bar, textvariable=vehicle_choice, state="readonly",
+        values=(all_vehicles_label,), width=34,
+    )
+    vehicle_box.pack(side="left", padx=(8, 0))
+
     source_status = core.tk.StringVar(value="")
     core.ttk.Label(
         body,
@@ -222,7 +244,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         ("category", "Категорія", 145),
         ("kind", "Документ", 125),
         ("title", "Тема / назва", 300),
-        ("person", "Працівники", 165),
+        ("person", "Працівники / ТЗ", 220),
         ("revision", "Ред.", 65),
         ("source", "Джерело", 135),
         ("scans", "Скани", 90),
@@ -382,6 +404,23 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         ):
             month_options = (all_months_label, selected_month) + available_months
         month_box.configure(values=month_options)
+
+        employee_pairs = tuple(result.get("available_employees", ()))
+        employee_values.clear()
+        employee_values.update({label: key for key, label in employee_pairs})
+        employee_labels = (all_employees_label,) + tuple(label for _key, label in employee_pairs)
+        if employee_choice.get() not in employee_labels:
+            employee_choice.set(all_employees_label)
+        employee_box.configure(values=employee_labels)
+
+        vehicle_pairs = tuple(result.get("available_vehicles", ()))
+        vehicle_values.clear()
+        vehicle_values.update({label: key for key, label in vehicle_pairs})
+        vehicle_labels = (all_vehicles_label,) + tuple(label for _key, label in vehicle_pairs)
+        if vehicle_choice.get() not in vehicle_labels:
+            vehicle_choice.set(all_vehicles_label)
+        vehicle_box.configure(values=vehicle_labels)
+
         source_status.set(" ".join(
             value for value in (
                 result.get("order_status", ""),
@@ -469,6 +508,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             category_choice.get(),
             year_choice.get(),
             month_choice.get(),
+            employee_values.get(employee_choice.get(), "all"),
+            vehicle_values.get(vehicle_choice.get(), "all"),
             state["date_sort"] if state["sort_field"] == "date" else "default",
             state["number_sort"] if state["sort_field"] == "number" else "default",
         )
@@ -507,6 +548,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             category_filter_label,
             year_filter_label,
             month_filter_label,
+            employee_filter,
+            vehicle_filter,
             date_sort,
             number_sort,
         ) = wanted
@@ -551,6 +594,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                         if month_filter_label == all_months_label
                         else month_values.get(month_filter_label, "all")
                     ),
+                    employee_filter=employee_filter,
+                    vehicle_filter=vehicle_filter,
                     date_sort=date_sort,
                     number_sort=number_sort,
                 )
@@ -991,6 +1036,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "<<ComboboxSelected>>",
         lambda _event: refresh(reset=True),
     )
+    employee_box.bind("<<ComboboxSelected>>", lambda _event: refresh(reset=True))
+    vehicle_box.bind("<<ComboboxSelected>>", lambda _event: refresh(reset=True))
     date_from_entry.bind(
         "<Return>", lambda _event: refresh(reset=True)
     )
@@ -1013,6 +1060,10 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_year_filter_box = year_box
     win._taxo_catalog_month_filter = month_choice
     win._taxo_catalog_month_filter_box = month_box
+    win._taxo_catalog_employee_filter = employee_choice
+    win._taxo_catalog_employee_filter_box = employee_box
+    win._taxo_catalog_vehicle_filter = vehicle_choice
+    win._taxo_catalog_vehicle_filter_box = vehicle_box
     win._taxo_catalog_date_from = date_from
     win._taxo_catalog_date_to = date_to
     win._taxo_catalog_date_from_entry = date_from_entry
