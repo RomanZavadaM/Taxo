@@ -15,6 +15,7 @@ from pathlib import Path
 
 from document_vault_store import list_document_vault
 from document_vault_paper_scans import list_paper_scans
+from paper_original_confirmation import list_paper_original_states
 
 
 CATEGORY_PERSONNEL = "Кадрові"
@@ -491,12 +492,30 @@ def read_sources(root):
     orders, order_status = _read_orders(root)
     rows = _merge_paper_and_vault(paper, vault) + orders
     _attach_paper_scan_state(rows, scan_counts)
+    try:
+        paper_originals = list_paper_original_states(Path(root))
+        original_status = "Позначки паперових оригіналів: %d." % len(paper_originals)
+    except (OSError, ValueError, UnicodeError, RuntimeError) as exc:
+        paper_originals = None
+        original_status = "Помилка перевірки позначок підпису: " + str(exc)
+    for row in rows:
+        vault_id = row.get("vault_id")
+        state = paper_originals.get(vault_id) if paper_originals is not None else None
+        row["paper_original_signed"] = bool(state and state.signed)
+        row["paper_original_date"] = state.signed_date if state and state.signed else ""
+        row["paper_original_state"] = (
+            "—" if not vault_id else
+            "Помилка перевірки" if paper_originals is None else
+            "Підписано: " + state.signed_date if state and state.signed else
+            "Не позначено"
+        )
     rows.sort(key=_sort_key, reverse=True)
     return {
         "rows": rows,
         "paper_status": paper_status,
         "vault_status": vault_status,
         "paper_scan_status": paper_scan_status,
+        "paper_original_status": original_status,
         "order_status": order_status,
     }
 
@@ -701,7 +720,7 @@ def paginate_sources(
         fields = (
             "date", "number", "kind", "title", "person",
             "order_type", "order_series", "category", "revision_label",
-            "source_label", "paper_scan_state", "entity_text",
+            "source_label", "paper_scan_state", "paper_original_state", "entity_text",
         )
         all_rows = [
             row for row in all_rows
