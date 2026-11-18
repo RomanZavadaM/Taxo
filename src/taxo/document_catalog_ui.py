@@ -103,6 +103,20 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         row=2, column=1, sticky="w", padx=8, pady=(6, 0)
     )
 
+    all_categories_label = "Усі категорії"
+    category_choice = core.tk.StringVar(value=all_categories_label)
+    category_bar = core.ttk.Frame(bar)
+    category_bar.grid(row=2, column=2, sticky="e", pady=(6, 0))
+    core.ttk.Label(category_bar, text="Категорія:").pack(side="left")
+    category_box = core.ttk.Combobox(
+        category_bar,
+        textvariable=category_choice,
+        state="readonly",
+        values=(all_categories_label,),
+        width=22,
+    )
+    category_box.pack(side="left", padx=(6, 0))
+
     scan_options = {
         "Усі": "all",
         "Є скани": "present",
@@ -157,13 +171,14 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     frame.grid(row=3, column=0, sticky="nsew", pady=6)
     frame.rowconfigure(0, weight=1)
     frame.columnconfigure(0, weight=1)
-    cols = ("date", "number", "kind", "title", "person", "revision", "source", "scans", "file")
+    cols = ("date", "number", "category", "kind", "title", "person", "revision", "source", "scans", "file")
     tree = core.ttk.Treeview(
         frame, columns=cols, show="headings", selectmode="browse"
     )
     for key, label, width in (
         ("date", "Дата", 100),
         ("number", "№", 80),
+        ("category", "Категорія", 145),
         ("kind", "Документ", 125),
         ("title", "Тема / назва", 300),
         ("person", "Працівники", 165),
@@ -289,6 +304,18 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         ):
             kind_values = (all_kinds_label, selected_kind) + available_kinds
         kind_box.configure(values=kind_values)
+        available_categories = tuple(result.get("available_categories", ()))
+        selected_category = category_choice.get()
+        category_values = (all_categories_label,) + available_categories
+        if (
+            selected_category
+            and selected_category != all_categories_label
+            and selected_category not in available_categories
+        ):
+            category_values = (
+                all_categories_label, selected_category
+            ) + available_categories
+        category_box.configure(values=category_values)
         source_status.set(" ".join(
             value for value in (
                 result.get("order_status", ""),
@@ -320,6 +347,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 values=(
                     row["date"],
                     row["number"],
+                    row.get("category", document_catalog.CATEGORY_UNCLASSIFIED),
                     row["kind"],
                     row["title"],
                     row["person"],
@@ -372,6 +400,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_from.get(),
             date_to.get(),
             kind_choice.get(),
+            category_choice.get(),
             state["date_sort"] if state["sort_field"] == "date" else "default",
             state["number_sort"] if state["sort_field"] == "number" else "default",
         )
@@ -407,6 +436,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_from_filter,
             date_to_filter,
             kind_filter_label,
+            category_filter_label,
             date_sort,
             number_sort,
         ) = wanted
@@ -435,6 +465,11 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                         "all"
                         if kind_filter_label == all_kinds_label
                         else kind_filter_label
+                    ),
+                    category_filter=(
+                        "all"
+                        if category_filter_label == all_categories_label
+                        else category_filter_label
                     ),
                     date_sort=date_sort,
                     number_sort=number_sort,
@@ -863,6 +898,10 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "<<ComboboxSelected>>",
         lambda _event: refresh(reset=True),
     )
+    category_box.bind(
+        "<<ComboboxSelected>>",
+        lambda _event: refresh(reset=True),
+    )
     date_from_entry.bind(
         "<Return>", lambda _event: refresh(reset=True)
     )
@@ -879,6 +918,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_scan_filter_box = scan_box
     win._taxo_catalog_kind_filter = kind_choice
     win._taxo_catalog_kind_filter_box = kind_box
+    win._taxo_catalog_category_filter = category_choice
+    win._taxo_catalog_category_filter_box = category_box
     win._taxo_catalog_date_from = date_from
     win._taxo_catalog_date_to = date_to
     win._taxo_catalog_date_from_entry = date_from_entry
