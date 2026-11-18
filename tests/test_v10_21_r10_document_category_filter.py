@@ -38,6 +38,21 @@ def row(identifier, category, *, source="order", kind="Наказ", scans=0):
 
 
 class DocumentCategoryR10Tests(unittest.TestCase):
+    def test_r10_identity(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            (root / "VERSION.txt").read_text("utf-8"),
+            "Version: 10.21-r10\n",
+        )
+        self.assertIn(
+            'APP_VERSION = "10.21-r10"',
+            (root / "main.py").read_text("utf-8"),
+        )
+        self.assertIn(
+            "Taxo 10.21-r10",
+            (root / "START.bat").read_text("utf-8"),
+        )
+
     def snapshot(self):
         return {
             "rows": [
