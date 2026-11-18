@@ -38,6 +38,29 @@ def _is_controlled_prepared_row(row):
     )
 
 
+def _reset_catalog_filters(values, state):
+    """Restore the full document view without changing any saved document."""
+    defaults = {
+        "search": "",
+        "source": "Усі — за датою",
+        "scan": "Усі",
+        "date_from": "",
+        "date_to": "",
+        "kind": "Усі типи",
+        "category": "Усі категорії",
+        "year": "Усі роки",
+        "month": "Усі місяці",
+        "employee": "Усі працівники",
+        "vehicle": "Усі ТЗ",
+    }
+    for key, default in defaults.items():
+        values[key].set(default)
+    state["sort_field"] = "date"
+    state["date_sort"] = "newest"
+    state["number_sort"] = "ascending"
+    state["page"] = 0
+
+
 def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win = core.tk.Toplevel(parent)
     win.title("Документи")
@@ -284,6 +307,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "busy": False,
         "wanted": None,
         "needs_reload": False,
+        "resetting": False,
         "results": queue.Queue(),
         "vault_results": queue.Queue(),
         "vault_busy": False,
@@ -684,6 +708,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 state[key] = None
 
     def search_changed(*_):
+        if state["resetting"]:
+            return
         if state["after"] is not None:
             win.after_cancel(state["after"])
 
@@ -692,6 +718,30 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             refresh(reset=True, reload_sources=True)
 
         state["after"] = win.after(250, later)
+
+    def clear_filters():
+        # Reset all controls in one pass; do not schedule a second search read.
+        if state["after"] is not None:
+            win.after_cancel(state["after"])
+            state["after"] = None
+        state["resetting"] = True
+        try:
+            _reset_catalog_filters({
+                "search": search,
+                "source": source_choice,
+                "scan": scan_choice,
+                "date_from": date_from,
+                "date_to": date_to,
+                "kind": kind_choice,
+                "category": category_choice,
+                "year": year_choice,
+                "month": month_choice,
+                "employee": employee_choice,
+                "vehicle": vehicle_choice,
+            }, state)
+        finally:
+            state["resetting"] = False
+        refresh(reset=True)
 
     def change_page(delta):
         state["page"] = max(
@@ -950,6 +1000,12 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         text="Оновити",
         command=lambda: refresh(reload_sources=True),
     ).pack(side="left")
+    clear_filters_button = core.ttk.Button(
+        actions,
+        text="Скинути фільтри",
+        command=clear_filters,
+    )
+    clear_filters_button.pack(side="left", padx=(6, 0))
     core.ttk.Button(
         actions,
         text="Попередня",
@@ -1071,6 +1127,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_apply_date = apply_date_button
     win._taxo_catalog_status = source_status
     win._taxo_catalog_refresh = refresh
+    win._taxo_catalog_clear_filters = clear_filters
+    win._taxo_catalog_clear_filters_button = clear_filters_button
     win._taxo_catalog_open = open_selected
     win._taxo_catalog_edit_copy = copy_for_editing
     win._taxo_catalog_import_revision = import_revision
