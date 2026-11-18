@@ -784,6 +784,7 @@ def paginate_sources(
         "paper_status": snapshot["paper_status"],
         "vault_status": snapshot.get("vault_status", ""),
         "paper_scan_status": snapshot.get("paper_scan_status", ""),
+        "paper_original_status": snapshot.get("paper_original_status", ""),
         "order_status": snapshot["order_status"],
     }
 
