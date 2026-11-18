@@ -2,21 +2,21 @@
 
 **Confirmed integrated: 18.11.2026.**
 
-- Latest completed code revision **10.22-r5**. Immutable exact product source `576f93acd7d070a6786cfcd3c28af1d5f29d98c0`; product PR #534 merged.
-- Exact-source START #44375223718 **1531/1531**; Windows #44375224479, Win7 #44375223666, macOS Intel/ARM #44375223669 SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #535 merged `ef8f63bdf5771d2a365509d5786bbf9ab6a115e8`; publisher #44376388134 SUCCESS.
-- [v10.22-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r5) — Test Portable prerelease, 6 assets, exact immutable product source above.
+- Latest completed code revision **10.22-r6**. Immutable exact product source `28d2b838dae51a8ed009dd4b14fe1a0afa561384`; product PR #537 merged; final PR head `d764e56596dc30a0b4c717a0a6b0a5b56a7f39c9`.
+- Exact-source START #44386227495 **1535/1535**; Windows #44386227504, Win7 #44386227480, macOS Intel/ARM #44386227490 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #538 merged `c42d3554797ed3bfc133fd1337ab1288b8facc37`; publisher #44388264823 SUCCESS.
+- [v10.22-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r6) — Test Portable prerelease, 6 assets, exact immutable product source above.
 - **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
 
-## Result r5
+## Result r6
 
-The unified «Документи» catalog displays a separate paper-signature state and lets the operator explicitly mark the paper original as signed with a date, or cancel the mark while retaining all historical events. The presence of a scan alone never implies a signed original. Journal: `Data/DocumentVault/paper_original_events.json`, covered by full workspace backup/restore and protected by strict vault validation.
+The unified «Документи» catalog now has a separate **«Сезонні заходи»** category for structured `seasonal_operation` orders. Personnel series still wins; free-text subject/content is never used to guess the category.
 
-Four focused regression tests added; full suite is **1531/1531**. No SQLite schema, immutable DOCX, attachment contents, business state, digital signatures, driver/vehicle pairing, or Stable changes.
+Four focused r6 regression checks were added. The first PR START exposed one outdated category fixture; the fixture was corrected without weakening production logic. Final suite is **1535/1535**. No SQLite schema, DocumentVault, scans, paper-signature state, backup/restore, driver/vehicle pairing or Stable changes.
 
 ## Active code revision
 
-None. **10.22-r6 not started.**
+None. **10.22-r7 not started.**
 
 ## Next action
 
