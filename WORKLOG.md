@@ -1,3 +1,14 @@
+## 18.11.2026 — 10.22-r5: ручна позначка підписаного паперового документа
+
+- Після прямого зауваження власника додано окрему колонку «Папір / підпис» та дію «Паперовий підпис…» з явною датою підписання. Відмітку можна скасувати без стирання історії.
+- Паперовий підпис, скани та immutable DOCX — різні дані. Наявність скана не означає підпис; електронний підпис, юридична перевірка чи зміна бізнес-статусу не реалізуються.
+- Append-only журнал `Data/DocumentVault/paper_original_events.json` у workspace, що автоматично входить до full backup/restore. Fail-closed перевірка некоректної дати, стороннього документа, пошкодженого журналу; суворий whitelist DocumentVault змінено лише для цього валідованого файла.
+- Початковий START на гілці знайшов конфлікт whitelist і дві помилки тестування; виправлено до merge, повторний PR CI успішний.
+- 4 нові regression-перевірки. Product PR #534 merged; final head `c7f79db2384ec359dc9cd5e62902f58c0a3fcdd9`; immutable exact source `576f93acd7d070a6786cfcd3c28af1d5f29d98c0`.
+- Exact-source START #44375223718 **1531/1531**; Windows #44375224479, Win7 #44375223666, macOS Intel/ARM #44375223669 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #535 merged `ef8f63bdf5771d2a365509d5786bbf9ab6a115e8`; publisher #44376388134 SUCCESS. [v10.22-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r5) Test Portable — 6 assets; tag points exactly to product source.
+- Stable/Latest **v10.21-r2** unchanged. **10.22-r6 not started.**
+
 ## 18.11.2026 — 10.22-r4: відкриття документа зі сховища
 
 - У спільному каталозі «Документи» «Відкрити вибране» для DocumentVault тепер відкриває сам документ через окрему тимчасову DOCX-копію тільки для читання.
