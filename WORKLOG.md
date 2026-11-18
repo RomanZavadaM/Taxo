@@ -1,3 +1,11 @@
+## 18.11.2026 — 10.22-r3: швидке скидання фільтрів каталогу
+
+- Вікно «Документи»: кнопка «Скинути фільтри» очищає всі обмеження (джерело, скани, пошук, дати, тип, категорію, рік/місяць, працівника/ТЗ) і повертає список з новішими документами першими. Скидає сторінку та скасовує відкладений пошук, щоб не читати каталог повторно.
+- Не змінювались файли, сховище, скани, БД, backup/restore, security/dependencies, пари водій↔ТЗ чи правила наказів.
+- Product PR #528 merged, final head `96f5ad3567d9314eac4a1a42529900a05f729a2a`, immutable source `bb3e7fb77e50dc0bd963e1a2a5c164296cfb1722`. Exact-source START #44301305636 **1524/1524**; Windows #44301305635, Win7 #44301305627, macOS #44301305732 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #529 merged `3dcb3f22c9c1ccd8123dba945f933a210de82f6d`; publisher #44302569986 SUCCESS. [v10.22-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r3) Test Portable — 6 assets.
+- Stable/Latest **v10.21-r2** unchanged. **10.22-r4 not started.**
+
 ## 18.11.2026 — 10.22-r2: точний зріз документів за працівником і ТЗ
 
 - Після повного recovery 10.22-r1 взято наступний незалежний крок Issue #289 у спільному каталозі «Документи».
