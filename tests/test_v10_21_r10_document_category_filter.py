@@ -61,6 +61,7 @@ class DocumentCategoryR10Tests(unittest.TestCase):
                 row("3", document_catalog.CATEGORY_OCCUPATIONAL_SAFETY),
                 row("4", document_catalog.CATEGORY_ROAD_SAFETY),
                 row("5", document_catalog.CATEGORY_FIRE_SAFETY),
+                row("6", document_catalog.CATEGORY_SEASONAL),
                 row("v1", document_catalog.CATEGORY_UNCLASSIFIED,
                     source="vault", kind="Інструкція", scans=1),
             ],
