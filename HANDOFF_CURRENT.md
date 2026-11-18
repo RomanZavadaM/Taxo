@@ -2,22 +2,18 @@
 
 **Live GitHub state — 18.11.2026.**
 
-- **10.22-r4 повністю завершена:** product PR #531 merged, exact immutable source `b01437828551fe309c2dfcba81572a9a9d51e628`, final head `0f537c7ffe57c0628de4619eb8f2c19567beb02f`.
-- Exact-source START #44320801103 **1527/1527**; Windows #44320801102, Win7 #44320801191, macOS Intel/ARM #44320801139 SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #532 merged `7d443e25f8ec754f71a3749c6e46163d8aca8728`; publisher #44322860950 SUCCESS.
-- [v10.22-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r4): Test Portable prerelease, 6 assets, exact source `b01437828551fe309c2dfcba81572a9a9d51e628`.
+- **10.22-r5 інтегрована й опублікована:** product PR #534 merged; immutable exact source `576f93acd7d070a6786cfcd3c28af1d5f29d98c0`, final work head `c7f79db2384ec359dc9cd5e62902f58c0a3fcdd9`.
+- Exact-source START #44375223718 **1531/1531**; Windows #44375224479, Win7 #44375223666, macOS Intel/ARM #44375223669 SUCCESS; Windows/Win7 Defender/integrity PASS.
+- Release-trigger PR #535 merged `ef8f63bdf5771d2a365509d5786bbf9ab6a115e8`; publisher #44376388134 SUCCESS.
+- [v10.22-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r5): Test Portable prerelease, 6 assets, tag points exactly to product source above.
 - **Stable/Latest remains [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2)**.
 
-## Що зроблено у r4
+## Що зроблено у r5
 
-У загальному каталозі **«Документи»** команда **«Відкрити вибране»** для запису DocumentVault тепер реально відкриває документ. Перед переглядом Taxo повторно перевіряє індекс, розмір і SHA-256 незмінного об'єкта. Сам файл у `Data/DocumentVault` зовнішній програмі не передається: створюється окрема тимчасова DOCX-копія тільки для читання. Пошкоджений або підмінений об'єкт не відкривається.
+У загальному каталозі **«Документи»** для запису DocumentVault з'явилась окрема колонка **«Папір / підпис»** та дія **«Паперовий підпис…»**. Користувач явно вказує дату фактичного паперового підписання. Позначку можна скасувати, попередній запис залишається в історії. Скан не позначає документ підписаним автоматично; можна мати підпис без скана і скан без позначки підпису. Це облікова позначка, не електронний підпис та не криптографічне підтвердження.
 
-БД, формат DocumentVault, скани, backup/restore, бізнес-статуси, КЕП/e-signature, накази та пари водій↔ТЗ не змінювалися.
-
-## Пари водій↔ТЗ
-
-Власник 18.11.2026 вручну перевірив 10.21-r9 і повідомив, що проблем не знайшов. Механізм пар прийнятий; якщо з'явиться новий дефект — зафіксувати його окремо.
+Журнал `Data/DocumentVault/paper_original_events.json` входить до повного backup/restore. Суворе сховище приймає саме цей валідований файл; інші невідомі файли, пошкоджений журнал і небезпечні посилання не допускаються. Документи, скани, SQLite, бізнес-статуси, накази, пари та Stable не змінювалися.
 
 ## Що далі
 
-**10.22-r5 ще не починалася.** Спершу звірити START_HERE.md → live main/HANDOFF → відкриті PR/гілки/CI. Далі взяти один вузький незалежний крок з Issue #289 або новий дефект ручного тестування. Stable не змінювати без прямої команди власника.
+**10.22-r6 ще не починалася.** Спочатку `START_HERE.md` і звірка live GitHub з цим HANDOFF, включно з гілками без PR та CI. Потім один наступний вузький крок з Issue #289 або нове зауваження власника. Stable не змінювати без прямої команди.
