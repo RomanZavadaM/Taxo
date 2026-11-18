@@ -125,6 +125,9 @@ def _read_paper(root):
             "kind": str(item.get("kind") or "Документ"),
             "title": str(item.get("title") or ""),
             "person": str(item.get("person") or ""),
+            "employee_refs": (),
+            "vehicle_refs": (),
+            "entity_text": "",
             "category": CATEGORY_UNCLASSIFIED,
             "file_state": state,
             "file_path": path,
@@ -169,6 +172,9 @@ def _read_vault(root):
             "kind": record.kind,
             "title": record.title,
             "person": "",
+            "employee_refs": (),
+            "vehicle_refs": (),
+            "entity_text": "",
             "category": CATEGORY_UNCLASSIFIED,
             "file_state": "Незмінна копія у сховищі",
             "file_path": None,
@@ -263,6 +269,42 @@ def _read_orders(root):
         return [], "Базу наказів не знайдено."
     except OSError as exc:
         return [], "Помилка доступу до бази наказів: " + str(exc)
+
+    employee_refs_by_order = {}
+    vehicle_refs_by_order = {}
+
+    def put_ref(bucket, order_id, prefix, entity_id, label):
+        key = "%s:%d" % (prefix, int(entity_id))
+        text = str(label or "").strip() or (
+            ("Працівник" if prefix == "employee" else "ТЗ")
+            + " Taxo #%d" % int(entity_id)
+        )
+        bucket.setdefault(int(order_id), {})[key] = text
+
+    def employee_label(entity_id, data):
+        data = data or {}
+        name = str(data.get("name") or "").strip()
+        if not name:
+            name = " ".join(
+                str(data.get(key) or "").strip()
+                for key in ("last_name", "first_name", "middle_name")
+                if str(data.get(key) or "").strip()
+            )
+        if not name:
+            name = "Працівник Taxo #%d" % int(entity_id)
+        personnel = str(data.get("personnel_no") or "").strip()
+        suffix = ("таб. № %s" % personnel) if personnel else ("Taxo #%d" % int(entity_id))
+        return "%s · %s" % (name, suffix)
+
+    def vehicle_label(entity_id, data):
+        data = data or {}
+        plate = str(data.get("plate") or "").strip()
+        model = str(data.get("make_model") or data.get("name") or "").strip()
+        base = " · ".join(value for value in (plate, model) if value)
+        if not base:
+            base = "ТЗ Taxo #%d" % int(entity_id)
+        return "%s · Taxo #%d" % (base, int(entity_id))
+
     try:
         con = sqlite3.connect(
             _readonly_sqlite_uri(db.resolve().as_uri()),
@@ -271,11 +313,12 @@ def _read_orders(root):
         )
         try:
             con.execute("PRAGMA query_only=ON")
-            exists = con.execute(
-                "SELECT 1 FROM sqlite_master "
-                "WHERE type='table' AND name='operations_orders'"
-            ).fetchone()
-            if not exists:
+            tables = {
+                item[0] for item in con.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                ).fetchall()
+            }
+            if "operations_orders" not in tables:
                 return [], "Таблиці наказів у цій базі немає."
             columns = {
                 item[1] for item in con.execute(
@@ -288,37 +331,146 @@ def _read_orders(root):
                 "SELECT id, order_date, order_no, order_type, subject, "
                 + series + ", " + created + " FROM operations_orders"
             ).fetchall()
+
+            employees = {}
+            if "employees" in tables:
+                ecols = {
+                    item[1] for item in con.execute(
+                        "PRAGMA table_info(employees)"
+                    ).fetchall()
+                }
+                last_name = "last_name" if "last_name" in ecols else "''"
+                first_name = "first_name" if "first_name" in ecols else "''"
+                middle_name = "middle_name" if "middle_name" in ecols else "''"
+                personnel = "personnel_no" if "personnel_no" in ecols else "''"
+                for item in con.execute(
+                    "SELECT id," + last_name + "," + first_name + ","
+                    + middle_name + "," + personnel + " FROM employees"
+                ).fetchall():
+                    employees[int(item[0])] = {
+                        "last_name": item[1],
+                        "first_name": item[2],
+                        "middle_name": item[3],
+                        "personnel_no": item[4],
+                    }
+
+            vehicles = {}
+            if "vehicles" in tables:
+                vcols = {
+                    item[1] for item in con.execute(
+                        "PRAGMA table_info(vehicles)"
+                    ).fetchall()
+                }
+                name = "name" if "name" in vcols else "''"
+                plate = "plate" if "plate" in vcols else "''"
+                model = "make_model" if "make_model" in vcols else "''"
+                for item in con.execute(
+                    "SELECT id," + name + "," + plate + "," + model
+                    + " FROM vehicles"
+                ).fetchall():
+                    vehicles[int(item[0])] = {
+                        "name": item[1],
+                        "plate": item[2],
+                        "make_model": item[3],
+                    }
+
+            if "vehicle_driver_assignments" in tables:
+                acols = {
+                    item[1] for item in con.execute(
+                        "PRAGMA table_info(vehicle_driver_assignments)"
+                    ).fetchall()
+                }
+                order_by = (
+                    " ORDER BY order_id,sequence_no,id"
+                    if {"sequence_no", "id"}.issubset(acols)
+                    else ""
+                )
+                for order_id, vehicle_id, employee_id in con.execute(
+                    "SELECT order_id,vehicle_id,employee_id "
+                    "FROM vehicle_driver_assignments" + order_by
+                ).fetchall():
+                    put_ref(
+                        employee_refs_by_order, order_id, "employee", employee_id,
+                        employee_label(employee_id, employees.get(int(employee_id))),
+                    )
+                    put_ref(
+                        vehicle_refs_by_order, order_id, "vehicle", vehicle_id,
+                        vehicle_label(vehicle_id, vehicles.get(int(vehicle_id))),
+                    )
+
+            if "operations_order_entities" in tables:
+                ecols = {
+                    item[1] for item in con.execute(
+                        "PRAGMA table_info(operations_order_entities)"
+                    ).fetchall()
+                }
+                order_by = (
+                    " ORDER BY order_id,sequence_no,id"
+                    if {"sequence_no", "id"}.issubset(ecols)
+                    else ""
+                )
+                for order_id, entity_type, entity_id, snapshot_json in con.execute(
+                    "SELECT order_id,entity_type,entity_id,snapshot_json "
+                    "FROM operations_order_entities" + order_by
+                ).fetchall():
+                    try:
+                        snapshot_data = json.loads(str(snapshot_json or "{}"))
+                        if not isinstance(snapshot_data, dict):
+                            snapshot_data = {}
+                    except (TypeError, ValueError):
+                        snapshot_data = {}
+                    if str(entity_type or "") == "employee":
+                        put_ref(
+                            employee_refs_by_order, order_id, "employee", entity_id,
+                            employee_label(entity_id, snapshot_data),
+                        )
+                    elif str(entity_type or "") == "vehicle":
+                        put_ref(
+                            vehicle_refs_by_order, order_id, "vehicle", entity_id,
+                            vehicle_label(entity_id, snapshot_data),
+                        )
         finally:
             con.close()
     except (sqlite3.Error, OSError, ValueError, RuntimeError) as exc:
         return [], "Помилка читання наказів: " + str(exc)
 
-    rows = [{
-        "key": ("order", str(order_id), 0),
-        "source": "order",
-        "sources": ("order",),
-        "source_label": "Наказ",
-        "source_id": int(order_id),
-        "date": str(day or ""),
-        "created_at": str(created or day or ""),
-        "number": str(number or ""),
-        "kind": "Наказ",
-        "title": str(subject or ""),
-        "person": "",
-        "order_type": str(kind or ""),
-        "order_series": str(series or ""),
-        "category": _order_category(series, kind),
-        "file_state": "Файл не прив'язаний",
-        "file_path": None,
-        "revision_label": "",
-        "prepared_snapshot_id": "",
-        "vault_id": "",
-        "vault_status": "",
-        "vault_created_at": "",
-        "vault_content_sha256": "",
-    } for order_id, day, number, kind, subject, series, created in raw]
+    rows = []
+    for order_id, day, number, kind, subject, order_series, created in raw:
+        employee_refs = tuple(employee_refs_by_order.get(int(order_id), {}).items())
+        vehicle_refs = tuple(vehicle_refs_by_order.get(int(order_id), {}).items())
+        entity_labels = [label for _key, label in employee_refs + vehicle_refs]
+        if len(entity_labels) <= 3:
+            subject_label = "; ".join(entity_labels)
+        else:
+            subject_label = "; ".join(entity_labels[:2]) + " … +%d" % (len(entity_labels) - 2)
+        rows.append({
+            "key": ("order", str(order_id), 0),
+            "source": "order",
+            "sources": ("order",),
+            "source_label": "Наказ",
+            "source_id": int(order_id),
+            "date": str(day or ""),
+            "created_at": str(created or day or ""),
+            "number": str(number or ""),
+            "kind": "Наказ",
+            "title": str(subject or ""),
+            "person": subject_label,
+            "employee_refs": employee_refs,
+            "vehicle_refs": vehicle_refs,
+            "entity_text": " ".join(entity_labels),
+            "order_type": str(kind or ""),
+            "order_series": str(order_series or ""),
+            "category": _order_category(order_series, kind),
+            "file_state": "Файл не прив'язаний",
+            "file_path": None,
+            "revision_label": "",
+            "prepared_snapshot_id": "",
+            "vault_id": "",
+            "vault_status": "",
+            "vault_created_at": "",
+            "vault_content_sha256": "",
+        })
     return rows, "Накази: %d." % len(rows)
-
 
 def _sort_key(row):
     return (
@@ -382,6 +534,26 @@ def document_categories(snapshot):
     return tuple(category for category in DOCUMENT_CATEGORIES if category in present)
 
 
+def _document_ref_options(snapshot, field):
+    """Return stable entity filter choices from structured catalog relations."""
+    values = {}
+    for row in snapshot.get("rows", ()):
+        for key, label in row.get(field, ()):
+            key = str(key or "").strip()
+            label = str(label or "").strip()
+            if key and label and key not in values:
+                values[key] = label
+    return tuple(sorted(values.items(), key=lambda item: (item[1].casefold(), item[0])))
+
+
+def document_employees(snapshot):
+    return _document_ref_options(snapshot, "employee_refs")
+
+
+def document_vehicles(snapshot):
+    return _document_ref_options(snapshot, "vehicle_refs")
+
+
 def _catalog_date(row):
     """Return a structured catalog date or None for missing/invalid legacy rows."""
     try:
@@ -423,6 +595,8 @@ def paginate_sources(
     category_filter="all",
     year_filter="all",
     month_filter="all",
+    employee_filter="all",
+    vehicle_filter="all",
     date_sort="default",
     number_sort="default",
 ):
@@ -481,6 +655,18 @@ def paginate_sources(
             if str(row.get("category") or CATEGORY_UNCLASSIFIED).strip()
             == selected_category
         ]
+    selected_employee = str(employee_filter or "all").strip()
+    if selected_employee and selected_employee != "all":
+        all_rows = [
+            row for row in all_rows
+            if any(str(key) == selected_employee for key, _label in row.get("employee_refs", ()))
+        ]
+    selected_vehicle = str(vehicle_filter or "all").strip()
+    if selected_vehicle and selected_vehicle != "all":
+        all_rows = [
+            row for row in all_rows
+            if any(str(key) == selected_vehicle for key, _label in row.get("vehicle_refs", ()))
+        ]
     if scan_filter == "present":
         all_rows = [
             row for row in all_rows
@@ -515,7 +701,7 @@ def paginate_sources(
         fields = (
             "date", "number", "kind", "title", "person",
             "order_type", "order_series", "category", "revision_label",
-            "source_label", "paper_scan_state",
+            "source_label", "paper_scan_state", "entity_text",
         )
         all_rows = [
             row for row in all_rows
@@ -574,6 +760,8 @@ def paginate_sources(
         "available_categories": document_categories(snapshot),
         "available_years": document_years(snapshot),
         "available_months": document_months(snapshot, year_filter),
+        "available_employees": document_employees(snapshot),
+        "available_vehicles": document_vehicles(snapshot),
         "paper_status": snapshot["paper_status"],
         "vault_status": snapshot.get("vault_status", ""),
         "paper_scan_status": snapshot.get("paper_scan_status", ""),
@@ -593,6 +781,8 @@ def read_catalog(
     category_filter="all",
     year_filter="all",
     month_filter="all",
+    employee_filter="all",
+    vehicle_filter="all",
     date_sort="default",
     number_sort="default",
 ):
@@ -609,6 +799,8 @@ def read_catalog(
         category_filter=category_filter,
         year_filter=year_filter,
         month_filter=month_filter,
+        employee_filter=employee_filter,
+        vehicle_filter=vehicle_filter,
         date_sort=date_sort,
         number_sort=number_sort,
     )
