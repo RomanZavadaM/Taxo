@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.22-r6: clearing catalog filters must restore the full, safe view."""
+"""10.22-r7: clearing catalog filters must restore the full, safe view."""
 from __future__ import annotations
 
 import unittest
@@ -80,9 +80,9 @@ class DocumentCatalogClearFiltersR3Tests(unittest.TestCase):
 
     def test_current_version(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.22-r6\n")
-        self.assertIn('APP_VERSION = "10.22-r6"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.22-r6", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.22-r7\n")
+        self.assertIn('APP_VERSION = "10.22-r7"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.22-r7", (root / "START.bat").read_text("utf-8"))
 
 
 if __name__ == "__main__":
