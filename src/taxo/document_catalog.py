@@ -382,6 +382,34 @@ def document_categories(snapshot):
     return tuple(category for category in DOCUMENT_CATEGORIES if category in present)
 
 
+def _catalog_date(row):
+    """Return a structured catalog date or None for missing/invalid legacy rows."""
+    try:
+        return date.fromisoformat(str(row.get("date") or "").strip())
+    except ValueError:
+        return None
+
+
+def document_years(snapshot):
+    """Return years that actually exist in valid structured catalog dates."""
+    return tuple(sorted(
+        {day.year for day in (_catalog_date(row) for row in snapshot.get("rows", ()))
+         if day is not None},
+        reverse=True,
+    ))
+
+
+def document_months(snapshot, year_filter="all"):
+    """Return month numbers present in the selected year (or across all years)."""
+    selected_year = str(year_filter or "all").strip()
+    year = int(selected_year) if selected_year.isdecimal() else None
+    return tuple(sorted({
+        day.month
+        for day in (_catalog_date(row) for row in snapshot.get("rows", ()))
+        if day is not None and (year is None or day.year == year)
+    }))
+
+
 def paginate_sources(
     snapshot,
     text_filter="",
@@ -393,6 +421,8 @@ def paginate_sources(
     date_to="",
     kind_filter="all",
     category_filter="all",
+    year_filter="all",
+    month_filter="all",
     date_sort="default",
     number_sort="default",
 ):
@@ -414,6 +444,22 @@ def paginate_sources(
             if start_day is not None and row_day < start_day:
                 continue
             if end_day is not None and row_day > end_day:
+                continue
+            filtered.append(row)
+        all_rows = filtered
+    selected_year = str(year_filter or "all").strip()
+    selected_month = str(month_filter or "all").strip()
+    year_number = int(selected_year) if selected_year.isdecimal() else None
+    month_number = int(selected_month) if selected_month.isdecimal() else None
+    if year_number is not None or month_number is not None:
+        filtered = []
+        for row in all_rows:
+            row_day = _catalog_date(row)
+            if row_day is None:
+                continue
+            if year_number is not None and row_day.year != year_number:
+                continue
+            if month_number is not None and row_day.month != month_number:
                 continue
             filtered.append(row)
         all_rows = filtered
@@ -526,6 +572,8 @@ def paginate_sources(
         "pages": pages,
         "available_kinds": document_kinds(snapshot),
         "available_categories": document_categories(snapshot),
+        "available_years": document_years(snapshot),
+        "available_months": document_months(snapshot, year_filter),
         "paper_status": snapshot["paper_status"],
         "vault_status": snapshot.get("vault_status", ""),
         "paper_scan_status": snapshot.get("paper_scan_status", ""),
@@ -543,6 +591,8 @@ def read_catalog(
     date_to="",
     kind_filter="all",
     category_filter="all",
+    year_filter="all",
+    month_filter="all",
     date_sort="default",
     number_sort="default",
 ):
@@ -557,6 +607,8 @@ def read_catalog(
         date_to=date_to,
         kind_filter=kind_filter,
         category_filter=category_filter,
+        year_filter=year_filter,
+        month_filter=month_filter,
         date_sort=date_sort,
         number_sort=number_sort,
     )

@@ -159,6 +159,47 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     apply_date_button.pack(side="left")
 
+    all_years_label = "Усі роки"
+    all_months_label = "Усі місяці"
+    month_labels = {
+        1: "01 — Січень",
+        2: "02 — Лютий",
+        3: "03 — Березень",
+        4: "04 — Квітень",
+        5: "05 — Травень",
+        6: "06 — Червень",
+        7: "07 — Липень",
+        8: "08 — Серпень",
+        9: "09 — Вересень",
+        10: "10 — Жовтень",
+        11: "11 — Листопад",
+        12: "12 — Грудень",
+    }
+    month_values = {label: "%02d" % number for number, label in month_labels.items()}
+    year_choice = core.tk.StringVar(value=all_years_label)
+    month_choice = core.tk.StringVar(value=all_months_label)
+    core.ttk.Label(bar, text="Рік / місяць:").grid(
+        row=3, column=0, sticky="w", pady=(6, 0)
+    )
+    period_bar = core.ttk.Frame(bar)
+    period_bar.grid(row=3, column=1, columnspan=2, sticky="w", padx=8, pady=(6, 0))
+    year_box = core.ttk.Combobox(
+        period_bar,
+        textvariable=year_choice,
+        state="readonly",
+        values=(all_years_label,),
+        width=12,
+    )
+    year_box.pack(side="left")
+    month_box = core.ttk.Combobox(
+        period_bar,
+        textvariable=month_choice,
+        state="readonly",
+        values=(all_months_label,),
+        width=18,
+    )
+    month_box.pack(side="left", padx=(8, 0))
+
     source_status = core.tk.StringVar(value="")
     core.ttk.Label(
         body,
@@ -316,6 +357,31 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 all_categories_label, selected_category
             ) + available_categories
         category_box.configure(values=category_values)
+        available_years = tuple(str(value) for value in result.get("available_years", ()))
+        selected_year = year_choice.get()
+        year_values = (all_years_label,) + available_years
+        if (
+            selected_year
+            and selected_year != all_years_label
+            and selected_year not in available_years
+        ):
+            year_values = (all_years_label, selected_year) + available_years
+        year_box.configure(values=year_values)
+
+        available_months = tuple(
+            month_labels[value]
+            for value in result.get("available_months", ())
+            if value in month_labels
+        )
+        selected_month = month_choice.get()
+        month_options = (all_months_label,) + available_months
+        if (
+            selected_month
+            and selected_month != all_months_label
+            and selected_month not in available_months
+        ):
+            month_options = (all_months_label, selected_month) + available_months
+        month_box.configure(values=month_options)
         source_status.set(" ".join(
             value for value in (
                 result.get("order_status", ""),
@@ -401,6 +467,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_to.get(),
             kind_choice.get(),
             category_choice.get(),
+            year_choice.get(),
+            month_choice.get(),
             state["date_sort"] if state["sort_field"] == "date" else "default",
             state["number_sort"] if state["sort_field"] == "number" else "default",
         )
@@ -437,6 +505,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_to_filter,
             kind_filter_label,
             category_filter_label,
+            year_filter_label,
+            month_filter_label,
             date_sort,
             number_sort,
         ) = wanted
@@ -470,6 +540,16 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                         "all"
                         if category_filter_label == all_categories_label
                         else category_filter_label
+                    ),
+                    year_filter=(
+                        "all"
+                        if year_filter_label == all_years_label
+                        else year_filter_label
+                    ),
+                    month_filter=(
+                        "all"
+                        if month_filter_label == all_months_label
+                        else month_values.get(month_filter_label, "all")
                     ),
                     date_sort=date_sort,
                     number_sort=number_sort,
@@ -902,6 +982,15 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "<<ComboboxSelected>>",
         lambda _event: refresh(reset=True),
     )
+    def select_year(_event=None):
+        month_choice.set(all_months_label)
+        refresh(reset=True)
+
+    year_box.bind("<<ComboboxSelected>>", select_year)
+    month_box.bind(
+        "<<ComboboxSelected>>",
+        lambda _event: refresh(reset=True),
+    )
     date_from_entry.bind(
         "<Return>", lambda _event: refresh(reset=True)
     )
@@ -920,6 +1009,10 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_kind_filter_box = kind_box
     win._taxo_catalog_category_filter = category_choice
     win._taxo_catalog_category_filter_box = category_box
+    win._taxo_catalog_year_filter = year_choice
+    win._taxo_catalog_year_filter_box = year_box
+    win._taxo_catalog_month_filter = month_choice
+    win._taxo_catalog_month_filter_box = month_box
     win._taxo_catalog_date_from = date_from
     win._taxo_catalog_date_to = date_to
     win._taxo_catalog_date_from_entry = date_from_entry
