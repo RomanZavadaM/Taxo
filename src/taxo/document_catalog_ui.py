@@ -23,6 +23,8 @@ from document_vault_ui import (
     start_prepared_revision_registration,
 )
 from document_vault_paper_scans_ui import open_paper_scans_dialog
+from paper_original_confirmation import set_paper_original_state
+from datetime import date
 from output_files import next_output_copy_path
 from workspace import paths_for
 
@@ -258,7 +260,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     frame.grid(row=3, column=0, sticky="nsew", pady=6)
     frame.rowconfigure(0, weight=1)
     frame.columnconfigure(0, weight=1)
-    cols = ("date", "number", "category", "kind", "title", "person", "revision", "source", "scans", "file")
+    cols = ("date", "number", "category", "kind", "title", "person", "revision", "source", "paper_original", "scans", "file")
     tree = core.ttk.Treeview(
         frame, columns=cols, show="headings", selectmode="browse"
     )
@@ -271,6 +273,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         ("person", "Працівники / ТЗ", 220),
         ("revision", "Ред.", 65),
         ("source", "Джерело", 135),
+        ("paper_original", "Папір / підпис", 160),
         ("scans", "Скани", 90),
         ("file", "Стан файла", 185),
     ):
@@ -337,6 +340,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         text="Скани…",
         state="disabled",
     )
+    paper_original_button = core.ttk.Button(body, text="Паперовий підпис…", state="disabled")
 
     def selected_row():
         selected = tree.selection()
@@ -358,6 +362,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 else "disabled"
             )
         )
+        paper_original_button.configure(state="normal" if row and row.get("vault_id") else "disabled")
         paper_scans_button.configure(
             state=(
                 "normal"
@@ -452,6 +457,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 result.get("paper_status", ""),
                 result.get("vault_status", ""),
                 result.get("paper_scan_status", ""),
+                result.get("paper_original_status", ""),
             )
             if value
         ))
@@ -483,6 +489,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     row["person"],
                     row.get("revision_label", ""),
                     row.get("source_label", ""),
+                    row.get("paper_original_state", "—"),
                     row.get("paper_scan_state", "—"),
                     row["file_state"],
                 ),
@@ -945,6 +952,44 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 "Сховище документів", str(exc), parent=win
             )
 
+    def manage_paper_original():
+        row = selected_row()
+        if not row or not row.get("vault_id"):
+            return
+        currently_signed = bool(row.get("paper_original_signed"))
+        if currently_signed:
+            if not core.messagebox.askyesno(
+                "Паперовий оригінал",
+                "Прибрати позначку «Підписано»? Попередня позначка і дата залишаться в історії змін.",
+                parent=win,
+            ):
+                return
+            signed, signed_date = False, ""
+        else:
+            signed_date = core.simpledialog.askstring(
+                "Підпис на папері",
+                "Дата фактичного підписання (РРРР-ММ-ДД).\nЦе лише ваша позначка, не електронний підпис.",
+                initialvalue=date.today().isoformat(),
+                parent=win,
+            )
+            if signed_date is None:
+                return
+            if not core.messagebox.askyesno(
+                "Підтвердити паперовий підпис",
+                "Позначити, що паперовий оригінал підписано %s?\nСкан необов'язковий." % signed_date,
+                parent=win,
+            ):
+                return
+            signed = True
+        try:
+            set_paper_original_state(
+                workspace_root, row["vault_id"], signed, signed_date,
+            )
+        except Exception as exc:
+            core.messagebox.showerror("Паперовий оригінал", str(exc), parent=win)
+            return
+        refresh(reset=False, reload_sources=True)
+
     def manage_paper_scans():
         row = selected_row()
         if not row or not row.get("vault_id"):
@@ -1041,6 +1086,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     ).pack(side="left")
     vault_open_button.configure(command=browse_document_vault)
     vault_open_button.pack(in_=vault_actions, side="right")
+    paper_original_button.configure(command=manage_paper_original)
+    paper_original_button.pack(in_=vault_actions, side="right", padx=(0, 6))
     paper_scans_button.configure(command=manage_paper_scans)
     paper_scans_button.pack(
         in_=vault_actions, side="right", padx=(0, 6)
@@ -1140,6 +1187,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_vault_store = store_selected_in_vault
     win._taxo_catalog_vault_open = browse_document_vault
     win._taxo_catalog_paper_scans = manage_paper_scans
+    win._taxo_catalog_paper_original = manage_paper_original
     win.bind("<Destroy>", cancel_pending, add="+")
     refresh(reload_sources=True)
     state["poll"] = win.after(100, poll_results)
