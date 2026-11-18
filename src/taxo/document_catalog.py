@@ -20,6 +20,7 @@ from paper_original_confirmation import list_paper_original_states
 
 CATEGORY_PERSONNEL = "Кадрові"
 CATEGORY_OPERATIONAL = "Експлуатаційні"
+CATEGORY_SEASONAL = "Сезонні заходи"
 CATEGORY_OCCUPATIONAL_SAFETY = "Охорона праці"
 CATEGORY_ROAD_SAFETY = "БДР"
 CATEGORY_FIRE_SAFETY = "Пожежна безпека"
@@ -27,12 +28,14 @@ CATEGORY_UNCLASSIFIED = "Не визначено"
 DOCUMENT_CATEGORIES = (
     CATEGORY_PERSONNEL,
     CATEGORY_OPERATIONAL,
+    CATEGORY_SEASONAL,
     CATEGORY_OCCUPATIONAL_SAFETY,
     CATEGORY_ROAD_SAFETY,
     CATEGORY_FIRE_SAFETY,
     CATEGORY_UNCLASSIFIED,
 )
 
+_SEASONAL_ORDER_TYPES = {"seasonal_operation"}
 _ROAD_SAFETY_ORDER_TYPES = {"road_safety", "accident_commission"}
 _OCCUPATIONAL_SAFETY_ORDER_TYPES = {"occupational_safety", "safety_training"}
 _FIRE_SAFETY_ORDER_TYPES = {"fire_safety"}
@@ -43,6 +46,8 @@ def _order_category(order_series, order_type):
     if str(order_series or "").strip() == "personnel":
         return CATEGORY_PERSONNEL
     order_type = str(order_type or "").strip()
+    if order_type in _SEASONAL_ORDER_TYPES:
+        return CATEGORY_SEASONAL
     if order_type in _ROAD_SAFETY_ORDER_TYPES:
         return CATEGORY_ROAD_SAFETY
     if order_type in _OCCUPATIONAL_SAFETY_ORDER_TYPES:
