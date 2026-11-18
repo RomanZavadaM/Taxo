@@ -295,10 +295,14 @@ def _verified_payload(root: Path, record: DocumentVaultRecord) -> bytes:
 
 
 def _load_index(root: Path) -> Tuple[DocumentVaultRecord, ...]:
-    allowed_root_names = {INDEX_NAME, "objects", "attachments"}
+    allowed_root_names = {INDEX_NAME, "objects", "attachments", "paper_original_events.json"}
     for child in root.iterdir():
         if child.name not in allowed_root_names:
             raise ValueError("DocumentVault містить невідомий об'єкт")
+        if child.name == "paper_original_events.json" and (
+            not child.is_file() or child.is_symlink()
+        ):
+            raise ValueError("Некоректний журнал паперових оригіналів")
         if child.name == "attachments" and (
             not child.is_dir() or child.is_symlink()
         ):
