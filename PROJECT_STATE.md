@@ -2,25 +2,27 @@
 
 **Confirmed integrated: 18.11.2026.**
 
-- Latest completed code revision **10.21-r10**. Immutable exact product source `3c6a4aedaf18399f3688d02bba3eb0cd30dd74ad`.
-- Exact-source START #44270332491 **1501/1501**; Windows #44270332484, Win7 #44270332389, macOS Intel/ARM #44270332442 SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #520 merged `f78e213b496117c400599568ff4133fd1f9b616c`; publisher #44271925495 SUCCESS.
-- [v10.21-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r10) — Test Portable prerelease, 6 assets, exact immutable source above.
+- Latest completed code revision **10.22-r1**. Immutable exact product source `4d108acc1eac69c120244c19d32c89e112f6afcd`.
+- Exact-source START #44280221670 **1511/1511**; Windows #44280221497, Win7 #44280221443, macOS Intel/ARM #44280221618 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #523 merged `061ebf398f69591703ee996582a1ce7219b17da6`; publisher #44284701235 SUCCESS.
+- [v10.22-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r1) — Test Portable prerelease, 6 assets, exact immutable source above.
 - **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
 
-## Result r10
+## Result r1
 
-Unified «Документи» catalog now exposes a structured category column/filter. Order categories are derived only from `order_series` and `order_type`: personnel, operational, occupational safety, road safety, fire safety. Legacy Word/DocumentVault rows without structured direction remain visible as «Не визначено» rather than being guessed from free text. Category filtering combines with existing search/source/scans/date/type filters before pagination. No file, vault, scan, DB-schema, backup-format, security or dependency changes.
+Unified «Документи» catalog now has quick year/month navigation based only on valid structured document dates. Available years come from real catalog data; months adjust to the selected year, year changes clear an incompatible month, and month-only filtering can span all years. The new selectors combine with search/source/scans/date-range/type/category filters before pagination. Rows with missing/invalid dates remain visible when no calendar filter is active.
 
-Driver↔vehicle pair UI from r9 was not changed in r10. Owner manually checked r9 on 18.11.2026 and reported no defects; the pair workflow is accepted and Issue #511 is closed.
+No document files, DocumentVault, scans, DB schema, backup format, security rules, dependencies, business statuses, or driver↔vehicle pair behavior changed.
+
+The r9 pair workflow was manually accepted by the owner on 18.11.2026 with no defect found.
 
 ## Active code revision
 
-None. **10.22-r1 not started.**
+None. **10.22-r2 not started.**
 
 ## Next action
 
-Fresh live reconciliation, then choose one narrow independent catalog slice (year/month or employee/vehicle navigation), unless owner manual testing reports a pair defect first. Keep Stable unchanged.
+Fresh live reconciliation, then one narrow independent catalog slice for employee/vehicle navigation unless owner testing reports a higher-priority defect. Keep Stable unchanged.
 
 ## History
 
