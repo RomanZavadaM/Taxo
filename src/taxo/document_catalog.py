@@ -623,6 +623,7 @@ def paginate_sources(
     vehicle_filter="all",
     date_sort="default",
     number_sort="default",
+    category_sort="default",
 ):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
@@ -772,6 +773,24 @@ def paginate_sources(
             key=number_key, reverse=number_sort == "descending"
         )
         all_rows = numbered + unnumbered
+    if category_sort in ("ascending", "descending"):
+        classified = []
+        unclassified = []
+        for row in all_rows:
+            category = str(
+                row.get("category") or CATEGORY_UNCLASSIFIED
+            ).strip() or CATEGORY_UNCLASSIFIED
+            if category == CATEGORY_UNCLASSIFIED:
+                unclassified.append(row)
+            else:
+                classified.append(row)
+        classified.sort(
+            key=lambda row: str(
+                row.get("category") or CATEGORY_UNCLASSIFIED
+            ).strip().casefold(),
+            reverse=category_sort == "descending",
+        )
+        all_rows = classified + unclassified
     page_size = max(1, min(int(page_size), 500))
     pages = max(1, (len(all_rows) + page_size - 1) // page_size)
     page = max(0, min(int(page), pages - 1))
@@ -810,6 +829,7 @@ def read_catalog(
     vehicle_filter="all",
     date_sort="default",
     number_sort="default",
+    category_sort="default",
 ):
     """Convenience one-shot read for callers and tests."""
     return paginate_sources(
@@ -828,4 +848,5 @@ def read_catalog(
         vehicle_filter=vehicle_filter,
         date_sort=date_sort,
         number_sort=number_sort,
+        category_sort=category_sort,
     )

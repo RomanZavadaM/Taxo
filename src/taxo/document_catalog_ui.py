@@ -61,6 +61,7 @@ def _reset_catalog_filters(values, state):
     state["sort_field"] = "date"
     state["date_sort"] = "newest"
     state["number_sort"] = "ascending"
+    state["category_sort"] = "ascending"
     state["page"] = 0
 
 
@@ -300,6 +301,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "date_sort": "newest",
         "sort_field": "date",
         "number_sort": "ascending",
+        "category_sort": "ascending",
         "page": 0,
         "pages": 1,
         "rows": {},
@@ -385,6 +387,13 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             text=(
                 ("№ ▲" if state["number_sort"] == "ascending" else "№ ▼")
                 if state["sort_field"] == "number" else "№"
+            ),
+        )
+        tree.heading(
+            "category",
+            text=(
+                ("Категорія ▲" if state["category_sort"] == "ascending" else "Категорія ▼")
+                if state["sort_field"] == "category" else "Категорія"
             ),
         )
         available_kinds = tuple(result.get("available_kinds", ()))
@@ -523,6 +532,17 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             state["number_sort"] = "ascending"
         refresh(reset=True)
 
+    def toggle_category_sort():
+        if state["sort_field"] == "category":
+            state["category_sort"] = (
+                "descending"
+                if state["category_sort"] == "ascending" else "ascending"
+            )
+        else:
+            state["sort_field"] = "category"
+            state["category_sort"] = "ascending"
+        refresh(reset=True)
+
     def refresh(reset=False, reload_sources=False):
         if reset:
             state["page"] = 0
@@ -544,6 +564,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             vehicle_values.get(vehicle_choice.get(), "all"),
             state["date_sort"] if state["sort_field"] == "date" else "default",
             state["number_sort"] if state["sort_field"] == "number" else "default",
+            state["category_sort"] if state["sort_field"] == "category" else "default",
         )
         source_status.set("Завантаження документів…")
         if not state["busy"]:
@@ -584,6 +605,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             vehicle_filter,
             date_sort,
             number_sort,
+            category_sort,
         ) = wanted
         previous = state["snapshot"]
         must_reload = (
@@ -630,6 +652,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     vehicle_filter=vehicle_filter,
                     date_sort=date_sort,
                     number_sort=number_sort,
+                    category_sort=category_sort,
                 )
                 state["results"].put(
                     (generation, snapshot, result, None)
@@ -1111,6 +1134,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     pdf_button.configure(command=create_pdf_for_print)
     tree.heading("date", text="Дата ▼", command=toggle_date_sort)
     tree.heading("number", text="№", command=toggle_number_sort)
+    tree.heading("category", text="Категорія", command=toggle_category_sort)
     tree.bind("<Double-1>", open_selected)
     tree.bind(
         "<<TreeviewSelect>>", selection_changed, add="+"
