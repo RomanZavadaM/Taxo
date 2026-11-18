@@ -2,21 +2,23 @@
 
 **Confirmed integrated: 18.11.2026.**
 
-- Latest completed code revision **10.22-r3**. Immutable exact product source `bb3e7fb77e50dc0bd963e1a2a5c164296cfb1722`.
-- Exact-source START #44301305636 **1524/1524**; Windows #44301305635, Win7 #44301305627, macOS Intel/ARM #44301305732 SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #529 merged `3dcb3f22c9c1ccd8123dba945f933a210de82f6d`; publisher #44302569986 SUCCESS.
-- [v10.22-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r3) — Test Portable prerelease, 6 assets, exact immutable source above.
+- Latest completed code revision **10.22-r4**. Immutable exact product source `b01437828551fe309c2dfcba81572a9a9d51e628`.
+- Exact-source START #44320801103 **1527/1527**; Windows #44320801102, Win7 #44320801191, macOS Intel/ARM #44320801139 SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #532 merged `7d443e25f8ec754f71a3749c6e46163d8aca8728`; publisher #44322860950 SUCCESS.
+- [v10.22-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r4) — Test Portable prerelease, 6 assets, exact immutable source above.
 - **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
 
-## Result r3
+## Result r4
 
-One-click **«Скинути фільтри»** in unified «Документи» resets all current search filters: source, scans, date range, kind, category, year/month, employee/vehicle. Returns date-newest sorting and first page, cancels pending debounce, refreshes once. Four regression tests added (1524 total).
+Unified «Документи» now opens a DocumentVault record through a verified temporary read-only DOCX copy. The immutable vault object is rechecked for index consistency, size and SHA-256 before materialization and is never handed directly to Word or another external application. Tampered vault content is rejected.
 
-No file, DocumentVault, scan, DB schema, backup, security, dependency, business status or driver↔vehicle pairing changes.
+Three focused regressions added; full suite is **1527/1527**.
+
+No DB schema, DocumentVault format, scan, backup/restore, business status, e-signature or driver↔vehicle pairing changes.
 
 ## Active code revision
 
-None. **10.22-r4 not started.**
+None. **10.22-r5 not started.**
 
 ## Next action
 
