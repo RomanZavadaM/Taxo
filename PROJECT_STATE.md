@@ -22,4 +22,4 @@
 
 ## History
 
-Earlier checkpoints and detailed logs: WORKLOG.md, Issue #61 and the private profile `RomanZavadaM/dev-strategy` branch `profile/taxo`.
+Taxo 10.3 / `v10.3` exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Earlier checkpoints and detailed logs: WORKLOG.md, Issue #61 and the private profile `RomanZavadaM/dev-strategy` branch `profile/taxo`.
