@@ -582,6 +582,50 @@ def add_order_entities(con, order_id, entity_type, entity_ids, *, role="", note=
     return created
 
 
+def update_order_entity_fields(con, entity_link_id, *, role, note):
+    """Change an existing order link without rewriting its frozen identity.
+
+    Only the user-editable role and note change. Preserve the original
+    employee/vehicle snapshot, row identity and sequence and audit the edit.
+    """
+    ensure_schema_on_connection(con)
+    row = get_order_entity(con, entity_link_id)
+    if row is None:
+        raise ValueError("Запис учасника наказу не знайдено.")
+    _require_order_entity_draft(con, row["order_id"])
+    new_role = str(role or "").strip()
+    new_note = str(note or "").strip()
+    if new_role == str(row["role"] or "").strip() and new_note == str(row["note"] or "").strip():
+        return False
+    duplicate = con.execute(
+        """SELECT id FROM operations_order_entities
+           WHERE order_id=? AND entity_type=? AND entity_id=? AND role=? AND id<>?""",
+        (
+            int(row["order_id"]), str(row["entity_type"]),
+            int(row["entity_id"]), new_role, int(entity_link_id),
+        ),
+    ).fetchone()
+    if duplicate is not None:
+        raise ValueError(
+            "Цей працівник або ТЗ вже є у наказі з такою роллю. "
+            "Виберіть іншу роль або відредагуйте існуючий запис."
+        )
+    before = dict(row)
+    now = datetime.now().isoformat(timespec="seconds")
+    con.execute(
+        """UPDATE operations_order_entities SET role=?, note=?, updated_at=?
+           WHERE id=?""",
+        (new_role, new_note, now, int(entity_link_id)),
+    )
+    after = dict(get_order_entity(con, entity_link_id))
+    _write_history(
+        con, "order_entity", int(row["order_id"]), "entity_update",
+        before=before, after=after,
+        note="Змінено роль або примітку учасника наказу",
+    )
+    return True
+
+
 def delete_order_entity(con, entity_link_id, *, history_note=""):
     ensure_schema_on_connection(con)
     row = get_order_entity(con, entity_link_id)
