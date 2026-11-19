@@ -255,7 +255,7 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
             or 'APP_VERSION = "10.20-r5"' in main_source
             or 'APP_VERSION = "10.20-r6"' in main_source
             or 'APP_VERSION = "10.21-r7"' in main_source
-            or 'APP_VERSION = "10.23-r1"' in main_source
+            or 'APP_VERSION = "10.23-r2"' in main_source
         )
         start_source = (root / "START.bat").read_text("utf-8")
         self.assertTrue(
@@ -273,7 +273,7 @@ class TypedCompanyTemplateDraftR4Tests(unittest.TestCase):
             or "Taxo 10.20-r5" in start_source
             or "Taxo 10.20-r6" in start_source
             or "Taxo 10.21-r7" in start_source
-            or "Taxo 10.23-r1" in start_source
+            or "Taxo 10.23-r2" in start_source
         )
 
     def test_typed_facts_render_structurally(self):
