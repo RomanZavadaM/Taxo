@@ -51,9 +51,9 @@ class DocumentUserFoldersR9Tests(unittest.TestCase):
 
     def test_version_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.22-r9\n")
-        self.assertIn('APP_VERSION = "10.22-r9"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.22-r9", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.22-r10\n")
+        self.assertIn('APP_VERSION = "10.22-r10"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.22-r10", (root / "START.bat").read_text("utf-8"))
 
     def test_create_rename_nested_move_and_cycle_guard(self):
         parent = create_collection(self.workspace, "Для перевірок")
@@ -199,7 +199,7 @@ class DocumentUserFoldersR9Tests(unittest.TestCase):
 
         archive = Path(self.tmp.name) / "full-backup.zip"
         create_workspace_backup_archive(
-            self.workspace, archive, app_version="10.22-r9"
+            self.workspace, archive, app_version="10.22-r10"
         )
         restored = Path(self.tmp.name) / "restored"
         restore_workspace_backup_archive(archive, restored)
