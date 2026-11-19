@@ -142,6 +142,49 @@ class R10DocumentFolderManagementTests(unittest.TestCase):
         restore_collection(restored, parent.collection_id)
         self.assertTrue(all(not x.archived_at for x in read_collection_state(restored).collections))
 
+    def test_empty_folder_is_selectable_and_addable_from_full_catalog(self):
+        folder = create_collection(self.workspace, "Порожня папка")
+        all_rows = [{
+            "source": "paper",
+            "source_id": "doc-123",
+            "date": "2026-11-19",
+            "title": "Наказ",
+        }]
+        snapshot = {"rows": all_rows}
+        state = read_collection_state(self.workspace)
+        nodes = collection_navigation_nodes(snapshot, state)
+        target = next(
+            item for item in nodes
+            if item[0] == "collection:" + folder.collection_id
+        )
+        self.assertEqual(target[3], 0)
+        self.assertEqual(target[4][0], "collection")
+
+        # The UI picker must read snapshot rows, not the empty filtered page.
+        from document_library_collections import catalog_document_key
+        key = catalog_document_key(snapshot["rows"][0])
+        set_document_collections(self.workspace, key, (folder.collection_id,))
+        nodes = collection_navigation_nodes(snapshot, read_collection_state(self.workspace))
+        target = next(
+            item for item in nodes
+            if item[0] == "collection:" + folder.collection_id
+        )
+        self.assertEqual(target[3], 1)
+        self.assertIn(key, target[4][2])
+
+    def test_ui_picker_keeps_folder_selected_and_explains_action(self):
+        source = (
+            Path(__file__).resolve().parents[1] / "src" / "taxo"
+            / "document_catalog_ui.py"
+        ).read_text("utf-8")
+        self.assertIn("def add_document_to_selected_folder():", source)
+        self.assertIn('for item in snapshot.get("rows", ()):', source)
+        self.assertIn("Додати документ у цю папку…", source)
+        self.assertIn("Додати у папку", source)
+        self.assertIn('active_filter[1] == value[1]', source)
+        self.assertIn('state["drawing_library_tree"] = True', source)
+        self.assertIn('state["library_filter"] = ("collection", created.collection_id, ())', source)
+
     def test_ui_exposes_explicit_and_reversible_folder_actions(self):
         source = (
             Path(__file__).resolve().parents[1] / "src" / "taxo"
