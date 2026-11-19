@@ -15,7 +15,9 @@ from tkinter import ttk
 
 import document_catalog_ui
 from document_library_collections import read_collection_state
-from runtime_reachability import runtime_routes, activate_widget
+from runtime_reachability import (
+    runtime_routes, activate_widget, assert_widget_reachable, mark_activation
+)
 
 
 def walk(widget):
@@ -115,6 +117,58 @@ class NewDocumentLiveRouteTests(TestCase):
                 self.assertIn("Тестова папка", names)
             finally:
                 root.destroy()
+
+    @runtime_routes("documents.catalog_tree_modes")
+    def test_real_document_tree_modes_select_expected_folders(self):
+        # Verify the actual combobox and tree show different catalog views.
+        # This catches a visible but disconnected selector callback.
+        with TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            data = workspace / "Data" / "PaperDocuments"
+            data.mkdir(parents=True)
+            (data / "example.docx").write_bytes(b"test")
+            (data / "index.json").write_text(
+                '[{"id":"doc-1","date":"2026-11-18","kind":"Інструкція",'
+                '"title":"Перевірка дерева","file":"example.docx"}]',
+                encoding="utf-8",
+            )
+            from document_library_collections import create_collection
+            create_collection(workspace, "Моя перевірочна папка")
+            root, win = self.open_window(workspace)
+            try:
+                selector = library_selector(win)
+                self.assertIsNotNone(selector)
+                assert_widget_reachable(selector, "documents.catalog_tree_modes", container=win)
+                tree = win._taxo_library_tree
+
+                def switch_and_find(mode, expected):
+                    selector.set(mode)
+                    selector.event_generate("<<ComboboxSelected>>")
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        root.update()
+                        names = [
+                            str(tree.item(item, "text"))
+                            for item in tree.get_children()
+                        ]
+                        # Root nodes may contain category/year labels.
+                        all_names = names + [
+                            str(tree.item(item, "text"))
+                            for parent in tree.get_children()
+                            for item in tree.get_children(parent)
+                        ]
+                        if any(expected in name for name in all_names):
+                            return
+                        time.sleep(0.02)
+                    self.fail("Document tree mode %s did not show %s" % (mode, expected))
+
+                switch_and_find("Мої папки", "Моя перевірочна папка")
+                switch_and_find("За видами", "Інструкція")
+                switch_and_find("За датами", "2026")
+                mark_activation("documents.catalog_tree_modes")
+            finally:
+                root.destroy()
+
 
 
 if __name__ == "__main__":
