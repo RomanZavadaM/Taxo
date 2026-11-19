@@ -1,31 +1,26 @@
 # HANDOFF_CURRENT — Taxo
 
-**Live GitHub state — 19.11.2026.**
+**Confirmed live GitHub state — 19.11.2026.**
 
-- **10.22-r9 повністю розроблена, інтегрована й опублікована:** product PR #547 merged; final PR head `f1f01699f284d57b8db98bcef9473e3780276b0c`; **immutable exact product source** `d38f6a2609775295dbd4885ebee58c9e587b9c2e`.
-- Exact-source START #44517481797, Windows #44517481864, Win7 #44517482057, macOS Intel/ARM #44517481994 — **SUCCESS**, Windows/Win7 Defender/integrity PASS.
-- Release-trigger PR #548 merged `5e5633214084535f1d594fc26ceea0e8c155befc`; publisher #44519029232 **SUCCESS**.
-- [v10.22-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r9) — **Test Portable prerelease**, 6 assets: 4 Portable, START і SHA256; tag points exactly to the immutable product source above.
-- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
+- **10.22-r10 finished, integrated and published.** Folder-management PR #550 merged at `4cfb2637683a6a2d74374919f6255ec957526411`. Additional reported PDF-layout defect fixed by PR #551, merged into immutable **exact product source `56917daed4756dc4725cc58c43fcb900ce256f2c`**.
+- Exact-source CI: START #44535065602, Windows #44535065617, Windows 7 #44535065603 and macOS Intel/ARM #44535065691 — **SUCCESS**. Windows/Win7 Defender and integrity gates PASS.
+- Superseded release PR #552 was closed without merge because it targeted pre-PDF-fix code. Reconciled release-trigger PR #554 merged at `bb01b7537e3309b2c45841731b361b789b1dc01c`; publisher #44536931544 SUCCESS.
+- [v10.22-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r10) — immutable Test Portable prerelease, **6 assets** (Windows, Windows 7, macOS x86_64/arm64, START and SHA256), tag points to `56917daed4756dc4725cc58c43fcb900ce256f2c`.
+- **Stable/Latest:** [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
 
-## Що зроблено
+## User-facing changes
 
-У каталозі **«Документи»** додано третій режим дерева **«Мої папки»**. Користувач може створювати власні та вкладені папки, перейменовувати їх і розміщувати один документ в одній або кількох папках.
+In «Документи» → «Мої папки»: selecting an empty folder no longer blocks adding a document — «Додати документ у цю папку…» offers the full document catalog with search. Newly created/updated folder stays selected. Folders may be moved between parents, archived with descendants and restored; logical document memberships and original files/scans stay intact, including after backup/restore.
 
-Папки **логічні**: DOCX, скани, накази та файли DocumentVault фізично не переносяться, не перейменовуються й не дублюються. Розміщення документа зберігається окремо у `Data/DocumentLibrary/collections.json` атомарним записом. Прив'язка prepared-документа зберігається після реєстрації його точної редакції у DocumentVault.
+**Additional PDF fix:** The structured employee/vehicle appendix of orders now wraps long names, roles and VIN values within table cells instead of painting over adjacent columns. Independent layout render and regression checks were performed; user manual acceptance is pending.
 
-Повна резервна копія Taxo включає дерево папок і розміщення документів; regression перевіряє повне backup/restore. Також перевірено відновлення після обриву атомарного запису, цикли дерева, дублікати назв одного рівня та пошкоджений індекс.
+## Owner feedback and next work
 
-DocumentVault bytes, скани, паперовий підпис, накази, схема БД, пари водій↔ТЗ і Stable цією ревізією не змінювалися.
+- Owner's screenshots from Taxo 10.22-r9 show an **unclear / apparently non-working «Експлуатація → Учасники / ТЗ» order workflow**. This is NOT a library-folder complaint and is NOT fully resolved by PDF text wrapping. Tracked in [Issue #553](https://github.com/RomanZavadaM/Taxo/issues/553); check end-to-end order selection → add/edit participants and vehicles → save → preview/print PDF/DOCX; retain historical snapshots. Do not close #553 without owner's manual acceptance.
+- [PR #543](https://github.com/RomanZavadaM/Taxo/pull/543): draft design for the separate ready-document library and later incoming/outgoing correspondence ledger (registration numbers, correspondents, replies, deadlines, attachments). Correspondence not yet implemented.
+- PR #395 remains independent architecture-only draft; do not overwrite.
+- **Next code revision is 10.23-r1** (r10 was issued; never reuse it). One narrow safe step: investigate and reproduce the «Учасники / ТЗ» workflow in Issue #553 before further new features.
 
-## Рішення власника щодо розвитку бібліотеки
+## Recovery
 
-- **PR #543** залишається draft-планом ширшої бібліотеки готових документів.
-- **Ділова кореспонденція** — вхідні/вихідні журнали, окрема нумерація, кореспонденти, відповіді, строки та вкладення — **ще не реалізована** і має йти окремими ревізіями, без змішування з папками.
-- Старий **PR #395** — незалежний незлитий draft архітектури шаблонів; не переписувати його чужою гілкою.
-
-## Що далі
-
-**10.22-r10 не розпочата.** Спочатку відкрити `START_HERE.md` і звірити live GitHub з цим HANDOFF, включно з PR #543/#395 та гілками без PR.
-
-Наступний безпечний вузький крок — **довести керування власними папками**: явне переміщення/перепідпорядкування папки та безпечне архівування/прибирання папки без фізичного руху чи видалення документів. Ділову кореспонденцію впроваджувати окремо після цього. Stable не змінювати без прямого рішення власника.
+Start with `START_HERE.md`, verify live GitHub against this HANDOFF and `PROJECT_STATE.md`, including open PRs and branches without PR. Do not repeat r10 work or change Stable without owner approval.
