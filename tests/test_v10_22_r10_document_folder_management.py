@@ -183,7 +183,8 @@ class R10DocumentFolderManagementTests(unittest.TestCase):
         self.assertIn("Додати у папку", source)
         self.assertIn('active_filter[1] == value[1]', source)
         self.assertIn('state["drawing_library_tree"] = True', source)
-        self.assertIn('state["library_filter"] = ("collection", created.collection_id, ())', source)
+        self.assertIn("refresh_current_folder(created.collection_id)", source)
+        self.assertIn("refresh_current_folder(folder_id)", source)
 
     def test_ui_exposes_explicit_and_reversible_folder_actions(self):
         source = (
