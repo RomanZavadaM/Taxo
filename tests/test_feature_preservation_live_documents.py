@@ -5,6 +5,7 @@ These tests open the real catalog, not a synthetic button-only mock.
 They are deliberately separate from the structural surface contracts.
 """
 from pathlib import Path
+import ast
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from unittest import TestCase
@@ -92,6 +93,31 @@ class NewDocumentLiveRouteTests(TestCase):
         # Python 3.8/Tk on Windows 7 must finalize Tcl variables on the
         # thread that owned the GUI, not later inside the catalog reader.
         gc.collect()
+
+    def test_background_catalog_reader_never_captures_tk_state(self):
+        # Guard against Win7 Tcl_AsyncDelete: a worker must not own the
+        # whole state dictionary with Tk variables and widget callbacks.
+        code = Path(document_catalog_ui.__file__).read_text(encoding="utf-8")
+        tree = ast.parse(code)
+        readers = [
+            node for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == "worker"
+            and any(
+                isinstance(child, ast.Call)
+                and isinstance(child.func, ast.Attribute)
+                and child.func.attr == "paginate_sources"
+                for child in ast.walk(node)
+            )
+        ]
+        self.assertEqual(len(readers), 1)
+        used = {
+            name.id for name in ast.walk(readers[0])
+            if isinstance(name, ast.Name) and isinstance(name.ctx, ast.Load)
+        }
+        self.assertNotIn(
+            "state", used,
+            "Catalog reader captures Tk-bearing state: unsafe on Win7"
+        )
 
     @runtime_routes(
         "documents.catalog_filters",
