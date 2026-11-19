@@ -159,6 +159,87 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
         core.ttk.Button(bar,text="Додати вибрані",style="Accent.TButton",command=save_entities).pack(side="right",padx=(0,6))
         dlg.transient(win); search_entry.focus_set()
 
+    def edit_order_entity():
+        order=current_entity_order()
+        selected=tuple(etree.selection())
+        if order is None or len(selected)!=1:
+            core.messagebox.showinfo(
+                "Учасники / ТЗ",
+                "Виберіть один рядок працівника або ТЗ для редагування.",
+                parent=win,
+            )
+            return
+        if not require_mutable_order(order, "Редагування учасника наказу"):
+            return
+        link_id=int(selected[0])
+        item=entity_cache.get(link_id)
+        if item is None:
+            refresh_order_entities()
+            core.messagebox.showinfo(
+                "Учасники / ТЗ",
+                "Список оновлено. Виберіть потрібний рядок ще раз.",
+                parent=win,
+            )
+            return
+
+        dlg=core.tk.Toplevel(win)
+        dlg.title("Змінити роль / примітку")
+        try:
+            core.configure_toplevel(dlg,title=dlg.title(),minsize=(520,240))
+        except Exception:
+            dlg.geometry("620x280")
+        form=core.ttk.Frame(dlg,padding=14)
+        form.pack(fill="both",expand=True)
+        form.columnconfigure(1,weight=1)
+        view=ops.order_entity_view(item)
+        core.ttk.Label(
+            form,
+            text="%s: %s" % (view["type_label"],view["display"]),
+            wraplength=560,justify="left",
+        ).grid(row=0,column=0,columnspan=2,sticky="w",pady=(0,12))
+        role_var=core.tk.StringVar(value=str(item["role"] or ""))
+        note_var=core.tk.StringVar(value=str(item["note"] or ""))
+        core.ttk.Label(form,text="Роль / призначення").grid(row=1,column=0,sticky="w",padx=(0,8),pady=5)
+        role_entry=core.ttk.Entry(form,textvariable=role_var)
+        role_entry.grid(row=1,column=1,sticky="ew",pady=5)
+        core.ttk.Label(form,text="Примітка").grid(row=2,column=0,sticky="w",padx=(0,8),pady=5)
+        core.ttk.Entry(form,textvariable=note_var).grid(row=2,column=1,sticky="ew",pady=5)
+        bar=core.ttk.Frame(form)
+        bar.grid(row=3,column=0,columnspan=2,sticky="e",pady=(16,0))
+
+        def save_edit():
+            con=core.db()
+            try:
+                changed=ops.update_order_entity_fields(
+                    con,link_id,role=role_var.get(),note=note_var.get(),
+                )
+                con.commit()
+            except Exception as exc:
+                con.rollback()
+                core.messagebox.showerror("Учасники / ТЗ",str(exc),parent=dlg)
+                return
+            finally:
+                con.close()
+            dlg.destroy()
+            refresh_order_entities()
+            if etree.exists(str(link_id)):
+                etree.selection_set(str(link_id))
+                etree.see(str(link_id))
+            if changed:
+                core.messagebox.showinfo(
+                    "Учасники / ТЗ",
+                    "Зміни збережено у наказі. Історичні реквізити не переписано.",
+                    parent=win,
+                )
+
+        core.ttk.Button(bar,text="Скасувати",command=dlg.destroy).pack(side="right")
+        core.ttk.Button(
+            bar,text="Зберегти зміни",style="Accent.TButton",
+            command=save_edit,
+        ).pack(side="right",padx=(0,6))
+        dlg.transient(win)
+        role_entry.focus_set()
+
     def remove_order_entities():
         order=current_entity_order(); selected=tuple(etree.selection())
         if order is None or not selected:
@@ -190,6 +271,7 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
     core.ttk.Button(
         ebar,text="Додати ТЗ…",command=lambda:entity_picker(ops.ORDER_ENTITY_VEHICLE),
     ).pack(side="left",padx=6)
+    core.ttk.Button(ebar,text="Змінити роль / примітку…",command=edit_order_entity).pack(side="left",padx=6)
     core.ttk.Button(ebar,text="Прибрати вибрані",command=remove_order_entities).pack(side="left",padx=6)
     core.ttk.Button(ebar,text="Оновити",command=refresh_order_entities).pack(side="right")
 
