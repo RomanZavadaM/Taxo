@@ -169,7 +169,7 @@ jobs:
         run: |
           set -euo pipefail
           sha="${{ steps.source.outputs.sha }}"
-          runs_json="$(gh run list --repo "${GITHUB_REPOSITORY}" --commit "${sha}" --status success --limit 100 --json databaseId,workflowName,headSha)"
+          runs_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${sha}&per_page=100" --jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success") | {databaseId: .id, workflowName: .name, headSha: .head_sha}]')"
           find_run() {
             printf '%s' "${runs_json}" | jq -er --arg name "$1" --arg sha "${sha}" \
               '[.[] | select(.workflowName == $name and .headSha == $sha and (.databaseId | type == "number"))] | sort_by(.databaseId) | last | .databaseId'
