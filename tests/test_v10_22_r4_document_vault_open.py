@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.22-r9: safe opening of immutable DocumentVault documents."""
+"""10.22-r10: safe opening of immutable DocumentVault documents."""
 import hashlib
 import io
 import stat
