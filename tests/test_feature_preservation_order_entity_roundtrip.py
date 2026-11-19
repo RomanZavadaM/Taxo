@@ -48,7 +48,11 @@ class OrderEntitiesPersistentRoundtripTests(unittest.TestCase):
         """)
         ops.ensure_schema_on_connection(self.con)
         self.con.commit()
-        self.addCleanup(self.con.close)
+        self.addCleanup(self.close_current)
+
+    def close_current(self):
+        # The connection changes after each reopen: close the final handle.
+        self.con.close()
 
     def connect(self):
         con = sqlite3.connect(str(self.path))
