@@ -50,7 +50,7 @@ class DocumentTypeFilterR3Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.23-r1\n",
+            "Version: 10.23-r2\n",
         )
         self.assertIn(
             'APP_VERSION = "10.23-r1"',
