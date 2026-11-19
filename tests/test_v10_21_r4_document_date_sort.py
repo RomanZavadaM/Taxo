@@ -59,11 +59,11 @@ class DocumentDateSortR4Tests(unittest.TestCase):
             "Version: 10.23-r2\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.23-r1"',
+            'APP_VERSION = "10.23-r2"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.23-r1",
+            "Taxo 10.23-r2",
             (root / "START.bat").read_text("utf-8"),
         )
 
