@@ -298,6 +298,13 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     folder_actions = core.ttk.Frame(navigation)
     folder_actions.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
     folder_actions.columnconfigure(0, weight=1)
+    folder_help = core.ttk.Label(
+        folder_actions,
+        text="1. Виберіть папку ліворуч.  2. Натисніть «Додати документ у цю папку».",
+        wraplength=225,
+        justify="left",
+    )
+    folder_help.grid(row=0, column=0, sticky="ew", pady=(0, 6))
     new_folder_button = core.ttk.Button(
         folder_actions, text="Нова папка…", state="disabled"
     )
@@ -316,12 +323,12 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     place_in_folder_button = core.ttk.Button(
         folder_actions, text="Розмістити документ…", state="disabled"
     )
-    new_folder_button.grid(row=0, column=0, sticky="ew")
-    rename_folder_button.grid(row=1, column=0, sticky="ew", pady=(4, 0))
-    move_folder_button.grid(row=2, column=0, sticky="ew", pady=(4, 0))
-    archive_folder_button.grid(row=3, column=0, sticky="ew", pady=(4, 0))
-    restore_folder_button.grid(row=4, column=0, sticky="ew", pady=(4, 0))
-    place_in_folder_button.grid(row=5, column=0, sticky="ew", pady=(4, 0))
+    new_folder_button.grid(row=1, column=0, sticky="ew")
+    rename_folder_button.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+    move_folder_button.grid(row=3, column=0, sticky="ew", pady=(4, 0))
+    archive_folder_button.grid(row=4, column=0, sticky="ew", pady=(4, 0))
+    restore_folder_button.grid(row=5, column=0, sticky="ew", pady=(4, 0))
+    place_in_folder_button.grid(row=6, column=0, sticky="ew", pady=(4, 0))
 
     cols = ("date", "number", "category", "kind", "title", "person", "revision", "source", "paper_original", "scans", "file")
     tree = core.ttk.Treeview(
@@ -428,6 +435,16 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         custom = library_mode.get() == "Мої папки"
         new_folder_button.configure(state="normal" if custom else "disabled")
         selected_folder = bool(selected_collection_id())
+        folder_help.configure(
+            text=(
+                "Вибрано папку. Натисніть «Додати документ у цю папку» — "
+                "можна вибрати документ навіть для порожньої папки."
+                if custom and selected_folder
+                else "1. Виберіть папку ліворуч.  2. Додайте документ зі списку."
+                if custom
+                else "Перейдіть у «Мої папки», щоб керувати власним архівом."
+            )
+        )
         rename_folder_button.configure(
             state="normal" if custom and selected_folder else "disabled"
         )
