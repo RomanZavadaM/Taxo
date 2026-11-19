@@ -588,6 +588,11 @@ def set_document_collections(
         missing = [identity for identity in wanted if identity not in known]
         if missing:
             raise ValueError("Вибрану папку не знайдено")
+        archived_ids = {
+            item.collection_id for item in state.collections if item.archived_at
+        }
+        if any(identity in archived_ids for identity in wanted):
+            raise ValueError("Спочатку відновіть архівну папку")
         old_for_document = {
             row.collection_id: row
             for row in state.memberships
