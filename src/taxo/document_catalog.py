@@ -11,6 +11,7 @@ import json
 import re
 import sqlite3
 from datetime import date
+from document_library_tree import matches_navigation
 from pathlib import Path
 
 from document_vault_store import list_document_vault
@@ -624,10 +625,11 @@ def paginate_sources(
     date_sort="default",
     number_sort="default",
     category_sort="default",
+    library_filter=("all",),
 ):
     """Filter the full snapshot before paging; preserve all source statuses."""
     needle = str(text_filter or "").strip().casefold()
-    all_rows = list(snapshot["rows"])
+    all_rows = [row for row in snapshot["rows"] if matches_navigation(row, library_filter)]
     start_day = _date_bound(date_from, "Період від")
     end_day = _date_bound(date_to, "Період до")
     if start_day is not None and end_day is not None and start_day > end_day:
