@@ -344,6 +344,8 @@ def create_collection(workspace_root: Path, name: str, parent_id: str = "") -> C
         by_id = {row.collection_id: row for row in state.collections}
         if parent_id and parent_id not in by_id:
             raise ValueError("Батьківську папку не знайдено")
+        if parent_id and by_id[parent_id].archived_at:
+            raise ValueError("Не можна створити папку всередині архівної")
         if any(
             row.parent_id == parent_id and row.name.casefold() == name.casefold()
             for row in state.collections
@@ -383,6 +385,8 @@ def rename_collection(workspace_root: Path, collection_id: str, name: str) -> Co
         )
         if current is None:
             raise ValueError("Папку не знайдено")
+        if current.archived_at:
+            raise ValueError("Спочатку відновіть архівну папку")
         if any(
             row.collection_id != collection_id
             and row.parent_id == current.parent_id
@@ -423,8 +427,12 @@ def move_collection(workspace_root: Path, collection_id: str, parent_id: str = "
         current = by_id.get(collection_id)
         if current is None:
             raise ValueError("Папку не знайдено")
+        if current.archived_at:
+            raise ValueError("Спочатку відновіть архівну папку")
         if parent_id and parent_id not in by_id:
             raise ValueError("Батьківську папку не знайдено")
+        if parent_id and by_id[parent_id].archived_at:
+            raise ValueError("Не можна перемістити папку всередину архівної")
         cursor = parent_id
         while cursor:
             if cursor == collection_id:
@@ -460,6 +468,88 @@ def move_collection(workspace_root: Path, collection_id: str, parent_id: str = "
             ),
         )
         return next(row for row in saved.collections if row.collection_id == collection_id)
+
+
+def _descendant_ids(
+    collections: Tuple[CollectionRecord, ...],
+    collection_id: str,
+) -> set:
+    """Find one complete subtree, including its root, without touching files."""
+    children = {}
+    for item in collections:
+        children.setdefault(item.parent_id, []).append(item.collection_id)
+    result = {collection_id}
+    pending = [collection_id]
+    while pending:
+        for child in children.get(pending.pop(), ()):
+            if child not in result:
+                result.add(child)
+                pending.append(child)
+    return result
+
+
+def archive_collection(workspace_root: Path, collection_id: str) -> Tuple[str, ...]:
+    """Hide one folder and descendants; retain all placements and document bytes.
+
+    Archive is reversible. Nothing gets deleted or detached from any document.
+    """
+    collection_id = str(collection_id or "").strip()
+    with _WRITE_LOCK:
+        state = read_collection_state(workspace_root)
+        by_id = {item.collection_id: item for item in state.collections}
+        current = by_id.get(collection_id)
+        if current is None:
+            raise ValueError("Папку не знайдено")
+        if current.archived_at:
+            raise ValueError("Папка вже архівована")
+        subtree = _descendant_ids(state.collections, collection_id)
+        archived_at = _iso_now()
+        changed = tuple(
+            CollectionRecord(
+                collection_id=item.collection_id,
+                parent_id=item.parent_id,
+                name=item.name,
+                sort_order=item.sort_order,
+                archived_at=archived_at if item.collection_id in subtree else item.archived_at,
+                created_at=item.created_at,
+            )
+            for item in state.collections
+        )
+        _atomic_write(workspace_root, CollectionState(changed, state.memberships))
+        return tuple(sorted(subtree))
+
+
+def restore_collection(workspace_root: Path, collection_id: str) -> Tuple[str, ...]:
+    """Restore an archived subtree, refusing to unhide it under an archived parent."""
+    collection_id = str(collection_id or "").strip()
+    with _WRITE_LOCK:
+        state = read_collection_state(workspace_root)
+        by_id = {item.collection_id: item for item in state.collections}
+        current = by_id.get(collection_id)
+        if current is None:
+            raise ValueError("Папку не знайдено")
+        if not current.archived_at:
+            raise ValueError("Папка не архівована")
+        parent = current.parent_id
+        while parent:
+            ancestor = by_id[parent]
+            if ancestor.archived_at:
+                raise ValueError("Спочатку відновіть батьківську папку")
+            parent = ancestor.parent_id
+        subtree = _descendant_ids(state.collections, collection_id)
+        changed = tuple(
+            CollectionRecord(
+                collection_id=item.collection_id,
+                parent_id=item.parent_id,
+                name=item.name,
+                sort_order=item.sort_order,
+                archived_at="" if item.collection_id in subtree else item.archived_at,
+                created_at=item.created_at,
+            )
+            for item in state.collections
+        )
+        _atomic_write(workspace_root, CollectionState(changed, state.memberships))
+        return tuple(sorted(subtree))
 
 
 def document_collection_ids(workspace_root: Path, document_key: str) -> Tuple[str, ...]:
