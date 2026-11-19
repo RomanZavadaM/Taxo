@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Publish checkpoint: Taxo 10.23-r1, exact product main 84184bbbf6c26b681c04feaebee19910269bd25c; all exact-main CI gates required.
+# One-time FULL release checkpoint: Taxo 10.23-r2 exact product main 8e093735a75ada977dcad8069df9d38ec8697bcf; revert push default after verified stable publication.
 
 on:
   workflow_dispatch:
@@ -51,7 +51,7 @@ jobs:
             exit 0
           fi
 
-          requested="portable"
+          requested="full"
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             requested="${{ inputs.package_set }}"
           fi
