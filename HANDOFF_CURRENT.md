@@ -1,23 +1,25 @@
 # HANDOFF_CURRENT — Taxo
 
-**Live GitHub state — 18.11.2026.**
+**Live GitHub state — 19.11.2026.**
 
-- **10.22-r7 повністю завершена, інтегрована й опублікована:** product PR #540 merged; final work head `b7daf5f3b69bddf9240805c7608118145fc6c2e9`; immutable exact product source `544da915100744f4fcf1e094f374d13c76c36c80`.
-- Exact-source START #44404136276 **1540/1540**; Windows #44404136133, Win7 #44404136553, macOS Intel/ARM #44404136897 — SUCCESS; Windows/Win7 Defender/integrity PASS.
-- Release-trigger PR #541 merged `7494e415a005a3c30c453069fabce7deefe2c457`; publisher #44406105602 SUCCESS.
-- [v10.22-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r7): Test Portable prerelease, 6 assets; tag points exactly to the product source above.
-- **Stable/Latest remains [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2)**.
+- **10.22-r8 повністю розроблена, інтегрована і опублікована:** product PR #544 merged; final PR head `054061fb85bf85e975f976ce82ab3ddc5a00472c`; **immutable exact product source** `c3274b85d8e5f9fd7de0cb9172da63b2d392daa8`.
+- Exact-source START #44506037689, Windows #44506037500, Win7 #44506037901, macOS Intel/ARM #44506037619 — **SUCCESS**, Windows/Win7 Defender/integrity PASS.
+- Release-trigger PR #545 merged `525083510f5ea43a4abd447f979ae3304071b96e`; publisher #44507263991 **SUCCESS**.
+- [v10.22-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r8) — **Test Portable prerelease**, 6 assets: 4 Portable, START і SHA256; tag points exactly to the immutable product source above.
+- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
 
-## Що зроблено у r7
+## Що зроблено
 
-У загальному каталозі **«Документи»** заголовок **«Категорія»** тепер перемикає сортування А→Я / Я→А. Сортування застосовується до всього вже відфільтрованого списку до розбиття на сторінки. Записи **«Не визначено»** залишаються внизу в обох напрямках; «Скинути фільтри» повертає стандартний порядок за датою.
+У «Документи» ліворуч віртуальне дерево: **«За видами / За датами»**, роки, місяці, **«Без дати»**, **«Усі документи»**, кількості. Вузол дерева відбирає записи з усього каталогу **до пагінації**, взаємодіє з наявним пошуком, фільтрами й сортуванням. Новий окремий модуль `src/taxo/document_library_tree.py` і регресійні тести.
 
-DocumentVault, файли й скани, паперовий підпис, backup/restore, схема БД, накази та пари водій↔ТЗ не змінювалися.
+Жодних переносів/дублювань документів, нової БД, змін DocumentVault, сканів, підписів, backup/restore або Stable.
 
-## Що не спрацювало і що виправлено
+## Рішення власника щодо розвитку бібліотеки
 
-Кодова r7 і exact-source CI пройшли повністю. Уже в release-trigger PR #541 перший required Win7 check впав на кроці оновлення сигнатур Microsoft Defender через мережевий timeout `0x80072ee2`, не через Taxo і не через знайдену загрозу. Код не змінювали; чистий повторний запуск завершився SUCCESS, включно з Defender та integrity.
+- **PR #543** (draft документації): загальний план «Бібліотеки готових документів», окрема від шаблонів; після read-only дерева — **редаговані користувацькі папки** з безпечним збереженням/backup і картка документа.
+- Додано **ділову кореспонденцію**: реєстрація вхідних/вихідних листів з окремою нумерацією, реальними датами, кореспондентами, відповідальними, строками, файлами, справами та зв'язками відповідей. **Цього ще немає в коді**.
+- Старий **PR #395** — незалежний незлитий draft архітектури шаблонів; не переписувати його чужою гілкою.
 
 ## Що далі
 
-**10.22-r8 ще не починалася.** Спочатку `START_HERE.md` і fresh-звірка live GitHub з цим HANDOFF, включно з гілками без PR та CI. Далі один наступний вузький крок з Issue #289 або новий дефект ручного тестування. Stable не змінювати без прямої команди власника.
+**10.22-r9 не розпочата.** Відкрити `START_HERE.md`, звірити live GitHub з цим файлом, зокрема PR #543/#395 і гілки без PR. Обрати **один** наступний безпечний крок: інвентаризація й контракт збереження користувацьких добірок/папок із backup/restore, тоді реалізація у своїй ревізії. Кореспонденцію впроваджувати окремо, без змішування з папками. Stable не змінювати без прямого рішення власника.
