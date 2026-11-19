@@ -95,6 +95,44 @@ class DocumentUserFoldersR9Tests(unittest.TestCase):
                 for path in self.workspace.rglob("*") if path.is_file())
         )
 
+    def test_folder_key_survives_document_vault_registration(self):
+        paper = row("abc123", source="paper")
+        merged = dict(paper)
+        merged["vault_id"] = "vd-" + "1" * 32
+        standalone_vault = row(
+            "vd-" + "1" * 32,
+            source="vault",
+            vault_id="vd-" + "1" * 32,
+        )
+        standalone_vault["source_document_id"] = "abc123"
+
+        self.assertEqual(catalog_document_key(paper), "paper:abc123")
+        self.assertEqual(catalog_document_key(merged), "paper:abc123")
+        self.assertEqual(
+            catalog_document_key(standalone_vault), "paper:abc123"
+        )
+
+        folder = create_collection(self.workspace, "Не губити")
+        set_document_collections(
+            self.workspace,
+            catalog_document_key(paper),
+            (folder.collection_id,),
+        )
+        snapshot = {
+            "rows": [merged],
+            "paper_status": "",
+            "order_status": "",
+        }
+        state = read_collection_state(self.workspace)
+        node = next(
+            item for item in collection_navigation_nodes(snapshot, state)
+            if item[0] == "collection:" + folder.collection_id
+        )
+        result = document_catalog.paginate_sources(
+            snapshot, library_filter=node[4]
+        )
+        self.assertEqual(result["total"], 1)
+
     def test_document_can_be_in_several_folders_and_tree_filters_before_paging(self):
         parent = create_collection(self.workspace, "Рейси")
         child = create_collection(
