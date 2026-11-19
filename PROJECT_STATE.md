@@ -2,33 +2,24 @@
 
 **Confirmed integrated: 19.11.2026.**
 
-- Latest completed code revision **10.22-r9**. Product PR #547 merged; final PR head `f1f01699f284d57b8db98bcef9473e3780276b0c`; immutable exact product source `d38f6a2609775295dbd4885ebee58c9e587b9c2e`.
-- Exact-source START #44517481797; Windows #44517481864; Win7 #44517482057; macOS Intel/ARM #44517481994 — all SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #548 merged `5e5633214084535f1d594fc26ceea0e8c155befc`; publisher #44519029232 SUCCESS.
-- [v10.22-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r9): Test Portable prerelease, 6 assets, exact immutable product source above.
-- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
+- Latest completed and issued code revision: **10.22-r10**.
+- Folder-management PR #550 merged; PDF-appendix fix PR #551 merged. Exact immutable product source: `56917daed4756dc4725cc58c43fcb900ce256f2c`.
+- Exact-source CI: START #44535065602, Windows #44535065617, Windows 7 #44535065603, macOS Intel/ARM #44535065691 — all SUCCESS; Windows/Win7 Defender/integrity PASS.
+- Release trigger PR #554 merged `bb01b7537e3309b2c45841731b361b789b1dc01c`. Publisher #44536931544 SUCCESS.
+- [v10.22-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r10): Test Portable prerelease, 6 files, exact source above. Stable/Latest [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2) unchanged.
 
-## Result r9
+## Confirmed r10 changes
 
-Ready-document catalog now has **«Мої папки»** beside «За видами / За датами». Users can create nested logical folders, rename them and place one ready document in one or several folders without moving or copying document bytes.
+«Документи» → «Мої папки»: full-catalog picker can add to an empty folder; folder selection persists. Folder re-parenting, reversible archive/restore and backup of the folder tree and document associations do not move/copy/delete original documents. For order PDF appendices, long role, employee/vehicle and identifier text now wraps inside table columns, without modifying order snapshots.
 
-Folder structure and memberships are stored separately in `Data/DocumentLibrary/collections.json` with atomic writes and validation. A prepared document keeps its logical folder identity after DocumentVault registration. Full workspace backup/restore covers the folder tree and memberships; regression also covers interrupted-write residue and fail-closed corruption handling.
+## Known owner-reported defect
 
-No DocumentVault bytes, scans, paper-signature state, order data, SQLite schema, driver/vehicle pairs or Stable assignment were changed.
+[Issue #553](https://github.com/RomanZavadaM/Taxo/issues/553) — «Експлуатація → Учасники / ТЗ» workflow remains confusing/not working as expected. A PDF overlap defect shown in the same screenshots was fixed in r10, but **the full participant-management workflow has not passed owner manual acceptance**. Keep the issue open until end-to-end testing and manual confirmation.
 
-## Owner decisions on following revisions
+## Next
 
-[Draft PR #543](https://github.com/RomanZavadaM/Taxo/pull/543) remains the broader plan for the ready-document library and future **inbound/outbound correspondence registration**. Correspondence is still planned, not implemented. Unrelated old draft PR #395 remains untouched.
-
-## Active code revision
-
-None. **10.22-r10 not started.**
-
-## Next action
-
-Fresh live reconciliation, then one narrow follow-up to finish user-folder management: move/re-parent a folder and safe archive/removal semantics without touching document bytes. Implement correspondence separately afterward. Keep Stable untouched.
+**Next code revision: 10.23-r1**. Fresh GitHub reconciliation; reproduce and repair one narrow failure from Issue #553, with regression tests. Incoming/outgoing correspondence remains planned under draft PR #543 and must be implemented separately. PR #395 remains untouched. Stable unchanged.
 
 ## History
 
-Taxo 10.3 / `v10.3` exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Development log: WORKLOG.md and Issue #61.
-
+Taxo 10.3 / `v10.3` exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Earlier checkpoints and detailed logs: WORKLOG.md, Issue #61 and the private profile `RomanZavadaM/dev-strategy` branch `profile/taxo`.
