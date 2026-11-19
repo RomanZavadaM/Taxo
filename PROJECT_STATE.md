@@ -2,28 +2,33 @@
 
 **Confirmed integrated: 19.11.2026.**
 
-- Latest completed code revision **10.22-r8**. Product PR #544 merged; final PR head `054061fb85bf85e975f976ce82ab3ddc5a00472c`; immutable exact product source `c3274b85d8e5f9fd7de0cb9172da63b2d392daa8`.
-- Exact-source START #44506037689; Windows #44506037500; Win7 #44506037901; macOS Intel/ARM #44506037619 — all SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #545 merged `525083510f5ea43a4abd447f979ae3304071b96e`; publisher #44507263991 SUCCESS.
-- [v10.22-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r8): Test Portable prerelease, 6 assets, exact immutable product source above.
+- Latest completed code revision **10.22-r9**. Product PR #547 merged; final PR head `f1f01699f284d57b8db98bcef9473e3780276b0c`; immutable exact product source `d38f6a2609775295dbd4885ebee58c9e587b9c2e`.
+- Exact-source START #44517481797; Windows #44517481864; Win7 #44517482057; macOS Intel/ARM #44517481994 — all SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #548 merged `5e5633214084535f1d594fc26ceea0e8c155befc`; publisher #44519029232 SUCCESS.
+- [v10.22-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r9): Test Portable prerelease, 6 assets, exact immutable product source above.
 - **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
 
-## Result r8
+## Result r9
 
-Ready-document catalog tree **«За видами / За датами»** with groups by kind or year/month, **«Без дати»**, **«Усі документи»** and whole-snapshot counts. Folder selection combines with existing catalog filters/search and is evaluated before pagination. No physical folder migration, file copies, DocumentVault/scan/signature/backup changes, database schema changes or Stable changes.
+Ready-document catalog now has **«Мої папки»** beside «За видами / За датами». Users can create nested logical folders, rename them and place one ready document in one or several folders without moving or copying document bytes.
+
+Folder structure and memberships are stored separately in `Data/DocumentLibrary/collections.json` with atomic writes and validation. A prepared document keeps its logical folder identity after DocumentVault registration. Full workspace backup/restore covers the folder tree and memberships; regression also covers interrupted-write residue and fail-closed corruption handling.
+
+No DocumentVault bytes, scans, paper-signature state, order data, SQLite schema, driver/vehicle pairs or Stable assignment were changed.
 
 ## Owner decisions on following revisions
 
-[Draft PR #543](https://github.com/RomanZavadaM/Taxo/pull/543) plans custom editable document collections, reliable storage/backup/restore, and **inbound/outbound correspondence registration** with distinct number series, correspondent metadata, replies, workflows, attachments and history. These features are **planned, not implemented**. Unrelated old draft PR #395 remains untouched.
+[Draft PR #543](https://github.com/RomanZavadaM/Taxo/pull/543) remains the broader plan for the ready-document library and future **inbound/outbound correspondence registration**. Correspondence is still planned, not implemented. Unrelated old draft PR #395 remains untouched.
 
 ## Active code revision
 
-None. **10.22-r9 not started.**
+None. **10.22-r10 not started.**
 
 ## Next action
 
-Fresh live reconciliation, then one narrow step to design and implement **user-managed logical folders** safely; first verify existing backup/restore boundary. Implement correspondence separately afterward. Keep Stable untouched.
+Fresh live reconciliation, then one narrow follow-up to finish user-folder management: move/re-parent a folder and safe archive/removal semantics without touching document bytes. Implement correspondence separately afterward. Keep Stable untouched.
 
 ## History
 
 Taxo 10.3 / `v10.3` exact source `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Development log: WORKLOG.md and Issue #61.
+
