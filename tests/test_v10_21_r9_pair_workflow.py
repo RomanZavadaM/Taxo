@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.22-r9: regression for exact order-scoped assignment workflows."""
+"""10.22-r10: regression for exact order-scoped assignment workflows."""
 from __future__ import annotations
 
 import inspect
