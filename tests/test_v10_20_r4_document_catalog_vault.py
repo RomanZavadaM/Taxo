@@ -125,7 +125,7 @@ class DocumentCatalogVaultR4Tests(unittest.TestCase):
             "Version: 10.23-r2\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.23-r1"',
+            'APP_VERSION = "10.23-r2"',
             (root / "main.py").read_text("utf-8"),
         )
         ui = (root / "src" / "taxo" / "document_catalog_ui.py").read_text("utf-8")

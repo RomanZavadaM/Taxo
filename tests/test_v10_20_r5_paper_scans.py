@@ -83,7 +83,7 @@ class DocumentVaultPaperScanR5Tests(unittest.TestCase):
             "Version: 10.23-r2\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.23-r1"',
+            'APP_VERSION = "10.23-r2"',
             (root / "main.py").read_text("utf-8"),
         )
         start = (root / "START.bat").read_text("utf-8")
