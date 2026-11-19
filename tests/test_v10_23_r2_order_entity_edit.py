@@ -148,7 +148,9 @@ class OrderEntityEditR2Tests(unittest.TestCase):
                 showerror=lambda *a, **k: self.fail("Unexpected edit error: %s" % (a,)),
             ),
         )
-        selected_order = lambda quiet=True: ops.get_order(self.con, self.oid)
+        order_snapshot = dict(ops.get_order(self.con, self.oid))
+        self.con.commit()  # do not hold a writer lock while the UI opens its own connection
+        selected_order = lambda quiet=True: order_snapshot
         try:
             refresh = order_entities_ui.install_order_entities_tab(
                 core, ops, win, tab, order_tree, selected_order,
