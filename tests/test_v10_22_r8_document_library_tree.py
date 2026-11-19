@@ -91,7 +91,7 @@ class ReadyDocumentTreeR8Tests(unittest.TestCase):
     def test_ui_uses_real_tree_on_existing_catalog(self):
         source = (Path(__file__).resolve().parents[1] / "src" / "taxo" / "document_catalog_ui.py").read_text("utf-8")
         self.assertIn('library_tree = core.ttk.Treeview(', source)
-        self.assertIn('values=("За видами", "За датами")', source)
+        self.assertIn('values=("За видами", "За датами", "Мої папки")', source)
         self.assertIn('library_filter=library_filter', source)
         self.assertIn('library_tree.bind("<<TreeviewSelect>>", select_library_node)', source)
 
