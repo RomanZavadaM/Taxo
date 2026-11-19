@@ -131,7 +131,7 @@ class R10DocumentFolderManagementTests(unittest.TestCase):
         finally:
             con.close()
         target = Path(self.tmp.name) / "backup.zip"
-        create_workspace_backup_archive(self.workspace, target, app_version="10.22-r10")
+        create_workspace_backup_archive(self.workspace, target, app_version="10.23-r1")
         restored = Path(self.tmp.name) / "restored"
         restore_workspace_backup_archive(target, restored)
         state = read_collection_state(restored)

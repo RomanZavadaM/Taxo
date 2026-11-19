@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.22-r10: explicit paper confirmation, corrections and catalog display."""
+"""10.23-r1: explicit paper confirmation, corrections and catalog display."""
 import hashlib
 import io
 import tempfile
