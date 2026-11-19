@@ -39,6 +39,8 @@ RUNTIME_ROUTE_TEST_MODULES = {
     "operations.driver_internship": "test_v10_15_r3",
     "maintenance.stoir": "test_function_reachability_r2",
     "documents.center": "test_v10_12_r7",
+    "documents.catalog_filters": "test_feature_preservation_live_documents",
+    "documents.catalog_folders": "test_feature_preservation_live_documents",
     "waybills.actions": "test_v10_12_r5",
     "tachograph.main": "test_v10_12_r8",
     "reports.home": "test_v10_12_r8",
