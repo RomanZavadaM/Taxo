@@ -490,11 +490,11 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         if name is None:
             return
         try:
-            create_collection(workspace_root, name, parent_id)
+            created = create_collection(workspace_root, name, parent_id)
         except Exception as exc:
             core.messagebox.showerror("Мої папки", str(exc), parent=win)
             return
-        state["library_filter"] = ("all",)
+        state["library_filter"] = ("collection", created.collection_id, ())
         refresh(reset=True)
 
     def rename_user_folder():
@@ -598,7 +598,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 core.messagebox.showerror("Мої папки", str(exc), parent=dialog)
                 return
             dialog.destroy()
-            state["library_filter"] = ("all",)
+            state["library_filter"] = ("collection", folder_id, ())
             refresh(reset=True)
 
         core.ttk.Button(buttons, text="Скасувати", command=dialog.destroy).pack(side="right")
@@ -936,27 +936,44 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             key: value for key, _parent, _title, _count, value in nodes
         }
         active_filter = state["library_filter"]
-        library_tree.delete(*library_tree.get_children())
-        selected = "all"
-        for key, parent, title, count, value in nodes:
-            library_tree.insert(
-                parent, "end", iid=key,
-                text="%s (%d)" % (title, count),
-                open=True,
-            )
-            if value == active_filter:
-                selected = key
-        if selected == "all":
-            state["library_filter"] = ("all",)
-        library_tree.selection_set(selected)
-        library_tree.focus(selected)
-        update_folder_actions()
+        state["drawing_library_tree"] = True
+        try:
+            library_tree.delete(*library_tree.get_children())
+            selected = "all"
+            current_selection = ("all",)
+            for key, parent, title, count, value in nodes:
+                library_tree.insert(
+                    parent, "end", iid=key,
+                    text="%s (%d)" % (title, count),
+                    open=True,
+                )
+                # Membership keys can change when a document is added.
+                # Compare stable folder ID, not a stale snapshot of its contents.
+                same_folder = (
+                    active_filter
+                    and value
+                    and active_filter[0] == "collection"
+                    and value[0] == "collection"
+                    and len(active_filter) > 1
+                    and active_filter[1] == value[1]
+                )
+                if value == active_filter or same_folder:
+                    selected = key
+                    current_selection = value
+            state["library_filter"] = current_selection
+            library_tree.selection_set(selected)
+            library_tree.focus(selected)
+            update_folder_actions()
+        finally:
+            state["drawing_library_tree"] = False
 
     def change_library_mode(_event=None):
         state["library_filter"] = ("all",)
         refresh(reset=True)
 
     def select_library_node(_event=None):
+        if state.get("drawing_library_tree"):
+            return
         selected = library_tree.selection()
         selected_filter = state["library_nodes"].get(
             selected[0] if selected else "all", ("all",)
