@@ -100,8 +100,7 @@ class NewDocumentLiveRouteTests(TestCase):
                 self.assertIsNotNone(select, "Folder navigation disappeared")
                 select.set("Мої папки")
                 select.event_generate("<<ComboboxSelected>>")
-                root.update()
-                create = button(win, "Нова папка…")
+                # Changing the tree mode schedules an asynchronous catalog read.\n                # Wait for the actual redraw instead of sampling a transient\n                # disabled state during the loading phase.\n                deadline = time.monotonic() + 10\n                create = button(win, "Нова папка…")\n                while time.monotonic() < deadline:\n                    root.update()\n                    if create is not None and "disabled" not in create.state():\n                        break\n                    time.sleep(0.02)
                 self.assertIsNotNone(create, "Create-folder control disappeared")
                 activate_widget(create, "documents.catalog_folders", container=win)
                 names = [x.name for x in read_collection_state(workspace).collections]
