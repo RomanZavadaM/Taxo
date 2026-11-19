@@ -7,7 +7,15 @@ import threading
 from pathlib import Path
 
 import document_catalog
-from document_library_tree import navigation_nodes
+from document_library_tree import navigation_nodes, collection_navigation_nodes
+from document_library_collections import (
+    catalog_document_key,
+    create_collection,
+    document_collection_ids,
+    read_collection_state,
+    rename_collection,
+    set_document_collections,
+)
 import paper_documents as paperwork
 from prepared_document_revision import (
     copy_prepared_document_for_editing,
@@ -270,7 +278,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     library_mode = core.tk.StringVar(value="За видами")
     library_mode_box = core.ttk.Combobox(
         navigation, textvariable=library_mode, state="readonly",
-        values=("За видами", "За датами"), width=22,
+        values=("За видами", "За датами", "Мої папки"), width=22,
     )
     library_mode_box.grid(row=0, column=0, sticky="ew", pady=(0, 5))
     library_tree = core.ttk.Treeview(
@@ -283,6 +291,23 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     library_scroll.grid(row=1, column=1, sticky="ns")
     library_tree.configure(yscrollcommand=library_scroll.set)
+
+    folder_actions = core.ttk.Frame(navigation)
+    folder_actions.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+    folder_actions.columnconfigure(0, weight=1)
+    new_folder_button = core.ttk.Button(
+        folder_actions, text="Нова папка…", state="disabled"
+    )
+    rename_folder_button = core.ttk.Button(
+        folder_actions, text="Перейменувати…", state="disabled"
+    )
+    place_in_folder_button = core.ttk.Button(
+        folder_actions, text="Розмістити документ…", state="disabled"
+    )
+    new_folder_button.grid(row=0, column=0, sticky="ew")
+    rename_folder_button.grid(row=1, column=0, sticky="ew", pady=(4, 0))
+    place_in_folder_button.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+
     cols = ("date", "number", "category", "kind", "title", "person", "revision", "source", "paper_original", "scans", "file")
     tree = core.ttk.Treeview(
         frame, columns=cols, show="headings", selectmode="browse"
@@ -341,6 +366,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "results": queue.Queue(),
         "vault_results": queue.Queue(),
         "vault_busy": False,
+        "library_error": "",
     }
 
     edit_copy_button = core.ttk.Button(
@@ -374,6 +400,25 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             return None
         return state["rows"].get(selected[0])
 
+    def selected_collection_id():
+        selected = library_tree.selection()
+        value = state["library_nodes"].get(
+            selected[0] if selected else "", ()
+        )
+        if value and value[0] == "collection" and len(value) >= 2:
+            return value[1]
+        return ""
+
+    def update_folder_actions():
+        custom = library_mode.get() == "Мої папки"
+        new_folder_button.configure(state="normal" if custom else "disabled")
+        rename_folder_button.configure(
+            state="normal" if custom and selected_collection_id() else "disabled"
+        )
+        place_in_folder_button.configure(
+            state="normal" if selected_row() is not None else "disabled"
+        )
+
     def selection_changed(_event=None):
         row = selected_row()
         prepared = _is_controlled_prepared_row(row)
@@ -396,11 +441,174 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 else "disabled"
             )
         )
+        update_folder_actions()
+
+    def create_user_folder():
+        if library_mode.get() != "Мої папки":
+            return
+        parent_id = selected_collection_id()
+        name = core.simpledialog.askstring(
+            "Нова папка",
+            (
+                "Назва нової папки:"
+                + ("\n\nВона буде створена всередині вибраної папки." if parent_id else "")
+            ),
+            parent=win,
+        )
+        if name is None:
+            return
+        try:
+            create_collection(workspace_root, name, parent_id)
+        except Exception as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+        state["library_filter"] = ("all",)
+        refresh(reset=True)
+
+    def rename_user_folder():
+        collection_id = selected_collection_id()
+        if not collection_id:
+            core.messagebox.showinfo(
+                "Мої папки", "Виберіть папку, яку треба перейменувати.", parent=win
+            )
+            return
+        try:
+            collection_state = read_collection_state(workspace_root)
+            current = next(
+                row for row in collection_state.collections
+                if row.collection_id == collection_id
+            )
+        except Exception as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+        name = core.simpledialog.askstring(
+            "Перейменувати папку",
+            "Нова назва папки:",
+            initialvalue=current.name,
+            parent=win,
+        )
+        if name is None:
+            return
+        try:
+            rename_collection(workspace_root, collection_id, name)
+        except Exception as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+        refresh(reset=False)
+
+    def place_selected_in_folders():
+        row = selected_row()
+        if row is None:
+            core.messagebox.showinfo(
+                "Мої папки", "Виберіть документ.", parent=win
+            )
+            return
+        try:
+            document_key = catalog_document_key(row)
+            collection_state = read_collection_state(workspace_root)
+            active = {
+                item.collection_id: item
+                for item in collection_state.collections
+                if not item.archived_at
+            }
+            current = set(document_collection_ids(workspace_root, document_key))
+        except Exception as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+        if not active:
+            core.messagebox.showinfo(
+                "Мої папки",
+                "Спочатку створіть хоча б одну власну папку.",
+                parent=win,
+            )
+            return
+
+        children = {}
+        for item in active.values():
+            parent_id = item.parent_id if item.parent_id in active else ""
+            children.setdefault(parent_id, []).append(item)
+        for values in children.values():
+            values.sort(key=lambda item: (
+                item.sort_order, item.name.casefold(), item.collection_id
+            ))
+        display = []
+
+        def append_children(parent_id, depth):
+            for item in children.get(parent_id, ()):
+                display.append((item.collection_id, ("   " * depth) + item.name))
+                append_children(item.collection_id, depth + 1)
+
+        append_children("", 0)
+
+        dialog = core.tk.Toplevel(win)
+        dialog.title("Розміщення документа")
+        try:
+            core.fit_window_to_screen(dialog, 480, 430, 380, 300)
+        except Exception:
+            dialog.geometry("480x430")
+        dialog.transient(win)
+        holder = core.ttk.Frame(dialog, padding=12)
+        holder.pack(fill="both", expand=True)
+        core.ttk.Label(
+            holder,
+            text=(
+                "Оберіть одну або кілька папок. Це лише розміщення у бібліотеці — "
+                "файл документа не переноситься і не копіюється."
+            ),
+            wraplength=440,
+            justify="left",
+        ).pack(fill="x", pady=(0, 8))
+        listing = core.tk.Listbox(
+            holder, selectmode="multiple", exportselection=False
+        )
+        listing.pack(fill="both", expand=True)
+        for index, (collection_id, label) in enumerate(display):
+            listing.insert("end", label)
+            if collection_id in current:
+                listing.selection_set(index)
+
+        buttons = core.ttk.Frame(holder)
+        buttons.pack(fill="x", pady=(8, 0))
+
+        def save_placement():
+            selected_ids = [
+                display[index][0]
+                for index in listing.curselection()
+            ]
+            try:
+                set_document_collections(
+                    workspace_root, document_key, selected_ids
+                )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Мої папки", str(exc), parent=dialog
+                )
+                return
+            dialog.destroy()
+            state["library_filter"] = ("all",)
+            refresh(reset=True)
+
+        core.ttk.Button(
+            buttons, text="Скасувати", command=dialog.destroy
+        ).pack(side="right")
+        core.ttk.Button(
+            buttons, text="Зберегти розміщення", command=save_placement
+        ).pack(side="right", padx=(0, 6))
 
     def render_library_tree(snapshot):
         """Show virtual folders without changing stored documents."""
-        mode = "date" if library_mode.get() == "За датами" else "kind"
-        nodes = navigation_nodes(snapshot, mode)
+        label = library_mode.get()
+        state["library_error"] = ""
+        try:
+            if label == "Мої папки":
+                collection_state = read_collection_state(workspace_root)
+                nodes = collection_navigation_nodes(snapshot, collection_state)
+            else:
+                mode = "date" if label == "За датами" else "kind"
+                nodes = navigation_nodes(snapshot, mode)
+        except Exception as exc:
+            state["library_error"] = "Мої папки: " + str(exc)
+            nodes = (("all", "", "Усі документи", len(snapshot.get("rows", ())), ("all",)),)
         state["library_nodes"] = {
             key: value for key, _parent, _title, _count, value in nodes
         }
@@ -419,6 +627,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             state["library_filter"] = ("all",)
         library_tree.selection_set(selected)
         library_tree.focus(selected)
+        update_folder_actions()
 
     def change_library_mode(_event=None):
         state["library_filter"] = ("all",)
@@ -432,6 +641,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         if selected_filter != state["library_filter"]:
             state["library_filter"] = selected_filter
             refresh(reset=True)
+        update_folder_actions()
 
     def render(result):
         state["page"], state["pages"] = result["page"], result["pages"]
@@ -527,6 +737,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 result.get("vault_status", ""),
                 result.get("paper_scan_status", ""),
                 result.get("paper_original_status", ""),
+                state.get("library_error", ""),
             )
             if value
         ))
@@ -1198,6 +1409,9 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     edit_copy_button.configure(command=copy_for_editing)
     import_revision_button.configure(command=import_revision)
     pdf_button.configure(command=create_pdf_for_print)
+    new_folder_button.configure(command=create_user_folder)
+    rename_folder_button.configure(command=rename_user_folder)
+    place_in_folder_button.configure(command=place_selected_in_folders)
     library_mode_box.bind("<<ComboboxSelected>>", change_library_mode)
     library_tree.bind("<<TreeviewSelect>>", select_library_node)
     tree.heading("date", text="Дата ▼", command=toggle_date_sort)
