@@ -1260,6 +1260,11 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             or previous is None
         )
 
+        # Never capture the Tk-bearing state dictionary in the reader thread.
+        # On Win7/Python 3.8 its final cleanup can run Tcl Variable.__del__
+        # on the worker thread and crash the entire process.
+        result_queue = state["results"]
+
         def worker():
             try:
                 snapshot = (
@@ -1301,11 +1306,11 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     category_sort=category_sort,
                     library_filter=library_filter,
                 )
-                state["results"].put(
+                result_queue.put(
                     (generation, snapshot, result, None)
                 )
             except Exception as exc:
-                state["results"].put(
+                result_queue.put(
                     (generation, None, None, str(exc))
                 )
             finally:
