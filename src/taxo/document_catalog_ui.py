@@ -475,6 +475,23 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         )
         update_folder_actions()
 
+    def refresh_current_folder(folder_id):
+        """Refresh folder contents using live memberships, not stale filter keys."""
+        snapshot = state.get("snapshot")
+        if snapshot is None:
+            state["library_filter"] = ("all",)
+        else:
+            current_state = read_collection_state(workspace_root)
+            current_nodes = collection_navigation_nodes(snapshot, current_state)
+            state["library_filter"] = next(
+                (
+                    value for key, _parent, _title, _count, value in current_nodes
+                    if key == "collection:" + folder_id
+                ),
+                ("all",),
+            )
+        refresh(reset=True)
+
     def create_user_folder():
         if library_mode.get() != "Мої папки":
             return
@@ -494,8 +511,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         except Exception as exc:
             core.messagebox.showerror("Мої папки", str(exc), parent=win)
             return
-        state["library_filter"] = ("collection", created.collection_id, ())
-        refresh(reset=True)
+        refresh_current_folder(created.collection_id)
 
     def rename_user_folder():
         collection_id = selected_collection_id()
@@ -802,8 +818,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 )
                 return
             dialog.destroy()
-            # Keep the chosen folder open and display the added document.
-            refresh(reset=True)
+            # Recompute the folder's member keys before paginating the list.
+            refresh_current_folder(folder_id)
 
         core.ttk.Button(
             actions, text="Скасувати", command=dialog.destroy
