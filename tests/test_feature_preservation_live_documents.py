@@ -77,6 +77,22 @@ class NewDocumentLiveRouteTests(TestCase):
         root.update()
         return root, win
 
+    def close_window(self, root):
+        # Allow any outstanding catalog read and queued Tk callbacks to
+        # finish on the GUI thread before destroying the interpreter.
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline:
+            root.update()
+            if document_catalog_ui._READER_SLOT.acquire(blocking=False):
+                document_catalog_ui._READER_SLOT.release()
+                break
+            time.sleep(0.02)
+        root.update()
+        root.destroy()
+        # Python 3.8/Tk on Windows 7 must finalize Tcl variables on the
+        # thread that owned the GUI, not later inside the catalog reader.
+        gc.collect()
+
     @runtime_routes("documents.catalog_filters")
     def test_real_catalog_filter_reset_is_visible_and_activatable(self):
         with TemporaryDirectory() as directory:
@@ -90,7 +106,7 @@ class NewDocumentLiveRouteTests(TestCase):
                 activate_widget(reset, "documents.catalog_filters", container=win)
                 self.assertEqual(search.get(), "")
             finally:
-                root.destroy()
+                self.close_window(root)
 
     @runtime_routes("documents.catalog_folders")
     def test_real_catalog_my_folders_entry_creates_folder(self):
@@ -116,7 +132,7 @@ class NewDocumentLiveRouteTests(TestCase):
                 names = [x.name for x in read_collection_state(workspace).collections]
                 self.assertIn("Тестова папка", names)
             finally:
-                root.destroy()
+                self.close_window(root)
 
     @runtime_routes("documents.catalog_tree_modes")
     def test_real_document_tree_modes_select_expected_folders(self):
@@ -167,7 +183,7 @@ class NewDocumentLiveRouteTests(TestCase):
                 switch_and_find("За датами", "2026")
                 mark_activation("documents.catalog_tree_modes")
             finally:
-                root.destroy()
+                self.close_window(root)
 
 
 
