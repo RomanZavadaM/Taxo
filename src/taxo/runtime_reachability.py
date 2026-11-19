@@ -34,6 +34,7 @@ RUNTIME_ROUTE_TEST_MODULES = {
     "operations.assignment_bulk": "test_v10_14_r6",
     "operations.assignment_existing": "test_v10_14_r8",
     "operations.assignment_preview_sync": "test_v10_14_r9",
+    "operations.entity_edit": "test_v10_23_r2_order_entity_edit",
     "operations.instructions": "test_v10_14_r7",
     "operations.printable_briefing": "test_v10_15_r3",
     "operations.driver_internship": "test_v10_15_r3",
