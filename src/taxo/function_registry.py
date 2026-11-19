@@ -38,6 +38,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("operations.assignment_bulk", "Експлуатація → Накази", "Закріпити ТЗ за водіями / Додати багато…", "operations_orders_ui.bulk_assignment_controls", runtime_smoke=True),
     FunctionRoute("operations.assignment_existing", "Експлуатація → Накази → Редагувати наказ", "Поточні закріплення / Додати багато… / Керувати закріпленнями", "operations_orders_ui.existing_assignment_controls", runtime_smoke=True),
     FunctionRoute("operations.assignment_preview_sync", "Експлуатація → Накази → Перегляд наказу", "Автооновлення Preview після зміни закріплень", "operations_orders_ui.refresh_open_order_previews", runtime_smoke=True),
+    FunctionRoute("operations.entity_edit", "Експлуатація → Накази → Учасники / ТЗ", "Змінити роль / примітку…", "order_entities_ui.edit_order_entity", runtime_smoke=True),
     FunctionRoute("operations.instructions", "Експлуатація", "Інструктажі та журнали", "open_operations_center", runtime_smoke=True),
     FunctionRoute("operations.printable_briefing", "Експлуатація → Інструктажі", "Створити комплект DOCX для друку", "safety_instructions_ui.save_draft_list", runtime_smoke=True),
     FunctionRoute("operations.driver_internship", "Експлуатація", "Стажування водіїв", "driver_internship_ui.install_internship_tab", runtime_smoke=True),
