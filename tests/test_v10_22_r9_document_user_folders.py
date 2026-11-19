@@ -214,6 +214,18 @@ class DocumentUserFoldersR9Tests(unittest.TestCase):
             (folder.collection_id,),
         )
 
+    def test_stale_atomic_temp_file_does_not_block_library(self):
+        folder = create_collection(self.workspace, "Після збою")
+        root = collection_store_path(self.workspace).parent
+        (root / ("." + collection_store_path(self.workspace).name + "." + "a" * 32 + ".tmp")).write_text(
+            "unfinished", "utf-8"
+        )
+        state = read_collection_state(self.workspace)
+        self.assertEqual(
+            [(item.collection_id, item.name) for item in state.collections],
+            [(folder.collection_id, "Після збою")],
+        )
+
     def test_damaged_index_fails_closed(self):
         folder = create_collection(self.workspace, "Контроль")
         path = collection_store_path(self.workspace)
