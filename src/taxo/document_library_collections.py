@@ -26,7 +26,7 @@ MAX_BYTES = 4 * 1024 * 1024
 MAX_NAME = 120
 _COLLECTION_ID = re.compile(r"^dc-[a-f0-9]{32}$")
 _DOCUMENT_KEY = re.compile(r"^(?:vault|paper|order):[A-Za-z0-9._-]{1,200}$")
-_TEMP_FILE = re.compile(r"^\\.collections\\.json\\.[a-f0-9]{32}\\.tmp$")
+_TEMP_FILE = re.compile(r"^\.collections\.json\.[a-f0-9]{32}\.tmp$")
 _WRITE_LOCK = threading.RLock()
 
 
