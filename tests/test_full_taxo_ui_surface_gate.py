@@ -20,7 +20,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 UI_METHODS = {
     "Button", "Checkbutton", "Radiobutton", "Menubutton",
     "add_command", "add_cascade", "add_checkbutton", "add_radiobutton",
-    "heading",
+    "heading", "add",  # ttk.Notebook.add(..., text="...") tab captions
 }
 UI_PARENT_PATHS = ("src/taxo/", "main.py", "taxo_app.py")
 
@@ -144,6 +144,19 @@ class FullTaxoButtonSurfaceGateTests(unittest.TestCase):
         self.assertEqual(
             removed_actions(before, after),
             Counter({("add_command", "Експорт"): 1}),
+        )
+
+    def test_negative_mutation_catches_disappearing_notebook_tab(self):
+        before = visible_static_actions(
+            'book.add(tab_a, text="Накази")\\n'
+            'book.add(tab_b, text="Учасники / ТЗ")\\n'
+        )
+        after = visible_static_actions(
+            'book.add(tab_a, text="Накази")\\n'
+        )
+        self.assertEqual(
+            removed_actions(before, after),
+            Counter({("add", "Учасники / ТЗ"): 1}),
         )
 
     def test_negative_mutation_catches_button_that_is_renamed(self):
