@@ -99,16 +99,26 @@ def _document_ref(value) -> str:
 
 
 def catalog_document_key(row) -> str:
-    """Return a stable logical-library key for one normalized catalog row."""
-    vault_id = str((row or {}).get("vault_id") or "").strip()
-    if vault_id:
-        return _document_ref("vault:" + vault_id)
-    source = str((row or {}).get("source") or "").strip()
-    source_id = str((row or {}).get("source_id") or "").strip()
+    """Return a stable logical-library key for one normalized catalog row.
+
+    A prepared PaperDocuments revision keeps the same logical key after it is
+    registered in DocumentVault. A standalone vault row uses its stored source
+    PaperDocuments ID when available, so adding/removing the merged catalog view
+    cannot silently remove a document from a user's folder.
+    """
+    row = row or {}
+    source = str(row.get("source") or "").strip()
+    source_id = str(row.get("source_id") or "").strip()
+    if source == "paper":
+        return _document_ref("paper:" + source_id)
+    if source == "order":
+        return _document_ref("order:" + source_id)
     if source == "vault":
-        return _document_ref("vault:" + source_id)
-    if source in {"paper", "order"}:
-        return _document_ref(source + ":" + source_id)
+        source_document_id = str(row.get("source_document_id") or "").strip()
+        if source_document_id:
+            return _document_ref("paper:" + source_document_id)
+        vault_id = str(row.get("vault_id") or source_id).strip()
+        return _document_ref("vault:" + vault_id)
     raise ValueError("Цей запис каталогу не має стабільного ключа для папок")
 
 
