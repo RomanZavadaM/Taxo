@@ -440,9 +440,16 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         restore_folder_button.configure(
             state="normal" if custom else "disabled"
         )
-        place_in_folder_button.configure(
-            state="normal" if selected_row() is not None else "disabled"
-        )
+        if custom and selected_folder:
+            place_in_folder_button.configure(
+                text="Додати документ у цю папку…",
+                state="normal" if state.get("snapshot") is not None else "disabled",
+            )
+        else:
+            place_in_folder_button.configure(
+                text="Розмістити вибраний документ…",
+                state="normal" if selected_row() is not None else "disabled",
+            )
 
     def selection_changed(_event=None):
         row = selected_row()
@@ -685,6 +692,132 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         core.ttk.Button(buttons, text="Відновити", command=apply_restore).pack(
             side="right", padx=(0, 6)
         )
+
+    def add_document_to_selected_folder():
+        """Choose from ALL catalog documents, even when current folder is empty."""
+        folder_id = selected_collection_id()
+        snapshot = state.get("snapshot")
+        if not folder_id or snapshot is None:
+            core.messagebox.showinfo(
+                "Мої папки", "Спочатку виберіть власну папку.", parent=win
+            )
+            return
+        try:
+            folder_state = read_collection_state(workspace_root)
+            folder = next(
+                item for item in folder_state.collections
+                if item.collection_id == folder_id and not item.archived_at
+            )
+        except (ValueError, StopIteration) as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+
+        # The folder view is only a filter. Do not use its visible rows:
+        # an empty folder has no rows, but still must accept documents.
+        available = []
+        seen = set()
+        for item in snapshot.get("rows", ()):
+            try:
+                key = catalog_document_key(item)
+            except ValueError:
+                continue
+            if key in seen:
+                continue
+            seen.add(key)
+            available.append((key, item))
+        if not available:
+            core.messagebox.showinfo(
+                "Мої папки", "У каталозі ще немає готових документів.", parent=win
+            )
+            return
+
+        dialog = core.tk.Toplevel(win)
+        dialog.title("Додати документ у папку")
+        try:
+            core.fit_window_to_screen(dialog, 700, 500, 460, 320)
+        except Exception:
+            dialog.geometry("700x500")
+        dialog.transient(win)
+        holder = core.ttk.Frame(dialog, padding=12)
+        holder.pack(fill="both", expand=True)
+        core.ttk.Label(
+            holder,
+            text="Папка: %s. Виберіть документ із усього каталогу."
+                 % folder.name,
+            wraplength=640,
+        ).pack(anchor="w")
+        core.ttk.Label(
+            holder,
+            text="Оригінал, скани й інші папки документа залишаться без змін.",
+            wraplength=640,
+        ).pack(anchor="w", pady=(0, 8))
+        search_var = core.tk.StringVar(value="")
+        core.ttk.Entry(holder, textvariable=search_var).pack(
+            fill="x", pady=(0, 8)
+        )
+        listing = core.tk.Listbox(
+            holder, selectmode="browse", exportselection=False
+        )
+        listing.pack(fill="both", expand=True)
+        visible = []
+
+        def refresh_choices(*_):
+            needle = search_var.get().strip().casefold()
+            visible.clear()
+            listing.delete(0, "end")
+            for key, item in available:
+                title = "%s | № %s | %s | %s" % (
+                    item.get("date") or "Без дати",
+                    item.get("number") or "—",
+                    item.get("title") or item.get("kind") or "Документ",
+                    item.get("source_label") or "",
+                )
+                if needle and needle not in title.casefold():
+                    continue
+                visible.append(key)
+                listing.insert("end", title)
+        search_var.trace_add("write", refresh_choices)
+        refresh_choices()
+        actions = core.ttk.Frame(holder)
+        actions.pack(fill="x", pady=(8, 0))
+
+        def save_selected():
+            selected = listing.curselection()
+            if not selected:
+                core.messagebox.showinfo(
+                    "Мої папки", "Спочатку виберіть документ зі списку.",
+                    parent=dialog,
+                )
+                return
+            key = visible[selected[0]]
+            try:
+                old = document_collection_ids(workspace_root, key)
+                if folder_id not in old:
+                    set_document_collections(
+                        workspace_root, key, old + (folder_id,)
+                    )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Мої папки", str(exc), parent=dialog
+                )
+                return
+            dialog.destroy()
+            # Keep the chosen folder open and display the added document.
+            refresh(reset=True)
+
+        core.ttk.Button(
+            actions, text="Скасувати", command=dialog.destroy
+        ).pack(side="right")
+        core.ttk.Button(
+            actions, text="Додати у папку", command=save_selected
+        ).pack(side="right", padx=(0, 6))
+        listing.bind("<Double-1>", lambda _event: save_selected())
+
+    def manage_document_folders():
+        if library_mode.get() == "Мої папки" and selected_collection_id():
+            add_document_to_selected_folder()
+        else:
+            place_selected_in_folders()
 
     def place_selected_in_folders():
         row = selected_row()
@@ -1604,7 +1737,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     move_folder_button.configure(command=move_user_folder)
     archive_folder_button.configure(command=archive_user_folder)
     restore_folder_button.configure(command=restore_user_folder)
-    place_in_folder_button.configure(command=place_selected_in_folders)
+    place_in_folder_button.configure(command=manage_document_folders)
     library_mode_box.bind("<<ComboboxSelected>>", change_library_mode)
     library_tree.bind("<<TreeviewSelect>>", select_library_node)
     tree.heading("date", text="Дата ▼", command=toggle_date_sort)
