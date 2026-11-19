@@ -92,6 +92,23 @@ class R10DocumentFolderManagementTests(unittest.TestCase):
             move_collection(self.workspace, archived.collection_id, other.collection_id)
         self.assertEqual(before, collection_store_path(self.workspace).read_bytes())
 
+    def test_archived_folder_rejects_new_document_placement(self):
+        archived = create_collection(self.workspace, "Archive")
+        set_document_collections(
+            self.workspace, "paper:abc", (archived.collection_id,)
+        )
+        archive_collection(self.workspace, archived.collection_id)
+        before = collection_store_path(self.workspace).read_bytes()
+        with self.assertRaisesRegex(ValueError, "відновіть"):
+            set_document_collections(
+                self.workspace, "order:100", (archived.collection_id,)
+            )
+        self.assertEqual(before, collection_store_path(self.workspace).read_bytes())
+        self.assertEqual(
+            document_collection_ids(self.workspace, "paper:abc"),
+            (archived.collection_id,),
+        )
+
     def test_reject_restore_child_below_archived_parent(self):
         parent = create_collection(self.workspace, "Parent")
         child = create_collection(self.workspace, "Child", parent.collection_id)
