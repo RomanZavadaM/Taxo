@@ -93,25 +93,14 @@ class NewDocumentLiveRouteTests(TestCase):
         # thread that owned the GUI, not later inside the catalog reader.
         gc.collect()
 
-    @runtime_routes("documents.catalog_filters")
-    def test_real_catalog_filter_reset_is_visible_and_activatable(self):
-        with TemporaryDirectory() as directory:
-            root, win = self.open_window(Path(directory))
-            try:
-                search = win._taxo_catalog_search
-                search.set("невідомий документ")
-                root.update()
-                reset = button(win, "Скинути фільтри")
-                self.assertIsNotNone(reset, "Reset control disappeared")
-                activate_widget(reset, "documents.catalog_filters", container=win)
-                self.assertEqual(search.get(), "")
-            finally:
-                self.close_window(root)
-
-    @runtime_routes("documents.catalog_folders", "documents.catalog_tree_modes")
-    def test_real_catalog_tree_modes_and_folder_creation(self):
-        # One Tk interpreter covers both real routes to avoid delayed Tcl
-        # variable finalizers during repeated interpreter teardown on Win7.
+    @runtime_routes(
+        "documents.catalog_filters",
+        "documents.catalog_folders",
+        "documents.catalog_tree_modes",
+    )
+    def test_real_document_catalog_controls_and_persistence(self):
+        # One real Tk interpreter covers all three routes. This prevents
+        # multiple Tcl interpreter teardowns in the Win7 Python 3.8 suite.
         with TemporaryDirectory() as directory:
             workspace = Path(directory)
             data = workspace / "Data" / "PaperDocuments"
@@ -126,8 +115,16 @@ class NewDocumentLiveRouteTests(TestCase):
             create_collection(workspace, "Моя перевірочна папка")
             root, win = self.open_window(workspace)
             try:
+                search = win._taxo_catalog_search
+                search.set("невідомий документ")
+                root.update()
+                reset = button(win, "Скинути фільтри")
+                self.assertIsNotNone(reset, "Reset control disappeared")
+                activate_widget(reset, "documents.catalog_filters", container=win)
+                self.assertEqual(search.get(), "")
+
                 selector = library_selector(win)
-                self.assertIsNotNone(selector)
+                self.assertIsNotNone(selector, "Document tree selector missing")
                 assert_widget_reachable(
                     selector, "documents.catalog_tree_modes", container=win
                 )
@@ -139,12 +136,12 @@ class NewDocumentLiveRouteTests(TestCase):
                     deadline = time.monotonic() + 10
                     while time.monotonic() < deadline:
                         root.update()
-                        all_names = [
+                        labels = [
                             str(tree.item(item, "text"))
                             for parent in ("",) + tuple(tree.get_children())
                             for item in tree.get_children(parent)
                         ]
-                        if any(expected in name for name in all_names):
+                        if any(expected in label for label in labels):
                             return
                         time.sleep(0.02)
                     self.fail(
