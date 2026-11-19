@@ -1,26 +1,28 @@
 # PROJECT_STATE — Taxo
 
-**Confirmed integrated: 18.11.2026.**
+**Confirmed integrated: 19.11.2026.**
 
-- Latest completed code revision **10.22-r7**. Immutable exact product source `544da915100744f4fcf1e094f374d13c76c36c80`; product PR #540 merged; final PR head `b7daf5f3b69bddf9240805c7608118145fc6c2e9`.
-- Exact-source START #44404136276 **1540/1540**; Windows #44404136133, Win7 #44404136553, macOS Intel/ARM #44404136897 SUCCESS; Defender/integrity PASS.
-- Release-trigger PR #541 merged `7494e415a005a3c30c453069fabce7deefe2c457`; publisher #44406105602 SUCCESS.
-- [v10.22-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r7) — Test Portable prerelease, 6 assets, exact immutable product source above.
+- Latest completed code revision **10.22-r8**. Product PR #544 merged; final PR head `054061fb85bf85e975f976ce82ab3ddc5a00472c`; immutable exact product source `c3274b85d8e5f9fd7de0cb9172da63b2d392daa8`.
+- Exact-source START #44506037689; Windows #44506037500; Win7 #44506037901; macOS Intel/ARM #44506037619 — all SUCCESS; Defender/integrity PASS.
+- Release-trigger PR #545 merged `525083510f5ea43a4abd447f979ae3304071b96e`; publisher #44507263991 SUCCESS.
+- [v10.22-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.22-r8): Test Portable prerelease, 6 assets, exact immutable product source above.
 - **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
 
-## Result r7
+## Result r8
 
-The unified «Документи» catalog now sorts by **Категорія** in both directions from the column header. Sorting is applied to the full filtered result before pagination; «Не визначено» stays last in both directions, and reset restores the default date order.
+Ready-document catalog tree **«За видами / За датами»** with groups by kind or year/month, **«Без дати»**, **«Усі документи»** and whole-snapshot counts. Folder selection combines with existing catalog filters/search and is evaluated before pagination. No physical folder migration, file copies, DocumentVault/scan/signature/backup changes, database schema changes or Stable changes.
 
-Focused r7 regression coverage plus the full suite passed **1540/1540**. Exact-source Windows, Win7 and macOS builds all passed, including Defender/integrity. A later release-trigger Win7 check had one transient Defender-signature network timeout `0x80072ee2`; rerun passed without code changes. No SQLite schema, DocumentVault, scans, paper-signature state, backup/restore, driver/vehicle pairing or Stable changes.
+## Owner decisions on following revisions
+
+[Draft PR #543](https://github.com/RomanZavadaM/Taxo/pull/543) plans custom editable document collections, reliable storage/backup/restore, and **inbound/outbound correspondence registration** with distinct number series, correspondent metadata, replies, workflows, attachments and history. These features are **planned, not implemented**. Unrelated old draft PR #395 remains untouched.
 
 ## Active code revision
 
-None. **10.22-r8 not started.**
+None. **10.22-r9 not started.**
 
 ## Next action
 
-Fresh live reconciliation, then one independent narrow Issue #289 step unless owner testing raises a higher-priority defect. Keep Stable unchanged.
+Fresh live reconciliation, then one narrow step to design and implement **user-managed logical folders** safely; first verify existing backup/restore boundary. Implement correspondence separately afterward. Keep Stable untouched.
 
 ## History
 
