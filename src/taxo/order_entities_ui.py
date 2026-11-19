@@ -263,17 +263,27 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
         finally: con2.close()
         refresh_order_entities()
 
-    ebar=core.ttk.Frame(entities_tab,padding=(10,0,10,10)); ebar.pack(fill="x")
+    ebar=core.ttk.Frame(entities_tab,padding=(10,0,10,10))
+    ebar.pack(fill="x")
+    # Two compact rows keep every action visible on narrow/high-DPI screens.
+    for col in range(3):
+        ebar.columnconfigure(col,weight=1)
     core.ttk.Button(
         ebar,text="Додати працівників…",style="Accent.TButton",
         command=lambda:entity_picker(ops.ORDER_ENTITY_EMPLOYEE),
-    ).pack(side="left")
+    ).grid(row=0,column=0,sticky="ew",padx=3,pady=3)
     core.ttk.Button(
         ebar,text="Додати ТЗ…",command=lambda:entity_picker(ops.ORDER_ENTITY_VEHICLE),
-    ).pack(side="left",padx=6)
-    core.ttk.Button(ebar,text="Змінити роль / примітку…",command=edit_order_entity).pack(side="left",padx=6)
-    core.ttk.Button(ebar,text="Прибрати вибрані",command=remove_order_entities).pack(side="left",padx=6)
-    core.ttk.Button(ebar,text="Оновити",command=refresh_order_entities).pack(side="right")
+    ).grid(row=0,column=1,sticky="ew",padx=3,pady=3)
+    core.ttk.Button(
+        ebar,text="Прибрати вибрані",command=remove_order_entities,
+    ).grid(row=0,column=2,sticky="ew",padx=3,pady=3)
+    core.ttk.Button(
+        ebar,text="Змінити роль / примітку…",command=edit_order_entity,
+    ).grid(row=1,column=0,columnspan=2,sticky="ew",padx=3,pady=3)
+    core.ttk.Button(
+        ebar,text="Оновити",command=refresh_order_entities,
+    ).grid(row=1,column=2,sticky="ew",padx=3,pady=3)
 
     return refresh_order_entities
 
