@@ -11,6 +11,9 @@ from document_library_tree import navigation_nodes, collection_navigation_nodes
 from document_library_collections import (
     catalog_document_key,
     create_collection,
+    move_collection,
+    archive_collection,
+    restore_collection,
     document_collection_ids,
     read_collection_state,
     rename_collection,
@@ -301,12 +304,24 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     rename_folder_button = core.ttk.Button(
         folder_actions, text="Перейменувати…", state="disabled"
     )
+    move_folder_button = core.ttk.Button(
+        folder_actions, text="Перемістити папку…", state="disabled"
+    )
+    archive_folder_button = core.ttk.Button(
+        folder_actions, text="Архівувати папку…", state="disabled"
+    )
+    restore_folder_button = core.ttk.Button(
+        folder_actions, text="Відновити з архіву…", state="disabled"
+    )
     place_in_folder_button = core.ttk.Button(
         folder_actions, text="Розмістити документ…", state="disabled"
     )
     new_folder_button.grid(row=0, column=0, sticky="ew")
     rename_folder_button.grid(row=1, column=0, sticky="ew", pady=(4, 0))
-    place_in_folder_button.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+    move_folder_button.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+    archive_folder_button.grid(row=3, column=0, sticky="ew", pady=(4, 0))
+    restore_folder_button.grid(row=4, column=0, sticky="ew", pady=(4, 0))
+    place_in_folder_button.grid(row=5, column=0, sticky="ew", pady=(4, 0))
 
     cols = ("date", "number", "category", "kind", "title", "person", "revision", "source", "paper_original", "scans", "file")
     tree = core.ttk.Treeview(
@@ -412,8 +427,18 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     def update_folder_actions():
         custom = library_mode.get() == "Мої папки"
         new_folder_button.configure(state="normal" if custom else "disabled")
+        selected_folder = bool(selected_collection_id())
         rename_folder_button.configure(
-            state="normal" if custom and selected_collection_id() else "disabled"
+            state="normal" if custom and selected_folder else "disabled"
+        )
+        move_folder_button.configure(
+            state="normal" if custom and selected_folder else "disabled"
+        )
+        archive_folder_button.configure(
+            state="normal" if custom and selected_folder else "disabled"
+        )
+        restore_folder_button.configure(
+            state="normal" if custom else "disabled"
         )
         place_in_folder_button.configure(
             state="normal" if selected_row() is not None else "disabled"
@@ -495,6 +520,171 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             core.messagebox.showerror("Мої папки", str(exc), parent=win)
             return
         refresh(reset=False)
+
+    def move_user_folder():
+        folder_id = selected_collection_id()
+        if not folder_id or library_mode.get() != "Мої папки":
+            return
+        try:
+            folder_state = read_collection_state(workspace_root)
+            by_id = {item.collection_id: item for item in folder_state.collections}
+            selected_folder = by_id[folder_id]
+        except Exception as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+
+        # Show only legal target folders; the data layer also rechecks on save.
+        descendants = {folder_id}
+        changed = True
+        while changed:
+            changed = False
+            for item in folder_state.collections:
+                if item.parent_id in descendants and item.collection_id not in descendants:
+                    descendants.add(item.collection_id)
+                    changed = True
+        candidates = [
+            item for item in folder_state.collections
+            if not item.archived_at and item.collection_id not in descendants
+        ]
+        candidates.sort(key=lambda item: (item.name.casefold(), item.collection_id))
+        choices = [("На верхній рівень", "")]
+        choices.extend((item.name, item.collection_id) for item in candidates)
+        dialog = core.tk.Toplevel(win)
+        dialog.title("Перемістити папку")
+        dialog.transient(win)
+        dialog.resizable(False, False)
+        content = core.ttk.Frame(dialog, padding=12)
+        content.pack(fill="both", expand=True)
+        core.ttk.Label(
+            content,
+            text="Куди перемістити папку «%s»?" % selected_folder.name,
+            wraplength=380,
+        ).pack(anchor="w")
+        destination = core.tk.StringVar(value=choices[0][0])
+        by_caption = {}
+        for caption, identity in choices:
+            unique_caption = caption
+            if caption in by_caption:
+                unique_caption = "%s (%s)" % (caption, identity[-6:])
+            by_caption[unique_caption] = identity
+        selector = core.ttk.Combobox(
+            content, state="readonly", textvariable=destination,
+            values=tuple(by_caption), width=44,
+        )
+        selector.pack(fill="x", pady=9)
+        destination.set(next(
+            (caption for caption, identity in by_caption.items()
+             if identity == selected_folder.parent_id),
+            next(iter(by_caption)),
+        ))
+        buttons = core.ttk.Frame(content)
+        buttons.pack(fill="x")
+
+        def apply_move():
+            target_id = by_caption[destination.get()]
+            if target_id == selected_folder.parent_id:
+                dialog.destroy()
+                return
+            try:
+                move_collection(workspace_root, folder_id, target_id)
+            except Exception as exc:
+                core.messagebox.showerror("Мої папки", str(exc), parent=dialog)
+                return
+            dialog.destroy()
+            state["library_filter"] = ("all",)
+            refresh(reset=True)
+
+        core.ttk.Button(buttons, text="Скасувати", command=dialog.destroy).pack(side="right")
+        core.ttk.Button(buttons, text="Перемістити", command=apply_move).pack(
+            side="right", padx=(0, 6)
+        )
+
+    def archive_user_folder():
+        folder_id = selected_collection_id()
+        if not folder_id or library_mode.get() != "Мої папки":
+            return
+        try:
+            folder_state = read_collection_state(workspace_root)
+            record = next(
+                item for item in folder_state.collections if item.collection_id == folder_id
+            )
+        except Exception as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+        if not core.messagebox.askyesno(
+            "Архівувати папку",
+            "Приховати папку «%s» та її вкладені папки?\n\n"
+            "Документи, скани та їхнє розміщення НЕ видаляються. "
+            "Папки можна буде відновити." % record.name,
+            parent=win,
+        ):
+            return
+        try:
+            archive_collection(workspace_root, folder_id)
+        except Exception as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+        state["library_filter"] = ("all",)
+        refresh(reset=True)
+
+    def restore_user_folder():
+        if library_mode.get() != "Мої папки":
+            return
+        try:
+            folder_state = read_collection_state(workspace_root)
+            by_id = {item.collection_id: item for item in folder_state.collections}
+            archived = [
+                item for item in folder_state.collections
+                if item.archived_at and (
+                    not item.parent_id or not by_id[item.parent_id].archived_at
+                )
+            ]
+        except Exception as exc:
+            core.messagebox.showerror("Мої папки", str(exc), parent=win)
+            return
+        if not archived:
+            core.messagebox.showinfo(
+                "Мої папки", "Немає архівних папок для відновлення.", parent=win
+            )
+            return
+        archived.sort(key=lambda item: (item.name.casefold(), item.collection_id))
+        dialog = core.tk.Toplevel(win)
+        dialog.title("Відновити папку з архіву")
+        dialog.transient(win)
+        content = core.ttk.Frame(dialog, padding=12)
+        content.pack(fill="both", expand=True)
+        core.ttk.Label(
+            content,
+            text="Виберіть папку. Усі вкладені папки та їхні документи повернуться.",
+            wraplength=380,
+        ).pack(anchor="w")
+        listing = core.tk.Listbox(content, height=min(len(archived), 12), width=48)
+        listing.pack(fill="both", expand=True, pady=8)
+        for item in archived:
+            listing.insert("end", item.name + "  [" + item.collection_id[-6:] + "]")
+        buttons = core.ttk.Frame(content)
+        buttons.pack(fill="x")
+
+        def apply_restore():
+            selected = listing.curselection()
+            if not selected:
+                core.messagebox.showinfo(
+                    "Мої папки", "Виберіть архівну папку.", parent=dialog
+                )
+                return
+            try:
+                restore_collection(workspace_root, archived[selected[0]].collection_id)
+            except Exception as exc:
+                core.messagebox.showerror("Мої папки", str(exc), parent=dialog)
+                return
+            dialog.destroy()
+            state["library_filter"] = ("all",)
+            refresh(reset=True)
+
+        core.ttk.Button(buttons, text="Скасувати", command=dialog.destroy).pack(side="right")
+        core.ttk.Button(buttons, text="Відновити", command=apply_restore).pack(
+            side="right", padx=(0, 6)
+        )
 
     def place_selected_in_folders():
         row = selected_row()
@@ -1411,6 +1601,9 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     pdf_button.configure(command=create_pdf_for_print)
     new_folder_button.configure(command=create_user_folder)
     rename_folder_button.configure(command=rename_user_folder)
+    move_folder_button.configure(command=move_user_folder)
+    archive_folder_button.configure(command=archive_user_folder)
+    restore_folder_button.configure(command=restore_user_folder)
     place_in_folder_button.configure(command=place_selected_in_folders)
     library_mode_box.bind("<<ComboboxSelected>>", change_library_mode)
     library_tree.bind("<<TreeviewSelect>>", select_library_node)
