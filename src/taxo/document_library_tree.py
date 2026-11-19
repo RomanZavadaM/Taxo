@@ -1,9 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Virtual folders over ready documents; never moves or copies a file."""
+"""Virtual and user-managed folders over ready documents; never copies a file."""
 from __future__ import annotations
 
 from collections import Counter, defaultdict
 from datetime import date
+
+from document_library_collections import (
+    catalog_document_key,
+    collection_document_keys,
+)
 
 MONTHS = (
     "Січень", "Лютий", "Березень", "Квітень",
@@ -62,13 +67,67 @@ def navigation_nodes(snapshot, mode):
     return tuple(result)
 
 
+def collection_navigation_nodes(snapshot, collection_state):
+    """Build «Мої папки» over stable catalog keys.
+
+    A parent folder includes documents placed directly in it and in descendants.
+    The same document may belong to several folders without creating copies.
+    """
+    rows = snapshot.get("rows", ())
+    available = set()
+    for row in rows:
+        try:
+            available.add(catalog_document_key(row))
+        except ValueError:
+            continue
+
+    active = {
+        row.collection_id: row
+        for row in collection_state.collections
+        if not row.archived_at
+    }
+    children = defaultdict(list)
+    for row in active.values():
+        parent_id = row.parent_id if row.parent_id in active else ""
+        children[parent_id].append(row)
+    for values in children.values():
+        values.sort(key=lambda row: (
+            row.sort_order, row.name.casefold(), row.collection_id
+        ))
+
+    result = [("all", "", "Мої папки", len(rows), ("all",))]
+
+    def append_children(parent_id):
+        for row in children.get(parent_id, ()):
+            keys = collection_document_keys(
+                collection_state, row.collection_id, include_descendants=True
+            )
+            result.append((
+                "collection:" + row.collection_id,
+                "collection:" + parent_id if parent_id else "all",
+                row.name,
+                len(available.intersection(keys)),
+                ("collection", row.collection_id, tuple(keys)),
+            ))
+            append_children(row.collection_id)
+
+    append_children("")
+    return tuple(result)
+
+
 def matches_navigation(row, selection):
-    """Filter an existing row by a selected virtual folder."""
+    """Filter an existing row by a selected virtual or user-managed folder."""
     if not selection or selection == ("all",):
         return True
     field = selection[0]
     if field == "kind" and len(selection) == 2:
         return (str(row.get("kind") or "").strip() or "Не визначено") == selection[1]
+    if field == "collection" and len(selection) == 3:
+        try:
+            key = catalog_document_key(row)
+        except ValueError:
+            return False
+        return key in set(selection[2])
     day = document_day(row)
     if field == "undated" and len(selection) == 1:
         return day is None
