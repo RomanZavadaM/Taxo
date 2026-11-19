@@ -108,36 +108,10 @@ class NewDocumentLiveRouteTests(TestCase):
             finally:
                 self.close_window(root)
 
-    @runtime_routes("documents.catalog_folders")
-    def test_real_catalog_my_folders_entry_creates_folder(self):
-        with TemporaryDirectory() as directory:
-            workspace = Path(directory)
-            root, win = self.open_window(workspace)
-            try:
-                select = library_selector(win)
-                self.assertIsNotNone(select, "Folder navigation disappeared")
-                select.set("Мої папки")
-                select.event_generate("<<ComboboxSelected>>")
-                # The mode change refreshes the catalog asynchronously.
-                # Wait until that refresh enables the folder action.
-                deadline = time.monotonic() + 10
-                create = button(win, "Нова папка…")
-                while time.monotonic() < deadline:
-                    root.update()
-                    if create is not None and "disabled" not in create.state():
-                        break
-                    time.sleep(0.02)
-                self.assertIsNotNone(create, "Create-folder control disappeared")
-                activate_widget(create, "documents.catalog_folders", container=win)
-                names = [x.name for x in read_collection_state(workspace).collections]
-                self.assertIn("Тестова папка", names)
-            finally:
-                self.close_window(root)
-
-    @runtime_routes("documents.catalog_tree_modes")
-    def test_real_document_tree_modes_select_expected_folders(self):
-        # Verify the actual combobox and tree show different catalog views.
-        # This catches a visible but disconnected selector callback.
+    @runtime_routes("documents.catalog_folders", "documents.catalog_tree_modes")
+    def test_real_catalog_tree_modes_and_folder_creation(self):
+        # One Tk interpreter covers both real routes to avoid delayed Tcl
+        # variable finalizers during repeated interpreter teardown on Win7.
         with TemporaryDirectory() as directory:
             workspace = Path(directory)
             data = workspace / "Data" / "PaperDocuments"
@@ -154,7 +128,9 @@ class NewDocumentLiveRouteTests(TestCase):
             try:
                 selector = library_selector(win)
                 self.assertIsNotNone(selector)
-                assert_widget_reachable(selector, "documents.catalog_tree_modes", container=win)
+                assert_widget_reachable(
+                    selector, "documents.catalog_tree_modes", container=win
+                )
                 tree = win._taxo_library_tree
 
                 def switch_and_find(mode, expected):
@@ -163,28 +139,30 @@ class NewDocumentLiveRouteTests(TestCase):
                     deadline = time.monotonic() + 10
                     while time.monotonic() < deadline:
                         root.update()
-                        names = [
+                        all_names = [
                             str(tree.item(item, "text"))
-                            for item in tree.get_children()
-                        ]
-                        # Root nodes may contain category/year labels.
-                        all_names = names + [
-                            str(tree.item(item, "text"))
-                            for parent in tree.get_children()
+                            for parent in ("",) + tuple(tree.get_children())
                             for item in tree.get_children(parent)
                         ]
                         if any(expected in name for name in all_names):
                             return
                         time.sleep(0.02)
-                    self.fail("Document tree mode %s did not show %s" % (mode, expected))
+                    self.fail(
+                        "Document tree mode %s did not show %s" % (mode, expected)
+                    )
 
                 switch_and_find("Мої папки", "Моя перевірочна папка")
+                create = button(win, "Нова папка…")
+                self.assertIsNotNone(create, "Create-folder control disappeared")
+                activate_widget(create, "documents.catalog_folders", container=win)
+                names = [x.name for x in read_collection_state(workspace).collections]
+                self.assertIn("Тестова папка", names)
+
                 switch_and_find("За видами", "Інструкція")
                 switch_and_find("За датами", "2026")
                 mark_activation("documents.catalog_tree_modes")
             finally:
                 self.close_window(root)
-
 
 
 if __name__ == "__main__":
