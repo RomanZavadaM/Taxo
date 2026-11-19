@@ -91,6 +91,12 @@ class OrderEntitiesPersistentRoundtripTests(unittest.TestCase):
         self.assertEqual(rows[0]["note"], "Тестове збереження")
         self.assertEqual(ops.order_entity_view(rows[0])["display"], "Іваненко Іван")
         self.assertIn("BC0010AA", ops.order_entity_view(rows[2])["display"])
+        print_view = ops.order_preview_text(
+            ops.get_order(self.con, oid), entities=rows
+        )
+        self.assertIn("Іваненко Іван", print_view)
+        self.assertIn("Петренко Петро", print_view)
+        self.assertIn("BC0010AA", print_view)
 
         self.con.execute(
             "UPDATE employees SET last_name='Змінене' WHERE id=1"
@@ -116,6 +122,12 @@ class OrderEntitiesPersistentRoundtripTests(unittest.TestCase):
             [(row["entity_type"], row["entity_id"]) for row in after],
             [(ops.ORDER_ENTITY_EMPLOYEE, 1), (ops.ORDER_ENTITY_VEHICLE, 10)]
         )
+        final_view = ops.order_preview_text(
+            ops.get_order(self.con, oid), entities=after
+        )
+        self.assertIn("Іваненко Іван", final_view)
+        self.assertNotIn("Петренко Петро", final_view)
+        self.assertIn("BC0010AA", final_view)
         actions = [row["action"] for row in ops.order_history(self.con, oid)]
         self.assertIn("entity_add", actions)
         self.assertIn("entity_remove", actions)
