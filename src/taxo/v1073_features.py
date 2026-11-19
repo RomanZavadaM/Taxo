@@ -168,20 +168,40 @@ def export_order_pdf_with_appendices(core, path, order, assignments=(), company=
             ),
             center,
         ), Spacer(1, 7*mm)]
-        data = [["№", "Тип", "Роль / призначення", "Працівник / ТЗ", "Однозначний реквізит"]]
+        # Table accepts Paragraph flowables, not unwrapped strings: ReportLab
+        # otherwise paints long names/roles across the next column.
+        from xml.sax.saxutils import escape as xml_escape
+        cell_style = ParagraphStyle(
+            "OrderR3EntityCell", parent=normal,
+            fontSize=8.1, leading=10.3, alignment=TA_LEFT,
+            wordWrap="CJK",
+        )
+        header_style = ParagraphStyle(
+            "OrderR3EntityHeader", parent=cell_style,
+            alignment=TA_CENTER,
+        )
+
+        def cell(value, style=cell_style):
+            return Paragraph(xml_escape(str(value or "—")), style)
+
+        data = [[cell(value, header_style) for value in (
+            "№", "Тип", "Роль / призначення", "Працівник / ТЗ",
+            "Однозначний реквізит",
+        )]]
         for idx, item in enumerate(entities, 1):
             view = ops.order_entity_view(item)
             data.append([
-                str(idx),
-                str(view["type_label"] or ""),
-                str(view["role"] or ""),
-                str(view["display"] or ""),
-                str(view["identifier"] or ""),
+                cell(idx),
+                cell(view["type_label"]),
+                cell(view["role"]),
+                cell(view["display"]),
+                cell(view["identifier"]),
             ])
         entity_table = Table(
             data,
             colWidths=[10*mm, 18*mm, 38*mm, 54*mm, 45*mm],
             repeatRows=1,
+            hAlign="LEFT",
         )
         entity_table.setStyle(TableStyle([
             ("FONTNAME",(0,0),(-1,-1),font_name),("FONTSIZE",(0,0),(-1,-1),9.5),
