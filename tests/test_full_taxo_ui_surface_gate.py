@@ -148,11 +148,11 @@ class FullTaxoButtonSurfaceGateTests(unittest.TestCase):
 
     def test_negative_mutation_catches_disappearing_notebook_tab(self):
         before = visible_static_actions(
-            'book.add(tab_a, text="Накази")\\n'
-            'book.add(tab_b, text="Учасники / ТЗ")\\n'
+            'book.add(tab_a, text="Накази")\n'
+            'book.add(tab_b, text="Учасники / ТЗ")\n'
         )
         after = visible_static_actions(
-            'book.add(tab_a, text="Накази")\\n'
+            'book.add(tab_a, text="Накази")\n'
         )
         self.assertEqual(
             removed_actions(before, after),
