@@ -38,9 +38,9 @@ class ReadyDocumentTreeR8Tests(unittest.TestCase):
 
     def test_version_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.22-r8\n")
-        self.assertIn('APP_VERSION = "10.22-r8"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.22-r8", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.22-r9\n")
+        self.assertIn('APP_VERSION = "10.22-r9"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.22-r9", (root / "START.bat").read_text("utf-8"))
 
     def test_kind_groups_count_complete_snapshot_without_duplicates(self):
         nodes = navigation_nodes(self.snapshot, "kind")
@@ -91,7 +91,7 @@ class ReadyDocumentTreeR8Tests(unittest.TestCase):
     def test_ui_uses_real_tree_on_existing_catalog(self):
         source = (Path(__file__).resolve().parents[1] / "src" / "taxo" / "document_catalog_ui.py").read_text("utf-8")
         self.assertIn('library_tree = core.ttk.Treeview(', source)
-        self.assertIn('values=("За видами", "За датами")', source)
+        self.assertIn('values=("За видами", "За датами", "Мої папки")', source)
         self.assertIn('library_filter=library_filter', source)
         self.assertIn('library_tree.bind("<<TreeviewSelect>>", select_library_node)', source)
 
