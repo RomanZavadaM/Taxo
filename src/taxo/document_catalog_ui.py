@@ -7,6 +7,7 @@ import threading
 from pathlib import Path
 
 import document_catalog
+from document_library_tree import navigation_nodes
 import paper_documents as paperwork
 from prepared_document_revision import (
     copy_prepared_document_for_editing,
@@ -63,6 +64,7 @@ def _reset_catalog_filters(values, state):
     state["number_sort"] = "ascending"
     state["category_sort"] = "ascending"
     state["page"] = 0
+    state["library_filter"] = ("all",)
 
 
 def open_document_catalog(parent, core, workspace_root, initial_source="all"):
@@ -260,7 +262,27 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     frame = core.ttk.Frame(body)
     frame.grid(row=3, column=0, sticky="nsew", pady=6)
     frame.rowconfigure(0, weight=1)
-    frame.columnconfigure(0, weight=1)
+    frame.columnconfigure(1, weight=1)
+    navigation = core.ttk.Frame(frame)
+    navigation.grid(row=0, column=0, sticky="nsw", padx=(0, 8))
+    navigation.rowconfigure(1, weight=1)
+    navigation.columnconfigure(0, weight=1)
+    library_mode = core.tk.StringVar(value="За видами")
+    library_mode_box = core.ttk.Combobox(
+        navigation, textvariable=library_mode, state="readonly",
+        values=("За видами", "За датами"), width=22,
+    )
+    library_mode_box.grid(row=0, column=0, sticky="ew", pady=(0, 5))
+    library_tree = core.ttk.Treeview(
+        navigation, show="tree", selectmode="browse", height=14,
+    )
+    library_tree.column("#0", width=205, minwidth=145, stretch=False)
+    library_tree.grid(row=1, column=0, sticky="nsew")
+    library_scroll = core.ttk.Scrollbar(
+        navigation, orient="vertical", command=library_tree.yview,
+    )
+    library_scroll.grid(row=1, column=1, sticky="ns")
+    library_tree.configure(yscrollcommand=library_scroll.set)
     cols = ("date", "number", "category", "kind", "title", "person", "revision", "source", "paper_original", "scans", "file")
     tree = core.ttk.Treeview(
         frame, columns=cols, show="headings", selectmode="browse"
@@ -290,9 +312,9 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         yscrollcommand=vertical.set,
         xscrollcommand=horizontal.set,
     )
-    tree.grid(row=0, column=0, sticky="nsew")
-    vertical.grid(row=0, column=1, sticky="ns")
-    horizontal.grid(row=1, column=0, sticky="ew")
+    tree.grid(row=0, column=1, sticky="nsew")
+    vertical.grid(row=0, column=2, sticky="ns")
+    horizontal.grid(row=1, column=1, sticky="ew")
 
     actions = core.ttk.Frame(body)
     actions.grid(row=4, column=0, sticky="ew", pady=(4, 0))
@@ -305,6 +327,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         "page": 0,
         "pages": 1,
         "rows": {},
+        "library_filter": ("all",),
+        "library_nodes": {},
         "after": None,
         "poll": None,
         "retry": None,
@@ -372,6 +396,42 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                 else "disabled"
             )
         )
+
+    def render_library_tree(snapshot):
+        """Show virtual folders without changing stored documents."""
+        mode = "date" if library_mode.get() == "За датами" else "kind"
+        nodes = navigation_nodes(snapshot, mode)
+        state["library_nodes"] = {
+            key: value for key, _parent, _title, _count, value in nodes
+        }
+        active_filter = state["library_filter"]
+        library_tree.delete(*library_tree.get_children())
+        selected = "all"
+        for key, parent, title, count, value in nodes:
+            library_tree.insert(
+                parent, "end", iid=key,
+                text="%s (%d)" % (title, count),
+                open=True,
+            )
+            if value == active_filter:
+                selected = key
+        if selected == "all":
+            state["library_filter"] = ("all",)
+        library_tree.selection_set(selected)
+        library_tree.focus(selected)
+
+    def change_library_mode(_event=None):
+        state["library_filter"] = ("all",)
+        refresh(reset=True)
+
+    def select_library_node(_event=None):
+        selected = library_tree.selection()
+        selected_filter = state["library_nodes"].get(
+            selected[0] if selected else "all", ("all",)
+        )
+        if selected_filter != state["library_filter"]:
+            state["library_filter"] = selected_filter
+            refresh(reset=True)
 
     def render(result):
         state["page"], state["pages"] = result["page"], result["pages"]
@@ -565,6 +625,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             state["date_sort"] if state["sort_field"] == "date" else "default",
             state["number_sort"] if state["sort_field"] == "number" else "default",
             state["category_sort"] if state["sort_field"] == "category" else "default",
+            state["library_filter"],
         )
         source_status.set("Завантаження документів…")
         if not state["busy"]:
@@ -606,6 +667,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             date_sort,
             number_sort,
             category_sort,
+            library_filter,
         ) = wanted
         previous = state["snapshot"]
         must_reload = (
@@ -653,6 +715,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
                     date_sort=date_sort,
                     number_sort=number_sort,
                     category_sort=category_sort,
+                    library_filter=library_filter,
                 )
                 state["results"].put(
                     (generation, snapshot, result, None)
@@ -694,6 +757,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             else:
                 state["snapshot"] = snapshot
                 state["needs_reload"] = False
+                render_library_tree(snapshot)
                 render(result)
 
         while True:
@@ -772,6 +836,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
             }, state)
         finally:
             state["resetting"] = False
+        if library_tree.exists("all"):
+            library_tree.selection_set("all")
         refresh(reset=True)
 
     def change_page(delta):
@@ -1132,6 +1198,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     edit_copy_button.configure(command=copy_for_editing)
     import_revision_button.configure(command=import_revision)
     pdf_button.configure(command=create_pdf_for_print)
+    library_mode_box.bind("<<ComboboxSelected>>", change_library_mode)
+    library_tree.bind("<<TreeviewSelect>>", select_library_node)
     tree.heading("date", text="Дата ▼", command=toggle_date_sort)
     tree.heading("number", text="№", command=toggle_number_sort)
     tree.heading("category", text="Категорія", command=toggle_category_sort)
@@ -1175,6 +1243,8 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     date_to_entry.bind(
         "<Return>", lambda _event: refresh(reset=True)
     )
+    win._taxo_library_tree = library_tree
+    win._taxo_library_mode = library_mode
     win._taxo_catalog_tree = tree
     win._taxo_catalog_date_sort = toggle_date_sort
     win._taxo_catalog_number_sort = toggle_number_sort
