@@ -51,7 +51,15 @@ jobs:
             exit 0
           fi
 
-          requested="full"
+          requested="portable"
+          # Explicit one-shot FULL request for the exact current version only.
+          # Normal maintenance/publisher pushes stay portable by default.
+          if [ "${GITHUB_EVENT_NAME}" = "push" ] && [ -f .release/full-current ]; then
+            requested_version="$(tr -d '\\r\\n' < .release/full-current)"
+            if [ "${requested_version}" = "${version}" ]; then
+              requested="full"
+            fi
+          fi
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             requested="${{ inputs.package_set }}"
           fi
