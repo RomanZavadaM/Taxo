@@ -1,30 +1,14 @@
-# Супровід Taxo 10.1
+# Супровід Taxo 10.x
 
-Цей розділ містить технічні документи для супроводу stable Taxo 10.1.
+**Stable/Latest:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1), 20.11.2026, 8 файлів. Exact source `84184bbbf6c26b681c04feaebee19910269bd25c`; START #44600058957, Windows #44600058914, Win7 #44600058737, macOS #44600058736 — SUCCESS; Defender/integrity PASS. Promotion PR #565 merged `e307b1a05a1ee8b6ef277a3a02fa3b72576bac32`; historical publisher #44704009390 SUCCESS. Попередня stable [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2).
 
-- [Поточний технічний стан](PROJECT_STATE.md)
-- [Поточна контрольна точка](CHECKPOINT_CURRENT.md)
-- [Фінальний аудит Taxo 10.0](AUDIT_v10_0_STABLE.md)
-- [Політика гілки main](MAIN_BRANCH_POLICY.md)
-- [Чекліст випуску](RELEASE_CHECKLIST.md)
-- [Правила розробки](DEVELOPMENT_RULES.md) — кожен крок = нова ревізія, r1…r10, далі наступна minor-версія
+**Поточний тестовий випуск:** [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2), 19.11.2026, 8 файлів, prerelease. Exact source `ac0bd0d5078ab4bd4c76abcaa0ca9b72e776e03e`; START #44617883252, Windows #44617883284, Win7 #44617883325, macOS #44617883395 — SUCCESS; publisher #44619140603 SUCCESS після виправлення пошуку exact-source CI (#564). Код main залишається r2. Одноразовий full marker прибрано.
 
-## Історичні аудити 9.1
+- [Поточний стан](../../PROJECT_STATE.md)
+- [Контрольна точка](CHECKPOINT_CURRENT.md)
+- [Політика main](MAIN_BRANCH_POLICY.md)
+- [Чекліст релізу](RELEASE_CHECKLIST.md)
+- [Захист функцій](FUNCTION_PRESERVATION_FULL_COVERAGE_2026-11-19.md)
+- [Правила розробки](DEVELOPMENT_RULES.md)
 
-- [r9.8 — duty staff шляхівок](AUDIT_v9_1_r9_8.md)
-- [r9.7 — відкриття деталізації](AUDIT_v9_1_r9_7.md)
-- [r9.6 — Windows START compatibility](AUDIT_v9_1_r9_6.md)
-- [r9.5 — START package hotfix](AUDIT_v9_1_r9_5.md)
-- [r9.4 — передетапний аудит](AUDIT_v9_1_r9_4.md)
-- [GitHub publication summary r9.4](GITHUB_PUBLICATION_SUMMARY_v9_1_r9_4.md)
-
-## Поточний статус
-
-Manual operational gate завершено. PR #29 merged; release-pipeline fixes PR #30/#31 merged. Stable `v10.0` опублікований з target `91c0d6365a40eb09fe40f97a2965da40b314bc15`. Windows/macOS/START artifacts і SHA-256 manifests доступні в GitHub Release.
-
-Історія 8.x: [`history/development-v8`](https://github.com/RomanZavadaM/Taxo/tree/history/development-v8).
-
-
-## Активна розробка
-
-Поточна робоча лінія — Taxo 10.2-r4. Наступний завершений крок після r4 обов’язково буде r5. Після r10 — наступна minor-версія з r1. Кожен крок завершується окремим тестовим START-архівом.
+Історичні аудити зберігаються без переписування. Наступна ревізія 10.23-r3.

@@ -1,28 +1,18 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджений інтегрований стан GitHub: 19.11.2026.**
+**Підтверджено GitHub 20.11.2026.**
 
-- **10.23-r1 завершена, інтегрована та опублікована як Test Portable.**
-- Product protection PR #557 merged at `0e1cff52aa6b314809cc892b3e38e7a39fd559ef`. Release identity PR #558 merged at immutable **exact product source** `84184bbbf6c26b681c04feaebee19910269bd25c`.
-- Exact-source CI: START #44600058957; Windows #44600058914; Windows 7 #44600058737; macOS Intel/ARM #44600058736 — **SUCCESS**. Windows та Win7 Defender/integrity gates PASS.
-- Release trigger PR #559 merged at `213382a134faf50a6f694ca02803f70652f5c049`. Publisher #44601093398 SUCCESS.
-- [v10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1): immutable Test Portable, 6 assets (4 portable, START, SHA256); tag points to exact product source above.
-- **Stable/Latest:** [v10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2), unchanged.
+**Stable/Latest:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1), 20.11.2026, 8 файлів. Exact source `84184bbbf6c26b681c04feaebee19910269bd25c`; START #44600058957, Windows #44600058914, Win7 #44600058737, macOS #44600058736 — SUCCESS; Defender/integrity PASS. Promotion PR #565 merged `e307b1a05a1ee8b6ef277a3a02fa3b72576bac32`; historical publisher #44704009390 SUCCESS. Попередня stable [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2).
 
-## Підтверджені зміни 10.23-r1
+**Поточний тестовий випуск:** [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2), 19.11.2026, 8 файлів, prerelease. Exact source `ac0bd0d5078ab4bd4c76abcaa0ca9b72e776e03e`; START #44617883252, Windows #44617883284, Win7 #44617883325, macOS #44617883395 — SUCCESS; publisher #44619140603 SUCCESS після виправлення пошуку exact-source CI (#564). Код main залишається r2. Одноразовий full marker прибрано.
 
-Розширено старий Feature Loss механізм: 32 суворі UI-маршрути (замість 29), контроль зникнення кнопок, вкладок, пунктів меню; 22 документні/наказові дії, 10 команд наказів зі справжніми обробниками. Реальні перевірки каталогу, дерева й створення папки; наскрізне збереження учасників/ТЗ наказу, історії та виводу в друкований текст. Фонове читання каталогу більше не утримує весь стан Tk-вікна, що викликало ризик аварії на Windows 7.
+## Зміни
 
-## Межі й наступне
+- Stable: каталог документів із деревом, папками, пошуком, фільтрами та сортуванням; контрольовані редакції, скани й окрема позначка паперового підпису; явні пари водій–ТЗ, календар шляхівок; 32 маршрути захисту функцій.
+- Test r2: редагування ролі/примітки учасника наказу зі збереженням історії, 33 маршрути. Це не зміни stable r1.
 
-**Повний захист усіх функцій Taxo ще НЕ завершено.** Залишаються динамічні кнопки, end-to-end сценарії інших розділів, DPI/реальні платформні перевірки. Звіт/карта: `docs/maintenance/FUNCTION_PRESERVATION_FULL_COVERAGE_2026-11-19.md`.
+## Наступне
 
-[Issue #553](https://github.com/RomanZavadaM/Taxo/issues/553) залишається відкритою: незрозумілий механізм «Накази → Учасники / ТЗ», відсутня явна дія редагування збереженої ролі/примітки. Не закривати до ручного приймання власником. [Issue #556](https://github.com/RomanZavadaM/Taxo/issues/556): загальний аудит UI.
+**10.23-r3 ще не розпочата.** Один наступний крок — #562: регульована внутрішня робоча область «Документи» з перевірками малого вікна. #553 ручне приймання наказів і #556 повний контроль функцій залишаються відкритими. Draft #543/#395 не чіпати.
 
-**Наступна кодова ревізія: 10.23-r2**. Один вузький крок: додати безпечне редагування ролі та примітки існуючого учасника/ТЗ наказу зі збереженням історичного snapshot, перевіркою після повторного відкриття й оновленням preview. PR #543 і PR #395 — незалежні проєктні напрацювання, не змінювати. Stable не просувати без прямого рішення власника.
-
-## Історія
-
-Taxo 10.3 / `v10.3` — історичний стабільний контрольний пункт, точний код `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
-
-Попередній тестовий випуск: v10.22-r10 (точний код `56917daed4756dc4725cc58c43fcb900ce256f2c`). Детальні записи: WORKLOG.md, Issue #61 і приватний профіль `RomanZavadaM/dev-strategy` / `profile/taxo`.
+Історична контрольна точка Taxo 10.3: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`. Деталі: WORKLOG, Issue #61, приватний профіль. Резервне сховище Google Drive перевіряється окремо; не вважати копію нового stable завершеною до перевірки файлів.
