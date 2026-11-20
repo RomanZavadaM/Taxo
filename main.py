@@ -14085,7 +14085,10 @@ class App(tk.Tk):
         def bounded_sash(value):
             # Reserve the measured history controls AND room for visible rows.
             available=panes.winfo_height()
-            history_min=hbar.winfo_reqheight()+filter_bar.winfo_reqheight()+summary_bar.winfo_reqheight()+100
+            # Include label-frame chrome, padding and the horizontal scrollbar,
+            # not only the toolbar requests; reserve a real table viewport.
+            history_min=max(hist.winfo_reqheight()-self.att_tree.winfo_reqheight()+120,
+                            hbar.winfo_reqheight()+filter_bar.winfo_reqheight()+summary_bar.winfo_reqheight()+170)
             maximum=max(45,available-history_min)
             return max(45,min(maximum,int(value)))
         def clamp_divider(_event=None):
