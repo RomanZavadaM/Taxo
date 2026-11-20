@@ -1476,3 +1476,16 @@
 - Старий великий `RECOVERY_CURRENT_MAIN` перейменовано на `RECOVERY_HISTORY — Taxo — legacy combined archive`; історію не видалено.
 - `00_ОПИС` оновлено: main r3 інтегрований без release, наступна ревізія r4. Код, START, portable та Setup на Drive не дублювалися.
 - Наступний кодовий крок: 10.23-r4, більший пов'язаний пакет залишкових UI-виправлень #556.
+
+
+## 20.11.2026 — 10.23-r4: вузькі вікна наказів, Test prerelease
+
+- Після recovery r3 та Drive-checkpoint виконано один більший r4 UI-пакет з #556: адаптивний «Перегляд наказу» і опис центру «Експлуатація», без зміни бізнес-логіки/БД/форматів документів.
+- Перший candidate head `b05f30dc...` виявив технічний literal `\\n` у runtime registry; виправлено без зміни ревізії. Наступний head дійшов до live Tk-test, який виявив реальну проблему: при 760×560 основний Text міг витиснути всі форматні кнопки. Полю задано малий початковий розмір, але збережено expand.
+- Final PR head `6cb683206afcef7d499afb8f6dde418ffab78249`: START #44802357872, Windows #44802357821, Win7 #44802357800, macOS #44802357875 — SUCCESS.
+- Product PR #571 merged. Exact integrated product/main source для релізу: `a919ced6bc8665ced70ebb4d897808e4e2618667`.
+- Exact-main CI: START #44803423646; Windows #44803423874; Win7 #44803423649; macOS Intel/ARM #44803423740 — усі SUCCESS; Defender/integrity PASS.
+- За PROJECT_RULES повний exact-source набір не залишено внутрішнім checkpoint. Release-trigger PR #572 merged; publisher #44804999191 — SUCCESS.
+- Опубліковано [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) як Test prerelease: exact target `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets (Windows Setup/Portable, Win7 Setup/Portable, macOS Intel/ARM Portable, START, SHA256).
+- Stable/Latest не змінювався: [v10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
+- Recovery прибирає одноразовий `.release/full-current`. Наступний кодовий крок — 10.23-r5, live hardening малого viewport «Документи → Каталог» із залишку #556.
