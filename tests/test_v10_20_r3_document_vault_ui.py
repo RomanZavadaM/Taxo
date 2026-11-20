@@ -64,14 +64,14 @@ class DocumentVaultUiR3Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.23-r4\n",
+            "Version: 10.23-r5\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.23-r4"',
+            'APP_VERSION = "10.23-r5"',
             (root / "main.py").read_text("utf-8"),
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.23-r4", start)
+        self.assertIn("Taxo 10.23-r5", start)
         self.assertIn("document_vault_ui.py", start)
 
     def test_async_bridge_registers_exact_selected_revision(self):

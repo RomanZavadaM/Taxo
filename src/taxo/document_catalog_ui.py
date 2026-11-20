@@ -263,12 +263,13 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     vehicle_box.pack(side="left", padx=(8, 0))
 
     source_status = core.tk.StringVar(value="")
-    core.ttk.Label(
+    source_status_label = core.ttk.Label(
         body,
         textvariable=source_status,
         wraplength=980,
         justify="left",
-    ).grid(row=2, column=0, sticky="ew")
+    )
+    source_status_label.grid(row=2, column=0, sticky="ew")
 
     split = core.ttk.Panedwindow(body, orient="horizontal")
     split.grid(row=3, column=0, sticky="nsew", pady=6)
@@ -287,9 +288,11 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     library_mode_box.grid(row=0, column=0, sticky="ew", pady=(0, 5))
     library_tree = core.ttk.Treeview(
-        navigation, show="tree", selectmode="browse", height=14,
+        navigation, show="tree", selectmode="browse", height=4,
     )
-    library_tree.column("#0", width=205, minwidth=145, stretch=False)
+    # Keep the initial request compact. The pane expands normally on larger
+    # windows, while the tree column follows the actual pane width.
+    library_tree.column("#0", width=190, minwidth=110, stretch=True)
     library_tree.grid(row=1, column=0, sticky="nsew")
     library_scroll = core.ttk.Scrollbar(
         navigation, orient="vertical", command=library_tree.yview,
@@ -297,44 +300,10 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     library_scroll.grid(row=1, column=1, sticky="ns")
     library_tree.configure(yscrollcommand=library_scroll.set)
 
-    folder_actions = core.ttk.Frame(navigation)
-    folder_actions.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
-    folder_actions.columnconfigure(0, weight=1)
-    folder_help = core.ttk.Label(
-        folder_actions,
-        text="1. Виберіть папку ліворуч.  2. Натисніть «Додати документ у цю папку».",
-        wraplength=225,
-        justify="left",
-    )
-    folder_help.grid(row=0, column=0, sticky="ew", pady=(0, 6))
-    new_folder_button = core.ttk.Button(
-        folder_actions, text="Нова папка…", state="disabled"
-    )
-    rename_folder_button = core.ttk.Button(
-        folder_actions, text="Перейменувати…", state="disabled"
-    )
-    move_folder_button = core.ttk.Button(
-        folder_actions, text="Перемістити папку…", state="disabled"
-    )
-    archive_folder_button = core.ttk.Button(
-        folder_actions, text="Архівувати папку…", state="disabled"
-    )
-    restore_folder_button = core.ttk.Button(
-        folder_actions, text="Відновити з архіву…", state="disabled"
-    )
-    place_in_folder_button = core.ttk.Button(
-        folder_actions, text="Розмістити документ…", state="disabled"
-    )
-    new_folder_button.grid(row=1, column=0, sticky="ew")
-    rename_folder_button.grid(row=2, column=0, sticky="ew", pady=(4, 0))
-    move_folder_button.grid(row=3, column=0, sticky="ew", pady=(4, 0))
-    archive_folder_button.grid(row=4, column=0, sticky="ew", pady=(4, 0))
-    restore_folder_button.grid(row=5, column=0, sticky="ew", pady=(4, 0))
-    place_in_folder_button.grid(row=6, column=0, sticky="ew", pady=(4, 0))
 
     cols = ("date", "number", "category", "kind", "title", "person", "revision", "source", "paper_original", "scans", "file")
     tree = core.ttk.Treeview(
-        frame, columns=cols, show="headings", selectmode="browse"
+        frame, columns=cols, show="headings", selectmode="browse", height=4
     )
     for key, label, width in (
         ("date", "Дата", 100),
@@ -418,6 +387,47 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     )
     paper_original_button = core.ttk.Button(body, text="Паперовий підпис…", state="disabled")
 
+    # Folder management belongs to the full-width action area, not under the
+    # narrow navigation tree. This keeps the tree/table usable at 760x470 and
+    # still exposes every existing folder action when "Мої папки" is active.
+    folder_actions = core.ttk.Frame(actions)
+    folder_actions.grid(row=3, column=0, columnspan=4, sticky="ew", pady=(4, 0))
+    for col in range(3):
+        folder_actions.columnconfigure(col, weight=1)
+    folder_help = core.ttk.Label(
+        folder_actions,
+        text="Виберіть власну папку, потім створіть/перемістіть її або додайте документ.",
+        wraplength=680,
+        justify="left",
+        style="Muted.TLabel",
+    )
+    folder_help.grid(row=0, column=0, columnspan=3, sticky="ew", pady=(0, 4))
+    new_folder_button = core.ttk.Button(
+        folder_actions, text="Нова папка…", state="disabled"
+    )
+    rename_folder_button = core.ttk.Button(
+        folder_actions, text="Перейменувати…", state="disabled"
+    )
+    move_folder_button = core.ttk.Button(
+        folder_actions, text="Перемістити папку…", state="disabled"
+    )
+    archive_folder_button = core.ttk.Button(
+        folder_actions, text="Архівувати папку…", state="disabled"
+    )
+    restore_folder_button = core.ttk.Button(
+        folder_actions, text="Відновити з архіву…", state="disabled"
+    )
+    place_in_folder_button = core.ttk.Button(
+        folder_actions, text="Розмістити документ…", state="disabled"
+    )
+    new_folder_button.grid(row=1, column=0, sticky="ew", padx=2, pady=2)
+    rename_folder_button.grid(row=1, column=1, sticky="ew", padx=2, pady=2)
+    move_folder_button.grid(row=1, column=2, sticky="ew", padx=2, pady=2)
+    archive_folder_button.grid(row=2, column=0, sticky="ew", padx=2, pady=2)
+    restore_folder_button.grid(row=2, column=1, sticky="ew", padx=2, pady=2)
+    place_in_folder_button.grid(row=2, column=2, sticky="ew", padx=2, pady=2)
+    folder_actions.grid_remove()
+
     def selected_row():
         selected = tree.selection()
         if not selected:
@@ -435,6 +445,10 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
 
     def update_folder_actions():
         custom = library_mode.get() == "Мої папки"
+        if custom:
+            folder_actions.grid()
+        else:
+            folder_actions.grid_remove()
         new_folder_button.configure(state="normal" if custom else "disabled")
         selected_folder = bool(selected_collection_id())
         folder_help.configure(
@@ -1750,7 +1764,17 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
 
     vault_actions = core.ttk.Frame(body)
     vault_actions.grid(row=5,column=0,sticky="ew",pady=(4,0))
-    core.ttk.Label(vault_actions,text="Сховище: незмінна копія документа + його походження.",style="Muted.TLabel",wraplength=400,justify="left").grid(row=2,column=0,columnspan=2,sticky="w",padx=2,pady=(2,0))
+    vault_help = core.ttk.Label(
+        vault_actions,
+        text=(
+            "Сховище: незмінна копія документа + його походження. "
+            "Prepared Word редагуйте через окрему копію та нову редакцію."
+        ),
+        style="Muted.TLabel",
+        wraplength=700,
+        justify="left",
+    )
+    vault_help.grid(row=2,column=0,columnspan=2,sticky="ew",padx=2,pady=(2,0))
     for col in range(2):
         vault_actions.columnconfigure(col,weight=1)
     vault_open_button.configure(command=browse_document_vault)
@@ -1761,15 +1785,6 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     paper_original_button.grid(in_=vault_actions,row=1,column=0,sticky="ew",padx=2,pady=2)
     paper_scans_button.configure(command=manage_paper_scans)
     paper_scans_button.grid(in_=vault_actions,row=1,column=1,sticky="ew",padx=2,pady=2)
-
-    core.ttk.Label(
-        body,
-        text=(
-            "Prepared Word: для редагування створіть окрему копію, "
-            "а потім додайте її як нову редакцію. Старі файли не перезаписуються."
-        ),
-        style="Muted.TLabel",
-    ).grid(row=6, column=0, sticky="w", pady=(6, 0))
 
     edit_copy_button.configure(command=copy_for_editing)
     import_revision_button.configure(command=import_revision)
@@ -1825,10 +1840,38 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     date_to_entry.bind(
         "<Return>", lambda _event: refresh(reset=True)
     )
+
+    def adjust_catalog_geometry(_event=None):
+        width = max(320, int(win.winfo_width()) - 48)
+        compact = int(win.winfo_height()) < 560
+        source_status_label.configure(wraplength=width)
+        vault_help.configure(wraplength=width)
+        folder_help.configure(wraplength=width)
+        # Narrow screens need shorter requested combobox widths. Values remain
+        # unchanged; the widgets expand again when the window grows.
+        source_box.configure(width=20 if width < 820 else 28)
+        kind_box.configure(width=20 if width < 820 else 28)
+        scan_box.configure(width=16 if width < 820 else 22)
+        category_box.configure(width=16 if width < 820 else 22)
+        employee_box.configure(width=24 if width < 820 else 34)
+        vehicle_box.configure(width=24 if width < 820 else 34)
+        if compact:
+            vault_help.grid_remove()
+            folder_help.grid_remove()
+        else:
+            vault_help.grid()
+            if library_mode.get() == "Мої папки":
+                folder_help.grid()
+    win.bind("<Configure>", adjust_catalog_geometry, add="+")
+
     win._taxo_catalog_split = split
     win._taxo_library_tree = library_tree
     win._taxo_library_mode = library_mode
     win._taxo_catalog_tree = tree
+    win._taxo_catalog_horizontal = horizontal
+    win._taxo_catalog_actions = actions
+    win._taxo_catalog_vault_actions = vault_actions
+    win._taxo_catalog_folder_actions = folder_actions
     win._taxo_catalog_date_sort = toggle_date_sort
     win._taxo_catalog_number_sort = toggle_number_sort
     win._taxo_catalog_search = search
@@ -1867,5 +1910,6 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_paper_original = manage_paper_original
     win.bind("<Destroy>", cancel_pending, add="+")
     refresh(reload_sources=True)
+    adjust_catalog_geometry()
     state["poll"] = win.after(100, poll_results)
     return win

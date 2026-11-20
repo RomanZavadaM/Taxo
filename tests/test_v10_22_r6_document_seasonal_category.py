@@ -41,9 +41,9 @@ def _row(identifier, category):
 class SeasonalDocumentCategoryR6Tests(unittest.TestCase):
     def test_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.23-r4\n")
-        self.assertIn('APP_VERSION = "10.23-r4"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.23-r4", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.23-r5\n")
+        self.assertIn('APP_VERSION = "10.23-r5"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.23-r5", (root / "START.bat").read_text("utf-8"))
 
     def test_structured_seasonal_order_has_own_category(self):
         self.assertIn(document_catalog.CATEGORY_SEASONAL, document_catalog.DOCUMENT_CATEGORIES)

@@ -46,6 +46,7 @@ RUNTIME_ROUTE_TEST_MODULES = {
     "documents.catalog_folders": "test_feature_preservation_live_documents",
     "documents.attestation_resize": "test_v10_23_r3_attestation_resize",
     "documents.catalog_resize": "test_feature_preservation_live_documents",
+    "documents.catalog_small_viewport": "test_feature_preservation_live_documents",
     "documents.catalog_tree_modes": "test_feature_preservation_live_documents",
     "waybills.actions": "test_v10_12_r5",
     "tachograph.main": "test_v10_12_r8",
