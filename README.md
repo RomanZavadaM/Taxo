@@ -1,6 +1,6 @@
 # Taxo / Driver Worktime
 
-[Українська](README.md) · [English](docs/i18n/README.en.md) · [Deutsch](docs/i18n/README.de.md) · [Español](docs/i18n/README.es.md) · [Français](docs/i18n/README.fr.md) · [한국어](docs/i18n/README.ko.md) · [日本語](docs/i18n/README.ja.md)
+🇺🇦 [Українська](README.md) · 🇬🇧 [English](docs/i18n/README.en.md) · 🇩🇪 [Deutsch](docs/i18n/README.de.md) · 🇪🇸 [Español](docs/i18n/README.es.md) · 🇫🇷 [Français](docs/i18n/README.fr.md) · 🇰🇷 [한국어](docs/i18n/README.ko.md) · 🇯🇵 [日本語](docs/i18n/README.ja.md)
 
 **Taxo — настільна система для роботи автотранспортного підприємства:** працівники й транспорт, графіки та робочий час, шляхові листи, накази, документи, технічне обслуговування, звіти й резервування.
 
