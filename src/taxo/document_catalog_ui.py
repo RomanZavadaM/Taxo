@@ -1750,6 +1750,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
 
     vault_actions = core.ttk.Frame(body)
     vault_actions.grid(row=5,column=0,sticky="ew",pady=(4,0))
+    core.ttk.Label(vault_actions,text="Сховище: незмінна копія документа + його походження.",style="Muted.TLabel",wraplength=400,justify="left").grid(row=2,column=0,columnspan=2,sticky="w",padx=2,pady=(2,0))
     for col in range(2):
         vault_actions.columnconfigure(col,weight=1)
     vault_open_button.configure(command=browse_document_vault)
