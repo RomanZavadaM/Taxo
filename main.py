@@ -7621,7 +7621,7 @@ class App(tk.Tk):
         self._refresh_nav_selection()
         self._refresh_header_clock()
 
-    def _make_scrollable_tab_body(self, tab, key):
+    def _make_scrollable_tab_body(self, tab, key, *, fit_height=False):
         """Створює двонапрямно прокручувану область для всього вмісту вкладки."""
         shell = ttk.Frame(tab)
         shell.pack(fill="both", expand=True)
@@ -7649,7 +7649,10 @@ class App(tk.Tk):
             try:
                 body.update_idletasks()
                 requested=max(1, body.winfo_reqwidth())
-                canvas.itemconfigure(window_id, width=max(event.width, requested))
+                options={"width":max(event.width, requested)}
+                if fit_height:
+                    options["height"]=max(event.height, body.winfo_reqheight())
+                canvas.itemconfigure(window_id, **options)
                 sync_region()
             except tk.TclError:
                 pass
@@ -14027,8 +14030,59 @@ class App(tk.Tk):
 
 
     def build_attestation(self):
-        host=self._make_scrollable_tab_body(self.tab_att, "attestation")
-        f=ttk.Frame(host); f.pack(fill="x",padx=12,pady=12)
+        host=self._make_scrollable_tab_body(self.tab_att, "attestation", fit_height=True)
+        # The history and form stay alive while their shared divider moves.
+        # Give the upper form its own vertical scrolling so a small pane does
+        # not hide commands permanently. The outer body retains horizontal scroll.
+        split_hint=ttk.Frame(host)
+        split_hint.pack(fill="x",padx=12,pady=(8,2))
+        ttk.Label(split_hint,text="Розмір областей: перетягніть межу між формою та історією.").pack(side="left")
+        panes=ttk.Panedwindow(host,orient="vertical",takefocus=True)
+        panes.pack(fill="both",expand=True,padx=12,pady=(2,8))
+        self.att_workspace_panes=panes
+        upper=ttk.Frame(panes)
+        upper.rowconfigure(0,weight=1); upper.columnconfigure(0,weight=1)
+        form_canvas=tk.Canvas(upper,highlightthickness=0,borderwidth=0,height=300)
+        form_scroll=ttk.Scrollbar(upper,orient="vertical",command=form_canvas.yview)
+        form_canvas.configure(yscrollcommand=form_scroll.set)
+        form_canvas.grid(row=0,column=0,sticky="nsew")
+        form_scroll.grid(row=0,column=1,sticky="ns")
+        panes.add(upper,weight=0)
+        f=ttk.Frame(form_canvas)
+        form_window=form_canvas.create_window((0,0),window=f,anchor="nw")
+        f.bind("<Configure>",lambda _e:form_canvas.configure(scrollregion=form_canvas.bbox("all")),add="+")
+        form_canvas.bind("<Configure>",lambda e:form_canvas.itemconfigure(form_window,width=max(e.width,f.winfo_reqwidth())),add="+")
+        # A focused field in the upper pane must remain accessible by keyboard.
+        def reveal_form_focus(event):
+            widget=event.widget
+            parent=widget
+            while parent is not None and parent is not f:
+                parent=getattr(parent,"master",None)
+            if parent is not f:
+                return
+            region=form_canvas.bbox("all")
+            if not region:
+                return
+            y=widget.winfo_rooty()-f.winfo_rooty()
+            height=form_canvas.winfo_height()
+            top=form_canvas.canvasy(0)
+            if y<top or y+widget.winfo_height()>top+height:
+                form_canvas.yview_moveto(max(0,y-4)/max(1,region[3]))
+        # Local bindings only; avoid taking focus/wheel events from other tabs.
+        def bind_form_descendants(widget):
+            for child in widget.winfo_children():
+                child.bind("<FocusIn>",reveal_form_focus,add="+")
+                bind_form_descendants(child)
+        def move_divider(delta):
+            try:
+                limit=max(0,panes.winfo_height()-100)
+                panes.sashpos(0,max(70,min(limit,panes.sashpos(0)+delta)))
+            except tk.TclError:
+                pass
+        ttk.Button(split_hint,text="Більша форма",command=lambda:move_divider(60)).pack(side="right",padx=(4,0))
+        ttk.Button(split_hint,text="Більша історія",command=lambda:move_divider(-60)).pack(side="right",padx=4)
+        panes.bind("<Up>",lambda _e:move_divider(-30))
+        panes.bind("<Down>",lambda _e:move_divider(30))
         self.att_driver_var=tk.StringVar()
         ttk.Label(f,text="Водій:").grid(row=0,column=0,sticky="w",padx=6,pady=6)
         self.att_driver_cb=ttk.Combobox(f,textvariable=self.att_driver_var,state="readonly",width=45)
@@ -14079,8 +14133,9 @@ class App(tk.Tk):
             command=self.show_attestation_gap_control
         ).grid(row=7,column=1,columnspan=2,sticky="w",padx=6,pady=(0,12))
 
-        hist=ttk.LabelFrame(host,text="Історія та контроль сформованих бланків")
-        hist.pack(fill="both",expand=True,padx=12,pady=8)
+        bind_form_descendants(f)
+        hist=ttk.LabelFrame(panes,text="Історія та контроль сформованих бланків")
+        panes.add(hist,weight=1)
 
         hbar=ttk.Frame(hist)
         hbar.pack(fill="x",padx=6,pady=(6,2))
@@ -14160,7 +14215,7 @@ class App(tk.Tk):
         cols=("id","driver","from","to","activity","place","date","changed","status","revision","formats","file")
         tree_frame=ttk.Frame(hist)
         tree_frame.pack(fill="both",expand=True,padx=6,pady=6)
-        self.att_tree=ttk.Treeview(tree_frame,columns=cols,show="headings",selectmode="browse")
+        self.att_tree=ttk.Treeview(tree_frame,columns=cols,show="headings",selectmode="browse",height=6)
         heads={
             "id":"ID","driver":"Водій","from":"З","to":"По","activity":"Позиція",
             "place":"Місце","date":"Дата","changed":"Змінено","status":"Статус","revision":"Ред.",
