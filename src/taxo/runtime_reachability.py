@@ -33,7 +33,7 @@ RUNTIME_ROUTE_TEST_MODULES = {
     "operations.center": "test_v10_12_r4",
     "operations.assignment_bulk": "test_v10_14_r6",
     "operations.assignment_existing": "test_v10_14_r8",
-    "operations.assignment_preview_sync": "test_v10_14_r9",
+    "operations.assignment_preview_sync": "test_v10_14_r9",\n    "operations.order_preview_formats": "test_v10_23_r4_order_ui_small_window",
     "operations.entity_search_selection": "test_v10_23_r2_order_entity_edit",
     "operations.entity_edit": "test_v10_23_r2_order_entity_edit",
     "operations.instructions": "test_v10_14_r7",

@@ -78,7 +78,7 @@ def open_operations_center(app, core):
         command=open_documents_catalog,
     ).pack(side="right", padx=(8, 0))
 
-    core.ttk.Label(
+    center_hint=core.ttk.Label(
         body,
         text=(
             "Робочий центр експлуатації: щоденні документи, технічна готовність, "
@@ -87,9 +87,13 @@ def open_operations_center(app, core):
             "історію та деталі."
         ),
         style="Muted.TLabel",
-        wraplength=1180,
+        wraplength=900,
         justify="left",
-    ).pack(anchor="w", pady=(2, 8))
+    )
+    center_hint.pack(fill="x",anchor="w",pady=(2,8))
+    def adjust_center_hint(event):
+        center_hint.configure(wraplength=max(320,event.width-24))
+    body.bind("<Configure>",adjust_center_hint,add="+")
 
     book.pack(fill="both", expand=True)
     orders_tab = core.ttk.Frame(book)
