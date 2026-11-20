@@ -63,4 +63,5 @@ jobs:
           set -euo pipefail
           mkdir inspected
           unzip -q original.zip -d inspected
-          clamscan --recursive --max-filesize=512M --max-scansize=1024M --max-recursion=30 --max-files=50000 --alert-exceeds-max=yes original.zip inspected
+          # Allow enough time to fully inspect the nested archive; retain all alerts.
+          clamscan --recursive --max-scantime=900000 --max-filesize=512M --max-scansize=1024M --max-recursion=30 --max-files=50000 --alert-exceeds-max=yes original.zip inspected
