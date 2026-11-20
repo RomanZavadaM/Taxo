@@ -1,33 +1,35 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 20.11.2026 після публікації 10.23-r4.**
+**Підтверджено GitHub 20.11.2026 після stable promotion 10.23-r4.**
 
-**Stable/Latest:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1), exact source `84184bbbf6c26b681c04feaebee19910269bd25c`, 8 assets.
+**Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact product source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, GitHub Latest, prerelease=false.
 
-**Поточний Test:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact product/release source `a919ced6bc8665ced70ebb4d897808e4e2618667`, prerelease, 8 assets. r3 інтегрований раніше, але окремий v10.23-r3 навмисно не видавався за прямою вказівкою власника.
+**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). Новішого тестового випуску немає. r3 був інтегрований у main, але окремий v10.23-r3 свідомо не публікувався.
 
-## 10.23-r4
+## Stable 10.23-r4
 
-- Перегляд наказу адаптовано для малого вікна: форматні дії DOCX/PDF/JPG — дві колонки, нижні дії — стабільна 2×2 сітка.
-- Пояснювальний текст, статус формату та опис «Експлуатації» переносяться за реальною шириною.
-- Виправлено приховування форматних кнопок при мінімальній висоті: основний Text більше не резервує надмірну висоту.
-- Реєстр збереження функцій має новий strict runtime route `operations.order_preview_formats`; live Tk gate перевіряє 760×560 і центр 940×600.
+- Каталог документів: пошук, фільтри, сортування, дерево «За видами / За датами / Мої папки», вкладені власні папки, сховище, скани та паперовий підпис.
+- Бланки: регульована вертикальна робоча область між формою та історією.
+- Каталог: регульована ширина дерева та компактні дії для меншої ширини.
+- Накази: явні пари водій–ТЗ, редагування пар, ролі/примітки учасника, накопичення вибору при пошуку, тема активного наказу, перехід до закріплень.
+- Перегляд наказу: адаптивні DOCX/PDF/JPG дії, стабільна нижня сітка, доступність при 760×560.
+- Захист функцій: **37 strict runtime routes** з mapped / onscreen / usable / activation.
 
-## Перевірка й публікація
+## Перевірка
 
-Exact-main source `a919ced6bc8665ced70ebb4d897808e4e2618667`:
+Exact stable source `a919ced6bc8665ced70ebb4d897808e4e2618667`:
 - START #44803423646 — SUCCESS;
 - Windows #44803423874 — SUCCESS, Defender/integrity PASS;
 - Windows 7 #44803423649 — SUCCESS, Defender/integrity PASS;
 - macOS Intel/ARM #44803423740 — SUCCESS;
-- publisher #44804999191 — SUCCESS.
+- Test publisher #44804999191 — SUCCESS;
+- owner manual acceptance 20.11.2026;
+- Stable promotion #44811800328 — SUCCESS.
 
-Release v10.23-r4 перевірено після публікації: tag target збігається з exact source, prerelease=true, 8 assets. Stable/Latest лишається v10.23-r1.
+Release v10.23-r4 перевірено: tag target = exact source, 8 assets, draft=false, prerelease=false, `releases/latest` = v10.23-r4.
 
 ## Наступне
 
-Наступна кодова ревізія — **10.23-r5**. Один змістовний пакет із залишку #556: малий viewport «Документи → Каталог» — дерево, таблиця, нижні дії, прокрутка/доступність + live regression. #553/#556/#562 лишаються відкритими до ручного приймання. Draft #543/#395 не змінювати.
-
-GitHub — canonical. Drive: документаційний резерв `05_CURRENT_DOCS_2026-11-20_main-r3`; код і binary releases на Drive не дублювати.
+Наступна кодова ревізія — **10.23-r5**. Один змістовний пакет із залишку #556: малий viewport «Документи → Каталог» — дерево, таблиця, нижні дії, прокрутка/доступність і live regression. #553/#556/#562 лишаються відкритими до окремого повного закриття. Draft #543/#395 не змінювати.
 
 Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.

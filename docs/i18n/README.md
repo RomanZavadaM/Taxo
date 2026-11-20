@@ -1,15 +1,13 @@
-# Taxo — multilingual overview
+# Переклади README Taxo
 
-Українська версія є канонічною та знаходиться у корені репозиторію: [README.md](../../README.md).
+Головний і нормативний опис продукту — [український README](../../README.md). Переклади нижче синхронізовані зі Stable 10.23-r4.
 
-## Актуальний стан
+- **Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), 8 файлів, exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`.
+- **Попередня стабільна:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
+- Новішого тестового випуску за Stable 10.23-r4 зараз немає.
+- Українська документація залишається джерелом повних інструкцій і технічного стану.
 
-- **Стабільна / Latest:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) — 20.11.2026, 8 файлів.
-- **Попередня стабільна:** [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2).
-- **Тестова:** [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2) — 8 файлів; не Stable.
-- Український README описує функції стабільної версії; переклади синхронізовані з ним. Повні посібники українською.
-
-## Переклади публічного опису
+## Переклади
 
 - [English](README.en.md)
 - [Deutsch](README.de.md)
@@ -17,5 +15,3 @@
 - [Français](README.fr.md)
 - [한국어](README.ko.md)
 - [日本語](README.ja.md)
-
-Технічна та робоча документація ведеться українською в [`docs/`](../README.md). Канонічний стан розробки: [`PROJECT_STATE.md`](../../PROJECT_STATE.md) та [`WORKLOG.md`](../../WORKLOG.md).

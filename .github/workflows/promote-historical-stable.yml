@@ -158,6 +158,9 @@ jobs:
           # Keep tagged source immutable; correct candidate-only wording in published notes.
           if [ "${version}" = "10.23-r1" ]; then
             sed -i 's/\*\*Test prerelease\. Stable без змін\.\*\*/**Stable\/Latest — рішення власника 20.11.2026.**/; s/ Реліз не просуває Stable\./ /; s/мають завершитися успішно до публікації/успішно завершені/' release_notes.md
+          elif [ "${version}" = "10.23-r4" ]; then
+            sed -i 's|Робочий кандидат.*v10.23-r3 навмисно не публікувався.|**Stable/Latest — прийнято власником 20.11.2026 після ручного тестування.** Exact-source START, Windows, Windows 7 і macOS Intel/ARM пройшли; Windows/Win7 також пройшли Defender та integrity. v10.23-r3 навмисно не публікувався.|' release_notes.md
+            sed -i 's|Бізнес-логіка наказів, дані, схема БД та формати документів не змінюються. #553/#556 залишаються відкритими до ручного приймання.|Бізнес-логіка наказів, дані, схема БД та формати документів не змінюються. Ручне приймання саме r4 виконано; ширші #553/#556 залишаються відкритими до окремого повного закриття.|' release_notes.md
           fi
 
           (

@@ -1489,3 +1489,15 @@
 - Опубліковано [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) як Test prerelease: exact target `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets (Windows Setup/Portable, Win7 Setup/Portable, macOS Intel/ARM Portable, START, SHA256).
 - Stable/Latest не змінювався: [v10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
 - Recovery прибирає одноразовий `.release/full-current`. Наступний кодовий крок — 10.23-r5, live hardening малого viewport «Документи → Каталог» із залишку #556.
+
+
+## 20.11.2026 — 10.23-r4 promoted to Stable/Latest
+
+- Власник після ручного тестування повідомив, що 10.23-r4 працює, і прямо наказав зробити її Stable та синхронізувати всю документацію/README.
+- Recovery PR #573 був повністю зелений і merged як `6152451d016fb408bad2e2b9fad69b5347b5f960`; одноразовий full publisher marker прибрано.
+- Promotion PR #574 змінив лише stable markers на 10.23-r4 / exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`. Його START/Windows/Win7/macOS checks — SUCCESS; PR merged як `e44bbeea4c61a5a1f8bf4ca31e39cfff76e1ea32`.
+- Current publisher #44811800481 — SUCCESS. Historical stable promotion #44811800328 — SUCCESS.
+- GitHub перевірено після promotion: [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) має `prerelease=false`, `draft=false`, 8 assets, exact tag target `a919ced6bc8665ced70ebb4d897808e4e2618667`; `releases/latest` = v10.23-r4. Тег не пересувався.
+- Stable r4 має 37 strict live UI routes. Ручне приймання саме r4 виконано; ширші #553/#556 лишаються відкритими.
+- Документаційний checkpoint переписує README, 6 перекладів, Quick Start, PRODUCT_STATUS, HANDOFF, PROJECT_STATE, release/maintenance docs та виправляє текст GitHub Release, де після promotion ще лишилося історичне слово «кандидат».
+- Наступний кодовий пакет: 10.23-r5, малий viewport «Документи → Каталог» із залишку #556. Не робити окремий реліз на кожну дрібну UI-правку.

@@ -2,41 +2,24 @@
 
 [Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
 
-Taxo ist eine Desktop-Anwendung für Verkehrsunternehmen: Personal und Fahrzeuge, Dienstpläne und Arbeitszeit, Betriebsdokumente und Berichte.
+Taxo ist eine Desktop-Anwendung für Verkehrsunternehmen: Personal und Fahrzeuge, Dienstpläne und Arbeitszeit, Fahrtblätter, Anordnungen, Dokumente, Wartung, Berichte und Sicherungen.
 
-## Funktionen
+## Stable 10.23-r4
 
-- Personal und Fahrer: Stammdaten, Rollenverlauf, Dokumente, Fristen und fehlende lokale Dateien.
-- Dienstpläne und Arbeitszeit: Strecken, Schichten, Zeiterfassung sowie getrennte Plan- und Istzeiten.
-- Fahrerkontrolle: Lenk- und Arbeitszeit, Pausen, Ruhezeiten, Einzelberichte und 60-Tage-Aktivitätsregister.
-- Fahrzeuge und Instandhaltung: Fahrzeugdaten, Kilometerstand, Dokumente, Wartung und Reparaturen.
-- Betrieb: Fahrtblätter, Anordnungen und Fahrer-Fahrzeug-Zuordnung, Tätigkeitsbescheinigungen und Dokumentendruck.
-- Unterweisungen und Praktikum: bearbeitbare Word-Programme, Unterschriftenlisten, Praktikumsformular und einfacher Dokumentenkatalog.
-- Analoge Tachoscheiben: Scans, Ansicht und unterstützte Erkennung mit manueller Prüfung.
-- Berichte und Sicherung: PDF-/Excel-Berichte und Sicherung des Arbeitsordners.
+**10.23-r4 wurde am 20.11.2026 vom Eigentümer manuell angenommen und ist Stable/Latest.** Enthalten sind Dokumentensuche, Filter, Sortierung, Typ-/Datumsbäume und eigene verschachtelte Ordner, kontrollierte Word-Revisionen, PDF/Druck, DocumentVault, optionale Papierscans und ein getrennt erfasster Papierunterschriftsstatus. Anordnungen unterstützen eindeutige Fahrer–Fahrzeug-Paare, die Bearbeitung vorhandener Paare, Rollen-/Notizbearbeitung und eine Auswahl, die beim Suchen erhalten bleibt. Dokument-Arbeitsbereiche und die Breite des Katalogbaums sind verstellbar. Die DOCX/PDF/JPG-Aktionen im Anordnungsfenster bleiben auch bei kleinen Fenstern bis 760×560 erreichbar.
 
-## Verbesserungen in 10.23-r1
-
-Die stabile Version 10.23-r1 bietet eigene Vorlagen, kontrollierte Word-Revisionen, PDF/Druck und DocumentVault. Optionale Papierscans lassen sich hinzufügen, öffnen, entfernen und mit Verlauf ersetzen; der Papierunterschriftsstatus wird separat erfasst. Der Dokumentkatalog bietet Suche, Filter, Sortierung, Bäume nach Typ/Datum und verschachtelte eigene Ordner ohne Dateiduplikate. Anordnungen unterstützen explizite Fahrer-Fahrzeug-Paare und deren Bearbeitung; Fahrtblätter bieten Datumsnavigation. Lange Texte in PDF-Anlagen werden umgebrochen. 32 strenge UI-Pfade schützen vorhandene Funktionen. Windows, Windows 7, macOS Intel/Apple Silicon, START sowie Sicherheits- und Integritätsprüfungen waren erfolgreich. Vollständige Abdeckung und manuelle Abnahme stehen aus; Posteingang/-ausgang ist geplant. Test 10.23-r2 ergänzt Rollen-/Notizbearbeitung und einen 33. UI-Pfad, nicht in Stable r1.
+37 strenge Live-UI-Pfade prüfen Sichtbarkeit, Bildschirmposition, Nutzbarkeit und Aktivierung. START, Windows, Windows 7 und macOS Intel/Apple Silicon waren erfolgreich; Windows/Win7 bestanden zusätzlich Defender- und Integritätsprüfungen. Die vollständige Funktionsabdeckung (#556) und der breitere End-to-End-Test der Anordnungen (#553) bleiben offen.
 
 ## Downloads
 
-Stabile Version: 10.23-r1.
+**Stable / Latest: [Taxo 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).** Vorheriger stabiler Stand: [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
 
-[Alle Dateien 10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) · [Vorherige stabile Version 10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2)
+Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/SHA256SUMS_v10_23_r1.txt)
+Derzeit gibt es keine neuere Testversion als Stable 10.23-r4.
 
-Testversion: [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2).
+Datenbanken und Dokumente in einem separaten Arbeitsordner speichern und vor Updates sichern. [Benutzerhandbuch (Ukrainisch)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
-## Erste Schritte und Daten
-
-Datenbanken und Dokumente in einem separaten Arbeitsordner speichern und vor Updates sichern. Die vollständige Sicherung enthält Mitarbeiter- und erstellte Word-Dokumente; Fahrzeugdokumente, Tachoscheibenscans und Output-Dateien müssen entsprechend ausgewählt werden.
-
-[Benutzerhandbuch (Ukrainisch)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
-
-## Entwicklung
-
-Starten mit [START_HERE.md](../../START_HERE.md).
+Entwicklung: [START_HERE.md](../../START_HERE.md).
 
 Copyright © 2026 Roman Zavada (Роман Завада). Alle Rechte vorbehalten. [LICENSE](../../LICENSE.md).
