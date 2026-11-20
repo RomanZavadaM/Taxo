@@ -15,17 +15,19 @@ Taxo ist eine Desktop-Anwendung für Verkehrsunternehmen: Personal und Fahrzeuge
 - Analoge Tachoscheiben: Scans, Ansicht und unterstützte Erkennung mit manueller Prüfung.
 - Berichte und Sicherung: PDF-/Excel-Berichte und Sicherung des Arbeitsordners.
 
-## Verbesserungen in 10.20-r5
+## Verbesserungen in 10.23-r1
 
-Stable 10.20-r5 erweitert den Dokumentenablauf um eigene Vorlagen, kontrollierte vorbereitete Dokumentrevisionen, DOCX/PDF/Druck, DocumentVault im normalen Dokumentkatalog sowie integritätsgeprüfte Speicherung optionaler Papierscans als PDF/JPG/PNG/TIFF. Die Benutzeroberfläche zum Hinzufügen und Auflisten von Scans gehört noch nicht zu Stable r5; sie erscheint erstmals in Test r6. r5 bestand 1400 Regressionstests sowie die Builds für Windows, Windows 7 und macOS Intel/Apple Silicon mit Sicherheits- und Integritätsprüfungen.
+Die stabile Version 10.23-r1 bietet eigene Vorlagen, kontrollierte Word-Revisionen, PDF/Druck und DocumentVault. Optionale Papierscans lassen sich hinzufügen, öffnen, entfernen und mit Verlauf ersetzen; der Papierunterschriftsstatus wird separat erfasst. Der Dokumentkatalog bietet Suche, Filter, Sortierung, Bäume nach Typ/Datum und verschachtelte eigene Ordner ohne Dateiduplikate. Anordnungen unterstützen explizite Fahrer-Fahrzeug-Paare und deren Bearbeitung; Fahrtblätter bieten Datumsnavigation. Lange Texte in PDF-Anlagen werden umgebrochen. 32 strenge UI-Pfade schützen vorhandene Funktionen. Windows, Windows 7, macOS Intel/Apple Silicon, START sowie Sicherheits- und Integritätsprüfungen waren erfolgreich. Vollständige Abdeckung und manuelle Abnahme stehen aus; Posteingang/-ausgang ist geplant. Test 10.23-r2 ergänzt Rollen-/Notizbearbeitung und einen 33. UI-Pfad, nicht in Stable r1.
 
 ## Downloads
 
-Stabile Version: 10.20-r5.
+Stabile Version: 10.23-r1.
 
-[Alle Dateien 10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) · [Vorherige stabile Version 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3)
+[Alle Dateien 10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) · [Vorherige stabile Version 10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/SHA256SUMS_v10_20_r5.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/SHA256SUMS_v10_23_r1.txt)
+
+Testversion: [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2).
 
 ## Erste Schritte und Daten
 

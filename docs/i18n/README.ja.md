@@ -15,17 +15,19 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員と
 - アナログタコグラフ：スキャン、表示、手動確認を伴う補助的な認識。
 - 帳票とバックアップ：PDF/Excel 帳票と作業データのバックアップ。
 
-## 10.20-r5 の改善点
+## 10.23-r1 の改善点
 
-安定版 10.20-r5 では、ユーザー独自テンプレート、準備済み文書の管理された改訂履歴、DOCX/PDF/印刷出力、通常の「文書」一覧に統合された DocumentVault、任意の紙原本スキャン（PDF/JPG/PNG/TIFF）を整合性確認付きで保存する基盤が追加されています。スキャンの追加・一覧表示 UI は安定版 r5 には含まれず、テスト版 r6 で初めて提供されます。r5 は 1400 件の回帰テストに加え、Windows、Windows 7、macOS Intel／Apple Silicon のビルドとセキュリティ／整合性検査に合格しました。
+安定版10.23-r1は独自テンプレート、管理されたWord改訂版、PDF/印刷、DocumentVaultを備えています。任意の紙原本スキャンは追加・閲覧・除外・履歴付き交換が可能で、紙の署名状態は別に記録します。文書カタログには検索、絞り込み、並べ替え、種類/日付のツリー、ファイルを複製しない入れ子の独自フォルダーがあります。命令書では運転者–車両の組み合わせを明示的に作成・編集でき、運行記録は日付移動に対応します。PDF添付表の長い文字列は折り返されます。32の厳格なUI経路で機能を保護します。Windows、Windows 7、macOS Intel/Apple Silicon、STARTおよびセキュリティ/整合性検査は成功しました。全機能の保護と手動受入確認は未完了で、受発信文書の登録は計画段階です。テスト版10.23-r2の役割/注記編集と33番目のUI経路は安定版r1に含まれません。
 
 ## ダウンロード
 
-安定版：10.20-r5。
+安定版：10.23-r1。
 
-[10.20-r5 の全ファイル](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) · [前の安定版 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3)
+[10.23-r1 の全ファイル](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) · [前の安定版 10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2)
 
-Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/SHA256SUMS_v10_20_r5.txt)
+Windows 10/11 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/SHA256SUMS_v10_23_r1.txt)
+
+テスト版: [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2).
 
 ## 初期設定とデータ
 
