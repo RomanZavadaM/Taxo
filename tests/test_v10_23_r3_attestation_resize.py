@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch
 import main
-from runtime_reachability import runtime_routes, activate_widget
+from runtime_reachability import runtime_routes, activate_widget, assert_widget_reachable
 
 def walk(widget):
     for child in widget.winfo_children():
@@ -29,7 +29,6 @@ class AttestationResizeTests(TestCase):
                 "load_att_history","reset_att_history_filters",
             ):
                 setattr(host,name,lambda *a,**k:None)
-            host._make_scrollable_tab_body=lambda tab,key,**kw: main.App._make_scrollable_tab_body(host,tab,key,**kw)
             with patch.object(main,"get_setting",return_value=""):
                 main.App.build_attestation(host)
             root.update()
@@ -37,6 +36,18 @@ class AttestationResizeTests(TestCase):
             self.assertEqual(len(panes.panes()),2)
             host.att_place.set("Незбережене місце")
             host.att_tree.insert("","end",iid="test",values=("test",))
+            for row in range(1,15):
+                host.att_tree.insert("","end",iid=str(row),values=(str(row),))
+            root.update()
+            def assert_history_visible():
+                table=host.att_tree
+                bbox=table.bbox("test")
+                self.assertTrue(bbox, "History row is not visible")
+                self.assertGreaterEqual(table.winfo_height(), 80, "History table collapsed")
+                self.assertTrue(table.bbox("2"), "At least three data rows must remain visible")
+                self.assertGreaterEqual(panes.winfo_height(), host.tab_att.winfo_height()-70)
+                self.assertGreaterEqual(panes.winfo_width(), host.tab_att.winfo_width()-25)
+            assert_history_visible()
             host.att_tree.selection_set("test")
             def button(label):
                 return next(w for w in walk(root) if isinstance(w,ttk.Button) and w.cget("text")==label)
@@ -57,5 +68,12 @@ class AttestationResizeTests(TestCase):
                 self.assertEqual(host.att_tree.selection(),("test",))
                 self.assertEqual(host.att_place.get(),"Незбережене місце")
                 self.assertEqual(len(panes.panes()),2)
+                assert_history_visible()
+                # Even repeated enlargement of the form cannot hide the history.
+                for _ in range(10):
+                    button("Більша форма").invoke()
+                root.update_idletasks()
+                assert_history_visible()
+                self.assertEqual(len([w for w in walk(host.tab_att) if isinstance(w,tk.Canvas)]),1)
         finally:
             root.destroy()
