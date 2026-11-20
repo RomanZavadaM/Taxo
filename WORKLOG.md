@@ -1457,3 +1457,13 @@
 - GitHub Latest/Stable лишається [v10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5), 8 assets.
 - **10.20-r9 не розпочата.** Наступний slice визначати лише після fresh live verification; r8/tag/release не перевикористовувати.
 
+
+
+## 20.11.2026 — 10.23-r3 інтегровано без публікації
+
+- Live recovery виявив, що HANDOFF відставав: існував готовий PR #567 `feature/10.23-r3-documents-workspace`, хоча PROJECT_STATE ще казав «r3 не розпочата».
+- r3 зібрано як один більший пакет за рішенням власника, а не як серію дрібних ревізій: #562 регульована область бланків/історії; #556 регульоване дерево каталогу та компактні дії; #553 накопичуваний вибір учасників/ТЗ, тема активного наказу, перехід до закріплень і підтвердження результату.
+- Exact product head `149254b25da390892dcb09b8e2138fb0e88004cc`: START #44777829338, Windows #44777829188, Win7 #44777829261, macOS #44777829358 — SUCCESS; 36 strict runtime routes.
+- Власник прямо вказав пропустити цю збірку й просунути проєкт далі. PR #567 інтегровано в main як `12a675a8f16c1f22190281339f62824aaad6a11d`; **release v10.23-r3 не створювати**. Stable лишається v10.23-r1, останній опублікований Test — v10.23-r2.
+- Через Firefox warning для Windows artifact 14650119537 окремий diagnostic PR #568 перевірив exact outer SHA256, Microsoft Defender і ClamAV без запуску бінарників. Final run #44789160753 — SUCCESS; malware signature не знайдено. #568 закрито без merge.
+- До початку 10.23-r4 обов'язково завершити документаційний резерв Google Drive та recovery-checkpoint; код/збірки на Drive більше регулярно не дублювати.
