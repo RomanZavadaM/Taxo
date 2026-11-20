@@ -2,9 +2,9 @@
 
 Головна мова документації — українська. Публічний короткий опис доступний ще шістьма мовами: [переклади](i18n/README.md).
 
-**Стабільний випуск:** [Taxo 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4) — 09.11.2026, перевірені Windows 10/11, Windows 7, macOS Intel і Apple Silicon, START.
+**Стабільний випуск:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START.
 
-**Попередня стабільна / rollback:** [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10). **Наступна кодова ревізія:** 10.14-r5.
+**Попередня стабільна:** [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2). **Тестова:** [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2). Наступна кодова ревізія: 10.23-r3 (ще не розпочата).
 
 ## Робота з програмою
 
@@ -25,8 +25,8 @@ Taxo **допомагає створювати і друкувати** нака�
 
 ## Випуски та історія
 
-- [Випуск 10.14-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.14-r4)
-- [Що нового у 10.14-r4](releases/RELEASE_NOTES_v10.14-r4.md)
+- [Випуск 10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1)
+- [Що нового у 10.23-r1](releases/RELEASE_NOTES_v10.23-r1.md)
 - [Індекс випусків і контрольних точок](releases/RELEASE_INDEX.md)
 - [Стан продукту](PRODUCT_STATUS.md)
 - [Модель даних і резервування](DATA_MODEL_AND_STORAGE.md)
