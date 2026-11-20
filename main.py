@@ -96,7 +96,7 @@ import employee_registry_ui
 import driver_registry_ui
 from table_sorting import sort_treeview
 
-APP_VERSION = "10.23-r2"
+APP_VERSION = "10.23-r3"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -14044,9 +14044,11 @@ class App(tk.Tk):
         upper.rowconfigure(0,weight=1); upper.columnconfigure(0,weight=1)
         form_canvas=tk.Canvas(upper,highlightthickness=0,borderwidth=0,height=300)
         form_scroll=ttk.Scrollbar(upper,orient="vertical",command=form_canvas.yview)
-        form_canvas.configure(yscrollcommand=form_scroll.set)
+        form_horizontal=ttk.Scrollbar(upper,orient="horizontal",command=form_canvas.xview)
+        form_canvas.configure(yscrollcommand=form_scroll.set,xscrollcommand=form_horizontal.set)
         form_canvas.grid(row=0,column=0,sticky="nsew")
         form_scroll.grid(row=0,column=1,sticky="ns")
+        form_horizontal.grid(row=1,column=0,sticky="ew")
         panes.add(upper,weight=0)
         f=ttk.Frame(form_canvas)
         form_window=form_canvas.create_window((0,0),window=f,anchor="nw")
@@ -14079,6 +14081,7 @@ class App(tk.Tk):
                 panes.sashpos(0,max(70,min(limit,panes.sashpos(0)+delta)))
             except tk.TclError:
                 pass
+            return "break"
         ttk.Button(split_hint,text="Більша форма",command=lambda:move_divider(60)).pack(side="right",padx=(4,0))
         ttk.Button(split_hint,text="Більша історія",command=lambda:move_divider(-60)).pack(side="right",padx=4)
         panes.bind("<Up>",lambda _e:move_divider(-30))

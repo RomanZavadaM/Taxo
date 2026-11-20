@@ -123,6 +123,7 @@ class NewDocumentLiveRouteTests(TestCase):
         "documents.catalog_filters",
         "documents.catalog_folders",
         "documents.catalog_tree_modes",
+        "documents.catalog_resize",
     )
     def test_real_document_catalog_controls_and_persistence(self):
         # One real Tk interpreter covers all three routes. This prevents
@@ -184,6 +185,20 @@ class NewDocumentLiveRouteTests(TestCase):
                 switch_and_find("За видами", "Інструкція")
                 switch_and_find("За датами", "2026")
                 mark_activation("documents.catalog_tree_modes")
+                split=win._taxo_catalog_split
+                assert_widget_reachable(split,"documents.catalog_resize",container=win)
+                before=split.sashpos(0)
+                selection=tuple(tree.selection())
+                split.sashpos(0,before+35)
+                root.update_idletasks()
+                self.assertNotEqual(split.sashpos(0),before)
+                self.assertEqual(tuple(tree.selection()),selection)
+                mark_activation("documents.catalog_resize")
+                for label in ("Скинути фільтри","Відкрити вибране","Копія для редагування…","Додати редакцію DOCX…","PDF / друк…","Скани…","Паперовий підпис…","Переглянути сховище документів"):
+                    widget=button(win,label)
+                    self.assertIsNotNone(widget,label)
+                    self.assertTrue(widget.winfo_ismapped(),label)
+                    self.assertGreater(widget.winfo_width(),1,label)
             finally:
                 self.close_window(root)
 

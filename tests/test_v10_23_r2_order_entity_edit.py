@@ -200,6 +200,7 @@ class OrderEntityEditR2Tests(unittest.TestCase):
         finally:
             app.destroy()
 
+    @runtime_routes("operations.entity_search_selection")
     def test_live_search_keeps_selected_people_across_filters(self):
         app = tk.Tk()
         app.geometry("1200x800")
@@ -231,7 +232,7 @@ class OrderEntityEditR2Tests(unittest.TestCase):
             self.assertTrue(any(isinstance(w, ttk.Label) and
                                 "Тест редагування" in str(w.getvar(w.cget("textvariable")))
                                 for w in walk(tab) if isinstance(w, ttk.Label) and w.cget("textvariable")))
-            buttons(tab, "Додати працівників…")[0].invoke()
+            activate_widget(buttons(tab, "Додати працівників…")[0],"operations.entity_search_selection",container=app)
             app.update()
             dlg = next(w for w in app.winfo_children() if isinstance(w, tk.Toplevel))
             search = next(w for w in walk(dlg) if isinstance(w, ttk.Entry))
