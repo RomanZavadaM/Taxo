@@ -4,11 +4,10 @@
 
 ## Актуальний стан
 
-- **Стабільна / остання версія:** [Taxo 10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5) — 16.11.2026.
-- **Попередня стабільна / rollback:** [Taxo 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).
-- **Поточна тестова версія:** [Taxo 10.20-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r6).
-- **У роботі:** 10.20-r7, PR #471 — явне відкриття вибраного скана після повторної перевірки файла.
-- У Stable 10.20-r5 є власні шаблони, контрольовані редакції готових документів, DocumentVault і безпечна основа для зберігання сканів паперових оригіналів. Кнопки додавання/перегляду сканів належать тестовій r6 і новішим.
+- **Стабільна / Latest:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) — 20.11.2026, 8 файлів.
+- **Попередня стабільна:** [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2).
+- **Тестова:** [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2) — 8 файлів; не Stable.
+- Український README описує функції стабільної версії; переклади синхронізовані з ним. Повні посібники українською.
 
 ## Переклади публічного опису
 

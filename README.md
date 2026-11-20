@@ -17,20 +17,25 @@
 
 Докладніше: [огляд системи](docs/SYSTEM_OVERVIEW.md) · [посібник користувача](docs/guides/USER_MANUAL.md) · [експлуатація та СТОІР](docs/guides/OPERATIONS_STOIR_GUIDE.md).
 
-## Що нового у стабільній 10.20-r5
+## Що нового у стабільній 10.23-r1
 
-- **Власні шаблони і готові документи.** Користувач може створювати власні шаблони на основі бібліотеки, заповнювати чернетку фактичними даними, зберігати контрольовані редакції Word та формувати PDF/друк.
-- **Сховище документів.** Контрольовану готову редакцію можна явно зберегти у сховищі; у звичайному списку «Документи» вона показується разом з іншими документами без хибного об'єднання за назвою чи датою.
-- **Скани паперових оригіналів — основа.** r5 містить безпечне зберігання PDF/JPG/PNG/TIFF зі SHA-256, контролем дубля/підміни та резервуванням. Користувацькі кнопки додавання і перегляду сканів з'явилися лише в тестовій r6 і не входять у stable r5.
-- **Перевірки.** 1400/1400 regression; Windows, Windows 7, macOS Intel/ARM — SUCCESS; Windows Defender та контроль цілісності — PASS.
+- **Каталог документів.** Пошук, фільтри за датою, типом, категорією, працівником, ТЗ і сканами; сортування, дерево за видами/датами та власні вкладені папки без дублювання файлів.
+- **Шаблони, скани й підпис.** Власні шаблони, контрольовані Word-редакції, PDF/друк, сховище готових документів; додавання, перегляд, заміна та прибирання сканів зі збереженням історії. Паперовий підпис позначається окремо.
+- **Накази та шляхівки.** Явні пари водій–ТЗ, редагування пар у наявному наказі, календар шляхівок; перенесення довгих рядків у PDF-додатку.
+- **Захист функцій.** 32 суворі маршрути, контроль кнопок, вкладок і меню; Windows/Win7/macOS Intel/ARM/START та Defender/цілісність пройдено.
+
+Повний контроль функцій і ручне приймання наказів ще не завершені. Реєстрація кореспонденції запланована. [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2) — окремий тестовий випуск з редагуванням ролі/примітки учасника наказу і 33-м маршрутом; ці зміни не в stable r1.
+
 ## Завантаження
 
-**Стабільна / Latest версія: [10.20-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.20-r5).** [Попередня стабільна / rollback 10.18-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.18-r3).
+**Стабільна / Latest версія: [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).** [Попередня стабільна / rollback 10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2).
 
-- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_Windows_x64_Portable.zip)
-- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_Windows7_x64_Portable.zip)
-- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_macOS_x86_64_Portable.zip)
-- **Запуск із вихідного коду:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/Taxo_v10_20_candidate_r5_START.zip) · [контрольні суми SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.20-r5/SHA256SUMS_v10_20_r5.txt)
+- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_Windows_x64_Portable.zip)
+- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_Windows7_x64_Portable.zip)
+- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_macOS_x86_64_Portable.zip)
+- **Запуск із вихідного коду:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/Taxo_v10_23_candidate_r1_START.zip) · [контрольні суми SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r1/SHA256SUMS_v10_23_r1.txt)
+
+**Тестовий випуск:** [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2) (8 файлів, не Stable).
 
 ## Початок роботи та дані
 
