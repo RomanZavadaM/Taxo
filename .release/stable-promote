@@ -1,3 +1,3 @@
-Version: 10.23-r1
-Source: 84184bbbf6c26b681c04feaebee19910269bd25c
-Reason: Explicit owner correction 20.11.2026: promote r1 only; preserve r2 as test prerelease and main as r2. Exact-source platform builds and Defender/integrity gates SUCCESS.
+Version: 10.23-r4
+Source: a919ced6bc8665ced70ebb4d897808e4e2618667
+Reason: Owner manually tested Taxo 10.23-r4 and confirmed it works on 20.11.2026. Promote this exact verified source to Stable/Latest; preserve immutable tag/source and canonical 8-asset package. Exact-source START, Windows, Windows 7 and macOS Intel/ARM builds succeeded, including Defender and package integrity gates.
