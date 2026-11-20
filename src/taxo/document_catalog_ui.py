@@ -1853,9 +1853,11 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         employee_box.configure(width=24 if width < 820 else 34)
         vehicle_box.configure(width=24 if width < 820 else 34)
         if compact:
+            source_status_label.grid_remove()
             vault_help.grid_remove()
             folder_help.grid_remove()
         else:
+            source_status_label.grid()
             vault_help.grid()
             if library_mode.get() == "Мої папки":
                 folder_help.grid()
