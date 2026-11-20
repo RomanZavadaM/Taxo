@@ -1,3 +1,8 @@
+## 20.11.2026 — уточнення резервування
+
+- Власник визначив Google Drive резервом документації, логів і порядку роботи, не копіями коду/збірок. GitHub залишається джерелом коду та релізів. Усі попередні архіви зберігаються до окремого рішення.
+- Документаційна перевірка виявила втрату буквального історичного якоря Taxo 10.3 / `v10.3`; відновлено без послаблення тесту.
+
 ## 20.11.2026 — 10.23-r1 Stable/Latest; 10.23-r2 Test
 
 **Stable/Latest:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1), 20.11.2026, 8 файлів. Exact source `84184bbbf6c26b681c04feaebee19910269bd25c`; START #44600058957, Windows #44600058914, Win7 #44600058737, macOS #44600058736 — SUCCESS; Defender/integrity PASS. Promotion PR #565 merged `e307b1a05a1ee8b6ef277a3a02fa3b72576bac32`; historical publisher #44704009390 SUCCESS. Попередня stable [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2).
