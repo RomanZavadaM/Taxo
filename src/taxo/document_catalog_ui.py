@@ -270,12 +270,14 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         justify="left",
     ).grid(row=2, column=0, sticky="ew")
 
-    frame = core.ttk.Frame(body)
-    frame.grid(row=3, column=0, sticky="nsew", pady=6)
+    split = core.ttk.Panedwindow(body, orient="horizontal")
+    split.grid(row=3, column=0, sticky="nsew", pady=6)
+    navigation = core.ttk.Frame(split)
+    split.add(navigation, weight=0)
+    frame = core.ttk.Frame(split)
+    split.add(frame, weight=1)
     frame.rowconfigure(0, weight=1)
     frame.columnconfigure(1, weight=1)
-    navigation = core.ttk.Frame(frame)
-    navigation.grid(row=0, column=0, sticky="nsw", padx=(0, 8))
     navigation.rowconfigure(1, weight=1)
     navigation.columnconfigure(0, weight=1)
     library_mode = core.tk.StringVar(value="За видами")
@@ -1722,58 +1724,43 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
         )
         refresh(reset=True, reload_sources=True)
 
+    for col in range(4):
+        actions.columnconfigure(col, weight=1)
     core.ttk.Button(
-        actions,
-        text="Оновити",
+        actions, text="Оновити",
         command=lambda: refresh(reload_sources=True),
-    ).pack(side="left")
+    ).grid(row=0,column=0,sticky="ew",padx=2,pady=2)
     clear_filters_button = core.ttk.Button(
-        actions,
-        text="Скинути фільтри",
-        command=clear_filters,
+        actions, text="Скинути фільтри", command=clear_filters,
     )
-    clear_filters_button.pack(side="left", padx=(6, 0))
+    clear_filters_button.grid(row=0,column=1,sticky="ew",padx=2,pady=2)
     core.ttk.Button(
-        actions,
-        text="Попередня",
-        command=lambda: change_page(-1),
-    ).pack(side="left", padx=4)
+        actions, text="Попередня", command=lambda: change_page(-1),
+    ).grid(row=0,column=2,sticky="ew",padx=2,pady=2)
     core.ttk.Button(
-        actions,
-        text="Наступна",
-        command=lambda: change_page(1),
-    ).pack(side="left")
-    core.ttk.Label(
-        actions, textvariable=page_text
-    ).pack(side="left", padx=8)
-    edit_copy_button.pack(side="left", padx=(10, 4))
-    import_revision_button.pack(side="left", padx=4)
-    pdf_button.pack(side="left", padx=4)
+        actions, text="Наступна", command=lambda: change_page(1),
+    ).grid(row=0,column=3,sticky="ew",padx=2,pady=2)
+    core.ttk.Label(actions,textvariable=page_text).grid(row=2,column=0,columnspan=4,sticky="w",padx=2)
+    edit_copy_button.grid(row=1,column=0,sticky="ew",padx=2,pady=2)
+    import_revision_button.grid(row=1,column=1,sticky="ew",padx=2,pady=2)
+    pdf_button.grid(row=1,column=2,sticky="ew",padx=2,pady=2)
     core.ttk.Button(
-        actions,
-        text="Відкрити вибране",
-        command=open_selected,
-    ).pack(side="right")
+        actions, text="Відкрити вибране", command=open_selected,
+    ).grid(row=1,column=3,sticky="ew",padx=2,pady=2)
 
     vault_actions = core.ttk.Frame(body)
-    vault_actions.grid(row=5, column=0, sticky="ew", pady=(8, 0))
-    core.ttk.Label(
-        vault_actions,
-        text="Сховище: незмінна копія документа + його походження.",
-        style="Muted.TLabel",
-    ).pack(side="left")
+    vault_actions.grid(row=5,column=0,sticky="ew",pady=(4,0))
+    core.ttk.Label(vault_actions,text="Сховище: незмінна копія документа + його походження.",style="Muted.TLabel",wraplength=400,justify="left").grid(row=2,column=0,columnspan=2,sticky="w",padx=2,pady=(2,0))
+    for col in range(2):
+        vault_actions.columnconfigure(col,weight=1)
     vault_open_button.configure(command=browse_document_vault)
-    vault_open_button.pack(in_=vault_actions, side="right")
-    paper_original_button.configure(command=manage_paper_original)
-    paper_original_button.pack(in_=vault_actions, side="right", padx=(0, 6))
-    paper_scans_button.configure(command=manage_paper_scans)
-    paper_scans_button.pack(
-        in_=vault_actions, side="right", padx=(0, 6)
-    )
+    vault_open_button.grid(in_=vault_actions,row=0,column=0,sticky="ew",padx=2,pady=2)
     vault_store_button.configure(command=store_selected_in_vault)
-    vault_store_button.pack(
-        in_=vault_actions, side="right", padx=(0, 6)
-    )
+    vault_store_button.grid(in_=vault_actions,row=0,column=1,sticky="ew",padx=2,pady=2)
+    paper_original_button.configure(command=manage_paper_original)
+    paper_original_button.grid(in_=vault_actions,row=1,column=0,sticky="ew",padx=2,pady=2)
+    paper_scans_button.configure(command=manage_paper_scans)
+    paper_scans_button.grid(in_=vault_actions,row=1,column=1,sticky="ew",padx=2,pady=2)
 
     core.ttk.Label(
         body,
@@ -1838,6 +1825,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     date_to_entry.bind(
         "<Return>", lambda _event: refresh(reset=True)
     )
+    win._taxo_catalog_split = split
     win._taxo_library_tree = library_tree
     win._taxo_library_mode = library_mode
     win._taxo_catalog_tree = tree

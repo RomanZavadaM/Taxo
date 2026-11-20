@@ -96,7 +96,7 @@ import employee_registry_ui
 import driver_registry_ui
 from table_sorting import sort_treeview
 
-APP_VERSION = "10.23-r2"
+APP_VERSION = "10.23-r3"
 COPYRIGHT_OWNER = "Roman Zavada (Роман Завада)"
 COPYRIGHT_NOTICE = "© 2026 Roman Zavada. All rights reserved."
 LICENSE_LABEL = "Proprietary / All rights reserved"
@@ -14027,12 +14027,88 @@ class App(tk.Tk):
 
 
     def build_attestation(self):
-        host=self._make_scrollable_tab_body(self.tab_att, "attestation")
-        f=ttk.Frame(host); f.pack(fill="x",padx=12,pady=12)
+        # Use the actual tab viewport, not a canvas with a requested width/height.
+        # The history table must always receive the remaining viewport height.
+        host=ttk.Frame(self.tab_att)
+        host.pack(fill="both",expand=True,padx=8,pady=4)
+        host.columnconfigure(0,weight=1)
+        host.rowconfigure(1,weight=1)
+        split_hint=ttk.Frame(host)
+        split_hint.grid(row=0,column=0,sticky="ew",pady=(0,3))
+        ttk.Label(split_hint,text="Перетягніть межу між формою та історією.").pack(side="left",padx=2)
+        panes=ttk.Panedwindow(host,orient="vertical",takefocus=True)
+        panes.grid(row=1,column=0,sticky="nsew")
+        self.att_workspace_panes=panes
+        upper=ttk.Frame(panes)
+        upper.rowconfigure(0,weight=1); upper.columnconfigure(0,weight=1)
+        form_canvas=tk.Canvas(upper,highlightthickness=0,borderwidth=0,height=190,width=1)
+        form_scroll=ttk.Scrollbar(upper,orient="vertical",command=form_canvas.yview)
+        form_canvas.configure(yscrollcommand=form_scroll.set)
+        form_canvas.grid(row=0,column=0,sticky="nsew")
+        form_scroll.grid(row=0,column=1,sticky="ns")
+        panes.add(upper,weight=0)
+        f=ttk.Frame(form_canvas)
+        f.columnconfigure(1,weight=1)
+        form_window=form_canvas.create_window((0,0),window=f,anchor="nw")
+        def update_form_region(_event=None):
+            form_canvas.configure(scrollregion=form_canvas.bbox("all"))
+            if f.winfo_reqheight()>form_canvas.winfo_height():
+                form_scroll.grid()
+            else:
+                form_scroll.grid_remove()
+                form_canvas.yview_moveto(0)
+        f.bind("<Configure>",update_form_region,add="+")
+        def fit_form(event):
+            form_canvas.itemconfigure(form_window,width=max(1,event.width))
+            update_form_region()
+        form_canvas.bind("<Configure>",fit_form,add="+")
+        def reveal_form_focus(event):
+            widget=event.widget
+            region=form_canvas.bbox("all")
+            if region:
+                y=widget.winfo_rooty()-f.winfo_rooty()
+                top=form_canvas.canvasy(0)
+                if y<top or y+widget.winfo_height()>top+form_canvas.winfo_height():
+                    form_canvas.yview_moveto(max(0,y-4)/max(1,region[3]))
+        def wheel_form(event):
+            delta=getattr(event,"delta",0)
+            if delta:
+                form_canvas.yview_scroll(int(-delta/120) or (-1 if delta>0 else 1),"units")
+            return "break"
+        def bind_form_descendants(widget):
+            for child in widget.winfo_children():
+                child.bind("<FocusIn>",reveal_form_focus,add="+")
+                # Combobox and spinbox retain their native wheel behavior.
+                if child.winfo_class() not in ("TCombobox","TSpinbox"):
+                    child.bind("<MouseWheel>",wheel_form,add="+")
+                bind_form_descendants(child)
+        def bounded_sash(value):
+            # Reserve the measured history controls AND room for visible rows.
+            available=panes.winfo_height()
+            # Include label-frame chrome, padding and the horizontal scrollbar,
+            # not only the toolbar requests; reserve a real table viewport.
+            history_min=max(hist.winfo_reqheight()-self.att_tree.winfo_reqheight()+120,
+                            hbar.winfo_reqheight()+filter_bar.winfo_reqheight()+summary_bar.winfo_reqheight()+170)
+            maximum=max(45,available-history_min)
+            return max(45,min(maximum,int(value)))
+        def clamp_divider(_event=None):
+            if panes.winfo_height()>1:
+                current=panes.sashpos(0)
+                target=bounded_sash(current)
+                if current!=target:
+                    panes.sashpos(0,target)
+        def move_divider(delta):
+            panes.sashpos(0,bounded_sash(panes.sashpos(0)+delta))
+            return "break"
+        # Keep both resizing actions accessible, without a second toolbar.
+        ttk.Button(split_hint,text="Більша форма",command=lambda:move_divider(60)).pack(side="right",padx=2)
+        ttk.Button(split_hint,text="Більша історія",command=lambda:move_divider(-60)).pack(side="right",padx=2)
+        panes.bind("<Up>",lambda _e:move_divider(-30))
+        panes.bind("<Down>",lambda _e:move_divider(30))
         self.att_driver_var=tk.StringVar()
-        ttk.Label(f,text="Водій:").grid(row=0,column=0,sticky="w",padx=6,pady=6)
-        self.att_driver_cb=ttk.Combobox(f,textvariable=self.att_driver_var,state="readonly",width=45)
-        self.att_driver_cb.grid(row=0,column=1,sticky="w",padx=6,pady=6)
+        ttk.Label(f,text="Водій:").grid(row=0,column=0,sticky="w",padx=4,pady=2)
+        self.att_driver_cb=ttk.Combobox(f,textvariable=self.att_driver_var,state="readonly",width=30)
+        self.att_driver_cb.grid(row=0,column=1,sticky="ew",padx=4,pady=2)
         self.att_driver_cb.bind("<<ComboboxSelected>>", self.on_att_driver_change)
         self.att_from=tk.StringVar(value=datetime.now().strftime("%H:%M %d.%m.%Y"))
         self.att_to=tk.StringVar(value=datetime.now().strftime("%H:%M %d.%m.%Y"))
@@ -14052,24 +14128,24 @@ class App(tk.Tk):
 
         fields=[("Період з (година/дата/місяць/рік)",self.att_from),("Період по (година/дата/місяць/рік)",self.att_to),("Місце директора / представника",self.att_place),("Дата бланка (авто = дата завершення періоду)",self.att_date)]
         for i,(l,v) in enumerate(fields,1):
-            ttk.Label(f,text=l).grid(row=i,column=0,sticky="w",padx=6,pady=6)
+            ttk.Label(f,text=l).grid(row=i,column=0,sticky="w",padx=4,pady=2)
             state="readonly" if v is self.att_date else "normal"
-            ttk.Entry(f,textvariable=v,width=45,state=state).grid(row=i,column=1,sticky="w",padx=6,pady=6)
+            ttk.Entry(f,textvariable=v,width=30,state=state).grid(row=i,column=1,sticky="ew",padx=4,pady=2)
             if v in (self.att_from, self.att_to):
                 calendar_button(f,v).grid(row=i,column=2,sticky="w",padx=(2,6),pady=6)
         ttk.Label(
             f,
             text="Місце водія в нижньому блоці заповнюється автоматично тим самим місцем, що й у директора.",
-            foreground=PALETTE["muted"]
-        ).grid(row=4,column=3,sticky="w",padx=(8,6),pady=6)
-        ttk.Label(f,text="Позиція 14–19").grid(row=5,column=0,sticky="w",padx=6,pady=6)
-        cb=ttk.Combobox(f,state="readonly",width=55,textvariable=self.att_activity,
+            foreground=PALETTE["muted"],wraplength=600,justify="left"
+        ).grid(row=6,column=0,columnspan=3,sticky="w",padx=4,pady=2)
+        ttk.Label(f,text="Позиція 14–19").grid(row=5,column=0,sticky="w",padx=4,pady=2)
+        cb=ttk.Combobox(f,state="readonly",width=32,textvariable=self.att_activity,
                         values=[f"{n} — {ACTIVITIES[n]}" for n in ACTIVITIES])
-        cb.current(2); cb.grid(row=5,column=1,sticky="w",padx=6,pady=6)
+        cb.current(2); cb.grid(row=5,column=1,sticky="ew",padx=4,pady=2)
         # Зручніше зберігати номер у прихованому/текстовому комбобоксі.
         self.att_activity_text=cb
         format_bar=ttk.Frame(f)
-        format_bar.grid(row=6,column=1,columnspan=2,sticky="w",padx=6,pady=12)
+        format_bar.grid(row=7,column=0,columnspan=3,sticky="w",padx=4,pady=3)
         ttk.Button(format_bar,text="Створити DOCX",command=lambda:self.create_attestation(("docx",))).pack(side="left",padx=(0,4))
         ttk.Button(format_bar,text="Створити PDF",command=lambda:self.create_attestation(("pdf",))).pack(side="left",padx=4)
         ttk.Button(format_bar,text="Створити JPG",command=lambda:self.create_attestation(("jpg",))).pack(side="left",padx=4)
@@ -14077,13 +14153,14 @@ class App(tk.Tk):
         ttk.Button(
             f,text="Контроль бланків — 56 днів + поточний",
             command=self.show_attestation_gap_control
-        ).grid(row=7,column=1,columnspan=2,sticky="w",padx=6,pady=(0,12))
+        ).grid(row=8,column=0,columnspan=3,sticky="w",padx=4,pady=(0,3))
 
-        hist=ttk.LabelFrame(host,text="Історія та контроль сформованих бланків")
-        hist.pack(fill="both",expand=True,padx=12,pady=8)
+        bind_form_descendants(f)
+        hist=ttk.LabelFrame(panes,text="Історія та контроль сформованих бланків")
+        panes.add(hist,weight=1)
 
         hbar=ttk.Frame(hist)
-        hbar.pack(fill="x",padx=6,pady=(6,2))
+        hbar.pack(fill="x",padx=4,pady=(3,1))
         open_bar=ttk.Frame(hbar)
         open_bar.pack(fill="x")
         ttk.Label(open_bar,text="Відкрити:").pack(side="left",padx=(3,1))
@@ -14098,7 +14175,7 @@ class App(tk.Tk):
         ttk.Button(open_bar,text="Архів файлів",command=self.open_att_archive_folder).pack(side="left",padx=3)
 
         manage_bar=ttk.Frame(hbar)
-        manage_bar.pack(fill="x",pady=(4,0))
+        manage_bar.pack(fill="x",pady=(2,0))
         ttk.Label(manage_bar,text="Дії:").pack(side="left",padx=(3,1))
         ttk.Button(manage_bar,text="Редагувати",command=self.edit_selected_attestation).pack(side="left",padx=3)
         ttk.Button(manage_bar,text="Вилучити з контролю",command=self.delete_selected_attestation).pack(side="left",padx=3)
@@ -14143,24 +14220,25 @@ class App(tk.Tk):
 
         ttk.Button(filter_bar,text="Оновити",command=self.load_att_history).pack(side="left",padx=4)
         ttk.Button(filter_bar,text="Скинути відбір",command=self.reset_att_history_filters).pack(side="left",padx=4)
-        ttk.Label(filter_bar,text="Сортування:").pack(side="left",padx=(10,3))
+        sort_bar=ttk.Frame(hist)
+        sort_bar.pack(fill="x",padx=6,pady=(0,2))
+        ttk.Label(sort_bar,text="Сортування:").pack(side="left",padx=(0,3))
         self.att_sort=tk.StringVar(value=ATTESTATION_SORT_MODES[0])
         att_sort_cb=ttk.Combobox(
-            filter_bar,textvariable=self.att_sort,state="readonly",width=25,
+            sort_bar,textvariable=self.att_sort,state="readonly",width=25,
             values=ATTESTATION_SORT_MODES
         )
         att_sort_cb.pack(side="left",padx=(0,3))
         att_sort_cb.bind("<<ComboboxSelected>>",lambda _e:self.load_att_history())
 
-        summary_bar=ttk.Frame(hist)
-        summary_bar.pack(fill="x",padx=6,pady=(0,3))
+        summary_bar=sort_bar
         self.att_list_summary=tk.StringVar(value="")
-        ttk.Label(summary_bar,textvariable=self.att_list_summary,foreground=PALETTE["muted"]).pack(side="left",padx=2)
+        ttk.Label(summary_bar,textvariable=self.att_list_summary,foreground=PALETTE["muted"],wraplength=550,justify="left").pack(side="left",padx=4,fill="x",expand=True)
 
         cols=("id","driver","from","to","activity","place","date","changed","status","revision","formats","file")
         tree_frame=ttk.Frame(hist)
-        tree_frame.pack(fill="both",expand=True,padx=6,pady=6)
-        self.att_tree=ttk.Treeview(tree_frame,columns=cols,show="headings",selectmode="browse")
+        tree_frame.pack(fill="both",expand=True,padx=4,pady=2)
+        self.att_tree=ttk.Treeview(tree_frame,columns=cols,show="headings",selectmode="browse",height=6)
         heads={
             "id":"ID","driver":"Водій","from":"З","to":"По","activity":"Позиція",
             "place":"Місце","date":"Дата","changed":"Змінено","status":"Статус","revision":"Ред.",
@@ -14183,6 +14261,19 @@ class App(tk.Tk):
         tree_frame.rowconfigure(0,weight=1)
         tree_frame.columnconfigure(0,weight=1)
         self.att_tree.bind("<Double-1>",lambda e:self.edit_selected_attestation())
+
+        # Initialize after the real tab layout is established; constrain every resize/drag.
+        def initialize_split(event=None):
+            if panes.winfo_height()<=1:
+                return
+            if not getattr(panes,"_taxo_initialized",False):
+                panes._taxo_initialized=True
+                panes.sashpos(0,bounded_sash(f.winfo_reqheight()+4))
+            else:
+                clamp_divider()
+        panes.bind("<Configure>",initialize_split,add="+")
+        panes.bind("<ButtonRelease-1>",clamp_divider,add="+")
+        panes.after_idle(initialize_split)
 
     def show_attestation_gap_control(self):
         if not getattr(self,"att_driver_id",None):

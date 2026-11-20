@@ -525,6 +525,7 @@ def install_order_register(
 
     refresh_order_entities = install_order_entities_tab(
         core, ops, win, entities_tab, order_tree, selected_order, require_mutable_order,
+        open_assignments=lambda: book.select(assignments_tab),
     )
 
     def preview_catalog_order(order_id):
