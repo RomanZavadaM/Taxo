@@ -26,7 +26,10 @@ def open_order_preview(core, ops, win, row, _order_print_data,
     intro_label.pack(fill="x",anchor="w",pady=(0,8))
     text_frame=core.ttk.Frame(frm); text_frame.pack(fill="both",expand=True)
     text_frame.rowconfigure(0,weight=1); text_frame.columnconfigure(0,weight=1)
-    viewer=core.tk.Text(\n        text_frame,wrap="word",font=("TkDefaultFont",11),padx=12,pady=12,\n        width=1,height=10,\n    )
+    viewer=core.tk.Text(
+        text_frame,wrap="word",font=("TkDefaultFont",11),padx=12,pady=12,
+        width=1,height=10,
+    )
     sy=core.ttk.Scrollbar(text_frame,orient="vertical",command=viewer.yview)
     viewer.configure(yscrollcommand=sy.set)
     viewer.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns")
