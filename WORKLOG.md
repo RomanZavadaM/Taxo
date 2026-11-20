@@ -1467,3 +1467,12 @@
 - Власник прямо вказав пропустити цю збірку й просунути проєкт далі. PR #567 інтегровано в main як `12a675a8f16c1f22190281339f62824aaad6a11d`; **release v10.23-r3 не створювати**. Stable лишається v10.23-r1, останній опублікований Test — v10.23-r2.
 - Через Firefox warning для Windows artifact 14650119537 окремий diagnostic PR #568 перевірив exact outer SHA256, Microsoft Defender і ClamAV без запуску бінарників. Final run #44789160753 — SUCCESS; malware signature не знайдено. #568 закрито без merge.
 - До початку 10.23-r4 обов'язково завершити документаційний резерв Google Drive та recovery-checkpoint; код/збірки на Drive більше регулярно не дублювати.
+
+
+## 20.11.2026 — документаційний резерв Drive оновлено
+
+- Створено `05_CURRENT_DOCS_2026-11-20_main-r3` у резервному комплекті Taxo.
+- Скопійовано й контрольним читанням перевірено: START_HERE.md, PROJECT_RULES.md, HANDOFF_CURRENT.md, PROJECT_STATE.md, приватний TAXO_PROFILE.md і DEVELOPMENT_LOG.md.
+- Старий великий `RECOVERY_CURRENT_MAIN` перейменовано на `RECOVERY_HISTORY — Taxo — legacy combined archive`; історію не видалено.
+- `00_ОПИС` оновлено: main r3 інтегрований без release, наступна ревізія r4. Код, START, portable та Setup на Drive не дублювалися.
+- Наступний кодовий крок: 10.23-r4, більший пов'язаний пакет залишкових UI-виправлень #556.
