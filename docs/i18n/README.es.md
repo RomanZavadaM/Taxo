@@ -1,6 +1,6 @@
 # Taxo / Driver Worktime
 
-[Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
+🇺🇦 [Українська](../../README.md) · 🇬🇧 [English](README.en.md) · 🇩🇪 [Deutsch](README.de.md) · 🇪🇸 [Español](README.es.md) · 🇫🇷 [Français](README.fr.md) · 🇰🇷 [한국어](README.ko.md) · 🇯🇵 [日本語](README.ja.md)
 
 Taxo es una aplicación de escritorio para empresas de transporte: personal y vehículos, turnos y tiempo de trabajo, hojas de ruta, órdenes, documentos, mantenimiento, informes y copias de seguridad.
 
