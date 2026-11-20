@@ -2,44 +2,42 @@
 
 Головна мова документації — українська. Публічний короткий опис доступний ще шістьма мовами: [переклади](i18n/README.md).
 
-**Стабільний випуск:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START.
+**Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START, 37 strict live UI routes.
 
-**Попередня стабільна:** [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2). **Тестова:** [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2). Наступна кодова ревізія: 10.23-r3 (ще не розпочата).
+**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). Новішого Test за r4 зараз немає. Наступна кодова ревізія: **10.23-r5**.
 
 ## Робота з програмою
 
-- [Швидкий старт і оновлення](guides/QUICK_START.md): архіви, встановлення, запуск через START.bat, робоче сховище, резервні копії.
-- [Експлуатація, СТОІР, накази, Word/PDF/JPG](guides/OPERATIONS_STOIR_GUIDE.md): водії/ТЗ, нумерація наказів, перевірка макета і друк, редагування та видалення.
-- [Керівництво користувача](guides/USER_MANUAL.md): загальна робота.
-- [Персонал і графіки](guides/PERSONNEL_GUIDE.md): працівники, табель та П-5.
-- [Тахограф](guides/TACHOGRAPH_GUIDE.md): скани тахокарт і протоколи.
-- [Звіти](guides/REPORTS_GUIDE.md): PDF/Excel, табелі, контроль, 60-денний реєстр.
-- [Адміністрування й резервні копії](guides/ADMIN_GUIDE.md): сховище і відновлення.
-- [Типові проблеми](guides/TROUBLESHOOTING.md): діагностика.
+- [Швидкий старт і оновлення](guides/QUICK_START.md).
+- [Експлуатація, СТОІР, накази, Word/PDF/JPG](guides/OPERATIONS_STOIR_GUIDE.md).
+- [Керівництво користувача](guides/USER_MANUAL.md).
+- [Персонал і графіки](guides/PERSONNEL_GUIDE.md).
+- [Тахограф](guides/TACHOGRAPH_GUIDE.md).
+- [Звіти](guides/REPORTS_GUIDE.md).
+- [Адміністрування й резервні копії](guides/ADMIN_GUIDE.md).
+- [Типові проблеми](guides/TROUBLESHOOTING.md).
 
-## Актуальні правила наказів
+## Актуально для stable r4
 
-Taxo **допомагає створювати і друкувати** накази. Контроль офіційних паперових оригіналів залишається за людиною. Позначка про паперовий підпис чи статус наказу **не забороняє** виправлення, скасування, редагування або видалення у Taxo.
+Taxo допомагає створювати, редагувати, переглядати й друкувати накази. Паперовий оригінал лишається первинним контролем; позначка паперового підпису не є КЕП і не блокує виправлення робочого запису Taxo.
 
-Можна створювати DOCX (редагований Word), PDF (макет друку), JPG (сторінки з PDF) або всі три формати. У Word та PDF однакові основні реквізити й таблиці, але перенесення рядків може залежати від локальних шрифтів.
+Доступні DOCX, PDF, JPG та «Створити все». У r4 перегляд наказу адаптовано до малого вікна: довгі кнопки форматів і нижні дії не повинні зникати при 760×560. Робоча область бланків і дерево каталогу документів регулюються користувачем.
 
-## Випуски та історія
+## Випуски та стан
 
-- [Випуск 10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1)
-- [Що нового у 10.23-r1](releases/RELEASE_NOTES_v10.23-r1.md)
-- [Індекс випусків і контрольних точок](releases/RELEASE_INDEX.md)
+- [Stable 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4)
+- [Що нового у 10.23-r4](releases/RELEASE_NOTES_v10.23-r4.md)
+- [Індекс випусків](releases/RELEASE_INDEX.md)
 - [Стан продукту](PRODUCT_STATUS.md)
 - [Модель даних і резервування](DATA_MODEL_AND_STORAGE.md)
 - [Ліцензія](LEGAL_AND_COPYRIGHT.md)
 
-Старші посібники описують базові робочі сценарії і можуть відставати від нових полів; для наказів пріоритет має актуалізований посібник Експлуатації.
-
 ## Для розробки та відновлення
 
-- [START_HERE.md](../START_HERE.md) — початок будь-якого сеансу.
-- [HANDOFF_CURRENT.md](../HANDOFF_CURRENT.md) — остання контрольна точка.
+- [START_HERE.md](../START_HERE.md) — перший файл будь-якого сеансу.
+- [HANDOFF_CURRENT.md](../HANDOFF_CURRENT.md) — поточна контрольна точка.
 - [PROJECT_RULES.md](../PROJECT_RULES.md), [PROJECT_STATE.md](../PROJECT_STATE.md), [WORKLOG.md](../WORKLOG.md).
 - [Чекліст випуску](maintenance/RELEASE_CHECKLIST.md), [Політика main](maintenance/MAIN_BRANCH_POLICY.md).
-- Issue #61 — технічний хронологічний журнал.
+- Issue #61 — live development ledger.
 
-Робочі бази даних, скани й особисті документи не публікуються разом із програмою. Перед оновленням робіть резервну копію, не перезаписуйте сховище даних.
+Робочі бази, скани й особисті документи не публікуються разом із програмою. Перед оновленням робіть резервну копію.
