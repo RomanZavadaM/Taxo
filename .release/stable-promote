@@ -1,3 +1,3 @@
-Version: 10.21-r2
-Source: b104f94ace0ae355df79c914b3be6f39417bd6e9
-Reason: Owner explicitly requested promotion of Taxo 10.21-r2 to Stable/Latest on 2026-11-17. Exact-source START 1442/1442 and Windows, Win7, macOS Intel/ARM builds succeeded, including Defender and package integrity gates. Newer 10.21-r3 remains a separate test prerelease.
+Version: 10.23-r1
+Source: 84184bbbf6c26b681c04feaebee19910269bd25c
+Reason: Explicit owner correction 20.11.2026: promote r1 only; preserve r2 as test prerelease and main as r2. Exact-source platform builds and Defender/integrity gates SUCCESS.

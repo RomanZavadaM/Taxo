@@ -82,11 +82,11 @@ jobs:
         run: |
           set -euo pipefail
           sha="${{ steps.target.outputs.source }}"
-          runs_json="$(gh run list --repo "${GITHUB_REPOSITORY}" --commit "${sha}" --status success --limit 100 --json databaseId,workflowName,headSha)"
+          runs_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${sha}&per_page=100" --jq '[.workflow_runs[] | select(.status == "completed" and .conclusion == "success") | {databaseId: .id, workflowName: .name, headSha: .head_sha}]')"
 
           find_run() {
-            printf '%s' "${runs_json}" | jq -r --arg name "$1" --arg sha "${sha}" \
-              '[.[] | select(.workflowName == $name and .headSha == $sha)] | first | .databaseId // empty'
+            printf '%s' "${runs_json}" | jq -er --arg name "$1" --arg sha "${sha}" \
+              '[.[] | select(.workflowName == $name and .headSha == $sha and (.databaseId | type == "number"))] | sort_by(.databaseId) | last | .databaseId'
           }
 
           win="$(find_run 'Test Taxo source / build Windows on demand')"
@@ -94,7 +94,13 @@ jobs:
           mac="$(find_run 'Test Taxo source / build macOS on demand')"
           start="$(find_run 'Package Taxo START source')"
 
-          test -n "${win}" && test -n "${win7}" && test -n "${mac}" && test -n "${start}"
+          for id in "${win}" "${win7}" "${mac}" "${start}"; do
+            [[ "${id}" =~ ^[0-9]+$ ]]
+            metadata="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}")"
+            test "$(jq -r '.head_sha' <<< "${metadata}")" = "${sha}"
+            test "$(jq -r '.status' <<< "${metadata}")" = "completed"
+            test "$(jq -r '.conclusion' <<< "${metadata}")" = "success"
+          done
           echo "win=${win}" >> "${GITHUB_OUTPUT}"
           echo "win7=${win7}" >> "${GITHUB_OUTPUT}"
           echo "mac=${mac}" >> "${GITHUB_OUTPUT}"
@@ -149,6 +155,10 @@ jobs:
           fi
 
           git show "${source}:docs/releases/RELEASE_NOTES_v${version}.md" > release_notes.md
+          # Keep tagged source immutable; correct candidate-only wording in published notes.
+          if [ "${version}" = "10.23-r1" ]; then
+            sed -i 's/\*\*Test prerelease\. Stable без змін\.\*\*/**Stable\/Latest — рішення власника 20.11.2026.**/; s/ Реліз не просуває Stable\./ /; s/мають завершитися успішно до публікації/успішно завершені/' release_notes.md
+          fi
 
           (
             cd release_files
