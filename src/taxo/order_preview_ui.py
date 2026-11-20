@@ -16,16 +16,20 @@ def open_order_preview(core, ops, win, row, _order_print_data,
     except Exception:
         dlg.geometry("900x700")
     frm=core.ttk.Frame(dlg,padding=12); frm.pack(fill="both",expand=True)
-    core.ttk.Label(
+    intro_label=core.ttk.Label(
         frm,
         text=("Перевірте зміст наказу. Оберіть формат: Word, PDF, JPG "
               "(для кожної сторінки) або створіть усі. "
               "Перегляд доступний у Taxo, відкриття — у програмі комп'ютера."),
         style="Muted.TLabel",wraplength=820,justify="left",
-    ).pack(anchor="w",pady=(0,8))
+    )
+    intro_label.pack(fill="x",anchor="w",pady=(0,8))
     text_frame=core.ttk.Frame(frm); text_frame.pack(fill="both",expand=True)
     text_frame.rowconfigure(0,weight=1); text_frame.columnconfigure(0,weight=1)
-    viewer=core.tk.Text(text_frame,wrap="word",font=("TkDefaultFont",11),padx=12,pady=12)
+    viewer=core.tk.Text(
+        text_frame,wrap="word",font=("TkDefaultFont",11),padx=12,pady=12,
+        width=1,height=10,
+    )
     sy=core.ttk.Scrollbar(text_frame,orient="vertical",command=viewer.yview)
     viewer.configure(yscrollcommand=sy.set)
     viewer.grid(row=0,column=0,sticky="nsew"); sy.grid(row=0,column=1,sticky="ns")
@@ -107,40 +111,53 @@ def open_order_preview(core, ops, win, row, _order_print_data,
 
     formats_box=core.ttk.LabelFrame(frm,text="Документи наказу",padding=(8,6))
     formats_box.pack(fill="x",pady=(8,0))
-    for col in range(4):
+    for col in range(2):
         formats_box.columnconfigure(col,weight=1)
-    for col,(title,kinds) in enumerate((
+    for index,(title,kinds) in enumerate((
         ("Створити DOCX",("docx",)),("Створити PDF",("pdf",)),
         ("Створити JPG",("jpg",)),("Створити все",("docx","pdf","jpg"))
     )):
         core.ttk.Button(
             formats_box,text=title,command=lambda f=kinds:make_formats(f)
-        ).grid(row=0,column=col,sticky="ew",padx=3,pady=3)
-    for col,kind in enumerate(("docx","pdf","jpg")):
+        ).grid(row=index//2,column=index%2,sticky="ew",padx=3,pady=3)
+    for row_index,kind in enumerate(("docx","pdf","jpg"),start=2):
         core.ttk.Button(
             formats_box,text="Перегляд "+kind.upper(),
             command=lambda f=kind:view_format(f)
-        ).grid(row=1,column=col,sticky="ew",padx=3,pady=3)
+        ).grid(row=row_index,column=0,sticky="ew",padx=3,pady=3)
         core.ttk.Button(
             formats_box,text="Відкрити у програмі: "+kind.upper(),
             command=lambda f=kind:view_format(f,external=True)
-        ).grid(row=2,column=col,sticky="ew",padx=3,pady=3)
-    core.ttk.Label(
+        ).grid(row=row_index,column=1,sticky="ew",padx=3,pady=3)
+    status_label=core.ttk.Label(
         formats_box,textvariable=status_var,style="Muted.TLabel",
         wraplength=810,justify="left"
-    ).grid(row=3,column=0,columnspan=4,sticky="w",padx=4,pady=(4,0))
+    )
+    status_label.grid(row=5,column=0,columnspan=2,sticky="ew",padx=4,pady=(4,0))
+
+    def adjust_preview_wrap(event):
+        wrap=max(260,event.width-24)
+        intro_label.configure(wraplength=wrap)
+        status_label.configure(wraplength=wrap)
+    frm.bind("<Configure>",adjust_preview_wrap,add="+")
+
     bar=core.ttk.Frame(frm); bar.pack(fill="x",pady=(8,0))
-    core.ttk.Button(bar,text="Закрити",command=dlg.destroy).pack(side="right")
-    core.ttk.Button(bar,text="Оновити зміст",command=refresh_preview_content).pack(side="left")
+    bar.columnconfigure(0,weight=1); bar.columnconfigure(1,weight=1)
     core.ttk.Button(
-        bar,text="Сформувати PDF / друк",style="Accent.TButton",
-        command=lambda:make_formats(("pdf",))
-    ).pack(side="right",padx=(0,6))
+        bar,text="Оновити зміст",command=refresh_preview_content
+    ).grid(row=0,column=0,sticky="ew",padx=(0,3),pady=2)
     if not order_mutability_message(row):
         core.ttk.Button(
             bar,text="Редагувати наказ",
             command=lambda:(dlg.destroy(),order_dialog(row))
-        ).pack(side="left")
+        ).grid(row=0,column=1,sticky="ew",padx=(3,0),pady=2)
+    core.ttk.Button(
+        bar,text="Сформувати PDF / друк",style="Accent.TButton",
+        command=lambda:make_formats(("pdf",))
+    ).grid(row=1,column=0,sticky="ew",padx=(0,3),pady=2)
+    core.ttk.Button(
+        bar,text="Закрити",command=dlg.destroy
+    ).grid(row=1,column=1,sticky="ew",padx=(3,0),pady=2)
     dlg.transient(win)
     try:
         dlg.lift(); dlg.focus_force()

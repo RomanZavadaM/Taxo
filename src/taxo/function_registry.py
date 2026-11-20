@@ -38,6 +38,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("operations.assignment_bulk", "Експлуатація → Накази", "Закріпити ТЗ за водіями / Додати багато…", "operations_orders_ui.bulk_assignment_controls", runtime_smoke=True),
     FunctionRoute("operations.assignment_existing", "Експлуатація → Накази → Редагувати наказ", "Поточні закріплення / Додати багато… / Керувати закріпленнями", "operations_orders_ui.existing_assignment_controls", runtime_smoke=True),
     FunctionRoute("operations.assignment_preview_sync", "Експлуатація → Накази → Перегляд наказу", "Автооновлення Preview після зміни закріплень", "operations_orders_ui.refresh_open_order_previews", runtime_smoke=True),
+    FunctionRoute("operations.order_preview_formats", "Експлуатація → Накази → Перегляд наказу", "Створити / переглянути DOCX, PDF, JPG", "order_preview_ui.open_order_preview", runtime_smoke=True),
     FunctionRoute("operations.entity_search_selection", "Експлуатація → Учасники / ТЗ", "Додати працівників… з накопиченням вибору", "order_entities_ui.entity_picker", runtime_smoke=True),
     FunctionRoute("operations.entity_edit", "Експлуатація → Накази → Учасники / ТЗ", "Змінити роль / примітку…", "order_entities_ui.edit_order_entity", runtime_smoke=True),
     FunctionRoute("operations.instructions", "Експлуатація", "Інструктажі та журнали", "open_operations_center", runtime_smoke=True),
