@@ -3,18 +3,27 @@
 
 
 def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
-                               selected_order, require_mutable_order):
+                               selected_order, require_mutable_order, open_assignments=None):
     # Structured employees / vehicles for non-assignment orders.
     ehead=core.ttk.Frame(entities_tab,padding=(10,10,10,4)); ehead.pack(fill="x")
     selected_entity_order_var=core.tk.StringVar(value="Виберіть наказ.")
-    core.ttk.Label(ehead,textvariable=selected_entity_order_var,style="Subtitle.TLabel").pack(anchor="w")
-    core.ttk.Label(
+    identity_label=core.ttk.Label(ehead,textvariable=selected_entity_order_var,style="Subtitle.TLabel",justify="left")
+    identity_label.pack(fill="x",anchor="w")
+    hint=core.ttk.Label(
         ehead,
         text=("Тут зберігаються конкретні працівники та ТЗ, яких стосується наказ. "
               "Taxo фіксує знімок реквізитів на момент додавання, тому подальша зміна картки "
               "не переписує історичний перелік. Для наказу про закріплення використовуйте окрему вкладку."),
         style="Muted.TLabel",wraplength=1080,justify="left",
-    ).pack(anchor="w",pady=(3,6))
+    )
+    hint.pack(fill="x",anchor="w",pady=(3,6))
+    def adjust_wrap(event):
+        for label in (identity_label,hint):
+            label.configure(wraplength=max(160,event.width-24))
+    ehead.bind("<Configure>",adjust_wrap,add="+")
+    assignment_button=None
+    if open_assignments is not None:
+        assignment_button=core.ttk.Button(ehead,text="Перейти до закріплення водіїв",command=open_assignments)
 
     eframe=core.ttk.Frame(entities_tab); eframe.pack(fill="both",expand=True,padx=10,pady=(0,8))
     eframe.rowconfigure(0,weight=1); eframe.columnconfigure(0,weight=1)
@@ -31,25 +40,34 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
     etree.configure(yscrollcommand=esy.set,xscrollcommand=esx.set)
     etree.grid(row=0,column=0,sticky="nsew"); esy.grid(row=0,column=1,sticky="ns"); esx.grid(row=1,column=0,sticky="ew")
     entity_cache={}
+    current_order_id=None
 
     def current_entity_order():
         return selected_order(quiet=True)
 
     def refresh_order_entities():
+        nonlocal current_order_id
+        previous=tuple(etree.selection())
         for iid in etree.get_children(): etree.delete(iid)
         entity_cache.clear()
         order=current_entity_order()
+        same_order=order is not None and current_order_id==order["id"]
+        current_order_id=order["id"] if order is not None else None
+        if assignment_button is not None:
+            assignment_button.pack_forget()
         if order is None:
             selected_entity_order_var.set("Виберіть наказ.")
             return
         state_label="Діє в Taxo" if order["status"]==ops.ORDER_APPROVED else ops.ORDER_STATUS_LABELS.get(order["status"],order["status"])
         selected_entity_order_var.set(
-            "Наказ №%s від %s — %s" % (order["order_no"],ops.display_day(order["order_date"]),state_label)
+            "Наказ №%s від %s — %s\n%s" % (order["order_no"],ops.display_day(order["order_date"]),state_label,order["subject"] or "Без теми")
         )
         if str(order["order_type"])==ops.TYPE_VEHICLE_ASSIGNMENT:
             selected_entity_order_var.set(
-                "Наказ №%s — для пар ТЗ/водій використовуйте вкладку «Закріплення водіїв»." % order["order_no"]
+                selected_entity_order_var.get()+"\nПари водій–ТЗ ведуться у вкладці «Закріплення водіїв»."
             )
+            if assignment_button is not None:
+                assignment_button.pack(anchor="w",pady=(0,6))
             return
         con2=core.db()
         try: items=ops.list_order_entities(con2,order["id"])
@@ -63,6 +81,12 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
                     view["display"],view["identifier"],item["note"] or "—",
                 ),
             )
+
+        if same_order:
+            remaining=tuple(iid for iid in previous if etree.exists(iid))
+            if remaining:
+                etree.selection_set(remaining)
+                etree.see(remaining[0])
 
     order_tree.bind("<<TreeviewSelect>>",lambda _e:refresh_order_entities(),add="+")
 
@@ -113,8 +137,27 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
         lsy=core.ttk.Scrollbar(list_frame,orient="vertical",command=lb.yview)
         lb.configure(yscrollcommand=lsy.set); lb.grid(row=0,column=0,sticky="nsew"); lsy.grid(row=0,column=1,sticky="ns")
         visible=[]
+        selected_ids=set()
+        selected_count=core.tk.StringVar(value="Вибрано: 0")
+        count_bar=core.ttk.Frame(frm)
+        count_bar.grid(row=5,column=0,sticky="ew",pady=(5,0))
+        core.ttk.Label(count_bar,textvariable=selected_count).pack(side="left")
+
+        def capture_selection():
+            selected_ids.difference_update(row["id"] for row in visible)
+            selected_ids.update(visible[int(i)]["id"] for i in lb.curselection() if int(i)<len(visible))
+            selected_count.set("Вибрано: %d (із різних результатів пошуку)" % len(selected_ids))
+
+        def clear_selection():
+            selected_ids.clear()
+            lb.selection_clear(0,"end")
+            selected_count.set("Вибрано: 0")
+
+        core.ttk.Button(count_bar,text="Очистити весь вибір",command=clear_selection).pack(side="right")
+        lb.bind("<<ListboxSelect>>",lambda _e:capture_selection(),add="+")
 
         def refill(*_args):
+            capture_selection()
             query=str(search_var.get() or "").strip().lower()
             lb.delete(0,"end"); visible.clear()
             for choice in choices:
@@ -122,6 +165,8 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
                 if query and query not in hay:
                     continue
                 visible.append(choice); lb.insert("end",choice["label"])
+                if choice["id"] in selected_ids:
+                    lb.selection_set(len(visible)-1)
         search_var.trace_add("write",refill); refill()
 
         fields=core.ttk.Frame(frm); fields.grid(row=3,column=0,sticky="ew",pady=(8,0)); fields.columnconfigure(1,weight=1)
@@ -134,9 +179,14 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
         bar=core.ttk.Frame(frm); bar.grid(row=4,column=0,sticky="ew",pady=(10,0))
 
         def save_entities():
-            selected=[visible[int(index)] for index in lb.curselection() if int(index)<len(visible)]
+            capture_selection()
+            selected=[row for row in choices if row["id"] in selected_ids]
             if not selected:
                 core.messagebox.showerror("Учасники / ТЗ","Виберіть хоча б один запис.",parent=dlg); return
+            active=current_entity_order()
+            if active is None or active["id"]!=order["id"] or not require_mutable_order(active,"Учасники / ТЗ"):
+                core.messagebox.showinfo("Учасники / ТЗ","Активний наказ змінився. Відкрийте вибір повторно.",parent=dlg)
+                return
             con3=core.db()
             try:
                 created=ops.add_order_entities(
@@ -148,16 +198,16 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
                 con3.rollback(); core.messagebox.showerror("Учасники / ТЗ",str(exc),parent=dlg); return
             finally: con3.close()
             dlg.destroy(); refresh_order_entities()
-            if len(created)<len(selected):
-                core.messagebox.showinfo(
-                    "Учасники / ТЗ",
-                    "Нові записи додано. Частина вибраних уже була в наказі з такою самою роллю.",
-                    parent=win,
-                )
+            core.messagebox.showinfo(
+                "Учасники / ТЗ",
+                "До наказу №%s додано: %d. Уже були з тією самою роллю: %d." % (order["order_no"],len(created),len(selected)-len(created)),
+                parent=win,
+            )
 
         core.ttk.Button(bar,text="Скасувати",command=dlg.destroy).pack(side="right")
         core.ttk.Button(bar,text="Додати вибрані",style="Accent.TButton",command=save_entities).pack(side="right",padx=(0,6))
         dlg.transient(win); search_entry.focus_set()
+        dlg.grab_set()
 
     def edit_order_entity():
         order=current_entity_order()

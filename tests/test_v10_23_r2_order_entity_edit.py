@@ -200,6 +200,64 @@ class OrderEntityEditR2Tests(unittest.TestCase):
         finally:
             app.destroy()
 
+    def test_live_search_keeps_selected_people_across_filters(self):
+        app = tk.Tk()
+        app.geometry("1200x800")
+        tab = ttk.Frame(app)
+        tab.pack(fill="both", expand=True)
+        order_tree = ttk.Treeview(app)
+        messages = []
+        core = SimpleNamespace(
+            tk=tk, ttk=ttk, db=self.connect,
+            configure_toplevel=lambda *_a, **_k: None,
+            messagebox=SimpleNamespace(
+                showinfo=lambda *a, **k: messages.append(a),
+                showerror=lambda *a, **k: self.fail("Unexpected picker error: %s" % (a,)),
+            ),
+        )
+        snapshot = dict(ops.get_order(self.con, self.oid))
+        self.con.commit()
+        def walk(parent):
+            for child in parent.winfo_children():
+                yield child
+                yield from walk(child)
+        try:
+            refresh = order_entities_ui.install_order_entities_tab(
+                core, ops, app, tab, order_tree, lambda quiet=True: snapshot,
+                lambda *_args: True,
+            )
+            refresh()
+            app.update()
+            self.assertTrue(any(isinstance(w, ttk.Label) and
+                                "Тест редагування" in str(w.getvar(w.cget("textvariable")))
+                                for w in walk(tab) if isinstance(w, ttk.Label) and w.cget("textvariable")))
+            buttons(tab, "Додати працівників…")[0].invoke()
+            app.update()
+            dlg = next(w for w in app.winfo_children() if isinstance(w, tk.Toplevel))
+            search = next(w for w in walk(dlg) if isinstance(w, ttk.Entry))
+            lb = next(w for w in walk(dlg) if isinstance(w, tk.Listbox))
+            search.insert(0, "Іваненко")
+            app.update()
+            self.assertEqual(lb.size(), 1)
+            lb.selection_set(0)
+            search.delete(0, "end")
+            search.insert(0, "Петренко")
+            app.update()
+            self.assertEqual(lb.size(), 1)
+            lb.selection_set(0)
+            search.delete(0, "end")
+            app.update()
+            self.assertEqual(tuple(lb.curselection()), (0, 1))
+            buttons(dlg, "Додати вибрані")[0].invoke()
+            check = self.connect()
+            try:
+                self.assertEqual({row["entity_id"] for row in ops.list_order_entities(check, self.oid)}, {1, 2})
+            finally:
+                check.close()
+            self.assertTrue(messages)
+        finally:
+            app.destroy()
+
 
 if __name__ == "__main__":
     unittest.main()
