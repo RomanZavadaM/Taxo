@@ -1506,8 +1506,14 @@
 ## 20.11.2026 — аудит актуальності документації після Stable r4
 
 - Live GitHub: main `9f76e20d70ff0ed69d85187908d2d696c2491624`; Stable/Latest v10.23-r4, exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets.
-- Виявлено, що після stable/documentation checkpoint уже стартувала 10.23-r5: PR #576, head `ef1c9d543a8dce0fc902cbe8a36dffa1fc01e291`; старі HANDOFF/STATE ще писали «r5 наступна».
+- Виявлено, що після stable/documentation checkpoint уже стартувала 10.23-r5: PR #576, head `3a084fa47784d9d7765f733a84e9f8951b0d4a03`; старі HANDOFF/STATE ще писали «r5 наступна».
 - Stable-опис r4, release markers, release page, README, Quick Start та release index перевірені прямим читанням main і відповідають факту.
 - Локалізації EN/DE/ES/FR/JA/KO описують Stable r4 узгоджено; для консистентності повертаються прапори в мовний рядок усіх перекладів. У FR виправляється очевидна граматика `du aperçu` → `de l’aperçu`.
 - Issue #556 зберігає історичний первинний аудит; актуальний статус додається окремим коментарем, не переписуванням історії.
 - r5 exact-head CI повністю SUCCESS, але PR #576 ще відкрита й не merged; Stable лишається r4 до окремого рішення власника.
+
+
+## 20.11.2026 — r5 head reconciled after docs/main update
+
+- PR #576 head moved from `ef1c9d543a8dce0fc902cbe8a36dffa1fc01e291` to `3a084fa47784d9d7765f733a84e9f8951b0d4a03` by merging the same r5 product head into newer main after README/docs updates; no new r5 functionality was added by that merge commit.
+- Current head `3a084fa47784d9d7765f733a84e9f8951b0d4a03` passed START, Windows, Win7 and macOS Intel/ARM. PR #576 remains open/unmerged; Stable remains v10.23-r4.
