@@ -247,11 +247,14 @@ class NewDocumentLiveRouteTests(TestCase):
                 for label in (
                     "Нова папка…","Перейменувати…","Перемістити папку…",
                     "Архівувати папку…","Відновити з архіву…",
-                    "Розмістити документ…",
                 ):
                     widget=button(win,label)
                     self.assertIsNotNone(widget,label)
                     assert_inside(widget,label)
+                assert_inside(
+                    win._taxo_catalog_place_in_folder,
+                    "Додати / розмістити документ у папці",
+                )
             finally:
                 self.close_window(root)
 
