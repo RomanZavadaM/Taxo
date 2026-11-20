@@ -1,0 +1,66 @@
+name: Investigate reported r3 download warning
+# Diagnostic only: inspect the already existing, blocked artifact. Never run its binaries.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/diagnose-r3-download.yml'
+permissions:
+  contents: read
+  actions: read
+env:
+  GH_TOKEN: ${{ github.token }}
+  ARTIFACT_ID: '14650119537'
+  EXPECTED_SHA256: '9513bec9909ca05ce1f61a97b067bc7eeec461193218cf496c5f991afc242903'
+jobs:
+  defender-original:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Download exact previously blocked archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > original.zip
+          echo "${EXPECTED_SHA256} *original.zip" | sha256sum --check
+      - name: Scan the outer archive and extracted original files without execution
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Expand-Archive -LiteralPath original.zip -DestinationPath inspected
+          ./scripts/windows_malware_gate.ps1 -Paths @('original.zip','inspected')
+          $manifest = @(Get-ChildItem inspected -Recurse -File -Filter 'SHA256SUMS_v*_Windows_x64.txt')
+          if ($manifest.Count -ne 1) { throw 'Expected exactly one manifest' }
+          foreach ($line in (Get-Content $manifest[0].FullName)) {
+            if ($line -notmatch '^([a-fA-F0-9]{64})  ([^/\\]+)$') { throw "Invalid checksum manifest line: $line" }
+            $hash = $Matches[1]
+            $name = $Matches[2]
+            $matchesFile = @(Get-ChildItem inspected -Recurse -File | Where-Object Name -eq $name)
+            if ($matchesFile.Count -ne 1) { throw "Unexpected number of matching files: $name" }
+            if ((Get-FileHash $matchesFile[0].FullName -Algorithm SHA256).Hash -ne $hash) { throw "Checksum mismatch: $name" }
+            Write-Host "Manifest check passed: $name $hash"
+          }
+  clamav-original:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download exact previously blocked archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > original.zip
+          echo "${EXPECTED_SHA256} *original.zip" | sha256sum --check
+      - name: Install independent scanner and update signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clamav clamav-freshclam
+          sudo systemctl stop clamav-freshclam || true
+          sudo freshclam --stdout
+          clamscan --version
+      - name: Inspect original archive and contents without executing files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir inspected
+          unzip -q original.zip -d inspected
+          clamscan --recursive --max-filesize=512M --max-scansize=1024M --max-recursion=30 --max-files=50000 --alert-exceeds-max=yes original.zip inspected
