@@ -1766,10 +1766,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     vault_actions.grid(row=5,column=0,sticky="ew",pady=(4,0))
     vault_help = core.ttk.Label(
         vault_actions,
-        text=(
-            "Сховище: незмінна копія документа + його походження. "
-            "Prepared Word редагуйте через окрему копію та нову редакцію."
-        ),
+        text="Сховище: незмінна копія документа + його походження. Prepared Word редагуйте через окрему копію та нову редакцію.",
         style="Muted.TLabel",
         wraplength=700,
         justify="left",
@@ -1872,6 +1869,7 @@ def open_document_catalog(parent, core, workspace_root, initial_source="all"):
     win._taxo_catalog_actions = actions
     win._taxo_catalog_vault_actions = vault_actions
     win._taxo_catalog_folder_actions = folder_actions
+    win._taxo_catalog_place_in_folder = place_in_folder_button
     win._taxo_catalog_date_sort = toggle_date_sort
     win._taxo_catalog_number_sort = toggle_number_sort
     win._taxo_catalog_search = search
