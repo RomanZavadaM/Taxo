@@ -14030,13 +14030,13 @@ class App(tk.Tk):
 
 
     def build_attestation(self):
+        # The sizing controls remain in the visible tab, outside the scrollable content.
+        split_hint=ttk.Frame(self.tab_att)
+        split_hint.pack(fill="x",padx=12,pady=(8,2))
+        ttk.Label(split_hint,text="Розмір областей: перетягніть межу між формою та історією.",wraplength=450,justify="left").grid(row=1,column=0,columnspan=2,sticky="w")
         host=self._make_scrollable_tab_body(self.tab_att, "attestation", fit_height=True)
         # The history and form stay alive while their shared divider moves.
-        # Give the upper form its own vertical scrolling so a small pane does
-        # not hide commands permanently. The outer body retains horizontal scroll.
-        split_hint=ttk.Frame(host)
-        split_hint.pack(fill="x",padx=12,pady=(8,2))
-        ttk.Label(split_hint,text="Розмір областей: перетягніть межу між формою та історією.").pack(side="left")
+        # The upper form has its own scrollbars; the outer body remains scrollable.
         panes=ttk.Panedwindow(host,orient="vertical",takefocus=True)
         panes.pack(fill="both",expand=True,padx=12,pady=(2,8))
         self.att_workspace_panes=panes
@@ -14082,8 +14082,8 @@ class App(tk.Tk):
             except tk.TclError:
                 pass
             return "break"
-        ttk.Button(split_hint,text="Більша форма",command=lambda:move_divider(60)).pack(side="right",padx=(4,0))
-        ttk.Button(split_hint,text="Більша історія",command=lambda:move_divider(-60)).pack(side="right",padx=4)
+        ttk.Button(split_hint,text="Більша форма",command=lambda:move_divider(60)).grid(row=0,column=0,sticky="w",padx=(0,4))
+        ttk.Button(split_hint,text="Більша історія",command=lambda:move_divider(-60)).grid(row=0,column=1,sticky="w",padx=(0,4))
         panes.bind("<Up>",lambda _e:move_divider(-30))
         panes.bind("<Down>",lambda _e:move_divider(30))
         self.att_driver_var=tk.StringVar()
