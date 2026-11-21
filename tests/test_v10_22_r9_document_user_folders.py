@@ -51,9 +51,9 @@ class DocumentUserFoldersR9Tests(unittest.TestCase):
 
     def test_version_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.23-r7\n")
-        self.assertIn('APP_VERSION = "10.23-r7"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.23-r7", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.23-r8\n")
+        self.assertIn('APP_VERSION = "10.23-r8"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.23-r8", (root / "START.bat").read_text("utf-8"))
 
     def test_create_rename_nested_move_and_cycle_guard(self):
         parent = create_collection(self.workspace, "Для перевірок")
