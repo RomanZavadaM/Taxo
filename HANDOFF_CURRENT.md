@@ -4,7 +4,7 @@
 
 **Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 файлів, `prerelease=false`, GitHub Latest. Stable promotion workflow #44811800328 — SUCCESS. Тег не пересувався.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). Новішого Test за r4 немає. v10.23-r3 навмисно не публікувався.
+**Поточний Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`, 8 файлів, prerelease=true. **Stable/Latest лишається 10.23-r4.** v10.23-r3 навмисно не публікувався.
 
 ## Що входить у Stable r4
 
@@ -27,3 +27,11 @@ Exact-head CI PR #576 завершено повністю: START, Windows, Win7,
 #562/#553/#556 не закривати автоматично; draft #543/#395 не чіпати. GitHub — джерело коду й релізів; Google Drive — резерв документації/стану/методології, а не дубль кожної збірки.
 
 Recovery: START_HERE → HANDOFF → private Taxo-profile → live GitHub.
+
+## 10.23-r5 і наступний документний крок
+
+10.23-r5 опублікована як Test prerelease після guarded publisher #44927558482 — SUCCESS. Пакет доводить «Документи → Каталог» для малого viewport 760×470 і додає 38-й strict live route `documents.catalog_small_viewport`. Stable не змінювався.
+
+Після r5 власник визначив нову обов'язкову вимогу: існуюча база документів має бути придатна для безпечного сортування за допомогою ШІ. Нормативна специфікація вже в main: `docs/DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md`. Принципи: незмінний оригінал; один фізичний файл — багато логічних представлень; staging INVENTORY→ANALYZE→PROPOSE→REVIEW→APPLY→VERIFY; SHA256 exact duplicates; стабільний document_id/manifest; окремі види дат; confidence/review; idempotent повторний scan; import batch + rollback; dry-run перед APPLY.
+
+**Наступний кодовий slice — 10.23-r6: inventory/dry-run core для існуючої бази документів без фізичного переміщення/перейменування файлів.**
