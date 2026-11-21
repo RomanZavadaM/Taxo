@@ -63,18 +63,19 @@ def _source_fallback(row):
     )
 
 
-def _date_desc_key(row):
+def _date_components(row):
     document_date = _parse_date(row.get("document_date"))
     registration_date = _parse_date(row.get("registration_date"))
-    missing_document_date = document_date is None
-    doc_ordinal = -(document_date.toordinal()) if document_date else 0
-    reg_ordinal = -(registration_date.toordinal()) if registration_date else 0
     return (
-        1 if missing_document_date else 0,
-        doc_ordinal,
+        1 if document_date is None else 0,
+        -(document_date.toordinal()) if document_date else 0,
         1 if registration_date is None else 0,
-        reg_ordinal,
-    ) + _source_fallback(row)
+        -(registration_date.toordinal()) if registration_date else 0,
+    )
+
+
+def _date_desc_key(row):
+    return _date_components(row) + _source_fallback(row)
 
 
 def _number_asc_key(row):
@@ -82,7 +83,8 @@ def _number_asc_key(row):
     return (
         1 if not number else 0,
         _natural_key(number),
-        *_date_desc_key(row),
+        *_date_components(row),
+        _identity(row),
     )
 
 
@@ -95,7 +97,7 @@ def _category_asc_key(row):
         category,
         1 if kind in _UNKNOWN else 0,
         kind,
-        *_date_desc_key(row),
+        *_date_components(row),
         _natural_key(row.get("document_number")),
         _identity(row),
     )
