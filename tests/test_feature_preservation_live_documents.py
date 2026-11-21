@@ -124,6 +124,7 @@ class NewDocumentLiveRouteTests(TestCase):
         "documents.catalog_folders",
         "documents.catalog_tree_modes",
         "documents.catalog_resize",
+        "documents.catalog_small_viewport",
     )
     def test_real_document_catalog_controls_and_persistence(self):
         # One real Tk interpreter covers all three routes. This prevents
@@ -199,6 +200,61 @@ class NewDocumentLiveRouteTests(TestCase):
                     self.assertIsNotNone(widget,label)
                     self.assertTrue(widget.winfo_ismapped(),label)
                     self.assertGreater(widget.winfo_width(),1,label)
+
+                # The audited minimum catalog viewport must keep the table,
+                # horizontal scroll and all primary actions physically visible.
+                win.geometry("760x470")
+                root.update()
+                table=win._taxo_catalog_tree
+                hscroll=win._taxo_catalog_horizontal
+                self.assertTrue(table.winfo_ismapped())
+                self.assertGreaterEqual(table.winfo_height(),55)
+                self.assertTrue(hscroll.winfo_ismapped())
+                left,top=win.winfo_rootx(),win.winfo_rooty()
+                right,bottom=left+win.winfo_width(),top+win.winfo_height()
+                def assert_inside(widget,label):
+                    self.assertTrue(widget.winfo_ismapped(),label)
+                    x1,y1=widget.winfo_rootx(),widget.winfo_rooty()
+                    x2,y2=x1+widget.winfo_width(),y1+widget.winfo_height()
+                    self.assertGreaterEqual(x1,left-2,label)
+                    self.assertGreaterEqual(y1,top-2,label)
+                    self.assertLessEqual(x2,right+2,label)
+                    self.assertLessEqual(y2,bottom+2,label)
+                assert_inside(table,"catalog table")
+                assert_inside(hscroll,"catalog horizontal scroll")
+                for label in (
+                    "Оновити","Скинути фільтри","Попередня","Наступна",
+                    "Копія для редагування…","Додати редакцію DOCX…",
+                    "PDF / друк…","Відкрити вибране",
+                    "Переглянути сховище документів",
+                    "Зберегти вибрану редакцію у сховищі",
+                    "Паперовий підпис…","Скани…",
+                ):
+                    widget=button(win,label)
+                    self.assertIsNotNone(widget,label)
+                    assert_inside(widget,label)
+                activate_widget(
+                    button(win,"Скинути фільтри"),
+                    "documents.catalog_small_viewport",
+                    container=win,
+                )
+
+                # Folder commands move to the full-width action strip at the
+                # same minimum viewport instead of forcing the left tree tall.
+                selector.set("Мої папки")
+                selector.event_generate("<<ComboboxSelected>>")
+                root.update()
+                for label in (
+                    "Нова папка…","Перейменувати…","Перемістити папку…",
+                    "Архівувати папку…","Відновити з архіву…",
+                ):
+                    widget=button(win,label)
+                    self.assertIsNotNone(widget,label)
+                    assert_inside(widget,label)
+                assert_inside(
+                    win._taxo_catalog_place_in_folder,
+                    "Додати / розмістити документ у папці",
+                )
             finally:
                 self.close_window(root)
 

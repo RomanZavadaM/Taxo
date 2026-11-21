@@ -50,6 +50,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("documents.catalog_folders", "Документи → Мої папки", "Нова папка…", "document_catalog_ui.create_user_folder", runtime_smoke=True),
     FunctionRoute("documents.attestation_resize", "Документи → Бланки", "Більша історія / Більша форма", "build_attestation", runtime_smoke=True),
     FunctionRoute("documents.catalog_resize", "Документи → Каталог", "Регульоване дерево папок", "document_catalog_ui.open_document_catalog", runtime_smoke=True),
+    FunctionRoute("documents.catalog_small_viewport", "Документи → Каталог", "Дерево / таблиця / нижні дії при 760×470", "document_catalog_ui.open_document_catalog", runtime_smoke=True),
     FunctionRoute("documents.catalog_tree_modes", "Документи → Дерево", "За видами / За датами / Мої папки", "document_catalog_ui.change_library_mode", runtime_smoke=True),
     FunctionRoute("waybills.actions", "Шляхові листи", "Повна панель дій", "WAYBILL_ACTION_LABELS", runtime_smoke=True),
     FunctionRoute("tachograph.main", "Ліве меню", "Тахограф", "tab_tacho", runtime_smoke=True),
