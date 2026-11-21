@@ -28,9 +28,9 @@
 
 Ручне приймання саме 10.23-r4 виконано. Загальний аудит повного покриття всіх функцій (#556) і ширший наскрізний контроль механізму наказів (#553) залишаються відкритими; реєстрація вхідної/вихідної кореспонденції ще запланована.
 
-### Test 10.23-r6
+### Test 10.23-r7
 
-r6 додає read-only inventory існуючого архіву: SHA256, MIME, розмір, modified time, source path/relative path, stable candidate_id і machine-readable manifest `taxo.document-inventory.v1`. Точні дублікати групуються лише за однаковим SHA256; symlink-и не проходяться. Немає move/rename/delete/copy, OCR, AI-класифікації чи APPLY.
+r7 зберігає read-only inventory з r6 як атомарний dry-run batch у керованому workspace: `inventory.json`, `report.json`, checksum manifest, idempotent повторне збереження та fail-closed конфлікти. Source-архів не змінюється; OCR, AI ANALYZE/PROPOSE/APPLY та фізичне сортування ще не виконуються.
 
 ## Завантаження
 
@@ -41,7 +41,7 @@ r6 додає read-only inventory існуючого архіву: SHA256, MIME,
 - **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_macOS_x86_64_Portable.zip)
 - **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Test:** [Taxo 10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6) — prerelease, 8 файлів, exact source `5a321e98c39443f3d37c89837352402df4542551`. r6 додає безпечну read-only інвентаризацію існуючого архіву; Stable/Latest не змінює.
+**Test:** [Taxo 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7) — prerelease, 8 файлів, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`. r7 атомарно зберігає dry-run inventory batch/report у workspace; Stable/Latest не змінює.
 
 ## Початок роботи та дані
 

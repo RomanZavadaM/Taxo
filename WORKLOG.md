@@ -1542,3 +1542,13 @@
 - [v10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6) — Test prerelease, 8 assets, exact target `5a321e98c39443f3d37c89837352402df4542551`. Stable/Latest лишається v10.23-r4.
 - r6 inventory читає regular files, фіксує source/relative path, name, size, MIME, mtime, SHA256, stable candidate_id, versioned machine-readable manifest; exact duplicates лише за однаковим SHA256; symlink-и не проходяться. Жодного move/rename/delete/copy, OCR, AI-класифікації або APPLY.
 - Наступний кодовий slice: 10.23-r7 — атомарне збереження dry-run inventory/report у workspace як import batch, без змін source-архіву.
+
+
+## 21.11.2026 — 10.23-r7 Test published
+
+- Product source `a60d1933ddde090f0cb5e8672c5070030647301d` implements atomic dry-run inventory batches in managed workspace.
+- Exact-source main CI: START #44943282760, Windows #44943282736, Win7 #44943282765, macOS Intel/ARM #44943282733 — SUCCESS; Defender/integrity PASS.
+- Guarded release-trigger PR #593 passed START/Windows/Win7/macOS and merged as `3439b327778bfa2fe241a60e86ceb896513a0737`.
+- Publisher #44944448052 — SUCCESS. `v10.23-r7` is prerelease with 8 canonical assets; tag target remains exact product source `a60d193...`. Stable/Latest remains v10.23-r4.
+- r7 stores `inventory.json` and `report.json` atomically under `Data/DocumentLibrary/import_batches/<batch_id>`, verifies checksum, supports idempotent reuse and fails closed on conflicting content. Source archive remains read-only.
+- Next slice: 10.23-r8 verified batch reader + deterministic sorting preview. No OCR/AI APPLY or physical sorting.

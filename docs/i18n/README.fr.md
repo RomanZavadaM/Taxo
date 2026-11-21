@@ -16,7 +16,7 @@ Taxo est une application de bureau pour les entreprises de transport : personnel
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test :** [Taxo 10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6), prerelease de 8 fichiers, exact source `5a321e98c39443f3d37c89837352402df4542551`. Elle ajoute un inventaire en lecture seule d’une archive existante avec SHA256/MIME/taille/mtime, identifiants candidats stables, manifest lisible par machine et groupes de doublons exacts, sans déplacer, renommer ni supprimer les fichiers source. Stable/Latest reste 10.23-r4.
+**Current Test :** [Taxo 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7), prerelease de 8 fichiers, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`. Elle stocke l’inventaire en lecture seule de r6 sous forme de lot dry-run atomique dans l’espace géré, avec manifests inventory/report, contrôle de checksum, réutilisation idempotente et conflits fail-closed. Les fichiers source restent inchangés ; Stable/Latest reste 10.23-r4.
 
 Conservez les bases et documents dans un dossier de travail séparé et sauvegardez-le avant mise à jour. [Guide utilisateur (ukrainien)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

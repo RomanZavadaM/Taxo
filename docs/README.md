@@ -4,7 +4,7 @@
 
 **Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START, 37 strict live UI routes.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), 8 файлів, exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`; Stable r4 не змінено.
+**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7), 8 файлів, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`; Stable r4 не змінено.
 
 ## Робота з програмою
 
@@ -26,7 +26,7 @@ Taxo допомагає створювати, редагувати, перегл
 ## Випуски та стан
 
 - [Stable 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4)
-- [Test 10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6) — read-only inventory існуючого архіву; Stable не змінює
+- [Test 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7) — atomic dry-run inventory batches у workspace; Stable не змінює
 - [Що нового у 10.23-r4](releases/RELEASE_NOTES_v10.23-r4.md)
 - [Індекс випусків](releases/RELEASE_INDEX.md)
 - [Стан продукту](PRODUCT_STATUS.md)
