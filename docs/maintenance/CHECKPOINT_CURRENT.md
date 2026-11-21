@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**21.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r5.**
+**21.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r6.**
 
 ## Stable
 
@@ -11,16 +11,19 @@
 
 ## Test
 
-- Release: [v10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5)
-- Exact source: `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`
-- 8 assets; prerelease; publisher #44927558482 SUCCESS.
-- START #44926983535, Windows #44926983543, Win7 #44926983541, macOS Intel/ARM #44926983524 — SUCCESS; Defender/integrity PASS.
-- «Документи → Каталог» перевірено для 760×470; 38-й strict route `documents.catalog_small_viewport`.
+- Release: [v10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6)
+- Exact source: `5a321e98c39443f3d37c89837352402df4542551`
+- 8 assets; prerelease; publisher #44933358679 SUCCESS.
+- START #44932279502, Windows #44932280241, Win7 #44932279586, macOS Intel/ARM #44932279465 — SUCCESS; Defender/integrity PASS.
+- Read-only inventory existing archive: SHA256/MIME/size/mtime, stable candidate_id, versioned manifest, exact duplicate groups, symlink skip.
+- Немає move/rename/delete/copy, OCR, AI classification чи APPLY.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
-Нормативна AI-ready модель збереження/класифікації підготовлена у draft PR #580. Після recovery r5 її треба інтегрувати, після чого наступний вузький кодовий крок — **10.23-r6 read-only inventory існуючого архіву**: regular files, relative path/name, size, MIME, mtime, streaming SHA256, exact duplicate groups, versioned manifest/import_batch. Без OCR/AI/move/delete у першому кроці.
+Нормативна AI-ready модель: [DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md](../DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md).
+
+Наступний вузький кодовий крок — **10.23-r7**: атомарно зберігати dry-run inventory/report у керованому workspace як import batch, із повторюваною identity та перевіркою hash. Source-архів не змінювати; AI ANALYZE/PROPOSE/APPLY і фізичне сортування ще не реалізовувати.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
