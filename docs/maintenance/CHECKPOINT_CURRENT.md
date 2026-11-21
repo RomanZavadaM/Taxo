@@ -13,10 +13,10 @@
 - Власник вручну підтвердив працездатність r4 20.11.2026.
 - Stable promotion #44811800328 — SUCCESS; `releases/latest` = v10.23-r4; prerelease=false.
 
-**Попередня Stable:** v10.23-r1. **Новішого Test немає.** v10.23-r3 навмисно не видавався.
+**Поточний Test:** v10.23-r5, exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`, 8 assets, publisher #44927558482 SUCCESS. **Stable/Latest:** v10.23-r4. v10.23-r3 навмисно не видавався.
 
 r4 включає адаптивний перегляд наказів у вузькому вікні, зміни r2/r3 для учасників наказів і регульованих документних робочих областей, а також 37 strict live UI routes.
 
-Активний кодовий крок: **10.23-r5**, PR #576, head `3a084fa47784d9d7765f733a84e9f8951b0d4a03` — один пов'язаний пакет малого viewport «Документи → Каталог». START, Windows, Win7 і macOS Intel/ARM — SUCCESS. PR #576 ще не merged і не опублікована; після merge застосувати стандартне правило Test prerelease. Stable лишається r4. #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
+r5 інтегрована й опублікована як Test. Наступний кодовий крок: **10.23-r6** — inventory/dry-run core для існуючої бази документів відповідно до `docs/DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md`. На r6 заборонено фізичне move/rename/delete та автоматичний APPLY: тільки inventory, SHA256, manifest, exact duplicates і звіт. #553/#556/#562 не закривати автоматично; draft #543/#395 лишити історичними design-гілками.
 
 Актуальний стан: [PROJECT_STATE](../../PROJECT_STATE.md) · [HANDOFF](../../HANDOFF_CURRENT.md) · [WORKLOG](../../WORKLOG.md).
