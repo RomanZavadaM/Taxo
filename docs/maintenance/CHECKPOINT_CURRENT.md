@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**21.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r6.**
+**21.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r7.**
 
 ## Stable
 
@@ -11,19 +11,18 @@
 
 ## Test
 
-- Release: [v10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6)
-- Exact source: `5a321e98c39443f3d37c89837352402df4542551`
-- 8 assets; prerelease; publisher #44933358679 SUCCESS.
-- START #44932279502, Windows #44932280241, Win7 #44932279586, macOS Intel/ARM #44932279465 — SUCCESS; Defender/integrity PASS.
-- Read-only inventory existing archive: SHA256/MIME/size/mtime, stable candidate_id, versioned manifest, exact duplicate groups, symlink skip.
-- Немає move/rename/delete/copy, OCR, AI classification чи APPLY.
+- Release: [v10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7)
+- Exact source: `a60d1933ddde090f0cb5e8672c5070030647301d`
+- 8 assets; prerelease; publisher #44944448052 SUCCESS.
+- START #44943282760, Windows #44943282736, Win7 #44943282765, macOS Intel/ARM #44943282733 — SUCCESS; Defender/integrity PASS.
+- Atomic dry-run inventory batch store у workspace: inventory/report/checksum, idempotent reuse, fail-closed conflicts, source read-only.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
 Нормативна AI-ready модель: [DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md](../DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md).
 
-Наступний вузький кодовий крок — **10.23-r7**: атомарно зберігати dry-run inventory/report у керованому workspace як import batch, із повторюваною identity та перевіркою hash. Source-архів не змінювати; AI ANALYZE/PROPOSE/APPLY і фізичне сортування ще не реалізовувати.
+Наступний вузький кодовий крок — **10.23-r8**: verified batch reader + deterministic sorting preview. Перевіряти format/checksum, читати batch read-only і формувати стабільний preview за датою/номером/категорією/видом із stable identity tie-breaker. OCR, AI ANALYZE/PROPOSE/APPLY і фізичне сортування ще не реалізовувати.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
