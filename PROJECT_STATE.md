@@ -36,3 +36,5 @@ Exact-source CI `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`:
 Наступний кодовий крок після docs checkpoint — **10.23-r6 read-only inventory**: рекурсивний scan regular files, relative path/name, size, MIME, mtime, SHA256, duplicate groups та versioned manifest/import_batch. Без OCR, AI-класифікації, move/delete або реєстрації у Vault у першому кроці.
 
 #553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
+
+Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
