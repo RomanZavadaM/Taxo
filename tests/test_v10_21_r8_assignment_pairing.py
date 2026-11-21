@@ -15,14 +15,14 @@ class AssignmentPairingR8Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text(encoding="utf-8"),
-            "Version: 10.23-r7\n",
+            "Version: 10.23-r8\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.23-r7"',
+            'APP_VERSION = "10.23-r8"',
             (root / "main.py").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "Taxo 10.23-r7",
+            "Taxo 10.23-r8",
             (root / "START.bat").read_text(encoding="utf-8"),
         )
 

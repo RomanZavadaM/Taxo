@@ -57,9 +57,9 @@ class DocumentEntityFilterR2Tests(unittest.TestCase):
 
     def test_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.23-r7\n")
-        self.assertIn('APP_VERSION = "10.23-r7"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.23-r7", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.23-r8\n")
+        self.assertIn('APP_VERSION = "10.23-r8"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.23-r8", (root / "START.bat").read_text("utf-8"))
 
     def test_employee_filter_uses_stable_id_not_name(self):
         result = document_catalog.paginate_sources(
