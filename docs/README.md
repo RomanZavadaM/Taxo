@@ -30,7 +30,7 @@ Taxo допомагає створювати, редагувати, перегл
 - [Індекс випусків](releases/RELEASE_INDEX.md)
 - [Стан продукту](PRODUCT_STATUS.md)
 - [Модель даних і резервування](DATA_MODEL_AND_STORAGE.md)
-- AI-ready збереження/сортування існуючої бази — нормативна специфікація у draft PR #580, буде додана після recovery r5.
+- [Збереження, класифікація та AI-сортування документів](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md)
 - [Ліцензія](LEGAL_AND_COPYRIGHT.md)
 
 ## Для розробки та відновлення
