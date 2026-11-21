@@ -1,6 +1,8 @@
 # Taxo 10.23-r5 — малий viewport каталогу документів
 
-**Робочий Test-кандидат. Stable/Latest залишається 10.23-r4.**
+**Test prerelease опубліковано 21.11.2026. Stable/Latest залишається 10.23-r4.**
+
+Exact source: `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`. START #44926983535, Windows #44926983543, Win7 #44926983541, macOS Intel/ARM #44926983524 — SUCCESS; Defender/integrity PASS. Publisher #44927558482 — SUCCESS; 8 assets.
 
 Один пов'язаний пакет із #556 для вікна **«Документи → Каталог»**:
 

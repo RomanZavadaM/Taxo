@@ -1,10 +1,11 @@
 # Випуски Taxo
 
-**Стан:** 20.11.2026.
+**Стан:** 21.11.2026.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) | 8 файлів; 37 суворих live UI-маршрутів, адаптивний перегляд наказів і зміни r1–r4. Exact source a919ced6bc8665ced70ebb4d897808e4e2618667; stable promotion #44811800328 SUCCESS. |
+| Поточна тестова | [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5) | 8 файлів; малий viewport «Документи → Каталог» 760×470, горизонтальна прокрутка, 12 основних дій + 6 дій «Мої папки», 38 strict live routes. Exact source dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a; publisher #44927558482 SUCCESS; Defender/integrity PASS. |
 | Попередня стабільна | [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) | 8 файлів; 32 суворі маршрути. Exact source 84184bbbf6c26b681c04feaebee19910269bd25c. |
 | Попередня тестова | [10.23-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r2) | 8 файлів; редагування ролі/примітки учасника наказу, 33 маршрути; exact source ac0bd0d5078ab4bd4c76abcaa0ca9b72e776e03e. |
 | Старіша стабільна | [10.21-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.21-r2) | 8 файлів, exact source b104f94ace0ae355df79c914b3be6f39417bd6e9. |

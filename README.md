@@ -28,6 +28,10 @@
 
 Ручне приймання саме 10.23-r4 виконано. Загальний аудит повного покриття всіх функцій (#556) і ширший наскрізний контроль механізму наказів (#553) залишаються відкритими; реєстрація вхідної/вихідної кореспонденції ще запланована.
 
+### Test 10.23-r5
+
+У r5 дерево, таблиця, фільтри, горизонтальна прокрутка, 12 основних дій і 6 дій «Мої папки» залишаються доступними у вікні 760×470. Додано 38-й strict live route `documents.catalog_small_viewport`. Бізнес-логіка документів, файли та БД не змінені.
+
 ## Завантаження
 
 **Stable / Latest: [Taxo 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).** Попередня стабільна точка: [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
@@ -37,7 +41,7 @@
 - **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_macOS_x86_64_Portable.zip)
 - **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-Новішого тестового випуску за Stable 10.23-r4 зараз немає.
+**Test:** [Taxo 10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5) — prerelease, 8 файлів, exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`. r5 доводить малий viewport «Документи → Каталог» до 760×470; Stable/Latest не змінює.
 
 ## Початок роботи та дані
 
