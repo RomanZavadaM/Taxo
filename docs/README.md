@@ -26,6 +26,7 @@ Taxo допомагає створювати, редагувати, перегл
 ## Випуски та стан
 
 - [Stable 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4)
+- [Test 10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6) — read-only inventory існуючого архіву; Stable не змінює
 - [Що нового у 10.23-r4](releases/RELEASE_NOTES_v10.23-r4.md)
 - [Індекс випусків](releases/RELEASE_INDEX.md)
 - [Стан продукту](PRODUCT_STATUS.md)
