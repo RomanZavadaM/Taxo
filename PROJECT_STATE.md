@@ -4,7 +4,7 @@
 
 **Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact product source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, GitHub Latest, prerelease=false.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). Новішого тестового випуску немає. r3 був інтегрований у main, але окремий v10.23-r3 свідомо не публікувався.
+**Поточний Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`, 8 assets, prerelease=true. **Stable/Latest: 10.23-r4.** r3 був інтегрований у main, але окремий v10.23-r3 свідомо не публікувався.
 
 ## Stable 10.23-r4
 
@@ -28,10 +28,12 @@ Exact stable source `a919ced6bc8665ced70ebb4d897808e4e2618667`:
 
 Release v10.23-r4 перевірено: tag target = exact source, 8 assets, draft=false, prerelease=false, `releases/latest` = v10.23-r4.
 
-## Активна розробка
+## Поточний Test і наступна розробка
 
-**10.23-r5 уже в роботі:** PR #576, head `3a084fa47784d9d7765f733a84e9f8951b0d4a03`. Пакет закриває ризик малого viewport «Документи → Каталог»: компактні дерево/таблиця, повноширинна панель дій власних папок, адаптивні фільтри та strict live route `documents.catalog_small_viewport`. Якщо буде merged, реєстр зросте з 37 до 38 strict live routes.
+10.23-r5 опублікована як Test prerelease. Exact release source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`; publisher #44927558482 — SUCCESS; 8 assets. Вона додає малий viewport каталогу документів і 38-й strict live route. Stable/Latest лишається 10.23-r4.
 
-Exact-head CI r5 завершено: START, Windows, Win7, macOS Intel/ARM — SUCCESS. PR #576 ще відкрита, не merged і не опублікована. Після інтеграції діє стандартне правило Test prerelease; Stable/Latest лишається 10.23-r4 без окремого рішення власника. #553/#556/#562 лишаються відкритими; draft #543/#395 не змінювати.
+Нормативна AI-ready архітектура документів злита в main: `docs/DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md`. Наступна кодова ревізія — **10.23-r6**, inventory/dry-run core для існуючої бази документів: лише інвентар, hash, manifest, exact duplicate detection і звіт; без move/rename/delete та без автоматичного APPLY.
+
+#553/#556/#562 лишаються відкритими; draft #543/#395 не закривати автоматично.
 
 Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
