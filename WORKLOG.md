@@ -1517,3 +1517,12 @@
 
 - PR #576 head moved from `ef1c9d543a8dce0fc902cbe8a36dffa1fc01e291` to `3a084fa47784d9d7765f733a84e9f8951b0d4a03` by merging the same r5 product head into newer main after README/docs updates; no new r5 functionality was added by that merge commit.
 - Current head `3a084fa47784d9d7765f733a84e9f8951b0d4a03` passed START, Windows, Win7 and macOS Intel/ARM. PR #576 remains open/unmerged; Stable remains v10.23-r4.
+
+
+## 21.11.2026 — 10.23-r5 Test published; AI-ready document architecture accepted
+
+- 10.23-r5 integrated into main and published as Test prerelease. Exact issued source: `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`; publisher #44927558482 SUCCESS; 8 canonical assets. Stable/Latest remains v10.23-r4.
+- r5 hardens «Документи → Каталог» at 760×470 and raises strict live coverage to 38 routes. Document storage/business logic was not changed by r5.
+- Owner added a mandatory requirement: existing document archives must be sortable/classifiable by AI without losing originals. Detailed rules were recorded in #543/#61 and formalized in `docs/DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md`, merged via PR #584.
+- Normative principles: immutable originals; metadata/logical views instead of filesystem-as-classification; staging INVENTORY→ANALYZE→PROPOSE→REVIEW→APPLY→VERIFY; stable document_id/manifest; SHA256 exact duplicates; separate semantic dates; deterministic sort keys; confidence/review; idempotent rescans; import_batch rollback; dry-run before APPLY; optional physical reorganization only as a separate confirmed reversible operation.
+- Next code revision: 10.23-r6, first safe inventory/dry-run core. It must not move, rename, delete or classify files automatically.
