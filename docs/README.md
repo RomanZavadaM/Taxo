@@ -4,7 +4,7 @@
 
 **Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START, 37 strict live UI routes.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). Новішого опублікованого Test за r4 зараз немає. **10.23-r5 активна у PR #576; exact-head CI вже повністю SUCCESS, але PR ще не merged і r5 ще не є релізом.**
+**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), 8 файлів, exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`; Stable r4 не змінено.
 
 ## Робота з програмою
 
@@ -30,6 +30,7 @@ Taxo допомагає створювати, редагувати, перегл
 - [Індекс випусків](releases/RELEASE_INDEX.md)
 - [Стан продукту](PRODUCT_STATUS.md)
 - [Модель даних і резервування](DATA_MODEL_AND_STORAGE.md)
+- AI-ready збереження/сортування існуючої бази — нормативна специфікація у draft PR #580, буде додана після recovery r5.
 - [Ліцензія](LEGAL_AND_COPYRIGHT.md)
 
 ## Для розробки та відновлення
