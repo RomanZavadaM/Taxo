@@ -1,12 +1,12 @@
 # Taxo / Driver Worktime
 
-[Українська](../../README.md) · [English](README.en.md) · [Deutsch](README.de.md) · [Español](README.es.md) · [Français](README.fr.md) · [한국어](README.ko.md) · [日本語](README.ja.md)
+🇺🇦 [Українська](../../README.md) · 🇬🇧 [English](README.en.md) · 🇩🇪 [Deutsch](README.de.md) · 🇪🇸 [Español](README.es.md) · 🇫🇷 [Français](README.fr.md) · 🇰🇷 [한국어](README.ko.md) · 🇯🇵 [日本語](README.ja.md)
 
 Taxo est une application de bureau pour les entreprises de transport : personnel et véhicules, plannings et temps de travail, feuilles de route, ordres, documents, maintenance, rapports et sauvegardes.
 
 ## Stable 10.23-r4
 
-**10.23-r4 a été validée manuellement par le propriétaire le 20 novembre 2026 et est Stable/Latest.** Elle comprend la recherche, les filtres, le tri, les arbres type/date et les dossiers personnalisés imbriqués, les révisions Word contrôlées, PDF/impression, DocumentVault, les scans papier facultatifs et un état de signature papier séparé. Les ordres gèrent des paires conducteur–véhicule explicites, leur modification, l’édition du rôle/de la note et la conservation de la sélection pendant la recherche. Les zones de travail des documents et la largeur de l’arbre du catalogue sont réglables. Les actions DOCX/PDF/JPG du aperçu d’ordre restent accessibles dans une fenêtre étroite, y compris 760×560.
+**10.23-r4 a été validée manuellement par le propriétaire le 20 novembre 2026 et est Stable/Latest.** Elle comprend la recherche, les filtres, le tri, les arbres type/date et les dossiers personnalisés imbriqués, les révisions Word contrôlées, PDF/impression, DocumentVault, les scans papier facultatifs et un état de signature papier séparé. Les ordres gèrent des paires conducteur–véhicule explicites, leur modification, l’édition du rôle/de la note et la conservation de la sélection pendant la recherche. Les zones de travail des documents et la largeur de l’arbre du catalogue sont réglables. Les actions DOCX/PDF/JPG de l’aperçu d’ordre restent accessibles dans une fenêtre étroite, y compris 760×560.
 
 37 parcours UI live stricts vérifient visibilité, position à l’écran, utilisabilité et activation. START, Windows, Windows 7 et macOS Intel/Apple Silicon ont réussi ; Windows/Win7 ont également passé Defender et les contrôles d’intégrité. La couverture complète (#556) et l’audit de bout en bout plus large des ordres (#553) restent ouverts.
 

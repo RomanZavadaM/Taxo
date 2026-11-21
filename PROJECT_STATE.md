@@ -28,8 +28,10 @@ Exact stable source `a919ced6bc8665ced70ebb4d897808e4e2618667`:
 
 Release v10.23-r4 перевірено: tag target = exact source, 8 assets, draft=false, prerelease=false, `releases/latest` = v10.23-r4.
 
-## Наступне
+## Активна розробка
 
-Наступна кодова ревізія — **10.23-r5**. Один змістовний пакет із залишку #556: малий viewport «Документи → Каталог» — дерево, таблиця, нижні дії, прокрутка/доступність і live regression. #553/#556/#562 лишаються відкритими до окремого повного закриття. Draft #543/#395 не змінювати.
+**10.23-r5 уже в роботі:** PR #576, head `3a084fa47784d9d7765f733a84e9f8951b0d4a03`. Пакет закриває ризик малого viewport «Документи → Каталог»: компактні дерево/таблиця, повноширинна панель дій власних папок, адаптивні фільтри та strict live route `documents.catalog_small_viewport`. Якщо буде merged, реєстр зросте з 37 до 38 strict live routes.
+
+Exact-head CI r5 завершено: START, Windows, Win7, macOS Intel/ARM — SUCCESS. PR #576 ще відкрита, не merged і не опублікована. Після інтеграції діє стандартне правило Test prerelease; Stable/Latest лишається 10.23-r4 без окремого рішення власника. #553/#556/#562 лишаються відкритими; draft #543/#395 не змінювати.
 
 Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
