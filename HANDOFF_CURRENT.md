@@ -1,39 +1,33 @@
 # HANDOFF_CURRENT — Taxo
 
-**21.11.2026 — 10.23-r5 опубліковано як Test prerelease; Stable/Latest лишається 10.23-r4.**
+**21.11.2026 — 10.23-r6 опубліковано як Test prerelease; Stable/Latest лишається 10.23-r4.**
 
 **Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, `prerelease=false`, GitHub Latest.
 
-**Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`, 8 assets, prerelease. Tag незмінно вказує на exact source; publisher #44927558482 — SUCCESS.
+**Test:** [10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6), exact source `5a321e98c39443f3d37c89837352402df4542551`, 8 assets, prerelease. Publisher #44933358679 — SUCCESS.
 
-Exact-source r5 CI: START #44926983535, Windows #44926983543, Win7 #44926983541, macOS Intel/ARM #44926983524 — SUCCESS; Defender/integrity PASS.
+Exact-source r6 CI: START #44932279502, Windows #44932280241, Win7 #44932279586, macOS Intel/ARM #44932279465 — SUCCESS; Defender/integrity PASS.
 
-## Що додає r5
+## Що додає r6
 
-- «Документи → Каталог» придатний для малого viewport 760×470;
-- дерево й таблиця мають компактний початковий розмір і розтягуються у вільний простір;
-- горизонтальна прокрутка таблиці доступна;
-- 12 основних дій і 6 дій «Мої папки» лишаються на екрані;
-- великі фільтри стискаються лише у вузькому режимі й відновлюються при збільшенні;
-- strict live route `documents.catalog_small_viewport` збільшує реєстр з 37 до 38 маршрутів;
-- бізнес-логіка документів, БД та фізичне сховище не змінювалися.
+- read-only inventory довільної існуючої папки документів;
+- source path / relative path / name, file size, MIME, modified time, SHA256;
+- стабільний `candidate_id` для незміненого файла;
+- machine-readable manifest `taxo.document-inventory.v1`;
+- exact duplicate groups лише за однаковим SHA256;
+- symlink-и не проходяться;
+- змінений файл стає новим кандидатом;
+- AI-поля поки порожні, `review_state=inventory`;
+- жодного move/rename/delete/copy, OCR, AI-класифікації або APPLY.
 
-## Нова обов'язкова вимога до архіву документів
+## Нормативна AI-ready модель
 
-Власник 21.11.2026 визначив, що система збереження/сортування має бути придатна для ШІ, який зможе розібрати вже існуючу базу документів. Нормативні принципи зафіксовані в Issue #543 і draft PR #580:
+`docs/DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md` уже в main. Канонічна структура — stable document identity + metadata + links; дерево папок лише представлення. Оригінали не змінюються. Масова робота має staging INVENTORY → ANALYZE → PROPOSE → REVIEW → APPLY → VERIFY, confidence/reason/review, import batch + rollback і dry-run перед APPLY.
 
-- оригінал не змінюється;
-- один фізичний файл може мати кілька логічних представлень без копій;
-- staging: INVENTORY → ANALYZE → PROPOSE → REVIEW → APPLY → VERIFY;
-- SHA256 для точних дублікатів;
-- окремі document/registration/received/sent/validity dates;
-- AI confidence/reason/review state;
-- idempotent повторний scan;
-- import_batch + журнал + відкат;
-- стабільний машинозчитуваний manifest.
+## Наступний крок
 
-Після закриття recovery r5 злити PR #580 і почати **10.23-r6** вузько з read-only inventory старої папки документів: шлях/назва/розмір/MIME/mtime/SHA256, без OCR/AI/move/delete.
+**10.23-r7:** збереження dry-run inventory/report у керованому workspace (`Data/DocumentLibrary/import_batches` або еквівалент) атомарно, з batch identity та повторюваністю. Вихідний архів і далі не змінювати; ніякого AI APPLY чи фізичного сортування.
 
-#553/#556/#562 залишаються відкритими до окремого повного закриття. Draft #543/#395 не закривати автоматично.
+#553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
 
 Recovery: START_HERE → HANDOFF → private Taxo-profile → live GitHub.

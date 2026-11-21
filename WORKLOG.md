@@ -1530,3 +1530,15 @@
 - Власник додав обов'язкову вимогу: механізм збереження/сортування має бути придатним для ШІ, який безпечно розбере існуючу базу документів. Принципи зафіксовані у #543/#61; нормативний документ підготовлено у draft PR #580.
 - Цільова схема: immutable originals; metadata/logical folders замість копій; staging INVENTORY → ANALYZE → PROPOSE → REVIEW → APPLY → VERIFY; SHA256 exact duplicates; окремі види дат; AI confidence/reason/review; idempotent rescan; import_batch + rollback.
 - Наступний вузький кодовий крок після інтеграції документації: **10.23-r6 read-only inventory** існуючої папки документів. Без OCR/AI/move/delete на першому етапі.
+
+
+## 21.11.2026 — 10.23-r6: read-only inventory існуючого архіву
+
+- Нормативна AI-ready специфікація документів інтегрована через PR #584: незмінні оригінали, stable document identity + metadata + links, staging INVENTORY→ANALYZE→PROPOSE→REVIEW→APPLY→VERIFY, SHA256 exact duplicates, окремі semantic dates, deterministic sort keys, confidence/review, batch/rollback, dry-run.
+- r6 prep PR #587 додав read-only inventory core і тести без version bump; exact head після reconciliation `3942af5d7273a529acbc4635f9d4b787e0cb1f0a` пройшов START/Windows/Win7/macOS.
+- Product candidate PR #588 підняв identity до 10.23-r6 і синхронізував історичні version guards. Final candidate head `dd1896c4bb86c74a8f4cd7b4c20d280c62a2ef13` — START/Windows/Win7/macOS Intel/ARM SUCCESS; Defender/integrity PASS.
+- Integrated exact release source: `5a321e98c39443f3d37c89837352402df4542551`. Exact-main CI: START #44932279502, Windows #44932280241, Win7 #44932279586, macOS Intel/ARM #44932279465 — SUCCESS; Defender/integrity PASS.
+- Guarded trigger PR #589 merged; publisher #44933358679 SUCCESS.
+- [v10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6) — Test prerelease, 8 assets, exact target `5a321e98c39443f3d37c89837352402df4542551`. Stable/Latest лишається v10.23-r4.
+- r6 inventory читає regular files, фіксує source/relative path, name, size, MIME, mtime, SHA256, stable candidate_id, versioned machine-readable manifest; exact duplicates лише за однаковим SHA256; symlink-и не проходяться. Жодного move/rename/delete/copy, OCR, AI-класифікації або APPLY.
+- Наступний кодовий slice: 10.23-r7 — атомарне збереження dry-run inventory/report у workspace як import batch, без змін source-архіву.

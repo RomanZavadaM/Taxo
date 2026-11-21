@@ -1,10 +1,10 @@
 # Taxo — стан продукту
 
-**Актуально:** 21.11.2026 після публікації Test 10.23-r5.
+**Актуально:** 21.11.2026 після публікації Test 10.23-r6.
 
 - **Стабільна / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 файлів, 37 суворих live UI-маршрутів.
 - **Попередня стабільна:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
-- **Поточний Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`, 8 файлів, prerelease; small viewport «Документи → Каталог», 38-й strict route. v10.23-r3 навмисно не публікувався.
+- **Поточний Test:** [10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6), exact source `5a321e98c39443f3d37c89837352402df4542551`, 8 файлів, prerelease; read-only inventory існуючого архіву. v10.23-r3 навмисно не публікувався.
 - START #44803423646, Windows #44803423874, Win7 #44803423649, macOS Intel/ARM #44803423740 — SUCCESS; Defender/integrity PASS. Stable promotion #44811800328 — SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
@@ -14,7 +14,9 @@
 
 ## AI-ready архів документів
 
-21.11.2026 зафіксовано вимогу до майбутнього імпорту існуючої бази: immutable originals, SHA256 exact duplicates, machine-readable manifest, окремі типи дат, logical collections без копій, AI confidence/review, import batch та rollback. Формальна специфікація — draft PR #580; перший майбутній кодовий slice r6 — лише read-only inventory без переміщення/видалення файлів.
+Нормативна специфікація вже інтегрована: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6 реалізує перший read-only inventory: SHA256, MIME, size, mtime, stable candidate ID, manifest і exact duplicate groups. Він не змінює source-файли й не запускає AI-класифікацію.
+
+Наступний slice r7 — збереження dry-run batch/report у workspace атомарно й повторювано, без фізичного сортування вихідного архіву.
 
 ## Можливості
 

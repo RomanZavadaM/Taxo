@@ -1,39 +1,36 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 21.11.2026 після публікації Test 10.23-r5.**
+**Підтверджено GitHub 21.11.2026 після публікації Test 10.23-r6.**
 
 **Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, `prerelease=false`.
 
-**Current Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`, 8 assets, prerelease. Publisher #44927558482 — SUCCESS.
+**Current Test:** [10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6), exact source `5a321e98c39443f3d37c89837352402df4542551`, 8 assets, prerelease. Publisher #44933358679 — SUCCESS.
 
 ## Stable r4
 
 Stable r4 залишається вручну прийнятою власником версією. Вона містить каталог документів, власні папки, скани/паперовий підпис, редагування учасників наказу, регульовані робочі області та адаптивний перегляд наказу. 37 strict live routes.
 
-## Test r5
+## Test r6
 
-r5 додає small-viewport hardening «Документи → Каталог»:
-- viewport 760×470;
-- компактні дерево/таблиця;
-- горизонтальна прокрутка;
-- 12 основних дій і 6 дій власних папок у видимій області;
-- адаптивні ширини великих фільтрів;
-- strict route `documents.catalog_small_viewport`, разом 38 маршрутів після інтеграції.
+r6 додає перший безпечний кодовий фундамент для майбутнього AI-ready імпорту існуючих документів:
+- read-only recursive inventory regular files;
+- relative/source path, name, size, MIME, mtime, SHA256;
+- stable candidate identity для незміненого файла;
+- versioned machine-readable manifest;
+- exact duplicates тільки за однаковим SHA256;
+- symlink skip;
+- без OCR, AI-класифікації, move/rename/delete/copy та без APPLY.
 
-Бізнес-логіка документів, фізичні файли, DocumentVault та БД у r5 не змінювалися.
-
-Exact-source CI `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`:
-- START #44926983535 — SUCCESS;
-- Windows #44926983543 — SUCCESS, Defender/integrity PASS;
-- Win7 #44926983541 — SUCCESS, Defender/integrity PASS;
-- macOS Intel/ARM #44926983524 — SUCCESS;
-- publisher #44927558482 — SUCCESS.
+Exact-source CI `5a321e98c39443f3d37c89837352402df4542551`:
+- START #44932279502 — SUCCESS;
+- Windows #44932280241 — SUCCESS, Defender/integrity PASS;
+- Win7 #44932279586 — SUCCESS, Defender/integrity PASS;
+- macOS Intel/ARM #44932279465 — SUCCESS;
+- publisher #44933358679 — SUCCESS.
 
 ## Документна архітектура / AI-ready
 
-21.11.2026 додано обов'язкову вимогу: існуючу базу документів у майбутньому має бути можливо безпечно проінвентаризувати й класифікувати за допомогою ШІ. Детальний нормативний документ підготовлено у draft PR #580; Issue #543 містить принципи й план r6.
-
-Наступний кодовий крок після docs checkpoint — **10.23-r6 read-only inventory**: рекурсивний scan regular files, relative path/name, size, MIME, mtime, SHA256, duplicate groups та versioned manifest/import_batch. Без OCR, AI-класифікації, move/delete або реєстрації у Vault у першому кроці.
+21.11.2026 нормативну модель інтегровано в main: `docs/DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md`. r6 реалізує лише INVENTORY. Наступна ревізія **10.23-r7** — атомарне збереження dry-run manifest/report у Taxo workspace з batch identity і без змін source-архіву. AI ANALYZE/PROPOSE/APPLY ще не реалізовувати.
 
 #553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
 
