@@ -1,37 +1,40 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 20.11.2026 після stable promotion 10.23-r4.**
+**Підтверджено GitHub 21.11.2026 після публікації Test 10.23-r5.**
 
-**Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact product source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, GitHub Latest, prerelease=false.
+**Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, `prerelease=false`.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). Новішого тестового випуску немає. r3 був інтегрований у main, але окремий v10.23-r3 свідомо не публікувався.
+**Current Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`, 8 assets, prerelease. Publisher #44927558482 — SUCCESS.
 
-## Stable 10.23-r4
+## Stable r4
 
-- Каталог документів: пошук, фільтри, сортування, дерево «За видами / За датами / Мої папки», вкладені власні папки, сховище, скани та паперовий підпис.
-- Бланки: регульована вертикальна робоча область між формою та історією.
-- Каталог: регульована ширина дерева та компактні дії для меншої ширини.
-- Накази: явні пари водій–ТЗ, редагування пар, ролі/примітки учасника, накопичення вибору при пошуку, тема активного наказу, перехід до закріплень.
-- Перегляд наказу: адаптивні DOCX/PDF/JPG дії, стабільна нижня сітка, доступність при 760×560.
-- Захист функцій: **37 strict runtime routes** з mapped / onscreen / usable / activation.
+Stable r4 залишається вручну прийнятою власником версією. Вона містить каталог документів, власні папки, скани/паперовий підпис, редагування учасників наказу, регульовані робочі області та адаптивний перегляд наказу. 37 strict live routes.
 
-## Перевірка
+## Test r5
 
-Exact stable source `a919ced6bc8665ced70ebb4d897808e4e2618667`:
-- START #44803423646 — SUCCESS;
-- Windows #44803423874 — SUCCESS, Defender/integrity PASS;
-- Windows 7 #44803423649 — SUCCESS, Defender/integrity PASS;
-- macOS Intel/ARM #44803423740 — SUCCESS;
-- Test publisher #44804999191 — SUCCESS;
-- owner manual acceptance 20.11.2026;
-- Stable promotion #44811800328 — SUCCESS.
+r5 додає small-viewport hardening «Документи → Каталог»:
+- viewport 760×470;
+- компактні дерево/таблиця;
+- горизонтальна прокрутка;
+- 12 основних дій і 6 дій власних папок у видимій області;
+- адаптивні ширини великих фільтрів;
+- strict route `documents.catalog_small_viewport`, разом 38 маршрутів після інтеграції.
 
-Release v10.23-r4 перевірено: tag target = exact source, 8 assets, draft=false, prerelease=false, `releases/latest` = v10.23-r4.
+Бізнес-логіка документів, фізичні файли, DocumentVault та БД у r5 не змінювалися.
 
-## Активна розробка
+Exact-source CI `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`:
+- START #44926983535 — SUCCESS;
+- Windows #44926983543 — SUCCESS, Defender/integrity PASS;
+- Win7 #44926983541 — SUCCESS, Defender/integrity PASS;
+- macOS Intel/ARM #44926983524 — SUCCESS;
+- publisher #44927558482 — SUCCESS.
 
-**10.23-r5 уже в роботі:** PR #576, head `3a084fa47784d9d7765f733a84e9f8951b0d4a03`. Пакет закриває ризик малого viewport «Документи → Каталог»: компактні дерево/таблиця, повноширинна панель дій власних папок, адаптивні фільтри та strict live route `documents.catalog_small_viewport`. Якщо буде merged, реєстр зросте з 37 до 38 strict live routes.
+## Документна архітектура / AI-ready
 
-Exact-head CI r5 завершено: START, Windows, Win7, macOS Intel/ARM — SUCCESS. PR #576 ще відкрита, не merged і не опублікована. Після інтеграції діє стандартне правило Test prerelease; Stable/Latest лишається 10.23-r4 без окремого рішення власника. #553/#556/#562 лишаються відкритими; draft #543/#395 не змінювати.
+21.11.2026 додано обов'язкову вимогу: існуючу базу документів у майбутньому має бути можливо безпечно проінвентаризувати й класифікувати за допомогою ШІ. Детальний нормативний документ підготовлено у draft PR #580; Issue #543 містить принципи й план r6.
+
+Наступний кодовий крок після docs checkpoint — **10.23-r6 read-only inventory**: рекурсивний scan regular files, relative path/name, size, MIME, mtime, SHA256, duplicate groups та versioned manifest/import_batch. Без OCR, AI-класифікації, move/delete або реєстрації у Vault у першому кроці.
+
+#553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
 
 Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.

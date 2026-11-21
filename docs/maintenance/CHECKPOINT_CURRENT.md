@@ -1,22 +1,27 @@
 # Поточна контрольна точка Taxo
 
-**20.11.2026 — Stable/Latest 10.23-r4.**
+**21.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r5.**
+
+## Stable
 
 - Release: [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4)
 - Exact source: `a919ced6bc8665ced70ebb4d897808e4e2618667`
-- 8 канонічних assets; tag target незмінний.
-- START #44803423646 — SUCCESS.
-- Windows #44803423874 — SUCCESS, Defender/integrity PASS.
-- Windows 7 #44803423649 — SUCCESS, Defender/integrity PASS.
-- macOS Intel/ARM #44803423740 — SUCCESS.
-- Test publisher #44804999191 — SUCCESS.
-- Власник вручну підтвердив працездатність r4 20.11.2026.
-- Stable promotion #44811800328 — SUCCESS; `releases/latest` = v10.23-r4; prerelease=false.
+- 8 assets; owner manual acceptance 20.11.2026; stable promotion #44811800328 SUCCESS.
+- 37 strict live UI routes.
 
-**Попередня Stable:** v10.23-r1. **Новішого Test немає.** v10.23-r3 навмисно не видавався.
+## Test
 
-r4 включає адаптивний перегляд наказів у вузькому вікні, зміни r2/r3 для учасників наказів і регульованих документних робочих областей, а також 37 strict live UI routes.
+- Release: [v10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5)
+- Exact source: `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`
+- 8 assets; prerelease; publisher #44927558482 SUCCESS.
+- START #44926983535, Windows #44926983543, Win7 #44926983541, macOS Intel/ARM #44926983524 — SUCCESS; Defender/integrity PASS.
+- «Документи → Каталог» перевірено для 760×470; 38-й strict route `documents.catalog_small_viewport`.
+- Stable/Latest не змінено.
 
-Активний кодовий крок: **10.23-r5**, PR #576, head `3a084fa47784d9d7765f733a84e9f8951b0d4a03` — один пов'язаний пакет малого viewport «Документи → Каталог». START, Windows, Win7 і macOS Intel/ARM — SUCCESS. PR #576 ще не merged і не опублікована; після merge застосувати стандартне правило Test prerelease. Stable лишається r4. #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
+## Наступний напрям
+
+Нормативна AI-ready модель збереження/класифікації підготовлена у draft PR #580. Після recovery r5 її треба інтегрувати, після чого наступний вузький кодовий крок — **10.23-r6 read-only inventory існуючого архіву**: regular files, relative path/name, size, MIME, mtime, streaming SHA256, exact duplicate groups, versioned manifest/import_batch. Без OCR/AI/move/delete у першому кроці.
+
+#553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
 Актуальний стан: [PROJECT_STATE](../../PROJECT_STATE.md) · [HANDOFF](../../HANDOFF_CURRENT.md) · [WORKLOG](../../WORKLOG.md).

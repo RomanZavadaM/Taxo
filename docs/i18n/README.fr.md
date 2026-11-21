@@ -16,7 +16,7 @@ Taxo est une application de bureau pour les entreprises de transport : personnel
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-Il n’existe actuellement aucune version de test plus récente que la stable 10.23-r4.
+**Current Test :** [Taxo 10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), prerelease de 8 fichiers, exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`. Elle renforce Documents → Catalogue pour une fenêtre 760×470 et ajoute le 38e parcours live strict. Stable/Latest reste 10.23-r4.
 
 Conservez les bases et documents dans un dossier de travail séparé et sauvegardez-le avant mise à jour. [Guide utilisateur (ukrainien)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

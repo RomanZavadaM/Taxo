@@ -1517,3 +1517,16 @@
 
 - PR #576 head moved from `ef1c9d543a8dce0fc902cbe8a36dffa1fc01e291` to `3a084fa47784d9d7765f733a84e9f8951b0d4a03` by merging the same r5 product head into newer main after README/docs updates; no new r5 functionality was added by that merge commit.
 - Current head `3a084fa47784d9d7765f733a84e9f8951b0d4a03` passed START, Windows, Win7 and macOS Intel/ARM. PR #576 remains open/unmerged; Stable remains v10.23-r4.
+
+
+## 21.11.2026 — 10.23-r5 Test опубліковано; AI-ready архів зафіксовано
+
+- Product PR #576 «Документи → Каталог — малий viewport» після синхронізації з актуальним main пройшов START/Windows/Win7/macOS Intel/ARM і merged. Product merge `50fc49adcc194623b517ea0e36a875f9778fdada`.
+- Для чистого release source release-marker було прибрано; commit `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a` має те саме файлове дерево, що перевірений product source `50fc49a…` (compare: zero file differences).
+- Перша marker-only спроба PR #581 не запускала publisher, бо `.release/full-current` не входить до push paths workflow. Release/tag у цей момент не створювалися.
+- PR #582 прибрав marker і відновив clean tree. Guarded trigger PR #583 одним комітом додав marker + змінив службовий рядок `publish-current.yml`, тому publisher на push взяв `github.event.before = dc5dcaa…` як exact issued source.
+- Publisher #44927558482 — SUCCESS. [v10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5) — Test prerelease, 8 assets, immutable tag/source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`. Stable/Latest лишається v10.23-r4.
+- r5 додає small-viewport 760×470 для «Документи → Каталог» і strict route `documents.catalog_small_viewport`; разом 38 live routes. Бізнес-логіка, DocumentVault, фізичні файли й БД не змінені.
+- Власник додав обов'язкову вимогу: механізм збереження/сортування має бути придатним для ШІ, який безпечно розбере існуючу базу документів. Принципи зафіксовані у #543/#61; нормативний документ підготовлено у draft PR #580.
+- Цільова схема: immutable originals; metadata/logical folders замість копій; staging INVENTORY → ANALYZE → PROPOSE → REVIEW → APPLY → VERIFY; SHA256 exact duplicates; окремі види дат; AI confidence/reason/review; idempotent rescan; import_batch + rollback.
+- Наступний вузький кодовий крок після інтеграції документації: **10.23-r6 read-only inventory** існуючої папки документів. Без OCR/AI/move/delete на першому етапі.

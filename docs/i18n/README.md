@@ -4,7 +4,7 @@
 
 - **Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), 8 файлів, exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`.
 - **Попередня стабільна:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
-- Новішого тестового випуску за Stable 10.23-r4 зараз немає.
+- **Current Test:** [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5), 8 файлів, exact source `dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a`, prerelease; Stable/Latest лишається 10.23-r4.
 - Українська документація залишається джерелом повних інструкцій і технічного стану.
 
 ## Переклади
