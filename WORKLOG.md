@@ -1552,3 +1552,15 @@
 - Publisher #44944448052 — SUCCESS. `v10.23-r7` is prerelease with 8 canonical assets; tag target remains exact product source `a60d193...`. Stable/Latest remains v10.23-r4.
 - r7 stores `inventory.json` and `report.json` atomically under `Data/DocumentLibrary/import_batches/<batch_id>`, verifies checksum, supports idempotent reuse and fails closed on conflicting content. Source archive remains read-only.
 - Next slice: 10.23-r8 verified batch reader + deterministic sorting preview. No OCR/AI APPLY or physical sorting.
+
+
+## 22.11.2026 — 10.23-r8 Test published і recovery
+
+- Product PR #596 merged; exact issued source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`.
+- Exact-source CI: START #44947743150, Windows #44947743153, Win7 #44947743132, macOS Intel/ARM #44947743115 — SUCCESS.
+- Windows і Win7 mandatory Microsoft Defender malware gate та post-scan package integrity verification — SUCCESS.
+- Guarded release trigger PR #597 merged; publisher #44948759163 — SUCCESS.
+- [v10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8) — Test prerelease, 8 canonical assets. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+- r8 verified read-only batch reader перевіряє format/batch/checksum і будує deterministic sorting preview за date/number/category/source зі stable identity tie-breaker; empty/unknown values last; natural number sort.
+- Source archive і saved batch не змінюються; OCR, зовнішні AI-виклики, AI APPLY, registry write та move/rename/delete/copy відсутні.
+- Recovery після r8 синхронізує HANDOFF/STATE/README/localizations/PRODUCT_STATUS/CHECKPOINT/RELEASE_INDEX. Наступна кодова ревізія — 10.23-r9: read-only ANALYZE→PROPOSE contract + deterministic metadata hints, без APPLY.

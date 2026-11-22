@@ -16,7 +16,7 @@ Taxo는 운송업체용 데스크톱 프로그램으로 직원과 차량, 일정
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7), 8개 파일 prerelease, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`. r6의 읽기 전용 inventory를 관리 workspace에 atomic dry-run batch로 저장하고 inventory/report manifest, checksum 검증, idempotent reuse와 fail-closed conflict를 지원합니다. 원본 파일은 변경하지 않으며 Stable/Latest는 10.23-r4 그대로입니다.
+**Current Test:** [Taxo 10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), 8개 파일 prerelease, exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`. 관리되는 import batch를 검증하고 날짜, 번호, category/kind, source fallback 기준의 결정적 read-only sorting preview를 생성합니다. 빈 값은 뒤로 보내고 번호는 natural sort를 사용하며 stable identity가 최종 tie-breaker입니다. OCR, AI APPLY, 물리 파일 정렬은 하지 않으며 Stable/Latest는 10.23-r4 그대로입니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

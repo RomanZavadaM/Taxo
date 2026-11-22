@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**21.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r7.**
+**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r8.**
 
 ## Stable
 
@@ -11,18 +11,19 @@
 
 ## Test
 
-- Release: [v10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7)
-- Exact source: `a60d1933ddde090f0cb5e8672c5070030647301d`
-- 8 assets; prerelease; publisher #44944448052 SUCCESS.
-- START #44943282760, Windows #44943282736, Win7 #44943282765, macOS Intel/ARM #44943282733 — SUCCESS; Defender/integrity PASS.
-- Atomic dry-run inventory batch store у workspace: inventory/report/checksum, idempotent reuse, fail-closed conflicts, source read-only.
+- Release: [v10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8)
+- Exact source: `d3d34f7a0fc3de88280324eaeb2d97a72c172359`
+- 8 assets; prerelease; publisher #44948759163 SUCCESS.
+- START #44947743150, Windows #44947743153, Win7 #44947743132, macOS Intel/ARM #44947743115 — SUCCESS.
+- Windows/Win7 mandatory Microsoft Defender malware gates + post-scan package integrity — SUCCESS.
+- Verified managed batch reader + deterministic read-only sorting preview; source archive і batch не змінюються.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
 Нормативна AI-ready модель: [DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md](../DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md).
 
-Наступний вузький кодовий крок — **10.23-r8**: verified batch reader + deterministic sorting preview. Перевіряти format/checksum, читати batch read-only і формувати стабільний preview за датою/номером/категорією/видом із stable identity tie-breaker. OCR, AI ANALYZE/PROPOSE/APPLY і фізичне сортування ще не реалізовувати.
+Наступний кодовий крок — **10.23-r9**: read-only **ANALYZE → PROPOSE** contract поверх verified r8 batch. Versioned proposal record, deterministic metadata hints, confidence/reason/review_state, без OCR, зовнішніх AI-викликів, registry APPLY або фізичних move/rename/delete/copy.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 

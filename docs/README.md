@@ -4,7 +4,7 @@
 
 **Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START, 37 strict live UI routes.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7), 8 файлів, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`; Stable r4 не змінено.
+**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), 8 файлів, exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`; verified read-only batch + deterministic sorting preview; Stable r4 не змінено.
 
 ## Робота з програмою
 

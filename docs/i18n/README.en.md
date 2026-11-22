@@ -16,7 +16,7 @@ Taxo currently has 37 strict live UI routes that check mapped, on-screen, usable
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7), prerelease, 8 assets, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`. It stores the read-only inventory from r6 as an atomic dry-run batch in the managed workspace, with inventory/report manifests, checksum verification, idempotent reuse and fail-closed conflicts. Source files remain unchanged; Stable/Latest remains 10.23-r4.
+**Current Test:** [Taxo 10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), prerelease, 8 assets, exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`. It verifies the managed import batch and builds a deterministic read-only sorting preview by date, number, category/kind and source fallback, with empty values last, natural number ordering and stable identity tie-breaking. No OCR, AI APPLY or physical file sorting is performed; Stable/Latest remains 10.23-r4.
 
 ## Data and documentation
 

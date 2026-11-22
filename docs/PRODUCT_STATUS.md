@@ -1,10 +1,10 @@
 # Taxo — стан продукту
 
-**Актуально:** 21.11.2026 після публікації Test 10.23-r7.
+**Актуально:** 22.11.2026 після публікації Test 10.23-r8.
 
 - **Стабільна / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 файлів, 37 суворих live UI-маршрутів.
 - **Попередня стабільна:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
-- **Поточний Test:** [10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7), exact source `a60d1933ddde090f0cb5e8672c5070030647301d`, 8 файлів, prerelease; atomic dry-run inventory batches у workspace. v10.23-r3 навмисно не публікувався.
+- **Поточний Test:** [10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`, 8 файлів, prerelease; verified batch reader + deterministic read-only sorting preview. v10.23-r3 навмисно не публікувався.
 - START #44803423646, Windows #44803423874, Win7 #44803423649, macOS Intel/ARM #44803423740 — SUCCESS; Defender/integrity PASS. Stable promotion #44811800328 — SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
@@ -14,7 +14,7 @@
 
 ## AI-ready архів документів
 
-Нормативна специфікація вже інтегрована: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6 реалізує read-only inventory, r7 — атомарне збереження dry-run batch/report у workspace з checksum та idempotent/fail-closed поведінкою. Наступний slice r8 — verified batch reader + deterministic sorting preview без фізичного сортування або AI APPLY.
+Нормативна специфікація вже інтегрована: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6 реалізує read-only inventory, r7 — атомарне збереження dry-run batch/report, r8 — перевірене read-only відкриття batch та deterministic sorting preview. Наступний slice r9 — read-only ANALYZE→PROPOSE contract і deterministic metadata hints із confidence/reason/review_state без OCR, зовнішніх AI-викликів або APPLY.
 
 ## Можливості
 
@@ -41,7 +41,8 @@
 
 ## Подальша робота
 
-Наступна кодова ревізія — **10.23-r5**: один пов'язаний пакет із залишку #556 для малого viewport «Документи → Каталог» — дерево, таблиця, нижні дії, прокрутка та live regression. Не створювати окремий реліз на кожну дрібну кнопку. Ширший наскрізний контроль наказів (#553) і повне покриття функцій (#556) лишаються відкритими; реєстрацію вхідної/вихідної кореспонденції впроваджувати окремо.
+Наступна кодова ревізія — **10.23-r9**: безпечний read-only ANALYZE→PROPOSE шар поверх verified r8 batch. Спочатку versioned proposal record і deterministic metadata hints; результат лише preview/proposal, без OCR, зовнішнього AI, registry APPLY або фізичного сортування. Ширший наскрізний контроль наказів (#553) і повне покриття функцій (#556/#562) лишаються відкритими; реєстрацію вхідної/вихідної кореспонденції впроваджувати окремо після документної основи.
+
 
 [Індекс релізів](releases/RELEASE_INDEX.md) · [Інструкція користувача](guides/USER_MANUAL.md) · [Відновлення роботи](../START_HERE.md)
 

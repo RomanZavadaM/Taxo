@@ -16,7 +16,7 @@ Taxo es una aplicación de escritorio para empresas de transporte: personal y ve
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7), prerelease de 8 archivos, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`. Guarda el inventario de solo lectura de r6 como un lote dry-run atómico en el workspace gestionado, con manifests inventory/report, verificación de checksum, reutilización idempotente y conflictos fail-closed. Los archivos de origen no cambian; Stable/Latest sigue siendo 10.23-r4.
+**Current Test:** [Taxo 10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), prerelease de 8 archivos, exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`. Verifica el lote de importación gestionado y crea una vista previa determinista de solo lectura ordenada por fecha, número, categoría/tipo y fallback de origen; los valores vacíos quedan al final, los números usan orden natural y la identidad estable resuelve los empates. No hay OCR, AI APPLY ni ordenación física de archivos; Stable/Latest sigue siendo 10.23-r4.
 
 Guarde bases y documentos en una carpeta de trabajo separada y haga una copia antes de actualizar. [Manual de usuario (ucraniano)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

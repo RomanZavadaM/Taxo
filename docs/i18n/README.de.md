@@ -16,7 +16,7 @@ Taxo ist eine Desktop-Anwendung für Verkehrsunternehmen: Personal und Fahrzeuge
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7), Prerelease mit 8 Dateien, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`. Es speichert das schreibgeschützte Inventar aus r6 als atomaren Dry-Run-Batch im verwalteten Workspace, mit Inventory/Report-Manifests, Prüfsummenprüfung, idempotenter Wiederverwendung und Fail-Closed-Konflikten. Quelldateien bleiben unverändert; Stable/Latest bleibt 10.23-r4.
+**Current Test:** [Taxo 10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), Prerelease mit 8 Dateien, exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`. Es prüft den verwalteten Import-Batch und erzeugt eine deterministische schreibgeschützte Sortiervorschau nach Datum, Nummer, Kategorie/Art und Quellpfad-Fallback; leere Werte stehen am Ende, Nummern werden natürlich sortiert und die stabile Identität ist der letzte Tie-Breaker. Kein OCR, kein AI APPLY und keine physische Dateisortierung; Stable/Latest bleibt 10.23-r4.
 
 Datenbanken und Dokumente in einem separaten Arbeitsordner speichern und vor Updates sichern. [Benutzerhandbuch (Ukrainisch)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
