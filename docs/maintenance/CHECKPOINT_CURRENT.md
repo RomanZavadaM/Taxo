@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.24-r1.**
+**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.24-r2.**
 
 ## Stable
 
@@ -11,21 +11,22 @@
 
 ## Test
 
-- Release: [v10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1)
-- Exact source: `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`
-- 8 assets; prerelease; publisher #45053863942 SUCCESS.
-- START #45052687870, Windows #45052687839, Win7 #45052687867, macOS Intel/ARM #45052687880 — SUCCESS.
+- Release: [v10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2)
+- Exact source: `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`
+- 8 assets; prerelease; publisher #45064537526 SUCCESS.
+- START #45063475205, Windows #45063475214, Win7 #45063475185, macOS Intel/ARM #45063475161 — SUCCESS.
 - Windows/Win7 mandatory Microsoft Defender malware gates + post-scan package integrity — SUCCESS.
-- Два журнали business correspondence, independent annual numbering, semantic dates, response links, document_ref without byte copy, atomic registry і full backup/restore.
+- r1 = correspondence registry; r2 = controlled immutable attachments + live DocumentVault links + history-only remove + backup/restore.
+- Attachment presence does not imply sent/received/delivered/signed.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
-**10.24-r2:** контрольовані файли/вкладення кореспонденції та backup/restore.
+**10.24-r3 — UI журналів і картка кореспонденції.**
 
-Межі r2: immutable attachment bytes або stable link на вже наявний vault; SHA256/MIME/filename/size/stable attachment ID; attachment→correspondence link; safe history/remove semantics; backup/restore. Attachment не є автоматичним доказом отримання/відправлення. UI/e-mail/OCR/AI та справи — окремими наступними ревізіями.
+Потрібен один змістовний пакет: окреме resizable вікно «Кореспонденція», вкладки Вхідні/Вихідні, таблиця з номером/датою/кореспондентом/темою/строком/станом/вкладеннями, пошук і швидкий перехід по даті, детальна картка листа, Новий вхідний/Новий вихідний/Відповісти/Вкладення/Відкрити документ, явні Закрити/Скасувати. Жодного автоматичного sent/received або e-mail automation.
 
-AI-import APPLY після r10 не починати без окремого рішення власника.
+E-mail/OCR/AI і справи/ланцюжки — окремими пізнішими ревізіями. APPLY старого AI-import cycle не починати без окремого рішення власника.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
