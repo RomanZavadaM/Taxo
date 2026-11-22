@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import json
 import shutil
 import tempfile
 import unittest
@@ -122,6 +121,20 @@ class DocumentImportProposalsR9Tests(unittest.TestCase):
 
         self.assertNotIn("document_number", proposals)
         self.assertEqual(proposals["document_kind"]["value"], "order")
+
+    def test_short_keywords_and_number_markers_do_not_match_inside_words(self):
+        path = self.source / "Контракт forno12 final.txt"
+        path.write_text("x", encoding="utf-8")
+        self._persist("r9-boundaries")
+
+        row = build_proposal_preview(
+            self.workspace, "r9-boundaries"
+        )["records"][0]
+        fields = {item["field"] for item in row["proposals"]}
+
+        self.assertNotIn("document_kind", fields)
+        self.assertNotIn("document_number", fields)
+        self.assertEqual(fields, {"title"})
 
     def test_source_path_is_not_used_as_a_classification_command(self):
         path = self.source / "neutral-file.txt"
