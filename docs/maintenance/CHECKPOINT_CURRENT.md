@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r10.**
+**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.24-r1.**
 
 ## Stable
 
@@ -11,19 +11,21 @@
 
 ## Test
 
-- Release: [v10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10)
-- Exact source: `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`
-- 8 assets; prerelease; publisher #45049398522 SUCCESS.
-- START #45048321322, Windows #45048321299, Win7 #45048321313, macOS Intel/ARM #45048321471 — SUCCESS.
+- Release: [v10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1)
+- Exact source: `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`
+- 8 assets; prerelease; publisher #45053863942 SUCCESS.
+- START #45052687870, Windows #45052687839, Win7 #45052687867, macOS Intel/ARM #45052687880 — SUCCESS.
 - Windows/Win7 mandatory Microsoft Defender malware gates + post-scan package integrity — SUCCESS.
-- Explicit REVIEW decisions are stored separately from source/import batch and have `applies_changes=false`.
+- Два журнали business correspondence, independent annual numbering, semantic dates, response links, document_ref without byte copy, atomic registry і full backup/restore.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
-Після `10.23-r10` наступна ревізія — **10.24-r1**.
+**10.24-r2:** контрольовані файли/вкладення кореспонденції та backup/restore.
 
-Наступний кодовий пакет — фундамент **«Ділова кореспонденція»**: окремий доменний модуль і safe persistence для incoming/outgoing registry, separate numbering, registration date, correspondent, subject, execution deadline/status, reply/related links та зв'язок із готовим документом без дублювання файла. Не розростати `main.py`; не робити імпортний APPLY без окремого рішення власника.
+Межі r2: immutable attachment bytes або stable link на вже наявний vault; SHA256/MIME/filename/size/stable attachment ID; attachment→correspondence link; safe history/remove semantics; backup/restore. Attachment не є автоматичним доказом отримання/відправлення. UI/e-mail/OCR/AI та справи — окремими наступними ревізіями.
+
+AI-import APPLY після r10 не починати без окремого рішення власника.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
