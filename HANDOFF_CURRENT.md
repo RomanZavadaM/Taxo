@@ -6,38 +6,29 @@
 
 **Current Test:** [10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2), exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`, 8 assets, prerelease. Publisher #45064537526 — SUCCESS.
 
-Exact-source r2 CI: START #45063475205, Windows #45063475214, Win7 #45063475185, macOS Intel/ARM #45063475161 — SUCCESS. Windows і Win7 mandatory Microsoft Defender gates та post-scan integrity verification — SUCCESS.
+Exact-source r2 CI: START #45063475205, Windows #45063475214, Win7 #45063475185, macOS Intel/ARM #45063475161 — SUCCESS. Windows і Win7 Defender та post-scan integrity — SUCCESS.
 
-## Що додає 10.24-r2
+## Що вже є в модулі кореспонденції
 
-- окремий store `Data/CorrespondenceAttachments`, не послаблює r1 registry;
-- immutable copied attachments зі stable ID `ca-...`, SHA256, MIME, size та original filename;
-- content-addressed object storage: однакові байти фізично зберігаються один раз, але можуть бути явно прив'язані до різних листів;
-- live `vault:vd-...` link лише на реально наявний DocumentVault без копіювання байтів;
-- PDF/JPG/PNG/TIFF/DOCX із перевіркою фактичного вмісту;
-- macro DOCX, symlink source, fake extension, unsafe archive paths, orphan/missing/tampered objects — fail-closed;
-- active duplicate того самого SHA або vault-link у тому самому листі заборонено;
-- `remove` створює історичну подію; immutable bytes фізично не видаляються;
-- removed bytes продовжують проходити integrity verification;
-- full workspace backup/restore зберігає registry, attachment index/history/bytes та наступні реєстраційні номери;
-- attachment не змінює sent/received/delivered/signed/status.
+**10.24-r1:** два незалежні журнали incoming/outgoing, річна нумерація, stable `cr-...` ID, окремі semantic dates, correspondent/subject/summary/delivery/responsible/due/status, response/related links, stable document_ref і full backup/restore.
+
+**10.24-r2:** окремий `Data/CorrespondenceAttachments`; immutable PDF/JPG/PNG/TIFF/DOCX з stable `ca-...`, SHA256/MIME/size/original filename; content-addressed dedupe; live `vault:vd-...` link лише на реальний DocumentVault без копії байтів; content/integrity guards; remove = історична подія без видалення байтів; full backup/restore. Attachment не змінює sent/received/status.
 
 ## Наступний крок
 
-**10.24-r3 — UI журналів і картка кореспонденції поверх уже перевірених r1+r2 API.**
+**10.24-r3 — відповіді, справи й контроль строків** за §10.3–10.4 плану #543:
+- явні контрольовані переходи стану incoming;
+- фактичне `Позначити відправленим` для outgoing окремо від реєстрації, з sent_date/channel;
+- safe reply creation: вихідна відповідь має явний link, номер тільки при реєстрації;
+- due-date/overdue без вигаданих нормативних строків;
+- logical case/thread для кількох листів без копій документів;
+- append-only history для станів/зв'язків;
+- full backup/restore regression.
 
-Перший змістовний пакет r3:
-- окреме вікно «Кореспонденція» з вкладками «Вхідні» / «Вихідні»;
-- таблиці з номером, датою, кореспондентом, темою, строком, станом і наявністю вкладень;
-- картка вибраного листа з усіма semantic dates, external number, summary, responsible, due/status, response/related links;
-- зрозумілі дії: «Новий вхідний», «Новий вихідний», «Відповісти», «Вкладення…», «Відкрити документ», «Закрити»;
-- фільтр/перехід по даті та пошук без введення дати по одному дню;
-- вікно має нормально змінювати розмір і не губити кнопки;
-- UI не має автоматично ставити sent/received або відкривати/надсилати e-mail;
-- e-mail automation, OCR/AI і справи/ланцюжки — окремі пізніші ревізії.
+UI журналу/картки — наступним окремим пакетом поверх завершених r1–r3 API. Автоматичний e-mail, OCR/AI APPLY і physical purge не робити.
 
-Draft #543 лишається архітектурним планом. #553/#556/#562 залишаються відкритими. Draft #395 не закривати автоматично.
+AI-ready import r6–r10 завершений на REVIEW без APPLY. APPLY не починати без окремого рішення власника.
 
-APPLY старих AI-import proposals не починати без окремого рішення власника.
+#553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
 
 Recovery: START_HERE → HANDOFF → private Taxo-profile → live GitHub.
