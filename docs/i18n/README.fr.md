@@ -16,7 +16,7 @@ Taxo est une application de bureau pour les entreprises de transport : personnel
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test :** [Taxo 10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), prerelease de 8 fichiers, exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`. Elle vérifie le lot d’import géré et produit un aperçu de tri déterministe en lecture seule par date, numéro, catégorie/type et source de secours ; les valeurs vides vont à la fin, les numéros suivent un tri naturel et l’identité stable départage les égalités. Aucun OCR, AI APPLY ni tri physique des fichiers ; Stable/Latest reste 10.23-r4.
+**Current Test :** [Taxo 10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9), prerelease de 8 fichiers, exact source `9f41c46a4745815cfc7518f7319f6c6f941ba559`. Elle ajoute une couche ANALYZE→PROPOSE en lecture seule au-dessus du lot r8 vérifié : propositions déterministes pour la date, le numéro, le type, la catégorie et un titre descriptif, avec confiance et justification. Les ambiguïtés passent en needs_review, les métadonnées structurées existantes ne sont pas écrasées et les fichiers source ne sont pas rouverts. Aucun OCR, AI externe, APPLY, écriture DocumentVault/BD ni tri physique ; Stable/Latest reste 10.23-r4.
 
 Conservez les bases et documents dans un dossier de travail séparé et sauvegardez-le avant mise à jour. [Guide utilisateur (ukrainien)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
