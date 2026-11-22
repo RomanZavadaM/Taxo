@@ -20,10 +20,11 @@ import uuid
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Tuple
 
 from correspondence_registry import read_registry
+from document_vault_store import list_document_vault
 
 
 STORE_NAME = "CorrespondenceAttachments"
@@ -44,9 +45,7 @@ _ATTACHMENT_ID = re.compile(r"^ca-[a-f0-9]{32}$")
 _ACTION_ID = re.compile(r"^ch-[a-f0-9]{32}$")
 _CORRESPONDENCE_ID = re.compile(r"^cr-[a-f0-9]{32}$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
-_DOCUMENT_REF = re.compile(
-    r"^(?:vault|paper|order):[A-Za-z0-9._-]{1,200}$"
-)
+_DOCUMENT_REF = re.compile(r"^vault:vd-[a-f0-9]{32}$")
 _STORAGE_KEY = re.compile(
     r"^objects/([a-f0-9]{2})/([a-f0-9]{64})\."
     r"(pdf|jpg|png|tiff|docx)$"
@@ -419,6 +418,10 @@ def _validate_records(workspace_root: Path, records, history):
     history = tuple(history)
     registry = read_registry(workspace_root)
     correspondence_ids = {row.correspondence_id for row in registry.records}
+    vault_refs = {
+        "vault:" + row.vault_id
+        for row in list_document_vault(Path(workspace_root))
+    }
 
     by_id = {}
     for item in records:
@@ -426,6 +429,8 @@ def _validate_records(workspace_root: Path, records, history):
             raise ValueError("Дубльований ID вкладення")
         if item.correspondence_id not in correspondence_ids:
             raise ValueError("Вкладення посилається на відсутню кореспонденцію")
+        if item.source_kind == "document_ref" and item.document_ref not in vault_refs:
+            raise ValueError("Вкладення посилається на відсутній DocumentVault")
         by_id[item.attachment_id] = item
 
     action_ids = set()
@@ -594,9 +599,10 @@ def _validate_docx(path: Path) -> None:
                 raise ValueError("Файл не схожий на DOCX")
             total = 0
             for item in infos:
-                pure = Path(item.filename)
+                normalized_name = item.filename.replace("\\", "/")
+                pure = PurePosixPath(normalized_name)
                 if (
-                    item.filename.startswith(("/", "\\"))
+                    normalized_name.startswith("/")
                     or ".." in pure.parts
                 ):
                     raise ValueError("DOCX містить небезпечний шлях")
