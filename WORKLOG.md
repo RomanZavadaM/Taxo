@@ -1577,3 +1577,18 @@
 - r9 формує deterministic proposals для document_date/document_number/document_kind/category/title з confidence/reason/rule version; ambiguity не вгадується і переходить у needs_review; existing structured metadata не перезаписується.
 - Source files не перечитуються; saved batch, DocumentVault/БД, паперовий підпис і source archive не змінюються. OCR, зовнішні AI-виклики, APPLY та move/rename/delete/copy відсутні.
 - Наступна ревізія — 10.23-r10: REVIEW layer з окремим versioned confirm/reject/needs_review state без APPLY. Після r10 — окремий модуль вхідної/вихідної кореспонденції.
+
+
+## 22.11.2026 — 10.23-r9 Test published і recovery
+
+- Recovery r8 закрито PR #598; public main після нього: `338b40781ad800409909ed90e0d8547f84961e80`.
+- Prep PR #599 додав read-only ANALYZE→PROPOSE layer і regression-тести. Один false-positive number-marker boundary був знайдений тестом до merge і виправлений; фінальна prep-head `c8c11e3e7d38f96fcca372294b4477012fd58ef6` пройшла START 1615/1615 та Windows/Win7/macOS gates. PR #599 merged як `3b5dec528b6cee033b47885223ebf92f02c1c047`.
+- Candidate PR #600 видав identity 10.23-r9, release notes і version/package guards; final head `5619d34413a0a5e4706180978f09588b8af953d6` пройшла START #45043464933, Windows #45043464864, Win7 #45043464870, macOS #45043464902 — SUCCESS.
+- Product PR #600 merged; exact immutable issued source: `9f41c46a4745815cfc7518f7319f6c6f941ba559`.
+- Exact-source CI: START #45043933564, Windows #45043933540, Win7 #45043933535, macOS Intel/ARM #45043933592 — SUCCESS.
+- Windows і Win7 mandatory Microsoft Defender malware gates та post-scan package integrity — SUCCESS.
+- Guarded release-trigger PR #601 merged як `439619e19e61c59c6ca70068ff36203c7fb8e793`; publisher #45045127128 — SUCCESS.
+- [v10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9) — Test prerelease, 8 canonical assets; tag target точно `9f41c46a4745815cfc7518f7319f6c6f941ba559`. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+- r9: versioned deterministic metadata proposals для дати/номера/виду/категорії/title, confidence/reason/rule version, ambiguity→needs_review, existing structured metadata не переписуються.
+- Source archive і persisted batch не змінюються; OCR, external AI, APPLY, DocumentVault/DB write і move/rename/delete/copy відсутні.
+- Наступна 10.23-r10: людський REVIEW proposals і versioned decision ledger без APPLY; після r10 — окремий модуль вхідної/вихідної кореспонденції.
