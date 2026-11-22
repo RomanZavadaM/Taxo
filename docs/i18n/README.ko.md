@@ -16,7 +16,7 @@ Taxo는 운송업체용 데스크톱 프로그램으로 직원과 차량, 일정
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1), 8개 파일 prerelease, exact source `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`. 입·출신 업무 서신을 분리한 저널, 독립적인 연도별 번호, 등록/문서/수신/발신 날짜 분리, 상대방/제목/관리 메타데이터, 명시적 답변 링크, 바이트를 복제하지 않는 안정적 문서 참조를 추가합니다. 레지스트리는 full workspace backup/restore에 보존됩니다. 아직 서신 UI, 첨부 저장소, 자동 이메일은 없습니다. Stable/Latest는 10.23-r4 그대로입니다.
+**Current Test:** [Taxo 10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2), 8개 파일 prerelease, exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`. 업무 서신 모듈은 입·출신 레지스트리와 함께 제어된 첨부를 제공합니다. PDF/JPG/PNG/TIFF/DOCX는 SHA256 메타데이터가 있는 immutable object로 저장되고 제거는 이력만 남기며, 또는 기존 DocumentVault 항목을 바이트 복사 없이 live link로 연결합니다. 누락·고아·변조 object는 fail-closed로 차단됩니다. 첨부가 있다고 해서 발송/수신된 것은 아닙니다. full backup/restore는 레지스트리, 첨부, 이력, 번호 체계를 보존합니다. Stable/Latest는 10.23-r4 그대로입니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

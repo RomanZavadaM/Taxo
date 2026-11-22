@@ -1621,3 +1621,30 @@
 - Registration ≠ delivery: outgoing без sent_date має status registered; incoming можна зареєструвати без scan/file. External counterparty number не є Taxo registration number.
 - Full workspace backup/restore зберігає Correspondence registry і next-number state; tampered sequence fail-closed, parallel same-process registration не повторює номер.
 - Наступна ревізія 10.24-r2: контрольовані files/attachments + backup/restore, без автоматичного e-mail, OCR/AI та без дублювання ready-document archive.
+
+
+## 22.11.2026 — 10.24-r2 Test published і recovery
+
+- Prep PR #611 додав окремий `Data/CorrespondenceAttachments` store поверх уже перевіреного r1 registry.
+- Immutable copied files мають stable `ca-...` ID, SHA256, MIME, size, original filename; фізичні об'єкти content-addressed, тому однакові байти зберігаються один раз.
+- Підтримано live `vault:vd-...` link лише на реально наявний DocumentVault без копіювання bytes.
+- PDF/JPG/PNG/TIFF/DOCX перевіряються за вмістом; macro DOCX, symlink source, fake extension, unsafe archive path, orphan/missing/tampered object fail-closed.
+- `remove` лише додає history event; immutable bytes не видаляються і далі проходять integrity verification.
+- Attachment presence не змінює correspondence status/sent_date/received_date і не означає delivered/signed.
+- Prep final SHA `ad1108a2c02a2fc03791a20f9486ae1e7aaf04a0`: START #45061620559, Windows #45061620569, Win7 #45061620603, macOS Intel/ARM #45061620648 — SUCCESS.
+- Exact issued source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`: START #45063475205, Windows #45063475214, Win7 #45063475185, macOS Intel/ARM #45063475161 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS.
+- Guarded release trigger merged; publisher #45064537526 — SUCCESS. [v10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2) — Test prerelease, 8 canonical assets. Stable/Latest лишається v10.23-r4.
+- Наступна ревізія — **10.24-r3**: UI журналів і картка кореспонденції поверх r1+r2 API. Без автоматичного sent/received, e-mail automation, OCR/AI або cases.
+
+
+## 22.11.2026 — 10.24-r2 Test published і recovery
+
+- Prep PR #611 додав окремий `Data/CorrespondenceAttachments`: immutable copied files або live DocumentVault link, SHA256/MIME/size/name/stable attachment ID, content-addressed dedupe, history-only removal, integrity guards і full backup/restore.
+- Prep exact head `ad1108a2c02a2fc03791a20f9486ae1e7aaf04a0`: START #45061620559, Windows #45061620569, Win7 #45061620603, macOS #45061620648 — SUCCESS; Defender/integrity PASS.
+- Candidate PR #612 синхронізував VERSION/main/START/.release та історичні version guards; merged exact product source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`.
+- Exact-source main CI: START #45063475205, Windows #45063475214, Win7 #45063475185, macOS Intel/ARM #45063475161 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+- Guarded release trigger PR #613 merged as `14a280f865ec789e14fdc1ff83602925618ba854`; publisher #45064537526 — SUCCESS.
+- [v10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2) — Test prerelease, 8 canonical assets, immutable target `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+- PDF/JPG/PNG/TIFF/DOCX перевіряються за вмістом; macro DOCX, symlink source, missing/orphan/tampered object — fail-closed. Один SHA фізично зберігається один раз, але може бути явно пов'язаний із різними листами.
+- Remove лише додає історичну подію; байти не видаляються. Attachment не означає sent/received/delivered/signed і не переписує correspondence state.
+- Наступна ревізія **10.24-r3** за release notes r2 і останнім планом #543: journal UI/card поверх уже перевірених registry + attachment APIs. Фактичні mark-sent/mark-received, розширені state transitions, справи/threads та e-mail automation — окремими наступними ревізіями.
