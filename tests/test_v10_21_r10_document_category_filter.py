@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.23-r8: structured category navigation in the unified document catalog."""
+"""10.23-r9: structured category navigation in the unified document catalog."""
 from __future__ import annotations
 
 import sqlite3
@@ -42,14 +42,14 @@ class DocumentCategoryR10Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.23-r8\n",
+            "Version: 10.23-r9\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.23-r8"',
+            'APP_VERSION = "10.23-r9"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.23-r8",
+            "Taxo 10.23-r9",
             (root / "START.bat").read_text("utf-8"),
         )
 
