@@ -45,6 +45,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("operations.printable_briefing", "Експлуатація → Інструктажі", "Створити комплект DOCX для друку", "safety_instructions_ui.save_draft_list", runtime_smoke=True),
     FunctionRoute("operations.driver_internship", "Експлуатація", "Стажування водіїв", "driver_internship_ui.install_internship_tab", runtime_smoke=True),
     FunctionRoute("maintenance.stoir", "Ліве меню", "СТОІР", "open_vehicle_maintenance", runtime_smoke=True),
+    FunctionRoute("correspondence.center", "Ліве меню", "Кореспонденція", "open_correspondence_center", runtime_smoke=True),
     FunctionRoute("documents.center", "Експлуатація → Документи", "Документи підприємства", "DOCUMENT_CENTER_GROUPS", runtime_smoke=True),
     FunctionRoute("documents.catalog_filters", "Документи → Каталог", "Скинути фільтри", "document_catalog_ui.clear_filters", runtime_smoke=True),
     FunctionRoute("documents.catalog_folders", "Документи → Мої папки", "Нова папка…", "document_catalog_ui.create_user_folder", runtime_smoke=True),
