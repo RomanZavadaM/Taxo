@@ -28,9 +28,9 @@
 
 Ручне приймання саме 10.23-r4 виконано. Загальний аудит повного покриття всіх функцій (#556) і ширший наскрізний контроль механізму наказів (#553) залишаються відкритими; реєстрація вхідної/вихідної кореспонденції ще запланована.
 
-### Test 10.23-r9
+### Test 10.23-r10
 
-[Taxo 10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9) — поточний Test prerelease, 8 файлів, exact source `9f41c46a4745815cfc7518f7319f6c6f941ba559`. r9 поверх verified r8 batch формує лише read-only пропозиції дати, номера, виду, категорії та описової назви з confidence/reason. Неоднозначні значення не вгадуються, наявні структуровані реквізити не переписуються. Source-файли не перечитуються; OCR, зовнішній AI, APPLY, записи в DocumentVault/БД і фізичне сортування відсутні. Stable/Latest лишається 10.23-r4.
+[Taxo 10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10) — поточний Test prerelease, 8 файлів, exact source `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`. r10 додає окремий REVIEW-стан для пропозицій імпорту: confirm/reject/needs_review, exact proposal fingerprint, відновлення після restart та fail-closed захист від застарілих/підмінених рішень. REVIEW нічого не застосовує до DocumentVault/БД чи source. OCR, зовнішній AI, APPLY і фізичне сортування відсутні; Stable/Latest лишається 10.23-r4.
 
 
 ## Завантаження

@@ -1592,3 +1592,17 @@
 - r9: versioned deterministic metadata proposals для дати/номера/виду/категорії/title, confidence/reason/rule version, ambiguity→needs_review, existing structured metadata не переписуються.
 - Source archive і persisted batch не змінюються; OCR, external AI, APPLY, DocumentVault/DB write і move/rename/delete/copy відсутні.
 - Наступна 10.23-r10: людський REVIEW proposals і versioned decision ledger без APPLY; після r10 — окремий модуль вхідної/вихідної кореспонденції.
+
+
+## 22.11.2026 — 10.23-r10 Test published і recovery
+
+- Prep PR #603 реалізував окремий REVIEW store без APPLY. Початковий macOS regression виявив лише платформну різницю `/var` ↔ `/private/var` у тестовому порівнянні шляху; тест виправлено через canonical resolved path без послаблення production-логіки.
+- Prep final head `1ea4586e2e2b84b52b9485d1b680c7b0ce96d153` пройшов START/Windows/Win7/macOS, Defender/integrity PASS; merged as `27c00038242e3d71c45c253c837035f22c076741`.
+- Candidate PR #604 оформив один атомарний version-guard package; merged exact issued source `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`.
+- Exact-source CI: START #45048321322, Windows #45048321299, Win7 #45048321313, macOS Intel/ARM #45048321471 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS.
+- Guarded release-trigger PR #605 merged as `8b4236ef47bd3f7d987eaa55b6d87d6c0e6e9245`; publisher #45049398522 — SUCCESS.
+- [v10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10) — Test prerelease, 8 canonical assets, immutable target `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+- r10 зберігає REVIEW окремо у `import_reviews/<batch_id>/review.json`, підтримує confirm/reject/needs_review, exact proposal fingerprint, candidate/hash binding, atomic persistence, restart restore та fail-closed stale/tampered state.
+- REVIEW має `applies_changes=false`; source/import batch, DocumentVault/БД і паперовий підпис не змінюються. OCR, зовнішні AI-виклики, APPLY та фізичні move/rename/delete/copy відсутні.
+- Цикл r6–r10 закриває безпечну перед-APPLY основу старого архіву. APPLY не починати без окремого рішення власника.
+- Після r10 наступна ревізія — **10.24-r1**: окремий модуль ділової кореспонденції (incoming/outgoing registry, separate numbering, correspondent, subject, deadlines/control, replies/related links, готові документи).

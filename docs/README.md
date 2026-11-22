@@ -4,7 +4,7 @@
 
 **Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START, 37 strict live UI routes.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9), 8 файлів, exact source `9f41c46a4745815cfc7518f7319f6c6f941ba559`; read-only ANALYZE→PROPOSE metadata hints з confidence/reason та needs_review; Stable r4 не змінено.
+**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10), 8 файлів, exact source `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`; explicit REVIEW confirm/reject/needs_review без APPLY; Stable r4 не змінено.
 
 ## Робота з програмою
 
