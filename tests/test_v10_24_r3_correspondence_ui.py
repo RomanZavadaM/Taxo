@@ -88,6 +88,25 @@ class _BaseNav:
 
 
 class CorrespondenceUiR3Tests(unittest.TestCase):
+    def test_candidate_identity_and_start_guards(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            (root / "VERSION.txt").read_text("utf-8"),
+            "Version: 10.24-r3\n",
+        )
+        self.assertIn(
+            'APP_VERSION = "10.24-r3"',
+            (root / "main.py").read_text("utf-8"),
+        )
+        start = (root / "START.bat").read_text("utf-8")
+        self.assertIn("Taxo 10.24-r3", start)
+        self.assertIn("correspondence_ui.py", start)
+        self.assertIn("correspondence_feature.py", start)
+        self.assertEqual(
+            (root / ".release" / "full-current").read_text("utf-8"),
+            "10.24-r3\n",
+        )
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.workspace = Path(self.temp.name) / "work"

@@ -72,14 +72,14 @@ class PaperScanReplaceR10Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.24-r2\n",
+            "Version: 10.24-r3\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.24-r2"',
+            'APP_VERSION = "10.24-r3"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.24-r2",
+            "Taxo 10.24-r3",
             (root / "START.bat").read_text("utf-8"),
         )
 
