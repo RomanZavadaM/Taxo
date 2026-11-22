@@ -14,7 +14,7 @@
 
 ## AI-ready архів документів
 
-Нормативна специфікація вже інтегрована: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6 = read-only inventory, r7 = atomic batch store, r8 = verified deterministic preview, r9 = read-only ANALYZE→PROPOSE metadata hints. Наступний slice r10 — REVIEW: окреме versioned збереження явних confirm/reject/needs_review рішень без APPLY.
+Нормативна специфікація вже інтегрована: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6 = read-only inventory, r7 = atomic batch store, r8 = verified preview, r9 = read-only ANALYZE→PROPOSE deterministic metadata hints. OCR, зовнішній AI та APPLY ще відсутні.
 
 ## Можливості
 
