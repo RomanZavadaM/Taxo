@@ -1264,6 +1264,8 @@ def open_correspondence_center(app, core, workspace_root):
 
     win._taxo_correspondence_notebook = book
     win._taxo_correspondence_trees = state["trees"]
+    win._taxo_correspondence_details = state["details"]
+    win._taxo_correspondence_buttons = state["buttons"]
     win._taxo_correspondence_refresh = refresh_all
     win._taxo_correspondence_new_incoming = lambda: open_new(DIRECTION_INCOMING)
     win._taxo_correspondence_new_outgoing = lambda: open_new(DIRECTION_OUTGOING)
