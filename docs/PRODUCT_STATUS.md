@@ -1,10 +1,10 @@
 # Taxo — стан продукту
 
-**Актуально:** 22.11.2026 після публікації Test 10.23-r10.
+**Актуально:** 22.11.2026 після публікації Test 10.24-r1.
 
 - **Стабільна / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 файлів, 37 суворих live UI-маршрутів.
 - **Попередня стабільна:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
-- **Поточний Test:** [10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10), exact source `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`, 8 файлів, prerelease; explicit REVIEW confirm/reject/needs_review без APPLY. v10.23-r3 навмисно не публікувався.
+- **Поточний Test:** [10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1), exact source `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`, 8 файлів, prerelease; фундамент двох журналів ділової кореспонденції з незалежною нумерацією, semantic dates, response links та full backup/restore. v10.23-r3 навмисно не публікувався.
 - START #44803423646, Windows #44803423874, Win7 #44803423649, macOS Intel/ARM #44803423740 — SUCCESS; Defender/integrity PASS. Stable promotion #44811800328 — SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
@@ -14,7 +14,7 @@
 
 ## AI-ready архів документів
 
-Нормативна специфікація вже інтегрована: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6–r10 дають повний безпечний перед-APPLY цикл INVENTORY → batch store → verified preview → ANALYZE/PROPOSE → REVIEW. REVIEW зберігається окремо і нічого не APPLY. Імпортний APPLY не починати без окремого рішення власника.
+Нормативна специфікація архіву документів: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6–r10 дають INVENTORY→batch→preview→ANALYZE/PROPOSE→REVIEW без APPLY. 10.24-r1 відкриває окремий модуль ділової кореспонденції: incoming/outgoing journals, safe numbering, semantic dates, response links і backup/restore.
 
 ## Можливості
 
