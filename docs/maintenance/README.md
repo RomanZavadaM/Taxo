@@ -11,4 +11,4 @@
 - [Захист функцій](FUNCTION_PRESERVATION_FULL_COVERAGE_2026-11-19.md)
 - [Правила розробки](DEVELOPMENT_RULES.md)
 
-10.23-r7 опубліковано як Test. AI-ready нормативна документація вже в main; r6 реалізує read-only INVENTORY, r7 — atomic dry-run batch store. Наступний пакет — 10.23-r8: verified batch reader + deterministic sorting preview без AI APPLY. Історичні аудити не переписувати як нібито вони були виконані на r4; їхній актуальний статус уточнюється окремими checkpoint-файлами.
+10.23-r8 опубліковано як Current Test. AI-ready нормативна документація вже в main; r6 реалізує read-only INVENTORY, r7 — atomic dry-run batch store, r8 — verified batch reader + deterministic sorting preview. Наступний пакет — 10.23-r9: read-only ANALYZE→PROPOSE contract без OCR, зовнішніх AI-викликів або APPLY. Історичні аудити не переписувати як нібито вони були виконані на r4; їхній актуальний статус уточнюється окремими checkpoint-файлами.
