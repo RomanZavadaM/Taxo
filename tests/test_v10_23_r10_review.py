@@ -79,13 +79,15 @@ class DocumentImportReviewR10Tests(unittest.TestCase):
         path = persist_review_state(self.workspace, review)
 
         self.assertEqual(
-            path,
-            self.workspace
-            / "Data"
-            / "DocumentLibrary"
-            / "import_reviews"
-            / "r10-persist"
-            / "review.json",
+            path.resolve(),
+            (
+                self.workspace
+                / "Data"
+                / "DocumentLibrary"
+                / "import_reviews"
+                / "r10-persist"
+                / "review.json"
+            ).resolve(),
         )
         self.assertTrue(path.is_file())
         self.assertNotIn("import_batches", path.parts)
