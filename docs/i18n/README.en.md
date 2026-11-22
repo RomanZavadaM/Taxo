@@ -16,7 +16,7 @@ Taxo currently has 37 strict live UI routes that check mapped, on-screen, usable
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9), prerelease, 8 assets, exact source `9f41c46a4745815cfc7518f7319f6c6f941ba559`. It adds a read-only ANALYZE→PROPOSE layer over the verified r8 batch: deterministic metadata hints for date, number, kind, category and descriptive title, each with confidence and reason. Ambiguities go to needs_review, existing structured metadata is not overwritten, and source files are not reopened. No OCR, external AI, APPLY, DocumentVault/DB writes or physical file sorting; Stable/Latest remains 10.23-r4.
+**Current Test:** [Taxo 10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10), prerelease, 8 assets, exact source `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`. It adds a separate REVIEW state for import proposals with explicit confirm/reject/needs_review decisions, an exact proposal fingerprint, restart recovery and fail-closed protection against stale or tampered decisions. REVIEW does not apply changes to DocumentVault/DB, source files or the immutable import batch. No OCR, external AI, APPLY or physical file sorting; Stable/Latest remains 10.23-r4.
 
 ## Data and documentation
 
