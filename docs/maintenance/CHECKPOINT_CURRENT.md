@@ -15,18 +15,14 @@
 - Exact source: `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`
 - 8 assets; prerelease; publisher #45064537526 SUCCESS.
 - START #45063475205, Windows #45063475214, Win7 #45063475185, macOS Intel/ARM #45063475161 — SUCCESS.
-- Windows/Win7 mandatory Microsoft Defender malware gates + post-scan package integrity — SUCCESS.
-- r1 = correspondence registry; r2 = controlled immutable attachments + live DocumentVault links + history-only remove + backup/restore.
-- Attachment presence does not imply sent/received/delivered/signed.
+- Windows/Win7 Defender + post-scan integrity — SUCCESS.
+- r1 incoming/outgoing registry + numbering; r2 immutable attachments/live vault links, integrity/history, full backup/restore.
+- Attachment не змінює sent/received/status.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
-**10.24-r3 — UI журналів і картка кореспонденції.**
-
-Потрібен один змістовний пакет: окреме resizable вікно «Кореспонденція», вкладки Вхідні/Вихідні, таблиця з номером/датою/кореспондентом/темою/строком/станом/вкладеннями, пошук і швидкий перехід по даті, детальна картка листа, Новий вхідний/Новий вихідний/Відповісти/Вкладення/Відкрити документ, явні Закрити/Скасувати. Жодного автоматичного sent/received або e-mail automation.
-
-E-mail/OCR/AI і справи/ланцюжки — окремими пізнішими ревізіями. APPLY старого AI-import cycle не починати без окремого рішення власника.
+**10.24-r3:** відповіді, справи й контроль строків: explicit incoming states, actual outgoing send окремо від registration, safe reply links, due/overdue, logical case/thread та append-only history. UI — наступним окремим кроком. Без automatic e-mail, OCR/AI APPLY або physical purge.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
