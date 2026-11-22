@@ -1564,3 +1564,16 @@
 - r8 verified read-only batch reader перевіряє format/batch/checksum і будує deterministic sorting preview за date/number/category/source зі stable identity tie-breaker; empty/unknown values last; natural number sort.
 - Source archive і saved batch не змінюються; OCR, зовнішні AI-виклики, AI APPLY, registry write та move/rename/delete/copy відсутні.
 - Recovery після r8 синхронізує HANDOFF/STATE/README/localizations/PRODUCT_STATUS/CHECKPOINT/RELEASE_INDEX. Наступна кодова ревізія — 10.23-r9: read-only ANALYZE→PROPOSE contract + deterministic metadata hints, без APPLY.
+
+
+## 22.11.2026 — 10.23-r9 Test published і recovery
+
+- Prep PR #599 реалізував read-only ANALYZE→PROPOSE metadata hints; один regression-тест упіймав хибний збіг номерного маркера всередині слова, після чого правило звужено до явної межі токена.
+- Product candidate issued as exact source `9f41c46a4745815cfc7518f7319f6c6f941ba559`; VERSION = 10.23-r9.
+- Exact-source CI: START #45043933564, Windows #45043933540, Win7 #45043933535, macOS Intel/ARM #45043933592 — SUCCESS.
+- Windows і Win7 mandatory Microsoft Defender malware gate та post-scan package integrity verification — SUCCESS.
+- Guarded release trigger PR #601 merged as `439619e19e61c59c6ca70068ff36203c7fb8e793`; publisher #45045127128 — SUCCESS.
+- [v10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9) — Test prerelease, 8 canonical assets, immutable target `9f41c46a4745815cfc7518f7319f6c6f941ba559`. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+- r9 формує deterministic proposals для document_date/document_number/document_kind/category/title з confidence/reason/rule version; ambiguity не вгадується і переходить у needs_review; existing structured metadata не перезаписується.
+- Source files не перечитуються; saved batch, DocumentVault/БД, паперовий підпис і source archive не змінюються. OCR, зовнішні AI-виклики, APPLY та move/rename/delete/copy відсутні.
+- Наступна ревізія — 10.23-r10: REVIEW layer з окремим versioned confirm/reject/needs_review state без APPLY. Після r10 — окремий модуль вхідної/вихідної кореспонденції.
