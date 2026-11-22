@@ -4,7 +4,7 @@
 
 **Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START, 37 strict live UI routes.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2), 8 файлів, exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`; контрольовані immutable вкладення кореспонденції + history + backup/restore; Stable r4 не змінено.
+**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2), 8 файлів, exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`; два журнали кореспонденції + контрольовані immutable attachments/live vault links + full backup/restore; Stable r4 не змінено.
 
 ## Робота з програмою
 
