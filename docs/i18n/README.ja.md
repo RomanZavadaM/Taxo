@@ -16,7 +16,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員・
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8)。8ファイルの prerelease、exact source は `d3d34f7a0fc3de88280324eaeb2d97a72c172359` です。管理された import batch を検証し、日付・番号・カテゴリ/種類・source fallback による決定論的な read-only sorting preview を生成します。空値は末尾、番号は natural sort、stable identity は最終 tie-breaker です。OCR、AI APPLY、物理ファイルの並べ替えは行わず、Stable/Latest は 10.23-r4 のままです。
+**Current Test:** [Taxo 10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9)。8ファイルの prerelease、exact source は `9f41c46a4745815cfc7518f7319f6c6f941ba559` です。verified r8 batch の上に read-only ANALYZE→PROPOSE 層を追加し、日付・番号・種類・カテゴリ・説明用タイトルを confidence/reason 付きで決定論的に提案します。曖昧な値は needs_review に送り、既存の構造化メタデータは上書きせず、source ファイルも再度開きません。OCR、外部AI、APPLY、DocumentVault/DB書き込み、物理ファイル整理は行わず、Stable/Latest は 10.23-r4 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
