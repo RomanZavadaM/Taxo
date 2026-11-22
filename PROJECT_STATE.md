@@ -8,30 +8,22 @@
 
 ## Stable r4
 
-Stable r4 залишається вручну прийнятою власником версією. Вона містить каталог документів, власні папки, скани/паперовий підпис, редагування учасників наказу, регульовані робочі області та адаптивний перегляд наказу. 37 strict live routes.
+Stable r4 залишається вручну прийнятою власником версією. 37 strict live UI routes; Stable не змінюється без окремого рішення власника.
 
 ## Current Test 10.24-r2
 
-r1 дав безпечний доменний реєстр incoming/outgoing з окремою нумерацією. r2 додає контрольовані вкладення:
-- окремий immutable attachment store;
-- SHA256/MIME/size/original filename/stable attachment ID;
-- content-addressed dedupe;
-- live DocumentVault links без byte copy;
-- PDF/JPG/PNG/TIFF/DOCX content validation;
-- macro/unsafe/symlink/orphan/missing/tampered fail-closed;
-- history-only remove без фізичного видалення байтів;
-- full backup/restore registry + attachments + history + numbering;
-- attachment presence не змінює бізнес-стан листа.
+Лінія ділової кореспонденції:
+- r1: incoming/outgoing registry, independent annual numbering, semantic dates, correspondent/control metadata, response/related links, stable document_ref, full backup/restore;
+- r2: controlled immutable attachments або live DocumentVault link, SHA256/MIME/size/name metadata, content-addressed dedupe, history-only removal, content/integrity guards і full backup/restore;
+- attachment не означає sent/received/delivered/signed і не переписує registry state.
 
-Exact-source CI `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`: START #45063475205, Windows #45063475214, Win7 #45063475185, macOS Intel/ARM #45063475161 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS; publisher #45064537526 — SUCCESS.
-
-## AI-ready archive path
-
-r6 INVENTORY → r7 batch store → r8 verified preview → r9 ANALYZE/PROPOSE → r10 REVIEW. Цикл лишається без APPLY; source, batch, DocumentVault/БД і паперовий підпис не змінюються. APPLY — тільки після окремого рішення власника.
+Exact-source CI `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`: START #45063475205, Windows #45063475214, Win7 #45063475185, macOS Intel/ARM #45063475161 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS. Guarded trigger PR #613 merged as `14a280f865ec789e14fdc1ff83602925618ba854`; publisher #45064537526 — SUCCESS.
 
 ## Наступна ревізія
 
-**10.24-r3:** UI журналів і картка кореспонденції поверх уже перевірених r1+r2 API. Окреме вікно incoming/outgoing, пошук/дата, таблиця, детальна картка, створення/відповідь/вкладення/відкриття документа, нормальний resize і явні Close/Cancel. Ніякого автоматичного sent/received або e-mail automation. E-mail/OCR/AI/cases — пізніше.
+**10.24-r3:** відповіді, справи та контроль строків: explicit state transitions, окрема фактична відправка outgoing, due/overdue, safe reply creation, logical case/thread, append-only history та backup/restore. UI — наступним окремим пакетом поверх доменних API. Без e-mail automation, OCR/AI APPLY або physical purge.
+
+AI-ready document import r6–r10 завершений на REVIEW без APPLY. APPLY — лише після окремого рішення власника.
 
 #553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
 
