@@ -26,6 +26,24 @@ from paper_document_store import list_documents, save_docx_bytes
 
 
 class CorrespondenceAttachmentsR2Tests(unittest.TestCase):
+    def test_candidate_identity_and_start_guard(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            (root / "VERSION.txt").read_text("utf-8"),
+            "Version: 10.24-r2\n",
+        )
+        self.assertIn(
+            'APP_VERSION = "10.24-r2"',
+            (root / "main.py").read_text("utf-8"),
+        )
+        start = (root / "START.bat").read_text("utf-8")
+        self.assertIn("Taxo 10.24-r2", start)
+        self.assertIn("correspondence_attachments.py", start)
+        self.assertEqual(
+            (root / ".release" / "full-current").read_text("utf-8"),
+            "10.24-r2\n",
+        )
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.base = Path(self.temp.name)
@@ -294,7 +312,7 @@ class CorrespondenceAttachmentsR2Tests(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             self.base / "backup.zip",
-            app_version="10.24-r1",
+            app_version="10.24-r2",
         )
         restored = self.base / "restored"
         workspace.restore_workspace_backup_archive(archive, restored)
