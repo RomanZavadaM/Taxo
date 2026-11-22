@@ -80,9 +80,9 @@ class DocumentCatalogClearFiltersR3Tests(unittest.TestCase):
 
     def test_current_version(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.24-r1\n")
-        self.assertIn('APP_VERSION = "10.24-r1"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.24-r1", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.24-r2\n")
+        self.assertIn('APP_VERSION = "10.24-r2"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.24-r2", (root / "START.bat").read_text("utf-8"))
 
 
 if __name__ == "__main__":
