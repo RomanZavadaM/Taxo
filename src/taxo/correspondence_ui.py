@@ -837,6 +837,10 @@ def open_correspondence_center(app, core, workspace_root):
 
     def close():
         try:
+            cancel_pending_refresh()
+        except Exception:
+            pass
+        try:
             app._correspondence_window = None
         except Exception:
             pass
@@ -909,6 +913,19 @@ def open_correspondence_center(app, core, workspace_root):
         "pending_select": {},
         "after": None,
     }
+
+    def cancel_pending_refresh(event=None):
+        if event is not None and getattr(event, "widget", None) is not win:
+            return
+        token = state.get("after")
+        if token is not None:
+            try:
+                win.after_cancel(token)
+            except Exception:
+                pass
+            state["after"] = None
+
+    win.bind("<Destroy>", cancel_pending_refresh, add="+")
 
     def selected_record(direction, quiet=False):
         tree = state["trees"][direction]
@@ -1190,6 +1207,11 @@ def open_correspondence_center(app, core, workspace_root):
         )
         return True
 
+    def run_scheduled_refresh():
+        state["after"] = None
+        if _alive(win):
+            refresh_all()
+
     def schedule_refresh(*_args):
         token = state.get("after")
         if token is not None:
@@ -1197,7 +1219,7 @@ def open_correspondence_center(app, core, workspace_root):
                 win.after_cancel(token)
             except Exception:
                 pass
-        state["after"] = win.after(180, refresh_all)
+        state["after"] = win.after(180, run_scheduled_refresh)
 
     def saved(record):
         direction = record.direction
