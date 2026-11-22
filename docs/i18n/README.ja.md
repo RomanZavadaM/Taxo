@@ -16,7 +16,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員・
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10)。8ファイルの prerelease、exact source は `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd` です。import proposal 用に独立した REVIEW 状態を追加し、confirm/reject/needs_review、proposal の正確な fingerprint、再起動後の復元、古い/改ざんされた判断に対する fail-closed を提供します。REVIEW は DocumentVault/DB、source、immutable import batch に変更を適用しません。OCR、外部AI、APPLY、物理ファイル整理は行わず、Stable/Latest は 10.23-r4 のままです。
+**Current Test:** [Taxo 10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1)。8ファイルの prerelease、exact source は `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827` です。入出力を分けた業務連絡簿、独立した年次番号、登録/文書/受信/送信の日付分離、相手先/件名/管理情報、明示的な返信リンク、バイトを複製しない安定した文書参照を追加します。レジストリは full workspace backup/restore に含まれます。対応UI、添付ストア、自動メールはまだありません。Stable/Latest は 10.23-r4 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

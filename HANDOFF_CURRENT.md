@@ -1,47 +1,52 @@
 # HANDOFF_CURRENT — Taxo
 
-**22.11.2026 — 10.23-r10 опубліковано як Test prerelease; Stable/Latest лишається 10.23-r4.**
+**22.11.2026 — 10.24-r1 опубліковано як Test prerelease; Stable/Latest лишається 10.23-r4.**
 
 **Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, `prerelease=false`, GitHub Latest.
 
-**Current Test:** [10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10), exact source `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`, 8 assets, prerelease. Publisher #45049398522 — SUCCESS.
+**Current Test:** [10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1), exact source `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`, 8 assets, prerelease. Publisher #45053863942 — SUCCESS.
 
-Exact-source r10 CI: START #45048321322, Windows #45048321299, Win7 #45048321313, macOS Intel/ARM #45048321471 — SUCCESS. Windows і Win7 mandatory Microsoft Defender gates та post-scan integrity verification — SUCCESS.
+Exact-source r1 CI: START #45052687870, Windows #45052687839, Win7 #45052687867, macOS Intel/ARM #45052687880 — SUCCESS. Windows і Win7 mandatory Microsoft Defender gates та post-scan integrity verification — SUCCESS.
 
-## Що додає r10
+## Що додає 10.24-r1
 
-- окремий versioned REVIEW state `taxo.document-import-review.v1`;
-- сховище `Data/DocumentLibrary/import_reviews/<batch_id>/review.json` окремо від immutable import batch;
-- явні рішення `confirm`, `reject`, `needs_review`;
-- confirm звичайної proposal дозволяє тільки точне запропоноване значення;
-- ambiguity потребує явного вибору одного з відомих кандидатів;
-- рішення жорстко прив'язані до batch + candidate + SHA256 + exact proposal fingerprint;
-- stale/tampered review fail-closed;
-- рішення атомарно зберігаються та відновлюються після restart;
-- `applies_changes=false`: DocumentVault/БД, source, batch і паперовий підпис не змінюються;
-- OCR, зовнішній AI/model API, APPLY і фізичні move/rename/delete/copy відсутні.
+- окремі доменні модулі `correspondence_registry` і `correspondence_service`, без розростання `main.py`;
+- керований реєстр `Data/Correspondence/registry.json`, format `taxo.correspondence-registry.v1`;
+- два незалежні журнали: incoming / outgoing;
+- окремі річні номерні послідовності з відображенням `Вх. № 0001/2026` та `Вих. № 0001/2026`;
+- preview наступного номера не резервує номер; реєстрація резервує його атомарно;
+- stable correspondence ID `cr-...`;
+- розділені `registration_date`, `document_date`, `received_date`, `sent_date`;
+- зовнішній номер кореспондента, кореспондент, тема, короткий зміст, спосіб отримання/відправлення, відповідальний, строк і стан;
+- явні response/related links; вихідна відповідь посилається на існуючий вхідний лист;
+- `document_ref` — лише стабільне посилання на контрольований готовий документ, без копіювання його байтів;
+- пошкоджена номерна послідовність fail-closed, щоб уже виданий номер не можна було видати повторно;
+- same-process parallel registration не дублює номери;
+- чинний full workspace backup/restore зберігає реєстр і наступний номер.
 
-## Нормативна AI-ready модель
+## Важливі межі
 
-`docs/DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md` — джерело правил: immutable originals, stable identity + metadata + links, staging `INVENTORY → ANALYZE → PROPOSE → REVIEW → APPLY → VERIFY`, confidence/reason/review, import batch + rollback та dry-run перед APPLY.
-
-r6–r10 тепер дають безпечний перед-APPLY цикл: INVENTORY → batch store → verified preview → ANALYZE/PROPOSE → REVIEW. APPLY імпортних пропозицій не починати без окремого рішення власника.
+- реєстрація вихідного листа не означає фактичного відправлення;
+- вхідний лист можна зареєструвати без скана чи файла;
+- немає UI, автоматичного e-mail, OCR, зовнішнього AI, AI APPLY або фізичного сортування;
+- немає нового дублюючого сховища готових документів;
+- DocumentVault/БД не змінюються цим модулем;
+- Stable/Latest не змінено.
 
 ## Наступний крок
 
-Після r10 ревізія переходить на **10.24-r1**.
+**10.24-r2 — контрольовані файли/вкладення кореспонденції та backup/restore.**
 
-**10.24-r1 — фундамент модуля «Ділова кореспонденція»** за планом #543:
-- окремий доменний модуль, не розростання `main.py`;
-- вхідні / вихідні записи з окремими послідовностями номерів;
-- stable correspondence ID, дата реєстрації, кореспондент, тема/короткий зміст;
-- строк виконання і стан контролю;
-- зв'язок «лист ↔ відповідь» та related correspondence;
-- зв'язок із готовим документом/DocumentVault без дублювання файла;
-- безпечне збереження, backup/restore compatibility і regression-тести.
+Перший bounded slice r2:
+- окремий immutable attachment store у робочому сховищі або контрольований link на вже наявний DocumentVault, без дублювання одного й того самого файла;
+- SHA256, MIME/extension, original filename, size і stable attachment ID;
+- прив'язка attachment → correspondence record;
+- safe add/list/open/remove-as-history semantics, без автоматичного «надіслано/отримано»;
+- full backup/restore має зберігати attachment metadata/bytes і не ламати номерні послідовності;
+- UI, e-mail automation, OCR/AI і справи/ланцюжки — окремими наступними ревізіями.
 
-Перший пакет не робить OCR/AI APPLY і не змінює Stable. UI реєстру будувати поверх цього доменного API, не змішуючи з документним імпортом.
+Draft #543 лишається архітектурним планом. #553/#556/#562 залишаються відкритими. Draft #395 не закривати автоматично.
 
-#553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
+APPLY старих AI-import proposals не починати без окремого рішення власника.
 
 Recovery: START_HERE → HANDOFF → private Taxo-profile → live GitHub.

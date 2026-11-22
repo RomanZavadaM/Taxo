@@ -1606,3 +1606,18 @@
 - REVIEW має `applies_changes=false`; source/import batch, DocumentVault/БД і паперовий підпис не змінюються. OCR, зовнішні AI-виклики, APPLY та фізичні move/rename/delete/copy відсутні.
 - Цикл r6–r10 закриває безпечну перед-APPLY основу старого архіву. APPLY не починати без окремого рішення власника.
 - Після r10 наступна ревізія — **10.24-r1**: окремий модуль ділової кореспонденції (incoming/outgoing registry, separate numbering, correspondent, subject, deadlines/control, replies/related links, готові документи).
+
+
+## 22.11.2026 — 10.24-r1 Test published: фундамент ділової кореспонденції
+
+- Після повного recovery r10 відкрито нову ревізійну лінію 10.24 без зміни Stable.
+- Prep PR #607 додав `correspondence_registry` + `correspondence_service`: incoming/outgoing journals, independent annual sequences, stable correspondence ID, semantic dates, correspondent/subject/control metadata, response/related links, document_ref без byte copy та atomic registry.
+- Перший START prep упіймав лише нереалістичний backup-fixture без SQLite-БД; production-вимогу full backup не послаблювали. Fixture виправлено мінімальною Taxo DB. Final prep head `122eaf25dc0477e27bb1fe82008891a9d999c973`: START 1640/1640, Windows, Win7, macOS Intel/ARM — SUCCESS; Defender/integrity PASS.
+- Product PR #608 підняв VERSION/main/START/.release до 10.24-r1, додав release notes, START guards для correspondence modules та синхронізував 75 historical version-guards. Final PR head `a9a060b9f2c55ec6ff97a5314d62f27766e375bd` — повний CI SUCCESS.
+- Exact issued source після merge: `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`.
+- Exact-source CI: START #45052687870, Windows #45052687839, Win7 #45052687867, macOS Intel/ARM #45052687880 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS.
+- Guarded release trigger PR #609 merged as `382da5cdb0a54a37769711edf04b1cafd8c3bf61`; publisher #45053863942 — SUCCESS.
+- [v10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1) — Test prerelease, 8 canonical assets, immutable target `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+- Registration ≠ delivery: outgoing без sent_date має status registered; incoming можна зареєструвати без scan/file. External counterparty number не є Taxo registration number.
+- Full workspace backup/restore зберігає Correspondence registry і next-number state; tampered sequence fail-closed, parallel same-process registration не повторює номер.
+- Наступна ревізія 10.24-r2: контрольовані files/attachments + backup/restore, без автоматичного e-mail, OCR/AI та без дублювання ready-document archive.
