@@ -48,7 +48,7 @@ _CATEGORY_RULES = (
     ("Охорона праці", ("охорона праці", "occupational safety"), 0.98),
     (
         "Безпека дорожнього руху",
-        ("безпек дорож", "бдр", "road safety"),
+        ("безпека дорож", "безпеки дорож", "бдр", "road safety"),
         0.98,
     ),
     ("Пожежна безпека", ("пожеж", "fire safety"), 0.98),
@@ -114,11 +114,27 @@ def _number_candidates(text):
     return sorted({_text(match.group(1)) for match in _NUMBER.finditer(text)})
 
 
+def _keyword_hit(folded, needle):
+    token = needle.casefold()
+    # Very short labels/abbreviations must be separate words. This prevents
+    # false positives such as "акт" inside "контракт".
+    if token in {"акт", "бдр"}:
+        return bool(
+            re.search(
+                r"(?<![0-9A-Za-zА-Яа-яІіЇїЄєҐґ])"
+                + re.escape(token)
+                + r"(?![0-9A-Za-zА-Яа-яІіЇїЄєҐґ])",
+                folded,
+            )
+        )
+    return token in folded
+
+
 def _keyword_candidates(text, rules):
     folded = _fold(text)
     found = {}
     for value, needles, confidence in rules:
-        if any(needle.casefold() in folded for needle in needles):
+        if any(_keyword_hit(folded, needle) for needle in needles):
             found[value] = confidence
     return sorted(found.items(), key=lambda item: item[0].casefold())
 
