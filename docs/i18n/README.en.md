@@ -16,7 +16,7 @@ Taxo currently has 37 strict live UI routes that check mapped, on-screen, usable
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10), prerelease, 8 assets, exact source `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`. It adds a separate REVIEW state for import proposals with explicit confirm/reject/needs_review decisions, an exact proposal fingerprint, restart recovery and fail-closed protection against stale or tampered decisions. REVIEW does not apply changes to DocumentVault/DB, source files or the immutable import batch. No OCR, external AI, APPLY or physical file sorting; Stable/Latest remains 10.23-r4.
+**Current Test:** [Taxo 10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1), prerelease, 8 assets, exact source `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`. It starts the business-correspondence module with separate incoming/outgoing journals, independent annual numbering, distinct registration/document/received/sent dates, correspondent/subject/control metadata, explicit response links and stable document references without copying bytes. The registry is preserved by full workspace backup/restore. No correspondence UI, attachment store or automatic e-mail yet; Stable/Latest remains 10.23-r4.
 
 ## Data and documentation
 
