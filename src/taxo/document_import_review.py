@@ -310,12 +310,22 @@ def _validate_review_structure(review):
             decision = _text(item.get("decision"))
             if decision not in _DECISIONS:
                 raise ValueError("Некоректне review decision")
-            if decision == "confirm" and item.get("selected_value") is None:
-                raise ValueError("Confirmed field не має selected_value")
-            if (
-                decision != "confirm"
-                and item.get("selected_value") is not None
-            ):
+            selected = item.get("selected_value")
+            if decision == "confirm":
+                if selected is None:
+                    raise ValueError("Confirmed field не має selected_value")
+                proposal = item.get("proposal")
+                candidates = item.get("candidates") or []
+                if proposal is not None:
+                    if selected != proposal.get("value"):
+                        raise ValueError(
+                            "Confirmed value не відповідає proposal"
+                        )
+                elif selected not in candidates:
+                    raise ValueError(
+                        "Confirmed value не входить до ambiguity candidates"
+                    )
+            elif selected is not None:
                 raise ValueError(
                     "Непідтверджене field не може мати selected_value"
                 )
