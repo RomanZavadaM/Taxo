@@ -219,6 +219,30 @@ class DocumentImportReviewR10Tests(unittest.TestCase):
         self.assertEqual(review["summary"]["reviewed_records"], 1)
         self.assertEqual(review["summary"]["needs_review_records"], 0)
 
+    def test_tampered_confirmed_value_fails_closed(self):
+        (self.source / "Наказ №7.docx").write_text("x", encoding="utf-8")
+        self._persist("r10-tampered-value")
+        review = build_review_queue(self.workspace, "r10-tampered-value")
+        candidate = review["records"][0]["candidate_id"]
+        review = set_review_decision(
+            review, candidate, "document_number", "confirm"
+        )
+        path = persist_review_state(self.workspace, review)
+
+        data = json.loads(path.read_text("utf-8"))
+        field = [
+            item for item in data["records"][0]["fields"]
+            if item["field"] == "document_number"
+        ][0]
+        field["selected_value"] = "999"
+        path.write_text(
+            json.dumps(data, ensure_ascii=False, sort_keys=True),
+            encoding="utf-8",
+        )
+
+        with self.assertRaises(ValueError):
+            build_review_queue(self.workspace, "r10-tampered-value")
+
     def test_stale_proposal_fingerprint_fails_closed(self):
         (self.source / "Наказ №7 21.11.2026.docx").write_text(
             "x", encoding="utf-8"
