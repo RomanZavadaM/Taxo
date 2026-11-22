@@ -1647,4 +1647,4 @@
 - [v10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2) — Test prerelease, 8 canonical assets, immutable target `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
 - PDF/JPG/PNG/TIFF/DOCX перевіряються за вмістом; macro DOCX, symlink source, missing/orphan/tampered object — fail-closed. Один SHA фізично зберігається один раз, але може бути явно пов'язаний із різними листами.
 - Remove лише додає історичну подію; байти не видаляються. Attachment не означає sent/received/delivered/signed і не переписує correspondence state.
-- Наступна ревізія 10.24-r3 за планом #543: відповіді, справи й контроль строків — explicit state transitions, actual send окремо від registration, due/overdue, safe reply links, logical cases/threads та history. UI/e-mail/OCR/AI — окремо.
+- Наступна ревізія **10.24-r3** за release notes r2 і останнім планом #543: journal UI/card поверх уже перевірених registry + attachment APIs. Фактичні mark-sent/mark-received, розширені state transitions, справи/threads та e-mail automation — окремими наступними ревізіями.
