@@ -16,16 +16,16 @@
 - 8 assets; prerelease; publisher #45045127128 SUCCESS.
 - START #45043933564, Windows #45043933540, Win7 #45043933535, macOS Intel/ARM #45043933592 — SUCCESS.
 - Windows/Win7 mandatory Microsoft Defender malware gates + post-scan package integrity — SUCCESS.
-- Read-only ANALYZE→PROPOSE metadata hints over verified r8 batch; ambiguity → needs_review; source and persisted batch remain unchanged.
+- Read-only ANALYZE→PROPOSE deterministic metadata hints; source archive і persisted batch не змінюються.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
 Нормативна AI-ready модель: [DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md](../DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md).
 
-Наступний кодовий крок — **10.23-r10**: безпечний **REVIEW** шар. Зберігати окремий versioned review record з явними рішеннями `confirm/reject/needs_review`, прив'язаний до import_batch_id + candidate_id + sha256. Не APPLY до DocumentVault/БД і не змінювати source/batch. Без OCR, зовнішніх AI-викликів та фізичних move/rename/delete/copy.
+Наступний кодовий крок — **10.23-r10**: людський REVIEW для r9 proposals — versioned decision ledger, explicit accept/reject/edit, черга needs_review. Без автоматичного APPLY, OCR, зовнішнього AI API або фізичних move/rename/delete/copy.
 
-Після r10 — окремий модуль вхідної/вихідної кореспонденції. APPLY імпортних пропозицій — тільки після окремого рішення власника.
+Після r10 — окремий модуль вхідної/вихідної кореспонденції за draft #543.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
