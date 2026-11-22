@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r8.**
+**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r9.**
 
 ## Stable
 
@@ -11,19 +11,21 @@
 
 ## Test
 
-- Release: [v10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8)
-- Exact source: `d3d34f7a0fc3de88280324eaeb2d97a72c172359`
-- 8 assets; prerelease; publisher #44948759163 SUCCESS.
-- START #44947743150, Windows #44947743153, Win7 #44947743132, macOS Intel/ARM #44947743115 — SUCCESS.
+- Release: [v10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9)
+- Exact source: `9f41c46a4745815cfc7518f7319f6c6f941ba559`
+- 8 assets; prerelease; publisher #45045127128 SUCCESS.
+- START #45043933564, Windows #45043933540, Win7 #45043933535, macOS Intel/ARM #45043933592 — SUCCESS.
 - Windows/Win7 mandatory Microsoft Defender malware gates + post-scan package integrity — SUCCESS.
-- Verified managed batch reader + deterministic read-only sorting preview; source archive і batch не змінюються.
+- Read-only ANALYZE→PROPOSE metadata hints over verified r8 batch; ambiguity → needs_review; source and persisted batch remain unchanged.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
 Нормативна AI-ready модель: [DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md](../DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md).
 
-Наступний кодовий крок — **10.23-r9**: read-only **ANALYZE → PROPOSE** contract поверх verified r8 batch. Versioned proposal record, deterministic metadata hints, confidence/reason/review_state, без OCR, зовнішніх AI-викликів, registry APPLY або фізичних move/rename/delete/copy.
+Наступний кодовий крок — **10.23-r10**: безпечний **REVIEW** шар. Зберігати окремий versioned review record з явними рішеннями `confirm/reject/needs_review`, прив'язаний до import_batch_id + candidate_id + sha256. Не APPLY до DocumentVault/БД і не змінювати source/batch. Без OCR, зовнішніх AI-викликів та фізичних move/rename/delete/copy.
+
+Після r10 — окремий модуль вхідної/вихідної кореспонденції. APPLY імпортних пропозицій — тільки після окремого рішення власника.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
