@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r9.**
+**22.11.2026 — Stable/Latest 10.23-r4; Current Test 10.23-r10.**
 
 ## Stable
 
@@ -11,21 +11,19 @@
 
 ## Test
 
-- Release: [v10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9)
-- Exact source: `9f41c46a4745815cfc7518f7319f6c6f941ba559`
-- 8 assets; prerelease; publisher #45045127128 SUCCESS.
-- START #45043933564, Windows #45043933540, Win7 #45043933535, macOS Intel/ARM #45043933592 — SUCCESS.
+- Release: [v10.23-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r10)
+- Exact source: `f87991c624a971fe3ffd4112e5dfde9fd9e4b6cd`
+- 8 assets; prerelease; publisher #45049398522 SUCCESS.
+- START #45048321322, Windows #45048321299, Win7 #45048321313, macOS Intel/ARM #45048321471 — SUCCESS.
 - Windows/Win7 mandatory Microsoft Defender malware gates + post-scan package integrity — SUCCESS.
-- Read-only ANALYZE→PROPOSE deterministic metadata hints; source archive і persisted batch не змінюються.
+- Explicit REVIEW decisions are stored separately from source/import batch and have `applies_changes=false`.
 - Stable/Latest не змінено.
 
 ## Наступний напрям
 
-Нормативна AI-ready модель: [DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md](../DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md).
+Після `10.23-r10` наступна ревізія — **10.24-r1**.
 
-Наступний кодовий крок — **10.23-r10**: людський REVIEW для r9 proposals — versioned decision ledger, explicit accept/reject/edit, черга needs_review. Без автоматичного APPLY, OCR, зовнішнього AI API або фізичних move/rename/delete/copy.
-
-Після r10 — окремий модуль вхідної/вихідної кореспонденції за draft #543.
+Наступний кодовий пакет — фундамент **«Ділова кореспонденція»**: окремий доменний модуль і safe persistence для incoming/outgoing registry, separate numbering, registration date, correspondent, subject, execution deadline/status, reply/related links та зв'язок із готовим документом без дублювання файла. Не розростати `main.py`; не робити імпортний APPLY без окремого рішення власника.
 
 #553/#556/#562 не закривати автоматично; draft #543/#395 не чіпати.
 
