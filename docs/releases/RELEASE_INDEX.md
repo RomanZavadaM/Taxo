@@ -1,11 +1,12 @@
 # Випуски Taxo
 
-**Стан:** 21.11.2026.
+**Стан:** 22.11.2026.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) | 8 файлів; 37 суворих live UI-маршрутів, адаптивний перегляд наказів і зміни r1–r4. Exact source a919ced6bc8665ced70ebb4d897808e4e2618667; stable promotion #44811800328 SUCCESS. |
-| Поточна тестова | [10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7) | 8 файлів; atomic dry-run inventory batches, inventory/report manifests, checksum verification, idempotent reuse та fail-closed conflicts; source read-only. Exact source a60d1933ddde090f0cb5e8672c5070030647301d; publisher #44944448052 SUCCESS; Defender/integrity PASS. |
+| Поточна тестова | [10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8) | 8 файлів; verified batch reader + deterministic sorting preview, fail-closed checksum/format validation, empty values last, natural number sort і stable identity tie-breaker; source/batch read-only. Exact source d3d34f7a0fc3de88280324eaeb2d97a72c172359; publisher #44948759163 SUCCESS; Defender/integrity PASS. |
+| Попередня тестова | [10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7) | 8 файлів; atomic dry-run inventory batches, inventory/report manifests, checksum verification, idempotent reuse та fail-closed conflicts; source read-only. Exact source a60d1933ddde090f0cb5e8672c5070030647301d; publisher #44944448052 SUCCESS; Defender/integrity PASS. |
 | Попередня тестова | [10.23-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r6) | 8 файлів; read-only inventory існуючого архіву: SHA256/MIME/size/mtime, stable candidate_id, versioned manifest, exact duplicate groups, symlink skip. Exact source 5a321e98c39443f3d37c89837352402df4542551. |
 | Попередня тестова | [10.23-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r5) | 8 файлів; малий viewport «Документи → Каталог» 760×470, 38 strict live routes; exact source dc5dcaa3aa86b4d42cfdec8019fbc73c73f2be3a. |
 | Попередня стабільна | [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1) | 8 файлів; 32 суворі маршрути. Exact source 84184bbbf6c26b681c04feaebee19910269bd25c. |
