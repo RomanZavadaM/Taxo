@@ -1,10 +1,10 @@
 # Taxo — стан продукту
 
-**Актуально:** 22.11.2026 після публікації Test 10.24-r1.
+**Актуально:** 22.11.2026 після публікації Test 10.24-r2.
 
 - **Стабільна / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 файлів, 37 суворих live UI-маршрутів.
 - **Попередня стабільна:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
-- **Поточний Test:** [10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1), exact source `adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827`, 8 файлів, prerelease; фундамент двох журналів ділової кореспонденції з незалежною нумерацією, semantic dates, response links та full backup/restore. v10.23-r3 навмисно не публікувався.
+- **Поточний Test:** [10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2), exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`, 8 файлів, prerelease; контрольовані immutable вкладення кореспонденції, live DocumentVault links, history-only remove та full backup/restore. Stable/Latest лишається 10.23-r4.
 - START #44803423646, Windows #44803423874, Win7 #44803423649, macOS Intel/ARM #44803423740 — SUCCESS; Defender/integrity PASS. Stable promotion #44811800328 — SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
@@ -14,7 +14,7 @@
 
 ## AI-ready архів документів
 
-Нормативна специфікація архіву документів: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6–r10 дають INVENTORY→batch→preview→ANALYZE/PROPOSE→REVIEW без APPLY. 10.24-r1 відкриває окремий модуль ділової кореспонденції: incoming/outgoing journals, safe numbering, semantic dates, response links і backup/restore.
+Нормативна специфікація архіву документів: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6–r10 дають INVENTORY→batch→preview→ANALYZE/PROPOSE→REVIEW без APPLY. 10.24-r1 додає registry incoming/outgoing; 10.24-r2 — контрольовані вкладення без автоматичної зміни бізнес-стану листа.
 
 ## Можливості
 
@@ -41,7 +41,7 @@
 
 ## Подальша робота
 
-Після r10 наступна ревізія — **10.24-r1**: фундамент окремого модуля ділової кореспонденції — incoming/outgoing registry, окремі послідовності номерів, кореспонденти, тема, строки/контроль, відповіді/related links і зв'язок з готовим документом. UI будувати поверх доменного API. Ширший наскрізний контроль наказів (#553) і повне покриття функцій (#556/#562) лишаються відкритими.
+Наступна кодова ревізія — **10.24-r3**: UI журналів і картка кореспонденції поверх перевірених r1+r2 API. Окреме вікно «Кореспонденція», вкладки Вхідні/Вихідні, пошук і дата, таблиці, картка листа, створення/відповідь/вкладення/відкриття документа, коректний resize та явні Закрити/Скасувати. UI не має автоматично ставити sent/received або надсилати e-mail. E-mail/OCR/AI/cases — пізніше. Ширший наскрізний контроль наказів (#553) і повне покриття функцій (#556/#562) лишаються відкритими.
 
 
 [Індекс релізів](releases/RELEASE_INDEX.md) · [Інструкція користувача](guides/USER_MANUAL.md) · [Відновлення роботи](../START_HERE.md)
