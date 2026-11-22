@@ -16,7 +16,7 @@ Taxo는 운송업체용 데스크톱 프로그램으로 직원과 차량, 일정
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), 8개 파일 prerelease, exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`. 관리되는 import batch를 검증하고 날짜, 번호, category/kind, source fallback 기준의 결정적 read-only sorting preview를 생성합니다. 빈 값은 뒤로 보내고 번호는 natural sort를 사용하며 stable identity가 최종 tie-breaker입니다. OCR, AI APPLY, 물리 파일 정렬은 하지 않으며 Stable/Latest는 10.23-r4 그대로입니다.
+**Current Test:** [Taxo 10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9), 8개 파일 prerelease, exact source `9f41c46a4745815cfc7518f7319f6c6f941ba559`. verified r8 batch 위에 read-only ANALYZE→PROPOSE 계층을 추가하여 날짜, 번호, 종류, 카테고리, 설명용 제목을 confidence/reason과 함께 결정적으로 제안합니다. 모호한 값은 needs_review로 보내고 기존 구조화 메타데이터를 덮어쓰지 않으며 source 파일도 다시 열지 않습니다. OCR, 외부 AI, APPLY, DocumentVault/DB 쓰기, 물리 파일 정렬은 하지 않으며 Stable/Latest는 10.23-r4 그대로입니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

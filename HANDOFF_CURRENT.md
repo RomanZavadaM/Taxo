@@ -1,24 +1,25 @@
 # HANDOFF_CURRENT — Taxo
 
-**22.11.2026 — 10.23-r8 опубліковано як Test prerelease; Stable/Latest лишається 10.23-r4.**
+**22.11.2026 — 10.23-r9 опубліковано як Test prerelease; Stable/Latest лишається 10.23-r4.**
 
 **Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, `prerelease=false`, GitHub Latest.
 
-**Current Test:** [10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`, 8 assets, prerelease. Publisher #44948759163 — SUCCESS.
+**Current Test:** [10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9), exact source `9f41c46a4745815cfc7518f7319f6c6f941ba559`, 8 assets, prerelease. Publisher #45045127128 — SUCCESS.
 
-Exact-source r8 CI: START #44947743150, Windows #44947743153, Win7 #44947743132, macOS Intel/ARM #44947743115 — SUCCESS. Windows і Win7 mandatory Microsoft Defender gates та post-scan integrity verification — SUCCESS.
+Exact-source r9 CI: START #45043933564, Windows #45043933540, Win7 #45043933535, macOS Intel/ARM #45043933592 — SUCCESS. Windows і Win7 mandatory Microsoft Defender gates та post-scan integrity verification — SUCCESS.
 
-## Що додає r8
+## Що додає r9
 
-- read-only відкриття лише керованого r7 import batch;
-- перевірка format, batch ID, source root, inventory/report і checksum manifest;
-- fail-closed для corrupted checksum, missing/malformed batch та unknown future format;
-- deterministic preview режими `date_desc`, `number_asc`, `category_asc`, `source_asc`;
-- порожні/невідомі дати, номери й категорії йдуть у кінець;
-- natural number sort: `2-A` перед `10-A`;
-- stable candidate/document identity — остаточний tie-breaker;
-- exact duplicate groups, errors, skipped та unresolved metadata лишаються видимими у preview;
-- source-файли й batch не змінюються; OCR/AI APPLY/registry write/move/rename/delete/copy відсутні.
+- versioned read-only proposal format `taxo.document-import-proposals.v1`;
+- deterministic ruleset `taxo.document-metadata-hints.v1`;
+- пропозиції для `document_date`, `document_number`, `document_kind`, `category` і описової `title`;
+- кожна пропозиція має confidence, reason і версію правила;
+- неоднозначні дати/категорії не вгадуються, а переходять у `needs_review`;
+- вже наявні структуровані реквізити не переписуються;
+- короткі маркери й номерні позначки мають межі токенів, щоб не ловити випадкові підрядки;
+- analysis працює тільки з verified r8 view; source-файли не відкриваються повторно;
+- persisted batch, DocumentVault/БД, паперовий підпис і source-архів не змінюються;
+- OCR, зовнішні AI/model API, APPLY, move/rename/delete/copy відсутні.
 
 ## Нормативна AI-ready модель
 
@@ -26,9 +27,9 @@ Exact-source r8 CI: START #44947743150, Windows #44947743153, Win7 #44947743132,
 
 ## Наступний крок
 
-**10.23-r9:** безпечний read-only шар **ANALYZE → PROPOSE** поверх verified r8 batch. Спочатку формалізувати versioned proposal record та deterministic rule-based metadata hints із назви/шляху/наявних полів; результат лише preview/proposal з confidence/reason/review_state. Не робити OCR, зовнішніх AI-викликів, registry APPLY, зміни юридично значимих реквізитів або фізичних move/rename/delete/copy.
+**10.23-r10:** безпечний шар **REVIEW** поверх r9 proposals: versioned review record, явні рішення користувача `confirm/reject/needs_review`, відновлення рішення після restart і прив'язка до import_batch_id + candidate_id + sha256. Рішення зберігати окремо від source/batch та не застосовувати до DocumentVault/БД. Без OCR, зовнішніх AI-викликів, APPLY або фізичних move/rename/delete/copy.
 
-Кореспонденція залишається наступним окремим модулем за планом #543 після завершення безпечної основи документного імпорту.
+Після r10 — перейти до окремого модуля вхідної/вихідної кореспонденції за планом #543; APPLY імпортних пропозицій не робити автоматично без окремого рішення власника.
 
 #553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
 
