@@ -16,7 +16,7 @@ Taxo es una aplicación de escritorio para empresas de transporte: personal y ve
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.23-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r8), prerelease de 8 archivos, exact source `d3d34f7a0fc3de88280324eaeb2d97a72c172359`. Verifica el lote de importación gestionado y crea una vista previa determinista de solo lectura ordenada por fecha, número, categoría/tipo y fallback de origen; los valores vacíos quedan al final, los números usan orden natural y la identidad estable resuelve los empates. No hay OCR, AI APPLY ni ordenación física de archivos; Stable/Latest sigue siendo 10.23-r4.
+**Current Test:** [Taxo 10.23-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r9), prerelease de 8 archivos, exact source `9f41c46a4745815cfc7518f7319f6c6f941ba559`. Añade una capa ANALYZE→PROPOSE de solo lectura sobre el lote verificado de r8: propuestas deterministas de fecha, número, tipo, categoría y título descriptivo, cada una con confianza y motivo. Las ambigüedades pasan a needs_review, los metadatos estructurados existentes no se sobrescriben y los archivos fuente no se vuelven a abrir. Sin OCR, IA externa, APPLY, escritura en DocumentVault/BD ni ordenación física; Stable/Latest sigue siendo 10.23-r4.
 
 Guarde bases y documentos en una carpeta de trabajo separada y haga una copia antes de actualizar. [Manual de usuario (ucraniano)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
