@@ -795,6 +795,17 @@ def open_correspondence_form(
     dialog._taxo_correspondence_save = save
     dialog._taxo_correspondence_cancel = request_close
     dialog._taxo_correspondence_summary = summary
+    dialog._taxo_correspondence_vars = {
+        "registration_date": registration_var,
+        "document_date": document_date_var,
+        "action_date": action_date_var,
+        "external_number": external_var,
+        "correspondent": correspondent_var,
+        "subject": subject_var,
+        "delivery": delivery_var,
+        "responsible": responsible_var,
+        "due_date": due_var,
+    }
     try:
         if is_response:
             subject_var.set(subject_var.get())
@@ -1257,6 +1268,8 @@ def open_correspondence_center(app, core, workspace_root):
     win._taxo_correspondence_new_incoming = lambda: open_new(DIRECTION_INCOMING)
     win._taxo_correspondence_new_outgoing = lambda: open_new(DIRECTION_OUTGOING)
     win._taxo_correspondence_status = status_var
+    win._taxo_correspondence_search = search_var
+    win._taxo_correspondence_date_filter = date_var
 
     refresh_all()
     try:
