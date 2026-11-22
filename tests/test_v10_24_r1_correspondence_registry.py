@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import sqlite3
 import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -242,6 +243,16 @@ class CorrespondenceRegistryR1Tests(unittest.TestCase):
         self.assertFalse(is_overdue(sent, "2026-11-22"))
 
     def test_backup_restore_preserves_registry_and_next_numbers(self):
+        # A Taxo full backup is valid only when at least one Taxo SQLite DB is
+        # present. Keep that production safety rule; make the fixture realistic.
+        main_db = workspace.paths_for(self.root)["main_db"]
+        con = sqlite3.connect(str(main_db))
+        try:
+            con.execute("CREATE TABLE backup_probe (id INTEGER PRIMARY KEY)")
+            con.commit()
+        finally:
+            con.close()
+
         register_incoming(
             self.root,
             registration_date="2026-11-22",
