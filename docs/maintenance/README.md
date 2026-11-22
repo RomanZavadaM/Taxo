@@ -2,7 +2,7 @@
 
 **Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 файлів, 37 strict live UI routes. START/Windows/Win7/macOS Intel/ARM — SUCCESS; Defender/integrity PASS. Owner manual acceptance 20.11.2026; stable promotion #44811800328 — SUCCESS.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Current Test:** [10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2), exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`, 8 assets, prerelease. Correspondence registry + controlled immutable attachments; v10.23-r3 не публікувався.
+**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Current Test:** [10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2), exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`, 8 assets, prerelease. Два журнали кореспонденції + controlled immutable attachments/live DocumentVault links; v10.23-r3 не публікувався.
 
 - [Поточний стан](../../PROJECT_STATE.md)
 - [Поточна контрольна точка](CHECKPOINT_CURRENT.md)
