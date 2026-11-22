@@ -56,14 +56,14 @@ class DocumentDateSortR4Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.23-r10\n",
+            "Version: 10.24-r1\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.23-r10"',
+            'APP_VERSION = "10.24-r1"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.23-r10",
+            "Taxo 10.24-r1",
             (root / "START.bat").read_text("utf-8"),
         )
 
