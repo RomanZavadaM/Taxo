@@ -1206,6 +1206,344 @@ def open_correspondence_center(app, core, workspace_root):
         state["buttons"][direction] = buttons
         tree.bind("<<TreeviewSelect>>", lambda _event, d=direction: update_card(d))
 
+    def selected_case(quiet=False):
+        tree = state["case_tree"]
+        if tree is None:
+            return None
+        selected = tree.selection()
+        if not selected:
+            if not quiet:
+                core.messagebox.showinfo(
+                    "Кореспонденція", "Виберіть справу.", parent=win
+                )
+            return None
+        return state["cases"].get(selected[0])
+
+    def selected_case_member(quiet=False):
+        case = selected_case(quiet=True)
+        tree = state["case_member_tree"]
+        if case is None or tree is None:
+            return None
+        selected = tree.selection()
+        if not selected:
+            if not quiet:
+                core.messagebox.showinfo(
+                    "Кореспонденція",
+                    "Виберіть лист у справі.",
+                    parent=win,
+                )
+            return None
+        mapping = {
+            row.correspondence_id: row
+            for row in state["case_members"].get(case.case_id, ())
+        }
+        return mapping.get(selected[0])
+
+    def update_case_member_buttons():
+        case = selected_case(quiet=True)
+        member = selected_case_member(quiet=True)
+        buttons = state["case_buttons"]
+        if not buttons:
+            return
+        active = case is not None and not case.archived
+        buttons["rename"].configure(
+            state="normal" if active else "disabled"
+        )
+        buttons["archive"].configure(
+            state="normal" if case is not None else "disabled",
+            text=(
+                "Відновити"
+                if case is not None and case.archived
+                else "Архівувати"
+            ),
+        )
+        buttons["linked"].configure(
+            state="normal" if active else "disabled"
+        )
+        buttons["open"].configure(
+            state="normal" if member is not None else "disabled"
+        )
+        buttons["remove"].configure(
+            state="normal" if active and member is not None else "disabled"
+        )
+
+    def refresh_case_members():
+        tree = state["case_member_tree"]
+        detail = state["case_detail"]
+        if tree is None or detail is None:
+            return
+        selected_member = tuple(tree.selection())
+        tree.delete(*tree.get_children(""))
+        case = selected_case(quiet=True)
+        if case is None:
+            detail.set("Виберіть справу.")
+            update_case_member_buttons()
+            return
+
+        members = state["case_members"].get(case.case_id, ())
+        detail.set(
+            "%s%s\nЛистів: %d%s"
+            % (
+                case.title,
+                " · архів" if case.archived else "",
+                len(members),
+                ("\n" + case.notes) if case.notes else "",
+            )
+        )
+        for record in members:
+            tree.insert(
+                "",
+                "end",
+                iid=record.correspondence_id,
+                values=(
+                    record.registration_number,
+                    _display_date(record.registration_date),
+                    "Вхідний"
+                    if record.direction == DIRECTION_INCOMING
+                    else "Вихідний",
+                    record.correspondent,
+                    record.subject,
+                    _status_label(record.status),
+                ),
+            )
+        retained = restore_tree_selection(tree, selected_member)
+        if not retained:
+            children = tree.get_children("")
+            if children:
+                tree.selection_set(children[0])
+                tree.focus(children[0])
+                try:
+                    tree.see(children[0])
+                except Exception:
+                    pass
+        update_case_member_buttons()
+
+    def refresh_cases_page(cases):
+        tree = state["case_tree"]
+        if tree is None:
+            return
+        selected = tuple(tree.selection())
+        pending = state.get("pending_case")
+        state["pending_case"] = None
+        tree.delete(*tree.get_children(""))
+
+        needle = search_var.get().strip().casefold()
+        filter_date = parse_filter_date()
+        mapping = {}
+        member_mapping = {}
+        for case in cases:
+            members = tuple(list_case_correspondence(
+                workspace_root, case.case_id
+            ))
+            member_mapping[case.case_id] = members
+            if filter_date and not any(
+                row.registration_date == filter_date for row in members
+            ):
+                continue
+            if needle:
+                haystack = " ".join(
+                    [case.title, case.notes]
+                    + [
+                        " ".join((
+                            row.registration_number,
+                            row.correspondent,
+                            row.subject,
+                            row.summary,
+                        ))
+                        for row in members
+                    ]
+                ).casefold()
+                if needle not in haystack:
+                    continue
+            mapping[case.case_id] = case
+            tree.insert(
+                "",
+                "end",
+                iid=case.case_id,
+                values=(
+                    case.title,
+                    len(members),
+                    "Архів" if case.archived else "Активна",
+                    case.updated_at.replace("T", " "),
+                ),
+            )
+
+        state["cases"] = mapping
+        state["case_members"] = member_mapping
+        wanted = (pending,) if pending else selected
+        retained = restore_tree_selection(tree, wanted)
+        if not retained:
+            children = tree.get_children("")
+            if children:
+                tree.selection_set(children[0])
+                tree.focus(children[0])
+                try:
+                    tree.see(children[0])
+                except Exception:
+                    pass
+        refresh_case_members()
+
+    def build_cases_page(page):
+        action_area = core.ttk.Frame(page)
+        action_area.pack(side="bottom", fill="x")
+
+        pane = core.ttk.Panedwindow(page, orient="vertical")
+        pane.pack(side="top", fill="both", expand=True)
+
+        cases_frame = core.ttk.LabelFrame(
+            pane, text="Справи / теми", padding=4
+        )
+        members_frame = core.ttk.LabelFrame(
+            pane, text="Ланцюжок справи", padding=4
+        )
+        pane.add(cases_frame, weight=2)
+        pane.add(members_frame, weight=3)
+
+        case_tree = core.ttk.Treeview(
+            cases_frame,
+            columns=("title", "count", "state", "updated"),
+            show="headings",
+            selectmode="browse",
+        )
+        for key, label, width, stretch in (
+            ("title", "Назва справи", 360, True),
+            ("count", "Листів", 70, False),
+            ("state", "Стан", 90, False),
+            ("updated", "Оновлено", 190, False),
+        ):
+            case_tree.heading(key, text=label)
+            case_tree.column(
+                key,
+                width=width,
+                minwidth=60,
+                stretch=stretch,
+            )
+        case_y = core.ttk.Scrollbar(
+            cases_frame, orient="vertical", command=case_tree.yview
+        )
+        case_tree.configure(yscrollcommand=case_y.set)
+        case_tree.grid(row=0, column=0, sticky="nsew")
+        case_y.grid(row=0, column=1, sticky="ns")
+        cases_frame.rowconfigure(0, weight=1)
+        cases_frame.columnconfigure(0, weight=1)
+
+        detail_var = core.tk.StringVar(
+            master=win, value="Виберіть справу."
+        )
+        core.ttk.Label(
+            members_frame,
+            textvariable=detail_var,
+            justify="left",
+            anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 4))
+
+        member_tree = core.ttk.Treeview(
+            members_frame,
+            columns=(
+                "number",
+                "date",
+                "direction",
+                "correspondent",
+                "subject",
+                "status",
+            ),
+            show="headings",
+            selectmode="browse",
+        )
+        for key, label, width, stretch in (
+            ("number", "№", 120, False),
+            ("date", "Дата", 95, False),
+            ("direction", "Напрям", 90, False),
+            ("correspondent", "Кореспондент", 180, True),
+            ("subject", "Тема", 260, True),
+            ("status", "Стан", 130, False),
+        ):
+            member_tree.heading(key, text=label)
+            member_tree.column(
+                key, width=width, minwidth=60, stretch=stretch
+            )
+        member_y = core.ttk.Scrollbar(
+            members_frame, orient="vertical", command=member_tree.yview
+        )
+        member_x = core.ttk.Scrollbar(
+            members_frame, orient="horizontal", command=member_tree.xview
+        )
+        member_tree.configure(
+            yscrollcommand=member_y.set,
+            xscrollcommand=member_x.set,
+        )
+        member_tree.grid(row=1, column=0, sticky="nsew")
+        member_y.grid(row=1, column=1, sticky="ns")
+        member_x.grid(row=2, column=0, sticky="ew")
+        members_frame.rowconfigure(1, weight=1)
+        members_frame.columnconfigure(0, weight=1)
+
+        row1 = core.ttk.Frame(action_area)
+        row1.pack(fill="x", pady=(6, 0))
+        row2 = core.ttk.Frame(action_area)
+        row2.pack(fill="x", pady=(6, 0))
+        buttons = {}
+        buttons["new"] = core.ttk.Button(
+            row1,
+            text="Нова справа…",
+            command=lambda: open_case_editor(),
+        )
+        buttons["new"].pack(side="left")
+        buttons["rename"] = core.ttk.Button(
+            row1,
+            text="Перейменувати…",
+            state="disabled",
+            command=lambda: open_case_editor(selected_case()),
+        )
+        buttons["rename"].pack(side="left", padx=(6, 0))
+        buttons["archive"] = core.ttk.Button(
+            row1,
+            text="Архівувати",
+            state="disabled",
+            command=lambda: toggle_case_archive(),
+        )
+        buttons["archive"].pack(side="left", padx=(6, 0))
+        buttons["linked"] = core.ttk.Button(
+            row1,
+            text="Додати пов'язані",
+            state="disabled",
+            command=lambda: add_case_linked(),
+        )
+        buttons["linked"].pack(side="left", padx=(6, 0))
+
+        buttons["open"] = core.ttk.Button(
+            row2,
+            text="Відкрити лист",
+            state="disabled",
+            command=lambda: open_case_member(),
+        )
+        buttons["open"].pack(side="left")
+        buttons["remove"] = core.ttk.Button(
+            row2,
+            text="Вилучити зі справи",
+            state="disabled",
+            command=lambda: remove_case_member(),
+        )
+        buttons["remove"].pack(side="left", padx=(6, 0))
+        core.ttk.Button(
+            row2,
+            text="Оновити",
+            command=lambda: refresh_all(),
+        ).pack(side="right")
+
+        state["case_tree"] = case_tree
+        state["case_member_tree"] = member_tree
+        state["case_detail"] = detail_var
+        state["case_buttons"] = buttons
+        case_tree.bind(
+            "<<TreeviewSelect>>",
+            lambda _event: refresh_case_members(),
+        )
+        member_tree.bind(
+            "<<TreeviewSelect>>",
+            lambda _event: update_case_member_buttons(),
+        )
+
     def parse_filter_date():
         text = date_var.get().strip()
         if not text:
