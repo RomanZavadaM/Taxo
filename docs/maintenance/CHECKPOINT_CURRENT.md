@@ -34,7 +34,7 @@
 
 ## Далі
 
-Recovery r8 синхронізувати в public docs, private profile, Issue #61 і Drive. Наступна дія: звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — вибрати один bounded control slice для r9.
+Recovery r8 закритий: public docs, private profile, Issue #61 і Drive синхронізовані. Наступна дія: звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — вибрати один bounded control slice для r9.
 
 Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
