@@ -34,7 +34,7 @@
 
 ## Далі
 
-Після завершення recovery звірити #553/#556/#562 і вибрати один bounded control slice для r8. Не змішувати кілька великих механізмів.
+Recovery r7 закритий. Наступна дія: звірити #553/#556/#562 і вибрати один bounded control slice для r8. Не змішувати кілька великих механізмів.
 
 Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
