@@ -445,6 +445,7 @@ def install_order_register(
             "paper_unmarked":"Знято позначку","delete":"Видалено",
             "superseded":"Замінено новим наказом",
             "entity_add":"Додано учасника / ТЗ",
+            "entity_update":"Змінено роль / примітку",
             "entity_remove":"Прибрано учасника / ТЗ",
         }
         entity_labels={"order":"Наказ","assignment":"Закріплення","order_entity":"Учасник / ТЗ"}
@@ -526,6 +527,7 @@ def install_order_register(
     refresh_order_entities = install_order_entities_tab(
         core, ops, win, entities_tab, order_tree, selected_order, require_mutable_order,
         open_assignments=lambda: book.select(assignments_tab),
+        refresh_open_order_previews=refresh_open_order_previews,
     )
 
     def preview_catalog_order(order_id):

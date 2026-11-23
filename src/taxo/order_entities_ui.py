@@ -3,7 +3,8 @@
 
 
 def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
-                               selected_order, require_mutable_order, open_assignments=None):
+                               selected_order, require_mutable_order, open_assignments=None,
+                               refresh_open_order_previews=None):
     # Structured employees / vehicles for non-assignment orders.
     ehead=core.ttk.Frame(entities_tab,padding=(10,10,10,4)); ehead.pack(fill="x")
     selected_entity_order_var=core.tk.StringVar(value="Виберіть наказ.")
@@ -44,6 +45,16 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
 
     def current_entity_order():
         return selected_order(quiet=True)
+
+    def refresh_live_preview(order_id):
+        if refresh_open_order_previews is None:
+            return 0
+        try:
+            return int(refresh_open_order_previews(order_id) or 0)
+        except Exception:
+            # Preview refresh must never roll back an already committed entity
+            # change. The next manual preview refresh still reads current DB data.
+            return 0
 
     def refresh_order_entities():
         nonlocal current_order_id
@@ -197,7 +208,7 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
             except Exception as exc:
                 con3.rollback(); core.messagebox.showerror("Учасники / ТЗ",str(exc),parent=dlg); return
             finally: con3.close()
-            dlg.destroy(); refresh_order_entities()
+            dlg.destroy(); refresh_order_entities(); refresh_live_preview(order["id"])
             core.messagebox.showinfo(
                 "Учасники / ТЗ",
                 "До наказу №%s додано: %d. Уже були з тією самою роллю: %d." % (order["order_no"],len(created),len(selected)-len(created)),
@@ -272,6 +283,7 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
                 con.close()
             dlg.destroy()
             refresh_order_entities()
+            refresh_live_preview(order["id"])
             if etree.exists(str(link_id)):
                 etree.selection_set(str(link_id))
                 etree.see(str(link_id))
@@ -298,7 +310,7 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
             return
         if not core.messagebox.askyesno(
             "Прибрати з наказу?",
-            "Прибрати вибрані записи зі структурованого переліку чернетки?",
+            "Прибрати вибрані записи зі структурованого переліку наказу?",
             parent=win,
         ): return
         con2=core.db()
@@ -312,6 +324,7 @@ def install_order_entities_tab(core, ops, win, entities_tab, order_tree,
             con2.rollback(); core.messagebox.showerror("Учасники / ТЗ",str(exc),parent=win); return
         finally: con2.close()
         refresh_order_entities()
+        refresh_live_preview(order["id"])
 
     ebar=core.ttk.Frame(entities_tab,padding=(10,0,10,10))
     ebar.pack(fill="x")
