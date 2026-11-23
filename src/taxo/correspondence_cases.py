@@ -311,6 +311,8 @@ def rename_case(
     with _WRITE_LOCK:
         cases = read_cases(workspace_root)
         current = get_case(workspace_root, case_id)
+        if current.archived:
+            raise ValueError("Спочатку відновіть архівовану справу")
         if any(
             case.case_id != case_id and case.title.casefold() == title.casefold()
             for case in cases
@@ -405,6 +407,8 @@ def remove_correspondence_from_case(
     with _WRITE_LOCK:
         cases = read_cases(workspace_root)
         current = get_case(workspace_root, case_id)
+        if current.archived:
+            raise ValueError("Спочатку відновіть архівовану справу")
         if correspondence_id not in current.correspondence_ids:
             return current
         updated = replace(
@@ -456,6 +460,8 @@ def move_correspondence_to_case(
             ),
             None,
         )
+        if current is not None and current.archived:
+            raise ValueError("Спочатку відновіть архівовану справу")
         if (
             (current is None and target_case_id is None)
             or (
