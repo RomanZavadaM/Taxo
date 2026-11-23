@@ -57,7 +57,7 @@ class WaybillCalendarR7Tests(unittest.TestCase):
 
     def test_version(self):
         root=Path(__file__).resolve().parents[1]
-        self.assertEqual((root/"VERSION.txt").read_text("utf-8"),"Version: 10.24-r3\n")
-        self.assertIn('APP_VERSION = "10.24-r3"',(root/"main.py").read_text("utf-8"))
+        self.assertEqual((root/"VERSION.txt").read_text("utf-8"),"Version: 10.24-r4\n")
+        self.assertIn('APP_VERSION = "10.24-r4"',(root/"main.py").read_text("utf-8"))
 
 if __name__ == "__main__": unittest.main()
