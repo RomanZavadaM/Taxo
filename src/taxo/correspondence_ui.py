@@ -1642,21 +1642,59 @@ def open_correspondence_center(app, core, workspace_root):
             state["attachment_error"] = str(exc)
 
         try:
+            cases = tuple(list_cases(workspace_root, include_archived=True))
+            state["case_by_record"] = {
+                correspondence_id: case.title
+                for case in cases
+                for correspondence_id in case.correspondence_ids
+            }
+            state["case_error"] = ""
+        except Exception as exc:
+            cases = ()
+            state["case_by_record"] = {}
+            state["case_error"] = str(exc)
+
+        try:
             refresh_page(DIRECTION_INCOMING, incoming)
             refresh_page(DIRECTION_OUTGOING, outgoing)
+            if state["case_error"]:
+                if state["case_tree"] is not None:
+                    state["case_tree"].delete(
+                        *state["case_tree"].get_children("")
+                    )
+                if state["case_member_tree"] is not None:
+                    state["case_member_tree"].delete(
+                        *state["case_member_tree"].get_children("")
+                    )
+                if state["case_detail"] is not None:
+                    state["case_detail"].set(
+                        "Помилка справ: %s" % state["case_error"]
+                    )
+                update_case_member_buttons()
+            else:
+                refresh_cases_page(cases)
         except ValueError as exc:
             status_var.set(str(exc))
             return False
 
-        suffix = ""
+        suffixes = []
         if state["attachment_error"]:
-            suffix = " · вкладення: помилка перевірки"
+            suffixes.append("вкладення: помилка перевірки")
+        if state["case_error"]:
+            suffixes.append("справи: помилка перевірки")
+        suffix = (" · " + " · ".join(suffixes)) if suffixes else ""
         overdue_count = sum(
             1 for record in incoming + outgoing if is_overdue(record)
         )
         status_var.set(
-            "Вхідних: %d · вихідних: %d · прострочено: %d%s"
-            % (len(incoming), len(outgoing), overdue_count, suffix)
+            "Вхідних: %d · вихідних: %d · справ: %d · прострочено: %d%s"
+            % (
+                len(incoming),
+                len(outgoing),
+                len(cases),
+                overdue_count,
+                suffix,
+            )
         )
         return True
 
