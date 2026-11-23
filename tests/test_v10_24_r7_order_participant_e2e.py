@@ -15,6 +15,7 @@ import order_entities_ui
 import workspace
 from order_document_formats import build_order_docx
 from pdf_test_utils import open_pdf
+from runtime_reachability import activate_widget, runtime_routes
 from v1073_features import export_order_pdf_with_appendices
 
 
@@ -97,7 +98,7 @@ class OrderParticipantE2ER7Tests(unittest.TestCase):
         self.order_id = ops.create_order(
             con,
             order_type=ops.TYPE_OCCUPATIONAL_SAFETY,
-            order_no="E2E-6",
+            order_no="E2E-7",
             order_date="23.11.2026",
             subject="Participant end-to-end",
             body_text="Check every output surface.",
@@ -129,6 +130,7 @@ class OrderParticipantE2ER7Tests(unittest.TestCase):
         finally:
             con.close()
 
+    @runtime_routes("operations.entity_preview_sync")
     def test_live_edit_and_remove_refresh_existing_preview(self):
         root = tk.Tk()
         root.geometry("1180x760+10+10")
@@ -185,7 +187,9 @@ class OrderParticipantE2ER7Tests(unittest.TestCase):
 
             edit = _buttons(tab, "Змінити роль / примітку…")
             self.assertEqual(len(edit), 1)
-            edit[0].invoke()
+            activate_widget(
+                edit[0], "operations.entity_preview_sync", container=tab
+            )
             root.update()
 
             dialog = next(
@@ -231,6 +235,100 @@ class OrderParticipantE2ER7Tests(unittest.TestCase):
 
             self.assertEqual(preview["count"], 3)
             self.assertIn("Petrenko Petro", preview["text"])
+        finally:
+            root.destroy()
+
+    @runtime_routes(
+        "operations.entity_add_vehicle",
+        "operations.entity_remove",
+    )
+    def test_vehicle_add_and_remove_routes_are_live_and_activatable(self):
+        root = tk.Tk()
+        root.geometry("1180x760+10+10")
+        tab = ttk.Frame(root)
+        tab.pack(fill="both", expand=True)
+        order_tree = ttk.Treeview(root)
+        core = SimpleNamespace(
+            tk=tk,
+            ttk=ttk,
+            db=self.connect,
+            configure_toplevel=lambda *_a, **_k: None,
+            messagebox=SimpleNamespace(
+                showinfo=lambda *_a, **_k: None,
+                showerror=lambda *a, **k: self.fail(
+                    "Unexpected participant error: %r" % (a,)
+                ),
+                askyesno=lambda *_a, **_k: True,
+            ),
+        )
+        order, _ = self._order_and_entities()
+        snapshot = dict(order)
+        try:
+            refresh = order_entities_ui.install_order_entities_tab(
+                core,
+                ops,
+                root,
+                tab,
+                order_tree,
+                lambda quiet=True: snapshot,
+                lambda *_args: True,
+            )
+            refresh()
+            root.update_idletasks()
+            root.update()
+
+            add_vehicle = _buttons(tab, "Додати ТЗ…")
+            self.assertEqual(len(add_vehicle), 1)
+            activate_widget(
+                add_vehicle[0],
+                "operations.entity_add_vehicle",
+                container=tab,
+            )
+            root.update_idletasks()
+            root.update()
+
+            picker = next(
+                child for child in root.winfo_children()
+                if isinstance(child, tk.Toplevel)
+            )
+            vehicle_list = _listboxes(picker)[0]
+            self.assertEqual(vehicle_list.size(), 1)
+            vehicle_list.selection_set(0)
+            _buttons(picker, "Додати вибрані")[0].invoke()
+            root.update_idletasks()
+            root.update()
+
+            _, entities = self._order_and_entities()
+            self.assertTrue(
+                any(
+                    row["entity_type"] == ops.ORDER_ENTITY_VEHICLE
+                    and int(row["entity_id"]) == 10
+                    for row in entities
+                )
+            )
+
+            tree = next(
+                widget
+                for frame in tab.winfo_children()
+                if isinstance(frame, ttk.Frame)
+                for widget in frame.winfo_children()
+                if isinstance(widget, ttk.Treeview)
+            )
+            tree.selection_set(str(self.entity_id))
+            remove = _buttons(tab, "Прибрати вибрані")
+            self.assertEqual(len(remove), 1)
+            activate_widget(
+                remove[0],
+                "operations.entity_remove",
+                container=tab,
+            )
+            root.update_idletasks()
+            root.update()
+
+            _, entities = self._order_and_entities()
+            self.assertFalse(
+                any(int(row["id"]) == self.entity_id for row in entities)
+            )
         finally:
             root.destroy()
 
