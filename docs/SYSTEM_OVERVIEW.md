@@ -171,9 +171,9 @@ Taxo розповсюджується як proprietary software. Публічн�
 
 10.24-r6 не змінює модель кореспонденції. Вона додає строгий live-control для критичних дій r1–r5: у Taxo тепер 55 strict live routes, з них 17 належать кореспонденції. Для цих маршрутів regression повинен довести mapped + onscreen + usable + activation у реальному Tk-вікні. Це захищає не лише факт існування функції в коді, а й реальну доступність кнопки та її здатність запустити штатну дію.
 
-### Current Test 10.24-r7 — наскрізний контроль «Учасники / ТЗ»
+### Current Test 10.24-r8 — fresh-reopen контроль «Учасники / ТЗ»
 
-10.24-r7 не змінює бізнес-правила наказів. Вона доводить до наскрізного контролю structured participant block: пошук/вибір, редагування ролі/примітки, додавання ТЗ, вилучення вибраних і live preview sync. Add/edit/remove одразу відбиваються у вже відкритому preview; DOCX і PDF звіряються з одним frozen participant snapshot; history та full backup/restore зберігають identity, role, note, snapshot і sequence. У Taxo 58 strict live routes загалом; correspondence contract r6 лишається exact 17 routes.
+10.24-r8 не змінює бізнес-правила наказів чи data model. Вона додає control-only гарантію поверх r7: після destroy/recreate Tk-поверхні наказ повторно читається з persisted SQLite, а номер/дата/тема/стан та participant role/note лишаються незмінними. Перехід Draft → Active не переписує frozen participant snapshot або sequence; same-order refresh зберігає selection. Усі r7 guards для add/edit/remove, live preview, DOCX/PDF і backup/restore залишаються активними.
 
 ### Test 10.24-r4 — фактичні стани й контроль строків
 

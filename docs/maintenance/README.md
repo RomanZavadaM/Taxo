@@ -2,7 +2,7 @@
 
 **Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 canonical assets, prerelease=false.
 
-**Current Test:** [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7), exact source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`, 8 canonical assets, prerelease=true. 58 strict live routes загалом; order participant block має 5 live routes, correspondence contract лишається exact 17 routes. Exact-source START/Windows/Win7/macOS Intel/ARM — SUCCESS; Windows/Win7 Defender/integrity PASS; publisher #45220620129 SUCCESS.
+**Current Test:** [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8), exact source `d24b1bc96115de52d6088813992aca3b410fe243`, 8 canonical assets, prerelease=true. 58 strict live routes загалом; r8 додає fresh-reopen preservation control для order participant block поверх r7, correspondence contract лишається exact 17 routes. Exact-source START/Windows/Win7/macOS Intel/ARM — SUCCESS; Windows/Win7 Defender/integrity PASS; publisher #45237831016 SUCCESS.
 
 - [Поточний стан](../../PROJECT_STATE.md)
 - [Поточна контрольна точка](CHECKPOINT_CURRENT.md)

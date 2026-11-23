@@ -1,6 +1,6 @@
 # Taxo 10.24-r8 — контроль повторного відкриття учасників наказу
 
-**Test-кандидат. Stable/Latest залишається 10.24-r3; поточний опублікований Test до видачі цього кандидата — 10.24-r7.**
+**Опублікований Current Test. Stable/Latest залишається 10.24-r3.**
 
 10.24-r8 — вузька control-only ревізія після reconciliation #553/#556/#562. Бізнес-правила наказів, схема БД і формати документів не змінюються. Ревізія доводить окремий залишок наскрізного сценарію **«Учасники / ТЗ»**: дані та контекст наказу повинні переживати повне закриття й повторне створення UI.
 
@@ -26,6 +26,16 @@ Prep PR #638 final head `f95aac5ef1344b5c851411dd2bc6d1ea1f9ddf50`:
 Prep merged у main як `06189dc472d6ca8c3063defb9c0b20c20626fda4`.
 
 Перший prep head `6985c047aaa3a8a567fbfca91b9d24ed960f9e37` виявив платформну помилку самого тесту: на macOS ARM синтетична `<<TreeviewSelect>>` подія не доставлялася прихованому тестовому Treeview. Тест виправлено на реальний public refresh-callback, продуктову логіку не змінювали; повторний all-platform прогін пройшов.
+
+## Публікація
+
+- Candidate PR #639 final head `f8ef99d7cfe07e2d8064878e41da5d09657930fe`: START #45234694758, Windows #45234694250, Win7 #45234694546, macOS Intel/ARM #45234694225 — SUCCESS; Defender/integrity PASS.
+- Exact issued source: `d24b1bc96115de52d6088813992aca3b410fe243`.
+- Exact-source checks: START #45235704945, Windows #45235704686, Win7 #45235704998, macOS Intel/ARM #45235705102 — SUCCESS; Defender/integrity PASS.
+- Guarded release-trigger PR #640: START #45236768940, Windows #45236768934, Win7 #45236769035, macOS Intel/ARM #45236768791 — SUCCESS; Defender/integrity PASS.
+- Publisher #45237831016 — SUCCESS.
+- GitHub Release [v10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8): exact target `d24b1bc96115de52d6088813992aca3b410fe243`, 8 canonical assets, prerelease=true, draft=false.
+- GitHub Latest / Stable лишається [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 
 ## Межі r8
 
