@@ -49,7 +49,10 @@ class CorrespondenceControlR6Tests(unittest.TestCase):
 
     def test_correspondence_routes_are_complete_and_runtime_mapped(self):
         routes = tuple(function_registry.FUNCTION_ROUTES)
-        self.assertEqual(len(routes), 55)
+        # r6 froze the correspondence contract at 17 routes. Later revisions
+        # may add strict routes for other modules, so the global route count is
+        # intentionally a floor while the correspondence set stays exact.
+        self.assertGreaterEqual(len(routes), 55)
         correspondence = {
             route.function_id
             for route in routes
