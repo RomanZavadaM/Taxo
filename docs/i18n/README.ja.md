@@ -16,7 +16,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員・
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5)。8ファイルの prerelease、exact source は `6d697a641b4f546dc533c8f55379696ad827b278` です。安定した ID を持つ論理的な通信案件/テーマ、明示的な所属、アーカイブ時の読み取り専用、既存の返信/関連リンクを使うスレッド表示を追加しました。案件は登録済み通信の ID 参照だけを保持し、文書を複製せず、番号や送信/受信/状態の事実も変更しません。Stable/Latest は 10.24-r3 のままです。
+**Current Test:** [Taxo 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6)。8ファイルの prerelease、exact source は `d713dd2b085216d8ec764fb16a3ab057f01f07ec` です。新しい業務データを追加する版ではなく、制御強化版です。Taxo は合計 55 の strict live route、うち 17 が連絡文書用となり、重要操作は live Tk テストで mapped / onscreen / usable / activation を満たす必要があります。r1–r5 のデータモデルは変更しません。Stable/Latest は 10.24-r3 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
