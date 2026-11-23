@@ -39,9 +39,13 @@
 
 **10.24-r4 опублікована як Test; Stable/Latest не змінено.** Додано явні дії «Отримано…» і «Надіслано…» з фактичною датою, дозволені переходи станів, append-only історію, контроль строку/ознаку «Прострочено» та перегляд історії. Факт не виводиться з наявності вкладення чи самої реєстрації. Перший CI виявив, що «Отримано…» могла зникати при 760×520; тест не послаблювали — дії винесено у постійну нижню панель, після чого повний CI пройшов.
 
-### Current Test 10.24-r5 — справи та ланцюжки
+### Test 10.24-r5 — справи та ланцюжки
 
 **10.24-r5 опублікована як Test; Stable/Latest лишається 10.24-r3.** Додано третю вкладку **«Справи»**: можна створити логічну справу/тему, прив'язати до неї зареєстрований лист, підтягнути явно пов'язані відповіді/продовження після підтвердження, відкрити лист назад у журнал або вилучити його зі справи без видалення. Справа зберігає лише stable ID листів у окремому `Data/CorrespondenceCases`; файли, скани, номери й фактичні стани не копіюються і не переписуються. Архівована справа read-only до відновлення.
+
+### Current Test 10.24-r6 — повний live-control кореспонденції
+
+**10.24-r6 опублікована як Current Test; Stable/Latest лишається 10.24-r3.** Це контрольна ревізія без нової бізнес-логіки: у Taxo тепер **55 strict live routes**, із них **17 — кореспонденція**. Критичні дії r1–r5 перевіряються не лише на наявність кнопки, а на mapped + onscreen + usable + activation у живому Tk. Контролюються журнали, створення/відповідь/вкладення/відкриття документа, фактичне отримання/надсилання, стан/історія та всі основні дії зі справами/ланцюжками. Якщо дія зникне, стане недоступною або перестане активуватися, regression має впасти.
 
 
 ## Завантаження
@@ -53,7 +57,7 @@
 - **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_x86_64_Portable.zip)
 - **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test: [Taxo 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5)** — exact source `6d697a641b4f546dc533c8f55379696ad827b278`, 8 файлів, prerelease. Справи/ланцюжки є логічним групуванням уже зареєстрованої кореспонденції; Stable/Latest лишається 10.24-r3.
+**Current Test: [Taxo 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6)** — exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`, 8 файлів, prerelease. Контрольна ревізія: 55 strict live routes загалом, 17 correspondence routes; Stable/Latest лишається 10.24-r3.
 
 ## Початок роботи та дані
 
