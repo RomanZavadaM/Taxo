@@ -1,12 +1,14 @@
 # Taxo — стан продукту
 
-**Актуально:** 23.11.2026 після публікації Test 10.24-r6; Stable/Latest — 10.24-r3.
+**Актуально:** 23.11.2026 після публікації Test 10.24-r7; Stable/Latest — 10.24-r3.
 
 - **Стабільна / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 файлів, prerelease=false; correspondence registry + controlled attachments + journal/card UI.
 - **Попередня стабільна:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
-- **Поточний Test:** [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`, 8 файлів, prerelease=true; 55 strict live routes загалом, 17 correspondence routes з live activation control.
+- **Поточний Test:** [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7), exact source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`, 8 файлів, prerelease=true; 58 strict live routes, наскрізний live-control блоку «Учасники / ТЗ», correspondence contract лишається 17 routes.
 - Promotion checks: START #45146984711, Windows #45146984611, Win7 #45146984624, macOS Intel/ARM #45146984616 — SUCCESS; Windows/Win7 Defender + integrity PASS. Publisher #45147941030 і guarded stable verification #45147941048 — SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
+
+**У Current Test 10.24-r7** контроль наказів посилено без зміни бізнес-правил: add/edit/remove учасників і ТЗ синхронізують уже відкритий preview; DOCX/PDF звіряються з одним frozen participant snapshot; history та full backup/restore зберігають identity/role/note/snapshot/sequence. Prep, candidate, exact-source і release-trigger пройшли START/Windows/Win7/macOS; Defender/integrity PASS. Publisher #45220620129 — SUCCESS. Перший Win7 trigger-run зловив старий catalog-reader timing failure; rerun того самого незміненого job/head пройшов повністю.
 
 У Stable 10.24-r3 також входять зміни, прийняті ще в 10.23-r4: редагування ролі/примітки учасника наказу; накопичення вибору при пошуку; регульовані робочі області «Документи»; регульована ширина дерева каталогу; адаптивний перегляд наказу, де DOCX/PDF/JPG та нижні дії залишаються доступними у вузькому вікні. 10.23-r4 була попередньою стабільною точкою; 23.11.2026 власник прямо перевів 10.24-r3 у Stable/Latest.
 
