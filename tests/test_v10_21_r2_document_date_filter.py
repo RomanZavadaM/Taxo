@@ -51,14 +51,14 @@ class DocumentDateFilterR2Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.24-r5\n",
+            "Version: 10.24-r6\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.24-r5"',
+            'APP_VERSION = "10.24-r6"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.24-r5",
+            "Taxo 10.24-r6",
             (root / "START.bat").read_text("utf-8"),
         )
 
