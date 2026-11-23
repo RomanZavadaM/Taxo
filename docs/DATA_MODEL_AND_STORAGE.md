@@ -63,6 +63,23 @@
 
 Ці правила є важливими для майбутнього AI-імпорту: ШІ може **запропонувати** дату або стан для REVIEW, але не має права перетворювати припущення на фактичне «отримано/надіслано» без підтвердження користувача.
 
+## Справи/ланцюжки кореспонденції — Test 10.24-r5
+
+Справи є **логічним представленням**, а не новим сховищем документів.
+
+- case-store: `Data/CorrespondenceCases/cases.json`; він навмисно відокремлений від strict registry `Data/Correspondence`;
+- `case_id` має stable формат `cc-...`;
+- справа зберігає `title`, `notes`, `correspondence_ids[]`, `archived`, `created_at`, `updated_at`;
+- `correspondence_ids[]` — лише посилання на вже зареєстровані записи; document bytes, scans, attachments і `document_ref` у case-store не копіюються;
+- один correspondence record у r5 може належати максимум одній справі;
+- membership не змінює registration number, direction, sent/received, business status, due date або attachment history;
+- архівована справа read-only до explicit restore;
+- `response_to_ids` і `related_ids` утворюють graph **кандидатів** ланцюжка, але самі по собі не змінюють membership;
+- «Додати пов'язані» виконує membership change лише після явного підтвердження користувача;
+- full backup/restore має зберігати registry, attachments, state history і `CorrespondenceCases` як узгоджений набір.
+
+Для майбутнього AI-import/classification це означає: ШІ може запропонувати **можливу** справу або групування для REVIEW, але не має права автоматично створювати case membership за схожістю теми, іменами, attachment, sender/recipient чи response chain. Так само case membership не є доказом sent/received або виконання.
+
 ## AI-ready класифікація існуючого архіву
 
 Нормативні правила масового імпорту, збереження оригіналів, SHA256-дублікатів, окремих видів дат, логічних папок, AI confidence/review, імпортних batch і відкату описані в [«Збереження, класифікація та AI-сортування документів Taxo»](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md).
