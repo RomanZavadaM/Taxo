@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class MilitaryAccountingUiR2Tests(unittest.TestCase):
     def test_candidate_identity(self):
-        self.assertIn(main.APP_VERSION, ("10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8", "10.18-r10", "10.19-r1", "10.19-r2", "10.19-r3", "10.19-r4", "10.19-r5", "10.19-r6", "10.19-r7", "10.19-r8", "10.19-r9", "10.19-r10", "10.20-r1", "10.20-r2", "10.20-r3", "10.20-r4", "10.20-r5", "10.20-r6", "10.21-r7", "10.21-r8", "10.24-r3"))
+        self.assertIn(main.APP_VERSION, ("10.18-r2", "10.18-r3", "10.18-r4", "10.18-r5", "10.18-r6", "10.18-r7", "10.18-r8", "10.18-r10", "10.19-r1", "10.19-r2", "10.19-r3", "10.19-r4", "10.19-r5", "10.19-r6", "10.19-r7", "10.19-r8", "10.19-r9", "10.19-r10", "10.20-r1", "10.20-r2", "10.20-r3", "10.20-r4", "10.20-r5", "10.20-r6", "10.21-r7", "10.21-r8", "10.24-r4"))
         self.assertEqual((ROOT / "VERSION.txt").read_text("utf-8"), "Version: " + main.APP_VERSION + "\n")
         self.assertIn("Taxo " + main.APP_VERSION, (ROOT / "START.bat").read_text("utf-8"))
 
