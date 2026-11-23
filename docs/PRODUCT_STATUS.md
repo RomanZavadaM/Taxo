@@ -43,7 +43,7 @@
 
 ## Подальша робота
 
-10.24-r8 опублікована як Current Test; recovery синхронізується в public docs, private profile, Issue #61 і Drive. Ревізія закриває окремий fresh-reopen control «Учасники / ТЗ» без зміни бізнес-правил наказів. Наступний крок: звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — один bounded r9 slice. Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
+10.24-r8 опублікована як Current Test; recovery синхронізований у public docs, private profile, Issue #61 і Drive. Ревізія закриває окремий fresh-reopen control «Учасники / ТЗ» без зміни бізнес-правил наказів. Наступний крок: звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — один bounded r9 slice. Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
 
 [Індекс релізів](releases/RELEASE_INDEX.md) · [Інструкція користувача](guides/USER_MANUAL.md) · [Відновлення роботи](../START_HERE.md)
