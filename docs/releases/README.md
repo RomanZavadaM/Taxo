@@ -4,8 +4,9 @@
 
 **Previous stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
 
-**Current Test:** окремого новішого опублікованого Test після promotion 10.24-r3 немає; 10.24-r4 — наступна ревізія розробки, ще не реліз.
+**Current Test:** [10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) — 8 файлів, exact source `e1616ea0063575b2c989d684934364f38f995966`, prerelease=true; Stable/Latest лишається 10.24-r3.
 
+- [Примітки 10.24-r4](RELEASE_NOTES_v10.24-r4.md)
 - [Примітки 10.24-r3](RELEASE_NOTES_v10.24-r3.md)
 - [Примітки 10.24-r2](RELEASE_NOTES_v10.24-r2.md)
 - [Примітки 10.24-r1](RELEASE_NOTES_v10.24-r1.md)

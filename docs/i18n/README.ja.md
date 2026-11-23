@@ -16,7 +16,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員・
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** 10.24-r3 の Stable 昇格後、より新しい公開 Test はありません。10.24-r4 は次の開発リビジョンで、まだ Stable には含まれません。
+**Current Test:** [Taxo 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4)。8ファイルの prerelease、exact source は `e1616ea0063575b2c989d684934364f38f995966` です。必須日付付きの明示的な受信/送信操作、前方のみの安全な状態遷移、追記専用履歴、期限/超過管理を追加しました。登録や添付だけで送信/受信済みにはなりません。760×520 の操作到達性不具合はテストを弱めずレイアウトで修正しました。Stable/Latest は 10.24-r3 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

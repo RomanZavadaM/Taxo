@@ -1,10 +1,11 @@
 # Випуски Taxo
 
-**Стан:** 23.11.2026 після promotion 10.24-r3 у Stable/Latest.
+**Стан:** 23.11.2026 після публікації Test 10.24-r4; Stable/Latest — 10.24-r3.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) | 8 canonical assets; 39 strict live UI routes; correspondence r1 registry + r2 controlled attachments + r3 journal/card UI. Exact source c9cb6b7787d991c5ce612ceec1efb32ecc90891d; promotion PR #620 merged c739f37e6a4a2ecc6be6c6302548cf8f83b479cc; publisher #45147941030 і guarded stable verification #45147941048 SUCCESS. |
+| Поточна тестова | [10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) | 8 canonical assets; explicit actual received/sent з датою, safe forward-only state transitions, append-only history, due/overdue control, history UI; 760×520 action reachability fixed without weakening regression. Exact source e1616ea0063575b2c989d684934364f38f995966; publisher #45162074730 SUCCESS; Defender/integrity PASS. |
 | Попередня стабільна | [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) | 8 файлів; 37 strict live UI routes, adaptive order preview і accepted r1–r4 changes. Exact source a919ced6bc8665ced70ebb4d897808e4e2618667. |
 | Попередня тестова | [10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2) | 8 файлів; immutable correspondence attachments, live DocumentVault links, SHA256/MIME/size, content-addressed dedupe, history-only remove, full backup/restore; attachment не змінює sent/received/status. Exact source d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50; publisher #45064537526 SUCCESS; Defender/integrity PASS. |
 | Попередня тестова | [10.24-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r1) | 8 файлів; два журнали кореспонденції, незалежна річна нумерація, semantic dates, response/related links, stable document_ref, backup/restore. Exact source adb6ae40e966d77018c6dc8c1c4fdcbde6a6a827; publisher #45053863942 SUCCESS. |
@@ -65,7 +66,7 @@
 | Архівна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |
 | Архівна | [10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | Попередній контрольний випуск. |
 
-[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) · [Поточний стан](../../PROJECT_STATE.md).
+[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) · [Current Test 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) · [Поточний стан](../../PROJECT_STATE.md).
 
 v10.23-r3 навмисно не публікувався за рішенням власника; номер не перевикористовується.
 

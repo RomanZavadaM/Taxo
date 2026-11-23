@@ -1673,3 +1673,18 @@
 - No newer published Test exists after promotion.
 - 10.24-r4 prep remains separate in PR #619 and is not merged. First CI caught one UI reachability regression at 760×520: «Отримано…» was not mapped. Do not weaken the test; fix layout before continuing r4.
 
+## 23.11.2026 — 10.24-r4 Test published і recovery
+
+- r4 додає явні фактичні дії «Отримано…» та «Надіслано…» з обов'язковою датою. Реєстрація або attachment самі по собі не створюють sent/received.
+- Safe forward-only state matrix зберігає лише дозволені переходи; closed/cancelled не повертаються назад. Фактичні sent/received не можна поставити через загальний status picker.
+- Append-only state history зберігає from/to/action_date/changed_at в тому самому атомарному registry; пошкоджений або нелогічний chain fail-closed.
+- Legacy registry v1 читається і мігрує у новий формат без втрати нумерації. Реєстрація наступного листа не стирає вже накопичену історію.
+- due date дає лише read-only ознаку «Прострочено» для відкритих записів; статус автоматично не змінюється.
+- Перший r4 START зловив реальний UI-regression у 760×520: кнопка «Отримано…» існувала, але могла бути витіснена resizable card-pane. Тест не послаблювали; action rows винесено у постійну нижню панель вкладки.
+- Prep PR #619 після виправлення: START #45157632285, Windows #45157632313, Win7 #45157632280, macOS Intel/ARM #45157632297 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS.
+- Candidate PR #622: START #45159393780, Windows #45159393870, Win7 #45159393814, macOS #45159393725 — SUCCESS.
+- Exact issued source `e1616ea0063575b2c989d684934364f38f995966`: START #45160194606, Windows #45160194713, Win7 #45160194576, macOS Intel/ARM #45160194864 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+- Guarded release-trigger PR #623 merged as `ee4958f3cf1470f120e3b28f853640fea272c803`; publisher #45162074730 — SUCCESS.
+- [v10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) — Current Test prerelease, 8 canonical assets, exact target `e1616ea0063575b2c989d684934364f38f995966`. Stable/Latest лишається [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
+- Межі r4: без automatic e-mail, cases/threads, OCR/AI APPLY і physical attachment purge. Наступний bounded slice визначити окремо після recovery.
+

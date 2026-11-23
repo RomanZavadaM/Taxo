@@ -16,7 +16,7 @@ Taxo currently has 37 strict live UI routes that check mapped, on-screen, usable
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** there is no newer published Test after the 10.24-r3 promotion. 10.24-r4 is the next development revision and is not part of Stable.
+**Current Test:** [Taxo 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4), prerelease, 8 assets, exact source `e1616ea0063575b2c989d684934364f38f995966`. It adds explicit actual Received/Sent actions with required dates, forward-only guarded state transitions, append-only history, due/overdue control and a history view. Registration or attachment presence never creates a delivery fact automatically. The 760×520 reachability regression was fixed in the layout without weakening the test. Stable/Latest remains 10.24-r3.
 
 ## Data and documentation
 
