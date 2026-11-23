@@ -59,6 +59,25 @@ def _listboxes(widget):
 
 
 class OrderParticipantE2ER7Tests(unittest.TestCase):
+    def test_candidate_identity(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual(
+            (root / "VERSION.txt").read_text("utf-8"),
+            "Version: 10.24-r7\n",
+        )
+        self.assertIn(
+            'APP_VERSION = "10.24-r7"',
+            (root / "main.py").read_text("utf-8"),
+        )
+        self.assertIn(
+            "Taxo 10.24-r7 - START",
+            (root / "START.bat").read_text("utf-8"),
+        )
+        self.assertEqual(
+            (root / ".release" / "full-current").read_text("utf-8"),
+            "10.24-r7\n",
+        )
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
