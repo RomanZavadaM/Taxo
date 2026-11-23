@@ -16,7 +16,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員・
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6)。8ファイルの prerelease、exact source は `d713dd2b085216d8ec764fb16a3ab057f01f07ec` です。新しい業務データを追加する版ではなく、制御強化版です。Taxo は合計 55 の strict live route、うち 17 が連絡文書用となり、重要操作は live Tk テストで mapped / onscreen / usable / activation を満たす必要があります。r1–r5 のデータモデルは変更しません。Stable/Latest は 10.24-r3 のままです。
+**Current Test:** [Taxo 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7)。8ファイルの prerelease、exact source は `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d` です。業務ルールを変えずに、命令書の **参加者 / 車両** ブロックを end-to-end で強化しました。検索/選択、役割・メモ編集、車両追加、選択削除、live preview 同期を保護し、DOCX/PDF は同じ frozen participant snapshot と照合され、full backup/restore は identity・role・note・snapshot・sequence を保持します。Taxo は合計 58 の strict live route、連絡文書 contract は exact 17 route のままです。Stable/Latest は 10.24-r3 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
