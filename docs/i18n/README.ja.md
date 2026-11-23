@@ -16,7 +16,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員・
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7)。8ファイルの prerelease、exact source は `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d` です。業務ルールを変えずに、命令書の **参加者 / 車両** ブロックを end-to-end で強化しました。検索/選択、役割・メモ編集、車両追加、選択削除、live preview 同期を保護し、DOCX/PDF は同じ frozen participant snapshot と照合され、full backup/restore は identity・role・note・snapshot・sequence を保持します。Taxo は合計 58 の strict live route、連絡文書 contract は exact 17 route のままです。Stable/Latest は 10.24-r3 のままです。
+**Current Test:** [Taxo 10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8)。8ファイルの prerelease、exact source は `d24b1bc96115de52d6088813992aca3b410fe243` です。r7 に対する control-only の追加として、UI を完全に閉じて再度開いた後も、保存済み命令書の番号・日付・件名・状態、参加者の role/note が保持されることを検証します。Draft → Active は frozen participant snapshot と sequence を変更せず、同じ命令書の refresh でも選択行を保持します。r7 の add/edit/remove、live preview、DOCX/PDF、full backup/restore の保護はそのまま有効です。Taxo は引き続き 58 strict live routes、連絡文書 contract は exact 17 routes です。Stable/Latest は 10.24-r3 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
