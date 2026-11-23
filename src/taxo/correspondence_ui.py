@@ -1039,8 +1039,14 @@ def open_correspondence_center(app, core, workspace_root):
             )
 
     def build_page(direction, page):
+        # Keep record actions outside the resizable table/card pane.  Otherwise a
+        # small window or a user-moved sash can collapse the card far enough to
+        # hide the business-state buttons even though the actions still exist.
+        action_area = core.ttk.Frame(page)
+        action_area.pack(side="bottom", fill="x")
+
         pane = core.ttk.Panedwindow(page, orient="vertical")
-        pane.pack(fill="both", expand=True)
+        pane.pack(side="top", fill="both", expand=True)
 
         table_frame = core.ttk.Frame(pane)
         card = core.ttk.LabelFrame(pane, text="Картка вибраного листа", padding=8)
@@ -1090,9 +1096,9 @@ def open_correspondence_center(app, core, workspace_root):
             add="+",
         )
 
-        state_actions = core.ttk.Frame(card)
-        state_actions.pack(fill="x", pady=(8, 0))
-        actions = core.ttk.Frame(card)
+        state_actions = core.ttk.Frame(action_area)
+        state_actions.pack(fill="x", pady=(6, 0))
+        actions = core.ttk.Frame(action_area)
         actions.pack(fill="x", pady=(6, 0))
         buttons = {}
         if direction == DIRECTION_INCOMING:
