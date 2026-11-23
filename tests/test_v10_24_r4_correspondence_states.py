@@ -32,6 +32,7 @@ from correspondence_service import (
     register_incoming,
     register_outgoing,
 )
+from runtime_reachability import activate_widget, runtime_routes
 
 
 def walk(widget):
@@ -492,6 +493,73 @@ class CorrespondenceStateR4UiTests(unittest.TestCase):
         if widget is not None:
             widget.update_idletasks()
             widget.update()
+
+    @runtime_routes(
+        "correspondence.mark_received",
+        "correspondence.mark_sent",
+        "correspondence.status_transition",
+        "correspondence.state_history",
+    )
+    def test_state_action_routes_are_live_and_activatable(self):
+        incoming = register_incoming(
+            self.workspace,
+            registration_date="2026-11-23",
+            correspondent="A",
+            subject="Incoming state route",
+        )
+        outgoing = register_outgoing(
+            self.workspace,
+            registration_date="2026-11-23",
+            correspondent="B",
+            subject="Outgoing state route",
+        )
+        win = correspondence_ui.open_correspondence_center(
+            self.root, self.core, self.workspace
+        )
+        self._show(win)
+
+        def activate_and_close(button, route_id):
+            before = {
+                child for child in walk(self.root)
+                if isinstance(child, tk.Toplevel)
+            }
+            activate_widget(button, route_id, container=win)
+            self._show(win)
+            for child in tuple(walk(self.root)):
+                if (
+                    child not in before
+                    and child is not win
+                    and isinstance(child, tk.Toplevel)
+                    and child.winfo_exists()
+                ):
+                    child.destroy()
+            self._show(win)
+
+        incoming_tree = win._taxo_correspondence_trees[DIRECTION_INCOMING]
+        incoming_tree.selection_set(incoming.correspondence_id)
+        incoming_tree.focus(incoming.correspondence_id)
+        self._show(win)
+        incoming_buttons = win._taxo_correspondence_buttons[DIRECTION_INCOMING]
+        activate_and_close(
+            incoming_buttons["received"], "correspondence.mark_received"
+        )
+        activate_and_close(
+            incoming_buttons["status"], "correspondence.status_transition"
+        )
+        activate_and_close(
+            incoming_buttons["history"], "correspondence.state_history"
+        )
+
+        win._taxo_correspondence_notebook.select(1)
+        self._show(win)
+        outgoing_tree = win._taxo_correspondence_trees[DIRECTION_OUTGOING]
+        outgoing_tree.selection_set(outgoing.correspondence_id)
+        outgoing_tree.focus(outgoing.correspondence_id)
+        self._show(win)
+        outgoing_buttons = win._taxo_correspondence_buttons[DIRECTION_OUTGOING]
+        activate_and_close(
+            outgoing_buttons["sent"], "correspondence.mark_sent"
+        )
 
     def test_center_shows_overdue_and_explicit_state_actions(self):
         incoming = register_incoming(
