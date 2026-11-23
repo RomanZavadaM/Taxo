@@ -194,7 +194,7 @@ class CorrespondenceUiR3Tests(unittest.TestCase):
         book = win._taxo_correspondence_notebook
         self.assertEqual(
             [str(book.tab(tab, "text")) for tab in book.tabs()],
-            ["Вхідні", "Вихідні"],
+            ["Вхідні", "Вихідні", "Справи"],
         )
         incoming_tree = win._taxo_correspondence_trees[DIRECTION_INCOMING]
         outgoing_tree = win._taxo_correspondence_trees[DIRECTION_OUTGOING]
