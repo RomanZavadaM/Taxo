@@ -34,8 +34,8 @@ GitHub Release `v10.24-r7`: exact target `4221b8baaeae4fad6ca8b6ebf4640a4a34050e
 
 ## Що далі
 
-- Спочатку закрити recovery r7 у public docs, private `profile/taxo`, Issue #61 і Google Drive.
-- Після recovery звірити #553/#556 і вибрати один наступний bounded control slice; не змішувати кілька великих механізмів у r8.
+- Recovery r7 повністю закритий: public docs у main, private `profile/taxo`, Issue #61 і Google Drive комплект `19_CURRENT_DOCS_2026-11-23_10.24-r7` синхронізовані.
+- **Одна наступна дія:** звірити #553/#556/#562 і вибрати один bounded control slice для r8; не змішувати кілька великих механізмів.
 - Automatic e-mail, mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 - Draft #543/#395 не закривати автоматично.
 
