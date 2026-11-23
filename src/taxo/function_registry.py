@@ -50,6 +50,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("correspondence.new_outgoing", "Кореспонденція", "Новий вихідний…", "correspondence_ui.open_new_outgoing", runtime_smoke=True),
     FunctionRoute("correspondence.reply", "Кореспонденція → Вхідні", "Відповісти…", "correspondence_ui.open_response", runtime_smoke=True),
     FunctionRoute("correspondence.attachments", "Кореспонденція → картка листа", "Вкладення…", "correspondence_ui.open_attachments", runtime_smoke=True),
+    FunctionRoute("correspondence.open_document", "Кореспонденція → картка листа", "Відкрити документ", "correspondence_ui.open_record_document", runtime_smoke=True),
     FunctionRoute("correspondence.mark_received", "Кореспонденція → Вхідні", "Отримано…", "correspondence_ui.open_action_transition", runtime_smoke=True),
     FunctionRoute("correspondence.mark_sent", "Кореспонденція → Вихідні", "Надіслано…", "correspondence_ui.open_action_transition", runtime_smoke=True),
     FunctionRoute("correspondence.status_transition", "Кореспонденція → картка листа", "Змінити стан…", "correspondence_ui.open_status_transition", runtime_smoke=True),
