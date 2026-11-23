@@ -16,7 +16,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員・
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2)。8ファイルの prerelease、exact source は `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50` です。業務連絡モジュールは入出力を分けたレジストリに加え、制御された添付を持ちます。PDF/JPG/PNG/TIFF/DOCX は SHA256 メタデータ付きの immutable object として保存し、取り外しは履歴のみです。または既存 DocumentVault への live link を使い、バイトを複製しません。欠落・孤立・改ざんされた object は fail-closed で拒否します。添付があることは送信・受信済みを意味しません。full backup/restore はレジストリ、添付、履歴、番号を保持します。Stable/Latest は 10.23-r4 のままです。
+**Current Test:** [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3)。8ファイルの prerelease、exact source は `c9cb6b7787d991c5ce612ceec1efb32ecc90891d` です。r1 の入出力レジストリと r2 の管理された添付の上に、専用の連絡簿/カード UI を追加しました。受信/送信タブ、検索、日付/カレンダー、並べ替え可能な表、選択した文書の詳細、作成・返信・添付・文書を開く操作を備え、未保存変更も保護します。送信日が空なら自動的に送信済みにはならず、添付の存在も送信/受信/配達/署名を意味しません。Stable/Latest は 10.23-r4 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

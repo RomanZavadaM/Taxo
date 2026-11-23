@@ -26,11 +26,11 @@
 - **Перегляд наказу:** кнопки DOCX/PDF/JPG і нижні дії адаптовані до вузького вікна; виправлено випадок, коли при 760×560 блок форматів міг бути витіснений за межі екрана.
 - **Захист від втрати функцій:** 37 суворих live-маршрутів із перевіркою mapped / onscreen / usable / activation. START, Windows, Windows 7 і macOS Intel/ARM пройшли перевірки; Windows/Win7 — також Defender та integrity.
 
-Ручне приймання саме 10.23-r4 виконано. Загальний аудит повного покриття всіх функцій (#556) і ширший наскрізний контроль механізму наказів (#553) залишаються відкритими; реєстр вхідної/вихідної кореспонденції та контрольовані вкладення вже є у Test r2; робочий UI ще запланований.
+Ручне приймання саме 10.23-r4 виконано. Загальний аудит повного покриття всіх функцій (#556) і ширший наскрізний контроль механізму наказів (#553) залишаються відкритими; у Test 10.24-r3 уже є реєстр вхідної/вихідної кореспонденції, контрольовані вкладення та окремий робочий UI журналів/картки.
 
-### Test 10.24-r2
+### Test 10.24-r3
 
-[Taxo 10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2) — поточний Test prerelease, 8 файлів, exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`. r2 додає контрольовані вкладення до журналів кореспонденції: immutable bytes або live DocumentVault link, SHA256/MIME/size, content-addressed dedupe, history-only remove та повний backup/restore. Вкладення не означає «надіслано», «отримано» чи «підписано». UI та автоматична пошта ще не реалізовані; Stable/Latest лишається 10.23-r4.
+[Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — поточний Test prerelease, 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`. r3 додає окремий робочий UI кореспонденції: вкладки «Вхідні»/«Вихідні», пошук і дату з календарем, сортування, картку листа, створення вхідного/вихідного, відповідь, вкладення та відкриття готового документа. Незбережені зміни захищені; порожній `sent_date` не означає фактичне відправлення. Вкладення продовжують працювати через r2 integrity/history API. Stable/Latest лишається 10.23-r4.
 
 
 ## Завантаження
@@ -42,7 +42,7 @@
 - **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_macOS_x86_64_Portable.zip)
 - **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Test:** [Taxo 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7) — prerelease, 8 файлів, exact source `a60d1933ddde090f0cb5e8672c5070030647301d`. r7 атомарно зберігає dry-run inventory batch/report у workspace; Stable/Latest не змінює.
+**Current Test:** [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — prerelease, 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`; робочі журнали та картка кореспонденції поверх r1+r2. Stable/Latest не змінено.
 
 ## Початок роботи та дані
 
