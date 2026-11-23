@@ -1648,3 +1648,16 @@
 - PDF/JPG/PNG/TIFF/DOCX перевіряються за вмістом; macro DOCX, symlink source, missing/orphan/tampered object — fail-closed. Один SHA фізично зберігається один раз, але може бути явно пов'язаний із різними листами.
 - Remove лише додає історичну подію; байти не видаляються. Attachment не означає sent/received/delivered/signed і не переписує correspondence state.
 - Наступна ревізія **10.24-r3** за release notes r2 і останнім планом #543: journal UI/card поверх уже перевірених registry + attachment APIs. Фактичні mark-sent/mark-received, розширені state transitions, справи/threads та e-mail automation — окремими наступними ревізіями.
+
+## 23.11.2026 — 10.24-r3 Test published і recovery
+
+- Prep UI package інтегровано через PR #615; фінальний prep SHA `29866a5ed6fbbfa93de9b55cad73ba9e6fd82d8e` пройшов START/Windows/Win7/macOS, Defender/integrity.
+- Product candidate PR #616 exact head `eb5d5ac856bfac5e5910bc856707a23d5cbba1e6` пройшов START #45067948303, Windows #45067948314, Win7 #45067948315, macOS #45067948301 і merged.
+- Exact issued product source після merge: `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`.
+- Exact-source main CI: START #45139752722, Windows #45139752725, Win7 #45139752551, macOS Intel/ARM #45139752538 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS.
+- r3 додає окремий `correspondence_ui.py`, feature-layer navigation, strict route `correspondence.center`, resizable Incoming/Outgoing UI, search/date/calendar, sorting, detail card, create/reply/attachments/open-document actions, unsaved-change guard і 760×520 reachability.
+- Порожній `sent_date` не переводить вихідний лист у фактичне sent; attachment UI використовує r2 integrity/history API; відкладений Tk search callback після закриття прибрано.
+- Guarded release trigger PR #617 merged як `2ff35228a641de8efc1c63a100815cf9280126cd`; publisher #45141326182 — SUCCESS.
+- [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — Test prerelease, 8 canonical assets, exact target `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+- Наступна ревізія **10.24-r4**: explicit actual sent/received, deadlines/overdue і safe state transitions/history. Без automatic e-mail; cases/threads, OCR/AI APPLY і physical attachment purge — окремими пізнішими ревізіями.
+
