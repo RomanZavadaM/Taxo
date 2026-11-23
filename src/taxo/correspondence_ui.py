@@ -1003,6 +1003,13 @@ def open_correspondence_center(app, core, workspace_root):
                 else "В межах строку" if record.due_date else "Без строку"
             ),
             "Готовий документ: %s" % (record.document_ref or "—"),
+            "Справа: %s" % (
+                state["case_by_record"].get(
+                    record.correspondence_id, "Без справи"
+                )
+                if not state["case_error"]
+                else "помилка перевірки"
+            ),
         ]
         if record.response_to_ids:
             lines.append(
@@ -1038,6 +1045,9 @@ def open_correspondence_center(app, core, workspace_root):
             state="normal" if record.document_ref else "disabled"
         )
         buttons["history"].configure(state="normal")
+        buttons["case"].configure(
+            state="normal" if not state["case_error"] else "disabled"
+        )
         transitions = set(available_status_transitions(record))
         if "received" in buttons:
             buttons["received"].configure(
@@ -1180,6 +1190,13 @@ def open_correspondence_center(app, core, workspace_root):
             command=lambda d=direction: open_record_document(d),
         )
         buttons["open"].pack(side="left", padx=(6, 0))
+        buttons["case"] = core.ttk.Button(
+            actions,
+            text="Справа…",
+            state="disabled",
+            command=lambda d=direction: open_case_assignment(d),
+        )
+        buttons["case"].pack(side="left", padx=(6, 0))
         core.ttk.Button(
             actions, text="Оновити", command=lambda: refresh_all()
         ).pack(side="right")
