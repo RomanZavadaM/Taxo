@@ -16,7 +16,7 @@ Taxo는 운송업체용 데스크톱 프로그램으로 직원과 차량, 일정
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4), 8개 파일 prerelease, exact source `e1616ea0063575b2c989d684934364f38f995966`. 필수 날짜가 있는 명시적 수신/발송 작업, 앞으로만 허용되는 안전한 상태 전환, append-only 상태 이력, 기한/연체 제어를 추가했습니다. 등록이나 첨부만으로 발송/수신 사실이 자동 생성되지 않습니다. 760×520 접근성 문제는 테스트를 약화하지 않고 레이아웃을 수정했습니다. Stable/Latest는 10.24-r3 그대로입니다.
+**Current Test:** [Taxo 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5), 8개 파일 prerelease, exact source `6d697a641b4f546dc533c8f55379696ad827b278`. 안정적인 ID를 가진 논리적 서신 사건/주제, 명시적 소속, 보관 시 읽기 전용, 기존 응답/관련 링크 기반 스레드 보기를 추가했습니다. 사건은 등록된 서신 ID 참조만 저장하며 문서를 복사하거나 번호·발송/수신·상태 사실을 바꾸지 않습니다. Stable/Latest는 10.24-r3 그대로입니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

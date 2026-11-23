@@ -16,7 +16,7 @@ Taxo ist eine Desktop-Anwendung für Verkehrsunternehmen: Personal und Fahrzeuge
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4), Prerelease mit 8 Dateien, exact source `e1616ea0063575b2c989d684934364f38f995966`. Neu sind explizite tatsächliche Aktionen „Empfangen/Gesendet“ mit Pflichtdatum, nur vorwärts erlaubte Zustandsübergänge, eine unveränderliche Verlaufskette sowie Termin-/Überfällig-Kontrolle. Registrierung oder Anhang erzeugen keinen Versand-/Empfangsfakt. Der 760×520-Erreichbarkeitsfehler wurde im Layout behoben, ohne den Test abzuschwächen. Stable/Latest bleibt 10.24-r3.
+**Current Test:** [Taxo 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5), Prerelease mit 8 Dateien, exact source `6d697a641b4f546dc533c8f55379696ad827b278`. Neu sind logische Korrespondenzfälle/Themen mit stabilen IDs, expliziter Zuordnung, Archiv/Read-only und einer Thread-Ansicht auf Basis vorhandener Antwort-/Beziehungslinks. Ein Fall speichert nur Verweise auf registrierte Schreiben; Dokumente werden nicht kopiert, Nummern und Versand-/Empfangs-/Statusfakten nicht verändert. Stable/Latest bleibt 10.24-r3.
 
 Datenbanken und Dokumente in einem separaten Arbeitsordner speichern und vor Updates sichern. [Benutzerhandbuch (Ukrainisch)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

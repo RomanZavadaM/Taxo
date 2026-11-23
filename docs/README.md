@@ -4,7 +4,7 @@
 
 **Stable / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — 23.11.2026, 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, Windows/Win7/macOS Intel/ARM/START, 39 strict live UI routes, correspondence journal/card UI.
 
-**Попередня Stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4). **Поточний Test:** [10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4), exact source `e1616ea0063575b2c989d684934364f38f995966`; Stable лишається 10.24-r3.
+**Попередня Stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4). **Поточний Test:** [10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5), exact source `6d697a641b4f546dc533c8f55379696ad827b278`; справи/ланцюжки кореспонденції; Stable лишається 10.24-r3.
 
 ## Робота з програмою
 
@@ -26,7 +26,9 @@ Taxo допомагає створювати, редагувати, перегл
 ## Випуски та стан
 
 - [Stable 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3)
-- [Test 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) — explicit sent/received, state history, due/overdue; Stable не змінює
+- [Test 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) — logical cases/threads без копіювання листів; Stable не змінює
+- [Що нового у 10.24-r5](releases/RELEASE_NOTES_v10.24-r5.md)
+- [Попередній Test 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) — explicit sent/received, state history, due/overdue
 - [Що нового у 10.24-r4](releases/RELEASE_NOTES_v10.24-r4.md)
 - [Що нового у 10.24-r3](releases/RELEASE_NOTES_v10.24-r3.md)
 - [Індекс випусків](releases/RELEASE_INDEX.md)
