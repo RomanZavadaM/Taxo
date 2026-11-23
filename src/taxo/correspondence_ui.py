@@ -2298,6 +2298,7 @@ def open_correspondence_center(app, core, workspace_root):
 
     build_page(DIRECTION_INCOMING, incoming_page)
     build_page(DIRECTION_OUTGOING, outgoing_page)
+    build_cases_page(cases_page)
 
     core.ttk.Button(
         header,
@@ -2344,6 +2345,20 @@ def open_correspondence_center(app, core, workspace_root):
     win._taxo_correspondence_open_outgoing_history = lambda: open_state_history(
         DIRECTION_OUTGOING
     )
+    win._taxo_correspondence_case_tree = state["case_tree"]
+    win._taxo_correspondence_case_member_tree = state["case_member_tree"]
+    win._taxo_correspondence_case_buttons = state["case_buttons"]
+    win._taxo_correspondence_new_case = lambda: open_case_editor()
+    win._taxo_correspondence_assign_incoming_case = lambda: open_case_assignment(
+        DIRECTION_INCOMING
+    )
+    win._taxo_correspondence_assign_outgoing_case = lambda: open_case_assignment(
+        DIRECTION_OUTGOING
+    )
+    win._taxo_correspondence_add_case_linked = add_case_linked
+    win._taxo_correspondence_open_case_member = open_case_member
+    win._taxo_correspondence_remove_case_member = remove_case_member
+    win._taxo_correspondence_toggle_case_archive = toggle_case_archive
     win._taxo_correspondence_status = status_var
     win._taxo_correspondence_search = search_var
     win._taxo_correspondence_date_filter = date_var
