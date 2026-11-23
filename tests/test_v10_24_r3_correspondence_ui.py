@@ -168,6 +168,7 @@ class CorrespondenceUiR3Tests(unittest.TestCase):
         "correspondence.new_outgoing",
         "correspondence.reply",
         "correspondence.attachments",
+        "correspondence.open_document",
     )
     def test_core_correspondence_actions_are_live_and_activatable(self):
         incoming = register_incoming(
@@ -175,6 +176,7 @@ class CorrespondenceUiR3Tests(unittest.TestCase):
             registration_date="2026-11-23",
             correspondent="A",
             subject="Incoming route",
+            document_ref="order:test-route",
         )
         register_outgoing(
             self.workspace,
@@ -225,6 +227,13 @@ class CorrespondenceUiR3Tests(unittest.TestCase):
         activate_and_close(
             buttons["attachments"], "correspondence.attachments"
         )
+        activate_widget(
+            buttons["open"],
+            "correspondence.open_document",
+            container=win,
+        )
+        self._show(win)
+        self.messages.showinfo.assert_called()
 
     def test_center_shows_two_real_journals_card_attachments_and_filters(self):
         incoming = register_incoming(
