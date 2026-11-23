@@ -23,7 +23,7 @@ from correspondence_registry import (
     read_registry,
 )
 
-STORE_NAME = "Correspondence"
+STORE_NAME = "CorrespondenceCases"
 FILE_NAME = "cases.json"
 FORMAT = "taxo.correspondence-cases.v1"
 MAX_BYTES = 4 * 1024 * 1024
