@@ -4,7 +4,7 @@
 
 **Stable / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — 23.11.2026, 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, Windows/Win7/macOS Intel/ARM/START, 39 strict live UI routes, correspondence journal/card UI.
 
-**Попередня Stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4). **Поточний Test:** [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`; 55 strict live routes / 17 correspondence routes; Stable лишається 10.24-r3.
+**Попередня Stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4). **Поточний Test:** [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7), exact source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`; 58 strict live routes, end-to-end order participant control; Stable лишається 10.24-r3.
 
 ## Робота з програмою
 
@@ -26,8 +26,10 @@ Taxo допомагає створювати, редагувати, перегл
 ## Випуски та стан
 
 - [Stable 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3)
+- [Current Test 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) — end-to-end live-control «Учасники / ТЗ»; Stable не змінює
 - [Test 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6) — full live-control correspondence actions; Stable не змінює
 - [Попередній Test 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) — logical cases/threads без копіювання листів
+- [Що нового у 10.24-r7](releases/RELEASE_NOTES_v10.24-r7.md)
 - [Що нового у 10.24-r6](releases/RELEASE_NOTES_v10.24-r6.md)
 - [Що нового у 10.24-r5](releases/RELEASE_NOTES_v10.24-r5.md)
 - [Попередній Test 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) — explicit sent/received, state history, due/overdue

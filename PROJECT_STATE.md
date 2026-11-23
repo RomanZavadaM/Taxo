@@ -1,36 +1,35 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 23.11.2026 після публікації Test v10.24-r6.**
+**Підтверджено GitHub 23.11.2026 після публікації Test v10.24-r7.**
 
 **Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, prerelease=false, draft=false, GitHub Latest.
 
-**Current Test:** [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`, 8 assets, prerelease=true, draft=false. Publisher #45209524416 — SUCCESS.
+**Current Test:** [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7), exact source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`, 8 assets, prerelease=true, draft=false. Publisher #45220620129 — SUCCESS.
 
-## Test 10.24-r6
+## Test 10.24-r7
 
-- control-only revision; no new correspondence business data model;
-- 55 strict live routes total, 17 correspondence routes;
-- all correspondence routes use runtime-smoke mapping and live Tk activation;
-- mapped + onscreen + usable + activation are required;
-- protected surfaces cover registry/card actions, actual sent/received, state/history, attachments/open document and case/thread actions;
-- r1–r5 storage semantics, numbering, state history, cases and backup/restore remain unchanged.
+- control-oriented revision over the existing order participant model; no new order business rules;
+- 58 strict live routes total;
+- the r6 correspondence contract remains exactly 17 routes;
+- order participant live control covers search/select, edit role/note, add vehicle, remove selected and preview synchronization;
+- add/edit/remove changes propagate into an already-open preview;
+- DOCX and PDF are verified against the same frozen participant snapshot;
+- history and full backup/restore preserve participant identity, role, note, snapshot and sequence.
 
-Prep #629: START #45204102723, Windows #45204102869, Win7 #45204102379, macOS #45204102369 — SUCCESS; Defender/integrity PASS.
+Prep #630: START #45213479378, Windows #45213479658, Win7 #45213479371, macOS #45213479464 — SUCCESS; Defender/integrity PASS.
 
-Candidate #631: START #45206383953, Windows #45206384077, Win7 #45206384595, macOS #45206384273 — SUCCESS.
+Candidate #634: START #45216365054, Windows #45216364728, Win7 #45216364723, macOS #45216364729 — SUCCESS.
 
-Exact issued source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`: START #45207404713, Windows #45207404491, Win7 #45207404242, macOS #45207404447 — SUCCESS; Defender/integrity PASS.
+Exact issued source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`: START #45217452473, Windows #45217452461, Win7 #45217452456, macOS #45217452990 — SUCCESS; Defender/integrity PASS.
 
-Release trigger #632 merged `4dec0786d2dfc50e718f52901f8a012bf08d58e8`; trigger START #45208494055, Windows #45208494039, Win7 #45208494062, macOS #45208494429 — SUCCESS; publisher #45209524416 — SUCCESS.
+Release trigger #635 merged `ee7bdbb5e50e3b47e42da46fc7b47eee2991523e`: START #45218698014, Windows #45218698050, macOS #45218698263 — SUCCESS. Win7 #45218698024 first attempt had a non-reproducible legacy catalog-reader timing failure; rerun on the same unchanged head passed regression/build/Defender/integrity. Publisher #45220620129 — SUCCESS.
 
 ## Open boundaries / next package
 
 Stable remains 10.24-r3.
 
-PR #630 is separate from r6. It adds end-to-end live control for order participants and currently sits on the pre-r6 base. After r6 recovery it must be reconciled onto current main and re-tested before it can become the next revision.
+After r7 recovery, reconcile #553/#556 and choose one bounded next control slice. Do not automatically broaden r8 into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
 
-Automatic e-mail/mailbox sync/external integrations remain out of scope. OCR/AI APPLY and physical attachment purge remain separately blocked.
-
-#553/#556/#562 remain open; draft #543/#395 stay open.
+Draft #543/#395 stay open.
 
 Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
