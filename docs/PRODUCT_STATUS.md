@@ -1,20 +1,20 @@
 # Taxo — стан продукту
 
-**Актуально:** 23.11.2026 після публікації Test 10.24-r5; Stable/Latest — 10.24-r3.
+**Актуально:** 23.11.2026 після публікації Test 10.24-r6; Stable/Latest — 10.24-r3.
 
 - **Стабільна / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 файлів, prerelease=false; correspondence registry + controlled attachments + journal/card UI.
 - **Попередня стабільна:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
-- **Поточний Test:** [10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5), exact source `6d697a641b4f546dc533c8f55379696ad827b278`, 8 файлів, prerelease=true; logical correspondence cases/topics, explicit membership and thread browser без копіювання документів.
+- **Поточний Test:** [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`, 8 файлів, prerelease=true; 55 strict live routes загалом, 17 correspondence routes з live activation control.
 - Promotion checks: START #45146984711, Windows #45146984611, Win7 #45146984624, macOS Intel/ARM #45146984616 — SUCCESS; Windows/Win7 Defender + integrity PASS. Publisher #45147941030 і guarded stable verification #45147941048 — SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
 У Stable 10.24-r3 також входять зміни, прийняті ще в 10.23-r4: редагування ролі/примітки учасника наказу; накопичення вибору при пошуку; регульовані робочі області «Документи»; регульована ширина дерева каталогу; адаптивний перегляд наказу, де DOCX/PDF/JPG та нижні дії залишаються доступними у вузькому вікні. 10.23-r4 була попередньою стабільною точкою; 23.11.2026 власник прямо перевів 10.24-r3 у Stable/Latest.
 
-У каталозі «Документи» є дерево **«За видами / За датами / Мої папки»**. Власні папки можуть бути вкладеними; їх можна створювати й перейменовувати, а один документ розміщувати в одній або кількох папках без фізичного переносу чи копіювання файлів. Структура папок входить до повної резервної копії Taxo. У 10.22-r10 можна вибрати документ із усього каталогу навіть для порожньої папки, переміщувати власні папки, архівувати й відновлювати їх без видалення файлів; PDF-додаток наказу переносить довгі ролі, імена й реквізити у межах колонок. Робота «Учасники / ТЗ» у наказах ще потребує наскрізного перевіряння за Issue #553. **У Stable 10.24-r3 є реєстр, нумерація, контрольовані вкладення та journal/card UI. Test 10.24-r4 додав явні фактичні стани відправлення/отримання, append-only history і due/overdue. Current Test 10.24-r5 додає логічні справи/теми та ланцюжки; case membership не копіює файли й не змінює номери або sent/received/status.**
+У каталозі «Документи» є дерево **«За видами / За датами / Мої папки»**. Власні папки можуть бути вкладеними; їх можна створювати й перейменовувати, а один документ розміщувати в одній або кількох папках без фізичного переносу чи копіювання файлів. Структура папок входить до повної резервної копії Taxo. У 10.22-r10 можна вибрати документ із усього каталогу навіть для порожньої папки, переміщувати власні папки, архівувати й відновлювати їх без видалення файлів; PDF-додаток наказу переносить довгі ролі, імена й реквізити у межах колонок. Робота «Учасники / ТЗ» у наказах ще потребує наскрізного перевіряння за Issue #553. **У Stable 10.24-r3 є реєстр, нумерація, контрольовані вкладення та journal/card UI. Test 10.24-r4 додав явні фактичні стани відправлення/отримання, append-only history і due/overdue. Test 10.24-r5 додав логічні справи/теми та ланцюжки; Current Test 10.24-r6 додає повний strict live-control критичних дій кореспонденції без зміни її data model.**
 
 ## AI-ready архів документів
 
-Нормативна специфікація архіву документів: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6–r10 дають INVENTORY→batch→preview→ANALYZE/PROPOSE→REVIEW без APPLY. У лінії кореспонденції 10.24-r1 дає registry/numbering, r2 — controlled attachments/live vault links, r3 — journal/card UI, r4 — explicit sent/received + state history/deadlines, r5 — explicit logical cases/threads. AI не має права самостійно вигадувати membership, delivery fact або business state.
+Нормативна специфікація архіву документів: [збереження, класифікація та AI-сортування](DOCUMENT_STORAGE_AND_AI_CLASSIFICATION.md). r6–r10 дають INVENTORY→batch→preview→ANALYZE/PROPOSE→REVIEW без APPLY. У лінії кореспонденції 10.24-r1 дає registry/numbering, r2 — controlled attachments/live vault links, r3 — journal/card UI, r4 — explicit sent/received + state history/deadlines, r5 — explicit logical cases/threads, r6 — strict live-control усіх критичних correspondence actions. AI не має права самостійно вигадувати membership, delivery fact або business state.
 
 ## Можливості
 
@@ -41,7 +41,7 @@
 
 ## Подальша робота
 
-10.24-r5 вже опублікована як Current Test. Наступний bounded крок кореспонденції визначати окремо після recovery зі свіжого плану; automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично. Ширший наскрізний контроль наказів (#553) і повне покриття функцій (#556/#562) лишаються відкритими.
+10.24-r6 вже опублікована як Current Test. Наступний контрольний пакет — окремий наскрізний контроль учасників наказу з PR #630 після rebase на актуальний main; automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично. Ширший наскрізний контроль наказів (#553) і повне покриття функцій (#556/#562) лишаються відкритими.
 
 
 [Індекс релізів](releases/RELEASE_INDEX.md) · [Інструкція користувача](guides/USER_MANUAL.md) · [Відновлення роботи](../START_HERE.md)
