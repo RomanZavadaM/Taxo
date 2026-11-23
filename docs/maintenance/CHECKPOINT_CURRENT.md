@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r6.**
+**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r7.**
 
 ## Stable
 
@@ -11,28 +11,31 @@
 
 ## Current Test
 
-- Release: [v10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6)
-- Exact source: `d713dd2b085216d8ec764fb16a3ab057f01f07ec`
+- Release: [v10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7)
+- Exact source: `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`
 - 8 canonical assets; prerelease=true; draft=false.
-- 55 strict live routes total; 17 correspondence routes.
-- Prep #629: START #45204102723, Windows #45204102869, Win7 #45204102379, macOS #45204102369 — SUCCESS.
-- Candidate #631: START #45206383953, Windows #45206384077, Win7 #45206384595, macOS #45206384273 — SUCCESS.
-- Exact source: START #45207404713, Windows #45207404491, Win7 #45207404242, macOS #45207404447 — SUCCESS.
-- Release-trigger #632: START #45208494055, Windows #45208494039, Win7 #45208494062, macOS #45208494429 — SUCCESS.
-- Windows/Win7 Defender + post-scan integrity — SUCCESS.
-- Publisher #45209524416 — SUCCESS.
+- 58 strict live routes total; correspondence contract remains exact 17 routes.
+- Order participant block: 5 live routes — search/select, edit role/note, add vehicle, remove selected, preview sync.
+- Prep #630: START #45213479378, Windows #45213479658, Win7 #45213479371, macOS #45213479464 — SUCCESS; Defender/integrity PASS.
+- Candidate #634: START #45216365054, Windows #45216364728, Win7 #45216364723, macOS #45216364729 — SUCCESS.
+- Exact source: START #45217452473, Windows #45217452461, Win7 #45217452456, macOS #45217452990 — SUCCESS; Defender/integrity PASS.
+- Release-trigger #635 merged as `ee7bdbb5e50e3b47e42da46fc7b47eee2991523e`; publisher #45220620129 — SUCCESS.
+- GitHub release exact target `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`; 8 canonical assets verified.
 
-## Що перевірено у r6
+## Що перевірено у r7
 
-- correspondence center і 16 критичних дій поверх нього мають strict runtime route contracts;
-- кожна дія має live Tk reachability/activation test;
-- mapped + onscreen + usable + activation є обов'язковими;
-- r1–r5 data model, numbering, attachments, states, cases і backup/restore не змінені.
+- add/edit/remove учасників і ТЗ синхронізують уже відкритий preview;
+- edit role/note має окрему зрозумілу історичну подію;
+- preview пояснює окрему друковану сторінку structured participant list;
+- DOCX і PDF використовують той самий frozen participant snapshot;
+- full backup/restore зберігає entity identity, role, note, snapshot і sequence;
+- live preservation guard включає «Змінити роль / примітку…»;
+- correspondence r1–r6 та її 17-route contract не змінені.
 
 ## Далі
 
-PR #630 — окремий пакет end-to-end order participant control. Він зелений на старій pre-r6 базі, але перед наступною ревізією має бути перебазований на актуальний main і повністю перевірений повторно.
+Після завершення recovery звірити #553/#556/#562 і вибрати один bounded control slice для r8. Не змішувати кілька великих механізмів.
 
-Automatic e-mail, mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не змішувати автоматично.
+Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
-#553/#556/#562 remain open; draft #543/#395 stay open.
+Draft #543/#395 stay open.
