@@ -34,6 +34,7 @@ SURFACES = {
         ("Додати працівників…", "entity_picker"),
         ("Додати ТЗ…", "entity_picker"),
         ("Прибрати вибрані", "remove_order_entities"),
+        ("Змінити роль / примітку…", "edit_order_entity"),
         ("Додати вибрані", "save_entities"),
     ),
     "order_preview_ui.py": (

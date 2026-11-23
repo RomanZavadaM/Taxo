@@ -735,7 +735,11 @@ def order_preview_text(order, assignments=(), entities=(), company=None, control
             lines.extend(["", "Контроль за виконанням даного наказу покласти на %s." % control])
 
     if entities:
-        lines.extend(["", "Учасники / ТЗ:"])
+        lines.extend([
+            "",
+            "Учасники / ТЗ:",
+            "(у DOCX/PDF/JPG цей перелік друкується окремою структурованою сторінкою)",
+        ])
         for index, item in enumerate(entities, 1):
             view = order_entity_view(item)
             role = (" — %s" % view["role"]) if view["role"] else ""
