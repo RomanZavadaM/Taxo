@@ -16,7 +16,7 @@ Taxo는 운송업체용 데스크톱 프로그램으로 직원과 차량, 일정
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5), 8개 파일 prerelease, exact source `6d697a641b4f546dc533c8f55379696ad827b278`. 안정적인 ID를 가진 논리적 서신 사건/주제, 명시적 소속, 보관 시 읽기 전용, 기존 응답/관련 링크 기반 스레드 보기를 추가했습니다. 사건은 등록된 서신 ID 참조만 저장하며 문서를 복사하거나 번호·발송/수신·상태 사실을 바꾸지 않습니다. Stable/Latest는 10.24-r3 그대로입니다.
+**Current Test:** [Taxo 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), 8개 파일 prerelease, exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`. 새 업무 데이터 기능이 아니라 제어 강화 리비전입니다. Taxo는 총 55개의 strict live route를 가지며 그중 17개가 서신 기능입니다. 주요 동작은 live Tk 테스트에서 mapped / onscreen / usable / activation을 모두 증명해야 하며 r1–r5 데이터 모델은 바뀌지 않습니다. Stable/Latest는 10.24-r3 그대로입니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
