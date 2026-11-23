@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# One-time FULL Test checkpoint: Taxo 10.24-r5 exact clean main 6d697a641b4f546dc533c8f55379696ad827b278; Stable remains 10.24-r3.
+# One-time FULL Test checkpoint: Taxo 10.24-r6 exact clean main d713dd2b085216d8ec764fb16a3ab057f01f07ec; Stable remains 10.24-r3.
 
 on:
   workflow_dispatch:
