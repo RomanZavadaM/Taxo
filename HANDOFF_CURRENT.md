@@ -1,38 +1,42 @@
 # HANDOFF_CURRENT — Taxo
 
-**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r6 опублікована й перевірена.**
+**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r7 опублікована й перевірена.**
 
 **Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, prerelease=false, GitHub Latest.
 
-**Current Test:** [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`, 8 assets, prerelease=true, draft=false. Publisher #45209524416 — SUCCESS. Stable/Latest лишається v10.24-r3.
+**Current Test:** [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7), exact source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`, 8 assets, prerelease=true, draft=false. Publisher #45220620129 — SUCCESS. Stable/Latest лишається v10.24-r3.
 
-## Що зроблено у 10.24-r6
+## Що зроблено у 10.24-r7
 
-r6 не додає нової бізнес-логіки. Це контрольний пакет, який переводить критичні дії кореспонденції r1–r5 у strict executable live-control.
+r7 не змінює бізнес-правила наказів. Це наскрізний контроль структурованого блоку **«Учасники / ТЗ»** поверх уже прийнятого механізму наказів.
 
-- у `function_registry.py` тепер **55 strict routes** загалом;
-- **17 strict routes** належать кореспонденції;
-- усі 17 correspondence routes мають `runtime_smoke=True`, mapping у `runtime_reachability.py` і живий Tk activation test;
-- контролюються mapped + onscreen + usable + activation;
-- захищено: центр кореспонденції, новий вхідний/вихідний, відповідь, вкладення, відкриття документа, фактичне отримано/надіслано, зміна стану, історія, створення/прив'язка/редагування/архів справи, додавання пов'язаних листів, відкриття й вилучення листа зі справи;
-- `Відкрити документ` перевіряється через безпечний `order:` reference без запуску зовнішньої програми;
-- data model registry/attachments/states/cases, sent/received, due/overdue, case membership і backup/restore не змінені.
+- у Taxo тепер **58 strict live routes** загалом;
+- correspondence-contract r6 лишається точним набором із **17 correspondence routes**;
+- order participant block має 5 live routes: пошук/вибір, редагування ролі/примітки, додавання ТЗ, вилучення вибраних, live preview sync;
+- add/edit/remove працівників і ТЗ автоматично оновлюють уже відкритий preview;
+- історія редагування ролі/примітки фіксує зрозумілу подію;
+- preview прямо пояснює, що структурований список учасників друкується окремою сторінкою;
+- DOCX і PDF використовують той самий frozen participant snapshot;
+- full workspace backup/restore зберігає entity identity, role, note, snapshot і sequence;
+- live preservation guard включає «Змінити роль / примітку…».
 
-## Перевірки 10.24-r6
+## Перевірки 10.24-r7
 
-Prep PR #629 final head `1d9a2f3de70eed3a27bf488cbbae7c6f29ddbecf`: START #45204102723, Windows #45204102869, Win7 #45204102379, macOS Intel/ARM #45204102369 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+Prep PR #630 final head `d252143339c5406264868bfe92f804a75d348fab`: START #45213479378, Windows #45213479658, Win7 #45213479371, macOS Intel/ARM #45213479464 — SUCCESS; Windows/Win7 Defender + integrity PASS. Prep merged у main як `31153fb3c706c746b711c5382c37edc2ecddab53`.
 
-Candidate PR #631 exact head `1824bf567e9e186f3b92a71d05b6c4e67a92153e`: START #45206383953, Windows #45206384077, Win7 #45206384595, macOS Intel/ARM #45206384273 — SUCCESS.
+Candidate PR #634 exact head `a3889723b58bdbbf1fd174cb14024a3e3beaadb3`: START #45216365054, Windows #45216364728, Win7 #45216364723, macOS Intel/ARM #45216364729 — SUCCESS.
 
-Merged candidate main/exact issued source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`: START #45207404713, Windows #45207404491, Win7 #45207404242, macOS Intel/ARM #45207404447 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+Merged candidate / exact issued source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`: START #45217452473, Windows #45217452461, Win7 #45217452456, macOS Intel/ARM #45217452990 — SUCCESS; Windows/Win7 Defender + integrity PASS.
 
-Release-trigger PR #632 merged as `4dec0786d2dfc50e718f52901f8a012bf08d58e8`; trigger checks START #45208494055, Windows #45208494039, Win7 #45208494062, macOS #45208494429 — SUCCESS; publisher #45209524416 — SUCCESS.
+Release-trigger PR #635 merged as `ee7bdbb5e50e3b47e42da46fc7b47eee2991523e`. Trigger: START #45218698014, Windows #45218698050, macOS #45218698263 — SUCCESS. Win7 #45218698024 first attempt hit one old catalog-reader timing failure; rerun of the same unchanged job/head passed full regression, build, Defender and integrity. Publisher #45220620129 — SUCCESS.
+
+GitHub Release `v10.24-r7`: exact target `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`, 8 canonical assets, prerelease=true, draft=false. Stable/Latest remains `v10.24-r3`.
 
 ## Що далі
 
-- PR #630 **не входить у r6**. Це окремий пакет наскрізного контролю учасників наказу; його current head `97e09c8f8815e4f9183753a1607e3d24b919e707` був зелений на старій базі, але після r6 відстає від `main`.
-- Після закриття recovery r6 перебазувати #630 на актуальний `main`, повторити повний CI і оформити як наступну ревізію, не змішуючи з r6.
+- Спочатку закрити recovery r7 у public docs, private `profile/taxo`, Issue #61 і Google Drive.
+- Після recovery звірити #553/#556 і вибрати один наступний bounded control slice; не змішувати кілька великих механізмів у r8.
 - Automatic e-mail, mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
-- #553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
+- Draft #543/#395 не закривати автоматично.
 
 Recovery: START_HERE → HANDOFF_CURRENT → PROJECT_STATE → private `profile/taxo` → live GitHub.
