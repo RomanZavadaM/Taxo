@@ -1688,3 +1688,20 @@
 - [v10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) — Current Test prerelease, 8 canonical assets, exact target `e1616ea0063575b2c989d684934364f38f995966`. Stable/Latest лишається [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 - Межі r4: без automatic e-mail, cases/threads, OCR/AI APPLY і physical attachment purge. Наступний bounded slice визначити окремо після recovery.
 
+## 23.11.2026 — 10.24-r5 Test published і recovery
+
+- r5 додає logical **справи/теми** кореспонденції зі stable `cc-...` ID у окремому `Data/CorrespondenceCases/cases.json`.
+- Case membership містить тільки ID уже зареєстрованих листів. Файли, скани, attachment bytes, registration numbers, sent/received, status і due date не копіюються та не переписуються.
+- Один лист у bounded slice r5 належить максимум одній справі. Переміщення між справами / «Без справи» атомарне; archive робить справу read-only до explicit restore.
+- Existing response_to/related links будують graph кандидатів ланцюжка; «Додати пов'язані» спочатку показує список і потребує явного підтвердження.
+- UI: третя вкладка «Справи», create/rename/archive/restore, «Справа…» у картці листа, case/thread browser, open letter back to journal, remove from case without deleting letter; actions залишаються reachable при 760×520.
+- Перший prep START виявив, що strict r1 registry справедливо відхиляє `cases.json` у `Data/Correspondence`. Guard не послаблювали: store перенесено в sibling `Data/CorrespondenceCases`. Також historical r3 tab guard розширено до «Вхідні / Вихідні / Справи».
+- Другий START знайшов stale test path та неоднозначну hidden кнопку «Оновити» у reachability test. Path виправлено, case refresh перейменовано на «Оновити справи»; тест не послаблено.
+- Prep PR #625 final cycle: START #45169334073, Windows #45169334161, Win7 #45169334164, macOS Intel/ARM #45169334069 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+- Candidate PR #626: START #45190123472, Windows #45190123183, Win7 #45190124279, macOS #45190123566 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+- Exact issued source `6d697a641b4f546dc533c8f55379696ad827b278`: START #45191514761, Windows #45191514632, Win7 #45191514666, macOS Intel/ARM #45191514659 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS.
+- Guarded release-trigger PR #627 merged as `53127f27929b7f1c72c6876ce4a048c9955d02de`; trigger checks START #45192571617, Windows #45192571441, Win7 #45192571278, macOS #45192571563 — SUCCESS.
+- Publisher #45193506957 — SUCCESS.
+- [v10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) — Current Test prerelease, 8 canonical assets, exact target `6d697a641b4f546dc533c8f55379696ad827b278`. Stable/Latest лишається [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
+- Межі r5: без automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge. Наступний bounded slice визначити окремо після recovery.
+
