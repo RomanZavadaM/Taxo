@@ -1,11 +1,12 @@
 # Випуски Taxo
 
-**Стан:** 23.11.2026 після публікації Test 10.24-r7; Stable/Latest — 10.24-r3.
+**Стан:** 23.11.2026 після публікації Test 10.24-r8; Stable/Latest — 10.24-r3.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) | 8 canonical assets; 39 strict live UI routes; correspondence r1 registry + r2 controlled attachments + r3 journal/card UI. Exact source c9cb6b7787d991c5ce612ceec1efb32ecc90891d; promotion PR #620 merged c739f37e6a4a2ecc6be6c6302548cf8f83b479cc; publisher #45147941030 і guarded stable verification #45147941048 SUCCESS. |
-| Поточна тестова | [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) | 8 canonical assets; 58 strict live routes; end-to-end order participant control: search/select, edit role/note, add vehicle, remove selected, preview sync; frozen DOCX/PDF participant snapshot + backup/restore. Exact source 4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d; publisher #45220620129 SUCCESS; Defender/integrity PASS. |
+| Поточна тестова | [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8) | 8 canonical assets; 58 strict live routes; control-only fresh UI reopen: persisted order identity/status and participant role/note survive reopen, Draft→Active does not mutate frozen snapshot/sequence, same-order refresh preserves selection. Exact source d24b1bc96115de52d6088813992aca3b410fe243; publisher #45237831016 SUCCESS; Defender/integrity PASS. |
+| Попередня тестова | [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) | 8 canonical assets; 58 strict live routes; end-to-end order participant control: search/select, edit role/note, add vehicle, remove selected, preview sync; frozen DOCX/PDF participant snapshot + backup/restore. Exact source 4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d; publisher #45220620129 SUCCESS; Defender/integrity PASS. |
 | Попередня тестова | [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6) | 8 canonical assets; control-only revision, 55 strict live routes total / 17 correspondence routes, mapped + onscreen + usable + activation. Exact source d713dd2b085216d8ec764fb16a3ab057f01f07ec; publisher #45209524416 SUCCESS; Defender/integrity PASS. |
 | Попередня тестова | [10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) | 8 canonical assets; logical correspondence cases/topics, separate case store, explicit membership, archive/read-only, confirmed thread expansion, third «Справи» tab, backup/restore; no file copying or renumbering. Exact source 6d697a641b4f546dc533c8f55379696ad827b278; publisher #45193506957 SUCCESS; Defender/integrity PASS. |
 | Попередня тестова | [10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4) | 8 canonical assets; explicit actual received/sent з датою, safe forward-only state transitions, append-only history, due/overdue control, history UI; 760×520 action reachability fixed without weakening regression. Exact source e1616ea0063575b2c989d684934364f38f995966; publisher #45162074730 SUCCESS; Defender/integrity PASS. |
@@ -69,7 +70,7 @@
 | Архівна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |
 | Архівна | [10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | Попередній контрольний випуск. |
 
-[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) · [Current Test 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) · [Поточний стан](../../PROJECT_STATE.md).
+[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) · [Current Test 10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8) · [Поточний стан](../../PROJECT_STATE.md).
 
 v10.23-r3 навмисно не публікувався за рішенням власника; номер не перевикористовується.
 
