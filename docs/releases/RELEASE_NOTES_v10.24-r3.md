@@ -1,6 +1,6 @@
 # Taxo 10.24-r3 — робочі журнали та картка кореспонденції
 
-**Робочий Test-кандидат. Stable/Latest залишається 10.23-r4; поточний опублікований Test — 10.24-r2.**
+**Stable/Latest з 23.11.2026 за прямим рішенням власника.** Exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`; 8 canonical assets; `prerelease=false`; GitHub Latest.
 
 10.24-r3 додає користувацький інтерфейс поверх уже перевірених r1 registry та r2 attachment APIs. Ця ревізія не змінює правила нумерації, не додає автоматичне надсилання і не вигадує факти отримання/відправлення.
 
@@ -29,7 +29,7 @@
 - реєстрація вихідного листа без sent_date не означає фактичного відправлення;
 - немає e-mail automation, OCR, зовнішнього AI, AI APPLY або фізичного purge;
 - explicit mark-sent / mark-received transitions, cases/threads і зовнішні інтеграції — окремі наступні ревізії;
-- Stable/Latest змінюється тільки окремим рішенням власника.
+- Stable/Latest змінюється тільки окремим рішенням власника; таке рішення для r3 отримано 23.11.2026.
 
 ## Перевірки prep
 
@@ -37,4 +37,8 @@ Prep PR #615 на фінальній голові `29866a5ed6fbbfa93de9b55cad73b
 
 Перший START виявив лише відсутній запис нового strict route у runtime manifest; самі 7 live r3 UI-тестів уже проходили. Manifest виправлено. Перший macOS цикл додатково показав відкладений Tk search callback після закриття вікна; cleanup додано до фінальної голови.
 
-Наступний крок після випуску r3 — окремо визначити explicit business-state transitions (фактичне «надіслано/отримано», контроль виконання) без автоматичного e-mail і без змішування зі справами/ланцюжками.
+## Promotion у Stable
+
+23.11.2026 власник прямо наказав перевести v10.24-r3 у Stable/Latest. Promotion PR #620 пройшов START #45146984711, Windows #45146984611, Win7 #45146984624 і macOS Intel/ARM #45146984616 та merged як `c739f37e6a4a2ecc6be6c6302548cf8f83b479cc`. Publisher #45147941030 і guarded exact stable verification #45147941048 завершилися SUCCESS. Тег не пересувався; exact source і канонічні 8 assets збережені.
+
+Наступний крок — 10.24-r4: explicit business-state transitions (фактичне «надіслано/отримано», контроль строків/overdue) без автоматичного e-mail і без змішування зі справами/ланцюжками.

@@ -4,19 +4,19 @@
 
 Taxo est une application de bureau pour les entreprises de transport : personnel et véhicules, plannings et temps de travail, feuilles de route, ordres, documents, maintenance, rapports et sauvegardes.
 
-## Stable 10.23-r4
+## Stable 10.24-r3
 
-**10.23-r4 a été validée manuellement par le propriétaire le 20 novembre 2026 et est Stable/Latest.** Elle comprend la recherche, les filtres, le tri, les arbres type/date et les dossiers personnalisés imbriqués, les révisions Word contrôlées, PDF/impression, DocumentVault, les scans papier facultatifs et un état de signature papier séparé. Les ordres gèrent des paires conducteur–véhicule explicites, leur modification, l’édition du rôle/de la note et la conservation de la sélection pendant la recherche. Les zones de travail des documents et la largeur de l’arbre du catalogue sont réglables. Les actions DOCX/PDF/JPG de l’aperçu d’ordre restent accessibles dans une fenêtre étroite, y compris 760×560.
+**10.24-r3 a été promue Stable/Latest par décision explicite du propriétaire le 23 novembre 2026.** Elle contient toutes les fonctions acceptées de 10.23-r4 ainsi que la ligne de correspondance r1–r3 terminée : journaux Entrants/Sortants, numérotation sûre, pièces jointes contrôlées, recherche, date/calendrier, tableaux triables, fiche du courrier et actions pour créer, répondre, gérer les pièces jointes et ouvrir le document. Une date d’envoi vide ne signifie pas « envoyé ».
 
 37 parcours UI live stricts vérifient visibilité, position à l’écran, utilisabilité et activation. START, Windows, Windows 7 et macOS Intel/Apple Silicon ont réussi ; Windows/Win7 ont également passé Defender et les contrôles d’intégrité. La couverture complète (#556) et l’audit de bout en bout plus large des ordres (#553) restent ouverts.
 
 ## Téléchargements
 
-**Stable / Latest : [Taxo 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).** Version stable précédente : [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
+**Stable / Latest : [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).** Version stable précédente : [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
 
-Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
+Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test :** [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), prerelease de 8 fichiers, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`. Le module de correspondance dispose maintenant d’une interface dédiée journal/fiche au-dessus du registre r1 et des pièces jointes contrôlées r2 : onglets Entrants/Sortants, recherche, date/calendrier, tableaux triables, fiche du courrier et actions pour créer, répondre, gérer les pièces jointes et ouvrir le document. Les modifications non enregistrées sont protégées. Une date d’envoi vide ne signifie pas « envoyé » et une pièce jointe n’implique pas envoyé/reçu/livré/signé. Stable/Latest reste 10.23-r4.
+**Current Test :** aucun Test plus récent n’est publié après la promotion de 10.24-r3. 10.24-r4 est la prochaine révision de développement et ne fait pas encore partie de Stable.
 
 Conservez les bases et documents dans un dossier de travail séparé et sauvegardez-le avant mise à jour. [Guide utilisateur (ukrainien)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

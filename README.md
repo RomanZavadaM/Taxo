@@ -12,37 +12,39 @@
 - **Транспорт і СТОІР.** Картки ТЗ, пробіг, документи, технічне обслуговування, ремонти та контроль готовності.
 - **Експлуатація.** Шляхові листи, накази, закріплення водій–ТЗ, учасники наказів, DOCX/PDF/JPG, перегляд і друк.
 - **Документи.** Власні шаблони, контрольовані Word-редакції, PDF/друк, сховище готових документів, скани паперових оригіналів, окрема відмітка паперового підпису, фільтри та власні папки.
+- **Кореспонденція.** Вхідні/вихідні журнали, нумерація, контрольовані вкладення, пошук і дата, сортування, картка листа, відповіді та відкриття пов'язаних документів.
 - **Інструктажі й стажування.** Редаговані програми, відомості підписів, листи стажування та каталог створених документів.
 - **Тахограф, звіти й резервування.** Аналогові тахокарти з ручною перевіркою, PDF/Excel-звіти та резервні копії робочого сховища.
 
 Докладніше: [огляд системи](docs/SYSTEM_OVERVIEW.md) · [посібник користувача](docs/guides/USER_MANUAL.md) · [експлуатація та СТОІР](docs/guides/OPERATIONS_STOIR_GUIDE.md).
 
-## Стабільна 10.23-r4
+## Стабільна 10.24-r3
 
-**10.23-r4 прийнята власником 20.11.2026 і є Stable/Latest.** Вона включає зміни r1–r4:
+**10.24-r3 за прямим рішенням власника 23.11.2026 переведена у Stable/Latest.** Вона містить увесь прийнятий функціонал 10.23-r4 та завершену лінію кореспонденції r1–r3:
 
 - **Документи:** пошук, фільтри, сортування, дерево за видами/датами, власні вкладені папки без дублювання файлів, скани й паперовий підпис; робочу область бланків та ширину дерева каталогу можна регулювати.
 - **Накази:** явні пари водій–ТЗ, редагування наявних пар, редагування ролі/примітки учасника, накопичення вибору при пошуку, тема активного наказу та прямий перехід до закріплень.
 - **Перегляд наказу:** кнопки DOCX/PDF/JPG і нижні дії адаптовані до вузького вікна; виправлено випадок, коли при 760×560 блок форматів міг бути витіснений за межі екрана.
-- **Захист від втрати функцій:** 37 суворих live-маршрутів із перевіркою mapped / onscreen / usable / activation. START, Windows, Windows 7 і macOS Intel/ARM пройшли перевірки; Windows/Win7 — також Defender та integrity.
+- **Кореспонденція:** окремі журнали «Вхідні»/«Вихідні», безпечна нумерація, контрольовані вкладення, пошук, дата/календар, сортування, картка листа, створення вхідного/вихідного, відповідь, вкладення та відкриття документа. Порожній `sent_date` не означає фактичного відправлення.
+- **Захист від втрати функцій:** 39 суворих live-маршрутів із перевіркою mapped / onscreen / usable / activation, включно з `correspondence.center`. START, Windows, Windows 7 і macOS Intel/ARM пройшли перевірки; Windows/Win7 — також Defender та integrity.
 
-Ручне приймання саме 10.23-r4 виконано. Загальний аудит повного покриття всіх функцій (#556) і ширший наскрізний контроль механізму наказів (#553) залишаються відкритими; у Test 10.24-r3 уже є реєстр вхідної/вихідної кореспонденції, контрольовані вкладення та окремий робочий UI журналів/картки.
+Рішенням власника 23.11.2026 10.24-r3 стала Stable/Latest. Загальний аудит повного покриття всіх функцій (#556) і ширший наскрізний контроль механізму наказів (#553) залишаються відкритими.
 
-### Test 10.24-r3
+### Кореспонденція в Stable 10.24-r3
 
-[Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — поточний Test prerelease, 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`. r3 додає окремий робочий UI кореспонденції: вкладки «Вхідні»/«Вихідні», пошук і дату з календарем, сортування, картку листа, створення вхідного/вихідного, відповідь, вкладення та відкриття готового документа. Незбережені зміни захищені; порожній `sent_date` не означає фактичне відправлення. Вкладення продовжують працювати через r2 integrity/history API. Stable/Latest лишається 10.23-r4.
+Лінія r1–r3 завершила базовий модуль кореспонденції: r1 — реєстр вхідних/вихідних і нумерація; r2 — контрольовані immutable-вкладення або live DocumentVault links з integrity/history; r3 — окремий journal/card UI. Реєстрація, вкладення і фактичне «надіслано/отримано» залишаються різними поняттями. Наступний розвиток 10.24-r4 має додати явні бізнес-стани й overdue; ця ревізія ще не опублікована.
 
 
 ## Завантаження
 
-**Stable / Latest: [Taxo 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).** Попередня стабільна точка: [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
+**Stable / Latest: [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).** Попередня стабільна точка: [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
 
-- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_Windows_x64_Portable.zip)
-- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_Windows7_x64_Portable.zip)
-- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_macOS_x86_64_Portable.zip)
-- **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
+- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_Windows_x64_Portable.zip)
+- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_Windows7_x64_Portable.zip)
+- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_x86_64_Portable.zip)
+- **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — prerelease, 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`; робочі журнали та картка кореспонденції поверх r1+r2. Stable/Latest не змінено.
+**Current Test:** окремого новішого опублікованого Test після promotion 10.24-r3 наразі немає. 10.24-r4 лишається наступною ревізією розробки й не входить у Stable.
 
 ## Початок роботи та дані
 

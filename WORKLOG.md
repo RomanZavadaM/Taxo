@@ -1661,3 +1661,15 @@
 - [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — Test prerelease, 8 canonical assets, exact target `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`. Stable/Latest лишається [v10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
 - Наступна ревізія **10.24-r4**: explicit actual sent/received, deadlines/overdue і safe state transitions/history. Без automatic e-mail; cases/threads, OCR/AI APPLY і physical attachment purge — окремими пізнішими ревізіями.
 
+## 23.11.2026 — 10.24-r3 promoted to Stable/Latest
+
+- Owner explicitly requested promotion of already published Test 10.24-r3 to Stable/Latest.
+- Exact stable product source remains `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`; tag was not moved.
+- Promotion PR #620 changed only stable markers. Its START #45146984711, Windows #45146984611, Win7 #45146984624 and macOS Intel/ARM #45146984616 checks all succeeded.
+- PR #620 merged as `c739f37e6a4a2ecc6be6c6302548cf8f83b479cc`.
+- Publisher #45147941030 promoted the existing release; guarded historical-stable workflow #45147941048 independently re-read the promotion target, verified exact-source successful build runs, reassembled the canonical 8 assets, published/clobbered only by canonical names and verified tag/source/assets/Latest — SUCCESS.
+- GitHub release [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) is now `prerelease=false`, `draft=false`, name `Taxo 10.24-r3 — Stable`, and `/releases/latest` points to it.
+- Previous Stable is v10.23-r4.
+- No newer published Test exists after promotion.
+- 10.24-r4 prep remains separate in PR #619 and is not merged. First CI caught one UI reachability regression at 760×520: «Отримано…» was not mapped. Do not weaken the test; fix layout before continuing r4.
+

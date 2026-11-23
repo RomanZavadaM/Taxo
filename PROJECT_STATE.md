@@ -1,31 +1,28 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 23.11.2026 після публікації Test 10.24-r3.**
+**Підтверджено GitHub 23.11.2026 після promotion v10.24-r3 у Stable/Latest.**
 
-**Stable/Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`, 8 assets, `prerelease=false`.
+**Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, `prerelease=false`, `draft=false`, GitHub Latest.
 
-**Current Test:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, prerelease. Publisher #45141326182 — SUCCESS.
+**Попередня Stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`.
 
-## Stable r4
+Promotion PR #620: START #45146984711, Windows #45146984611, Win7 #45146984624, macOS Intel/ARM #45146984616 — SUCCESS; merged `c739f37e6a4a2ecc6be6c6302548cf8f83b479cc`. Publisher #45147941030 — SUCCESS. Guarded exact historical promotion #45147941048 — SUCCESS.
 
-Stable r4 залишається вручну прийнятою власником версією. 37 strict live UI routes; Stable не змінюється без окремого рішення власника.
+## Stable 10.24-r3
 
-## Current Test 10.24-r3
+Stable містить усю лінію 10.23-r4 та correspondence r1–r3:
+- r1: two journals, independent annual numbering, semantic dates, metadata/links, backup/restore;
+- r2: immutable controlled attachments/live DocumentVault links, SHA256/MIME/size/name, dedupe, history-only remove, integrity + backup/restore;
+- r3: separate resizable journal/card UI via strict `correspondence.center`, Incoming/Outgoing, search/date/calendar, sorting, details, create/reply/attachments/open document, unsaved-change guard.
+- blank `sent_date` remains registered-only; attachment presence never implies sent/received/delivered/signed.
 
-Лінія ділової кореспонденції:
-- r1: incoming/outgoing registry, independent annual numbering, semantic dates, correspondent/control metadata, response/related links, stable document_ref, full backup/restore;
-- r2: controlled immutable attachments або live DocumentVault link, SHA256/MIME/size/name metadata, content-addressed dedupe, history-only removal, integrity guards і full backup/restore;
-- r3: окремий journal/card UI — видимий пункт «Кореспонденція», strict route `correspondence.center`, resizable window, incoming/outgoing tabs, search/date/calendar, sorting, detail card, create/reply/attachments/open-document actions та unsaved-changes guard;
-- physical reachability ключових дій перевірена на 760×520; Tk search callback після закриття не лишається;
-- attachment не означає sent/received/delivered/signed; вихідний без `sent_date` лишається лише зареєстрованим.
+## Current Test / next revision
 
-Exact-source CI `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`: START #45139752722, Windows #45139752725, Win7 #45139752551, macOS Intel/ARM #45139752538 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS. Guarded release-trigger merged як `2ff35228a641de8efc1c63a100815cf9280126cd`; publisher #45141326182 — SUCCESS.
+Новішого опублікованого Test немає.
 
-## Наступна ревізія
+10.24-r4 prep PR #619 не merged. Його перший CI виявив UI-regression у minimum viewport 760×520: «Отримано…» не mapped. Цей тест не послаблювати; спочатку виправити layout і повторити START/Windows/Win7/macOS.
 
-**10.24-r4:** явні фактичні стани «надіслано»/«отримано», контроль строків та overdue, safe state transitions і append-only історія. Без автоматичного e-mail. Cases/threads, OCR/AI APPLY і physical attachment purge — окремими пізнішими кроками.
-
-AI-ready document import r6–r10 завершений на REVIEW без APPLY. APPLY — лише після окремого рішення власника.
+План r4: explicit sent/received, deadline/overdue, safe state transitions + append-only history. Без automatic e-mail; cases/threads, OCR/AI APPLY і physical attachment purge — пізніше.
 
 #553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
 

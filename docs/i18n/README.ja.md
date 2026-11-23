@@ -4,19 +4,19 @@
 
 Taxo は運送事業者向けのデスクトップアプリです。従業員・車両、勤務予定・労働時間、運行記録、命令書、文書、整備、帳票、バックアップを管理します。
 
-## Stable 10.23-r4
+## Stable 10.24-r3
 
-**10.23-r4 は 2026年11月20日に所有者が手動確認し、Stable/Latest になりました。** 文書検索・絞り込み・並べ替え、種類/日付ツリー、入れ子の独自フォルダー、管理された Word 改訂版、PDF/印刷、DocumentVault、任意の紙原本スキャン、紙の署名状態を含みます。命令書では明示的な運転者–車両ペア、既存ペアの編集、参加者の役割/注記編集、検索中も保持される複数選択を利用できます。文書作業領域とカタログツリー幅は調整可能です。命令書プレビューの DOCX/PDF/JPG 操作は 760×560 の狭いウィンドウでも到達できます。
+**10.24-r3 は 2026年11月23日の所有者の明示的な決定により Stable/Latest に昇格しました。** 10.23-r4 の受け入れ済み機能に加え、r1–r3 の連絡文書機能を含みます。受信/送信ジャーナル、安全な番号付け、管理された添付、検索、日付/カレンダー、並べ替え、文書カード、作成・返信・添付・文書を開く操作があります。送信日が空なら、実際に送信済みとはみなしません。
 
 37 の厳格な live UI 経路で表示・画面内配置・利用可能性・操作実行を検証します。START、Windows、Windows 7、macOS Intel/Apple Silicon は成功し、Windows/Win7 は Defender と整合性検査も通過しました。全機能の完全な網羅 (#556) と命令書のより広い end-to-end 監査 (#553) は引き続き未完了です。
 
 ## ダウンロード
 
-**Stable / Latest: [Taxo 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).** 前の安定版: [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1).
+**Stable / Latest: [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).** 前の安定版: [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
 
-Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
+Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3)。8ファイルの prerelease、exact source は `c9cb6b7787d991c5ce612ceec1efb32ecc90891d` です。r1 の入出力レジストリと r2 の管理された添付の上に、専用の連絡簿/カード UI を追加しました。受信/送信タブ、検索、日付/カレンダー、並べ替え可能な表、選択した文書の詳細、作成・返信・添付・文書を開く操作を備え、未保存変更も保護します。送信日が空なら自動的に送信済みにはならず、添付の存在も送信/受信/配達/署名を意味しません。Stable/Latest は 10.23-r4 のままです。
+**Current Test:** 10.24-r3 の Stable 昇格後、より新しい公開 Test はありません。10.24-r4 は次の開発リビジョンで、まだ Stable には含まれません。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
