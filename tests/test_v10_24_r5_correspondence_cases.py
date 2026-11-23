@@ -39,6 +39,7 @@ from correspondence_service import (
     register_outgoing,
     register_response,
 )
+from runtime_reachability import activate_widget, runtime_routes
 
 
 class CorrespondenceCasesR5DomainTests(unittest.TestCase):
@@ -439,6 +440,130 @@ class CorrespondenceCasesR5UiTests(unittest.TestCase):
             correspondent="A",
             subject=subject,
         )
+
+    @runtime_routes(
+        "correspondence.case_create",
+        "correspondence.case_assign",
+        "correspondence.case_edit",
+        "correspondence.case_archive",
+        "correspondence.case_thread_add",
+        "correspondence.case_open_letter",
+        "correspondence.case_remove_letter",
+    )
+    def test_case_routes_are_live_and_activatable(self):
+        incoming = self._incoming("Request route")
+        response = register_response(
+            self.workspace,
+            incoming.correspondence_id,
+            registration_date="2026-11-23",
+            subject="Answer route",
+        )
+        follow_up = register_incoming(
+            self.workspace,
+            registration_date="2026-11-24",
+            correspondent="A",
+            subject="Follow-up route",
+            related_ids=(response.correspondence_id,),
+        )
+        case = create_case(self.workspace, "Route case")
+        add_correspondence_to_case(
+            self.workspace, case.case_id, incoming.correspondence_id
+        )
+
+        win = correspondence_ui.open_correspondence_center(
+            self.root, self.core, self.workspace
+        )
+        self._show(win)
+
+        def activate_and_close(button, route_id):
+            before = set(self.root.winfo_children())
+            activate_widget(button, route_id, container=win)
+            self._show(win)
+            for child in tuple(self.root.winfo_children()):
+                if (
+                    child not in before
+                    and child is not win
+                    and isinstance(child, tk.Toplevel)
+                    and child.winfo_exists()
+                ):
+                    child.destroy()
+            self._show(win)
+
+        incoming_tree = win._taxo_correspondence_trees[DIRECTION_INCOMING]
+        incoming_tree.selection_set(incoming.correspondence_id)
+        incoming_tree.focus(incoming.correspondence_id)
+        self._show(win)
+        activate_and_close(
+            win._taxo_correspondence_buttons[DIRECTION_INCOMING]["case"],
+            "correspondence.case_assign",
+        )
+
+        book = win._taxo_correspondence_notebook
+        book.select(2)
+        self._show(win)
+        case_tree = win._taxo_correspondence_case_tree
+        case_tree.selection_set(case.case_id)
+        case_tree.focus(case.case_id)
+        self._show(win)
+        buttons = win._taxo_correspondence_case_buttons
+
+        activate_and_close(
+            buttons["new"], "correspondence.case_create"
+        )
+        activate_and_close(
+            buttons["rename"], "correspondence.case_edit"
+        )
+
+        activate_widget(
+            buttons["linked"],
+            "correspondence.case_thread_add",
+            container=win,
+        )
+        self._show(win)
+        self.assertIn(
+            response.correspondence_id,
+            win._taxo_correspondence_case_member_tree.get_children(""),
+        )
+
+        members = win._taxo_correspondence_case_member_tree
+        members.selection_set(response.correspondence_id)
+        members.focus(response.correspondence_id)
+        self._show(win)
+        activate_widget(
+            buttons["open"],
+            "correspondence.case_open_letter",
+            container=win,
+        )
+        self._show(win)
+        self.assertEqual(book.index(book.select()), 1)
+
+        book.select(2)
+        self._show(win)
+        case_tree.selection_set(case.case_id)
+        case_tree.focus(case.case_id)
+        self._show(win)
+        members.selection_set(follow_up.correspondence_id)
+        members.focus(follow_up.correspondence_id)
+        self._show(win)
+        activate_widget(
+            buttons["remove"],
+            "correspondence.case_remove_letter",
+            container=win,
+        )
+        self._show(win)
+        self.assertNotIn(
+            follow_up.correspondence_id,
+            members.get_children(""),
+        )
+
+        self.messages.askyesno.return_value = False
+        activate_widget(
+            buttons["archive"],
+            "correspondence.case_archive",
+            container=win,
+        )
+        self._show(win)
+        self.assertFalse(get_case(self.workspace, case.case_id).archived)
 
     def test_center_has_cases_tab_create_and_assign_flow(self):
         incoming = self._incoming("Request")
