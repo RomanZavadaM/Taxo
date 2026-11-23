@@ -16,6 +16,7 @@ from correspondence_cases import (
     linked_correspondence_candidates,
     list_case_correspondence,
     list_cases,
+    move_correspondence_to_case,
     read_cases,
     remove_correspondence_from_case,
     rename_case,
@@ -133,6 +134,16 @@ class CorrespondenceCasesR5DomainTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             add_correspondence_to_case(
                 self.root, case.case_id, other.correspondence_id
+            )
+        with self.assertRaises(ValueError):
+            rename_case(self.root, case.case_id, "Не можна")
+        with self.assertRaises(ValueError):
+            remove_correspondence_from_case(
+                self.root, case.case_id, incoming.correspondence_id
+            )
+        with self.assertRaises(ValueError):
+            move_correspondence_to_case(
+                self.root, incoming.correspondence_id, None
             )
 
         case = set_case_archived(self.root, case.case_id, False)
