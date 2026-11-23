@@ -16,7 +16,7 @@ Taxo est une application de bureau pour les entreprises de transport : personnel
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test :** [Taxo 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4), prerelease de 8 fichiers, exact source `e1616ea0063575b2c989d684934364f38f995966`. Elle ajoute les actions explicites Reçu/Envoyé avec date obligatoire, des transitions d’état sûres uniquement vers l’avant, un historique append-only et le contrôle des échéances/retards. L’enregistrement ou une pièce jointe ne crée jamais automatiquement un fait d’envoi/réception. Le défaut d’accessibilité à 760×520 a été corrigé dans la mise en page sans affaiblir le test. Stable/Latest reste 10.24-r3.
+**Current Test :** [Taxo 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5), prerelease de 8 fichiers, exact source `6d697a641b4f546dc533c8f55379696ad827b278`. Elle ajoute des dossiers/thèmes logiques de correspondance avec ID stables, appartenance explicite, archivage en lecture seule et vue de fil fondée sur les liens réponse/associé existants. Un dossier ne conserve que des références aux courriers enregistrés : il ne copie pas les documents et ne modifie ni numéros ni faits Reçu/Envoyé/état. Stable/Latest reste 10.24-r3.
 
 Conservez les bases et documents dans un dossier de travail séparé et sauvegardez-le avant mise à jour. [Guide utilisateur (ukrainien)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
