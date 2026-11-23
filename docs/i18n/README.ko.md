@@ -16,7 +16,7 @@ Taxo는 운송업체용 데스크톱 프로그램으로 직원과 차량, 일정
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7), 8개 파일 prerelease, exact source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`. 업무 규칙을 바꾸지 않고 명령서의 **참여자 / 차량** 블록을 end-to-end로 강화했습니다. 검색/선택, 역할·메모 편집, 차량 추가, 선택 제거, live preview 동기화를 보호하며 DOCX/PDF는 동일한 frozen participant snapshot과 대조됩니다. full backup/restore는 identity, role, note, snapshot, sequence를 보존합니다. Taxo는 총 58개의 strict live route를 가지며 서신 contract는 exact 17 routes 그대로입니다. Stable/Latest는 10.24-r3 그대로입니다.
+**Current Test:** [Taxo 10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8), 8개 파일 prerelease, exact source `d24b1bc96115de52d6088813992aca3b410fe243`. r7 위에 control-only 재열기 보장을 추가했습니다. UI를 완전히 닫고 다시 열어도 저장된 명령서의 번호/날짜/주제/상태와 참여자 role/note가 유지되고, Draft → Active 전환은 frozen participant snapshot 또는 sequence를 바꾸지 않으며 같은 명령서 refresh에서도 선택이 유지됩니다. r7의 add/edit/remove, live preview, DOCX/PDF, full backup/restore 보호는 그대로 유지됩니다. Taxo는 계속 58개의 strict live routes를 가지며 서신 contract는 정확히 17 routes입니다. Stable/Latest는 10.24-r3을 유지합니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
