@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r7.**
+**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r8.**
 
 ## Stable
 
@@ -11,30 +11,30 @@
 
 ## Current Test
 
-- Release: [v10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7)
-- Exact source: `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`
+- Release: [v10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8)
+- Exact source: `d24b1bc96115de52d6088813992aca3b410fe243`
 - 8 canonical assets; prerelease=true; draft=false.
 - 58 strict live routes total; correspondence contract remains exact 17 routes.
-- Order participant block: 5 live routes — search/select, edit role/note, add vehicle, remove selected, preview sync.
-- Prep #630: START #45213479378, Windows #45213479658, Win7 #45213479371, macOS #45213479464 — SUCCESS; Defender/integrity PASS.
-- Candidate #634: START #45216365054, Windows #45216364728, Win7 #45216364723, macOS #45216364729 — SUCCESS.
-- Exact source: START #45217452473, Windows #45217452461, Win7 #45217452456, macOS #45217452990 — SUCCESS; Defender/integrity PASS.
-- Release-trigger #635 merged as `ee7bdbb5e50e3b47e42da46fc7b47eee2991523e`; publisher #45220620129 — SUCCESS.
-- GitHub release exact target `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`; 8 canonical assets verified.
+- r8 is control-only: fresh reopen + same-order refresh/status transition preservation for «Учасники / ТЗ».
+- Prep #638: START #45231841871, Windows #45231841838, Win7 #45231842010, macOS #45231841929 — SUCCESS; Defender/integrity PASS.
+- Candidate #639: START #45234694758, Windows #45234694250, Win7 #45234694546, macOS #45234694225 — SUCCESS; Defender/integrity PASS.
+- Exact source: START #45235704945, Windows #45235704686, Win7 #45235704998, macOS #45235705102 — SUCCESS; Defender/integrity PASS.
+- Release-trigger #640 merged as `411c1e496ccddcd4ed0f9fd754743dfdf9ef8986`; publisher #45237831016 — SUCCESS.
+- GitHub release exact target `d24b1bc96115de52d6088813992aca3b410fe243`; 8 canonical assets verified.
 
-## Що перевірено у r7
+## Що перевірено у r8
 
-- add/edit/remove учасників і ТЗ синхронізують уже відкритий preview;
-- edit role/note має окрему зрозумілу історичну подію;
-- preview пояснює окрему друковану сторінку structured participant list;
-- DOCX і PDF використовують той самий frozen participant snapshot;
-- full backup/restore зберігає entity identity, role, note, snapshot і sequence;
-- live preservation guard включає «Змінити роль / примітку…»;
+- повне закриття й створення нової UI-поверхні повторно читає той самий наказ із SQLite;
+- номер, дата, тема і стан наказу не губляться;
+- роль/примітка та рядок учасника зберігаються;
+- «Чернетка» → «Діє в Taxo» не змінює participant snapshot/sequence;
+- same-order refresh зберігає selection;
+- r7 add/edit/remove, preview, DOCX/PDF і backup/restore control лишається активним;
 - correspondence r1–r6 та її 17-route contract не змінені.
 
 ## Далі
 
-Recovery r7 закритий. Наступна дія: звірити #553/#556/#562 і вибрати один bounded control slice для r8. Не змішувати кілька великих механізмів.
+Recovery r8 синхронізувати в public docs, private profile, Issue #61 і Drive. Наступна дія: звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — вибрати один bounded control slice для r9.
 
 Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
