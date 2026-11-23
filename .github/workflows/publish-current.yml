@@ -1,5 +1,5 @@
 name: Publish current Taxo release
-# Stable metadata refresh: Taxo 10.24-r3 exact source c9cb6b7787d991c5ce612ceec1efb32ecc90891d; owner promotion 23.11.2026.
+# One-time FULL Test checkpoint: Taxo 10.24-r4 exact clean main e1616ea0063575b2c989d684934364f38f995966; Stable remains 10.24-r3.
 
 on:
   workflow_dispatch:
