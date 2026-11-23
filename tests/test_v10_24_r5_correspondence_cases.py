@@ -70,6 +70,14 @@ class CorrespondenceCasesR5DomainTests(unittest.TestCase):
             related_ids=related_ids,
         )
 
+    def test_start_requires_correspondence_cases_module(self):
+        root = Path(__file__).resolve().parents[1]
+        start = (root / "START.bat").read_text("utf-8")
+        self.assertIn(
+            'src\\taxo\\correspondence_cases.py',
+            start,
+        )
+
     def test_case_membership_is_logical_and_preserves_letter_identity(self):
         incoming = self._incoming()
         before = get_correspondence(self.root, incoming.correspondence_id)
