@@ -13,7 +13,7 @@ import os
 import re
 import threading
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterable, Tuple
@@ -21,7 +21,8 @@ from typing import Iterable, Tuple
 
 STORE_NAME = "Correspondence"
 FILE_NAME = "registry.json"
-FORMAT = "taxo.correspondence-registry.v1"
+FORMAT_V1 = "taxo.correspondence-registry.v1"
+FORMAT = "taxo.correspondence-registry.v2"
 MAX_BYTES = 8 * 1024 * 1024
 MAX_TEXT = 500
 MAX_SUMMARY = 4000
@@ -37,6 +38,7 @@ DEFAULT_STATUS = {
 ALLOWED_STATUS = {
     DIRECTION_INCOMING: {
         "new",
+        "received",
         "in_progress",
         "awaiting_response",
         "response_prepared",
@@ -51,6 +53,36 @@ ALLOWED_STATUS = {
         "cancelled",
     },
 }
+ALLOWED_TRANSITIONS = {
+    DIRECTION_INCOMING: {
+        "new": ("received", "cancelled"),
+        "received": (
+            "in_progress",
+            "awaiting_response",
+            "response_prepared",
+            "closed",
+            "cancelled",
+        ),
+        "in_progress": (
+            "awaiting_response",
+            "response_prepared",
+            "closed",
+            "cancelled",
+        ),
+        "awaiting_response": ("response_prepared", "closed", "cancelled"),
+        "response_prepared": ("response_sent", "closed", "cancelled"),
+        "response_sent": ("closed",),
+        "closed": (),
+        "cancelled": (),
+    },
+    DIRECTION_OUTGOING: {
+        "registered": ("sent", "cancelled"),
+        "sent": ("closed",),
+        "closed": (),
+        "cancelled": (),
+    },
+}
+
 DELIVERY_METHODS = {
     "",
     "mail",
@@ -61,6 +93,7 @@ DELIVERY_METHODS = {
 }
 
 _ID = re.compile(r"^cr-[a-f0-9]{32}$")
+_EVENT_ID = re.compile(r"^ce-[a-f0-9]{32}$")
 _DOCUMENT_REF = re.compile(r"^(?:vault|paper|order):[A-Za-z0-9._-]{1,200}$")
 _TEMP_FILE = re.compile(r"^\.registry\.json\.[a-f0-9]{32}\.tmp$")
 _WRITE_LOCK = threading.RLock()
@@ -100,9 +133,21 @@ class CorrespondenceRecord:
 
 
 @dataclass(frozen=True)
+class CorrespondenceStateEvent:
+    event_id: str
+    correspondence_id: str
+    direction: str
+    from_status: str
+    to_status: str
+    action_date: str
+    changed_at: str
+
+
+@dataclass(frozen=True)
 class RegistryState:
     sequences: Tuple[SequenceRecord, ...]
     records: Tuple[CorrespondenceRecord, ...]
+    state_events: Tuple[CorrespondenceStateEvent, ...] = ()
 
 
 def registry_root(workspace_root: Path) -> Path:
@@ -374,9 +419,54 @@ def _record(entry) -> CorrespondenceRecord:
     )
 
 
+
+def _state_event(entry) -> CorrespondenceStateEvent:
+    required = {
+        "event_id",
+        "correspondence_id",
+        "direction",
+        "from_status",
+        "to_status",
+        "action_date",
+        "changed_at",
+    }
+    if not isinstance(entry, dict) or set(entry) != required:
+        raise ValueError("Некоректна подія стану кореспонденції")
+
+    event_id = str(entry.get("event_id") or "").strip()
+    if _EVENT_ID.fullmatch(event_id) is None:
+        raise ValueError("Некоректний ID події стану")
+    correspondence_id = _id(entry.get("correspondence_id"))
+    direction = _direction(entry.get("direction"))
+    from_status = _status(direction, entry.get("from_status"))
+    to_status = _status(direction, entry.get("to_status"))
+    if to_status not in ALLOWED_TRANSITIONS[direction].get(from_status, ()):
+        raise ValueError("Недозволений перехід стану кореспонденції")
+    action_date = _date(
+        entry.get("action_date"), "Дата фактичної дії", allow_empty=True
+    )
+    if to_status == "received":
+        if direction != DIRECTION_INCOMING or not action_date:
+            raise ValueError("Стан «отримано» потребує дати отримання")
+    elif to_status == "sent":
+        if direction != DIRECTION_OUTGOING or not action_date:
+            raise ValueError("Стан «надіслано» потребує дати відправлення")
+    elif action_date:
+        raise ValueError("Дата фактичної дії дозволена лише для отримання/відправлення")
+    return CorrespondenceStateEvent(
+        event_id=event_id,
+        correspondence_id=correspondence_id,
+        direction=direction,
+        from_status=from_status,
+        to_status=to_status,
+        action_date=action_date,
+        changed_at=_timestamp(entry.get("changed_at"), "changed_at"),
+    )
+
 def _validate_state(state: RegistryState) -> RegistryState:
     sequences = tuple(state.sequences)
     records = tuple(state.records)
+    state_events = tuple(state.state_events)
 
     seq_by_key = {}
     for item in sequences:
@@ -427,6 +517,28 @@ def _validate_state(state: RegistryState) -> RegistryState:
             ):
                 raise ValueError("Відповідь має посилатися на вхідний лист")
 
+    seen_event_ids = set()
+    last_status_by_record = {}
+    for event in state_events:
+        if event.event_id in seen_event_ids:
+            raise ValueError("Дубльований ID події стану")
+        seen_event_ids.add(event.event_id)
+        record = by_id.get(event.correspondence_id)
+        if record is None:
+            raise ValueError("Подія стану посилається на відсутню кореспонденцію")
+        if record.direction != event.direction:
+            raise ValueError("Напрям події стану не відповідає листу")
+        expected_from = last_status_by_record.get(
+            event.correspondence_id, event.from_status
+        )
+        if event.from_status != expected_from:
+            raise ValueError("Порушений ланцюжок історії станів")
+        last_status_by_record[event.correspondence_id] = event.to_status
+
+    for correspondence_id, last_status in last_status_by_record.items():
+        if by_id[correspondence_id].status != last_status:
+            raise ValueError("Поточний стан не відповідає історії переходів")
+
     return RegistryState(
         sequences=tuple(sorted(
             sequences, key=lambda row: (row.direction, row.year)
@@ -440,6 +552,7 @@ def _validate_state(state: RegistryState) -> RegistryState:
                 row.correspondence_id,
             ),
         )),
+        state_events=state_events,
     )
 
 
@@ -464,17 +577,33 @@ def read_registry(workspace_root: Path) -> RegistryState:
     if not path.exists():
         return empty_state()
     data = _load_json(path)
-    if (
-        not isinstance(data, dict)
-        or set(data) != {"format", "sequences", "records"}
-        or data.get("format") != FORMAT
-        or not isinstance(data.get("sequences"), list)
-        or not isinstance(data.get("records"), list)
-    ):
+    if not isinstance(data, dict):
+        raise ValueError("Несумісний формат реєстру кореспонденції")
+    if data.get("format") == FORMAT_V1:
+        if (
+            set(data) != {"format", "sequences", "records"}
+            or not isinstance(data.get("sequences"), list)
+            or not isinstance(data.get("records"), list)
+        ):
+            raise ValueError("Несумісний формат реєстру кореспонденції")
+        state_events = ()
+    elif data.get("format") == FORMAT:
+        if (
+            set(data) != {"format", "sequences", "records", "state_events"}
+            or not isinstance(data.get("sequences"), list)
+            or not isinstance(data.get("records"), list)
+            or not isinstance(data.get("state_events"), list)
+        ):
+            raise ValueError("Несумісний формат реєстру кореспонденції")
+        state_events = tuple(
+            _state_event(item) for item in data["state_events"]
+        )
+    else:
         raise ValueError("Несумісний формат реєстру кореспонденції")
     return _validate_state(RegistryState(
         tuple(_sequence(item) for item in data["sequences"]),
         tuple(_record(item) for item in data["records"]),
+        state_events,
     ))
 
 
@@ -516,6 +645,18 @@ def _payload(state: RegistryState) -> bytes:
                 "updated_at": row.updated_at,
             }
             for row in checked.records
+        ],
+        "state_events": [
+            {
+                "event_id": event.event_id,
+                "correspondence_id": event.correspondence_id,
+                "direction": event.direction,
+                "from_status": event.from_status,
+                "to_status": event.to_status,
+                "action_date": event.action_date,
+                "changed_at": event.changed_at,
+            }
+            for event in checked.state_events
         ],
     }
     raw = (
@@ -703,7 +844,7 @@ def register_correspondence(
         ) + (replacement,)
         saved = _atomic_write(
             workspace_root,
-            RegistryState(sequences, state.records + (record,)),
+            RegistryState(sequences, state.records + (record,), state.state_events),
         )
         return next(
             row
@@ -741,3 +882,111 @@ def list_correspondence(
         ),
         reverse=True,
     ))
+
+def allowed_status_transitions(record: CorrespondenceRecord) -> Tuple[str, ...]:
+    """Return only legal forward transitions for one validated record."""
+    if not isinstance(record, CorrespondenceRecord):
+        raise ValueError("Некоректний запис кореспонденції")
+    return tuple(ALLOWED_TRANSITIONS[record.direction].get(record.status, ()))
+
+
+def transition_correspondence(
+    workspace_root: Path,
+    correspondence_id: str,
+    to_status: str,
+    *,
+    action_date: str = "",
+) -> CorrespondenceRecord:
+    """Atomically change one state and append an immutable transition event."""
+    correspondence_id = _id(correspondence_id)
+    with _WRITE_LOCK:
+        state = read_registry(workspace_root)
+        try:
+            current = next(
+                row for row in state.records
+                if row.correspondence_id == correspondence_id
+            )
+        except StopIteration as exc:
+            raise ValueError("Запис кореспонденції не знайдено") from exc
+
+        to_status = _status(current.direction, to_status)
+        if to_status not in ALLOWED_TRANSITIONS[current.direction].get(
+            current.status, ()
+        ):
+            raise ValueError(
+                "Недозволений перехід стану: %s → %s"
+                % (current.status, to_status)
+            )
+
+        action_date = _date(
+            action_date, "Дата фактичної дії", allow_empty=True
+        )
+        updates = {}
+        if to_status == "received":
+            if current.direction != DIRECTION_INCOMING:
+                raise ValueError("Лише вхідний лист можна позначити отриманим")
+            action_date = action_date or current.received_date
+            if not action_date:
+                raise ValueError("Вкажіть фактичну дату отримання")
+            updates["received_date"] = action_date
+        elif to_status == "sent":
+            if current.direction != DIRECTION_OUTGOING:
+                raise ValueError("Лише вихідний лист можна позначити надісланим")
+            action_date = action_date or current.sent_date
+            if not action_date:
+                raise ValueError("Вкажіть фактичну дату відправлення")
+            updates["sent_date"] = action_date
+        elif action_date:
+            raise ValueError(
+                "Дата фактичної дії дозволена лише для отримання/відправлення"
+            )
+
+        timestamp = _iso_now()
+        updated = replace(
+            current,
+            status=to_status,
+            updated_at=timestamp,
+            **updates
+        )
+        event = CorrespondenceStateEvent(
+            event_id="ce-" + uuid.uuid4().hex,
+            correspondence_id=current.correspondence_id,
+            direction=current.direction,
+            from_status=current.status,
+            to_status=to_status,
+            action_date=action_date,
+            changed_at=timestamp,
+        )
+        records = tuple(
+            updated if row.correspondence_id == correspondence_id else row
+            for row in state.records
+        )
+        saved = _atomic_write(
+            workspace_root,
+            RegistryState(
+                state.sequences,
+                records,
+                state.state_events + (event,),
+            ),
+        )
+        return next(
+            row for row in saved.records
+            if row.correspondence_id == correspondence_id
+        )
+
+
+def list_state_events(
+    workspace_root: Path, correspondence_id: str
+) -> Tuple[CorrespondenceStateEvent, ...]:
+    """Read append-only state history for one letter."""
+    correspondence_id = _id(correspondence_id)
+    state = read_registry(workspace_root)
+    if not any(
+        row.correspondence_id == correspondence_id for row in state.records
+    ):
+        raise ValueError("Запис кореспонденції не знайдено")
+    return tuple(
+        event for event in state.state_events
+        if event.correspondence_id == correspondence_id
+    )
+
