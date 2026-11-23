@@ -1527,7 +1527,7 @@ def open_correspondence_center(app, core, workspace_root):
         buttons["remove"].pack(side="left", padx=(6, 0))
         core.ttk.Button(
             row2,
-            text="Оновити",
+            text="Оновити справи",
             command=lambda: refresh_all(),
         ).pack(side="right")
 
