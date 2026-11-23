@@ -163,6 +163,66 @@ class CorrespondenceUiR3Tests(unittest.TestCase):
         finally:
             root.destroy()
 
+    @runtime_routes(
+        "correspondence.new_incoming",
+        "correspondence.new_outgoing",
+        "correspondence.reply",
+        "correspondence.attachments",
+    )
+    def test_core_correspondence_actions_are_live_and_activatable(self):
+        incoming = register_incoming(
+            self.workspace,
+            registration_date="2026-11-23",
+            correspondent="A",
+            subject="Incoming route",
+        )
+        register_outgoing(
+            self.workspace,
+            registration_date="2026-11-23",
+            correspondent="B",
+            subject="Outgoing route",
+        )
+        win = correspondence_ui.open_correspondence_center(
+            self.root, self.core, self.workspace
+        )
+        self._show(win)
+
+        def activate_and_close(button, route_id):
+            before = set(self.root.winfo_children())
+            activate_widget(button, route_id, container=win)
+            self._show(win)
+            for child in tuple(self.root.winfo_children()):
+                if (
+                    child not in before
+                    and child is not win
+                    and isinstance(child, tk.Toplevel)
+                    and child.winfo_exists()
+                ):
+                    child.destroy()
+            self._show(win)
+
+        activate_and_close(
+            button_by_text(win, "Новий вхідний…"),
+            "correspondence.new_incoming",
+        )
+        activate_and_close(
+            button_by_text(win, "Новий вихідний…"),
+            "correspondence.new_outgoing",
+        )
+
+        tree = win._taxo_correspondence_trees[DIRECTION_INCOMING]
+        tree.selection_set(incoming.correspondence_id)
+        tree.focus(incoming.correspondence_id)
+        self._show(win)
+        buttons = win._taxo_correspondence_buttons[DIRECTION_INCOMING]
+
+        activate_and_close(
+            buttons["response"], "correspondence.reply"
+        )
+        activate_and_close(
+            buttons["attachments"], "correspondence.attachments"
+        )
+
     def test_center_shows_two_real_journals_card_attachments_and_filters(self):
         incoming = register_incoming(
             self.workspace,
