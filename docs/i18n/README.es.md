@@ -16,7 +16,7 @@ Taxo es una aplicación de escritorio para empresas de transporte: personal y ve
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** no hay un Test publicado más reciente después de promover 10.24-r3. 10.24-r4 es la siguiente revisión de desarrollo y aún no forma parte de Stable.
+**Current Test:** [Taxo 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4), prerelease de 8 archivos, exact source `e1616ea0063575b2c989d684934364f38f995966`. Añade acciones explícitas de Recibido/Enviado con fecha obligatoria, transiciones de estado seguras sólo hacia adelante, historial append-only y control de plazo/vencido. El registro o un adjunto nunca crean automáticamente un hecho de envío/recepción. El problema de accesibilidad a 760×520 se corrigió en el diseño sin debilitar la prueba. Stable/Latest sigue siendo 10.24-r3.
 
 Guarde bases y documentos en una carpeta de trabajo separada y haga una copia antes de actualizar. [Manual de usuario (ucraniano)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
