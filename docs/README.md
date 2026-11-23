@@ -2,9 +2,9 @@
 
 Головна мова документації — українська. Публічний короткий опис доступний ще шістьма мовами: [переклади](i18n/README.md).
 
-**Stable / Latest:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4) — 20.11.2026, 8 файлів, Windows/Win7/macOS Intel/ARM/START, 37 strict live UI routes.
+**Stable / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — 23.11.2026, 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, Windows/Win7/macOS Intel/ARM/START, 39 strict live UI routes, correspondence journal/card UI.
 
-**Попередня Stable:** [10.23-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r1). **Поточний Test:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`; registry + controlled attachments + робочий journal/card UI кореспонденції; Stable r4 не змінено.
+**Попередня Stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4). **Поточний Test:** окремого новішого опублікованого Test немає; 10.24-r4 — наступна ревізія розробки.
 
 ## Робота з програмою
 
@@ -17,17 +17,17 @@
 - [Адміністрування й резервні копії](guides/ADMIN_GUIDE.md).
 - [Типові проблеми](guides/TROUBLESHOOTING.md).
 
-## Актуально для stable r4
+## Актуально для Stable 10.24-r3
 
 Taxo допомагає створювати, редагувати, переглядати й друкувати накази. Паперовий оригінал лишається первинним контролем; позначка паперового підпису не є КЕП і не блокує виправлення робочого запису Taxo.
 
-Доступні DOCX, PDF, JPG та «Створити все». У r4 перегляд наказу адаптовано до малого вікна: довгі кнопки форматів і нижні дії не повинні зникати при 760×560. Робоча область бланків і дерево каталогу документів регулюються користувачем.
+Доступні DOCX, PDF, JPG та «Створити все». Ще у 10.23-r4 перегляд наказу адаптовано до малого вікна: довгі кнопки форматів і нижні дії не повинні зникати при 760×560. Робоча область бланків і дерево каталогу документів регулюються користувачем.
 
 ## Випуски та стан
 
-- [Stable 10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4)
-- [Test 10.23-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r7) — atomic dry-run inventory batches у workspace; Stable не змінює
-- [Що нового у 10.23-r4](releases/RELEASE_NOTES_v10.23-r4.md)
+- [Stable 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3)
+- Новішого published Test після Stable 10.24-r3 немає; 10.24-r4 — наступна ревізія розробки
+- [Що нового у 10.24-r3](releases/RELEASE_NOTES_v10.24-r3.md)
 - [Індекс випусків](releases/RELEASE_INDEX.md)
 - [Стан продукту](PRODUCT_STATUS.md)
 - [Модель даних і резервування](DATA_MODEL_AND_STORAGE.md)
