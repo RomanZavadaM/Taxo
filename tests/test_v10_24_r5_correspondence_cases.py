@@ -95,7 +95,7 @@ class CorrespondenceCasesR5DomainTests(unittest.TestCase):
         )
 
         data = json.loads(
-            (self.root / "Data" / "Correspondence" / "cases.json").read_text(
+            (self.root / "Data" / "CorrespondenceCases" / "cases.json").read_text(
                 "utf-8"
             )
         )
