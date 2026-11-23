@@ -1,3 +1,14 @@
+## 23.11.2026 — 10.24-r8 Current Test published і recovery
+
+- r8 — вузька control-only ревізія поверх r7: fresh UI reopen повторно читає наказ із persisted SQLite та перевіряє збереження номера/дати/теми/стану, participant role/note, frozen snapshot і sequence.
+- Prep PR #638 final head `f95aac5ef1344b5c851411dd2bc6d1ea1f9ddf50`: START #45231841871, Windows #45231841838, Win7 #45231842010, macOS Intel/ARM #45231841929 — SUCCESS; Defender/integrity PASS. Prep merged `06189dc472d6ca8c3063defb9c0b20c20626fda4`.
+- Candidate PR #639 final head `f8ef99d7cfe07e2d8064878e41da5d09657930fe`: START #45234694758, Windows #45234694250, Win7 #45234694546, macOS Intel/ARM #45234694225 — SUCCESS; Defender/integrity PASS.
+- Candidate merged: exact issued source `d24b1bc96115de52d6088813992aca3b410fe243`. Exact-source START #45235704945, Windows #45235704686, Win7 #45235704998, macOS Intel/ARM #45235705102 — SUCCESS; Defender/integrity PASS.
+- Guarded release-trigger PR #640 final head `c3a205ec8ccdea3a17a8badb13d2644651e963ea`: START #45236768940, Windows #45236768934, Win7 #45236769035, macOS Intel/ARM #45236768791 — SUCCESS; Defender/integrity PASS. Merged `411c1e496ccddcd4ed0f9fd754743dfdf9ef8986`.
+- Publisher #45237831016 — SUCCESS. [v10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8) — Current Test prerelease, 8 canonical assets, exact target `d24b1bc96115de52d6088813992aca3b410fe243`. Stable/Latest лишається [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
+- Product business rules/schema/formats не змінені; 58 strict live routes і exact 17-route correspondence contract лишаються чинними.
+- Після recovery: звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — один bounded r9 control slice. Draft #543/#395 лишаються відкритими; automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не стартувати автоматично.
+
 ## 20.11.2026 — уточнення резервування
 
 - Власник визначив Google Drive резервом документації, логів і порядку роботи, не копіями коду/збірок. GitHub залишається джерелом коду та релізів. Усі попередні архіви зберігаються до окремого рішення.
