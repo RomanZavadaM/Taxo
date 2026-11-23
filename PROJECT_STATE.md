@@ -1,29 +1,31 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 23.11.2026 після promotion v10.24-r3 у Stable/Latest.**
+**Підтверджено GitHub 23.11.2026 після публікації Test v10.24-r4.**
 
-**Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, `prerelease=false`, `draft=false`, GitHub Latest.
+**Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, prerelease=false, draft=false, GitHub Latest.
 
-**Попередня Stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4), exact source `a919ced6bc8665ced70ebb4d897808e4e2618667`.
+**Current Test:** [10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4), exact source `e1616ea0063575b2c989d684934364f38f995966`, 8 assets, prerelease=true, draft=false. Publisher #45162074730 — SUCCESS.
 
-Promotion PR #620: START #45146984711, Windows #45146984611, Win7 #45146984624, macOS Intel/ARM #45146984616 — SUCCESS; merged `c739f37e6a4a2ecc6be6c6302548cf8f83b479cc`. Publisher #45147941030 — SUCCESS. Guarded exact historical promotion #45147941048 — SUCCESS.
+## Test 10.24-r4
 
-## Stable 10.24-r3
+- explicit actual received/sent with mandatory action date;
+- registration/attachment do not imply actual delivery facts;
+- guarded forward state transitions + append-only immutable history;
+- state-history integrity validation fails closed;
+- legacy v1 registry migration preserves numbering;
+- due/overdue is computed from explicit due date for open records only;
+- UI actions for actual fact, legal status transition and history;
+- minimum viewport 760×520 keeps all state actions mapped after moving them outside the resizable card pane.
 
-Stable містить усю лінію 10.23-r4 та correspondence r1–r3:
-- r1: two journals, independent annual numbering, semantic dates, metadata/links, backup/restore;
-- r2: immutable controlled attachments/live DocumentVault links, SHA256/MIME/size/name, dedupe, history-only remove, integrity + backup/restore;
-- r3: separate resizable journal/card UI via strict `correspondence.center`, Incoming/Outgoing, search/date/calendar, sorting, details, create/reply/attachments/open document, unsaved-change guard.
-- blank `sent_date` remains registered-only; attachment presence never implies sent/received/delivered/signed.
+Prep: #619; START #45157632285, Windows #45157632313, Win7 #45157632280, macOS #45157632297 — SUCCESS.
+Candidate: #622; START #45159393780, Windows #45159393870, Win7 #45159393814, macOS #45159393725 — SUCCESS.
+Exact source: START #45160194606, Windows #45160194713, Win7 #45160194576, macOS #45160194864 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+Release trigger #623 merged `ee4958f3cf1470f120e3b28f853640fea272c803`; publisher #45162074730 — SUCCESS.
 
-## Current Test / next revision
+## Open boundaries
 
-Новішого опублікованого Test немає.
-
-10.24-r4 prep PR #619 не merged. Його перший CI виявив UI-regression у minimum viewport 760×520: «Отримано…» не mapped. Цей тест не послаблювати; спочатку виправити layout і повторити START/Windows/Win7/macOS.
-
-План r4: explicit sent/received, deadline/overdue, safe state transitions + append-only history. Без automatic e-mail; cases/threads, OCR/AI APPLY і physical attachment purge — пізніше.
-
-#553/#556/#562 залишаються відкритими. Draft #543/#395 не закривати автоматично.
+Stable remains 10.24-r3. No automatic e-mail in r4.
+Cases/threads, OCR/AI APPLY and physical attachment purge remain later separate slices.
+#553/#556/#562 remain open; draft #543/#395 stay open.
 
 Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
