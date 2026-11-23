@@ -28,7 +28,7 @@ Release trigger #640 merged `411c1e496ccddcd4ed0f9fd754743dfdf9ef8986`; trigger 
 
 Stable remains 10.24-r3.
 
-r8 recovery must be synchronized across public docs, private profile, Issue #61 and Drive. Next action after recovery: reconcile manual acceptance for #553/#556/#562; if no new defects are found, choose one bounded r9 control slice. Do not automatically broaden r9 into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
+r8 recovery is closed across public docs, private profile, Issue #61 and Drive. Next action after recovery: reconcile manual acceptance for #553/#556/#562; if no new defects are found, choose one bounded r9 control slice. Do not automatically broaden r9 into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
 
 Draft #543/#395 stay open.
 
