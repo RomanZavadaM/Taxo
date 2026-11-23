@@ -273,7 +273,7 @@ class CorrespondenceCasesR5DomainTests(unittest.TestCase):
             self.root, case.case_id, incoming.correspondence_id
         )
 
-        path = self.root / "Data" / "Correspondence" / "cases.json"
+        path = self.root / "Data" / "CorrespondenceCases" / "cases.json"
         data = json.loads(path.read_text("utf-8"))
         data["cases"][0]["correspondence_ids"] = [
             "cr-" + ("f" * 32)
@@ -614,7 +614,7 @@ class CorrespondenceCasesR5UiTests(unittest.TestCase):
             "Додати пов'язані",
             "Відкрити лист",
             "Вилучити зі справи",
-            "Оновити",
+            "Оновити справи",
             "Закрити",
         ):
             button = _button_by_text(win, text)
