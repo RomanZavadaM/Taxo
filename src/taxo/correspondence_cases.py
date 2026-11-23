@@ -422,6 +422,72 @@ def remove_correspondence_from_case(
         return next(row for row in saved if row.case_id == case_id)
 
 
+def move_correspondence_to_case(
+    workspace_root: Path, correspondence_id: str, target_case_id=None
+):
+    """Atomically move one letter between logical cases or unfile it."""
+    correspondence_id = _correspondence_id(correspondence_id)
+    target_case_id = (
+        None if target_case_id in (None, "") else _case_id(target_case_id)
+    )
+    with _WRITE_LOCK:
+        cases = read_cases(workspace_root)
+        registry = read_registry(workspace_root)
+        if correspondence_id not in {
+            row.correspondence_id for row in registry.records
+        }:
+            raise ValueError("Запис кореспонденції не знайдено")
+
+        target = None
+        if target_case_id is not None:
+            target = next(
+                (case for case in cases if case.case_id == target_case_id),
+                None,
+            )
+            if target is None:
+                raise ValueError("Справу кореспонденції не знайдено")
+            if target.archived:
+                raise ValueError("Не можна додавати листи до архівованої справи")
+
+        current = next(
+            (
+                case for case in cases
+                if correspondence_id in case.correspondence_ids
+            ),
+            None,
+        )
+        if (
+            (current is None and target_case_id is None)
+            or (
+                current is not None
+                and current.case_id == target_case_id
+            )
+        ):
+            return current
+
+        timestamp = _iso_now()
+        updated_cases = []
+        for case in cases:
+            ids = tuple(
+                value for value in case.correspondence_ids
+                if value != correspondence_id
+            )
+            if case.case_id == target_case_id:
+                ids = ids + (correspondence_id,)
+            if ids != case.correspondence_ids:
+                case = replace(
+                    case,
+                    correspondence_ids=ids,
+                    updated_at=timestamp,
+                )
+            updated_cases.append(case)
+
+        saved = _write_cases(workspace_root, tuple(updated_cases))
+        if target_case_id is None:
+            return None
+        return next(case for case in saved if case.case_id == target_case_id)
+
+
 def list_case_correspondence(
     workspace_root: Path, case_id: str
 ) -> Tuple[CorrespondenceRecord, ...]:
@@ -446,32 +512,28 @@ def linked_correspondence_candidates(
     case = get_case(workspace_root, case_id)
     registry = read_registry(workspace_root)
     records = tuple(registry.records)
-    in_case = set(case.correspondence_ids)
-    frontier = set(in_case)
-    linked = set()
-
-    # Traverse explicit response/related edges in both directions so a case can
-    # show the full known thread without silently changing membership.
-    changed = True
-    while changed:
-        changed = False
-        for row in records:
-            row_links = set(row.response_to_ids) | set(row.related_ids)
-            connected = bool(row_links & frontier)
-            reverse_connected = row.correspondence_id in {
-                target
-                for other in records
-                if other.correspondence_id in frontier
-                for target in (set(other.response_to_ids) | set(other.related_ids))
-            }
-            if (connected or reverse_connected) and row.correspondence_id not in frontier:
-                frontier.add(row.correspondence_id)
-                linked.add(row.correspondence_id)
-                changed = True
-
     by_id = {row.correspondence_id: row for row in records}
+    adjacency = {identity: set() for identity in by_id}
+
+    for row in records:
+        for target in set(row.response_to_ids) | set(row.related_ids):
+            if target in by_id:
+                adjacency[row.correspondence_id].add(target)
+                adjacency[target].add(row.correspondence_id)
+
+    in_case = set(case.correspondence_ids)
+    seen = set(in_case)
+    pending = list(in_case)
+    while pending:
+        identity = pending.pop()
+        for target in adjacency.get(identity, ()):
+            if target not in seen:
+                seen.add(target)
+                pending.append(target)
+
+    linked = seen - in_case
     return tuple(sorted(
-        (by_id[value] for value in linked if value not in in_case),
+        (by_id[value] for value in linked),
         key=lambda row: (
             row.registration_date,
             row.direction,
@@ -484,18 +546,48 @@ def linked_correspondence_candidates(
 def add_linked_correspondence_to_case(
     workspace_root: Path, case_id: str
 ) -> CorrespondenceCase:
-    """Explicitly add all currently linked thread records to one case."""
-    candidates = linked_correspondence_candidates(workspace_root, case_id)
-    current = get_case(workspace_root, case_id)
-    for record in candidates:
-        owner = case_for_correspondence(workspace_root, record.correspondence_id)
-        if owner is not None and owner.case_id != case_id:
-            raise ValueError(
-                "Пов'язаний лист уже належить іншій справі: %s"
-                % record.registration_number
-            )
-    for record in candidates:
-        current = add_correspondence_to_case(
-            workspace_root, case_id, record.correspondence_id
+    """Atomically add all explicitly linked thread records to one case."""
+    case_id = _case_id(case_id)
+    with _WRITE_LOCK:
+        cases = read_cases(workspace_root)
+        current = next(
+            (case for case in cases if case.case_id == case_id),
+            None,
         )
-    return current
+        if current is None:
+            raise ValueError("Справу кореспонденції не знайдено")
+        if current.archived:
+            raise ValueError("Не можна додавати листи до архівованої справи")
+
+        candidates = linked_correspondence_candidates(workspace_root, case_id)
+        ownership = {
+            correspondence_id: case.case_id
+            for case in cases
+            for correspondence_id in case.correspondence_ids
+        }
+        for record in candidates:
+            owner = ownership.get(record.correspondence_id)
+            if owner is not None and owner != case_id:
+                raise ValueError(
+                    "Пов'язаний лист уже належить іншій справі: %s"
+                    % record.registration_number
+                )
+
+        new_ids = current.correspondence_ids + tuple(
+            record.correspondence_id
+            for record in candidates
+            if record.correspondence_id not in current.correspondence_ids
+        )
+        if new_ids == current.correspondence_ids:
+            return current
+
+        updated = replace(
+            current,
+            correspondence_ids=new_ids,
+            updated_at=_iso_now(),
+        )
+        saved = _write_cases(
+            workspace_root,
+            tuple(updated if case.case_id == case_id else case for case in cases),
+        )
+        return next(case for case in saved if case.case_id == case_id)
