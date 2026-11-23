@@ -18,6 +18,17 @@ from correspondence_attachments import (
     load_correspondence_file,
     remove_correspondence_attachment,
 )
+from correspondence_cases import (
+    add_linked_correspondence_to_case,
+    case_for_correspondence,
+    create_case,
+    linked_correspondence_candidates,
+    list_case_correspondence,
+    list_cases,
+    move_correspondence_to_case,
+    rename_case,
+    set_case_archived,
+)
 from correspondence_registry import (
     DIRECTION_INCOMING,
     DIRECTION_OUTGOING,
@@ -897,8 +908,10 @@ def open_correspondence_center(app, core, workspace_root):
     book.pack(fill="both", expand=True)
     incoming_page = core.ttk.Frame(book, padding=4)
     outgoing_page = core.ttk.Frame(book, padding=4)
+    cases_page = core.ttk.Frame(book, padding=4)
     book.add(incoming_page, text="Вхідні")
     book.add(outgoing_page, text="Вихідні")
+    book.add(cases_page, text="Справи")
 
     state = {
         "records": {
@@ -918,6 +931,15 @@ def open_correspondence_center(app, core, workspace_root):
         },
         "attachment_counts": {},
         "attachment_error": "",
+        "cases": {},
+        "case_members": {},
+        "case_by_record": {},
+        "case_error": "",
+        "case_tree": None,
+        "case_member_tree": None,
+        "case_detail": None,
+        "case_buttons": {},
+        "pending_case": None,
         "pending_select": {},
         "after": None,
     }
@@ -981,6 +1003,13 @@ def open_correspondence_center(app, core, workspace_root):
                 else "В межах строку" if record.due_date else "Без строку"
             ),
             "Готовий документ: %s" % (record.document_ref or "—"),
+            "Справа: %s" % (
+                state["case_by_record"].get(
+                    record.correspondence_id, "Без справи"
+                )
+                if not state["case_error"]
+                else "помилка перевірки"
+            ),
         ]
         if record.response_to_ids:
             lines.append(
@@ -1016,6 +1045,9 @@ def open_correspondence_center(app, core, workspace_root):
             state="normal" if record.document_ref else "disabled"
         )
         buttons["history"].configure(state="normal")
+        buttons["case"].configure(
+            state="normal" if not state["case_error"] else "disabled"
+        )
         transitions = set(available_status_transitions(record))
         if "received" in buttons:
             buttons["received"].configure(
@@ -1158,6 +1190,13 @@ def open_correspondence_center(app, core, workspace_root):
             command=lambda d=direction: open_record_document(d),
         )
         buttons["open"].pack(side="left", padx=(6, 0))
+        buttons["case"] = core.ttk.Button(
+            actions,
+            text="Справа…",
+            state="disabled",
+            command=lambda d=direction: open_case_assignment(d),
+        )
+        buttons["case"].pack(side="left", padx=(6, 0))
         core.ttk.Button(
             actions, text="Оновити", command=lambda: refresh_all()
         ).pack(side="right")
@@ -1166,6 +1205,344 @@ def open_correspondence_center(app, core, workspace_root):
         state["details"][direction] = detail_var
         state["buttons"][direction] = buttons
         tree.bind("<<TreeviewSelect>>", lambda _event, d=direction: update_card(d))
+
+    def selected_case(quiet=False):
+        tree = state["case_tree"]
+        if tree is None:
+            return None
+        selected = tree.selection()
+        if not selected:
+            if not quiet:
+                core.messagebox.showinfo(
+                    "Кореспонденція", "Виберіть справу.", parent=win
+                )
+            return None
+        return state["cases"].get(selected[0])
+
+    def selected_case_member(quiet=False):
+        case = selected_case(quiet=True)
+        tree = state["case_member_tree"]
+        if case is None or tree is None:
+            return None
+        selected = tree.selection()
+        if not selected:
+            if not quiet:
+                core.messagebox.showinfo(
+                    "Кореспонденція",
+                    "Виберіть лист у справі.",
+                    parent=win,
+                )
+            return None
+        mapping = {
+            row.correspondence_id: row
+            for row in state["case_members"].get(case.case_id, ())
+        }
+        return mapping.get(selected[0])
+
+    def update_case_member_buttons():
+        case = selected_case(quiet=True)
+        member = selected_case_member(quiet=True)
+        buttons = state["case_buttons"]
+        if not buttons:
+            return
+        active = case is not None and not case.archived
+        buttons["rename"].configure(
+            state="normal" if active else "disabled"
+        )
+        buttons["archive"].configure(
+            state="normal" if case is not None else "disabled",
+            text=(
+                "Відновити"
+                if case is not None and case.archived
+                else "Архівувати"
+            ),
+        )
+        buttons["linked"].configure(
+            state="normal" if active else "disabled"
+        )
+        buttons["open"].configure(
+            state="normal" if member is not None else "disabled"
+        )
+        buttons["remove"].configure(
+            state="normal" if active and member is not None else "disabled"
+        )
+
+    def refresh_case_members():
+        tree = state["case_member_tree"]
+        detail = state["case_detail"]
+        if tree is None or detail is None:
+            return
+        selected_member = tuple(tree.selection())
+        tree.delete(*tree.get_children(""))
+        case = selected_case(quiet=True)
+        if case is None:
+            detail.set("Виберіть справу.")
+            update_case_member_buttons()
+            return
+
+        members = state["case_members"].get(case.case_id, ())
+        detail.set(
+            "%s%s\nЛистів: %d%s"
+            % (
+                case.title,
+                " · архів" if case.archived else "",
+                len(members),
+                ("\n" + case.notes) if case.notes else "",
+            )
+        )
+        for record in members:
+            tree.insert(
+                "",
+                "end",
+                iid=record.correspondence_id,
+                values=(
+                    record.registration_number,
+                    _display_date(record.registration_date),
+                    "Вхідний"
+                    if record.direction == DIRECTION_INCOMING
+                    else "Вихідний",
+                    record.correspondent,
+                    record.subject,
+                    _status_label(record.status),
+                ),
+            )
+        retained = restore_tree_selection(tree, selected_member)
+        if not retained:
+            children = tree.get_children("")
+            if children:
+                tree.selection_set(children[0])
+                tree.focus(children[0])
+                try:
+                    tree.see(children[0])
+                except Exception:
+                    pass
+        update_case_member_buttons()
+
+    def refresh_cases_page(cases):
+        tree = state["case_tree"]
+        if tree is None:
+            return
+        selected = tuple(tree.selection())
+        pending = state.get("pending_case")
+        state["pending_case"] = None
+        tree.delete(*tree.get_children(""))
+
+        needle = search_var.get().strip().casefold()
+        filter_date = parse_filter_date()
+        mapping = {}
+        member_mapping = {}
+        for case in cases:
+            members = tuple(list_case_correspondence(
+                workspace_root, case.case_id
+            ))
+            member_mapping[case.case_id] = members
+            if filter_date and not any(
+                row.registration_date == filter_date for row in members
+            ):
+                continue
+            if needle:
+                haystack = " ".join(
+                    [case.title, case.notes]
+                    + [
+                        " ".join((
+                            row.registration_number,
+                            row.correspondent,
+                            row.subject,
+                            row.summary,
+                        ))
+                        for row in members
+                    ]
+                ).casefold()
+                if needle not in haystack:
+                    continue
+            mapping[case.case_id] = case
+            tree.insert(
+                "",
+                "end",
+                iid=case.case_id,
+                values=(
+                    case.title,
+                    len(members),
+                    "Архів" if case.archived else "Активна",
+                    case.updated_at.replace("T", " "),
+                ),
+            )
+
+        state["cases"] = mapping
+        state["case_members"] = member_mapping
+        wanted = (pending,) if pending else selected
+        retained = restore_tree_selection(tree, wanted)
+        if not retained:
+            children = tree.get_children("")
+            if children:
+                tree.selection_set(children[0])
+                tree.focus(children[0])
+                try:
+                    tree.see(children[0])
+                except Exception:
+                    pass
+        refresh_case_members()
+
+    def build_cases_page(page):
+        action_area = core.ttk.Frame(page)
+        action_area.pack(side="bottom", fill="x")
+
+        pane = core.ttk.Panedwindow(page, orient="vertical")
+        pane.pack(side="top", fill="both", expand=True)
+
+        cases_frame = core.ttk.LabelFrame(
+            pane, text="Справи / теми", padding=4
+        )
+        members_frame = core.ttk.LabelFrame(
+            pane, text="Ланцюжок справи", padding=4
+        )
+        pane.add(cases_frame, weight=2)
+        pane.add(members_frame, weight=3)
+
+        case_tree = core.ttk.Treeview(
+            cases_frame,
+            columns=("title", "count", "state", "updated"),
+            show="headings",
+            selectmode="browse",
+        )
+        for key, label, width, stretch in (
+            ("title", "Назва справи", 360, True),
+            ("count", "Листів", 70, False),
+            ("state", "Стан", 90, False),
+            ("updated", "Оновлено", 190, False),
+        ):
+            case_tree.heading(key, text=label)
+            case_tree.column(
+                key,
+                width=width,
+                minwidth=60,
+                stretch=stretch,
+            )
+        case_y = core.ttk.Scrollbar(
+            cases_frame, orient="vertical", command=case_tree.yview
+        )
+        case_tree.configure(yscrollcommand=case_y.set)
+        case_tree.grid(row=0, column=0, sticky="nsew")
+        case_y.grid(row=0, column=1, sticky="ns")
+        cases_frame.rowconfigure(0, weight=1)
+        cases_frame.columnconfigure(0, weight=1)
+
+        detail_var = core.tk.StringVar(
+            master=win, value="Виберіть справу."
+        )
+        core.ttk.Label(
+            members_frame,
+            textvariable=detail_var,
+            justify="left",
+            anchor="w",
+        ).grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 4))
+
+        member_tree = core.ttk.Treeview(
+            members_frame,
+            columns=(
+                "number",
+                "date",
+                "direction",
+                "correspondent",
+                "subject",
+                "status",
+            ),
+            show="headings",
+            selectmode="browse",
+        )
+        for key, label, width, stretch in (
+            ("number", "№", 120, False),
+            ("date", "Дата", 95, False),
+            ("direction", "Напрям", 90, False),
+            ("correspondent", "Кореспондент", 180, True),
+            ("subject", "Тема", 260, True),
+            ("status", "Стан", 130, False),
+        ):
+            member_tree.heading(key, text=label)
+            member_tree.column(
+                key, width=width, minwidth=60, stretch=stretch
+            )
+        member_y = core.ttk.Scrollbar(
+            members_frame, orient="vertical", command=member_tree.yview
+        )
+        member_x = core.ttk.Scrollbar(
+            members_frame, orient="horizontal", command=member_tree.xview
+        )
+        member_tree.configure(
+            yscrollcommand=member_y.set,
+            xscrollcommand=member_x.set,
+        )
+        member_tree.grid(row=1, column=0, sticky="nsew")
+        member_y.grid(row=1, column=1, sticky="ns")
+        member_x.grid(row=2, column=0, sticky="ew")
+        members_frame.rowconfigure(1, weight=1)
+        members_frame.columnconfigure(0, weight=1)
+
+        row1 = core.ttk.Frame(action_area)
+        row1.pack(fill="x", pady=(6, 0))
+        row2 = core.ttk.Frame(action_area)
+        row2.pack(fill="x", pady=(6, 0))
+        buttons = {}
+        buttons["new"] = core.ttk.Button(
+            row1,
+            text="Нова справа…",
+            command=lambda: open_case_editor(),
+        )
+        buttons["new"].pack(side="left")
+        buttons["rename"] = core.ttk.Button(
+            row1,
+            text="Перейменувати…",
+            state="disabled",
+            command=lambda: open_case_editor(selected_case()),
+        )
+        buttons["rename"].pack(side="left", padx=(6, 0))
+        buttons["archive"] = core.ttk.Button(
+            row1,
+            text="Архівувати",
+            state="disabled",
+            command=lambda: toggle_case_archive(),
+        )
+        buttons["archive"].pack(side="left", padx=(6, 0))
+        buttons["linked"] = core.ttk.Button(
+            row1,
+            text="Додати пов'язані",
+            state="disabled",
+            command=lambda: add_case_linked(),
+        )
+        buttons["linked"].pack(side="left", padx=(6, 0))
+
+        buttons["open"] = core.ttk.Button(
+            row2,
+            text="Відкрити лист",
+            state="disabled",
+            command=lambda: open_case_member(),
+        )
+        buttons["open"].pack(side="left")
+        buttons["remove"] = core.ttk.Button(
+            row2,
+            text="Вилучити зі справи",
+            state="disabled",
+            command=lambda: remove_case_member(),
+        )
+        buttons["remove"].pack(side="left", padx=(6, 0))
+        core.ttk.Button(
+            row2,
+            text="Оновити справи",
+            command=lambda: refresh_all(),
+        ).pack(side="right")
+
+        state["case_tree"] = case_tree
+        state["case_member_tree"] = member_tree
+        state["case_detail"] = detail_var
+        state["case_buttons"] = buttons
+        case_tree.bind(
+            "<<TreeviewSelect>>",
+            lambda _event: refresh_case_members(),
+        )
+        member_tree.bind(
+            "<<TreeviewSelect>>",
+            lambda _event: update_case_member_buttons(),
+        )
 
     def parse_filter_date():
         text = date_var.get().strip()
@@ -1265,21 +1642,59 @@ def open_correspondence_center(app, core, workspace_root):
             state["attachment_error"] = str(exc)
 
         try:
+            cases = tuple(list_cases(workspace_root, include_archived=True))
+            state["case_by_record"] = {
+                correspondence_id: case.title
+                for case in cases
+                for correspondence_id in case.correspondence_ids
+            }
+            state["case_error"] = ""
+        except Exception as exc:
+            cases = ()
+            state["case_by_record"] = {}
+            state["case_error"] = str(exc)
+
+        try:
             refresh_page(DIRECTION_INCOMING, incoming)
             refresh_page(DIRECTION_OUTGOING, outgoing)
+            if state["case_error"]:
+                if state["case_tree"] is not None:
+                    state["case_tree"].delete(
+                        *state["case_tree"].get_children("")
+                    )
+                if state["case_member_tree"] is not None:
+                    state["case_member_tree"].delete(
+                        *state["case_member_tree"].get_children("")
+                    )
+                if state["case_detail"] is not None:
+                    state["case_detail"].set(
+                        "Помилка справ: %s" % state["case_error"]
+                    )
+                update_case_member_buttons()
+            else:
+                refresh_cases_page(cases)
         except ValueError as exc:
             status_var.set(str(exc))
             return False
 
-        suffix = ""
+        suffixes = []
         if state["attachment_error"]:
-            suffix = " · вкладення: помилка перевірки"
+            suffixes.append("вкладення: помилка перевірки")
+        if state["case_error"]:
+            suffixes.append("справи: помилка перевірки")
+        suffix = (" · " + " · ".join(suffixes)) if suffixes else ""
         overdue_count = sum(
             1 for record in incoming + outgoing if is_overdue(record)
         )
         status_var.set(
-            "Вхідних: %d · вихідних: %d · прострочено: %d%s"
-            % (len(incoming), len(outgoing), overdue_count, suffix)
+            "Вхідних: %d · вихідних: %d · справ: %d · прострочено: %d%s"
+            % (
+                len(incoming),
+                len(outgoing),
+                len(cases),
+                overdue_count,
+                suffix,
+            )
         )
         return True
 
@@ -1336,6 +1751,340 @@ def open_correspondence_center(app, core, workspace_root):
         return _open_document_ref(
             core, win, workspace_root, record.document_ref
         )
+
+    def open_case_editor(case=None):
+        if case is not None and case.archived:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Спочатку відновіть архівовану справу.",
+                parent=win,
+            )
+            return None
+
+        dialog = core.tk.Toplevel(win)
+        _fit_window(
+            core,
+            dialog,
+            560,
+            360,
+            470,
+            300,
+            "Нова справа" if case is None else "Редагувати справу",
+        )
+        try:
+            dialog.transient(win)
+        except Exception:
+            pass
+
+        body = core.ttk.Frame(dialog, padding=12)
+        body.pack(fill="both", expand=True)
+        body.columnconfigure(1, weight=1)
+        body.rowconfigure(1, weight=1)
+
+        title_var = core.tk.StringVar(
+            master=dialog,
+            value="" if case is None else case.title,
+        )
+        core.ttk.Label(body, text="Назва справи").grid(
+            row=0, column=0, sticky="nw", padx=(0, 8), pady=4
+        )
+        title_entry = core.ttk.Entry(body, textvariable=title_var)
+        title_entry.grid(row=0, column=1, sticky="ew", pady=4)
+
+        core.ttk.Label(body, text="Примітки").grid(
+            row=1, column=0, sticky="nw", padx=(0, 8), pady=4
+        )
+        notes = core.tk.Text(body, wrap="word", height=8)
+        notes.grid(row=1, column=1, sticky="nsew", pady=4)
+        if case is not None and case.notes:
+            notes.insert("1.0", case.notes)
+
+        original_title = title_var.get()
+        original_notes = notes.get("1.0", "end-1c")
+        closing = {"saved": False}
+
+        def dirty():
+            return (
+                title_var.get() != original_title
+                or notes.get("1.0", "end-1c") != original_notes
+            )
+
+        def request_close():
+            if closing["saved"] or not dirty():
+                dialog.destroy()
+                return
+            if core.messagebox.askyesno(
+                "Незбережені зміни",
+                "Закрити справу без збереження змін?",
+                parent=dialog,
+            ):
+                dialog.destroy()
+
+        def apply():
+            try:
+                if case is None:
+                    updated = create_case(
+                        workspace_root,
+                        title_var.get(),
+                        notes=notes.get("1.0", "end-1c"),
+                    )
+                else:
+                    updated = rename_case(
+                        workspace_root,
+                        case.case_id,
+                        title_var.get(),
+                        notes=notes.get("1.0", "end-1c"),
+                    )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Кореспонденція", str(exc), parent=dialog
+                )
+                return
+            closing["saved"] = True
+            state["pending_case"] = updated.case_id
+            dialog.destroy()
+            refresh_all()
+            book.select(cases_page)
+
+        buttons = core.ttk.Frame(body)
+        buttons.grid(row=2, column=0, columnspan=2, sticky="e", pady=(10, 0))
+        core.ttk.Button(
+            buttons, text="Скасувати", command=request_close
+        ).pack(side="right", padx=(8, 0))
+        core.ttk.Button(
+            buttons,
+            text="Зберегти",
+            style="Accent.TButton",
+            command=apply,
+        ).pack(side="right")
+
+        dialog.protocol("WM_DELETE_WINDOW", request_close)
+        dialog._taxo_correspondence_case_title = title_var
+        dialog._taxo_correspondence_case_notes = notes
+        dialog._taxo_correspondence_case_save = apply
+        dialog._taxo_correspondence_case_cancel = request_close
+        try:
+            title_entry.focus_set()
+        except Exception:
+            pass
+        return dialog
+
+    def toggle_case_archive():
+        case = selected_case()
+        if case is None:
+            return None
+        target = not case.archived
+        if target and not core.messagebox.askyesno(
+            "Архівувати справу",
+            "Архівувати справу «%s»? Листи та їхні номери не зміняться."
+            % case.title,
+            parent=win,
+        ):
+            return None
+        try:
+            updated = set_case_archived(
+                workspace_root, case.case_id, target
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+        state["pending_case"] = updated.case_id
+        refresh_all()
+        book.select(cases_page)
+        return updated
+
+    def add_case_linked():
+        case = selected_case()
+        if case is None:
+            return None
+        if case.archived:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Спочатку відновіть архівовану справу.",
+                parent=win,
+            )
+            return None
+        try:
+            candidates = tuple(
+                linked_correspondence_candidates(
+                    workspace_root, case.case_id
+                )
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+        if not candidates:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Нових пов'язаних листів не знайдено.",
+                parent=win,
+            )
+            return case
+        preview = "\n".join(
+            "• %s — %s" % (row.registration_number, row.subject)
+            for row in candidates[:8]
+        )
+        if len(candidates) > 8:
+            preview += "\n… ще %d" % (len(candidates) - 8)
+        if not core.messagebox.askyesno(
+            "Додати пов'язані",
+            "Додати до справи %d явно пов'язаних листів?\n\n%s"
+            % (len(candidates), preview),
+            parent=win,
+        ):
+            return None
+        try:
+            updated = add_linked_correspondence_to_case(
+                workspace_root, case.case_id
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+        state["pending_case"] = updated.case_id
+        refresh_all()
+        book.select(cases_page)
+        return updated
+
+    def open_case_member():
+        record = selected_case_member()
+        if record is None:
+            return None
+        state["pending_select"][record.direction] = record.correspondence_id
+        refresh_all()
+        book.select(state["pages"][record.direction])
+        return record
+
+    def remove_case_member():
+        case = selected_case()
+        record = selected_case_member()
+        if case is None or record is None:
+            return None
+        if case.archived:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Спочатку відновіть архівовану справу.",
+                parent=win,
+            )
+            return None
+        if not core.messagebox.askyesno(
+            "Вилучити зі справи",
+            "Вилучити %s зі справи «%s»? Сам лист не видаляється."
+            % (record.registration_number, case.title),
+            parent=win,
+        ):
+            return None
+        try:
+            move_correspondence_to_case(
+                workspace_root, record.correspondence_id, None
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+        state["pending_case"] = case.case_id
+        refresh_all()
+        book.select(cases_page)
+        return record
+
+    def open_case_assignment(direction):
+        record = selected_record(direction)
+        if record is None:
+            return None
+        try:
+            owner = case_for_correspondence(
+                workspace_root, record.correspondence_id
+            )
+            if owner is not None and owner.archived:
+                core.messagebox.showinfo(
+                    "Кореспонденція",
+                    "Лист належить архівованій справі «%s». "
+                    "Спочатку відновіть цю справу." % owner.title,
+                    parent=win,
+                )
+                return None
+            active_cases = tuple(
+                list_cases(workspace_root, include_archived=False)
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+
+        dialog = core.tk.Toplevel(win)
+        _fit_window(core, dialog, 560, 210, 470, 180, "Справа листа")
+        try:
+            dialog.transient(win)
+        except Exception:
+            pass
+        body = core.ttk.Frame(dialog, padding=12)
+        body.pack(fill="both", expand=True)
+        body.columnconfigure(1, weight=1)
+
+        labels = {"Без справи": None}
+        labels.update({case.title: case.case_id for case in active_cases})
+        choice = core.tk.StringVar(
+            master=dialog,
+            value="Без справи" if owner is None else owner.title,
+        )
+        core.ttk.Label(
+            body,
+            text="%s · %s" % (
+                record.registration_number, record.subject
+            ),
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+        core.ttk.Label(body, text="Справа").grid(
+            row=1, column=0, sticky="w", padx=(0, 8), pady=4
+        )
+        combo = core.ttk.Combobox(
+            body,
+            textvariable=choice,
+            values=tuple(labels),
+            state="readonly",
+        )
+        combo.grid(row=1, column=1, sticky="ew", pady=4)
+
+        def apply():
+            target = labels.get(choice.get())
+            try:
+                updated = move_correspondence_to_case(
+                    workspace_root,
+                    record.correspondence_id,
+                    target,
+                )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Кореспонденція", str(exc), parent=dialog
+                )
+                return
+            state["pending_select"][direction] = record.correspondence_id
+            if updated is not None:
+                state["pending_case"] = updated.case_id
+            dialog.destroy()
+            refresh_all()
+
+        buttons = core.ttk.Frame(body)
+        buttons.grid(row=2, column=0, columnspan=2, sticky="e", pady=(12, 0))
+        core.ttk.Button(
+            buttons, text="Скасувати", command=dialog.destroy
+        ).pack(side="right", padx=(8, 0))
+        core.ttk.Button(
+            buttons,
+            text="Зберегти",
+            style="Accent.TButton",
+            command=apply,
+        ).pack(side="right")
+
+        dialog._taxo_correspondence_case_choice = choice
+        dialog._taxo_correspondence_case_save = apply
+        return dialog
 
     def open_action_transition(direction, target_status):
         record = selected_record(direction)
@@ -1549,6 +2298,7 @@ def open_correspondence_center(app, core, workspace_root):
 
     build_page(DIRECTION_INCOMING, incoming_page)
     build_page(DIRECTION_OUTGOING, outgoing_page)
+    build_cases_page(cases_page)
 
     core.ttk.Button(
         header,
@@ -1595,6 +2345,20 @@ def open_correspondence_center(app, core, workspace_root):
     win._taxo_correspondence_open_outgoing_history = lambda: open_state_history(
         DIRECTION_OUTGOING
     )
+    win._taxo_correspondence_case_tree = state["case_tree"]
+    win._taxo_correspondence_case_member_tree = state["case_member_tree"]
+    win._taxo_correspondence_case_buttons = state["case_buttons"]
+    win._taxo_correspondence_new_case = lambda: open_case_editor()
+    win._taxo_correspondence_assign_incoming_case = lambda: open_case_assignment(
+        DIRECTION_INCOMING
+    )
+    win._taxo_correspondence_assign_outgoing_case = lambda: open_case_assignment(
+        DIRECTION_OUTGOING
+    )
+    win._taxo_correspondence_add_case_linked = add_case_linked
+    win._taxo_correspondence_open_case_member = open_case_member
+    win._taxo_correspondence_remove_case_member = remove_case_member
+    win._taxo_correspondence_toggle_case_archive = toggle_case_archive
     win._taxo_correspondence_status = status_var
     win._taxo_correspondence_search = search_var
     win._taxo_correspondence_date_filter = date_var

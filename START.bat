@@ -87,6 +87,7 @@ if not exist "src\taxo\correspondence_registry.py" goto :package_incomplete
 if not exist "src\taxo\correspondence_service.py" goto :package_incomplete
 if not exist "src\taxo\correspondence_attachments.py" goto :package_incomplete
 if not exist "src\taxo\correspondence_ui.py" goto :package_incomplete
+if not exist "src\taxo\correspondence_cases.py" goto :package_incomplete
 if not exist "src\taxo\correspondence_feature.py" goto :package_incomplete
 if not exist "assets\attestation_visual_template.pdf" goto :package_incomplete
 
