@@ -2,9 +2,15 @@
 import json
 import sqlite3
 import tempfile
+import tkinter as tk
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
+from tkinter import ttk
+
+import correspondence_ui
 import workspace
 from correspondence_cases import (
     FORMAT,
@@ -22,7 +28,11 @@ from correspondence_cases import (
     rename_case,
     set_case_archived,
 )
-from correspondence_registry import get_correspondence
+from correspondence_registry import (
+    DIRECTION_INCOMING,
+    DIRECTION_OUTGOING,
+    get_correspondence,
+)
 from correspondence_service import (
     mark_received,
     register_incoming,
@@ -315,6 +325,303 @@ class CorrespondenceCasesR5DomainTests(unittest.TestCase):
             ).case_id,
             case.case_id,
         )
+
+
+def _walk(widget):
+    for child in widget.winfo_children():
+        yield child
+        yield from _walk(child)
+
+
+def _button_by_text(root, text):
+    for widget in _walk(root):
+        try:
+            if widget.winfo_class() in ("TButton", "Button"):
+                if str(widget.cget("text")) == text:
+                    return widget
+        except Exception:
+            pass
+    return None
+
+
+class _Messages:
+    def __init__(self):
+        self.showinfo = mock.Mock()
+        self.showerror = mock.Mock()
+        self.askyesno = mock.Mock(return_value=True)
+
+
+def _core(messages=None, *, size=(1180, 760)):
+    messages = messages or _Messages()
+
+    def fit(win, _width, _height, _min_width, _min_height):
+        win.geometry("%dx%d" % size)
+
+    def configure(win, title="", minsize=None):
+        if title:
+            win.title(title)
+        if minsize:
+            win.minsize(*minsize)
+
+    return SimpleNamespace(
+        tk=tk,
+        ttk=ttk,
+        messagebox=messages,
+        filedialog=SimpleNamespace(askopenfilename=lambda **_kwargs: ""),
+        fit_window_to_screen=fit,
+        configure_toplevel=configure,
+        calendar_button=lambda parent, _var: ttk.Button(parent, text="Дата…"),
+        PALETTE={"sidebar": "#000000", "blue_dark": "#111111"},
+        nav_photo=lambda parent, *_args: tk.PhotoImage(
+            master=parent, width=1, height=1
+        ),
+    )
+
+
+class CorrespondenceCasesR5UiTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.workspace = Path(self.temp.name) / "work"
+        workspace.ensure_workspace(self.workspace)
+        self.root = tk.Tk()
+        self.root.geometry("1000x700+0+0")
+        self.root._company_name_value = lambda: "Тестове АТП"
+        self.messages = _Messages()
+        self.core = _core(self.messages)
+
+    def tearDown(self):
+        try:
+            for child in tuple(self.root.winfo_children()):
+                if isinstance(child, tk.Toplevel):
+                    child.destroy()
+            self.root.destroy()
+        finally:
+            self.temp.cleanup()
+
+    def _show(self, widget=None):
+        self.root.deiconify()
+        self.root.update_idletasks()
+        self.root.update()
+        if widget is not None:
+            widget.update_idletasks()
+            widget.update()
+
+    def _incoming(self, subject="Incoming"):
+        return register_incoming(
+            self.workspace,
+            registration_date="2026-11-23",
+            correspondent="A",
+            subject=subject,
+        )
+
+    def test_center_has_cases_tab_create_and_assign_flow(self):
+        incoming = self._incoming("Request")
+        win = correspondence_ui.open_correspondence_center(
+            self.root, self.core, self.workspace
+        )
+        self._show(win)
+
+        book = win._taxo_correspondence_notebook
+        self.assertEqual(len(book.tabs()), 3)
+        self.assertEqual(book.tab(2, "text"), "Справи")
+
+        dialog = win._taxo_correspondence_new_case()
+        self.assertIsNotNone(dialog)
+        self._show(dialog)
+        dialog._taxo_correspondence_case_title.set("Замовник А — договір")
+        dialog._taxo_correspondence_case_notes.insert(
+            "1.0", "Переписка по договору"
+        )
+        dialog._taxo_correspondence_case_save()
+        self._show(win)
+
+        case_tree = win._taxo_correspondence_case_tree
+        case_ids = case_tree.get_children("")
+        self.assertEqual(len(case_ids), 1)
+        case_id = case_ids[0]
+        self.assertEqual(
+            case_tree.set(case_id, "title"), "Замовник А — договір"
+        )
+
+        book.select(0)
+        self._show(win)
+        incoming_tree = win._taxo_correspondence_trees[DIRECTION_INCOMING]
+        incoming_tree.selection_set(incoming.correspondence_id)
+        incoming_tree.focus(incoming.correspondence_id)
+        self._show(win)
+
+        assign = win._taxo_correspondence_assign_incoming_case()
+        self.assertIsNotNone(assign)
+        self._show(assign)
+        assign._taxo_correspondence_case_choice.set("Замовник А — договір")
+        assign._taxo_correspondence_case_save()
+        self._show(win)
+
+        owner = case_for_correspondence(
+            self.workspace, incoming.correspondence_id
+        )
+        self.assertIsNotNone(owner)
+        self.assertEqual(owner.case_id, case_id)
+        self.assertIn(
+            "Справа: Замовник А — договір",
+            win._taxo_correspondence_details[DIRECTION_INCOMING].get(),
+        )
+
+    def test_case_thread_ui_adds_explicit_links_and_opens_member(self):
+        incoming = self._incoming("Request")
+        response = register_response(
+            self.workspace,
+            incoming.correspondence_id,
+            registration_date="2026-11-23",
+            subject="Answer",
+        )
+        follow_up = register_incoming(
+            self.workspace,
+            registration_date="2026-11-24",
+            correspondent="A",
+            subject="Follow-up",
+            related_ids=(response.correspondence_id,),
+        )
+        case = create_case(self.workspace, "Thread")
+        add_correspondence_to_case(
+            self.workspace, case.case_id, incoming.correspondence_id
+        )
+
+        win = correspondence_ui.open_correspondence_center(
+            self.root, self.core, self.workspace
+        )
+        self._show(win)
+        book = win._taxo_correspondence_notebook
+        book.select(2)
+        self._show(win)
+
+        case_tree = win._taxo_correspondence_case_tree
+        case_tree.selection_set(case.case_id)
+        case_tree.focus(case.case_id)
+        self._show(win)
+
+        result = win._taxo_correspondence_add_case_linked()
+        self.assertIsNotNone(result)
+        self._show(win)
+
+        members = win._taxo_correspondence_case_member_tree
+        self.assertEqual(
+            set(members.get_children("")),
+            {
+                incoming.correspondence_id,
+                response.correspondence_id,
+                follow_up.correspondence_id,
+            },
+        )
+
+        members.selection_set(response.correspondence_id)
+        members.focus(response.correspondence_id)
+        self._show(win)
+        opened = win._taxo_correspondence_open_case_member()
+        self.assertEqual(opened.correspondence_id, response.correspondence_id)
+        self._show(win)
+        self.assertEqual(book.index(book.select()), 1)
+        outgoing_tree = win._taxo_correspondence_trees[DIRECTION_OUTGOING]
+        self.assertEqual(
+            tuple(outgoing_tree.selection()),
+            (response.correspondence_id,),
+        )
+
+    def test_archived_case_is_read_only_until_restored(self):
+        incoming = self._incoming()
+        case = create_case(self.workspace, "Archive me")
+        add_correspondence_to_case(
+            self.workspace, case.case_id, incoming.correspondence_id
+        )
+        set_case_archived(self.workspace, case.case_id, True)
+
+        win = correspondence_ui.open_correspondence_center(
+            self.root, self.core, self.workspace
+        )
+        self._show(win)
+        win._taxo_correspondence_notebook.select(2)
+        self._show(win)
+
+        case_tree = win._taxo_correspondence_case_tree
+        case_tree.selection_set(case.case_id)
+        case_tree.focus(case.case_id)
+        self._show(win)
+        members = win._taxo_correspondence_case_member_tree
+        members.selection_set(incoming.correspondence_id)
+        members.focus(incoming.correspondence_id)
+        self._show(win)
+
+        buttons = win._taxo_correspondence_case_buttons
+        self.assertEqual(str(buttons["rename"].cget("state")), "disabled")
+        self.assertEqual(str(buttons["linked"].cget("state")), "disabled")
+        self.assertEqual(str(buttons["remove"].cget("state")), "disabled")
+        self.assertEqual(str(buttons["archive"].cget("state")), "normal")
+        self.assertEqual(str(buttons["archive"].cget("text")), "Відновити")
+
+        restored = win._taxo_correspondence_toggle_case_archive()
+        self.assertFalse(restored.archived)
+        self._show(win)
+        self.assertEqual(str(buttons["rename"].cget("state")), "normal")
+
+    def test_case_editor_x_and_cancel_protect_unsaved_changes(self):
+        win = correspondence_ui.open_correspondence_center(
+            self.root, self.core, self.workspace
+        )
+        self._show(win)
+        dialog = win._taxo_correspondence_new_case()
+        self._show(dialog)
+        dialog._taxo_correspondence_case_title.set("Незбережена справа")
+
+        self.messages.askyesno.return_value = False
+        dialog._taxo_correspondence_case_cancel()
+        self._show(dialog)
+        self.assertTrue(dialog.winfo_exists())
+
+        self.messages.askyesno.return_value = True
+        dialog._taxo_correspondence_case_cancel()
+        self.root.update_idletasks()
+        self.assertFalse(dialog.winfo_exists())
+        self.assertEqual(list_cases(self.workspace), ())
+
+    def test_minimum_window_keeps_case_actions_reachable(self):
+        incoming = self._incoming("Reachability")
+        case = create_case(self.workspace, "Reachability case")
+        add_correspondence_to_case(
+            self.workspace, case.case_id, incoming.correspondence_id
+        )
+
+        core = _core(self.messages, size=(760, 520))
+        win = correspondence_ui.open_correspondence_center(
+            self.root, core, self.workspace
+        )
+        self._show(win)
+        win.geometry("760x520+20+20")
+        win._taxo_correspondence_notebook.select(2)
+        self._show(win)
+
+        for text in (
+            "Нова справа…",
+            "Перейменувати…",
+            "Архівувати",
+            "Додати пов'язані",
+            "Відкрити лист",
+            "Вилучити зі справи",
+            "Оновити",
+            "Закрити",
+        ):
+            button = _button_by_text(win, text)
+            self.assertIsNotNone(button, text)
+            self.assertTrue(button.winfo_ismapped(), text)
+            x = button.winfo_rootx() - win.winfo_rootx()
+            y = button.winfo_rooty() - win.winfo_rooty()
+            self.assertGreaterEqual(x, 0, text)
+            self.assertGreaterEqual(y, 0, text)
+            self.assertLessEqual(
+                x + button.winfo_width(), win.winfo_width() + 2, text
+            )
+            self.assertLessEqual(
+                y + button.winfo_height(), win.winfo_height() + 2, text
+            )
 
 
 if __name__ == "__main__":
