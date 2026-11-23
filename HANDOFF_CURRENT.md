@@ -33,7 +33,7 @@ GitHub Release `v10.24-r8`: exact target `d24b1bc96115de52d6088813992aca3b410fe2
 
 ## Що далі
 
-- Recovery r8 має бути закритий у public docs, private `profile/taxo`, Issue #61 і Google Drive current-docs комплекті.
+- Recovery r8 повністю закритий: public docs у main, private `profile/taxo`, Issue #61 і Google Drive current-docs комплект синхронізовані.
 - **Одна наступна дія:** звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — вибрати один bounded control slice для r9.
 - Automatic e-mail, mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 - Draft #543/#395 не закривати автоматично.
