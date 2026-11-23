@@ -16,7 +16,7 @@ Taxo currently has 37 strict live UI routes that check mapped, on-screen, usable
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/Taxo_v10_23_candidate_r4_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.23-r4/SHA256SUMS_v10_23_r4.txt)
 
-**Current Test:** [Taxo 10.24-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r2), prerelease, 8 assets, exact source `d07f26d8e9e9db6d33278cac5a0199e2d8ae4b50`. The correspondence module now has separate incoming/outgoing journals plus controlled attachments: immutable PDF/JPG/PNG/TIFF/DOCX objects with SHA256 metadata and history-only removal, or a live link to an existing DocumentVault item without copying its bytes. Missing, orphaned or tampered objects fail closed. An attachment does not mean a letter was sent or received. Full workspace backup/restore preserves the registry, attachments, history and numbering. Stable/Latest remains 10.23-r4.
+**Current Test:** [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), prerelease, 8 assets, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`. The correspondence module now has a dedicated journal/card UI on top of the r1 registry and r2 controlled attachments: Incoming/Outgoing tabs, search, date/calendar controls, sortable tables, a selected-letter card, create/reply/attachments/open-document actions and unsaved-change protection. A blank sent date does not mark outgoing correspondence as sent, and attachments do not imply sent/received/delivered/signed. Stable/Latest remains 10.23-r4.
 
 ## Data and documentation
 
