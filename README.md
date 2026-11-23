@@ -32,7 +32,12 @@
 
 ### Кореспонденція в Stable 10.24-r3
 
-Лінія r1–r3 завершила базовий модуль кореспонденції: r1 — реєстр вхідних/вихідних і нумерація; r2 — контрольовані immutable-вкладення або live DocumentVault links з integrity/history; r3 — окремий journal/card UI. Реєстрація, вкладення і фактичне «надіслано/отримано» залишаються різними поняттями. Наступний розвиток 10.24-r4 має додати явні бізнес-стани й overdue; ця ревізія ще не опублікована.
+Лінія r1–r3 завершила базовий модуль кореспонденції: r1 — реєстр вхідних/вихідних і нумерація; r2 — контрольовані immutable-вкладення або live DocumentVault links з integrity/history; r3 — окремий journal/card UI. Реєстрація, вкладення і фактичне «надіслано/отримано» залишаються різними поняттями.
+
+
+### Test 10.24-r4 — фактичні стани й строки
+
+**10.24-r4 опублікована як Test; Stable/Latest не змінено.** Додано явні дії «Отримано…» і «Надіслано…» з фактичною датою, дозволені переходи станів, append-only історію, контроль строку/ознаку «Прострочено» та перегляд історії. Факт не виводиться з наявності вкладення чи самої реєстрації. Перший CI виявив, що «Отримано…» могла зникати при 760×520; тест не послаблювали — дії винесено у постійну нижню панель, після чого повний CI пройшов.
 
 
 ## Завантаження
@@ -44,7 +49,7 @@
 - **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_x86_64_Portable.zip)
 - **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** окремого новішого опублікованого Test після promotion 10.24-r3 наразі немає. 10.24-r4 лишається наступною ревізією розробки й не входить у Stable.
+**Current Test: [Taxo 10.24-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r4)** — exact source `e1616ea0063575b2c989d684934364f38f995966`, 8 файлів, prerelease. Stable/Latest лишається 10.24-r3.
 
 ## Початок роботи та дані
 
