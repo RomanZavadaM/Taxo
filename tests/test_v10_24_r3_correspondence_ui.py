@@ -188,10 +188,13 @@ class CorrespondenceUiR3Tests(unittest.TestCase):
         self._show(win)
 
         def activate_and_close(button, route_id):
-            before = set(self.root.winfo_children())
+            before = {
+                child for child in walk(self.root)
+                if isinstance(child, tk.Toplevel)
+            }
             activate_widget(button, route_id, container=win)
             self._show(win)
-            for child in tuple(self.root.winfo_children()):
+            for child in tuple(walk(self.root)):
                 if (
                     child not in before
                     and child is not win
