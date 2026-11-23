@@ -14,10 +14,13 @@ from correspondence_registry import (
     DIRECTION_INCOMING,
     DIRECTION_OUTGOING,
     CorrespondenceRecord,
+    allowed_status_transitions,
     get_correspondence,
     list_correspondence,
+    list_state_events,
     next_registration_number,
     register_correspondence,
+    transition_correspondence,
 )
 
 
@@ -51,7 +54,7 @@ def register_incoming(
         delivery_method=delivery_method,
         responsible_id=responsible_id,
         due_date=due_date,
-        status="new",
+        status="received" if received_date else "new",
         document_ref=document_ref,
         related_ids=related_ids,
     )
@@ -130,6 +133,61 @@ def register_response(
     )
 
 
+
+def available_status_transitions(record: CorrespondenceRecord) -> Tuple[str, ...]:
+    """Return legal next states without changing the registry."""
+    return allowed_status_transitions(record)
+
+
+def mark_received(
+    workspace_root, correspondence_id, *, received_date
+) -> CorrespondenceRecord:
+    """Explicitly record the actual receipt of one incoming letter."""
+    record = get_correspondence(workspace_root, correspondence_id)
+    if record.direction != DIRECTION_INCOMING:
+        raise ValueError("Лише вхідний лист можна позначити отриманим")
+    return transition_correspondence(
+        workspace_root,
+        correspondence_id,
+        "received",
+        action_date=received_date,
+    )
+
+
+def mark_sent(
+    workspace_root, correspondence_id, *, sent_date
+) -> CorrespondenceRecord:
+    """Explicitly record the actual sending of one outgoing letter."""
+    record = get_correspondence(workspace_root, correspondence_id)
+    if record.direction != DIRECTION_OUTGOING:
+        raise ValueError("Лише вихідний лист можна позначити надісланим")
+    return transition_correspondence(
+        workspace_root,
+        correspondence_id,
+        "sent",
+        action_date=sent_date,
+    )
+
+
+def change_correspondence_status(
+    workspace_root, correspondence_id, to_status
+) -> CorrespondenceRecord:
+    """Apply a non-delivery workflow transition through the guarded matrix."""
+    if str(to_status or "").strip().casefold() in {"received", "sent"}:
+        raise ValueError(
+            "Фактичне отримання/відправлення потребує окремої дії з датою"
+        )
+    return transition_correspondence(
+        workspace_root, correspondence_id, to_status
+    )
+
+
+def correspondence_state_history(
+    workspace_root, correspondence_id
+):
+    """Return append-only state events for one letter."""
+    return list_state_events(workspace_root, correspondence_id)
+
 def incoming_journal(workspace_root) -> Tuple[CorrespondenceRecord, ...]:
     return list_correspondence(workspace_root, DIRECTION_INCOMING)
 
@@ -167,7 +225,7 @@ def is_overdue(record: CorrespondenceRecord, on_date=None) -> bool:
     """Compute overdue state only from an explicit due date and open status."""
     if not record.due_date:
         return False
-    if record.status in {"closed", "cancelled", "sent"}:
+    if record.status in {"closed", "cancelled", "sent", "response_sent"}:
         return False
     if on_date is None:
         current = date.today()
@@ -188,5 +246,15 @@ def overdue_incoming(
 ) -> Tuple[CorrespondenceRecord, ...]:
     return tuple(
         row for row in incoming_journal(workspace_root)
+        if is_overdue(row, on_date)
+    )
+
+
+def overdue_correspondence(
+    workspace_root, on_date=None
+) -> Tuple[CorrespondenceRecord, ...]:
+    """Return overdue letters from both journals."""
+    return tuple(
+        row for row in list_correspondence(workspace_root)
         if is_overdue(row, on_date)
     )

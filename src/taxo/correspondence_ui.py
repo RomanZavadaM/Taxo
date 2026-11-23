@@ -24,7 +24,13 @@ from correspondence_registry import (
     get_correspondence,
 )
 from correspondence_service import (
+    available_status_transitions,
+    change_correspondence_status,
+    correspondence_state_history,
     incoming_journal,
+    is_overdue,
+    mark_received,
+    mark_sent,
     outgoing_journal,
     register_incoming,
     register_outgoing,
@@ -40,6 +46,7 @@ DATE_FORMAT = "%d.%m.%Y"
 
 STATUS_LABELS = {
     "new": "Новий",
+    "received": "Отримано",
     "in_progress": "В роботі",
     "awaiting_response": "Очікує відповіді",
     "response_prepared": "Відповідь підготовлена",
@@ -66,6 +73,7 @@ _COLUMNS = (
     ("subject", "Тема", "text", None, 280),
     ("due", "Строк", "date", None, 92),
     ("status", "Стан", "status", tuple(STATUS_LABELS.values()), 145),
+    ("control", "Контроль", "text", None, 105),
     ("attachments", "Файли", "number", None, 70),
 )
 
@@ -967,6 +975,11 @@ def open_correspondence_center(app, core, workspace_root):
             "Відповідальний: %s" % (record.responsible_id or "—"),
             "Строк: %s" % (_display_date(record.due_date) or "—"),
             "Стан: %s" % _status_label(record.status),
+            "Контроль: %s" % (
+                "Прострочено"
+                if is_overdue(record)
+                else "В межах строку" if record.due_date else "Без строку"
+            ),
             "Готовий документ: %s" % (record.document_ref or "—"),
         ]
         if record.response_to_ids:
@@ -1002,6 +1015,22 @@ def open_correspondence_center(app, core, workspace_root):
         buttons["open"].configure(
             state="normal" if record.document_ref else "disabled"
         )
+        buttons["history"].configure(state="normal")
+        transitions = set(available_status_transitions(record))
+        if "received" in buttons:
+            buttons["received"].configure(
+                state="normal" if "received" in transitions else "disabled"
+            )
+        if "sent" in buttons:
+            buttons["sent"].configure(
+                state="normal" if "sent" in transitions else "disabled"
+            )
+        workflow_transitions = tuple(
+            value for value in transitions if value not in {"received", "sent"}
+        )
+        buttons["status"].configure(
+            state="normal" if workflow_transitions else "disabled"
+        )
         if "response" in buttons:
             buttons["response"].configure(
                 state="normal"
@@ -1010,8 +1039,14 @@ def open_correspondence_center(app, core, workspace_root):
             )
 
     def build_page(direction, page):
+        # Keep record actions outside the resizable table/card pane.  Otherwise a
+        # small window or a user-moved sash can collapse the card far enough to
+        # hide the business-state buttons even though the actions still exist.
+        action_area = core.ttk.Frame(page)
+        action_area.pack(side="bottom", fill="x")
+
         pane = core.ttk.Panedwindow(page, orient="vertical")
-        pane.pack(fill="both", expand=True)
+        pane.pack(side="top", fill="both", expand=True)
 
         table_frame = core.ttk.Frame(pane)
         card = core.ttk.LabelFrame(pane, text="Картка вибраного листа", padding=8)
@@ -1061,9 +1096,46 @@ def open_correspondence_center(app, core, workspace_root):
             add="+",
         )
 
-        actions = core.ttk.Frame(card)
-        actions.pack(fill="x", pady=(8, 0))
+        state_actions = core.ttk.Frame(action_area)
+        state_actions.pack(fill="x", pady=(6, 0))
+        actions = core.ttk.Frame(action_area)
+        actions.pack(fill="x", pady=(6, 0))
         buttons = {}
+        if direction == DIRECTION_INCOMING:
+            buttons["received"] = core.ttk.Button(
+                state_actions,
+                text="Отримано…",
+                state="disabled",
+                command=lambda: open_action_transition(
+                    DIRECTION_INCOMING, "received"
+                ),
+            )
+            buttons["received"].pack(side="left")
+        else:
+            buttons["sent"] = core.ttk.Button(
+                state_actions,
+                text="Надіслано…",
+                state="disabled",
+                command=lambda: open_action_transition(
+                    DIRECTION_OUTGOING, "sent"
+                ),
+            )
+            buttons["sent"].pack(side="left")
+        buttons["status"] = core.ttk.Button(
+            state_actions,
+            text="Змінити стан…",
+            state="disabled",
+            command=lambda d=direction: open_status_transition(d),
+        )
+        buttons["status"].pack(side="left", padx=(6, 0))
+        buttons["history"] = core.ttk.Button(
+            state_actions,
+            text="Історія…",
+            state="disabled",
+            command=lambda d=direction: open_state_history(d),
+        )
+        buttons["history"].pack(side="left", padx=(6, 0))
+
         if direction == DIRECTION_INCOMING:
             buttons["response"] = core.ttk.Button(
                 actions,
@@ -1144,6 +1216,7 @@ def open_correspondence_center(app, core, workspace_root):
                     record.subject,
                     _display_date(record.due_date),
                     _status_label(record.status),
+                    "Прострочено" if is_overdue(record) else "",
                     attachment_text,
                 ),
             )
@@ -1201,9 +1274,12 @@ def open_correspondence_center(app, core, workspace_root):
         suffix = ""
         if state["attachment_error"]:
             suffix = " · вкладення: помилка перевірки"
+        overdue_count = sum(
+            1 for record in incoming + outgoing if is_overdue(record)
+        )
         status_var.set(
-            "Вхідних: %d · вихідних: %d%s"
-            % (len(incoming), len(outgoing), suffix)
+            "Вхідних: %d · вихідних: %d · прострочено: %d%s"
+            % (len(incoming), len(outgoing), overdue_count, suffix)
         )
         return True
 
@@ -1261,6 +1337,216 @@ def open_correspondence_center(app, core, workspace_root):
             core, win, workspace_root, record.document_ref
         )
 
+    def open_action_transition(direction, target_status):
+        record = selected_record(direction)
+        if record is None:
+            return None
+        allowed = set(available_status_transitions(record))
+        if target_status not in allowed:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Ця дія недоступна для поточного стану листа.",
+                parent=win,
+            )
+            return None
+
+        title = (
+            "Фактичне отримання"
+            if target_status == "received"
+            else "Фактичне відправлення"
+        )
+        label = (
+            "Дата отримання"
+            if target_status == "received"
+            else "Дата відправлення"
+        )
+        existing_date = (
+            record.received_date
+            if target_status == "received"
+            else record.sent_date
+        )
+        dialog = core.tk.Toplevel(win)
+        _fit_window(core, dialog, 460, 190, 400, 170, title)
+        try:
+            dialog.transient(win)
+        except Exception:
+            pass
+        body = core.ttk.Frame(dialog, padding=12)
+        body.pack(fill="both", expand=True)
+        body.columnconfigure(1, weight=1)
+        value = core.tk.StringVar(
+            master=dialog,
+            value=_display_date(existing_date)
+            or date.today().strftime(DATE_FORMAT),
+        )
+        core.ttk.Label(body, text=label).grid(
+            row=0, column=0, sticky="w", padx=(0, 8), pady=4
+        )
+        entry = core.ttk.Entry(body, textvariable=value, width=16)
+        entry.grid(row=0, column=1, sticky="ew", pady=4)
+        calendar = _calendar_button(core, body, value)
+        if calendar is not None:
+            calendar.grid(row=0, column=2, padx=(6, 0), pady=4)
+
+        def apply():
+            try:
+                actual_date = _parse_user_date(
+                    value.get(), label, allow_empty=False
+                )
+                if target_status == "received":
+                    updated = mark_received(
+                        workspace_root,
+                        record.correspondence_id,
+                        received_date=actual_date,
+                    )
+                else:
+                    updated = mark_sent(
+                        workspace_root,
+                        record.correspondence_id,
+                        sent_date=actual_date,
+                    )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Кореспонденція", str(exc), parent=dialog
+                )
+                return
+            dialog.destroy()
+            saved(updated)
+
+        buttons = core.ttk.Frame(body)
+        buttons.grid(row=1, column=0, columnspan=3, sticky="e", pady=(12, 0))
+        core.ttk.Button(
+            buttons, text="Скасувати", command=dialog.destroy
+        ).pack(side="right", padx=(8, 0))
+        core.ttk.Button(
+            buttons, text="Зберегти", style="Accent.TButton", command=apply
+        ).pack(side="right")
+        dialog._taxo_correspondence_action_date = value
+        dialog._taxo_correspondence_apply = apply
+        try:
+            entry.focus_set()
+        except Exception:
+            pass
+        return dialog
+
+    def open_status_transition(direction):
+        record = selected_record(direction)
+        if record is None:
+            return None
+        allowed = tuple(
+            value for value in available_status_transitions(record)
+            if value not in {"received", "sent"}
+        )
+        if not allowed:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Для поточного стану немає доступного переходу.",
+                parent=win,
+            )
+            return None
+
+        dialog = core.tk.Toplevel(win)
+        _fit_window(core, dialog, 500, 200, 430, 180, "Змінити стан")
+        try:
+            dialog.transient(win)
+        except Exception:
+            pass
+        body = core.ttk.Frame(dialog, padding=12)
+        body.pack(fill="both", expand=True)
+        body.columnconfigure(1, weight=1)
+        labels = {_status_label(value): value for value in allowed}
+        choice = core.tk.StringVar(master=dialog, value=next(iter(labels)))
+        core.ttk.Label(body, text="Новий стан").grid(
+            row=0, column=0, sticky="w", padx=(0, 8), pady=4
+        )
+        combo = core.ttk.Combobox(
+            body,
+            textvariable=choice,
+            values=tuple(labels),
+            state="readonly",
+        )
+        combo.grid(row=0, column=1, sticky="ew", pady=4)
+
+        def apply():
+            target = labels.get(choice.get())
+            if target is None:
+                return
+            try:
+                updated = change_correspondence_status(
+                    workspace_root, record.correspondence_id, target
+                )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Кореспонденція", str(exc), parent=dialog
+                )
+                return
+            dialog.destroy()
+            saved(updated)
+
+        buttons = core.ttk.Frame(body)
+        buttons.grid(row=1, column=0, columnspan=2, sticky="e", pady=(12, 0))
+        core.ttk.Button(
+            buttons, text="Скасувати", command=dialog.destroy
+        ).pack(side="right", padx=(8, 0))
+        core.ttk.Button(
+            buttons, text="Зберегти", style="Accent.TButton", command=apply
+        ).pack(side="right")
+        dialog._taxo_correspondence_status_choice = choice
+        dialog._taxo_correspondence_apply = apply
+        return dialog
+
+    def open_state_history(direction):
+        record = selected_record(direction)
+        if record is None:
+            return None
+        try:
+            events = correspondence_state_history(
+                workspace_root, record.correspondence_id
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+
+        dialog = core.tk.Toplevel(win)
+        _fit_window(core, dialog, 680, 420, 540, 300, "Історія станів")
+        body = core.ttk.Frame(dialog, padding=12)
+        body.pack(fill="both", expand=True)
+        core.ttk.Label(
+            body,
+            text="%s · %s" % (
+                record.registration_number, record.subject
+            ),
+        ).pack(fill="x", pady=(0, 8))
+        text = core.tk.Text(body, wrap="word", height=12)
+        text.pack(fill="both", expand=True)
+        if not events:
+            text.insert("1.0", "Змін стану ще не було.")
+        else:
+            rows = []
+            for event in events:
+                action = (
+                    " · дата дії %s" % _display_date(event.action_date)
+                    if event.action_date else ""
+                )
+                rows.append(
+                    "%s · %s → %s%s"
+                    % (
+                        event.changed_at.replace("T", " "),
+                        _status_label(event.from_status),
+                        _status_label(event.to_status),
+                        action,
+                    )
+                )
+            text.insert("1.0", "\n".join(rows))
+        text.configure(state="disabled")
+        core.ttk.Button(
+            body, text="Закрити", command=dialog.destroy
+        ).pack(anchor="e", pady=(8, 0))
+        dialog._taxo_correspondence_history_text = text
+        return dialog
+
     build_page(DIRECTION_INCOMING, incoming_page)
     build_page(DIRECTION_OUTGOING, outgoing_page)
 
@@ -1291,6 +1577,24 @@ def open_correspondence_center(app, core, workspace_root):
     win._taxo_correspondence_refresh = refresh_all
     win._taxo_correspondence_new_incoming = lambda: open_new(DIRECTION_INCOMING)
     win._taxo_correspondence_new_outgoing = lambda: open_new(DIRECTION_OUTGOING)
+    win._taxo_correspondence_mark_received = lambda: open_action_transition(
+        DIRECTION_INCOMING, "received"
+    )
+    win._taxo_correspondence_mark_sent = lambda: open_action_transition(
+        DIRECTION_OUTGOING, "sent"
+    )
+    win._taxo_correspondence_change_incoming_status = lambda: open_status_transition(
+        DIRECTION_INCOMING
+    )
+    win._taxo_correspondence_change_outgoing_status = lambda: open_status_transition(
+        DIRECTION_OUTGOING
+    )
+    win._taxo_correspondence_open_incoming_history = lambda: open_state_history(
+        DIRECTION_INCOMING
+    )
+    win._taxo_correspondence_open_outgoing_history = lambda: open_state_history(
+        DIRECTION_OUTGOING
+    )
     win._taxo_correspondence_status = status_var
     win._taxo_correspondence_search = search_var
     win._taxo_correspondence_date_filter = date_var
