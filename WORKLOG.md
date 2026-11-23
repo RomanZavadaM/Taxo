@@ -1717,3 +1717,17 @@
 - Publisher #45209524416 — SUCCESS. Release `v10.24-r6`: prerelease=true, 8 canonical assets, target `d713dd2b085216d8ec764fb16a3ab057f01f07ec`. Stable/Latest remains `v10.24-r3`.
 - PR #630 is intentionally not part of r6. It is the next separate order-participant control slice and must be rebased/retested after r6 recovery.
 
+## 23.11.2026 — 10.24-r7 Current Test published і recovery
+
+- r7 закриває наскрізний контроль структурованого блоку «Учасники / ТЗ» без зміни бізнес-правил наказів.
+- Prep PR #630 після rebase на r6 recovery: START #45213479378, Windows #45213479658, Win7 #45213479371, macOS Intel/ARM #45213479464 — SUCCESS; Windows/Win7 Defender + post-scan integrity PASS. Prep merged as `31153fb3c706c746b711c5382c37edc2ecddab53`.
+- Додано strict routes для «Додати ТЗ…», «Прибрати вибрані» та live preview sync; разом із search/select і edit role/note блок «Учасники / ТЗ» має 5 live routes. Taxo — 58 strict live routes загалом; correspondence contract r6 лишається exact 17 routes.
+- Add/edit/remove працівників і ТЗ оновлюють уже відкритий preview; історія фіксує зрозумілу entity_update подію.
+- DOCX/PDF перевіряються проти одного frozen participant snapshot; full backup/restore зберігає entity identity, role, note, snapshot і sequence.
+- Candidate PR #634 exact head `a3889723b58bdbbf1fd174cb14024a3e3beaadb3`: START #45216365054, Windows #45216364728, Win7 #45216364723, macOS #45216364729 — SUCCESS.
+- Exact issued source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`: START #45217452473, Windows #45217452461, Win7 #45217452456, macOS Intel/ARM #45217452990 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+- Guarded release-trigger PR #635 merged as `ee7bdbb5e50e3b47e42da46fc7b47eee2991523e`. Publisher #45220620129 — SUCCESS.
+- [v10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) — Current Test prerelease, 8 canonical assets, exact target `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`. Stable/Latest лишається [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
+- Перший Win7 trigger check на PR-head мав старий non-reproducible catalog-reader timing failure; rerun того самого незміненого head пройшов regression/build/Defender/integrity, а post-merge Win7 #45220619879 також SUCCESS.
+- Межі r7: correspondence r1–r6 не змінено; automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не входять.
+
