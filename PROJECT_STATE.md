@@ -1,37 +1,35 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 23.11.2026 після публікації Test v10.24-r5.**
+**Підтверджено GitHub 23.11.2026 після публікації Test v10.24-r6.**
 
 **Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, prerelease=false, draft=false, GitHub Latest.
 
-**Current Test:** [10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5), exact source `6d697a641b4f546dc533c8f55379696ad827b278`, 8 assets, prerelease=true, draft=false. Publisher #45193506957 — SUCCESS.
+**Current Test:** [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`, 8 assets, prerelease=true, draft=false. Publisher #45209524416 — SUCCESS.
 
-## Test 10.24-r5
+## Test 10.24-r6
 
-- logical correspondence cases/topics with stable `cc-...` IDs;
-- separate `Data/CorrespondenceCases/cases.json`; strict r1 registry store remains unchanged;
-- explicit membership by correspondence IDs only: no copy/renumber of documents, scans or attachments;
-- one correspondence record belongs to at most one case in this bounded slice;
-- atomic move/unfile operations and fail-closed validation;
-- archived case is read-only until restored;
-- explicit response/related graph provides thread candidates; membership is changed only after user confirmation;
-- third UI tab «Справи», assignment from the letter card, case/thread browser, open/remove actions;
-- full backup/restore preserves cases and membership;
-- 760×520 reachability and START module-presence guard are covered by regression.
+- control-only revision; no new correspondence business data model;
+- 55 strict live routes total, 17 correspondence routes;
+- all correspondence routes use runtime-smoke mapping and live Tk activation;
+- mapped + onscreen + usable + activation are required;
+- protected surfaces cover registry/card actions, actual sent/received, state/history, attachments/open document and case/thread actions;
+- r1–r5 storage semantics, numbering, state history, cases and backup/restore remain unchanged.
 
-Prep #625: START #45169334073, Windows #45169334161, Win7 #45169334164, macOS #45169334069 — SUCCESS; Defender/integrity PASS.
+Prep #629: START #45204102723, Windows #45204102869, Win7 #45204102379, macOS #45204102369 — SUCCESS; Defender/integrity PASS.
 
-Candidate #626: START #45190123472, Windows #45190123183, Win7 #45190124279, macOS #45190123566 — SUCCESS; Defender/integrity PASS.
+Candidate #631: START #45206383953, Windows #45206384077, Win7 #45206384595, macOS #45206384273 — SUCCESS.
 
-Exact source `6d697a641b4f546dc533c8f55379696ad827b278`: START #45191514761, Windows #45191514632, Win7 #45191514666, macOS #45191514659 — SUCCESS; Windows/Win7 Defender + integrity PASS.
+Exact issued source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`: START #45207404713, Windows #45207404491, Win7 #45207404242, macOS #45207404447 — SUCCESS; Defender/integrity PASS.
 
-Release trigger #627 merged `53127f27929b7f1c72c6876ce4a048c9955d02de`; publisher #45193506957 — SUCCESS.
+Release trigger #632 merged `4dec0786d2dfc50e718f52901f8a012bf08d58e8`; trigger START #45208494055, Windows #45208494039, Win7 #45208494062, macOS #45208494429 — SUCCESS; publisher #45209524416 — SUCCESS.
 
-## Open boundaries
+## Open boundaries / next package
 
-Stable remains 10.24-r3. r5 does not add automatic e-mail/mailbox sync/external integrations.
+Stable remains 10.24-r3.
 
-OCR/AI APPLY and physical attachment purge remain separately blocked. After recovery r5 choose the next bounded correspondence slice from the fresh plan instead of assuming an external integration.
+PR #630 is separate from r6. It adds end-to-end live control for order participants and currently sits on the pre-r6 base. After r6 recovery it must be reconciled onto current main and re-tested before it can become the next revision.
+
+Automatic e-mail/mailbox sync/external integrations remain out of scope. OCR/AI APPLY and physical attachment purge remain separately blocked.
 
 #553/#556/#562 remain open; draft #543/#395 stay open.
 
