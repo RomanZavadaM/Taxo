@@ -1752,6 +1752,340 @@ def open_correspondence_center(app, core, workspace_root):
             core, win, workspace_root, record.document_ref
         )
 
+    def open_case_editor(case=None):
+        if case is not None and case.archived:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Спочатку відновіть архівовану справу.",
+                parent=win,
+            )
+            return None
+
+        dialog = core.tk.Toplevel(win)
+        _fit_window(
+            core,
+            dialog,
+            560,
+            360,
+            470,
+            300,
+            "Нова справа" if case is None else "Редагувати справу",
+        )
+        try:
+            dialog.transient(win)
+        except Exception:
+            pass
+
+        body = core.ttk.Frame(dialog, padding=12)
+        body.pack(fill="both", expand=True)
+        body.columnconfigure(1, weight=1)
+        body.rowconfigure(1, weight=1)
+
+        title_var = core.tk.StringVar(
+            master=dialog,
+            value="" if case is None else case.title,
+        )
+        core.ttk.Label(body, text="Назва справи").grid(
+            row=0, column=0, sticky="nw", padx=(0, 8), pady=4
+        )
+        title_entry = core.ttk.Entry(body, textvariable=title_var)
+        title_entry.grid(row=0, column=1, sticky="ew", pady=4)
+
+        core.ttk.Label(body, text="Примітки").grid(
+            row=1, column=0, sticky="nw", padx=(0, 8), pady=4
+        )
+        notes = core.tk.Text(body, wrap="word", height=8)
+        notes.grid(row=1, column=1, sticky="nsew", pady=4)
+        if case is not None and case.notes:
+            notes.insert("1.0", case.notes)
+
+        original_title = title_var.get()
+        original_notes = notes.get("1.0", "end-1c")
+        closing = {"saved": False}
+
+        def dirty():
+            return (
+                title_var.get() != original_title
+                or notes.get("1.0", "end-1c") != original_notes
+            )
+
+        def request_close():
+            if closing["saved"] or not dirty():
+                dialog.destroy()
+                return
+            if core.messagebox.askyesno(
+                "Незбережені зміни",
+                "Закрити справу без збереження змін?",
+                parent=dialog,
+            ):
+                dialog.destroy()
+
+        def apply():
+            try:
+                if case is None:
+                    updated = create_case(
+                        workspace_root,
+                        title_var.get(),
+                        notes=notes.get("1.0", "end-1c"),
+                    )
+                else:
+                    updated = rename_case(
+                        workspace_root,
+                        case.case_id,
+                        title_var.get(),
+                        notes=notes.get("1.0", "end-1c"),
+                    )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Кореспонденція", str(exc), parent=dialog
+                )
+                return
+            closing["saved"] = True
+            state["pending_case"] = updated.case_id
+            dialog.destroy()
+            refresh_all()
+            book.select(cases_page)
+
+        buttons = core.ttk.Frame(body)
+        buttons.grid(row=2, column=0, columnspan=2, sticky="e", pady=(10, 0))
+        core.ttk.Button(
+            buttons, text="Скасувати", command=request_close
+        ).pack(side="right", padx=(8, 0))
+        core.ttk.Button(
+            buttons,
+            text="Зберегти",
+            style="Accent.TButton",
+            command=apply,
+        ).pack(side="right")
+
+        dialog.protocol("WM_DELETE_WINDOW", request_close)
+        dialog._taxo_correspondence_case_title = title_var
+        dialog._taxo_correspondence_case_notes = notes
+        dialog._taxo_correspondence_case_save = apply
+        dialog._taxo_correspondence_case_cancel = request_close
+        try:
+            title_entry.focus_set()
+        except Exception:
+            pass
+        return dialog
+
+    def toggle_case_archive():
+        case = selected_case()
+        if case is None:
+            return None
+        target = not case.archived
+        if target and not core.messagebox.askyesno(
+            "Архівувати справу",
+            "Архівувати справу «%s»? Листи та їхні номери не зміняться."
+            % case.title,
+            parent=win,
+        ):
+            return None
+        try:
+            updated = set_case_archived(
+                workspace_root, case.case_id, target
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+        state["pending_case"] = updated.case_id
+        refresh_all()
+        book.select(cases_page)
+        return updated
+
+    def add_case_linked():
+        case = selected_case()
+        if case is None:
+            return None
+        if case.archived:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Спочатку відновіть архівовану справу.",
+                parent=win,
+            )
+            return None
+        try:
+            candidates = tuple(
+                linked_correspondence_candidates(
+                    workspace_root, case.case_id
+                )
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+        if not candidates:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Нових пов'язаних листів не знайдено.",
+                parent=win,
+            )
+            return case
+        preview = "\n".join(
+            "• %s — %s" % (row.registration_number, row.subject)
+            for row in candidates[:8]
+        )
+        if len(candidates) > 8:
+            preview += "\n… ще %d" % (len(candidates) - 8)
+        if not core.messagebox.askyesno(
+            "Додати пов'язані",
+            "Додати до справи %d явно пов'язаних листів?\n\n%s"
+            % (len(candidates), preview),
+            parent=win,
+        ):
+            return None
+        try:
+            updated = add_linked_correspondence_to_case(
+                workspace_root, case.case_id
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+        state["pending_case"] = updated.case_id
+        refresh_all()
+        book.select(cases_page)
+        return updated
+
+    def open_case_member():
+        record = selected_case_member()
+        if record is None:
+            return None
+        state["pending_select"][record.direction] = record.correspondence_id
+        refresh_all()
+        book.select(state["pages"][record.direction])
+        return record
+
+    def remove_case_member():
+        case = selected_case()
+        record = selected_case_member()
+        if case is None or record is None:
+            return None
+        if case.archived:
+            core.messagebox.showinfo(
+                "Кореспонденція",
+                "Спочатку відновіть архівовану справу.",
+                parent=win,
+            )
+            return None
+        if not core.messagebox.askyesno(
+            "Вилучити зі справи",
+            "Вилучити %s зі справи «%s»? Сам лист не видаляється."
+            % (record.registration_number, case.title),
+            parent=win,
+        ):
+            return None
+        try:
+            move_correspondence_to_case(
+                workspace_root, record.correspondence_id, None
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+        state["pending_case"] = case.case_id
+        refresh_all()
+        book.select(cases_page)
+        return record
+
+    def open_case_assignment(direction):
+        record = selected_record(direction)
+        if record is None:
+            return None
+        try:
+            owner = case_for_correspondence(
+                workspace_root, record.correspondence_id
+            )
+            if owner is not None and owner.archived:
+                core.messagebox.showinfo(
+                    "Кореспонденція",
+                    "Лист належить архівованій справі «%s». "
+                    "Спочатку відновіть цю справу." % owner.title,
+                    parent=win,
+                )
+                return None
+            active_cases = tuple(
+                list_cases(workspace_root, include_archived=False)
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Кореспонденція", str(exc), parent=win
+            )
+            return None
+
+        dialog = core.tk.Toplevel(win)
+        _fit_window(core, dialog, 560, 210, 470, 180, "Справа листа")
+        try:
+            dialog.transient(win)
+        except Exception:
+            pass
+        body = core.ttk.Frame(dialog, padding=12)
+        body.pack(fill="both", expand=True)
+        body.columnconfigure(1, weight=1)
+
+        labels = {"Без справи": None}
+        labels.update({case.title: case.case_id for case in active_cases})
+        choice = core.tk.StringVar(
+            master=dialog,
+            value="Без справи" if owner is None else owner.title,
+        )
+        core.ttk.Label(
+            body,
+            text="%s · %s" % (
+                record.registration_number, record.subject
+            ),
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+        core.ttk.Label(body, text="Справа").grid(
+            row=1, column=0, sticky="w", padx=(0, 8), pady=4
+        )
+        combo = core.ttk.Combobox(
+            body,
+            textvariable=choice,
+            values=tuple(labels),
+            state="readonly",
+        )
+        combo.grid(row=1, column=1, sticky="ew", pady=4)
+
+        def apply():
+            target = labels.get(choice.get())
+            try:
+                updated = move_correspondence_to_case(
+                    workspace_root,
+                    record.correspondence_id,
+                    target,
+                )
+            except Exception as exc:
+                core.messagebox.showerror(
+                    "Кореспонденція", str(exc), parent=dialog
+                )
+                return
+            state["pending_select"][direction] = record.correspondence_id
+            if updated is not None:
+                state["pending_case"] = updated.case_id
+            dialog.destroy()
+            refresh_all()
+
+        buttons = core.ttk.Frame(body)
+        buttons.grid(row=2, column=0, columnspan=2, sticky="e", pady=(12, 0))
+        core.ttk.Button(
+            buttons, text="Скасувати", command=dialog.destroy
+        ).pack(side="right", padx=(8, 0))
+        core.ttk.Button(
+            buttons,
+            text="Зберегти",
+            style="Accent.TButton",
+            command=apply,
+        ).pack(side="right")
+
+        dialog._taxo_correspondence_case_choice = choice
+        dialog._taxo_correspondence_case_save = apply
+        return dialog
+
     def open_action_transition(direction, target_status):
         record = selected_record(direction)
         if record is None:
