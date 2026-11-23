@@ -46,6 +46,7 @@ RUNTIME_ROUTE_TEST_MODULES = {
     "correspondence.new_outgoing": "test_v10_24_r3_correspondence_ui",
     "correspondence.reply": "test_v10_24_r3_correspondence_ui",
     "correspondence.attachments": "test_v10_24_r3_correspondence_ui",
+    "correspondence.open_document": "test_v10_24_r3_correspondence_ui",
     "correspondence.mark_received": "test_v10_24_r4_correspondence_states",
     "correspondence.mark_sent": "test_v10_24_r4_correspondence_states",
     "correspondence.status_transition": "test_v10_24_r4_correspondence_states",
