@@ -28,7 +28,7 @@ Release trigger #635 merged `ee7bdbb5e50e3b47e42da46fc7b47eee2991523e`: START #4
 
 Stable remains 10.24-r3.
 
-After r7 recovery, reconcile #553/#556 and choose one bounded next control slice. Do not automatically broaden r8 into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
+r7 recovery is closed across public docs, private profile, Issue #61 and Drive. Next action: reconcile #553/#556/#562 and choose one bounded r8 control slice. Do not automatically broaden r8 into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
 
 Draft #543/#395 stay open.
 

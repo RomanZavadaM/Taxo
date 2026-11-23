@@ -43,7 +43,7 @@
 
 ## Подальша робота
 
-10.24-r7 вже опублікована як Current Test. Вона закриває окремий наскрізний контроль «Учасники / ТЗ» без зміни бізнес-правил наказів. Після recovery наступний пакет треба вибрати окремо після звірки #553/#556/#562; automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
+10.24-r7 вже опублікована як Current Test, а recovery синхронізований у public docs, private profile, Issue #61 і Drive. Ревізія закриває окремий наскрізний контроль «Учасники / ТЗ» без зміни бізнес-правил наказів. Наступний пакет треба вибрати окремо після звірки #553/#556/#562; automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
 
 [Індекс релізів](releases/RELEASE_INDEX.md) · [Інструкція користувача](guides/USER_MANUAL.md) · [Відновлення роботи](../START_HERE.md)
