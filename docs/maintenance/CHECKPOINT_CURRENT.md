@@ -1,41 +1,38 @@
 # Поточна контрольна точка Taxo
 
-**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r5.**
+**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r6.**
 
 ## Stable
 
 - Release: [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3)
 - Exact source: `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`
 - 8 canonical assets; GitHub Latest; prerelease=false; draft=false.
-- Owner explicit promotion decision: 23.11.2026.
 - Stable не змінювати без окремого рішення власника.
 
 ## Current Test
 
-- Release: [v10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5)
-- Exact source: `6d697a641b4f546dc533c8f55379696ad827b278`
+- Release: [v10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6)
+- Exact source: `d713dd2b085216d8ec764fb16a3ab057f01f07ec`
 - 8 canonical assets; prerelease=true; draft=false.
-- Prep #625: START #45169334073, Windows #45169334161, Win7 #45169334164, macOS Intel/ARM #45169334069 — SUCCESS.
-- Candidate #626: START #45190123472, Windows #45190123183, Win7 #45190124279, macOS #45190123566 — SUCCESS.
-- Exact source: START #45191514761, Windows #45191514632, Win7 #45191514666, macOS Intel/ARM #45191514659 — SUCCESS.
+- 55 strict live routes total; 17 correspondence routes.
+- Prep #629: START #45204102723, Windows #45204102869, Win7 #45204102379, macOS #45204102369 — SUCCESS.
+- Candidate #631: START #45206383953, Windows #45206384077, Win7 #45206384595, macOS #45206384273 — SUCCESS.
+- Exact source: START #45207404713, Windows #45207404491, Win7 #45207404242, macOS #45207404447 — SUCCESS.
+- Release-trigger #632: START #45208494055, Windows #45208494039, Win7 #45208494062, macOS #45208494429 — SUCCESS.
 - Windows/Win7 Defender + post-scan integrity — SUCCESS.
-- Guarded release-trigger #627 merged as `53127f27929b7f1c72c6876ce4a048c9955d02de`; trigger checks START #45192571617, Windows #45192571441, Win7 #45192571278, macOS #45192571563 — SUCCESS.
-- Publisher #45193506957 — SUCCESS.
+- Publisher #45209524416 — SUCCESS.
 
-## Що перевірено у r5
+## Що перевірено у r6
 
-- separate `Data/CorrespondenceCases/cases.json` із stable case IDs;
-- strict `Data/Correspondence` registry guard не послаблено;
-- explicit membership by correspondence ID; no file/scan/attachment copy;
-- one letter max one case; atomic move/unfile;
-- archive read-only until explicit restore;
-- response/related graph is candidate-only until user confirms «Додати пов'язані»;
-- backup/restore preserves case store;
-- third «Справи» tab, case assignment/browser/open/remove actions;
-- 760×520 case-action reachability and START required-module guard.
+- correspondence center і 16 критичних дій поверх нього мають strict runtime route contracts;
+- кожна дія має live Tk reachability/activation test;
+- mapped + onscreen + usable + activation є обов'язковими;
+- r1–r5 data model, numbering, attachments, states, cases і backup/restore не змінені.
 
 ## Далі
 
-Після recovery r5 визначити наступний bounded correspondence slice окремо зі свіжого плану. Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
+PR #630 — окремий пакет end-to-end order participant control. Він зелений на старій pre-r6 базі, але перед наступною ревізією має бути перебазований на актуальний main і повністю перевірений повторно.
+
+Automatic e-mail, mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не змішувати автоматично.
 
 #553/#556/#562 remain open; draft #543/#395 stay open.

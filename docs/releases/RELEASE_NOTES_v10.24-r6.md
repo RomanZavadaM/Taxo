@@ -1,6 +1,6 @@
 # Taxo 10.24-r6 — повний live-control кореспонденції
 
-**Test-кандидат. Stable/Latest залишається 10.24-r3; поточний опублікований Test до видачі цього кандидата — 10.24-r5.**
+**Опублікований Current Test. Stable/Latest залишається 10.24-r3.** Exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`; 8 canonical assets; `prerelease=true`; publisher #45209524416 — SUCCESS.
 
 10.24-r6 не додає нової бізнес-функції. Це контрольний пакет після r1–r5: він переводить критичні дії кореспонденції з рівня «кнопка/тест існує» у строгий executable route contract із live Tk reachability.
 
@@ -52,3 +52,7 @@ Prep PR #629 final head `1d9a2f3de70eed3a27bf488cbbae7c6f29ddbecf`:
 Prep merged у main як `af6fb1d0adf86627e119cadb77ca0a0912475987`.
 
 Наступний контрольний slice після r6 за поточним аудитом — базові дії реєстру наказів, які мають source-tripwire, але ще не мають окремих strict live routes. Це контроль існуючої функціональності, не зміна бізнес-логіки наказів.
+
+## Публікація Test
+
+Candidate PR #631 merged у main як exact issued source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`. На exact source успішно пройшли START #45207404713, Windows #45207404491, Win7 #45207404242 і macOS Intel/ARM #45207404447. Release-trigger PR #632 merged як `4dec0786d2dfc50e718f52901f8a012bf08d58e8`; його START #45208494055, Windows #45208494039, Win7 #45208494062 і macOS #45208494429 — SUCCESS. Publisher #45209524416 опублікував `v10.24-r6` як prerelease з 8 canonical assets.

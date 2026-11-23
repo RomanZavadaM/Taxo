@@ -4,8 +4,9 @@
 
 **Previous stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
 
-**Current Test:** [10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) — 8 файлів, exact source `6d697a641b4f546dc533c8f55379696ad827b278`, prerelease=true; logical correspondence cases/threads; Stable/Latest лишається 10.24-r3.
+**Current Test:** [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6) — 8 файлів, exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`, prerelease=true; full live-control correspondence routes; Stable/Latest лишається 10.24-r3.
 
+- [Примітки 10.24-r6](RELEASE_NOTES_v10.24-r6.md)
 - [Примітки 10.24-r5](RELEASE_NOTES_v10.24-r5.md)
 - [Примітки 10.24-r4](RELEASE_NOTES_v10.24-r4.md)
 - [Примітки 10.24-r3](RELEASE_NOTES_v10.24-r3.md)

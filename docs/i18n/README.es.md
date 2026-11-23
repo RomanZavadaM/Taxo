@@ -16,7 +16,7 @@ Taxo es una aplicación de escritorio para empresas de transporte: personal y ve
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5), prerelease de 8 archivos, exact source `6d697a641b4f546dc533c8f55379696ad827b278`. Añade expedientes/temas lógicos de correspondencia con ID estables, pertenencia explícita, archivo de solo lectura y vista de hilos basada en enlaces de respuesta/relación existentes. Un expediente sólo guarda referencias a cartas registradas: no copia documentos ni cambia números o hechos de Enviado/Recibido/estado. Stable/Latest sigue siendo 10.24-r3.
+**Current Test:** [Taxo 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), prerelease de 8 archivos, exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`. Es una revisión sólo de control: Taxo tiene ahora 55 rutas live estrictas, 17 de correspondencia. Las acciones críticas deben demostrar mapped, onscreen, usable y activation en pruebas Tk reales; el modelo de datos r1–r5 no cambia. Stable/Latest sigue siendo 10.24-r3.
 
 Guarde bases y documentos en una carpeta de trabajo separada y haga una copia antes de actualizar. [Manual de usuario (ucraniano)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
