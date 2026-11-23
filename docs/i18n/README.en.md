@@ -16,7 +16,7 @@ Taxo currently has 37 strict live UI routes that check mapped, on-screen, usable
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6), prerelease, 8 assets, exact source `d713dd2b085216d8ec764fb16a3ab057f01f07ec`. This is a control-only revision: Taxo now has 55 strict live routes, 17 for correspondence. Critical correspondence actions must prove mapped, onscreen, usable and activatable in live Tk tests; the r1–r5 data model is unchanged. Stable/Latest remains 10.24-r3.
+**Current Test:** [Taxo 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7), prerelease, 8 assets, exact source `4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d`. This revision strengthens end-to-end control of the order **Participants / Vehicles** block without changing order business rules: search/select, role/note editing, add vehicle, remove selected and live preview synchronization are protected; DOCX/PDF are checked against the same frozen participant snapshot and full backup/restore preserves participant identity, role, note, snapshot and sequence. Taxo now has 58 strict live routes; the correspondence contract remains exactly 17 routes. Stable/Latest remains 10.24-r3.
 
 ## Data and documentation
 
