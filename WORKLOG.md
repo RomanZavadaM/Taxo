@@ -1705,3 +1705,15 @@
 - [v10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) — Current Test prerelease, 8 canonical assets, exact target `6d697a641b4f546dc533c8f55379696ad827b278`. Stable/Latest лишається [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 - Межі r5: без automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge. Наступний bounded slice визначити окремо після recovery.
 
+## 23.11.2026 — 10.24-r6 Current Test published
+
+- r6 is a control-only revision over correspondence r1–r5; it does not change the registry/attachments/state/cases data model.
+- 16 new critical correspondence routes were added on top of `correspondence.center`; Taxo now has 55 strict live routes, 17 for correspondence.
+- Each correspondence route is mapped to a live Tk activation test and must prove mapped + onscreen + usable + activation.
+- Prep #629 final head `1d9a2f3de70eed3a27bf488cbbae7c6f29ddbecf`: START #45204102723, Windows #45204102869, Win7 #45204102379, macOS #45204102369 — SUCCESS; Defender/integrity PASS.
+- Candidate #631 head `1824bf567e9e186f3b92a71d05b6c4e67a92153e`: START #45206383953, Windows #45206384077, Win7 #45206384595, macOS #45206384273 — SUCCESS.
+- Candidate merged as exact issued main `d713dd2b085216d8ec764fb16a3ab057f01f07ec`; exact-source START #45207404713, Windows #45207404491, Win7 #45207404242, macOS #45207404447 — SUCCESS; Defender/integrity PASS.
+- Release-trigger #632 merged `4dec0786d2dfc50e718f52901f8a012bf08d58e8`; trigger START #45208494055, Windows #45208494039, Win7 #45208494062, macOS #45208494429 — SUCCESS.
+- Publisher #45209524416 — SUCCESS. Release `v10.24-r6`: prerelease=true, 8 canonical assets, target `d713dd2b085216d8ec764fb16a3ab057f01f07ec`. Stable/Latest remains `v10.24-r3`.
+- PR #630 is intentionally not part of r6. It is the next separate order-participant control slice and must be rebased/retested after r6 recovery.
+
