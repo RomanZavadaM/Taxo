@@ -143,7 +143,10 @@ class OrderParticipantReopenR8Tests(unittest.TestCase):
             lambda row, *_a, **_k: row is not None,
         )
         order_tree.selection_set(str(self.order_id))
-        order_tree.event_generate("<<TreeviewSelect>>")
+        # The real register calls the returned refresh callback whenever the
+        # selected order or visible register changes. Use that public path
+        # rather than synthesizing an event on this intentionally hidden test tree.
+        refresh()
         root.update_idletasks()
         root.update()
         return root, host, order_tree, refresh
@@ -201,7 +204,6 @@ class OrderParticipantReopenR8Tests(unittest.TestCase):
                 con.commit()
             finally:
                 con.close()
-            orders2.event_generate("<<TreeviewSelect>>")
             refresh2()
             root2.update_idletasks()
             root2.update()
