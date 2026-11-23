@@ -18,6 +18,17 @@ from correspondence_attachments import (
     load_correspondence_file,
     remove_correspondence_attachment,
 )
+from correspondence_cases import (
+    add_linked_correspondence_to_case,
+    case_for_correspondence,
+    create_case,
+    linked_correspondence_candidates,
+    list_case_correspondence,
+    list_cases,
+    move_correspondence_to_case,
+    rename_case,
+    set_case_archived,
+)
 from correspondence_registry import (
     DIRECTION_INCOMING,
     DIRECTION_OUTGOING,
@@ -897,8 +908,10 @@ def open_correspondence_center(app, core, workspace_root):
     book.pack(fill="both", expand=True)
     incoming_page = core.ttk.Frame(book, padding=4)
     outgoing_page = core.ttk.Frame(book, padding=4)
+    cases_page = core.ttk.Frame(book, padding=4)
     book.add(incoming_page, text="Вхідні")
     book.add(outgoing_page, text="Вихідні")
+    book.add(cases_page, text="Справи")
 
     state = {
         "records": {
@@ -918,6 +931,15 @@ def open_correspondence_center(app, core, workspace_root):
         },
         "attachment_counts": {},
         "attachment_error": "",
+        "cases": {},
+        "case_members": {},
+        "case_by_record": {},
+        "case_error": "",
+        "case_tree": None,
+        "case_member_tree": None,
+        "case_detail": None,
+        "case_buttons": {},
+        "pending_case": None,
         "pending_select": {},
         "after": None,
     }
