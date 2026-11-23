@@ -82,7 +82,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertIn(
             (root / "VERSION.txt").read_text("utf-8").strip(),
-            ("Version: 10.19-r7", "Version: 10.19-r8", "Version: 10.19-r9", "Version: 10.19-r10", "Version: 10.20-r1", "Version: 10.20-r2", "Version: 10.20-r3", "Version: 10.20-r4", "Version: 10.20-r5", "Version: 10.20-r6", "Version: 10.21-r7", "Version: 10.24-r5"),
+            ("Version: 10.19-r7", "Version: 10.19-r8", "Version: 10.19-r9", "Version: 10.19-r10", "Version: 10.20-r1", "Version: 10.20-r2", "Version: 10.20-r3", "Version: 10.20-r4", "Version: 10.20-r5", "Version: 10.20-r6", "Version: 10.21-r7", "Version: 10.24-r6"),
         )
         self.assertTrue(
             any(v in (root / "main.py").read_text("utf-8") for v in (
@@ -95,7 +95,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
                 'APP_VERSION = "10.20-r4"',
                 'APP_VERSION = "10.20-r5"',
                 'APP_VERSION = "10.20-r6"',
-                'APP_VERSION = "10.24-r5"',
+                'APP_VERSION = "10.24-r6"',
             ))
         )
         start = (root / "START.bat").read_text("utf-8")
@@ -111,7 +111,7 @@ class PreparedDocumentDocxR7Tests(unittest.TestCase):
             or "Taxo 10.20-r5" in start
             or "Taxo 10.20-r6" in start
             or "Taxo 10.21-r7" in start
-            or "Taxo 10.24-r5" in start
+            or "Taxo 10.24-r6" in start
         )
         self.assertIn("prepared_document_docx.py", start)
 
