@@ -1,10 +1,30 @@
 # HANDOFF_CURRENT — Taxo
 
-**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r8 опублікована й перевірена.**
+**27.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r9 опублікована й перевірена.**
 
 **Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, prerelease=false, GitHub Latest.
 
-**Current Test:** [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8), exact source `d24b1bc96115de52d6088813992aca3b410fe243`, 8 assets, prerelease=true, draft=false. Publisher #45237831016 — SUCCESS. Stable/Latest лишається v10.24-r3.
+**Current Test:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 assets, prerelease=true, draft=false. Publisher #46004721962 — SUCCESS. Stable/Latest лишається v10.24-r3.
+
+## Що зроблено у 10.24-r9
+
+- Закрито Issue #642 / product PR #643: копії документів ТЗ більше не вважаються наявними лише через текстовий шлях у БД.
+- Root cause існував від 10.2-r1 (21.09.2026): workspace copy була, але source path не зберігався; vehicle docs у manual backup додавались окремою галочкою.
+- Новий/замінений файл отримує Taxo-owned copy у `Data/VehicleDocuments`, source path, size та SHA-256.
+- UI показує реальні стани «Є / Файл втрачено / Копія пошкоджена / Зовнішній файл / Немає».
+- selected backup з документами ТЗ перевіряє DB→file; legacy external/source за наявності забирається в staging backup; restore повторно перевіряє bytes.
+- Архівування запису не видаляє файл; archived record → backup → restore → open має regression.
+- Непоправно відсутні старі bytes не вигадуються: backup із vehicle documents не проходить як «повний».
+- Exact product source: `e3770aa72b0744eee192979a2e569651bac4f257`; release `v10.24-r9` має 8 canonical assets, prerelease=true.
+- Stable/Latest не змінено: `v10.24-r3`.
+
+## Перевірки 10.24-r9
+
+- 1712 regression tests у START suite — PASS.
+- Windows — SUCCESS; Defender/integrity PASS.
+- Windows 7 / Python 3.8 — SUCCESS; Defender/integrity PASS.
+- macOS Intel + Apple Silicon — SUCCESS.
+- Publisher #46004721962 — SUCCESS; exact release target `e3770aa72b0744eee192979a2e569651bac4f257`.
 
 ## Що зроблено у 10.24-r8
 
