@@ -4,7 +4,7 @@
 
 Taxo is a desktop system for transport companies: staff and vehicles, schedules and work time, waybills, orders, documents, maintenance, reports and backups.
 
-## Stable 10.24-r3
+## Previous Stable 10.24-r3
 
 **10.24-r3 was promoted to Stable/Latest by the owner's explicit decision on 23 November 2026.** It contains all accepted 10.23-r4 document/order functionality plus the completed r1–r3 correspondence line: separate Incoming/Outgoing journals, safe numbering, controlled attachments, search/date/calendar, sortable tables, a letter card, create/reply/attachments/open-document actions and unsaved-change protection. A blank sent date does not mean the outgoing letter was actually sent.
 
@@ -12,11 +12,11 @@ Taxo currently has 37 strict live UI routes that check mapped, on-screen, usable
 
 ## Downloads
 
-**Stable / Latest: [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).** Previous stable checkpoint: [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+**Stable / Latest: [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9).** Previous stable checkpoint: [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 
-Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
+Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/SHA256SUMS_v10_24_r9.txt)
 
-**Current Test:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), prerelease, 8 assets, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. This revision fixes a vehicle-document persistence weakness present since 10.2-r1: a database row could survive while the file itself was gone, and the original source path was not retained. New/replaced copies are Taxo-owned files under `Data/VehicleDocuments` with source path, size and SHA-256; the UI shows the real file state, selected backup/restore validates the bytes (including archived records), and a still-available legacy external/source file can be materialized into a self-contained backup. Stable/Latest remains 10.24-r3.
+**Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 assets, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. The vehicle-document persistence and backup/restore protections described here are now the stable release.
 
 ## Data and documentation
 

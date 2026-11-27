@@ -4,7 +4,7 @@
 
 Taxo ist eine Desktop-Anwendung für Verkehrsunternehmen: Personal und Fahrzeuge, Dienstpläne und Arbeitszeit, Fahrtblätter, Anordnungen, Dokumente, Wartung, Berichte und Sicherungen.
 
-## Stable 10.24-r3
+## Vorherige Stable 10.24-r3
 
 **10.24-r3 wurde durch die ausdrückliche Entscheidung des Eigentümers am 23.11.2026 zu Stable/Latest.** Enthalten sind alle akzeptierten Funktionen aus 10.23-r4 sowie die abgeschlossene Korrespondenzlinie r1–r3: getrennte Eingangs-/Ausgangsjournale, sichere Nummerierung, kontrollierte Anhänge, Suche, Datum/Kalender, sortierbare Tabellen, Detailkarte sowie Aktionen für Neu, Antwort, Anhänge und Dokument öffnen. Ein leeres Sendedatum bedeutet nicht automatisch „gesendet“.
 
@@ -12,11 +12,11 @@ Taxo ist eine Desktop-Anwendung für Verkehrsunternehmen: Personal und Fahrzeuge
 
 ## Downloads
 
-**Stable / Latest: [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).** Vorheriger stabiler Stand: [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+**Stable / Latest: [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9).** Vorheriger stabiler Stand: [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 
-Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
+Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/SHA256SUMS_v10_24_r9.txt)
 
-**Current Test:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), Prerelease mit 8 Dateien, exakte Quelle `e3770aa72b0744eee192979a2e569651bac4f257`. Diese Revision behebt eine seit 10.2-r1 bestehende Schwäche bei Fahrzeugdokumenten: Ein Datenbankeintrag konnte bestehen bleiben, obwohl die Datei fehlte, und der ursprüngliche Quellpfad wurde nicht gespeichert. Neue oder ersetzte Kopien werden als Taxo-eigene Dateien unter `Data/VehicleDocuments` mit Quellpfad, Größe und SHA-256 gespeichert; die Oberfläche zeigt den tatsächlichen Dateistatus, ausgewähltes Backup/Restore prüft die Dateien einschließlich archivierter Einträge, und eine noch vorhandene alte externe/Quell-Datei kann in ein selbstständiges Backup übernommen werden. Stable/Latest bleibt 10.24-r3.
+**Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 Dateien, exakte Quelle `e3770aa72b0744eee192979a2e569651bac4f257`. Die Schutzmechanismen für Fahrzeugdokumente und Backup/Restore gehören jetzt zur stabilen Version.
 
 Datenbanken und Dokumente in einem separaten Arbeitsordner speichern und vor Updates sichern. [Benutzerhandbuch (Ukrainisch)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
