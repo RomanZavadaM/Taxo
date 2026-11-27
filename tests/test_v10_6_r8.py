@@ -56,7 +56,7 @@ class R8IntegrationTests(unittest.TestCase):
         block = source[start:end]
         self.assertIn("EXPIRY_REQUIRED", block)
         self.assertIn("valid_until < valid_from", block)
-        self.assertIn("copy_document_file(", block)
+        self.assertIn("store_document_copy(", block)
         self.assertIn("archive_current_document_slot(", block)
         self.assertIn('text="Зберегти", command=save', block)
 
