@@ -21,6 +21,16 @@ from runtime_reachability import (
 
 
 class BriefingQuarterViewR2PrepTests(unittest.TestCase):
+    def test_candidate_identity_and_package_guard(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r2\n")
+        self.assertIn('APP_VERSION = "10.25-r2"', (root / "main.py").read_text("utf-8"))
+        start = (root / "START.bat").read_text("utf-8")
+        self.assertIn("Taxo 10.25-r2 - START", start)
+        self.assertIn("briefing_quarter_view.py", start)
+        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r2\n")
+        self.assertEqual((root / ".release" / "stable-current").read_text("utf-8"), "10.24-r9\n")
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="taxo_1025_r2_")
         self.addCleanup(self.temp.cleanup)
