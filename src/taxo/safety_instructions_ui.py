@@ -368,12 +368,17 @@ def install_instruction_tab(app, core, book):
     core.ttk.Button(
         quarter_box, text="Наступний", command=lambda: move_quarter(1)
     ).grid(row=0, column=2, sticky="e")
+    def open_selected_quarter():
+        window = open_quarter_view(
+            tab, core, *getattr(tab, "_taxo_quarter", (year, quarter))
+        )
+        tab._taxo_briefing_quarter_window = window
+        return window
+
     quarter_button = core.ttk.Button(
         quarter_box,
         text="На цей квартал…",
-        command=lambda: open_quarter_view(
-            tab, core, *getattr(tab, "_taxo_quarter", (year, quarter))
-        ),
+        command=open_selected_quarter,
     )
     quarter_button.grid(row=0, column=3, sticky="e", padx=(8, 0))
     core.ttk.Label(
