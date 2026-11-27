@@ -19,7 +19,7 @@ from vehicle_documents import (
     _vehicle_label,
     archive_current_document_slot,
     control_rows,
-    copy_document_file,
+    document_copy_state,
     display_date,
     document_status,
     ensure_vehicle_documents_schema,
@@ -28,6 +28,7 @@ from vehicle_documents import (
     open_external,
     parse_date,
     status_rank,
+    store_document_copy,
     vehicle_document_summary,
 )
 
@@ -118,6 +119,7 @@ class VehicleDocumentsWindow:
             return None
         con = self.db_factory()
         try:
+            ensure_vehicle_documents_schema(con)
             return con.execute("SELECT * FROM vehicle_documents WHERE id=?", (rid,)).fetchone()
         finally:
             con.close()
@@ -143,6 +145,7 @@ class VehicleDocumentsWindow:
         for row in rows:
             archived = bool(row["archived"])
             status = "Архів" if archived else document_status(row["doc_type"], row["valid_until"])
+            copy_state = document_copy_state(row, self.data_root, verify_hash=False)
             self.tree.insert(
                 "",
                 "end",
@@ -154,7 +157,7 @@ class VehicleDocumentsWindow:
                     display_date(row["valid_from"]),
                     display_date(row["valid_until"]),
                     status,
-                    "Є" if row["copy_path"] else "Немає",
+                    copy_state["label"],
                     row["notes"] or "",
                 ),
             )
@@ -182,6 +185,9 @@ class VehicleDocumentsWindow:
         until_var = tk.StringVar(value=display_date(row["valid_until"]) if row is not None else "")
         copy_var = tk.StringVar(value="")
         current_copy = (row["copy_path"] or "") if row is not None else ""
+        current_source = (row["source_path"] or "") if row is not None else ""
+        current_hash = (row["copy_sha256"] or "") if row is not None else ""
+        current_size = int(row["copy_size"] or 0) if row is not None else 0
         archive_previous = tk.BooleanVar(value=False)
 
         entries = [
@@ -247,10 +253,23 @@ class VehicleDocumentsWindow:
 
         ttk.Button(copy_frame, text="Вибрати…", command=choose_copy).pack(side="left", padx=(5, 0))
         if current_copy:
+            current_state = document_copy_state(row, self.data_root, verify_hash=False)
             ttk.Label(
                 win,
-                text="Поточна копія збережена. Виберіть новий файл лише якщо потрібно її замінити.",
-            ).grid(row=copy_row + 1, column=1, sticky="w", padx=10, pady=(0, 5))
+                text=(
+                    "Поточна копія Taxo: " + current_state["label"] + ". "
+                    "Виберіть новий файл лише якщо потрібно її замінити."
+                ),
+                foreground=("#8B1E1E" if current_state["state"] in ("missing", "damaged") else ""),
+            ).grid(row=copy_row + 1, column=1, sticky="w", padx=10, pady=(0, 3))
+        if current_source:
+            ttk.Label(
+                win,
+                text="Початковий файл: " + current_source,
+                wraplength=520,
+                justify="left",
+                foreground="#666666",
+            ).grid(row=copy_row + 2, column=1, sticky="w", padx=10, pady=(0, 5))
 
         win.columnconfigure(1, weight=1)
         win.rowconfigure(notes_row, weight=1)
@@ -274,17 +293,29 @@ class VehicleDocumentsWindow:
                 return
 
             copy_path = current_copy
+            source_path = current_source
+            copy_sha256 = current_hash
+            copy_size = current_size
             if copy_var.get().strip():
                 try:
-                    copy_path = copy_document_file(
+                    stored = store_document_copy(
                         self.data_root,
                         self.vehicle["id"],
                         dtype,
                         copy_var.get().strip(),
                     )
+                    copy_path = stored["copy_path"]
+                    source_path = stored["source_path"]
+                    copy_sha256 = stored["copy_sha256"]
+                    copy_size = stored["copy_size"]
                 except (OSError, ValueError) as exc:
                     messagebox.showerror("Документ", f"Не вдалося зберегти копію:\n{exc}", parent=win)
                     return
+            elif copy_path and (not copy_sha256 or not copy_size):
+                state = document_copy_state(row, self.data_root, verify_hash=True)
+                if state["state"] == "available":
+                    copy_sha256 = state["sha256"]
+                    copy_size = state["size"]
 
             now = datetime.now().isoformat(timespec="seconds")
             con = self.db_factory()
@@ -297,6 +328,9 @@ class VehicleDocumentsWindow:
                     valid_from,
                     valid_until,
                     copy_path,
+                    source_path,
+                    copy_sha256,
+                    copy_size,
                     notes_text.get("1.0", "end-1c").strip(),
                     now,
                 )
@@ -316,8 +350,9 @@ class VehicleDocumentsWindow:
                         """
                         INSERT INTO vehicle_documents(
                             vehicle_id,doc_type,document_no,issuer,valid_from,valid_until,
-                            copy_path,notes,archived,created_at,updated_at
-                        ) VALUES(?,?,?,?,?,?,?,?,0,?,?)
+                            copy_path,source_path,copy_sha256,copy_size,notes,
+                            archived,created_at,updated_at
+                        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,0,?,?)
                         """,
                         (self.vehicle["id"],) + values[:-1] + (now, now),
                     )
@@ -326,7 +361,8 @@ class VehicleDocumentsWindow:
                         """
                         UPDATE vehicle_documents
                            SET doc_type=?,document_no=?,issuer=?,valid_from=?,valid_until=?,
-                               copy_path=?,notes=?,archived=0,updated_at=?
+                               copy_path=?,source_path=?,copy_sha256=?,copy_size=?,
+                               notes=?,archived=0,updated_at=?
                          WHERE id=?
                         """,
                         values + (row["id"],),
@@ -340,7 +376,7 @@ class VehicleDocumentsWindow:
                 self.on_change()
 
         ttk.Button(win, text="Зберегти", command=save).grid(
-            row=copy_row + 2, column=1, sticky="e", padx=10, pady=16
+            row=copy_row + 3, column=1, sticky="e", padx=10, pady=16
         )
 
     def archive_document(self):
@@ -373,10 +409,14 @@ class VehicleDocumentsWindow:
         if not row["copy_path"]:
             messagebox.showinfo("Копія документа", "Для цього запису копія не збережена.", parent=self.win)
             return
-        path = resolved_path(row["copy_path"], self.data_root)
-        if not path or not Path(path).is_file():
+        state = document_copy_state(row, self.data_root, verify_hash=True)
+        if state["state"] == "missing":
             messagebox.showerror("Копія документа", "Файл копії не знайдено у робочому сховищі.", parent=self.win)
             return
+        if state["state"] == "damaged":
+            messagebox.showerror("Копія документа", "Збережена копія документа пошкоджена або змінена.", parent=self.win)
+            return
+        path = state["path"]
         try:
             open_document(self.win, path, external_opener=open_external)
         except OSError as exc:
@@ -437,7 +477,7 @@ def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle
         con = db_factory()
         try:
             ensure_vehicle_documents_schema(con)
-            rows = control_rows(con, active_only=True)
+            rows = control_rows(con, active_only=True, data_root=data_root)
         finally:
             con.close()
         visible = [r for r in rows if (r["rank"] < 3 or not only_issues.get())]
@@ -454,7 +494,7 @@ def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle
                     row["document_no"],
                     display_date(row["valid_until"]),
                     row["status"],
-                    "Є" if row["copy_path"] else "Немає",
+                    row["copy_state"],
                 ),
             )
         issue_count = sum(1 for r in rows if r["rank"] < 3)

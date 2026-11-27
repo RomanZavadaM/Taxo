@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import shutil
@@ -10,7 +11,7 @@ import subprocess
 import sys
 from datetime import date, datetime
 from pathlib import Path
-from workspace import paths_for, stored_path
+from workspace import paths_for, resolved_path, stored_path
 
 
 DOCUMENT_TYPES = {
@@ -145,6 +146,9 @@ def ensure_vehicle_documents_schema(con):
             valid_from TEXT DEFAULT '',
             valid_until TEXT DEFAULT '',
             copy_path TEXT DEFAULT '',
+            source_path TEXT DEFAULT '',
+            copy_sha256 TEXT DEFAULT '',
+            copy_size INTEGER DEFAULT 0,
             notes TEXT DEFAULT '',
             archived INTEGER DEFAULT 0,
             created_at TEXT NOT NULL,
@@ -154,6 +158,14 @@ def ensure_vehicle_documents_schema(con):
             ON vehicle_documents(vehicle_id, doc_type, archived, id);
         """
     )
+    columns = {str(row[1]) for row in con.execute("PRAGMA table_info(vehicle_documents)").fetchall()}
+    for name, ddl in (
+        ("source_path", "source_path TEXT DEFAULT ''"),
+        ("copy_sha256", "copy_sha256 TEXT DEFAULT ''"),
+        ("copy_size", "copy_size INTEGER DEFAULT 0"),
+    ):
+        if name not in columns:
+            con.execute("ALTER TABLE vehicle_documents ADD COLUMN " + ddl)
 
 
 def archive_current_document_slot(con, vehicle_id, doc_type, keep_id=None, now=None):
@@ -366,7 +378,7 @@ def vehicle_document_warning_lines_for_period(con, vehicle_id, period_start, per
         warnings.append(f"{label}: {status} ({', '.join(meta)})")
     return warnings
 
-def control_rows(con, active_only=True, today=None):
+def control_rows(con, active_only=True, today=None, data_root=None):
     sql = "SELECT * FROM vehicles"
     if active_only:
         sql += " WHERE active=1"
@@ -389,6 +401,15 @@ def control_rows(con, active_only=True, today=None):
                     "valid_until": "" if doc is None else (doc["valid_until"] or ""),
                     "status": status,
                     "copy_path": "" if doc is None else (doc["copy_path"] or ""),
+                    "copy_state": (
+                        "Немає"
+                        if doc is None
+                        else (
+                            document_copy_state(doc, data_root, verify_hash=False)["label"]
+                            if data_root is not None
+                            else ("Є" if (doc["copy_path"] or "").strip() else "Немає")
+                        )
+                    ),
                     "rank": status_rank(status),
                 }
             )
@@ -645,19 +666,127 @@ def _safe_name(value):
     return text or "document"
 
 
-def copy_document_file(data_root, vehicle_id, doc_type, source):
-    source = Path(source)
+def _sha256_file(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _managed_vehicle_copy_path(value, data_root):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    path = resolved_path(raw, data_root)
+    if path is None:
+        return None
+    managed_root = paths_for(data_root)["vehicle_documents"].resolve()
+    try:
+        Path(path).resolve().relative_to(managed_root)
+    except (ValueError, OSError, RuntimeError):
+        return None
+    return Path(path)
+
+
+def document_copy_state(row, data_root, verify_hash=True):
+    """Return the real state of a vehicle-document copy, never just DB intent."""
+    raw = str(row["copy_path"] or "").strip()
+    if not raw:
+        return {
+            "state": "none",
+            "label": "Немає",
+            "path": None,
+            "managed": False,
+            "size": 0,
+            "sha256": "",
+        }
+
+    path = resolved_path(raw, data_root)
+    if path is None or not Path(path).is_file():
+        return {
+            "state": "missing",
+            "label": "Файл втрачено",
+            "path": path,
+            "managed": bool(_managed_vehicle_copy_path(raw, data_root)),
+            "size": 0,
+            "sha256": "",
+        }
+
+    path = Path(path)
+    managed = _managed_vehicle_copy_path(raw, data_root) is not None
+    actual_size = int(path.stat().st_size)
+    expected_size = int(row["copy_size"] or 0) if "copy_size" in row.keys() else 0
+    if expected_size and expected_size != actual_size:
+        return {
+            "state": "damaged",
+            "label": "Копія пошкоджена",
+            "path": path,
+            "managed": managed,
+            "size": actual_size,
+            "sha256": "",
+        }
+
+    actual_hash = ""
+    expected_hash = str(row["copy_sha256"] or "").strip().lower() if "copy_sha256" in row.keys() else ""
+    if verify_hash:
+        actual_hash = _sha256_file(path)
+        if expected_hash and actual_hash.lower() != expected_hash:
+            return {
+                "state": "damaged",
+                "label": "Копія пошкоджена",
+                "path": path,
+                "managed": managed,
+                "size": actual_size,
+                "sha256": actual_hash,
+            }
+
+    return {
+        "state": "available" if managed else "external",
+        "label": "Є" if managed else "Зовнішній файл",
+        "path": path,
+        "managed": managed,
+        "size": actual_size,
+        "sha256": actual_hash,
+    }
+
+
+def store_document_copy(data_root, vehicle_id, doc_type, source):
+    """Create Taxo-owned bytes and return provenance/integrity metadata."""
+    source = Path(source).expanduser()
     if not source.is_file():
         raise FileNotFoundError(str(source))
     if source.suffix.lower() not in ALLOWED_COPY_EXTENSIONS:
         allowed = ", ".join(sorted(ext.upper().lstrip(".") for ext in ALLOWED_COPY_EXTENSIONS))
         raise ValueError(f"Непідтримуваний формат копії. Дозволено: {allowed}.")
+
+    source_resolved = source.resolve()
     root = paths_for(data_root)["vehicle_documents"] / str(int(vehicle_id)) / str(doc_type)
     root.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     target = root / f"{stamp}_{_safe_name(source.name)}"
-    shutil.copy2(source, target)
-    return stored_path(target, data_root)
+    shutil.copy2(source_resolved, target)
+
+    source_hash = _sha256_file(source_resolved)
+    target_hash = _sha256_file(target)
+    if source_hash != target_hash or source_resolved.stat().st_size != target.stat().st_size:
+        try:
+            target.unlink()
+        except OSError:
+            pass
+        raise OSError("Перевірка збереженої копії документа не пройшла.")
+
+    return {
+        "copy_path": stored_path(target, data_root),
+        "source_path": str(source_resolved),
+        "copy_sha256": target_hash,
+        "copy_size": int(target.stat().st_size),
+    }
+
+
+def copy_document_file(data_root, vehicle_id, doc_type, source):
+    """Compatibility API: create the managed copy and return its workspace path."""
+    return store_document_copy(data_root, vehicle_id, doc_type, source)["copy_path"]
 
 
 def open_external(path):
