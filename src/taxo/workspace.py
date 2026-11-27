@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -455,6 +456,94 @@ def _copy_tree_without_databases(source,target):
 
 
 
+def _sha256_file(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def validate_vehicle_document_files(root):
+    """Verify every registered vehicle-document copy that claims to exist.
+
+    Empty copy_path means that no scan/copy was attached and is valid. A non-empty
+    reference must point to a Taxo-owned file inside Data/VehicleDocuments.
+    """
+    root = normalize_root(root)
+    p = paths_for(root)
+    db_path = p["main_db"]
+    if not db_path.exists():
+        return 0
+
+    con = sqlite3.connect(str(db_path), timeout=30)
+    con.row_factory = sqlite3.Row
+    try:
+        tables = {str(row[0]) for row in con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()}
+        if "vehicle_documents" not in tables:
+            return 0
+        columns = {str(row[1]) for row in con.execute(
+            "PRAGMA table_info(vehicle_documents)"
+        ).fetchall()}
+        select = ["id", "doc_type", "copy_path"]
+        if "copy_sha256" in columns:
+            select.append("copy_sha256")
+        if "copy_size" in columns:
+            select.append("copy_size")
+        rows = con.execute(
+            "SELECT " + ",".join(select) +
+            " FROM vehicle_documents WHERE TRIM(COALESCE(copy_path,''))<>'' ORDER BY id"
+        ).fetchall()
+    finally:
+        con.close()
+
+    managed_root = p["vehicle_documents"].resolve()
+    problems = []
+    verified = 0
+    for row in rows:
+        raw = str(row["copy_path"] or "").strip()
+        path = resolved_path(raw, root)
+        managed = False
+        if path is not None:
+            try:
+                Path(path).resolve().relative_to(managed_root)
+                managed = True
+            except (ValueError, OSError, RuntimeError):
+                managed = False
+        if not managed:
+            problems.append(f"ID {row['id']} ({row['doc_type']}): копія поза Data/VehicleDocuments")
+            continue
+        path = Path(path)
+        if not path.is_file():
+            problems.append(f"ID {row['id']} ({row['doc_type']}): файл не знайдено")
+            continue
+        actual_size = int(path.stat().st_size)
+        expected_size = int(row["copy_size"] or 0) if "copy_size" in row.keys() else 0
+        if expected_size and actual_size != expected_size:
+            problems.append(f"ID {row['id']} ({row['doc_type']}): розмір копії змінився")
+            continue
+        expected_hash = (
+            str(row["copy_sha256"] or "").strip().lower()
+            if "copy_sha256" in row.keys() else ""
+        )
+        if expected_hash and _sha256_file(path).lower() != expected_hash:
+            problems.append(f"ID {row['id']} ({row['doc_type']}): контрольна сума копії не збігається")
+            continue
+        verified += 1
+
+    if problems:
+        preview = "\n".join("• " + item for item in problems[:12])
+        if len(problems) > 12:
+            preview += f"\n• ... ще {len(problems) - 12}"
+        raise ValueError(
+            "Копії документів транспортних засобів неповні або пошкоджені. "
+            "Повну резервну копію з документами ТЗ не створено.\n\n" + preview
+        )
+    return verified
+
+
 def _copy_backup_payload(
     source,
     target,
@@ -556,6 +645,10 @@ def create_workspace_backup_archive(
         if srcp["tacho_db"].exists():
             _sqlite_backup(srcp["tacho_db"],dstp["tacho_db"])
             validate_sqlite(dstp["tacho_db"])
+        verified_vehicle_documents = (
+            validate_vehicle_document_files(stage)
+            if include_vehicle_documents else 0
+        )
         manifest={
             "format":FULL_BACKUP_FORMAT,
             "application":"Taxo",
@@ -572,6 +665,7 @@ def create_workspace_backup_archive(
                 "output":bool(include_output),
             },
             "excludes":["Backups","Logs",LOCK_NAME],
+            "verified_vehicle_document_files":verified_vehicle_documents,
         }
         (stage/FULL_BACKUP_MANIFEST).write_text(
             json.dumps(manifest,ensure_ascii=False,indent=2),"utf-8"
@@ -624,6 +718,8 @@ def validate_workspace_backup_archive(archive_path):
         p=paths_for(target)
         validate_sqlite(p["main_db"])
         validate_sqlite(p["tacho_db"])
+        if bool((manifest.get("includes") or {}).get("vehicle_documents")):
+            validate_vehicle_document_files(target)
         if not p["main_db"].exists() and not p["tacho_db"].exists():
             raise ValueError("У резервній копії немає жодної бази Taxo.")
         return manifest
