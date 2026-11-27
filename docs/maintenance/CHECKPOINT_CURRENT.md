@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**27.11.2026 — Stable/Latest 10.24-r9; Current Test 10.25-r3.**
+**27.11.2026 — Stable/Latest 10.24-r9; Current Test 10.25-r4.**
 
 ## Stable
 - [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)
@@ -8,14 +8,14 @@
 - 8 assets; prerelease=false; GitHub Latest.
 
 ## Current Test
-- [v10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3)
-- exact source: `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`
+- [v10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4)
+- exact source: `ed3b79a96659aa011f60fa7912092fbc15157cdb`
 - 8 assets; prerelease=true.
-- candidate START #46052184007 — 1728/1728 PASS.
-- exact-source START #46052986259; Windows #46052986192; Win7 #46052986213 attempt 2; macOS #46052986186 — SUCCESS.
-- publisher #46054871091 — SUCCESS.
-- program revisions + cumulative employee selection + exact prepared DOCX link/SHA-256 + full backup/restore.
+- candidate START #46060419818 — 1732/1732 PASS.
+- exact-source START #46061028041; Windows #46061028147; Win7 #46061028060; macOS #46061028199 — SUCCESS.
+- publisher #46062424737 — SUCCESS.
+- event briefing + mandatory reason + explicit manual conducted evidence + read-only audit + backup/restore.
 - real owner workspace was not used.
 
 ## Next
-10.25-r4: «За подією» + explicit manual conducted fact. Virtual-only testing; separate Test release.
+10.25-r5: full synthetic Instructions end-to-end acceptance. Separate Test release after stage.
