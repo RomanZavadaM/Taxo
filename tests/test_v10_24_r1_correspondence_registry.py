@@ -31,19 +31,19 @@ class CorrespondenceRegistryR1Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.25-r4\n",
+            "Version: 10.25-r5\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.25-r4"',
+            'APP_VERSION = "10.25-r5"',
             (root / "main.py").read_text("utf-8"),
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.25-r4", start)
+        self.assertIn("Taxo 10.25-r5", start)
         self.assertIn("correspondence_registry.py", start)
         self.assertIn("correspondence_service.py", start)
         self.assertEqual(
             (root / ".release" / "full-current").read_text("utf-8"),
-            "10.25-r4\n",
+            "10.25-r5\n",
         )
 
     def setUp(self):
@@ -287,7 +287,7 @@ class CorrespondenceRegistryR1Tests(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             self.base / "backup.zip",
-            app_version="10.25-r4",
+            app_version="10.25-r5",
         )
         restored = self.base / "restored"
         workspace.restore_workspace_backup_archive(archive, restored)
