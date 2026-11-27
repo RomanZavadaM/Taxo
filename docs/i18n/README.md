@@ -1,10 +1,10 @@
 # Переклади README Taxo
 
-Головний і нормативний опис продукту — [український README](../../README.md). Переклади нижче синхронізовані зі Stable 10.24-r3.
+Головний і нормативний опис продукту — [український README](../../README.md). Переклади нижче синхронізовані зі Stable 10.24-r9.
 
-- **Stable / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`.
-- **Попередня стабільна:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
-- **Current Test:** [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8), 8 файлів, exact source `d24b1bc96115de52d6088813992aca3b410fe243`, prerelease; 58 strict live routes, fresh-reopen preservation control «Учасники / ТЗ» поверх r7, correspondence contract лишається exact 17 routes. Stable/Latest лишається 10.24-r3.
+- **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, prerelease=false.
+- **Попередня стабільна:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
+- r9: Taxo-owned копії документів ТЗ, source path/size/SHA-256, factual file state, selected backup/restore validation.
 - Українська документація залишається джерелом повних інструкцій і технічного стану.
 
 ## Переклади

@@ -1,11 +1,11 @@
 # Випуски Taxo
 
-**Стан:** 27.11.2026 після публікації Test 10.24-r9; Stable/Latest — 10.24-r3.
+**Стан:** 27.11.2026 після promotion 10.24-r9 у Stable/Latest.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
-| Стабільна / Latest | [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) | 8 canonical assets; 39 strict live UI routes; correspondence r1 registry + r2 controlled attachments + r3 journal/card UI. Exact source c9cb6b7787d991c5ce612ceec1efb32ecc90891d; promotion PR #620 merged c739f37e6a4a2ecc6be6c6302548cf8f83b479cc; publisher #45147941030 і guarded stable verification #45147941048 SUCCESS. |
-| Поточна тестова | [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) | 8 canonical assets; vehicle-document Taxo-owned copy + source path/size/SHA-256; factual copy state; selected backup/restore validation including archived records and legacy external/source recovery when bytes still exist. Exact source e3770aa72b0744eee192979a2e569651bac4f257; publisher #46004721962 SUCCESS; Defender/integrity PASS. |
+| Стабільна / Latest | [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) | 8 canonical assets; vehicle-document Taxo-owned copy + source path/size/SHA-256; selected backup/restore validation incl. archived records. Exact source e3770aa72b0744eee192979a2e569651bac4f257; promotion PR #651 merged 3dfefa67ad9385ac18c8ee182c0a99a5a5a0effa; publisher #46014386874 SUCCESS; prerelease=false; GitHub Latest. |
+| Попередня стабільна | [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) | 8 canonical assets; exact source c9cb6b7787d991c5ce612ceec1efb32ecc90891d. |
 | Попередня тестова | [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8) | 8 canonical assets; 58 strict live routes; fresh-reopen preservation control for order participants over r7. Exact source d24b1bc96115de52d6088813992aca3b410fe243; publisher #45237831016 SUCCESS; Defender/integrity PASS. |
 | Попередня тестова | [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) | 8 canonical assets; 58 strict live routes; end-to-end order participant control: search/select, edit role/note, add vehicle, remove selected, preview sync; frozen DOCX/PDF participant snapshot + backup/restore. Exact source 4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d; publisher #45220620129 SUCCESS; Defender/integrity PASS. |
 | Попередня тестова | [10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6) | 8 canonical assets; control-only revision, 55 strict live routes total / 17 correspondence routes, mapped + onscreen + usable + activation. Exact source d713dd2b085216d8ec764fb16a3ab057f01f07ec; publisher #45209524416 SUCCESS; Defender/integrity PASS. |

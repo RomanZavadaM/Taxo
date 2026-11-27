@@ -1,5 +1,15 @@
 ## 27.11.2026 — 10.24-r9 vehicle document persistence / Current Test
 
+## 27.11.2026 — 10.24-r9 promoted to Stable/Latest
+
+- Власник після повторного ізольованого тесту наказав перевести r9 у Stable.
+- Fresh virtual acceptance: 1712/1712 PASS; 6/6 vehicle-document persistence scenarios PASS; real workspace не відкривався.
+- Promotion PR #651 checks: START #46013308335, Windows #46013308203, Win7 #46013308379, macOS #46013308340 — SUCCESS; Windows/Win7 Defender/integrity PASS.
+- PR #651 merged `3dfefa67ad9385ac18c8ee182c0a99a5a5a0effa`.
+- Publisher #46014386874 SUCCESS: `v10.24-r9` тепер prerelease=false, GitHub Latest, 8 canonical assets; exact tag source `e3770aa72b0744eee192979a2e569651bac4f257` не змінено.
+- Issue #642 accepted by owner after isolated virtual round-trip verification.
+
+
 - Власник повідомив про зниклі копії документів ТЗ, зокрема протоколи ОТК.
 - Аудит підтвердив, що weakness існувала від 10.2-r1 (21.09.2026): БД зберігала workspace path, але не source path; UI трактував непорожній path як «Копія: Є» без перевірки файла; vehicle-document bytes у manual backup були optional.
 - Issue #642; PR #643 merged. Додано Taxo-owned copy provenance (source path, size, SHA-256), factual file state, integrity check on open, selected backup/restore validation і recovery legacy external/source files у staging archive.

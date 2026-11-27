@@ -1,10 +1,8 @@
 # Релізи Taxo
 
-**Stable / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`.
+**Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, prerelease=false, GitHub Latest.
 
-**Previous stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
-
-**Current Test:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, prerelease=true; vehicle-document Taxo-owned copies + provenance/integrity + selected backup/restore validation; Stable/Latest лишається 10.24-r3.
+**Previous stable:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 
 - [Примітки 10.24-r9](RELEASE_NOTES_v10.24-r9.md)
 - [Попередні примітки 10.24-r8](RELEASE_NOTES_v10.24-r8.md)
