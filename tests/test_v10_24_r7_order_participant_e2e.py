@@ -63,19 +63,19 @@ class OrderParticipantE2ER7Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.25-r2\n",
+            "Version: 10.25-r3\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.25-r2"',
+            'APP_VERSION = "10.25-r3"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.25-r2 - START",
+            "Taxo 10.25-r3 - START",
             (root / "START.bat").read_text("utf-8"),
         )
         self.assertEqual(
             (root / ".release" / "full-current").read_text("utf-8"),
-            "10.25-r2\n",
+            "10.25-r3\n",
         )
 
     def setUp(self):

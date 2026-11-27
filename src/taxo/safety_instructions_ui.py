@@ -13,6 +13,7 @@ import entity_choices as ops
 import safety_templates as safety_tpl
 import safety_instruction_document_service as instruction_documents
 import briefing_quarter_view as briefing_quarter
+import briefing_planning_ui as briefing_planning
 from workspace import load_workspace_root
 
 
@@ -390,7 +391,21 @@ def install_instruction_tab(app, core, book):
             "проводяться за фактичною підставою незалежно від квартального плану."
         ),
         style="Muted.TLabel", wraplength=900, justify="left",
-    ).grid(row=1, column=0, columnspan=3, sticky="ew", pady=(6, 0))
+    ).grid(row=1, column=0, columnspan=5, sticky="ew", pady=(6, 0))
+
+    def open_planning_dialog():
+        window = briefing_planning.open_planning_preparation(tab, core)
+        tab._taxo_briefing_planning_window = window
+        return window
+
+    planning_button = core.ttk.Button(
+        quarter_box,
+        text="Програми / план / друк…",
+        command=open_planning_dialog,
+    )
+    planning_button.grid(
+        row=0, column=4, sticky="e", padx=(8, 0)
+    )
 
     frame = core.ttk.LabelFrame(tab, text="Підготувати матеріал для паперового інструктажу", padding=8)
     frame.grid(row=3, column=0, sticky="nsew")
@@ -645,6 +660,7 @@ def install_instruction_tab(app, core, book):
     tab._taxo_briefing_template_id = selected_template_id
     tab._taxo_briefing_edit_program_button = edit_button
     tab._taxo_briefing_quarter_button = quarter_button
+    tab._taxo_briefing_planning_button = planning_button
 
     refresh_templates(select_first=True)
     return tab
