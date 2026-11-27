@@ -1,10 +1,25 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 23.11.2026 після публікації Test v10.24-r8.**
+**Підтверджено GitHub 27.11.2026 після публікації Test v10.24-r9.**
 
 **Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 assets, prerelease=false, draft=false, GitHub Latest.
 
-**Current Test:** [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8), exact source `d24b1bc96115de52d6088813992aca3b410fe243`, 8 assets, prerelease=true, draft=false. Publisher #45237831016 — SUCCESS.
+**Current Test:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 assets, prerelease=true, draft=false. Publisher #46004721962 — SUCCESS.
+
+## Test 10.24-r9
+
+- Причина: виявлено, що старі копії документів ТЗ могли бути записані в БД, але фізичний файл уже був відсутній; UI раніше показував «Копія: Є» лише за непорожнім шляхом.
+- Історичний root cause: механізм існував від 10.2-r1 (21.09.2026): Taxo зберігав workspace-шлях копії, але не source path; vehicle-document bytes у звичайному backup були optional.
+- Нові/замінені копії: `Data/VehicleDocuments/<vehicle_id>/<doc_type>/...` + source path + size + SHA-256.
+- UI/контроль показують реальний стан файла; відкриття перевіряє existence/integrity.
+- Backup з позначкою документів ТЗ перевіряє всі зареєстровані копії, включно з архівованими; legacy external/source файл за наявності materialize-иться у staging backup без зміни live DB.
+- Restore архіву з vehicle documents повторно перевіряє bytes.
+- Архівування запису не видаляє копію.
+- Якщо bytes уже відсутні у workspace, source і старих backup, автоматичне відновлення неможливе — це тепер видно явно.
+- Product PR #643 merged у main; exact product source `e3770aa72b0744eee192979a2e569651bac4f257`.
+- Exact-main START/Windows/Win7/macOS Intel+ARM — SUCCESS; Defender/integrity PASS.
+- Release `v10.24-r9`: 8 canonical assets, prerelease=true, exact target `e3770aa72b0744eee192979a2e569651bac4f257`; publisher #46004721962 SUCCESS.
+- Stable/Latest лишається `v10.24-r3`.
 
 ## Test 10.24-r8
 

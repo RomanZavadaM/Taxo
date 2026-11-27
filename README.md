@@ -47,7 +47,11 @@
 
 **10.24-r6 опублікована як Test; Stable/Latest лишається 10.24-r3.** Це контрольна ревізія без нової бізнес-логіки: у Taxo тепер **55 strict live routes**, із них **17 — кореспонденція**. Критичні дії r1–r5 перевіряються не лише на наявність кнопки, а на mapped + onscreen + usable + activation у живому Tk. Контролюються журнали, створення/відповідь/вкладення/відкриття документа, фактичне отримання/надсилання, стан/історія та всі основні дії зі справами/ланцюжками. Якщо дія зникне, стане недоступною або перестане активуватися, regression має впасти.
 
-### Current Test 10.24-r8 — контроль повторного відкриття учасників наказу
+### Current Test 10.24-r9 — збереження копій документів транспортних засобів
+
+**10.24-r9 опублікована як Current Test; Stable/Latest лишається 10.24-r3.** Виправлено давню слабкість механізму документів ТЗ, що існувала від 10.2-r1 (21.09.2026): запис у БД міг лишитися, навіть якщо фізичної копії файла вже не було, а початковий шлях не зберігався. Тепер нова/замінена копія зберігається як власний файл Taxo у `Data/VehicleDocuments` разом із source path, розміром і SHA-256; UI показує фактичний стан файла, selected backup з документами ТЗ перевіряє bytes, restore повторно перевіряє їх, а архівування запису не відриває копію. Якщо legacy external/source файл ще існує, повний backup може забрати його у самодостатню workspace-копію всередині архіву. Якщо bytes уже фізично відсутні всюди, Taxo прямо показує втрату й не називає такий backup повним.
+
+### Test 10.24-r8 — контроль повторного відкриття учасників наказу
 
 **10.24-r8 опублікована як Current Test; Stable/Latest лишається 10.24-r3.** Бізнес-правила наказів, схема БД і формати документів не змінювалися. r8 перевіряє, що після повного закриття й повторного відкриття UI наказ знову читається з SQLite без втрати номера, дати, теми, стану, ролі/примітки учасника, frozen snapshot та sequence. Перехід «Чернетка» → «Діє в Taxo» не повинен змінювати participant data. r7-контроль add/edit/remove, live preview, DOCX/PDF і backup/restore лишається чинним.
 
@@ -60,7 +64,7 @@
 - **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_x86_64_Portable.zip)
 - **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test: [Taxo 10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8)** — exact source `d24b1bc96115de52d6088813992aca3b410fe243`, 8 файлів, prerelease. Control-only fresh-reopen guard для «Учасники / ТЗ» поверх r7; 58 strict live routes загалом; Stable/Latest лишається 10.24-r3.
+**Current Test: [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)** — exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease. Наскрізний захист копій документів ТЗ: Taxo-owned copy + source path/size/SHA-256, фактичний file state, перевірений backup/restore та збереження архівованих копій. Stable/Latest лишається 10.24-r3.
 
 ## Початок роботи та дані
 
