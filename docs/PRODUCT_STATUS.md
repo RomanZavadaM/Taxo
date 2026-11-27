@@ -1,14 +1,13 @@
 # Taxo — стан продукту
 
-**Актуально:** 27.11.2026 після публікації Test 10.24-r9; Stable/Latest — 10.24-r3.
+**Актуально:** 27.11.2026 після promotion 10.24-r9 у Stable/Latest.
 
-- **Стабільна / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 файлів, prerelease=false; correspondence registry + controlled attachments + journal/card UI.
-- **Попередня стабільна:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
-- **Поточний Test:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease=true; Taxo-owned vehicle-document copies, source path/size/SHA-256, factual copy state, selected backup/restore validation.
+- **Стабільна / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease=false; vehicle-document Taxo-owned copies, source path/size/SHA-256, factual copy state, selected backup/restore validation.
+- **Попередня стабільна:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 - Promotion checks: START #45146984711, Windows #45146984611, Win7 #45146984624, macOS Intel/ARM #45146984616 — SUCCESS; Windows/Win7 Defender + integrity PASS. Publisher #45147941030 і guarded stable verification #45147941048 — SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
-**У Current Test 10.24-r9** виправлено давню слабкість документів ТЗ, що існувала від 10.2-r1: запис у БД міг лишитися без фізичного файла, а початковий source path не зберігався. Нові/замінені копії є Taxo-owned файлами у `Data/VehicleDocuments` із source path, size та SHA-256. UI показує реальну наявність/втрату/пошкодження; selected backup перевіряє bytes, може забрати доступний legacy external/source файл у staging archive, restore повторно перевіряє копії, а архівування запису не видаляє файл. Publisher #46004721962 — SUCCESS; exact release target `e3770aa72b0744eee192979a2e569651bac4f257`.
+**У Stable/Latest 10.24-r9** виправлено давню слабкість документів ТЗ, що існувала від 10.2-r1: запис у БД міг лишитися без фізичного файла, а початковий source path не зберігався. Нові/замінені копії є Taxo-owned файлами у `Data/VehicleDocuments` із source path, size та SHA-256. UI показує реальну наявність/втрату/пошкодження; selected backup перевіряє bytes, може забрати доступний legacy external/source файл у staging archive, restore повторно перевіряє копії, а архівування запису не видаляє файл. Publisher #46004721962 — SUCCESS; exact release target `e3770aa72b0744eee192979a2e569651bac4f257`.
 
 У Stable 10.24-r3 також входять зміни, прийняті ще в 10.23-r4: редагування ролі/примітки учасника наказу; накопичення вибору при пошуку; регульовані робочі області «Документи»; регульована ширина дерева каталогу; адаптивний перегляд наказу, де DOCX/PDF/JPG та нижні дії залишаються доступними у вузькому вікні. 10.23-r4 була попередньою стабільною точкою; 23.11.2026 власник прямо перевів 10.24-r3 у Stable/Latest.
 
