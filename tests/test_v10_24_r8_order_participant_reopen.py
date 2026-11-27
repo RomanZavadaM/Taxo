@@ -40,19 +40,19 @@ class OrderParticipantReopenR8Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.25-r1\n",
+            "Version: 10.25-r2\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.25-r1"',
+            'APP_VERSION = "10.25-r2"',
             (root / "main.py").read_text("utf-8"),
         )
         self.assertIn(
-            "Taxo 10.25-r1 - START",
+            "Taxo 10.25-r2 - START",
             (root / "START.bat").read_text("utf-8"),
         )
         self.assertEqual(
             (root / ".release" / "full-current").read_text("utf-8"),
-            "10.25-r1\n",
+            "10.25-r2\n",
         )
 
     def setUp(self):
