@@ -184,14 +184,14 @@ class BriefingPlanningLiveR3Tests(unittest.TestCase):
                 revise,
                 "operations.instructions_program_revision",
             )
-            before_children = set(self.root.winfo_children())
+            before_children = set(dialog.winfo_children())
             activate_widget(
                 revise,
                 "operations.instructions_program_revision",
             )
             self.root.update()
             editors = [
-                child for child in self.root.winfo_children()
+                child for child in dialog.winfo_children()
                 if child not in before_children
                 and isinstance(child, tk.Toplevel)
             ]
