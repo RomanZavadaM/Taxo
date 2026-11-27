@@ -18,11 +18,11 @@ from v1073_features import export_order_pdf_with_appendices
 class OrdersCloseoutR10PrepTests(unittest.TestCase):
     def test_candidate_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.24-r10\\n")
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.24-r10\n")
         self.assertIn('APP_VERSION = "10.24-r10"', (root / "main.py").read_text("utf-8"))
         self.assertIn("Taxo 10.24-r10 - START", (root / "START.bat").read_text("utf-8"))
-        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.24-r10\\n")
-        self.assertEqual((root / ".release" / "stable-current").read_text("utf-8"), "10.24-r9\\n")
+        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.24-r10\n")
+        self.assertEqual((root / ".release" / "stable-current").read_text("utf-8"), "10.24-r9\n")
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="taxo_r10_orders_")
