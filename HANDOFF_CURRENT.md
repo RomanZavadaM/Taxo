@@ -1,45 +1,44 @@
 # HANDOFF_CURRENT — Taxo
 
-**27.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r3.**
+**27.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r4.**
 
 - **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 canonical assets, prerelease=false, GitHub Latest.
-- **Current Test:** [v10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3), exact issued source `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`, 8 canonical assets, prerelease=true.
-- Current main after release trigger: `8f8dc5ef52db6bdecba4adee7d9ab4f7d77dc4a6`.
+- **Current Test:** [v10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4), exact issued source `ed3b79a96659aa011f60fa7912092fbc15157cdb`, 8 canonical assets, prerelease=true.
+- Current main after release trigger: `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`.
 
-## 10.25-r3 — завершено
+## 10.25-r4 — завершено
 
-- Додано `briefing_planning_ui.py`: програми, незмінні редакції, read-only історія редакцій.
-- Вибір працівників читає єдиний реєстр; пошук не скидає вже накопичений multi-select.
-- Planned session створюється з frozen snapshot Taxo ID / ПІБ / табельного № / посади.
-- Детермінований planning key залежить від програми, редакції, дати й набору людей; однаковий план не дублює session.
-- Exact program revision створює DOCX через чинний PaperDocuments.
-- Новий backward-compatible `Data/BriefingPreparedOutputs` зв'язує session з конкретним PaperDocuments record: document_id + filename + SHA-256.
-- Повторна підготовка не створює другий DOCX; missing/tampered file fail-closed.
-- Після перевіреного DOCX session стає тільки `prepared`; автоматичного `conducted` або підпису немає.
-- Full workspace backup/restore зберігає planning store + output links + PaperDocuments.
-- Додано strict live routes: `operations.instructions_planning`, `operations.instructions_program_revision`, `operations.instructions_prepare_planned`.
-- Перший prep зловив реальний UI-регрес: нова кнопка зсунула стару «Створити комплект DOCX для друку» на 4 px за межу 940×600. Нову кнопку перенесено у верхній рядок; тест не послаблювали.
+- Додано окрему дію **«За подією…»** у модулі інструктажів.
+- Підстава події обов'язкова; event session не закриває й не змінює regular planned session.
+- Вибір працівників бере shared registry і накопичується під час пошуку.
+- Event session зберігає exact program revision і frozen snapshots працівників.
+- Event можна лише створити або створити + підготувати DOCX; DOCX змінює стан максимум на `prepared`.
+- У квартальному вікні додано **«Зафіксувати проведення…»**: фактична дата + обов'язкова примітка/посилання на паперовий запис.
+- Уже зафіксований `conducted` факт не переписується іншою датою/приміткою.
+- **«Історія…»** read-only показує mode/reason/program revision/frozen people/created/updated/prepared/conducted/evidence/prepared DOCX + SHA-256.
+- Strict live routes: open event, create event, manual conducted save, history.
+- Full backup/restore зберігає event + evidence + prepared output.
 - Реальна база власника не відкривалась.
 
-## Приймання r3
+## Приймання r4
 
-- Prep PR #665 закритий без merge після виконання ролі: final START #46051503140 — **1727/1727 PASS**; Windows #46051503134, Win7 #46051503176, macOS #46051503178 — SUCCESS; Defender/integrity PASS.
-- Candidate PR #666: START #46052184007 — **1728/1728 PASS**, 6/6 r3 tests; Windows #46052183718, Win7 #46052183685, macOS #46052183788 — SUCCESS; Defender/integrity PASS.
-- Exact issued source після merge #666: `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`.
-- Exact-source CI: START #46052986259 — 1728/1728 PASS; Windows #46052986192 SUCCESS; macOS #46052986186 SUCCESS.
-- Exact Win7 #46052986213: attempt 1 дійшов до Defender, але update сигнатур дав мережевий timeout `0x80072ee2`; malware detection не було. Без зміни коду rerun attempt 2 на тому самому SHA — SUCCESS, Defender/integrity PASS.
-- Release trigger PR #667 merged `8f8dc5ef52db6bdecba4adee7d9ab4f7d77dc4a6`.
-- Publisher #46054871091 — SUCCESS.
-- Release `v10.25-r3`: 8 assets, prerelease=true, target = exact issued source.
+- Prep PR #669 закритий без merge після ролі: START #46058038769 — **1731/1731 PASS**; Windows #46058038848, Win7 #46058038768, macOS #46058038830 — SUCCESS; Defender/integrity PASS.
+- Candidate PR #670: START #46060419818 — **1732/1732 PASS**, 4/4 r4 scenarios; Windows #46060419824, Win7 #46060419944, macOS #46060419876 — SUCCESS; Defender/integrity PASS.
+- Exact issued source після merge #670: `ed3b79a96659aa011f60fa7912092fbc15157cdb`.
+- Exact-source CI: START #46061028041, Windows #46061028147, Win7 #46061028060, macOS #46061028199 — SUCCESS; Defender/integrity PASS.
+- Release trigger PR #671 merged `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`.
+- Trigger Win7 #46061090608 attempt 1 failed only on Defender signature-update network timeout `0x80072ee2`; no malware detection. Rerun attempt 2 on the same SHA — SUCCESS, Defender/integrity PASS.
+- Publisher #46062424737 — SUCCESS.
+- Release `v10.25-r4`: 8 assets, prerelease=true, draft=false, target = exact issued source.
 - Stable/Latest лишається 10.24-r9.
 
 ## Що далі
 
-**10.25-r4 — «За подією» + явна ручна фіксація факту проведення.**
+**10.25-r5 — наскрізне контрольне приймання Інструктажів.**
 
-Межа r4: окрема дія «За подією» з обов'язковою підставою; event session не впливає на регулярний planned; явна дія «Зафіксувати проведення» з фактичною датою + evidence note; history/audit; жодного автоматичного conducted від друку/скану.
+Synthetic/virtual full cycle: program revision → quarter plan → employees → prepared DOCX → close/reopen → event briefing → manual conducted fact → overdue control → full backup/restore → equality/integrity. Це контрольний етап без автоматичного `conducted` і без робочої бази власника.
 
-Після завершення r4: virtual/synthetic acceptance → full CI → окремий GitHub Test release. Stable 10.24-r9 не змінювати без окремого прямого рішення власника.
+Після завершення r5: full CI → окремий GitHub Test release → ручне owner acceptance UI. Лише після цього вирішувати, чи закривати #237 і переходити до наступного великого блоку — єдиного сховища документів.
 
 Execution plan: `docs/planning/INSTRUCTIONS_10_25_EXECUTION_PLAN_2026-11-27.md`.
 
