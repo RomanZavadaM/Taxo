@@ -376,7 +376,7 @@ class VehicleDocumentsWindow:
                 self.on_change()
 
         ttk.Button(win, text="Зберегти", command=save).grid(
-            row=copy_row + 2, column=1, sticky="e", padx=10, pady=16
+            row=copy_row + 3, column=1, sticky="e", padx=10, pady=16
         )
 
     def archive_document(self):
