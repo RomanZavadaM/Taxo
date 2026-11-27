@@ -74,7 +74,7 @@ class BriefingEventR4PrepTests(unittest.TestCase):
             scheduled_for="2026-12-15",
             participants=self.people,
         )
-        with self.assertRaisesRegex(ValueError, "підстава"):
+        with self.assertRaisesRegex(ValueError, "[Пп]ідстава"):
             event_ui.create_event(
                 self.root,
                 program_id=self.program.program_id,
