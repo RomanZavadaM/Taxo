@@ -18,7 +18,7 @@
 
 Докладніше: [огляд системи](docs/SYSTEM_OVERVIEW.md) · [посібник користувача](docs/guides/USER_MANUAL.md) · [експлуатація та СТОІР](docs/guides/OPERATIONS_STOIR_GUIDE.md).
 
-## Попередня стабільна 10.24-r3
+## Історична стабільна 10.24-r3
 
 **10.24-r3 за прямим рішенням власника 23.11.2026 переведена у Stable/Latest.** Вона містить увесь прийнятий функціонал 10.23-r4 та завершену лінію кореспонденції r1–r3:
 
@@ -55,16 +55,20 @@
 
 **10.24-r8 опублікована як Current Test; Stable/Latest лишається 10.24-r3.** Бізнес-правила наказів, схема БД і формати документів не змінювалися. r8 перевіряє, що після повного закриття й повторного відкриття UI наказ знову читається з SQLite без втрати номера, дати, теми, стану, ролі/примітки учасника, frozen snapshot та sequence. Перехід «Чернетка» → «Діє в Taxo» не повинен змінювати participant data. r7-контроль add/edit/remove, live preview, DOCX/PDF і backup/restore лишається чинним.
 
+## Current Test 10.24-r10 — наскрізне віртуальне приймання наказів
+
+**10.24-r10 опублікована як Test; Stable/Latest лишається 10.24-r9.** На synthetic workspace перевірено одним циклом: наказ із працівниками/ТЗ, редагування й повторне додавання, пари водій–ТЗ, повторне відкриття БД, введення наказу в дію, DOCX/PDF/JPG, full backup з Output, restore у чисту папку та SHA-256 готових файлів. Exact-source START — 1714/1714 PASS; Windows/Win7/macOS — SUCCESS; Defender/integrity PASS. Реальна база власника не використовувалась.
+
 ## Завантаження
 
-**Stable / Latest: [Taxo 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).** Попередня стабільна точка: [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
+**Stable / Latest: [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)** — 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`.
 
-- **Windows 10/11 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_Windows_x64_Portable.zip)
-- **Windows 7 SP1 x64:** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_Windows7_x64_Portable.zip)
-- **macOS:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_macOS_x86_64_Portable.zip)
-- **Вихідний пакет:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
+- **Windows 10/11 x64 (Stable):** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_Setup_Windows_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_Windows_x64_Portable.zip)
+- **Windows 7 SP1 x64 (Stable):** [інсталятор](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_Setup_Windows7_x64.exe) · [portable](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_Windows7_x64_Portable.zip)
+- **macOS Stable:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_macOS_x86_64_Portable.zip)
+- **Stable START/SHA256:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/SHA256SUMS_v10_24_r9.txt)
 
-**Current Test: [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)** — exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease. Наскрізний захист копій документів ТЗ: Taxo-owned copy + source path/size/SHA-256, фактичний file state, перевірений backup/restore та збереження архівованих копій. Stable/Latest лишається 10.24-r3.
+**Current Test: [Taxo 10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10)** — exact source `2e35cea72b46ac9c032966e9def195fc306834a5`, 8 файлів, prerelease.
 
 ## Початок роботи та дані
 

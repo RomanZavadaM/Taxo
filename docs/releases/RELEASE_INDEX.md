@@ -1,10 +1,11 @@
 # Випуски Taxo
 
-**Стан:** 27.11.2026 після promotion 10.24-r9 у Stable/Latest.
+**Стан:** 27.11.2026: Stable/Latest 10.24-r9; Current Test 10.24-r10.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) | 8 canonical assets; vehicle-document Taxo-owned copy + source path/size/SHA-256; selected backup/restore validation incl. archived records. Exact source e3770aa72b0744eee192979a2e569651bac4f257; promotion PR #651 merged 3dfefa67ad9385ac18c8ee182c0a99a5a5a0effa; publisher #46014386874 SUCCESS; prerelease=false; GitHub Latest. |
+| Поточна тестова | [10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10) | 8 canonical assets; synthetic Orders end-to-end: participants/vehicles + assignments + edit/delete/re-add + DB reopen + Draft→Active + DOCX/PDF/JPG + full backup(Output)→restore + SHA-256. Exact source 2e35cea72b46ac9c032966e9def195fc306834a5; START #46021196420 1714/1714; Windows #46021196370, Win7 #46021196472, macOS #46021196428 SUCCESS; publisher #46023586194 SUCCESS; prerelease=true. |
 | Попередня стабільна | [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) | 8 canonical assets; exact source c9cb6b7787d991c5ce612ceec1efb32ecc90891d. |
 | Попередня тестова | [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8) | 8 canonical assets; 58 strict live routes; fresh-reopen preservation control for order participants over r7. Exact source d24b1bc96115de52d6088813992aca3b410fe243; publisher #45237831016 SUCCESS; Defender/integrity PASS. |
 | Попередня тестова | [10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) | 8 canonical assets; 58 strict live routes; end-to-end order participant control: search/select, edit role/note, add vehicle, remove selected, preview sync; frozen DOCX/PDF participant snapshot + backup/restore. Exact source 4221b8baaeae4fad6ca8b6ebf4640a4a34050e2d; publisher #45220620129 SUCCESS; Defender/integrity PASS. |
@@ -71,7 +72,7 @@
 | Архівна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |
 | Архівна | [10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | Попередній контрольний випуск. |
 
-[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) · [Current Test 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) · [Поточний стан](../../PROJECT_STATE.md).
+[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) · [Current Test 10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10) · [Поточний стан](../../PROJECT_STATE.md).
 
 v10.23-r3 навмисно не публікувався за рішенням власника; номер не перевикористовується.
 

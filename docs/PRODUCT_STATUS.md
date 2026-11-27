@@ -1,17 +1,17 @@
 # Taxo — стан продукту
 
-**Актуально:** 27.11.2026 після promotion 10.24-r9 у Stable/Latest.
+**Актуально:** 27.11.2026 після публікації 10.24-r10 Test.
 
-- **Стабільна / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease=false; vehicle-document Taxo-owned copies, source path/size/SHA-256, factual copy state, selected backup/restore validation.
-- **Попередня стабільна:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
-- Promotion checks: START #45146984711, Windows #45146984611, Win7 #45146984624, macOS Intel/ARM #45146984616 — SUCCESS; Windows/Win7 Defender + integrity PASS. Publisher #45147941030 і guarded stable verification #45147941048 — SUCCESS.
+- **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease=false.
+- **Current Test:** [10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10), exact source `2e35cea72b46ac9c032966e9def195fc306834a5`, 8 файлів, prerelease=true; synthetic Orders end-to-end + backup/restore SHA-256.
+- **r10 exact-source CI:** START #46021196420 — 1714/1714; Windows #46021196370; Win7 #46021196472; macOS #46021196428 — SUCCESS; Defender/integrity PASS. Publisher #46023586194 SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
 **У Stable/Latest 10.24-r9** виправлено давню слабкість документів ТЗ, що існувала від 10.2-r1: запис у БД міг лишитися без фізичного файла, а початковий source path не зберігався. Нові/замінені копії є Taxo-owned файлами у `Data/VehicleDocuments` із source path, size та SHA-256. UI показує реальну наявність/втрату/пошкодження; selected backup перевіряє bytes, може забрати доступний legacy external/source файл у staging archive, restore повторно перевіряє копії, а архівування запису не видаляє файл. Publisher #46004721962 — SUCCESS; exact release target `e3770aa72b0744eee192979a2e569651bac4f257`.
 
 У Stable 10.24-r3 також входять зміни, прийняті ще в 10.23-r4: редагування ролі/примітки учасника наказу; накопичення вибору при пошуку; регульовані робочі області «Документи»; регульована ширина дерева каталогу; адаптивний перегляд наказу, де DOCX/PDF/JPG та нижні дії залишаються доступними у вузькому вікні. 10.23-r4 була попередньою стабільною точкою; 23.11.2026 власник прямо перевів 10.24-r3 у Stable/Latest.
 
-У каталозі «Документи» є дерево **«За видами / За датами / Мої папки»**. Власні папки можуть бути вкладеними; їх можна створювати й перейменовувати, а один документ розміщувати в одній або кількох папках без фізичного переносу чи копіювання файлів. Структура папок входить до повної резервної копії Taxo. У 10.22-r10 можна вибрати документ із усього каталогу навіть для порожньої папки, переміщувати власні папки, архівувати й відновлювати їх без видалення файлів; PDF-додаток наказу переносить довгі ролі, імена й реквізити у межах колонок. У Test 10.24-r7 блок «Учасники / ТЗ» отримав наскрізний live-control add/edit/remove/preview; у Test 10.24-r8 додано fresh-reopen preservation control; ширший аудит механізму наказів за #553 ще не завершений. **У Stable 10.24-r3 є реєстр, нумерація, контрольовані вкладення та journal/card UI. Test 10.24-r4 додав явні фактичні стани відправлення/отримання, append-only history і due/overdue. Test 10.24-r5 додав логічні справи/теми та ланцюжки; Test 10.24-r6 — повний strict live-control критичних дій кореспонденції без зміни її data model; Test 10.24-r7 — наскрізний live-control блоку «Учасники / ТЗ» наказу; Test 10.24-r8 — fresh-reopen preservation control поверх нього; Current Test 10.24-r9 — захист фізичних копій документів ТЗ, backup/restore та архівованих записів.**
+У каталозі «Документи» є дерево **«За видами / За датами / Мої папки»**. Власні папки можуть бути вкладеними; їх можна створювати й перейменовувати, а один документ розміщувати в одній або кількох папках без фізичного переносу чи копіювання файлів. Структура папок входить до повної резервної копії Taxo. У 10.22-r10 можна вибрати документ із усього каталогу навіть для порожньої папки, переміщувати власні папки, архівувати й відновлювати їх без видалення файлів; PDF-додаток наказу переносить довгі ролі, імена й реквізити у межах колонок. У Test 10.24-r7 блок «Учасники / ТЗ» отримав наскрізний live-control add/edit/remove/preview; у Test 10.24-r8 додано fresh-reopen preservation control; ширший аудит механізму наказів за #553 ще не завершений. **У Stable 10.24-r3 є реєстр, нумерація, контрольовані вкладення та journal/card UI. Test 10.24-r4 додав явні фактичні стани відправлення/отримання, append-only history і due/overdue. Test 10.24-r5 додав логічні справи/теми та ланцюжки; Test 10.24-r6 — повний strict live-control критичних дій кореспонденції без зміни її data model; Test 10.24-r7 — наскрізний live-control блоку «Учасники / ТЗ» наказу; Test 10.24-r8 — fresh-reopen preservation control поверх нього; Stable 10.24-r9 — захист фізичних копій документів ТЗ; Current Test 10.24-r10 — synthetic Orders closeout із повним backup/restore.**
 
 ## AI-ready архів документів
 
@@ -42,8 +42,11 @@
 
 ## Подальша робота
 
-10.24-r9 опублікована як Current Test. Issue #642 залишається відкритою до ручного приймання на реальному робочому сховищі: перевірити старі копії документів ТЗ, створити backup з відповідною відміткою, відновити його в окреме сховище та перевірити відкриття поточних і архівованих копій. Якщо старі bytes уже відсутні і у workspace, і у source, і у старих backup, автоматично відновити їх неможливо. Якщо приймання виявить новий дефект, наступна кодова ревізія — 10.24-r10. Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
+10.24-r10 опублікована як Current Test після повного virtual/synthetic acceptance; робоча база власника не використовувалась. #553 лишається відкритою до ручного UI acceptance, #556/#562 — окремі audit/UX задачі.
 
+Наступний продуктовий етап — **10.25-r1: фундамент Інструктажів БДР / охорони праці / стажування** за Issue #237. Перший slice: versioned programs, planned/event records, dedup/history, чесні стани без автоматичного «проведено» від друку, synthetic backup/restore. Після завершення — окремий Test release. Stable 10.24-r9 не змінювати без прямого рішення власника.
+
+Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
 [Індекс релізів](releases/RELEASE_INDEX.md) · [Інструкція користувача](guides/USER_MANUAL.md) · [Відновлення роботи](../START_HERE.md)
 

@@ -1,3 +1,16 @@
+## 27.11.2026 — 10.24-r10 Orders closeout / Current Test
+
+- Власник затвердив процес: virtual/synthetic testing only; після кожного завершеного етапу — окремий GitHub Test release.
+- Зафіксовано roadmap `docs/planning/ROADMAP_AFTER_10_24_R9_2026-11-27.md`.
+- Новий synthetic end-to-end gate перевіряє ordinary order entities, assignment pairs, edit/delete/re-add, DB reopen, Draft→Active, DOCX/PDF/JPG, full backup with Output → restore → DB equality + SHA-256; реальна база не використовується.
+- Prep START: 1713/1713 PASS. Final/exact-source START #46021196420: 1714/1714 PASS.
+- Exact issued source `2e35cea72b46ac9c032966e9def195fc306834a5`; Windows #46021196370, Win7 #46021196472, macOS Intel/ARM #46021196428 — SUCCESS; Defender/integrity PASS.
+- Candidate PR #654 merged. Release trigger PR #655 merged as `71fe07ed0920cfe94e27d41de53f07e92cccc795`.
+- Publisher #46023586194 SUCCESS → [v10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10), 8 canonical assets, prerelease=true, exact target `2e35cea72b46ac9c032966e9def195fc306834a5`.
+- Stable/Latest remains [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9).
+- Release-maintenance: hosted runners began resolving lxml 6.2.0 from source; main now pins `lxml==6.1.3` (the wheel used by verified r10 Windows) and START CI explicitly uses Python 3.13. These commits are after the immutable r10 source.
+- #553 remains open for manual UI acceptance; next product stage: 10.25-r1 Instructions foundation (Issue #237).
+
 ## 27.11.2026 — 10.24-r9 vehicle document persistence / Current Test
 
 ## 27.11.2026 — 10.24-r9 promoted to Stable/Latest
