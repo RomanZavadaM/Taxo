@@ -19,7 +19,7 @@
 - [Адміністрування й резервні копії](guides/ADMIN_GUIDE.md).
 - [Типові проблеми](guides/TROUBLESHOOTING.md).
 
-## Актуально для Stable 10.24-r9 / Test 10.25-r3
+## Актуально для Stable 10.24-r9 / Test 10.25-r4
 
 Taxo допомагає створювати, редагувати, переглядати й друкувати накази. Паперовий оригінал лишається первинним контролем; позначка паперового підпису не є КЕП і не блокує виправлення робочого запису Taxo.
 
@@ -28,12 +28,14 @@ Taxo допомагає створювати, редагувати, перегл
 ## Випуски та стан
 
 - [Stable 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — Taxo-owned копії документів ТЗ, source path/size/SHA-256 і перевірений backup/restore
-- [Current Test 10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3) — program revisions + cumulative employee selection + exact prepared DOCX link/SHA-256; Stable не змінює
+- [Current Test 10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4) — event briefing + mandatory reason + explicit manual conducted evidence + read-only audit; Stable не змінює
+- [Previous Test 10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3) — program revisions + cumulative employee selection + exact prepared DOCX link/SHA-256
 - [Previous Test 10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2) — «На цей квартал» + exact program revision
 - [Previous Test 10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10) — synthetic Orders closeout
 - [Test 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) — end-to-end live-control «Учасники / ТЗ»; Stable не змінює
 - [Test 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6) — full live-control correspondence actions; Stable не змінює
 - [Попередній Test 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) — logical cases/threads без копіювання листів
+- [Що нового у 10.25-r4](releases/RELEASE_NOTES_v10.25-r4.md)
 - [Що нового у 10.25-r3](releases/RELEASE_NOTES_v10.25-r3.md)
 - [Що нового у 10.25-r2](releases/RELEASE_NOTES_v10.25-r2.md)
 - [Що нового у 10.25-r1](releases/RELEASE_NOTES_v10.25-r1.md)
