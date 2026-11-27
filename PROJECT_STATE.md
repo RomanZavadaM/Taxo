@@ -23,3 +23,5 @@
 Issue #642 прийнята власником після isolated virtual round-trip test і закривається completed. Це не відновлює історичні файли, bytes яких уже немає ніде.
 
 Наступна дозволена кодова ревізія — **10.24-r10** після вибору наступного змістовного пакета. Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge лишаються окремо заблокованими. Draft #543/#395 лишаються відкритими.
+
+Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
