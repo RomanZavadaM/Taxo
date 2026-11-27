@@ -43,9 +43,9 @@ Release trigger #640 merged `411c1e496ccddcd4ed0f9fd754743dfdf9ef8986`; trigger 
 
 Stable remains 10.24-r3.
 
-Recovery r9 is the current checkpoint: product PR #643, immutable Test release v10.24-r9, public recovery/current-page docs, private `profile/taxo`, Issue #61/#642 and Drive current-docs mirror belong to the same incident closure. The owner acceptance step is a real vehicle-document round trip: attach/replace → archive → selected vehicle-document backup → restore into a test workspace → open the restored copy. If historical bytes are absent from workspace, source and old full backups, they are not recoverable from SQLite alone.
+Recovery r9 is the current checkpoint: product PR #643 and immutable Test release v10.24-r9 are complete. Issue #642 remains OPEN until owner acceptance on the real workspace. The acceptance step is a real vehicle-document round trip: attach/replace → archive → selected vehicle-document backup → restore into a test workspace → open the restored copy. If historical bytes are absent from workspace, source and old full backups, they are not recoverable from SQLite alone.
 
-Do not consume a new code revision for documentation or mirror cleanup. Start another code slice only after r9 acceptance or a newly identified defect and then follow the normal project plan. Do not automatically broaden work into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
+Do not consume a new code revision for documentation or mirror cleanup. If r9 acceptance finds a new defect, the next code revision is **10.24-r10**; otherwise close #642 after owner acceptance and return to the normal project plan. Do not automatically broaden work into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
 
 Draft #543/#395 stay open.
 
