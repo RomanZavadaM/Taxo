@@ -1,42 +1,45 @@
 # HANDOFF_CURRENT — Taxo
 
-**27.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r2.**
+**27.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r3.**
 
 - **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 canonical assets, prerelease=false, GitHub Latest.
-- **Current Test:** [v10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2), exact issued source `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`, 8 canonical assets, prerelease=true.
-- Current main after release trigger: `460484945159ee3dc433c3f4f6b986a2c9872d73`.
+- **Current Test:** [v10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3), exact issued source `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`, 8 canonical assets, prerelease=true.
+- Current main after release trigger: `8f8dc5ef52db6bdecba4adee7d9ab4f7d77dc4a6`.
 
-## 10.25-r2 — завершено
+## 10.25-r3 — завершено
 
-- Додано `src/taxo/briefing_quarter_view.py`.
-- У вкладці «Інструктажі та журнали» є кнопка **«На цей квартал…»**.
-- Квартальний екран: попередній/наступний квартал, фільтр «Усі / БДР / Охорона праці», дата, вид, режим, програма, кількість працівників, стан.
-- Стани: Заплановано / Підготовлено / Прострочено / Проведено; overdue похідний і не переписує історію.
-- «Відкрити програму…» читає точну immutable program revision, на яку посилається session.
-- Подієвий захід не закриває плановий.
-- Explicit plan helper ідемпотентний: same planning_key + same spec повертає існуючий session; conflict не переписується.
-- Додано strict live route `operations.instructions_quarter`; small-window 780×540 перевіряє mapped + onscreen + usable + activation.
+- Додано `briefing_planning_ui.py`: програми, незмінні редакції, read-only історія редакцій.
+- Вибір працівників читає єдиний реєстр; пошук не скидає вже накопичений multi-select.
+- Planned session створюється з frozen snapshot Taxo ID / ПІБ / табельного № / посади.
+- Детермінований planning key залежить від програми, редакції, дати й набору людей; однаковий план не дублює session.
+- Exact program revision створює DOCX через чинний PaperDocuments.
+- Новий backward-compatible `Data/BriefingPreparedOutputs` зв'язує session з конкретним PaperDocuments record: document_id + filename + SHA-256.
+- Повторна підготовка не створює другий DOCX; missing/tampered file fail-closed.
+- Після перевіреного DOCX session стає тільки `prepared`; автоматичного `conducted` або підпису немає.
+- Full workspace backup/restore зберігає planning store + output links + PaperDocuments.
+- Додано strict live routes: `operations.instructions_planning`, `operations.instructions_program_revision`, `operations.instructions_prepare_planned`.
+- Перший prep зловив реальний UI-регрес: нова кнопка зсунула стару «Створити комплект DOCX для друку» на 4 px за межу 940×600. Нову кнопку перенесено у верхній рядок; тест не послаблювали.
 - Реальна база власника не відкривалась.
 
-## Приймання r2
+## Приймання r3
 
-- Prep START: **1721/1721 PASS**, 3/3 r2 scenarios.
-- Candidate START: **1722/1722 PASS**, 4/4 r2 scenarios.
-- Candidate PR #662: START #46035757012, Windows #46035757099, Win7 #46035757130, macOS #46035756981 — SUCCESS; Defender/integrity PASS.
-- Exact issued source: `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`.
-- Exact-source CI: START #46036612119, Windows #46036612155, Win7 #46036612125, macOS #46036612192 — SUCCESS.
-- Release trigger PR #663 merged `460484945159ee3dc433c3f4f6b986a2c9872d73`.
-- Publisher #46037622127 — SUCCESS.
-- Release `v10.25-r2`: 8 assets, prerelease=true, target = exact issued source.
+- Prep PR #665 закритий без merge після виконання ролі: final START #46051503140 — **1727/1727 PASS**; Windows #46051503134, Win7 #46051503176, macOS #46051503178 — SUCCESS; Defender/integrity PASS.
+- Candidate PR #666: START #46052184007 — **1728/1728 PASS**, 6/6 r3 tests; Windows #46052183718, Win7 #46052183685, macOS #46052183788 — SUCCESS; Defender/integrity PASS.
+- Exact issued source після merge #666: `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`.
+- Exact-source CI: START #46052986259 — 1728/1728 PASS; Windows #46052986192 SUCCESS; macOS #46052986186 SUCCESS.
+- Exact Win7 #46052986213: attempt 1 дійшов до Defender, але update сигнатур дав мережевий timeout `0x80072ee2`; malware detection не було. Без зміни коду rerun attempt 2 на тому самому SHA — SUCCESS, Defender/integrity PASS.
+- Release trigger PR #667 merged `8f8dc5ef52db6bdecba4adee7d9ab4f7d77dc4a6`.
+- Publisher #46054871091 — SUCCESS.
+- Release `v10.25-r3`: 8 assets, prerelease=true, target = exact issued source.
 - Stable/Latest лишається 10.24-r9.
 
 ## Що далі
 
-**10.25-r3 — програми, вибір працівників і масова підготовка до друку.**
+**10.25-r4 — «За подією» + явна ручна фіксація факту проведення.**
 
-Межа r3: UI створення нової редакції програми без переписування старої; вибір груп/працівників із реєстру з накопиченням multi-select; explicit planned sessions із frozen snapshots; «Підготувати до друку» використовує PaperDocuments і ставить лише prepared, не conducted; backup/restore плану + готових DOCX.
+Межа r4: окрема дія «За подією» з обов'язковою підставою; event session не впливає на регулярний planned; явна дія «Зафіксувати проведення» з фактичною датою + evidence note; history/audit; жодного автоматичного conducted від друку/скану.
 
-Після завершення r3: virtual/synthetic acceptance → full CI → окремий GitHub Test release. Stable 10.24-r9 не змінювати без окремого прямого рішення власника.
+Після завершення r4: virtual/synthetic acceptance → full CI → окремий GitHub Test release. Stable 10.24-r9 не змінювати без окремого прямого рішення власника.
 
 Execution plan: `docs/planning/INSTRUCTIONS_10_25_EXECUTION_PLAN_2026-11-27.md`.
 
