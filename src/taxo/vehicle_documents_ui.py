@@ -494,7 +494,7 @@ def open_vehicle_document_control(parent, db_factory, data_root, on_open_vehicle
                     row["document_no"],
                     display_date(row["valid_until"]),
                     row["status"],
-                    "Є" if row["copy_path"] else "Немає",
+                    row["copy_state"],
                 ),
             )
         issue_count = sum(1 for r in rows if r["rank"] < 3)
