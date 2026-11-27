@@ -4,9 +4,10 @@
 
 **Previous stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
 
-**Current Test:** [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8) — 8 файлів, exact source `d24b1bc96115de52d6088813992aca3b410fe243`, prerelease=true; 58 strict live routes, fresh-reopen order participant preservation control поверх r7; Stable/Latest лишається 10.24-r3.
+**Current Test:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, prerelease=true; vehicle-document Taxo-owned copies + provenance/integrity + selected backup/restore validation; Stable/Latest лишається 10.24-r3.
 
-- [Примітки 10.24-r8](RELEASE_NOTES_v10.24-r8.md)
+- [Примітки 10.24-r9](RELEASE_NOTES_v10.24-r9.md)
+- [Попередні примітки 10.24-r8](RELEASE_NOTES_v10.24-r8.md)
 - [Примітки 10.24-r7](RELEASE_NOTES_v10.24-r7.md)
 - [Примітки 10.24-r6](RELEASE_NOTES_v10.24-r6.md)
 - [Примітки 10.24-r5](RELEASE_NOTES_v10.24-r5.md)

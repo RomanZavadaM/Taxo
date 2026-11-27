@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**23.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r8.**
+**27.11.2026 — Stable/Latest 10.24-r3; Current Test 10.24-r9.**
 
 ## Stable
 
@@ -11,15 +11,15 @@
 
 ## Current Test
 
-- Release: [v10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8)
-- Exact source: `d24b1bc96115de52d6088813992aca3b410fe243`
+- Release: [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)
+- Exact source: `e3770aa72b0744eee192979a2e569651bac4f257`
 - 8 canonical assets; prerelease=true; draft=false.
 - 58 strict live routes total; correspondence contract remains exact 17 routes.
 - r8 is control-only: fresh reopen + same-order refresh/status transition preservation for «Учасники / ТЗ».
 - Prep #638: START #45231841871, Windows #45231841838, Win7 #45231842010, macOS #45231841929 — SUCCESS; Defender/integrity PASS.
 - Candidate #639: START #45234694758, Windows #45234694250, Win7 #45234694546, macOS #45234694225 — SUCCESS; Defender/integrity PASS.
 - Exact source: START #45235704945, Windows #45235704686, Win7 #45235704998, macOS #45235705102 — SUCCESS; Defender/integrity PASS.
-- Release-trigger #640 merged as `411c1e496ccddcd4ed0f9fd754743dfdf9ef8986`; publisher #45237831016 — SUCCESS.
+- Release-trigger #640 merged as `411c1e496ccddcd4ed0f9fd754743dfdf9ef8986`; publisher #46004721962 — SUCCESS.
 - GitHub release exact target `d24b1bc96115de52d6088813992aca3b410fe243`; 8 canonical assets verified.
 
 ## Що перевірено у r8

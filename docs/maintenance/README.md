@@ -2,7 +2,7 @@
 
 **Stable/Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 canonical assets, prerelease=false.
 
-**Current Test:** [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8), exact source `d24b1bc96115de52d6088813992aca3b410fe243`, 8 canonical assets, prerelease=true. 58 strict live routes загалом; r8 додає fresh-reopen preservation control для order participant block поверх r7, correspondence contract лишається exact 17 routes. Exact-source START/Windows/Win7/macOS Intel/ARM — SUCCESS; Windows/Win7 Defender/integrity PASS; publisher #45237831016 SUCCESS.
+**Current Test:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 canonical assets, prerelease=true. Vehicle-document copies are verified as real Taxo-owned files; source path/size/SHA-256 are persisted for new/replaced copies; selected backup/restore validates bytes including archived records. Exact-source START/Windows/Win7/macOS Intel/ARM — SUCCESS; Windows/Win7 Defender/integrity PASS; publisher #46004721962 SUCCESS.
 
 - [Поточний стан](../../PROJECT_STATE.md)
 - [Поточна контрольна точка](CHECKPOINT_CURRENT.md)
