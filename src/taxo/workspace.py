@@ -464,6 +464,103 @@ def _sha256_file(path):
     return digest.hexdigest()
 
 
+def materialize_vehicle_document_files_for_backup(source_root, stage_root):
+    """Make the selected backup self-contained without mutating the live database.
+
+    Legacy rows may still reference an external file. New r9 rows also remember
+    source_path, which can rescue a backup when a managed copy was accidentally
+    removed but the originally selected file still exists.
+    """
+    source_root = normalize_root(source_root)
+    stage_root = normalize_root(stage_root)
+    stage_db = paths_for(stage_root)["main_db"]
+    if not stage_db.exists():
+        return 0
+
+    con = sqlite3.connect(str(stage_db), timeout=30)
+    con.row_factory = sqlite3.Row
+    recovered = 0
+    try:
+        tables = {str(row[0]) for row in con.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()}
+        if "vehicle_documents" not in tables:
+            return 0
+        columns = {str(row[1]) for row in con.execute(
+            "PRAGMA table_info(vehicle_documents)"
+        ).fetchall()}
+        select = ["id", "vehicle_id", "doc_type", "copy_path"]
+        if "source_path" in columns:
+            select.append("source_path")
+        rows = con.execute(
+            "SELECT " + ",".join(select) +
+            " FROM vehicle_documents WHERE TRIM(COALESCE(copy_path,''))<>'' ORDER BY id"
+        ).fetchall()
+
+        stage_managed_root = paths_for(stage_root)["vehicle_documents"].resolve()
+        for row in rows:
+            raw = str(row["copy_path"] or "").strip()
+            stage_path = resolved_path(raw, stage_root)
+            stage_is_managed = False
+            if stage_path is not None:
+                try:
+                    Path(stage_path).resolve().relative_to(stage_managed_root)
+                    stage_is_managed = True
+                except (ValueError, OSError, RuntimeError):
+                    pass
+            if stage_is_managed and Path(stage_path).is_file():
+                continue
+
+            candidates = []
+            source_copy = resolved_path(raw, source_root)
+            if source_copy is not None:
+                candidates.append(Path(source_copy))
+            if "source_path" in row.keys():
+                original = str(row["source_path"] or "").strip()
+                if original:
+                    candidates.append(Path(original).expanduser())
+
+            source_file = next((item for item in candidates if item.is_file()), None)
+            if source_file is None:
+                continue
+
+            folder = (
+                paths_for(stage_root)["vehicle_documents"] /
+                str(int(row["vehicle_id"])) / str(row["doc_type"])
+            )
+            folder.mkdir(parents=True, exist_ok=True)
+            safe_name = "".join(
+                ch if ch.isalnum() or ch in "._- " else "_"
+                for ch in source_file.name
+            ).strip(" .") or "document"
+            target = folder / f"backup_recovered_{int(row['id']):08d}_{safe_name}"
+            shutil.copy2(source_file, target)
+            digest = _sha256_file(target)
+            size = int(target.stat().st_size)
+
+            updates = ["copy_path=?"]
+            values = [stored_path(target, stage_root)]
+            if "source_path" in columns:
+                updates.append("source_path=?")
+                values.append(str(source_file.resolve()))
+            if "copy_sha256" in columns:
+                updates.append("copy_sha256=?")
+                values.append(digest)
+            if "copy_size" in columns:
+                updates.append("copy_size=?")
+                values.append(size)
+            values.append(int(row["id"]))
+            con.execute(
+                "UPDATE vehicle_documents SET " + ",".join(updates) + " WHERE id=?",
+                values,
+            )
+            recovered += 1
+        con.commit()
+    finally:
+        con.close()
+    return recovered
+
+
 def validate_vehicle_document_files(root):
     """Verify every registered vehicle-document copy that claims to exist.
 
@@ -645,6 +742,11 @@ def create_workspace_backup_archive(
         if srcp["tacho_db"].exists():
             _sqlite_backup(srcp["tacho_db"],dstp["tacho_db"])
             validate_sqlite(dstp["tacho_db"])
+        recovered_vehicle_documents = 0
+        if include_vehicle_documents:
+            recovered_vehicle_documents = materialize_vehicle_document_files_for_backup(
+                source, stage
+            )
         verified_vehicle_documents = (
             validate_vehicle_document_files(stage)
             if include_vehicle_documents else 0
@@ -666,6 +768,7 @@ def create_workspace_backup_archive(
             },
             "excludes":["Backups","Logs",LOCK_NAME],
             "verified_vehicle_document_files":verified_vehicle_documents,
+            "recovered_vehicle_document_files":recovered_vehicle_documents,
         }
         (stage/FULL_BACKUP_MANIFEST).write_text(
             json.dumps(manifest,ensure_ascii=False,indent=2),"utf-8"
