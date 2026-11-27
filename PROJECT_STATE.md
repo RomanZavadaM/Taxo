@@ -1,50 +1,38 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 27.11.2026 після публікації v10.25-r4 Test.**
+**Підтверджено GitHub 27.11.2026 після публікації v10.25-r5 Test.**
 
 ## Поточні випуски
 
 - **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 assets, prerelease=false, GitHub Latest.
-- **Current Test:** [v10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4), exact source `ed3b79a96659aa011f60fa7912092fbc15157cdb`, 8 assets, prerelease=true.
-- **Current main:** `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`.
-- **Previous Test:** v10.25-r3 — program revisions + employees + prepared DOCX.
+- **Current Test:** [v10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5), exact source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`, 8 assets, prerelease=true.
+- **Current main:** `2627a57d8d63313f9eaf500ef17c123d4b700f35`.
+- **Previous Test:** v10.25-r4 — event briefing + explicit conducted fact.
 
-## Current Test 10.25-r4 — event briefing + explicit conducted fact
+## Інструктажі 10.25 — r1→r5
 
-- Separate «За подією…» action with mandatory reason.
-- Shared-registry cumulative employee selection; exact program revision + frozen employee snapshots.
-- Event session is independent from regular planned session.
-- Optional prepared DOCX never implies conducted.
-- Manual «Зафіксувати проведення…» requires factual date + paper evidence note.
-- Existing conducted fact cannot be silently rewritten with another date/evidence.
-- Read-only history/audit includes reason, exact program revision, frozen people, timestamps, evidence and prepared DOCX/SHA-256.
-- Full backup/restore preserves event + evidence + prepared output.
-- Strict live routes: open event, create event, save conducted fact, history.
-- Real owner workspace was not used.
-- Candidate START: 1732/1732 PASS; 4/4 r4 scenarios.
-- Candidate PR #670: START #46060419818, Windows #46060419824, Win7 #46060419944, macOS #46060419876 — SUCCESS; Defender/integrity PASS.
-- Exact source `ed3b79a96659aa011f60fa7912092fbc15157cdb`.
-- Exact-source START #46061028041, Windows #46061028147, Win7 #46061028060, macOS #46061028199 — SUCCESS.
-- Trigger PR #671 merged `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`; trigger Win7 #46061090608 attempt 2 SUCCESS after attempt 1 failed only on Defender signature-update timeout `0x80072ee2`.
-- Publisher #46062424737 SUCCESS.
-- `v10.25-r4`: 8 canonical assets, prerelease=true; Stable r9 unchanged.
+- r1: `Data/BriefingPlanning` — immutable program revisions, planned/event sessions, frozen employees, honest planned/prepared/conducted, explicit evidence, full backup/restore.
+- r2: live «На цей квартал…» — quarter navigation, БДР/ОП filter, exact revision, honest derived states, small-window live control.
+- r3: «Програми / план / друк…» — immutable revision UI, cumulative employee selection, deterministic planned session, exact PaperDocuments DOCX link via document_id/filename/SHA-256, prepared only.
+- r4: «За подією…» — mandatory reason, exact program revision + frozen employees, optional prepared DOCX; explicit manual «Зафіксувати проведення…» with factual date + paper evidence note; immutable fact; read-only history/audit; event does not close regular planned.
+- r5: full synthetic end-to-end acceptance across r1–r4, reopen, full backup/restore, state equality and file SHA-256 integrity.
+- Реальна база власника для r1–r5 не використовувалась.
+
+## Current Test 10.25-r5
+
+- Prep START #46063110841: 1734/1734 PASS.
+- Candidate START #46064508828: **1735/1735 PASS**, 3/3 r5 controls.
+- Candidate #674: Windows #46064508796, Win7 #46064508832, macOS #46064508804 — SUCCESS; Defender/integrity PASS.
+- Exact source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`.
+- Exact-source CI: START #46065219246, Windows #46065219433, Win7 #46065219339, macOS #46065219355 — SUCCESS.
+- Trigger #675 merged `2627a57d8d63313f9eaf500ef17c123d4b700f35`; publisher #46065911225 SUCCESS.
+- `v10.25-r5`: 8 canonical assets, prerelease=true; Stable r9 unchanged.
 
 ## Next
 
-**10.25-r5 — full Instructions end-to-end acceptance**:
-- program revision;
-- quarter plan;
-- shared employees;
-- prepared DOCX and exact output link;
-- close/reopen persisted stores;
-- event briefing;
-- explicit manual conducted fact;
-- overdue derived control;
-- full backup/restore;
-- state and file integrity equality;
-- virtual/synthetic only; separate Test release.
+Issue #237 remains OPEN until manual owner UI acceptance. After owner acceptance decide whether to close #237 and move to the next major block: unified document storage.
 
-Maintenance окремо: architecture #290, Feature Loss/UI #275/#556, docs-only CI #251. Draft #543/#395 лишаються open.
+Maintenance remains separate: architecture #290, Feature Loss/UI #275/#556, docs-only CI #251. Draft #543/#395 remain open.
 
 Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY and physical attachment purge remain blocked without explicit owner decision.
 

@@ -1,45 +1,61 @@
 # HANDOFF_CURRENT — Taxo
 
-**27.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r4.**
+**27.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r5.**
 
 - **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 canonical assets, prerelease=false, GitHub Latest.
-- **Current Test:** [v10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4), exact issued source `ed3b79a96659aa011f60fa7912092fbc15157cdb`, 8 canonical assets, prerelease=true.
-- Current main after release trigger: `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`.
+- **Current Test:** [v10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5), exact issued source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`, 8 canonical assets, prerelease=true.
+- Current main after release trigger: `2627a57d8d63313f9eaf500ef17c123d4b700f35`.
 
-## 10.25-r4 — завершено
+## 10.25-r5 — завершено
 
-- Додано окрему дію **«За подією…»** у модулі інструктажів.
-- Підстава події обов'язкова; event session не закриває й не змінює regular planned session.
-- Вибір працівників бере shared registry і накопичується під час пошуку.
-- Event session зберігає exact program revision і frozen snapshots працівників.
-- Event можна лише створити або створити + підготувати DOCX; DOCX змінює стан максимум на `prepared`.
-- У квартальному вікні додано **«Зафіксувати проведення…»**: фактична дата + обов'язкова примітка/посилання на паперовий запис.
-- Уже зафіксований `conducted` факт не переписується іншою датою/приміткою.
-- **«Історія…»** read-only показує mode/reason/program revision/frozen people/created/updated/prepared/conducted/evidence/prepared DOCX + SHA-256.
-- Strict live routes: open event, create event, manual conducted save, history.
-- Full backup/restore зберігає event + evidence + prepared output.
-- Реальна база власника не відкривалась.
+r5 не додає нових бізнес-правил. Це фінальний synthetic end-to-end gate усієї лінії Інструктажів r1–r4:
 
-## Приймання r4
+1. immutable program revision 1;
+2. regular planned session із frozen працівниками;
+3. exact prepared DOCX у PaperDocuments + session link + SHA-256;
+4. program revision 2 без переписування старого plan;
+5. повне повторне читання planning/output stores з диска;
+6. event session на revision 2 з обов'язковою підставою;
+7. event prepared DOCX;
+8. explicit manual conducted fact з фактичною датою і paper evidence note;
+9. regular plan не закривається event-ом і як derived state стає overdue;
+10. quarter view відкриває exact r1 для regular plan і exact r2 для event;
+11. full workspace backup → restore у чистий root;
+12. рівність planning state, prepared-output links, PaperDocuments records і SHA-256 файлів;
+13. повтор того самого regular plan після restore не створює третій session/DOCX;
+14. generated DOCX / paper_signed=false ніколи автоматично не створює conducted fact.
 
-- Prep PR #669 закритий без merge після ролі: START #46058038769 — **1731/1731 PASS**; Windows #46058038848, Win7 #46058038768, macOS #46058038830 — SUCCESS; Defender/integrity PASS.
-- Candidate PR #670: START #46060419818 — **1732/1732 PASS**, 4/4 r4 scenarios; Windows #46060419824, Win7 #46060419944, macOS #46060419876 — SUCCESS; Defender/integrity PASS.
-- Exact issued source після merge #670: `ed3b79a96659aa011f60fa7912092fbc15157cdb`.
-- Exact-source CI: START #46061028041, Windows #46061028147, Win7 #46061028060, macOS #46061028199 — SUCCESS; Defender/integrity PASS.
-- Release trigger PR #671 merged `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`.
-- Trigger Win7 #46061090608 attempt 1 failed only on Defender signature-update network timeout `0x80072ee2`; no malware detection. Rerun attempt 2 on the same SHA — SUCCESS, Defender/integrity PASS.
-- Publisher #46062424737 — SUCCESS.
-- Release `v10.25-r4`: 8 assets, prerelease=true, draft=false, target = exact issued source.
-- Stable/Latest лишається 10.24-r9.
+Реальна база власника не відкривалась.
+
+## Приймання r5
+
+- Prep: START #46063110841 — **1734/1734 PASS**; Windows #46063110844, Win7 #46063110813, macOS #46063111267 — SUCCESS; Defender/integrity PASS.
+- Candidate #674 після двох службових identity fixes: START #46064508828 — **1735/1735 PASS**, 3/3 r5 controls; Windows #46064508796, Win7 #46064508832, macOS #46064508804 — SUCCESS; Defender/integrity PASS.
+- Exact issued source після merge #674: `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`.
+- Exact-source CI: START #46065219246 — 1735/1735 PASS; Windows #46065219433, Win7 #46065219339, macOS #46065219355 — SUCCESS; Defender/integrity PASS.
+- Release trigger #675 merged `2627a57d8d63313f9eaf500ef17c123d4b700f35`.
+- Publisher #46065911225 — SUCCESS.
+- Release `v10.25-r5`: 8 canonical assets, prerelease=true, draft=false, exact target `70bc3c6b…`.
+- Stable/Latest лишається `v10.24-r9`.
 
 ## Що далі
 
-**10.25-r5 — наскрізне контрольне приймання Інструктажів.**
+**Issue #237 НЕ закривати до ручного owner UI acceptance.** Автоматичне virtual acceptance підтвердило дані, маршрути, пакети й backup/restore, але не підміняє ручне користування інтерфейсом.
 
-Synthetic/virtual full cycle: program revision → quarter plan → employees → prepared DOCX → close/reopen → event briefing → manual conducted fact → overdue control → full backup/restore → equality/integrity. Це контрольний етап без автоматичного `conducted` і без робочої бази власника.
+Під час ручного приймання перевірити:
+- «На цей квартал…» у реальному вікні;
+- фільтри БДР/ОП, перемикання кварталу, exact revision;
+- «Програми / план / друк…»;
+- накопичувальний вибір працівників через пошук;
+- нова програма / нова редакція / історія;
+- «Підготувати DOCX» і зрозумілий статус prepared;
+- «За подією…»;
+- «Зафіксувати проведення…» з фактичною датою й paper evidence;
+- «Історія…»;
+- small-window / X / Закрити / Скасувати / повторне відкриття.
 
-Після завершення r5: full CI → окремий GitHub Test release → ручне owner acceptance UI. Лише після цього вирішувати, чи закривати #237 і переходити до наступного великого блоку — єдиного сховища документів.
+Лише після owner acceptance вирішувати, чи закривати #237 і переходити до наступного великого блоку — **єдиного сховища документів**.
 
 Execution plan: `docs/planning/INSTRUCTIONS_10_25_EXECUTION_PLAN_2026-11-27.md`.
 
-Recovery: `START_HERE.md → HANDOFF_CURRENT.md → PROJECT_STATE.md → private profile/taxo → live GitHub → execution plan`.
+Recovery: `START_HERE.md → HANDOFF_CURRENT.md → PROJECT_STATE.md → private profile/taxo → live GitHub`.

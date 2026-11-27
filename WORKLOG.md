@@ -1,3 +1,17 @@
+## 27.11.2026 — 10.25-r5 full Instructions acceptance / Current Test
+
+- Фінальний stage 10.25 не додає нових бізнес-правил; одним synthetic workspace зв'язує r1–r4.
+- Prep #673: START #46063110841 = 1734/1734 PASS; Windows #46063110844, Win7 #46063110813, macOS #46063111267 SUCCESS; Defender/integrity PASS.
+- Candidate #674 після двох службових identity fixes: START #46064508828 = 1735/1735 PASS; Windows #46064508796, Win7 #46064508832, macOS #46064508804 SUCCESS; Defender/integrity PASS.
+- Exact issued source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`.
+- Exact-source CI: START #46065219246, Windows #46065219433, Win7 #46065219339, macOS #46065219355 — SUCCESS.
+- Release trigger #675 merged `2627a57d8d63313f9eaf500ef17c123d4b700f35`.
+- Publisher #46065911225 SUCCESS → [v10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5), 8 canonical assets, prerelease=true, exact target `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`.
+- Stable/Latest remains [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9).
+- Full cycle confirms: immutable revisions; regular plan; exact DOCX/link/SHA-256; reopen; event; manual conducted evidence; regular overdue but not conducted; full backup/restore; state/file equality; post-restore idempotency; no automatic conducted from generated/paper_signed=false.
+- Real owner workspace was not used.
+- Issue #237 stays open until manual owner UI acceptance. Only then decide on unified document storage.
+
 ## 27.11.2026 — 10.25-r4 event briefing + explicit conducted fact / Current Test
 
 - Додано «За подією…» з mandatory reason, exact program revision, frozen employees і cumulative shared-registry selection.
