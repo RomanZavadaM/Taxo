@@ -22,6 +22,16 @@ from runtime_reachability import (
 
 
 class BriefingEventR4PrepTests(unittest.TestCase):
+    def test_candidate_identity_and_package_guard(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r4\n")
+        self.assertIn('APP_VERSION = "10.25-r4"', (root / "main.py").read_text("utf-8"))
+        start = (root / "START.bat").read_text("utf-8")
+        self.assertIn("Taxo 10.25-r4 - START", start)
+        self.assertIn("briefing_event_ui.py", start)
+        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r4\n")
+        self.assertEqual((root / ".release" / "stable-current").read_text("utf-8"), "10.24-r9\n")
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="taxo_1025_r4_")
         self.addCleanup(self.temp.cleanup)
@@ -160,7 +170,7 @@ class BriefingEventR4PrepTests(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             Path(self.temp.name) / "r4-backup.zip",
-            app_version="10.25-r4-prep",
+            app_version="10.25-r4",
         )
         restored = Path(self.temp.name) / "restored"
         workspace.restore_workspace_backup_archive(archive, restored)
