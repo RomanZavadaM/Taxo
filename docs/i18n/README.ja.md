@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)、8 ファイル、exact source `e3770aa72b0744eee192979a2e569651bac4f257`。車両文書の保存と backup/restore 保護は現在の Stable に含まれます。
 
 
-**Current Test:** [Taxo 10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3)、8 ファイル、exact source `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`。変更不可のプログラム revision、共通レジストリからの累積従業員選択、決定的な planned session、document ID・filename・SHA-256 による PaperDocuments DOCX への正確なリンクを追加します。DOCX の準備は `prepared` のみで、実施済みや署名済みを意味しません。Stable は 10.24-r9 のままです。
+**Current Test:** [Taxo 10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4)、8 ファイル、exact source `ed3b79a96659aa011f60fa7912092fbc15157cdb`。必須理由付きのイベント指導、実施扱いにしない任意の prepared DOCX、紙の証跡を伴う明示的な手動実施日、読み取り専用の監査履歴を追加します。Stable は 10.24-r9 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
