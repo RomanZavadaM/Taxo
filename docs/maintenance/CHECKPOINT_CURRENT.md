@@ -14,7 +14,7 @@
 - Release: [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)
 - Exact product source: `e3770aa72b0744eee192979a2e569651bac4f257`
 - 8 canonical assets; prerelease=true; draft=false.
-- Product PR #643; Issue #642 closed as completed.
+- Product PR #643 завершено; Issue #642 **OPEN** до ручного приймання на реальному робочому сховищі.
 - Root cause від 10.2-r1 (21.09.2026): vehicle-document DB row міг пережити втрату файла; source path не зберігався; UI міг показувати «Копія: Є» лише за непорожнім path; vehicle-document bytes у manual backup були optional.
 - r9: Taxo-owned copy у `Data/VehicleDocuments` + source path + size + SHA-256; factual file state; integrity check on open.
 - Selected backup з документами ТЗ перевіряє зареєстровані bytes, включно з archived records; доступний legacy external/source file може бути перенесений у staging backup без зміни live DB.
@@ -26,8 +26,8 @@
 ## Recovery / acceptance
 
 - Public recovery #646 and current-page synchronization #648 are merged; final recovery files remove stale r8 «next action» instructions.
-- Private `profile/taxo`, Issue #61/#642 and Drive checkpoint `21_CURRENT_DOCS_2026-11-27_10.24-r9` are the matching recovery mirror.
-- Owner acceptance: attach/replace a vehicle-document copy → archive record → create backup with «Копії документів транспортних засобів» → restore into a test workspace → open the restored copy.
+- Private `profile/taxo`, Issue #61 і Drive mirror мають бути синхронізовані з цим станом; Issue #642 не закривати до ручного приймання.
+- Owner acceptance: attach/replace a vehicle-document copy → archive record → create backup with «Копії документів транспортних засобів» → restore into a test workspace → open the restored copy. Якщо виявлено новий дефект, наступна кодова ревізія — **10.24-r10**.
 - Historical bytes missing from workspace, source and old full backups cannot be recreated from SQLite alone.
 
 Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY and physical attachment purge do not start automatically.
