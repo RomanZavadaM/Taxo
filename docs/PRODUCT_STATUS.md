@@ -1,14 +1,14 @@
 # Taxo — стан продукту
 
-**Актуально:** 23.11.2026 після публікації Test 10.24-r8; Stable/Latest — 10.24-r3.
+**Актуально:** 27.11.2026 після публікації Test 10.24-r9; Stable/Latest — 10.24-r3.
 
 - **Стабільна / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3), exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, 8 файлів, prerelease=false; correspondence registry + controlled attachments + journal/card UI.
 - **Попередня стабільна:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4).
-- **Поточний Test:** [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8), exact source `d24b1bc96115de52d6088813992aca3b410fe243`, 8 файлів, prerelease=true; 58 strict live routes, fresh-reopen preservation control для «Учасники / ТЗ» поверх r7, correspondence contract лишається 17 routes.
+- **Поточний Test:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease=true; керовані копії документів ТЗ, фактичний file-state, backup/restore integrity guard та збереження архівованих копій.
 - Promotion checks: START #45146984711, Windows #45146984611, Win7 #45146984624, macOS Intel/ARM #45146984616 — SUCCESS; Windows/Win7 Defender + integrity PASS. Publisher #45147941030 і guarded stable verification #45147941048 — SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
-**У Current Test 10.24-r8** контроль наказів посилено без зміни бізнес-правил або schema: після повного закриття/повторного відкриття UI наказ повторно читається з SQLite, зберігаючи number/date/subject/status та participant role/note; Draft → Active не змінює frozen snapshot/sequence, same-order refresh зберігає selection. r7 add/edit/remove, live preview, DOCX/PDF і full backup/restore guards лишаються активними. Exact-source і release-trigger пройшли START/Windows/Win7/macOS; Defender/integrity PASS. Publisher #45237831016 — SUCCESS.
+**У Current Test 10.24-r9** документи ТЗ отримали кероване збереження: Taxo-owned copy + source path + size/SHA-256, реальну перевірку файла, fail-closed backup із позначеними документами ТЗ, повторну перевірку після restore та збереження копії при архівуванні. Доступні legacy/source bytes можна забрати в staging backup; фізично відсутні bytes SQLite не відтворює. Exact-source і release-trigger пройшли START/Windows/Win7/macOS; Defender/integrity PASS. Publisher #46004721962 — SUCCESS.
 
 У Stable 10.24-r3 також входять зміни, прийняті ще в 10.23-r4: редагування ролі/примітки учасника наказу; накопичення вибору при пошуку; регульовані робочі області «Документи»; регульована ширина дерева каталогу; адаптивний перегляд наказу, де DOCX/PDF/JPG та нижні дії залишаються доступними у вузькому вікні. 10.23-r4 була попередньою стабільною точкою; 23.11.2026 власник прямо перевів 10.24-r3 у Stable/Latest.
 
@@ -38,12 +38,12 @@
 
 - Робочі бази, скани та персональні документи не входять до випусків.
 - Повна резервна копія зберігає документи, сховище, прикріплені скани та історію заміни/прибирання.
-- Документи ТЗ, скани тахокарт і Output додаються до резервної копії за відповідного вибору.
+- Документи ТЗ, скани тахокарт і Output додаються до резервної копії за відповідного вибору. У r9 вибрані документи ТЗ проходять DB→file перевірку; архівовані записи також контролюються.
 - План і факт зберігаються окремо. Для Windows 7 призначено окремі пакети.
 
 ## Подальша робота
 
-10.24-r8 опублікована як Current Test; recovery синхронізований у public docs, private profile, Issue #61 і Drive. Ревізія закриває окремий fresh-reopen control «Учасники / ТЗ» без зміни бізнес-правил наказів. Наступний крок: звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — один bounded r9 slice. Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
+10.24-r9 опублікована як Current Test. Наступний крок — ручне приймання #642 на реальному сховищі: перевірити старі копії документів ТЗ та створити backup з відповідною відміткою. Наступна кодова ревізія — 10.24-r10. #553/#556/#562 лишаються відкритими у своїх межах. Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
 
 [Індекс релізів](releases/RELEASE_INDEX.md) · [Інструкція користувача](guides/USER_MANUAL.md) · [Відновлення роботи](../START_HERE.md)

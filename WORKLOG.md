@@ -1,3 +1,15 @@
+## 27.11.2026 — 10.24-r9 Current Test: копії документів ТЗ, backup/restore та архів
+
+- Власник повідомив про відсутні скани протоколів техогляду. Аудит підтвердив, що слабкість існувала від 10.2-r1 (21.09.2026): Taxo робив workspace-копію, але не зберігав source path; UI вважав непорожній `copy_path` доказом наявності файла; vehicle-document bytes у звичайному backup були optional без DB→file cross-check.
+- r9 додає Taxo-owned copy provenance (`source_path`, size, SHA-256), реальний file-state, selected-backup validation, restore validation і rescue доступних legacy external/source references у staging backup без зміни live DB. Архівування не видаляє bytes.
+- Regression: 1712 tests; окремі сценарії cover new copy, missing-path false positive, archived backup→restore, unrecoverable missing copy, legacy external rescue, tamper detection.
+- PR #643 final head `99f3fcf3b12214adf664e6d401735dd94f00d391`: START #46002324307, Windows #46002324733, Win7 #46002324330, macOS #46002324335 — SUCCESS; Defender/integrity PASS. Merged exact issued source `e3770aa72b0744eee192979a2e569651bac4f257`.
+- Exact-source: START #46003120544, Windows #46003120782, Win7 #46003120506, macOS #46003120628 — SUCCESS; Defender/integrity PASS.
+- Release trigger #644 head `df993b869cc9fa518ede010da48a5cdd6927f81c`: START #46003987406, Windows #46003987089, Win7 #46003987064, macOS #46003987034 — SUCCESS; Defender/integrity PASS; merged `574f3acd2e078ffc1fd25a5690f5853cfe19c017`.
+- Publisher #46004721962 — SUCCESS. [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9): 8 canonical assets, prerelease, exact target `e3770aa72b0744eee192979a2e569651bac4f257`. Stable/Latest remains v10.24-r3.
+- Межа: старі bytes, яких уже немає у workspace, source або старому backup, з SQLite не відновлюються. Issue #642 залишається OPEN до ручної перевірки реального сховища.
+- Наступна дозволена кодова ревізія — 10.24-r10.
+
 ## 23.11.2026 — 10.24-r8 Current Test published і recovery
 
 - r8 — вузька control-only ревізія поверх r7: fresh UI reopen повторно читає наказ із persisted SQLite та перевіряє збереження номера/дати/теми/стану, participant role/note, frozen snapshot і sequence.
