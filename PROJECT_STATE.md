@@ -1,46 +1,37 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 27.11.2026 після публікації v10.24-r10 Test.**
+**Підтверджено GitHub 27.11.2026 після публікації v10.25-r1 Test.**
 
 ## Поточні випуски
 
-- **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 canonical assets, prerelease=false, draft=false, GitHub Latest.
-- **Current Test:** [v10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10), exact issued source `2e35cea72b46ac9c032966e9def195fc306834a5`, 8 canonical assets, prerelease=true, draft=false.
-- **Current main:** `71fe07ed0920cfe94e27d41de53f07e92cccc795`; post-source changes are release/CI maintenance only.
-- **Previous Stable:** v10.24-r3.
+- **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 assets, prerelease=false, GitHub Latest.
+- **Current Test:** [v10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1), exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`, 8 assets, prerelease=true.
+- **Current main:** `44e20e7bac1803afb1b9853a821c60e6154780db`.
+- **Previous Test:** v10.24-r10 — Orders closeout.
 
-## Stable 10.24-r9
+## Current Test 10.25-r1 — Instructions planning core
 
-- Нові/замінені копії документів ТЗ є Taxo-owned files у `Data/VehicleDocuments` із source path, size та SHA-256.
-- UI/open перевіряють фактичний файл; selected backup/restore перевіряє bytes, включно з archived records.
-- Історичні bytes, яких уже немає у workspace/source/old backup, із SQLite не відновлюються.
-- Issue #642 closed completed після isolated virtual acceptance: 1712/1712 PASS; 6/6 dedicated vehicle-document scenarios PASS.
+- `Data/BriefingPlanning/planning.json`, format `taxo.briefing-planning.v1`.
+- Immutable versioned programs; planned/event sessions; frozen participant snapshots.
+- Unique planned `planning_key`; event reason required.
+- Honest states: prepared/print ≠ conducted.
+- Conducted requires explicit factual date + paper evidence note.
+- Event does not close regular planned session.
+- Overdue is derived state, not an automatic historical write.
+- Fail-closed JSON validation and program-revision references.
+- Full workspace backup/restore preserves the store.
+- Real owner workspace was not used.
+- Candidate START: 1718/1718 PASS, 4/4 r1 scenarios.
+- Candidate PR #658 CI: START #46027162850, Windows #46027162761, Win7 #46027162706, macOS #46027162770 — SUCCESS; Defender/integrity PASS.
+- Exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`.
+- Exact-source CI: START #46028063211, Windows #46028063203, Win7 #46028063190, macOS #46028062948 — SUCCESS.
+- Trigger PR #659 merged `44e20e7bac1803afb1b9853a821c60e6154780db`; publisher #46032557836 SUCCESS.
+- `v10.25-r1`: 8 canonical assets, prerelease=true; Stable r9 unchanged.
 
-## Current Test 10.24-r10 — Orders closeout
+## Next
 
-- Roadmap: `docs/planning/ROADMAP_AFTER_10_24_R9_2026-11-27.md`.
-- r10 не додає нових бізнес-правил наказів; він збирає попередні гарантії в один synthetic end-to-end gate.
-- Перевірено: ordinary order participants/vehicles; edit role/note preserving frozen snapshot; remove/re-add; assignment bulk/edit/delete/re-add; DB reopen; Draft→Active; DOCX/PDF/JPG; full backup with Output; restore to clean workspace; DB equality; file SHA-256 equality.
-- Final exact-source START: 1714/1714 PASS.
-- Exact-source CI: START #46021196420, Windows #46021196370, Win7 #46021196472, macOS Intel/ARM #46021196428 — SUCCESS; Defender/integrity PASS.
-- Candidate PR #654 → exact issued source `2e35cea72b46ac9c032966e9def195fc306834a5`.
-- Trigger PR #655 merged `71fe07ed0920cfe94e27d41de53f07e92cccc795`; publisher #46023586194 SUCCESS.
-- `v10.24-r10`: 8 canonical assets, prerelease=true; Stable r9 unchanged.
-- #553 remains OPEN until owner UI acceptance. #556/#562 remain open.
+**10.25-r2 — «На цей квартал»**: quarter selector; planned/prepared/overdue/conducted; БДР/ОП filter; exact program revision; idempotent plan generation; small-window/live-route checks; virtual-only tests; separate Test release.
 
-## Next product line
+Maintenance окремо: architecture #290, Feature Loss/UI #275/#556, docs-only CI #251. Draft #543/#395 лишаються open.
 
-**10.25-r1 — Instructions foundation** (Issue #237):
-- versioned briefing/program definitions;
-- planned vs event briefing records;
-- duplicate prevention and immutable history;
-- honest states: print/prepared ≠ conducted/signed;
-- target employees/groups from shared registries;
-- synthetic backup/restore from the first slice;
-- virtual-only tests and separate Test release at stage completion.
-
-Maintenance is separate: architecture #290, Feature Loss/UI #275/#556, docs-only CI #251. Do not mix these into business revisions unless required to keep the release path safe.
-
-Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY and physical attachment purge remain blocked without explicit owner decision. Draft #543/#395 remain open.
-
-Історична контрольна точка Taxo 10.3 / `v10.3`: `7d2044d2cad00acdd7d6fccdad2ffc037dc2bf60`.
+Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY and physical attachment purge remain blocked without explicit owner decision.
