@@ -41,6 +41,7 @@ RUNTIME_ROUTE_TEST_MODULES = {
     "operations.entity_remove": "test_v10_24_r7_order_participant_e2e",
     "operations.entity_preview_sync": "test_v10_24_r7_order_participant_e2e",
     "operations.instructions": "test_v10_14_r7",
+    "operations.instructions_quarter": "test_v10_25_r2_briefing_quarter_view",
     "operations.printable_briefing": "test_v10_15_r3",
     "operations.driver_internship": "test_v10_15_r3",
     "maintenance.stoir": "test_function_reachability_r2",
