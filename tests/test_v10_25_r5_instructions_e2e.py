@@ -227,7 +227,7 @@ class InstructionsEndToEndR5PrepTests(unittest.TestCase):
         )
         manifest = workspace.validate_workspace_backup_archive(archive)
         self.assertEqual(manifest["application"], "Taxo")
-        self.assertEqual(manifest["app_version"], "10.25-r5-prep")
+        self.assertEqual(manifest["app_version"], "10.25-r5")
         self.assertGreaterEqual(int(manifest["format"]), 1)
 
         restored = Path(self.temp.name) / "restored"
