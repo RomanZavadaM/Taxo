@@ -4,6 +4,8 @@
 
 **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — 27.11.2026, 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, vehicle-document persistence + verified backup/restore.
 
+**Current Test:** [10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1) — planning core інструктажів, exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`, 8 files, prerelease=true.
+
 **Попередня Stable:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 
 ## Робота з програмою
@@ -17,7 +19,7 @@
 - [Адміністрування й резервні копії](guides/ADMIN_GUIDE.md).
 - [Типові проблеми](guides/TROUBLESHOOTING.md).
 
-## Актуально для Stable 10.24-r9 / Test 10.24-r10
+## Актуально для Stable 10.24-r9 / Test 10.25-r1
 
 Taxo допомагає створювати, редагувати, переглядати й друкувати накази. Паперовий оригінал лишається первинним контролем; позначка паперового підпису не є КЕП і не блокує виправлення робочого запису Taxo.
 
@@ -30,6 +32,7 @@ Taxo допомагає створювати, редагувати, перегл
 - [Test 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) — end-to-end live-control «Учасники / ТЗ»; Stable не змінює
 - [Test 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6) — full live-control correspondence actions; Stable не змінює
 - [Попередній Test 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) — logical cases/threads без копіювання листів
+- [Що нового у 10.25-r1](releases/RELEASE_NOTES_v10.25-r1.md)
 - [Що нового у 10.24-r10](releases/RELEASE_NOTES_v10.24-r10.md)
 - [Що нового у 10.24-r9](releases/RELEASE_NOTES_v10.24-r9.md)
 - [Попередній Test 10.24-r8](releases/RELEASE_NOTES_v10.24-r8.md)
