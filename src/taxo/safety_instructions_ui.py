@@ -14,6 +14,7 @@ import safety_templates as safety_tpl
 import safety_instruction_document_service as instruction_documents
 import briefing_quarter_view as briefing_quarter
 import briefing_planning_ui as briefing_planning
+import briefing_event_ui as briefing_event
 from workspace import load_workspace_root
 
 
@@ -166,6 +167,21 @@ def open_quarter_view(parent, core, year=None, quarter=None):
     )
     refresh_button.pack(side="right", padx=(0, 7))
 
+    fact_actions = core.ttk.Frame(body)
+    fact_actions.grid(row=4, column=0, sticky="e", pady=(6, 0))
+    history_action = core.ttk.Button(
+        fact_actions,
+        text="Історія…",
+        command=lambda: open_session_history(),
+    )
+    history_action.pack(side="right")
+    conducted_action = core.ttk.Button(
+        fact_actions,
+        text="Зафіксувати проведення…",
+        command=lambda: open_conducted_fact(),
+    )
+    conducted_action.pack(side="right", padx=(0, 7))
+
     rows_by_iid = {}
 
     def selected_row():
@@ -173,6 +189,55 @@ def open_quarter_view(parent, core, year=None, quarter=None):
         if not selection:
             return None
         return rows_by_iid.get(selection[0])
+
+    def open_conducted_fact():
+        row = selected_row()
+        if row is None:
+            core.messagebox.showinfo(
+                "Факт проведення",
+                "Виберіть захід у таблиці.",
+                parent=window,
+            )
+            return None
+        try:
+            dialog = briefing_event.open_conducted_dialog(
+                window,
+                core,
+                load_workspace_root(),
+                row.session_id,
+                on_saved=lambda _saved: refresh(),
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Факт проведення", str(exc), parent=window
+            )
+            return None
+        window._taxo_briefing_conducted_dialog = dialog
+        return dialog
+
+    def open_session_history():
+        row = selected_row()
+        if row is None:
+            core.messagebox.showinfo(
+                "Історія інструктажу",
+                "Виберіть захід у таблиці.",
+                parent=window,
+            )
+            return None
+        try:
+            dialog = briefing_event.open_session_history(
+                window,
+                core,
+                load_workspace_root(),
+                row.session_id,
+            )
+        except Exception as exc:
+            core.messagebox.showerror(
+                "Історія інструктажу", str(exc), parent=window
+            )
+            return None
+        window._taxo_briefing_history_window = dialog
+        return dialog
 
     def open_selected_program():
         row = selected_row()
@@ -319,6 +384,8 @@ def open_quarter_view(parent, core, year=None, quarter=None):
     window._taxo_briefing_quarter_filter = direction_box
     window._taxo_briefing_quarter_program_button = program_button
     window._taxo_briefing_quarter_refresh_button = refresh_button
+    window._taxo_briefing_conducted_button = conducted_action
+    window._taxo_briefing_history_button = history_action
     window._taxo_briefing_quarter_status = status_value
     window._taxo_briefing_quarter_state = state
     refresh()
@@ -391,7 +458,7 @@ def install_instruction_tab(app, core, book):
             "проводяться за фактичною підставою незалежно від квартального плану."
         ),
         style="Muted.TLabel", wraplength=900, justify="left",
-    ).grid(row=1, column=0, columnspan=5, sticky="ew", pady=(6, 0))
+    ).grid(row=1, column=0, columnspan=6, sticky="ew", pady=(6, 0))
 
     def open_planning_dialog():
         window = briefing_planning.open_planning_preparation(tab, core)
@@ -405,6 +472,20 @@ def install_instruction_tab(app, core, book):
     )
     planning_button.grid(
         row=0, column=4, sticky="e", padx=(8, 0)
+    )
+
+    def open_event_dialog():
+        window = briefing_event.open_event_dialog(tab, core)
+        tab._taxo_briefing_event_window = window
+        return window
+
+    event_button = core.ttk.Button(
+        quarter_box,
+        text="За подією…",
+        command=open_event_dialog,
+    )
+    event_button.grid(
+        row=0, column=5, sticky="e", padx=(8, 0)
     )
 
     frame = core.ttk.LabelFrame(tab, text="Підготувати матеріал для паперового інструктажу", padding=8)
@@ -661,6 +742,7 @@ def install_instruction_tab(app, core, book):
     tab._taxo_briefing_edit_program_button = edit_button
     tab._taxo_briefing_quarter_button = quarter_button
     tab._taxo_briefing_planning_button = planning_button
+    tab._taxo_briefing_event_button = event_button
 
     refresh_templates(select_first=True)
     return tab

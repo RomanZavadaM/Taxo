@@ -40,9 +40,9 @@ class DummyApp:
 class WaybillDateNavigationR6Tests(unittest.TestCase):
     def test_r6_identity_and_feature_registration(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r3\n")
-        self.assertIn('APP_VERSION = "10.25-r3"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.25-r3", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r4\n")
+        self.assertIn('APP_VERSION = "10.25-r4"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.25-r4", (root / "START.bat").read_text("utf-8"))
         self.assertIn("v1021-r6-waybill-date-navigation", feature_layers.feature_layer_ids())
 
     def test_parse_exact_user_format(self):

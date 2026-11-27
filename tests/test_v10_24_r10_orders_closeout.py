@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.25-r3 prep: one isolated end-to-end gate for the full orders contour."""
+"""10.25-r4 prep: one isolated end-to-end gate for the full orders contour."""
 import hashlib
 import sqlite3
 import tempfile
@@ -18,10 +18,10 @@ from v1073_features import export_order_pdf_with_appendices
 class OrdersCloseoutR10PrepTests(unittest.TestCase):
     def test_candidate_identity(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r3\n")
-        self.assertIn('APP_VERSION = "10.25-r3"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.25-r3 - START", (root / "START.bat").read_text("utf-8"))
-        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r3\n")
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r4\n")
+        self.assertIn('APP_VERSION = "10.25-r4"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.25-r4 - START", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r4\n")
         self.assertEqual((root / ".release" / "stable-current").read_text("utf-8"), "10.24-r9\n")
 
     def setUp(self):
@@ -309,7 +309,7 @@ class OrdersCloseoutR10PrepTests(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             Path(self.temp.name) / "orders-r10-full.zip",
-            app_version="10.25-r3",
+            app_version="10.25-r4",
             include_output=True,
         )
         manifest = workspace.validate_workspace_backup_archive(archive)

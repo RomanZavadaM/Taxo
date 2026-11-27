@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0"
 
 echo ==============================================
-echo   Taxo 10.25-r3 - START
+echo   Taxo 10.25-r4 - START
 echo ==============================================
 echo.
 
@@ -44,6 +44,7 @@ if not exist "src\taxo\briefing_planner.py" goto :package_incomplete
 if not exist "src\taxo\briefing_quarter_view.py" goto :package_incomplete
 if not exist "src\taxo\briefing_prepared_output.py" goto :package_incomplete
 if not exist "src\taxo\briefing_planning_ui.py" goto :package_incomplete
+if not exist "src\taxo\briefing_event_ui.py" goto :package_incomplete
 if not exist "src\taxo\safety_instruction_document_service.py" goto :package_incomplete
 if not exist "src\taxo\paper_documents.py" goto :package_incomplete
 if not exist "src\taxo\paper_documents_ui.py" goto :package_incomplete
@@ -112,7 +113,7 @@ py -3.13 -m pip install -r "requirements.txt"
 if errorlevel 1 goto :install_failed
 
 echo.
-echo Starting Taxo 10.25-r3...
+echo Starting Taxo 10.25-r4...
 py -3.13 "taxo_app.py"
 if errorlevel 1 goto :app_failed
 exit /b 0
