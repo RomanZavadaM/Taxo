@@ -18,6 +18,14 @@ import workspace
 
 
 class InstructionsEndToEndR5PrepTests(unittest.TestCase):
+    def test_candidate_identity_and_stable_marker(self):
+        root = Path(__file__).resolve().parents[1]
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r5\n")
+        self.assertIn('APP_VERSION = "10.25-r5"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.25-r5 - START", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r5\n")
+        self.assertEqual((root / ".release" / "stable-current").read_text("utf-8"), "10.24-r9\n")
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="taxo_1025_r5_")
         self.addCleanup(self.temp.cleanup)
@@ -215,7 +223,7 @@ class InstructionsEndToEndR5PrepTests(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             Path(self.temp.name) / "instructions-r5-full.zip",
-            app_version="10.25-r5-prep",
+            app_version="10.25-r5",
         )
         manifest = workspace.validate_workspace_backup_archive(archive)
         self.assertEqual(manifest["application"], "Taxo")
