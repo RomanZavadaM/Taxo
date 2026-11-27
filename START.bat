@@ -41,6 +41,7 @@ if not exist "src\taxo\order_editor_assignments_ui.py" goto :package_incomplete
 if not exist "src\taxo\order_type_catalog_ui.py" goto :package_incomplete
 if not exist "src\taxo\safety_instructions_ui.py" goto :package_incomplete
 if not exist "src\taxo\briefing_planner.py" goto :package_incomplete
+if not exist "src\taxo\briefing_quarter_view.py" goto :package_incomplete
 if not exist "src\taxo\safety_instruction_document_service.py" goto :package_incomplete
 if not exist "src\taxo\paper_documents.py" goto :package_incomplete
 if not exist "src\taxo\paper_documents_ui.py" goto :package_incomplete
