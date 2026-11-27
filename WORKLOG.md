@@ -1,3 +1,14 @@
+## 27.11.2026 — 10.24-r9 vehicle document persistence / Current Test
+
+- Власник повідомив про зниклі копії документів ТЗ, зокрема протоколи ОТК.
+- Аудит підтвердив, що weakness існувала від 10.2-r1 (21.09.2026): БД зберігала workspace path, але не source path; UI трактував непорожній path як «Копія: Є» без перевірки файла; vehicle-document bytes у manual backup були optional.
+- Issue #642; PR #643 merged. Додано Taxo-owned copy provenance (source path, size, SHA-256), factual file state, integrity check on open, selected backup/restore validation і recovery legacy external/source files у staging archive.
+- Архівований документ зберігає bytes; regression покриває archived → backup → restore → open.
+- Exact product main `e3770aa72b0744eee192979a2e569651bac4f257`; START/Windows/Win7/macOS Intel+ARM SUCCESS, Defender/integrity PASS.
+- Release-trigger merged separately як `574f3acd2e078ffc1fd25a5690f5853cfe19c017`; duplicate PR #645 закрито без merge.
+- Publisher #46004721962 SUCCESS → [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 canonical assets, exact target `e3770aa72b0744eee192979a2e569651bac4f257`, prerelease=true.
+- Stable/Latest лишається [v10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
+
 ## 23.11.2026 — 10.24-r8 Current Test published і recovery
 
 - r8 — вузька control-only ревізія поверх r7: fresh UI reopen повторно читає наказ із persisted SQLite та перевіряє збереження номера/дати/теми/стану, participant role/note, frozen snapshot і sequence.
