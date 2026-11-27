@@ -1,14 +1,20 @@
 # Поточна контрольна точка Taxo
 
-**27.11.2026 — Stable/Latest 10.24-r9.**
+**27.11.2026 — Stable/Latest 10.24-r9; Current Test 10.24-r10.**
 
-- Release: [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)
-- Exact product source: `e3770aa72b0744eee192979a2e569651bac4f257`
-- 8 canonical assets; GitHub Latest; prerelease=false; draft=false.
-- Previous Stable: v10.24-r3.
-- Promotion PR #651 merged `3dfefa67ad9385ac18c8ee182c0a99a5a5a0effa`; publisher #46014386874 SUCCESS.
-- Promotion checks: START #46013308335, Windows #46013308203, Win7 #46013308379, macOS Intel/ARM #46013308340 — SUCCESS; Windows/Win7 Defender/integrity PASS.
-- r9 isolated acceptance: 1712/1712 PASS; 6/6 vehicle-document scenarios PASS; real workspace не відкривався.
-- Issue #642 прийнята власником і закривається completed.
-- Історичні bytes, яких уже немає у workspace/source/old backup, з SQLite не відновлюються.
-- Next code revision: **10.24-r10** після вибору наступного змістовного пакета.
+## Stable
+- [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)
+- exact source: `e3770aa72b0744eee192979a2e569651bac4f257`
+- 8 assets; prerelease=false; GitHub Latest.
+
+## Current Test
+- [v10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10)
+- exact issued source: `2e35cea72b46ac9c032966e9def195fc306834a5`
+- 8 assets; prerelease=true; draft=false.
+- exact-source START #46021196420 — 1714/1714 PASS.
+- Windows #46021196370, Win7 #46021196472, macOS #46021196428 — SUCCESS; Defender/integrity PASS.
+- publisher #46023586194 — SUCCESS.
+- synthetic Orders round-trip includes DOCX/PDF/JPG + full backup(Output) + restore + SHA-256 equality; real owner workspace was not used.
+
+## Next
+10.25-r1: Instructions foundation per Issue #237 and `docs/planning/ROADMAP_AFTER_10_24_R9_2026-11-27.md`. Virtual-only testing; separate Test release after stage. Stable changes only by explicit owner decision.

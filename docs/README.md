@@ -17,7 +17,7 @@
 - [Адміністрування й резервні копії](guides/ADMIN_GUIDE.md).
 - [Типові проблеми](guides/TROUBLESHOOTING.md).
 
-## Актуально для Stable 10.24-r3
+## Актуально для Stable 10.24-r9 / Test 10.24-r10
 
 Taxo допомагає створювати, редагувати, переглядати й друкувати накази. Паперовий оригінал лишається первинним контролем; позначка паперового підпису не є КЕП і не блокує виправлення робочого запису Taxo.
 
@@ -25,11 +25,12 @@ Taxo допомагає створювати, редагувати, перегл
 
 ## Випуски та стан
 
-- [Stable 10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3)
-- [Current Test 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — Taxo-owned копії документів ТЗ, source path/size/SHA-256, factual file state і перевірений backup/restore; Stable не змінює
+- [Stable 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — Taxo-owned копії документів ТЗ, source path/size/SHA-256 і перевірений backup/restore
+- [Current Test 10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10) — synthetic end-to-end Orders closeout; 1714/1714 exact-source START, full backup/restore + SHA-256; Stable не змінює
 - [Test 10.24-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r7) — end-to-end live-control «Учасники / ТЗ»; Stable не змінює
 - [Test 10.24-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r6) — full live-control correspondence actions; Stable не змінює
 - [Попередній Test 10.24-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r5) — logical cases/threads без копіювання листів
+- [Що нового у 10.24-r10](releases/RELEASE_NOTES_v10.24-r10.md)
 - [Що нового у 10.24-r9](releases/RELEASE_NOTES_v10.24-r9.md)
 - [Попередній Test 10.24-r8](releases/RELEASE_NOTES_v10.24-r8.md)
 - [Що нового у 10.24-r7](releases/RELEASE_NOTES_v10.24-r7.md)

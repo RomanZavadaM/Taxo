@@ -18,6 +18,9 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)、8 ファイル、exact source `e3770aa72b0744eee192979a2e569651bac4f257`。車両文書の保存と backup/restore 保護は現在の Stable に含まれます。
 
+
+**Current Test:** [Taxo 10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10)、8 ファイル、exact source `2e35cea72b46ac9c032966e9def195fc306834a5`。隔離された synthetic workspace で命令書・参加者・車両の一連の処理、DOCX/PDF/JPG、完全 backup/restore とファイル SHA-256 を検証します。Stable は 10.24-r9 のままです。
+
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
 開発: [START_HERE.md](../../START_HERE.md).

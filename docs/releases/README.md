@@ -2,8 +2,11 @@
 
 **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, prerelease=false, GitHub Latest.
 
+**Current Test:** [10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10) — exact source `2e35cea72b46ac9c032966e9def195fc306834a5`, 8 files, prerelease=true.
+
 **Previous stable:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 
+- [Примітки 10.24-r10](RELEASE_NOTES_v10.24-r10.md)
 - [Примітки 10.24-r9](RELEASE_NOTES_v10.24-r9.md)
 - [Попередні примітки 10.24-r8](RELEASE_NOTES_v10.24-r8.md)
 - [Примітки 10.24-r7](RELEASE_NOTES_v10.24-r7.md)

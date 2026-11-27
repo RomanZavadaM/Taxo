@@ -18,6 +18,9 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 assets, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. The vehicle-document persistence and backup/restore protections described here are now the stable release.
 
+
+**Current Test:** [Taxo 10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10), 8 assets, exact source `2e35cea72b46ac9c032966e9def195fc306834a5`. It validates the Orders/participants/vehicles flow on an isolated synthetic workspace, including DOCX/PDF/JPG and full backup/restore with file SHA-256. Stable remains 10.24-r9.
+
 ## Data and documentation
 
 Keep databases and documents in a separate working folder and back it up before updating. [User guide (Ukrainian)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)

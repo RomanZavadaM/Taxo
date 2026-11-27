@@ -18,6 +18,9 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 
 **Stable / Latest :** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 fichiers, source exacte `e3770aa72b0744eee192979a2e569651bac4f257`. Les protections des documents véhicule et de sauvegarde/restauration font désormais partie de la version stable.
 
+
+**Current Test :** [Taxo 10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10), 8 fichiers, source exacte `2e35cea72b46ac9c032966e9def195fc306834a5`. Il valide le parcours complet ordres/participants/véhicules dans un workspace synthétique isolé, y compris DOCX/PDF/JPG et sauvegarde/restauration complète avec SHA-256 des fichiers. Stable reste 10.24-r9.
+
 Conservez les bases et documents dans un dossier de travail séparé et sauvegardez-le avant mise à jour. [Guide utilisateur (ukrainien)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
 Développement : [START_HERE.md](../../START_HERE.md).
