@@ -1,3 +1,25 @@
+## 27.11.2026 — 10.25-r3 програми / працівники / prepared DOCX / Current Test
+
+- Додано `briefing_planning_ui.py`: створення програми, нова immutable revision, read-only історія редакцій.
+- Вибір працівників бере shared active registry; пошук зберігає накопичений multi-select.
+- Planned session має frozen snapshots працівників і детермінований planning key за program/revision/date/employee set.
+- Додано backward-compatible `Data/BriefingPreparedOutputs`: session → exact PaperDocuments document_id / filename / SHA-256.
+- Повторна підготовка того самого плану не створює другий session/DOCX; missing/tampered DOCX fail-closed.
+- Після успішної підготовки session стає тільки `prepared`; automatic `conducted` / signature немає.
+- Full backup/restore зберігає planning + output links + PaperDocuments bytes.
+- Strict live routes: planning window, new revision, prepare planned DOCX.
+- Перший prep зловив UI-регрес: нова кнопка опустила legacy «Створити комплект DOCX для друку» на 4 px за межу 940×600; кнопку перенесено без послаблення тесту.
+- Реальна база власника не використовувалась.
+- Prep PR #665 final: START #46051503140 — 1727/1727 PASS; Windows #46051503134, Win7 #46051503176, macOS #46051503178 — SUCCESS; Defender/integrity PASS; PR закритий без merge як superseded.
+- Candidate PR #666: START #46052184007 — 1728/1728 PASS; Windows #46052183718, Win7 #46052183685, macOS #46052183788 — SUCCESS; Defender/integrity PASS.
+- Exact source `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`.
+- Exact-source START #46052986259, Windows #46052986192, macOS #46052986186 — SUCCESS.
+- Exact Win7 #46052986213: attempt 1 failed only on Defender signature-update timeout `0x80072ee2`; rerun attempt 2 on same SHA SUCCESS, Defender/integrity PASS.
+- Trigger PR #667 merged `8f8dc5ef52db6bdecba4adee7d9ab4f7d77dc4a6`.
+- Publisher #46054871091 SUCCESS → [v10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3), 8 canonical assets, prerelease=true.
+- Stable/Latest remains v10.24-r9.
+- Next: 10.25-r4 «За подією» + explicit manual conducted fact, virtual-only + separate Test release.
+
 ## 27.11.2026 — 10.25-r2 «На цей квартал» / Current Test
 
 - Додано `briefing_quarter_view.py` і живий екран «На цей квартал…».
