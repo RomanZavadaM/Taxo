@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 archivos, fuente exacta `e3770aa72b0744eee192979a2e569651bac4f257`. Las protecciones de documentos de vehículos y backup/restore forman ahora parte de la versión estable.
 
 
-**Current Test:** [Taxo 10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4), 8 archivos, fuente exacta `ed3b79a96659aa011f60fa7912092fbc15157cdb`. Añade instrucciones por evento con motivo obligatorio, DOCX preparado opcional sin marcar realización, fecha de realización manual más evidencia en papel e historial de auditoría de solo lectura. Stable sigue siendo 10.24-r9.
+**Current Test:** [Taxo 10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5), 8 archivos, fuente exacta `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`. Es la aceptación sintética end-to-end completa de la línea de instrucciones r1–r4: revisiones exactas, sesiones planificadas/por evento, enlaces DOCX con SHA-256, evidencia explícita de realización, control de vencidos y backup/restore completo. Stable sigue siendo 10.24-r9.
 
 Guarde bases y documentos en una carpeta de trabajo separada y haga una copia antes de actualizar. [Manual de usuario (ucraniano)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
