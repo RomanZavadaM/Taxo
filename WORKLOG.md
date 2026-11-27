@@ -1,3 +1,19 @@
+## 27.11.2026 — 10.25-r2 «На цей квартал» / Current Test
+
+- Додано `briefing_quarter_view.py` і живий екран «На цей квартал…».
+- Quarter prev/next, БДР/ОП filter, дата/вид/режим/програма/кількість/стан, exact immutable program revision.
+- Explicit plan helper ідемпотентний; conflict не переписує existing session.
+- Додано strict live route `operations.instructions_quarter`; small-window 780×540 PASS.
+- Реальна база власника не використовувалась.
+- Prep START: 1721/1721 PASS; candidate START #46035757012: 1722/1722 PASS.
+- Candidate PR #662: Windows #46035757099, Win7 #46035757130, macOS #46035756981 — SUCCESS; Defender/integrity PASS.
+- Exact source `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`.
+- Exact-source CI: START #46036612119, Windows #46036612155, Win7 #46036612125, macOS #46036612192 — SUCCESS.
+- Release trigger PR #663 merged `460484945159ee3dc433c3f4f6b986a2c9872d73`.
+- Publisher #46037622127 SUCCESS → [v10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2), 8 canonical assets, prerelease=true.
+- Stable/Latest remains v10.24-r9.
+- Next: 10.25-r3 programs + employees + bulk prepare-to-print, virtual-only + separate Test release.
+
 ## 27.11.2026 — 10.25-r1 Instructions planning core / Current Test
 
 - Додано `src/taxo/briefing_planner.py` і `Data/BriefingPlanning`: immutable program revisions, planned/event sessions, frozen employee snapshots, unique planning_key, prepared != conducted, explicit conducted evidence, derived overdue, fail-closed JSON validation.
