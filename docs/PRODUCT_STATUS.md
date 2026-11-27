@@ -42,11 +42,11 @@
 
 ## Подальша робота
 
-10.25-r4 опублікована як Current Test після virtual/synthetic acceptance; робоча база власника не використовувалась. Додано event briefing з обов'язковою підставою, cumulative shared-registry selection, optional prepared DOCX без conducted semantics, explicit manual conducted date + paper evidence note, immutable conducted fact та read-only history/audit.
+10.25-r5 опублікована як Current Test після повного virtual/synthetic acceptance усієї лінії Інструктажів r1–r4. Реальна база власника не використовувалась. Автоматичне приймання підтверджує persisted state, live routes, DOCX links/SHA-256 і full backup/restore, але не підміняє ручне користування UI.
 
-Наступний етап — **10.25-r5: наскрізне контрольне приймання Інструктажів**. Після завершення — окремий Test release. Stable 10.24-r9 не змінювати без прямого рішення власника.
+**Issue #237 лишається відкритою до ручного owner UI acceptance.** Лише після нього вирішувати, чи закривати Інструктажі й переходити до наступного великого блоку — єдиного сховища документів.
 
-Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
+Stable 10.24-r9 не змінювати без прямого рішення власника. Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 
 [Індекс релізів](releases/RELEASE_INDEX.md) · [Інструкція користувача](guides/USER_MANUAL.md) · [Відновлення роботи](../START_HERE.md)
 
