@@ -2,9 +2,9 @@
 
 Головна мова документації — українська. Публічний короткий опис доступний ще шістьма мовами: [переклади](i18n/README.md).
 
-**Stable / Latest:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) — 23.11.2026, 8 файлів, exact source `c9cb6b7787d991c5ce612ceec1efb32ecc90891d`, Windows/Win7/macOS Intel/ARM/START, 39 strict live UI routes, correspondence journal/card UI.
+**Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — 27.11.2026, 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, vehicle-document persistence + verified backup/restore.
 
-**Попередня Stable:** [10.23-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.23-r4). **Поточний Test:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`; 8 assets; захист копій документів ТЗ у workspace/backup/restore; Stable лишається 10.24-r3.
+**Попередня Stable:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 
 ## Робота з програмою
 
