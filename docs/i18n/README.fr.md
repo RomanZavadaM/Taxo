@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest :** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 fichiers, source exacte `e3770aa72b0744eee192979a2e569651bac4f257`. Les protections des documents véhicule et de sauvegarde/restauration font désormais partie de la version stable.
 
 
-**Current Test :** [Taxo 10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2), 8 fichiers, source exacte `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`. Ajoute la vue active « Ce trimestre » avec navigation par trimestre, filtre BDR/santé-sécurité, ouverture de la révision immuable exacte du programme, états dérivés honnêtes et contrôle live strict en petite fenêtre. Stable reste 10.24-r9.
+**Current Test :** [Taxo 10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3), 8 fichiers, source exacte `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`. Ajoute des révisions immuables des programmes, une sélection cumulative des employés depuis le registre partagé, des séances planifiées déterministes et un lien exact vers le DOCX PaperDocuments par ID, nom de fichier et SHA-256. Préparer le DOCX place seulement l'état `prepared` ; cela ne signifie ni réalisé ni signé. Stable reste 10.24-r9.
 
 Conservez les bases et documents dans un dossier de travail séparé et sauvegardez-le avant mise à jour. [Guide utilisateur (ukrainien)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
