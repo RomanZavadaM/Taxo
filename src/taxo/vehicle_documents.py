@@ -720,17 +720,17 @@ def document_copy_state(row, data_root, verify_hash=True):
 
     actual_hash = ""
     expected_hash = str(row["copy_sha256"] or "").strip().lower() if "copy_sha256" in row.keys() else ""
-    if verify_hash or expected_hash:
+    if verify_hash:
         actual_hash = _sha256_file(path)
-    if expected_hash and actual_hash.lower() != expected_hash:
-        return {
-            "state": "damaged",
-            "label": "Копія пошкоджена",
-            "path": path,
-            "managed": managed,
-            "size": actual_size,
-            "sha256": actual_hash,
-        }
+        if expected_hash and actual_hash.lower() != expected_hash:
+            return {
+                "state": "damaged",
+                "label": "Копія пошкоджена",
+                "path": path,
+                "managed": managed,
+                "size": actual_size,
+                "sha256": actual_hash,
+            }
 
     return {
         "state": "available" if managed else "external",
