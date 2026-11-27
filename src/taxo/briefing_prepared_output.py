@@ -284,7 +284,10 @@ def ensure_planned_session(
     scheduled_for: str,
     participants,
 ):
-    people = tuple(planner.participant_snapshot(value) for value in participants)
+    people = tuple(sorted(
+        (planner.participant_snapshot(value) for value in participants),
+        key=lambda row: row.employee_id,
+    ))
     key = build_planning_key(
         program_id, program_revision, scheduled_for, people
     )
