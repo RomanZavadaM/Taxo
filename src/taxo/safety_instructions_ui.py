@@ -458,7 +458,7 @@ def install_instruction_tab(app, core, book):
             "проводяться за фактичною підставою незалежно від квартального плану."
         ),
         style="Muted.TLabel", wraplength=900, justify="left",
-    ).grid(row=1, column=0, columnspan=5, sticky="ew", pady=(6, 0))
+    ).grid(row=1, column=0, columnspan=6, sticky="ew", pady=(6, 0))
 
     def open_planning_dialog():
         window = briefing_planning.open_planning_preparation(tab, core)
@@ -485,7 +485,7 @@ def install_instruction_tab(app, core, book):
         command=open_event_dialog,
     )
     event_button.grid(
-        row=2, column=4, sticky="e", pady=(6, 0)
+        row=0, column=5, sticky="e", padx=(8, 0)
     )
 
     frame = core.ttk.LabelFrame(tab, text="Підготувати матеріал для паперового інструктажу", padding=8)
