@@ -378,7 +378,7 @@ def vehicle_document_warning_lines_for_period(con, vehicle_id, period_start, per
         warnings.append(f"{label}: {status} ({', '.join(meta)})")
     return warnings
 
-def control_rows(con, active_only=True, today=None):
+def control_rows(con, active_only=True, today=None, data_root=None):
     sql = "SELECT * FROM vehicles"
     if active_only:
         sql += " WHERE active=1"
@@ -401,6 +401,15 @@ def control_rows(con, active_only=True, today=None):
                     "valid_until": "" if doc is None else (doc["valid_until"] or ""),
                     "status": status,
                     "copy_path": "" if doc is None else (doc["copy_path"] or ""),
+                    "copy_state": (
+                        "Немає"
+                        if doc is None
+                        else (
+                            document_copy_state(doc, data_root, verify_hash=False)["label"]
+                            if data_root is not None
+                            else ("Є" if (doc["copy_path"] or "").strip() else "Немає")
+                        )
+                    ),
                     "rank": status_rank(status),
                 }
             )
