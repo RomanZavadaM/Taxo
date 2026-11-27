@@ -112,7 +112,7 @@ class TestTaxo1024R9VehicleDocumentPersistence(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             self.base / "full.zip",
-            app_version="10.24-r9",
+            app_version="10.24-r10",
             include_vehicle_documents=True,
         )
         manifest = workspace.validate_workspace_backup_archive(archive)
@@ -145,14 +145,14 @@ class TestTaxo1024R9VehicleDocumentPersistence(unittest.TestCase):
             workspace.create_workspace_backup_archive(
                 self.root,
                 self.base / "broken-full.zip",
-                app_version="10.24-r9",
+                app_version="10.24-r10",
                 include_vehicle_documents=True,
             )
 
         core = workspace.create_workspace_backup_archive(
             self.root,
             self.base / "core.zip",
-            app_version="10.24-r9",
+            app_version="10.24-r10",
             include_vehicle_documents=False,
         )
         manifest = workspace.validate_workspace_backup_archive(core)
@@ -182,7 +182,7 @@ class TestTaxo1024R9VehicleDocumentPersistence(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             self.base / "legacy-full.zip",
-            app_version="10.24-r9",
+            app_version="10.24-r10",
             include_vehicle_documents=True,
         )
         manifest = workspace.validate_workspace_backup_archive(archive)
@@ -216,7 +216,7 @@ class TestTaxo1024R9VehicleDocumentPersistence(unittest.TestCase):
             workspace.create_workspace_backup_archive(
                 self.root,
                 self.base / "tampered-full.zip",
-                app_version="10.24-r9",
+                app_version="10.24-r10",
                 include_vehicle_documents=True,
             )
 

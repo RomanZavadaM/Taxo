@@ -92,19 +92,19 @@ class CorrespondenceUiR3Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.24-r9\n",
+            "Version: 10.24-r10\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.24-r9"',
+            'APP_VERSION = "10.24-r10"',
             (root / "main.py").read_text("utf-8"),
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.24-r9", start)
+        self.assertIn("Taxo 10.24-r10", start)
         self.assertIn("correspondence_ui.py", start)
         self.assertIn("correspondence_feature.py", start)
         self.assertEqual(
             (root / ".release" / "full-current").read_text("utf-8"),
-            "10.24-r9\n",
+            "10.24-r10\n",
         )
 
     def setUp(self):
