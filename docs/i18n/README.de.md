@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 Dateien, exakte Quelle `e3770aa72b0744eee192979a2e569651bac4f257`. Die Schutzmechanismen für Fahrzeugdokumente und Backup/Restore gehören jetzt zur stabilen Version.
 
 
-**Current Test:** [Taxo 10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3), 8 Dateien, exakte Quelle `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`. Enthalten sind unveränderliche Programmrevisionen, kumulative Mitarbeiterauswahl aus dem gemeinsamen Register, deterministische geplante Einträge sowie die exakte Verknüpfung zum PaperDocuments-DOCX über Dokument-ID, Dateiname und SHA-256. DOCX-Vorbereitung bedeutet nur `prepared`, nie durchgeführt oder unterschrieben. Stable bleibt 10.24-r9.
+**Current Test:** [Taxo 10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4), 8 Dateien, exakte Quelle `ed3b79a96659aa011f60fa7912092fbc15157cdb`. Enthalten sind ereignisbezogene Unterweisungen mit Pflichtgrund, optional vorbereitetem DOCX ohne automatische Durchführung, manuell erfasstem Durchführungsdatum plus Papiernachweis und schreibgeschützter Historie. Stable bleibt 10.24-r9.
 
 Datenbanken und Dokumente in einem separaten Arbeitsordner speichern und vor Updates sichern. [Benutzerhandbuch (Ukrainisch)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
