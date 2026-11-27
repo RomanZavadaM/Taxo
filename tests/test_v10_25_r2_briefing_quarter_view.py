@@ -270,13 +270,8 @@ class BriefingQuarterViewLiveR2Tests(unittest.TestCase):
             )
             self.root.update()
 
-            windows = [
-                child for child in self.root.winfo_children()
-                if isinstance(child, tk.Toplevel)
-                and child.winfo_exists()
-            ]
-            self.assertTrue(windows)
-            quarter_window = windows[-1]
+            quarter_window = tab._taxo_briefing_quarter_window
+            self.assertTrue(quarter_window.winfo_exists())
             tree = quarter_window._taxo_briefing_quarter_tree
             self.assertEqual(len(tree.get_children()), 1)
             values = tree.item(tree.get_children()[0], "values")
