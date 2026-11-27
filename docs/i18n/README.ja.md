@@ -16,7 +16,7 @@ Taxo は運送事業者向けのデスクトップアプリです。従業員・
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8)。8ファイルの prerelease、exact source は `d24b1bc96115de52d6088813992aca3b410fe243` です。r7 に対する control-only の追加として、UI を完全に閉じて再度開いた後も、保存済み命令書の番号・日付・件名・状態、参加者の role/note が保持されることを検証します。Draft → Active は frozen participant snapshot と sequence を変更せず、同じ命令書の refresh でも選択行を保持します。r7 の add/edit/remove、live preview、DOCX/PDF、full backup/restore の保護はそのまま有効です。Taxo は引き続き 58 strict live routes、連絡文書 contract は exact 17 routes です。Stable/Latest は 10.24-r3 のままです。
+**Current Test:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)。8ファイルの prerelease、exact source は `e3770aa72b0744eee192979a2e569651bac4f257` です。車両文書の添付は、元のパス・サイズ・SHA-256 とともに Taxo 管理のコピーとして保存されます。UI は DB にパス文字列があるだけで「存在」と判定せず、実際のファイル状態を確認します。記録をアーカイブしてもコピーは保持されます。車両文書を含めるバックアップは登録済みファイルをすべて検証し、利用可能な legacy/source ファイルをバックアップ内の管理コピーへ取り込むことができ、復元時にも再検証します。作業領域・元ファイル・過去のバックアップのいずれにも残っていない過去の bytes は SQLite だけから復元できません。Stable/Latest は 10.24-r3 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

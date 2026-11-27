@@ -16,7 +16,7 @@ Taxo는 운송업체용 데스크톱 프로그램으로 직원과 차량, 일정
 
 Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/Taxo_v10_24_candidate_r3_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r3/SHA256SUMS_v10_24_r3.txt)
 
-**Current Test:** [Taxo 10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8), 8개 파일 prerelease, exact source `d24b1bc96115de52d6088813992aca3b410fe243`. r7 위에 control-only 재열기 보장을 추가했습니다. UI를 완전히 닫고 다시 열어도 저장된 명령서의 번호/날짜/주제/상태와 참여자 role/note가 유지되고, Draft → Active 전환은 frozen participant snapshot 또는 sequence를 바꾸지 않으며 같은 명령서 refresh에서도 선택이 유지됩니다. r7의 add/edit/remove, live preview, DOCX/PDF, full backup/restore 보호는 그대로 유지됩니다. Taxo는 계속 58개의 strict live routes를 가지며 서신 contract는 정확히 17 routes입니다. Stable/Latest는 10.24-r3을 유지합니다.
+**Current Test:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8개 파일 prerelease, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. 차량 문서 첨부 파일은 이제 원본 경로, 크기, SHA-256과 함께 Taxo가 소유하는 관리 복사본으로 저장됩니다. UI는 DB에 경로 문자열이 있다는 이유만으로 “있음”으로 표시하지 않고 실제 파일 상태를 확인합니다. 기록을 보관 처리해도 복사본은 유지됩니다. 차량 문서 포함 옵션을 선택한 백업은 등록된 모든 파일을 검사하고, 아직 접근 가능한 legacy/source 파일은 백업 내부의 관리 복사본으로 가져올 수 있으며, 복원 시 다시 파일을 검증합니다. 작업 폴더·원본·이전 백업 어디에도 남아 있지 않은 과거 파일 bytes는 SQLite만으로 복원할 수 없습니다. Stable/Latest는 10.24-r3을 유지합니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
