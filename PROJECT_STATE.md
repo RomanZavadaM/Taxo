@@ -1,46 +1,48 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 27.11.2026 після публікації v10.25-r3 Test.**
+**Підтверджено GitHub 27.11.2026 після публікації v10.25-r4 Test.**
 
 ## Поточні випуски
 
 - **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 assets, prerelease=false, GitHub Latest.
-- **Current Test:** [v10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3), exact source `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`, 8 assets, prerelease=true.
-- **Current main:** `8f8dc5ef52db6bdecba4adee7d9ab4f7d77dc4a6`.
-- **Previous Test:** v10.25-r2 — «На цей квартал».
-- **Earlier Test:** v10.25-r1 — Instructions planning core.
+- **Current Test:** [v10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4), exact source `ed3b79a96659aa011f60fa7912092fbc15157cdb`, 8 assets, prerelease=true.
+- **Current main:** `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`.
+- **Previous Test:** v10.25-r3 — program revisions + employees + prepared DOCX.
 
-## Current Test 10.25-r3 — program revisions + employees + prepared DOCX
+## Current Test 10.25-r4 — event briefing + explicit conducted fact
 
-- `briefing_planning_ui.py`: create program, append immutable revision, read-only history.
-- Employee source = shared active employee registry; cumulative search/multi-select preserves identity.
-- Planned session stores frozen employee snapshots.
-- Deterministic plan identity prevents same program/revision/date/people set from duplicating.
-- Exact program revision is rendered through existing PaperDocuments DOCX path.
-- `Data/BriefingPreparedOutputs` links session → exact document_id / filename / SHA-256 without changing r1/r2 planning.json format.
-- Repeated prepare reuses the linked verified DOCX; missing/tampered DOCX fails closed.
-- Successful preparation records only `prepared`; never automatic `conducted`, signature or paper fact.
-- Full backup/restore preserves planning + links + DOCX bytes.
-- Strict live routes: planning window, new revision, prepare planned DOCX.
+- Separate «За подією…» action with mandatory reason.
+- Shared-registry cumulative employee selection; exact program revision + frozen employee snapshots.
+- Event session is independent from regular planned session.
+- Optional prepared DOCX never implies conducted.
+- Manual «Зафіксувати проведення…» requires factual date + paper evidence note.
+- Existing conducted fact cannot be silently rewritten with another date/evidence.
+- Read-only history/audit includes reason, exact program revision, frozen people, timestamps, evidence and prepared DOCX/SHA-256.
+- Full backup/restore preserves event + evidence + prepared output.
+- Strict live routes: open event, create event, save conducted fact, history.
 - Real owner workspace was not used.
-- Prep final START: 1727/1727 PASS; candidate START: 1728/1728 PASS.
-- Candidate PR #666: START #46052184007, Windows #46052183718, Win7 #46052183685, macOS #46052183788 — SUCCESS; Defender/integrity PASS.
-- Exact source `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`.
-- Exact-source START #46052986259, Windows #46052986192, macOS #46052986186 — SUCCESS.
-- Exact Win7 #46052986213 attempt 2 — SUCCESS after attempt 1 failed only on Defender signature-update network timeout `0x80072ee2`; no malware detection.
-- Trigger PR #667 merged `8f8dc5ef52db6bdecba4adee7d9ab4f7d77dc4a6`; publisher #46054871091 SUCCESS.
-- `v10.25-r3`: 8 canonical assets, prerelease=true; Stable r9 unchanged.
+- Candidate START: 1732/1732 PASS; 4/4 r4 scenarios.
+- Candidate PR #670: START #46060419818, Windows #46060419824, Win7 #46060419944, macOS #46060419876 — SUCCESS; Defender/integrity PASS.
+- Exact source `ed3b79a96659aa011f60fa7912092fbc15157cdb`.
+- Exact-source START #46061028041, Windows #46061028147, Win7 #46061028060, macOS #46061028199 — SUCCESS.
+- Trigger PR #671 merged `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`; trigger Win7 #46061090608 attempt 2 SUCCESS after attempt 1 failed only on Defender signature-update timeout `0x80072ee2`.
+- Publisher #46062424737 SUCCESS.
+- `v10.25-r4`: 8 canonical assets, prerelease=true; Stable r9 unchanged.
 
 ## Next
 
-**10.25-r4 — event briefing + explicit conducted fact**:
-- separate «За подією» action;
-- required factual reason;
-- event does not close regular planned session;
-- explicit manual «Зафіксувати проведення» with factual date + evidence note;
-- history/audit and strict live controls;
-- never infer conducted from prepared DOCX, scan or signature flag;
-- virtual-only tests and separate Test release.
+**10.25-r5 — full Instructions end-to-end acceptance**:
+- program revision;
+- quarter plan;
+- shared employees;
+- prepared DOCX and exact output link;
+- close/reopen persisted stores;
+- event briefing;
+- explicit manual conducted fact;
+- overdue derived control;
+- full backup/restore;
+- state and file integrity equality;
+- virtual/synthetic only; separate Test release.
 
 Maintenance окремо: architecture #290, Feature Loss/UI #275/#556, docs-only CI #251. Draft #543/#395 лишаються open.
 
