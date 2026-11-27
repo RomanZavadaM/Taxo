@@ -1,11 +1,12 @@
 # Випуски Taxo
 
-**Стан:** 27.11.2026: Stable/Latest 10.24-r9; Current Test 10.25-r1.
+**Стан:** 27.11.2026: Stable/Latest 10.24-r9; Current Test 10.25-r2.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) | 8 canonical assets; vehicle-document Taxo-owned copy + source path/size/SHA-256; selected backup/restore validation incl. archived records. Exact source e3770aa72b0744eee192979a2e569651bac4f257; promotion PR #651 merged 3dfefa67ad9385ac18c8ee182c0a99a5a5a0effa; publisher #46014386874 SUCCESS; prerelease=false; GitHub Latest. |
-| Поточна тестова | [10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1) | 8 canonical assets; Instructions planning core: immutable program revisions, planned/event sessions, frozen participants, unique planning_key, prepared ≠ conducted, explicit paper evidence, full backup/restore. Exact source 2e0a0df392b5b79b6e2efbf1793df470bf6623f8; START #46028063211, Windows #46028063203, Win7 #46028063190, macOS #46028062948 SUCCESS; publisher #46032557836 SUCCESS; prerelease=true. |
+| Поточна тестова | [10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2) | 8 canonical assets; quarter briefing view + direction filter + exact program revision + derived statuses + idempotent explicit plan + strict small-window live route. Exact source f013e244ad42c9d5c101b5c5eacf4f55738fadbd; START #46036612119, Windows #46036612155, Win7 #46036612125, macOS #46036612192 SUCCESS; publisher #46037622127 SUCCESS; prerelease=true. |
+| Попередня тестова | [10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1) | Instructions planning core; exact source 2e0a0df392b5b79b6e2efbf1793df470bf6623f8; prerelease=true. |
 | Попередня тестова | [10.24-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r10) | 8 canonical assets; synthetic Orders end-to-end; exact source 2e35cea72b46ac9c032966e9def195fc306834a5; START 1714/1714; prerelease=true. |
 | Попередня стабільна | [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3) | 8 canonical assets; exact source c9cb6b7787d991c5ce612ceec1efb32ecc90891d. |
 | Попередня тестова | [10.24-r8](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r8) | 8 canonical assets; 58 strict live routes; fresh-reopen preservation control for order participants over r7. Exact source d24b1bc96115de52d6088813992aca3b410fe243; publisher #45237831016 SUCCESS; Defender/integrity PASS. |
@@ -73,7 +74,7 @@
 | Архівна | [10.12-r10](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.12-r10) | Варіант повернення. |
 | Архівна | [10.10-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.10-r5) | Попередній контрольний випуск. |
 
-[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) · [Current Test 10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1) · [Поточний стан](../../PROJECT_STATE.md).
+[Усі випуски та файли](https://github.com/RomanZavadaM/Taxo/releases) · [Stable 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) · [Current Test 10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2) · [Поточний стан](../../PROJECT_STATE.md).
 
 v10.23-r3 навмисно не публікувався за рішенням власника; номер не перевикористовується.
 

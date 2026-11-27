@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 assets, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. The vehicle-document persistence and backup/restore protections described here are now the stable release.
 
 
-**Current Test:** [Taxo 10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1), 8 assets, exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`. It adds the briefing planning core: immutable program revisions, planned/event sessions, frozen employee snapshots, honest prepared/conducted states, and full backup/restore. Stable remains 10.24-r9.
+**Current Test:** [Taxo 10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2), 8 assets, exact source `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`. It adds the live “This quarter” briefing view with quarter navigation, BDR/OHS filtering, exact immutable program revision lookup, honest derived statuses, and strict small-window live control. Stable remains 10.24-r9.
 
 ## Data and documentation
 

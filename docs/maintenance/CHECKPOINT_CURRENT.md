@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**27.11.2026 — Stable/Latest 10.24-r9; Current Test 10.25-r1.**
+**27.11.2026 — Stable/Latest 10.24-r9; Current Test 10.25-r2.**
 
 ## Stable
 - [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)
@@ -8,13 +8,13 @@
 - 8 assets; prerelease=false; GitHub Latest.
 
 ## Current Test
-- [v10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1)
-- exact source: `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`
+- [v10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2)
+- exact source: `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`
 - 8 assets; prerelease=true.
-- candidate START #46027162850 — 1718/1718 PASS.
-- exact-source START #46028063211; Windows #46028063203; Win7 #46028063190; macOS #46028062948 — SUCCESS.
-- publisher #46032557836 — SUCCESS.
-- Instructions planning core + full backup/restore; real owner workspace not used.
+- candidate START #46035757012 — 1722/1722 PASS.
+- exact-source START #46036612119; Windows #46036612155; Win7 #46036612125; macOS #46036612192 — SUCCESS.
+- publisher #46037622127 — SUCCESS.
+- quarter briefing UI + exact revision + strict small-window route; real owner workspace not used.
 
 ## Next
-10.25-r2: «На цей квартал» over r1 store. Virtual-only testing; separate Test release.
+10.25-r3: programs + employee selection + bulk prepare-to-print. Virtual-only testing; separate Test release.

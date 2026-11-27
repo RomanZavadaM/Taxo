@@ -55,7 +55,13 @@
 
 **10.24-r8 опублікована як Current Test; Stable/Latest лишається 10.24-r3.** Бізнес-правила наказів, схема БД і формати документів не змінювалися. r8 перевіряє, що після повного закриття й повторного відкриття UI наказ знову читається з SQLite без втрати номера, дати, теми, стану, ролі/примітки учасника, frozen snapshot та sequence. Перехід «Чернетка» → «Діє в Taxo» не повинен змінювати participant data. r7-контроль add/edit/remove, live preview, DOCX/PDF і backup/restore лишається чинним.
 
-## Current Test 10.25-r1 — фундамент планування інструктажів
+## Current Test 10.25-r2 — «На цей квартал»
+
+**10.25-r2 опублікована як окремий Test; Stable/Latest лишається 10.24-r9.** У чинній вкладці «Інструктажі та журнали» додано кнопку **«На цей квартал…»**. Екран читає planning store r1, перемикає квартали, фільтрує БДР/ОП, показує дату, вид, режим, програму, кількість працівників і чесний стан «Заплановано / Підготовлено / Прострочено / Проведено». «Відкрити програму…» відкриває саме ту immutable редакцію, на яку посилається session. Explicit plan generation ідемпотентний: той самий ключ і той самий запис не дублюються, а конфлікт не переписується.
+
+Virtual acceptance: candidate START **1722/1722 PASS**, 4/4 r2 scenarios; exact-source Windows/Win7/macOS/START — SUCCESS; Defender/integrity PASS. Exact source: `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`.
+
+## Previous Test 10.25-r1 — фундамент планування інструктажів
 
 **10.25-r1 опублікована як окремий Test; Stable/Latest лишається 10.24-r9.** Додано `Data/BriefingPlanning`: незмінні редакції програм, планові й подієві заходи, frozen snapshot працівників, захист від повторного планування, чесні стани `planned / prepared / conducted`, явний фактичний запис проведення з посиланням на паперовий журнал і full backup/restore. Друк або підготовка не означають «проведено», а подієвий захід не закриває плановий.
 
@@ -74,7 +80,7 @@ Virtual acceptance: candidate START **1718/1718 PASS**, 4/4 r1 scenarios; exact-
 - **macOS Stable:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_macOS_x86_64_Portable.zip)
 - **Stable START/SHA256:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/SHA256SUMS_v10_24_r9.txt)
 
-**Current Test: [Taxo 10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1)** — exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`, 8 файлів, prerelease.
+**Current Test: [Taxo 10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2)** — exact source `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`, 8 файлів, prerelease.
 
 ## Початок роботи та дані
 

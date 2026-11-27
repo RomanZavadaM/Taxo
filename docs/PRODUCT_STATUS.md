@@ -1,17 +1,17 @@
 # Taxo — стан продукту
 
-**Актуально:** 27.11.2026 після публікації 10.25-r1 Test.
+**Актуально:** 27.11.2026 після публікації 10.25-r2 Test.
 
 - **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease=false.
-- **Current Test:** [10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1), exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`, 8 files, prerelease=true; Instructions planning core + synthetic backup/restore.
-- **r1 exact-source CI:** START #46028063211; Windows #46028063203; Win7 #46028063190; macOS #46028062948 — SUCCESS. Publisher #46032557836 SUCCESS.
+- **Current Test:** [10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2), exact source `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`, 8 files, prerelease=true; quarter briefing view + strict live-control.
+- **r2 exact-source CI:** START #46036612119; Windows #46036612155; Win7 #46036612125; macOS #46036612192 — SUCCESS. Publisher #46037622127 SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
 **У Stable/Latest 10.24-r9** виправлено давню слабкість документів ТЗ, що існувала від 10.2-r1: запис у БД міг лишитися без фізичного файла, а початковий source path не зберігався. Нові/замінені копії є Taxo-owned файлами у `Data/VehicleDocuments` із source path, size та SHA-256. UI показує реальну наявність/втрату/пошкодження; selected backup перевіряє bytes, може забрати доступний legacy external/source файл у staging archive, restore повторно перевіряє копії, а архівування запису не видаляє файл. Publisher #46004721962 — SUCCESS; exact release target `e3770aa72b0744eee192979a2e569651bac4f257`.
 
 У Stable 10.24-r3 також входять зміни, прийняті ще в 10.23-r4: редагування ролі/примітки учасника наказу; накопичення вибору при пошуку; регульовані робочі області «Документи»; регульована ширина дерева каталогу; адаптивний перегляд наказу, де DOCX/PDF/JPG та нижні дії залишаються доступними у вузькому вікні. 10.23-r4 була попередньою стабільною точкою; 23.11.2026 власник прямо перевів 10.24-r3 у Stable/Latest.
 
-У каталозі «Документи» є дерево **«За видами / За датами / Мої папки»**. Власні папки можуть бути вкладеними; їх можна створювати й перейменовувати, а один документ розміщувати в одній або кількох папках без фізичного переносу чи копіювання файлів. Структура папок входить до повної резервної копії Taxo. У 10.22-r10 можна вибрати документ із усього каталогу навіть для порожньої папки, переміщувати власні папки, архівувати й відновлювати їх без видалення файлів; PDF-додаток наказу переносить довгі ролі, імена й реквізити у межах колонок. У Test 10.24-r7 блок «Учасники / ТЗ» отримав наскрізний live-control add/edit/remove/preview; у Test 10.24-r8 додано fresh-reopen preservation control; ширший аудит механізму наказів за #553 ще не завершений. **У Stable 10.24-r3 є реєстр, нумерація, контрольовані вкладення та journal/card UI. Test 10.24-r4 додав явні фактичні стани відправлення/отримання, append-only history і due/overdue. Test 10.24-r5 додав логічні справи/теми та ланцюжки; Test 10.24-r6 — повний strict live-control критичних дій кореспонденції без зміни її data model; Test 10.24-r7 — наскрізний live-control блоку «Учасники / ТЗ» наказу; Test 10.24-r8 — fresh-reopen preservation control поверх нього; Stable 10.24-r9 — захист фізичних копій документів ТЗ; Previous Test 10.24-r10 — Orders closeout; Current Test 10.25-r1 — planning core інструктажів.**
+У каталозі «Документи» є дерево **«За видами / За датами / Мої папки»**. Власні папки можуть бути вкладеними; їх можна створювати й перейменовувати, а один документ розміщувати в одній або кількох папках без фізичного переносу чи копіювання файлів. Структура папок входить до повної резервної копії Taxo. У 10.22-r10 можна вибрати документ із усього каталогу навіть для порожньої папки, переміщувати власні папки, архівувати й відновлювати їх без видалення файлів; PDF-додаток наказу переносить довгі ролі, імена й реквізити у межах колонок. У Test 10.24-r7 блок «Учасники / ТЗ» отримав наскрізний live-control add/edit/remove/preview; у Test 10.24-r8 додано fresh-reopen preservation control; ширший аудит механізму наказів за #553 ще не завершений. **У Stable 10.24-r3 є реєстр, нумерація, контрольовані вкладення та journal/card UI. Test 10.24-r4 додав явні фактичні стани відправлення/отримання, append-only history і due/overdue. Test 10.24-r5 додав логічні справи/теми та ланцюжки; Test 10.24-r6 — повний strict live-control критичних дій кореспонденції без зміни її data model; Test 10.24-r7 — наскрізний live-control блоку «Учасники / ТЗ» наказу; Test 10.24-r8 — fresh-reopen preservation control поверх нього; Stable 10.24-r9 — захист фізичних копій документів ТЗ; Previous Test 10.24-r10 — Orders closeout; Previous Test 10.25-r1 — planning core; Current Test 10.25-r2 — «На цей квартал».**
 
 ## AI-ready архів документів
 
@@ -42,9 +42,9 @@
 
 ## Подальша робота
 
-10.25-r1 опублікована як Current Test після повного virtual/synthetic acceptance; робоча база власника не використовувалась. Додано immutable program revisions, planned/event sessions, frozen participant snapshots, чесні стани prepared ≠ conducted, explicit conducted evidence та full backup/restore.
+10.25-r2 опублікована як Current Test після virtual/synthetic acceptance. Додано квартальний робочий екран, exact program revision, чесні стани й strict small-window live route; реальна база власника не використовувалась.
 
-Наступний етап — **10.25-r2: «На цей квартал»** поверх r1 planning store. Після завершення — окремий Test release. Stable 10.24-r9 не змінювати без прямого рішення власника.
+Наступний етап — **10.25-r3: програми + працівники + масова підготовка до друку**. Після завершення — окремий Test release. Stable 10.24-r9 не змінювати без прямого рішення власника.
 
 Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
 

@@ -1,36 +1,44 @@
 # PROJECT_STATE — Taxo
 
-**Підтверджено GitHub 27.11.2026 після публікації v10.25-r1 Test.**
+**Підтверджено GitHub 27.11.2026 після публікації v10.25-r2 Test.**
 
 ## Поточні випуски
 
 - **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 assets, prerelease=false, GitHub Latest.
-- **Current Test:** [v10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1), exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`, 8 assets, prerelease=true.
-- **Current main:** `44e20e7bac1803afb1b9853a821c60e6154780db`.
-- **Previous Test:** v10.24-r10 — Orders closeout.
+- **Current Test:** [v10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2), exact source `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`, 8 assets, prerelease=true.
+- **Current main:** `460484945159ee3dc433c3f4f6b986a2c9872d73`.
+- **Previous Test:** v10.25-r1 — Instructions planning core.
+- **Earlier Test:** v10.24-r10 — Orders closeout.
 
-## Current Test 10.25-r1 — Instructions planning core
+## Current Test 10.25-r2 — «На цей квартал»
 
-- `Data/BriefingPlanning/planning.json`, format `taxo.briefing-planning.v1`.
-- Immutable versioned programs; planned/event sessions; frozen participant snapshots.
-- Unique planned `planning_key`; event reason required.
-- Honest states: prepared/print ≠ conducted.
-- Conducted requires explicit factual date + paper evidence note.
-- Event does not close regular planned session.
-- Overdue is derived state, not an automatic historical write.
-- Fail-closed JSON validation and program-revision references.
-- Full workspace backup/restore preserves the store.
+- Quarter service `briefing_quarter_view.py` over r1 immutable planning store.
+- Live button/window «На цей квартал…».
+- Quarter prev/next, direction filter, date/kind/mode/program/people/status table.
+- Exact session → exact program revision view.
+- Honest status semantics; prepared ≠ conducted; event does not close planned.
+- Derived overdue does not write history.
+- Idempotent explicit plan generation by planning_key; conflicts fail closed.
+- Stable live hook to opened quarter window.
+- Strict route `operations.instructions_quarter`; small-window activation at 780×540.
 - Real owner workspace was not used.
-- Candidate START: 1718/1718 PASS, 4/4 r1 scenarios.
-- Candidate PR #658 CI: START #46027162850, Windows #46027162761, Win7 #46027162706, macOS #46027162770 — SUCCESS; Defender/integrity PASS.
-- Exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`.
-- Exact-source CI: START #46028063211, Windows #46028063203, Win7 #46028063190, macOS #46028062948 — SUCCESS.
-- Trigger PR #659 merged `44e20e7bac1803afb1b9853a821c60e6154780db`; publisher #46032557836 SUCCESS.
-- `v10.25-r1`: 8 canonical assets, prerelease=true; Stable r9 unchanged.
+- Candidate START: 1722/1722 PASS, 4/4 r2 scenarios.
+- Candidate PR #662 CI: START #46035757012, Windows #46035757099, Win7 #46035757130, macOS #46035756981 — SUCCESS; Defender/integrity PASS.
+- Exact source `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`.
+- Exact-source CI: START #46036612119, Windows #46036612155, Win7 #46036612125, macOS #46036612192 — SUCCESS.
+- Trigger PR #663 merged `460484945159ee3dc433c3f4f6b986a2c9872d73`; publisher #46037622127 SUCCESS.
+- `v10.25-r2`: 8 canonical assets, prerelease=true; Stable r9 unchanged.
 
 ## Next
 
-**10.25-r2 — «На цей квартал»**: quarter selector; planned/prepared/overdue/conducted; БДР/ОП filter; exact program revision; idempotent plan generation; small-window/live-route checks; virtual-only tests; separate Test release.
+**10.25-r3 — програми + працівники + масова підготовка до друку**:
+- new immutable program revision UI;
+- cumulative multi-select employees/groups from registries;
+- create explicit planned sessions with frozen snapshots;
+- prepare DOCX through PaperDocuments;
+- prepared only, never automatic conducted;
+- backup/restore of plan + output;
+- virtual-only tests and separate Test release.
 
 Maintenance окремо: architecture #290, Feature Loss/UI #275/#556, docs-only CI #251. Draft #543/#395 лишаються open.
 

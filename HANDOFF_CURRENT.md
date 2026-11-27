@@ -1,42 +1,42 @@
 # HANDOFF_CURRENT — Taxo
 
-**27.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r1.**
+**27.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r2.**
 
 - **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 canonical assets, prerelease=false, GitHub Latest.
-- **Current Test:** [v10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1), exact issued source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`, 8 canonical assets, prerelease=true.
-- Current main after release trigger: `44e20e7bac1803afb1b9853a821c60e6154780db`.
+- **Current Test:** [v10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2), exact issued source `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`, 8 canonical assets, prerelease=true.
+- Current main after release trigger: `460484945159ee3dc433c3f4f6b986a2c9872d73`.
 
-## 10.25-r1 — завершено
+## 10.25-r2 — завершено
 
-- Додано `src/taxo/briefing_planner.py` і `Data/BriefingPlanning`.
-- Незмінні редакції програм; planned/event sessions; frozen snapshot працівників.
-- Unique `planning_key` блокує дублювання планового заходу.
-- Event session має обов'язкову підставу і не закриває planned session.
-- `prepared` / друк не означає `conducted`.
-- `conducted` потребує явної фактичної дати та примітки/посилання на паперовий запис; вже зафіксований факт не переписується мовчки.
-- `overdue` обчислюється без автоматичного запису в історію.
-- JSON store fail-closed; full workspace backup/restore зберігає planning store.
+- Додано `src/taxo/briefing_quarter_view.py`.
+- У вкладці «Інструктажі та журнали» є кнопка **«На цей квартал…»**.
+- Квартальний екран: попередній/наступний квартал, фільтр «Усі / БДР / Охорона праці», дата, вид, режим, програма, кількість працівників, стан.
+- Стани: Заплановано / Підготовлено / Прострочено / Проведено; overdue похідний і не переписує історію.
+- «Відкрити програму…» читає точну immutable program revision, на яку посилається session.
+- Подієвий захід не закриває плановий.
+- Explicit plan helper ідемпотентний: same planning_key + same spec повертає існуючий session; conflict не переписується.
+- Додано strict live route `operations.instructions_quarter`; small-window 780×540 перевіряє mapped + onscreen + usable + activation.
 - Реальна база власника не відкривалась.
 
-## Приймання r1
+## Приймання r2
 
-- Prep START: 1717/1717 PASS; 3/3 нових r1 scenarios.
-- Candidate START: **1718/1718 PASS**; 4/4 r1 scenarios.
-- Candidate PR #658: START #46027162850, Windows #46027162761, Win7 #46027162706, macOS #46027162770 — SUCCESS; Defender/integrity PASS.
-- Exact issued source: `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`.
-- Exact-source CI: START #46028063211, Windows #46028063203, Win7 #46028063190, macOS #46028062948 — SUCCESS.
-- Release trigger PR #659 merged `44e20e7bac1803afb1b9853a821c60e6154780db`.
-- Publisher #46032557836 — SUCCESS.
-- Release `v10.25-r1`: 8 assets, prerelease=true, target = exact issued source.
+- Prep START: **1721/1721 PASS**, 3/3 r2 scenarios.
+- Candidate START: **1722/1722 PASS**, 4/4 r2 scenarios.
+- Candidate PR #662: START #46035757012, Windows #46035757099, Win7 #46035757130, macOS #46035756981 — SUCCESS; Defender/integrity PASS.
+- Exact issued source: `f013e244ad42c9d5c101b5c5eacf4f55738fadbd`.
+- Exact-source CI: START #46036612119, Windows #46036612155, Win7 #46036612125, macOS #46036612192 — SUCCESS.
+- Release trigger PR #663 merged `460484945159ee3dc433c3f4f6b986a2c9872d73`.
+- Publisher #46037622127 — SUCCESS.
+- Release `v10.25-r2`: 8 assets, prerelease=true, target = exact issued source.
 - Stable/Latest лишається 10.24-r9.
 
 ## Що далі
 
-**10.25-r2 — екран «На цей квартал» поверх r1 planning store.**
+**10.25-r3 — програми, вибір працівників і масова підготовка до друку.**
 
-Межа r2: квартальний view, перемикання кварталу, planned/prepared/overdue/conducted, фільтр БДР/ОП, відкриття точної редакції програми, повторне формування без дублів, small-window/live-route control. Жодного автозакриття інструктажу.
+Межа r3: UI створення нової редакції програми без переписування старої; вибір груп/працівників із реєстру з накопиченням multi-select; explicit planned sessions із frozen snapshots; «Підготувати до друку» використовує PaperDocuments і ставить лише prepared, не conducted; backup/restore плану + готових DOCX.
 
-Після завершення r2: virtual/synthetic acceptance → full CI → окремий GitHub Test release. Stable 10.24-r9 не змінювати без окремого прямого рішення власника.
+Після завершення r3: virtual/synthetic acceptance → full CI → окремий GitHub Test release. Stable 10.24-r9 не змінювати без окремого прямого рішення власника.
 
 Execution plan: `docs/planning/INSTRUCTIONS_10_25_EXECUTION_PLAN_2026-11-27.md`.
 
