@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8개 파일, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. 차량 문서 보존 및 backup/restore 보호 기능이 이제 Stable에 포함됩니다.
 
 
-**Current Test:** [Taxo 10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3), 8개 파일, exact source `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`. 변경 불가 프로그램 revision, 공용 레지스트리의 누적 직원 선택, 결정적 planned session, document ID·filename·SHA-256으로 PaperDocuments DOCX에 정확히 연결하는 기능을 추가합니다. DOCX 준비는 `prepared` 상태만 의미하며 실시 또는 서명을 뜻하지 않습니다. Stable은 10.24-r9로 유지됩니다.
+**Current Test:** [Taxo 10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4), 8개 파일, exact source `ed3b79a96659aa011f60fa7912092fbc15157cdb`. 필수 사유가 있는 이벤트 브리핑, 실시로 간주하지 않는 선택적 prepared DOCX, 종이 근거와 함께 명시적으로 수동 기록하는 실시 날짜, 읽기 전용 감사 이력을 추가합니다. Stable은 10.24-r9로 유지됩니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
