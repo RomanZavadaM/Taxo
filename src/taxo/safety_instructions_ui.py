@@ -12,6 +12,7 @@ from datetime import date
 import entity_choices as ops
 import safety_templates as safety_tpl
 import safety_instruction_document_service as instruction_documents
+import briefing_quarter_view as briefing_quarter
 from workspace import load_workspace_root
 
 
@@ -27,6 +28,300 @@ def _alive(widget):
     except Exception:
         return False
 
+
+
+def open_quarter_view(parent, core, year=None, quarter=None):
+    """Open the current/selected quarter without inventing completion facts."""
+    if year is None or quarter is None:
+        year, quarter = quarter_for()
+    state = {"year": int(year), "quarter": int(quarter)}
+
+    window = core.tk.Toplevel(parent)
+    window.title("Інструктажі — На цей квартал")
+    try:
+        core.fit_window_to_screen(window, 1040, 620, 760, 480)
+        core.configure_toplevel(
+            window,
+            title=window.title(),
+            minsize=(760, 480),
+        )
+    except Exception:
+        try:
+            window.geometry("1040x620")
+            window.minsize(760, 480)
+        except Exception:
+            pass
+
+    body = core.ttk.Frame(window, padding=10)
+    body.pack(fill="both", expand=True)
+    body.columnconfigure(0, weight=1)
+    body.rowconfigure(2, weight=1)
+
+    title_row = core.ttk.Frame(body)
+    title_row.grid(row=0, column=0, sticky="ew", pady=(0, 6))
+    title_row.columnconfigure(1, weight=1)
+    quarter_value = core.tk.StringVar(
+        value=quarter_caption(state["year"], state["quarter"])
+    )
+    filter_value = core.tk.StringVar(value=briefing_quarter.DIRECTION_ALL)
+
+    core.ttk.Button(
+        title_row, text="Попередній",
+        command=lambda: move_quarter(-1),
+    ).grid(row=0, column=0, sticky="w")
+    core.ttk.Label(
+        title_row, textvariable=quarter_value, style="Subtitle.TLabel"
+    ).grid(row=0, column=1, sticky="w", padx=8)
+    core.ttk.Button(
+        title_row, text="Наступний",
+        command=lambda: move_quarter(1),
+    ).grid(row=0, column=2, sticky="e", padx=(0, 8))
+    core.ttk.Label(title_row, text="Напрям:").grid(
+        row=0, column=3, sticky="e", padx=(0, 4)
+    )
+    direction_box = core.ttk.Combobox(
+        title_row,
+        textvariable=filter_value,
+        values=briefing_quarter.DIRECTIONS,
+        state="readonly",
+        width=18,
+    )
+    direction_box.grid(row=0, column=4, sticky="e")
+
+    core.ttk.Label(
+        body,
+        text=(
+            "Це робочий квартальний огляд з фактичних записів Taxo. "
+            "«Підготовлено» не означає «Проведено», а подієвий захід "
+            "не закриває плановий. Квартал не встановлює законодавчу "
+            "періодичність автоматично."
+        ),
+        style="Muted.TLabel",
+        wraplength=980,
+        justify="left",
+    ).grid(row=1, column=0, sticky="ew", pady=(0, 7))
+
+    table_frame = core.ttk.Frame(body)
+    table_frame.grid(row=2, column=0, sticky="nsew")
+    table_frame.columnconfigure(0, weight=1)
+    table_frame.rowconfigure(0, weight=1)
+    columns = (
+        "date", "direction", "kind", "mode",
+        "program", "people", "status",
+    )
+    tree = core.ttk.Treeview(
+        table_frame,
+        columns=columns,
+        show="headings",
+        selectmode="browse",
+        height=12,
+    )
+    headings = {
+        "date": ("Дата", 95),
+        "direction": ("Напрям", 115),
+        "kind": ("Вид", 155),
+        "mode": ("Режим", 100),
+        "program": ("Програма", 290),
+        "people": ("Осіб", 60),
+        "status": ("Стан", 110),
+    }
+    for key, (caption, width) in headings.items():
+        tree.heading(key, text=caption)
+        tree.column(
+            key,
+            width=width,
+            minwidth=55,
+            stretch=(key == "program"),
+            anchor="w" if key != "people" else "center",
+        )
+    ybar = core.ttk.Scrollbar(
+        table_frame, orient="vertical", command=tree.yview
+    )
+    xbar = core.ttk.Scrollbar(
+        table_frame, orient="horizontal", command=tree.xview
+    )
+    tree.configure(yscrollcommand=ybar.set, xscrollcommand=xbar.set)
+    tree.grid(row=0, column=0, sticky="nsew")
+    ybar.grid(row=0, column=1, sticky="ns")
+    xbar.grid(row=1, column=0, sticky="ew")
+
+    footer = core.ttk.Frame(body)
+    footer.grid(row=3, column=0, sticky="ew", pady=(8, 0))
+    status_value = core.tk.StringVar(value="")
+    core.ttk.Label(
+        footer, textvariable=status_value, style="Muted.TLabel"
+    ).pack(side="left")
+    close_button = core.ttk.Button(
+        footer, text="Закрити", command=window.destroy
+    )
+    close_button.pack(side="right")
+    program_button = core.ttk.Button(
+        footer, text="Відкрити програму…",
+        command=lambda: open_selected_program(),
+    )
+    program_button.pack(side="right", padx=(0, 7))
+    refresh_button = core.ttk.Button(
+        footer, text="Оновити", command=lambda: refresh()
+    )
+    refresh_button.pack(side="right", padx=(0, 7))
+
+    rows_by_iid = {}
+
+    def selected_row():
+        selection = tree.selection()
+        if not selection:
+            return None
+        return rows_by_iid.get(selection[0])
+
+    def open_selected_program():
+        row = selected_row()
+        if row is None:
+            try:
+                core.messagebox.showinfo(
+                    "Програма інструктажу",
+                    "Виберіть захід у таблиці.",
+                    parent=window,
+                )
+            except Exception:
+                pass
+            return
+        try:
+            program = briefing_quarter.get_exact_program(
+                load_workspace_root(), row
+            )
+        except Exception as exc:
+            try:
+                core.messagebox.showerror(
+                    "Програма інструктажу", str(exc), parent=window
+                )
+            except Exception:
+                pass
+            return
+        editor = core.tk.Toplevel(window)
+        editor.title(
+            "%s — редакція %d" % (program.title, program.revision)
+        )
+        try:
+            core.fit_window_to_screen(editor, 860, 600, 660, 440)
+            core.configure_toplevel(
+                editor,
+                title=editor.title(),
+                minsize=(660, 440),
+            )
+        except Exception:
+            pass
+        pane = core.ttk.Frame(editor, padding=10)
+        pane.pack(fill="both", expand=True)
+        pane.columnconfigure(0, weight=1)
+        pane.rowconfigure(2, weight=1)
+        core.ttk.Label(
+            pane,
+            text="%s — %s / %s" % (
+                program.title, program.direction, program.kind
+            ),
+            style="Subtitle.TLabel",
+        ).grid(row=0, column=0, sticky="w")
+        core.ttk.Label(
+            pane,
+            text=(
+                "Редакція %d · чинна від %s%s"
+                % (
+                    program.revision,
+                    program.valid_from,
+                    (
+                        " до " + program.valid_until
+                        if program.valid_until else ""
+                    ),
+                )
+            ),
+            style="Muted.TLabel",
+        ).grid(row=1, column=0, sticky="w", pady=(2, 6))
+        text_frame = core.ttk.Frame(pane)
+        text_frame.grid(row=2, column=0, sticky="nsew")
+        text_frame.columnconfigure(0, weight=1)
+        text_frame.rowconfigure(0, weight=1)
+        text = core.tk.Text(text_frame, wrap="word")
+        scroll = core.ttk.Scrollbar(
+            text_frame, orient="vertical", command=text.yview
+        )
+        text.configure(yscrollcommand=scroll.set)
+        text.grid(row=0, column=0, sticky="nsew")
+        scroll.grid(row=0, column=1, sticky="ns")
+        text.insert("1.0", program.program_text)
+        text.configure(state="disabled")
+        core.ttk.Button(
+            pane, text="Закрити", command=editor.destroy
+        ).grid(row=3, column=0, sticky="e", pady=(8, 0))
+
+    def refresh(_event=None):
+        rows_by_iid.clear()
+        for iid in tree.get_children():
+            tree.delete(iid)
+        try:
+            rows = briefing_quarter.rows_for_quarter(
+                load_workspace_root(),
+                state["year"],
+                state["quarter"],
+                direction=filter_value.get(),
+            )
+        except Exception as exc:
+            status_value.set("Не вдалося прочитати план")
+            try:
+                core.messagebox.showerror(
+                    "Квартальний план", str(exc), parent=window
+                )
+            except Exception:
+                pass
+            return
+        for index, row in enumerate(rows):
+            iid = "briefing-%d" % index
+            rows_by_iid[iid] = row
+            tree.insert(
+                "",
+                "end",
+                iid=iid,
+                values=(
+                    date.fromisoformat(row.scheduled_for).strftime(
+                        "%d.%m.%Y"
+                    ),
+                    row.direction,
+                    row.kind,
+                    briefing_quarter.mode_caption(row.mode),
+                    "%s (r%d)" % (
+                        row.title, row.program_revision
+                    ),
+                    row.people_count,
+                    briefing_quarter.status_caption(row.status),
+                ),
+            )
+        status_value.set(
+            "Заходів: %d. Фактичне проведення підтверджується окремо."
+            % len(rows)
+        )
+        if rows:
+            first = tree.get_children()[0]
+            tree.selection_set(first)
+            tree.focus(first)
+
+    def move_quarter(step):
+        y, q = shift_quarter(
+            state["year"], state["quarter"], int(step)
+        )
+        state["year"], state["quarter"] = y, q
+        quarter_value.set(quarter_caption(y, q))
+        refresh()
+
+    direction_box.bind("<<ComboboxSelected>>", refresh)
+    tree.bind("<Double-1>", lambda _event: open_selected_program())
+
+    window._taxo_briefing_quarter_tree = tree
+    window._taxo_briefing_quarter_filter = direction_box
+    window._taxo_briefing_quarter_program_button = program_button
+    window._taxo_briefing_quarter_refresh_button = refresh_button
+    window._taxo_briefing_quarter_status = status_value
+    window._taxo_briefing_quarter_state = state
+    refresh()
+    return window
 
 def install_instruction_tab(app, core, book):
     """Install the paper-first briefing preparation tab."""
@@ -73,6 +368,19 @@ def install_instruction_tab(app, core, book):
     core.ttk.Button(
         quarter_box, text="Наступний", command=lambda: move_quarter(1)
     ).grid(row=0, column=2, sticky="e")
+    def open_selected_quarter():
+        window = open_quarter_view(
+            tab, core, *getattr(tab, "_taxo_quarter", (year, quarter))
+        )
+        tab._taxo_briefing_quarter_window = window
+        return window
+
+    quarter_button = core.ttk.Button(
+        quarter_box,
+        text="На цей квартал…",
+        command=open_selected_quarter,
+    )
+    quarter_button.grid(row=0, column=3, sticky="e", padx=(8, 0))
     core.ttk.Label(
         quarter_box,
         text=(
@@ -336,6 +644,7 @@ def install_instruction_tab(app, core, book):
     tab._taxo_briefing_program_var = program_var
     tab._taxo_briefing_template_id = selected_template_id
     tab._taxo_briefing_edit_program_button = edit_button
+    tab._taxo_briefing_quarter_button = quarter_button
 
     refresh_templates(select_first=True)
     return tab

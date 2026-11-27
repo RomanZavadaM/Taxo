@@ -10,14 +10,14 @@ class PaperScanUiR6Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.25-r1\n",
+            "Version: 10.25-r2\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.25-r1"',
+            'APP_VERSION = "10.25-r2"',
             (root / "main.py").read_text("utf-8"),
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.25-r1", start)
+        self.assertIn("Taxo 10.25-r2", start)
         self.assertIn("document_vault_paper_scans_ui.py", start)
 
     def test_scan_dialog_is_background_and_read_only_listing(self):

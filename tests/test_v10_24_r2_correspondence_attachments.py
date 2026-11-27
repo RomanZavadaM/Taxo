@@ -30,18 +30,18 @@ class CorrespondenceAttachmentsR2Tests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.25-r1\n",
+            "Version: 10.25-r2\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.25-r1"',
+            'APP_VERSION = "10.25-r2"',
             (root / "main.py").read_text("utf-8"),
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.25-r1", start)
+        self.assertIn("Taxo 10.25-r2", start)
         self.assertIn("correspondence_attachments.py", start)
         self.assertEqual(
             (root / ".release" / "full-current").read_text("utf-8"),
-            "10.25-r1\n",
+            "10.25-r2\n",
         )
 
     def setUp(self):
@@ -312,7 +312,7 @@ class CorrespondenceAttachmentsR2Tests(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             self.base / "backup.zip",
-            app_version="10.25-r1",
+            app_version="10.25-r2",
         )
         restored = self.base / "restored"
         workspace.restore_workspace_backup_archive(archive, restored)

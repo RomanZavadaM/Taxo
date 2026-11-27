@@ -45,6 +45,7 @@ FUNCTION_ROUTES = (
     FunctionRoute("operations.entity_remove", "Експлуатація → Накази → Учасники / ТЗ", "Прибрати вибрані", "order_entities_ui.remove_order_entities", runtime_smoke=True),
     FunctionRoute("operations.entity_preview_sync", "Експлуатація → Накази → Учасники / ТЗ", "Автооновлення Preview після зміни учасників / ТЗ", "order_entities_ui.refresh_live_preview", runtime_smoke=True),
     FunctionRoute("operations.instructions", "Експлуатація", "Інструктажі та журнали", "open_operations_center", runtime_smoke=True),
+    FunctionRoute("operations.instructions_quarter", "Експлуатація → Інструктажі", "На цей квартал…", "safety_instructions_ui.open_quarter_view", runtime_smoke=True),
     FunctionRoute("operations.printable_briefing", "Експлуатація → Інструктажі", "Створити комплект DOCX для друку", "safety_instructions_ui.save_draft_list", runtime_smoke=True),
     FunctionRoute("operations.driver_internship", "Експлуатація", "Стажування водіїв", "driver_internship_ui.install_internship_tab", runtime_smoke=True),
     FunctionRoute("maintenance.stoir", "Ліве меню", "СТОІР", "open_vehicle_maintenance", runtime_smoke=True),
