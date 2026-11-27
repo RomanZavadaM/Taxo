@@ -1,0 +1,129 @@
+# Taxo 10.25 — execution plan: Інструктажі БДР / охорони праці / стажування
+
+**Дата:** 27.11.2026  
+**База:** Stable/Latest 10.24-r9; Current Test 10.24-r10.  
+**Issue:** #237.  
+**Правило власника:** кожний завершений етап тестується лише на virtual/synthetic workspace і публікується окремим GitHub Test release. Stable змінюється тільки окремим прямим рішенням.
+
+## Загальна межа
+
+Taxo допомагає планувати і готувати паперові матеріали. Він **не вважає інструктаж проведеним через друк**, не імітує підпис і не замінює паперовий журнал/власноручний підпис відповідального працівника.
+
+Квартал — робочий горизонт, а не універсальна законодавча періодичність. Конкретні локальні програми, категорії працівників і строки мають бути налаштовуваними та зберігати історію редакцій.
+
+---
+
+## 10.25-r1 — planning core / immutable history
+
+### Мета
+Створити окреме безпечне сховище планування, не нарощуючи `main.py` і не змінюючи чинний PaperDocuments-каталог.
+
+### Дані
+1. **Program revision**
+   - stable program ID;
+   - revision number;
+   - напрям, вид, назва;
+   - текст програми;
+   - нормативна/локальна примітка;
+   - ким затверджено;
+   - чинна від/до;
+   - created_at.
+2. **Session**
+   - planned або event;
+   - stable session ID;
+   - для planned — унікальний planning_key, щоб повторна генерація не дублювала план;
+   - точне посилання на program ID + revision;
+   - дата;
+   - reason для event;
+   - frozen snapshot працівників: Taxo ID, ПІБ, табельний №, посада;
+   - стан: planned / prepared / conducted;
+   - prepared_at;
+   - conducted_at + evidence_note тільки після явної ручної дії;
+   - created_at / updated_at.
+
+### Інваріанти
+- нова редакція програми не переписує стару;
+- вже створений session лишається прив'язаним до конкретної редакції;
+- дубль planned session із тим самим planning_key заборонений;
+- event session не закриває planned session;
+- prepared/print не дорівнює conducted;
+- conducted можна встановити лише явною функцією з фактичною датою і посиланням/приміткою про паперовий запис;
+- frozen participant snapshot не перечитується заднім числом із картки працівника;
+- сховище під `Data/BriefingPlanning` автоматично входить у full workspace backup/restore;
+- JSON читається fail-closed: невідомий формат, duplicate keys, symlink, невідомий об'єкт або зламане посилання → помилка, а не мовчазне ігнорування.
+
+### Synthetic acceptance
+- program r1 → program r2, r1 лишається незмінною;
+- planned session на r1;
+- duplicate planning_key відхиляється;
+- event session на r2;
+- planned → prepared не стає conducted;
+- event → conducted не змінює planned;
+- overdue визначається як похідний стан, без автоматичного запису;
+- повне закриття/повторне читання store;
+- full backup → restore у чистий workspace → state equality.
+
+**Результат:** окремий Test release 10.25-r1.
+
+---
+
+## 10.25-r2 — «На цей квартал»
+
+- read-only/working view кварталу з даних r1;
+- перемикання кварталів;
+- planned / prepared / overdue / conducted;
+- фільтр БДР/ОП;
+- вибір рядка й відкриття точної редакції програми;
+- повторна генерація квартального плану не створює дублікатів;
+- жодного автозакриття;
+- live route + small-window test.
+
+**Результат:** окремий Test release 10.25-r2.
+
+---
+
+## 10.25-r3 — програми, працівники та масова підготовка до друку
+
+- UI створення нової редакції програми, старі редакції read-only;
+- вибір груп/працівників із єдиних реєстрів;
+- накопичення multi-select під час пошуку, без втрати вибору;
+- створення planned sessions із frozen snapshots;
+- «Підготувати до друку» використовує наявний `paper_documents.py`;
+- створений DOCX прив'язується до session як prepared output, але **не** ставить conducted;
+- backup/restore з планом і PaperDocuments.
+
+**Результат:** окремий Test release 10.25-r3.
+
+---
+
+## 10.25-r4 — «За подією» та ручне підтвердження факту
+
+- окрема дія «За подією»;
+- reason обов'язковий;
+- event session не впливає на регулярний planned session;
+- явна ручна дія «Зафіксувати проведення» з фактичною датою + evidence note;
+- optional link до paper document/scan у наступному документному шарі, без вигадування підпису;
+- history/audit і regression.
+
+**Результат:** окремий Test release 10.25-r4.
+
+---
+
+## 10.25-r5 — наскрізне контрольне приймання Інструктажів
+
+Synthetic workspace:
+program revision → quarter plan → employees → prepare DOCX → close/reopen → event briefing → manual conducted record → overdue control → full backup/restore → equality/integrity.
+
+Після Test release — ручне owner acceptance UI. Лише після цього вирішувати, чи закривати #237 і переходити до наступного великого блоку (єдине сховище документів).
+
+---
+
+## Не входить у 10.25 без окремого рішення
+
+- КЕП/електронні підписи;
+- автоматичне твердження «проведено»;
+- OCR/AI APPLY;
+- автоматичне визначення законодавчої періодичності замість локально затверджених правил;
+- фізичне видалення історичних документів;
+- СТОІР або склад/запчастини;
+- автоматична синхронізація пошти чи зовнішніх систем.
