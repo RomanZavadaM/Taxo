@@ -43,7 +43,9 @@ Release trigger #640 merged `411c1e496ccddcd4ed0f9fd754743dfdf9ef8986`; trigger 
 
 Stable remains 10.24-r3.
 
-r8 recovery is closed across public docs, private profile, Issue #61 and Drive. Next action after recovery: reconcile manual acceptance for #553/#556/#562; if no new defects are found, choose one bounded r9 control slice. Do not automatically broaden r9 into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
+Recovery r9 is the current checkpoint: product PR #643, immutable Test release v10.24-r9, public recovery/current-page docs, private `profile/taxo`, Issue #61/#642 and Drive current-docs mirror belong to the same incident closure. The owner acceptance step is a real vehicle-document round trip: attach/replace → archive → selected vehicle-document backup → restore into a test workspace → open the restored copy. If historical bytes are absent from workspace, source and old full backups, they are not recoverable from SQLite alone.
+
+Do not consume a new code revision for documentation or mirror cleanup. Start another code slice only after r9 acceptance or a newly identified defect and then follow the normal project plan. Do not automatically broaden work into e-mail/mailbox sync/external integrations. OCR/AI APPLY and physical attachment purge remain separately blocked.
 
 Draft #543/#395 stay open.
 

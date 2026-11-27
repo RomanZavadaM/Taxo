@@ -12,30 +12,24 @@
 ## Current Test
 
 - Release: [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)
-- Exact source: `e3770aa72b0744eee192979a2e569651bac4f257`
+- Exact product source: `e3770aa72b0744eee192979a2e569651bac4f257`
 - 8 canonical assets; prerelease=true; draft=false.
-- 58 strict live routes total; correspondence contract remains exact 17 routes.
-- r8 is control-only: fresh reopen + same-order refresh/status transition preservation for «Учасники / ТЗ».
-- Prep #638: START #45231841871, Windows #45231841838, Win7 #45231842010, macOS #45231841929 — SUCCESS; Defender/integrity PASS.
-- Candidate #639: START #45234694758, Windows #45234694250, Win7 #45234694546, macOS #45234694225 — SUCCESS; Defender/integrity PASS.
-- Exact source: START #45235704945, Windows #45235704686, Win7 #45235704998, macOS #45235705102 — SUCCESS; Defender/integrity PASS.
-- Release-trigger #640 merged as `411c1e496ccddcd4ed0f9fd754743dfdf9ef8986`; publisher #46004721962 — SUCCESS.
-- GitHub release exact target `d24b1bc96115de52d6088813992aca3b410fe243`; 8 canonical assets verified.
+- Product PR #643; Issue #642 closed as completed.
+- Root cause від 10.2-r1 (21.09.2026): vehicle-document DB row міг пережити втрату файла; source path не зберігався; UI міг показувати «Копія: Є» лише за непорожнім path; vehicle-document bytes у manual backup були optional.
+- r9: Taxo-owned copy у `Data/VehicleDocuments` + source path + size + SHA-256; factual file state; integrity check on open.
+- Selected backup з документами ТЗ перевіряє зареєстровані bytes, включно з archived records; доступний legacy external/source file може бути перенесений у staging backup без зміни live DB.
+- Restore повторно перевіряє vehicle-document bytes; архівування запису не видаляє копію.
+- Exact-product main checks: START #46003120544, Windows #46003120782, Win7 #46003120506, macOS Intel/ARM #46003120628 — SUCCESS; Windows/Win7 Defender/integrity PASS.
+- Release trigger main `574f3acd2e078ffc1fd25a5690f5853cfe19c017`; publisher #46004721962 — SUCCESS.
+- GitHub release exact target `e3770aa72b0744eee192979a2e569651bac4f257`; 8 canonical assets verified.
 
-## Що перевірено у r8
+## Recovery / acceptance
 
-- повне закриття й створення нової UI-поверхні повторно читає той самий наказ із SQLite;
-- номер, дата, тема і стан наказу не губляться;
-- роль/примітка та рядок учасника зберігаються;
-- «Чернетка» → «Діє в Taxo» не змінює participant snapshot/sequence;
-- same-order refresh зберігає selection;
-- r7 add/edit/remove, preview, DOCX/PDF і backup/restore control лишається активним;
-- correspondence r1–r6 та її 17-route contract не змінені.
+- Public recovery #646 and current-page synchronization #648 are merged; final recovery files remove stale r8 «next action» instructions.
+- Private `profile/taxo`, Issue #61/#642 and Drive checkpoint `21_CURRENT_DOCS_2026-11-27_10.24-r9` are the matching recovery mirror.
+- Owner acceptance: attach/replace a vehicle-document copy → archive record → create backup with «Копії документів транспортних засобів» → restore into a test workspace → open the restored copy.
+- Historical bytes missing from workspace, source and old full backups cannot be recreated from SQLite alone.
 
-## Далі
-
-Recovery r8 закритий: public docs, private profile, Issue #61 і Drive синхронізовані. Наступна дія: звірити ручне приймання #553/#556/#562; якщо нових дефектів немає — вибрати один bounded control slice для r9.
-
-Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не починати автоматично.
+Automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY and physical attachment purge do not start automatically.
 
 Draft #543/#395 stay open.
