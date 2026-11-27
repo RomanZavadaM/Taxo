@@ -1,3 +1,17 @@
+## 27.11.2026 — 10.25-r1 Instructions planning core / Current Test
+
+- Додано `src/taxo/briefing_planner.py` і `Data/BriefingPlanning`: immutable program revisions, planned/event sessions, frozen employee snapshots, unique planning_key, prepared != conducted, explicit conducted evidence, derived overdue, fail-closed JSON validation.
+- Реальна база власника не використовувалась.
+- Prep START #46025386374: 1717/1717 PASS, 3/3 r1 scenarios.
+- Candidate START #46027162850: 1718/1718 PASS, 4/4 r1 scenarios.
+- Candidate PR #658: Windows #46027162761, Win7 #46027162706, macOS #46027162770 — SUCCESS; Defender/integrity PASS.
+- Exact source `2e0a0df392b5b79b6e2efbf1793df470bf6623f8`.
+- Exact-source CI: START #46028063211, Windows #46028063203, Win7 #46028063190, macOS #46028062948 — SUCCESS.
+- Release trigger PR #659 merged `44e20e7bac1803afb1b9853a821c60e6154780db`.
+- Publisher #46032557836 SUCCESS → [v10.25-r1](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r1), 8 canonical assets, prerelease=true.
+- Stable/Latest remains v10.24-r9.
+- Next: 10.25-r2 «На цей квартал», virtual-only + separate Test release.
+
 ## 27.11.2026 — 10.24-r10 Orders closeout / Current Test
 
 - Власник затвердив процес: virtual/synthetic testing only; після кожного завершеного етапу — окремий GitHub Test release.
