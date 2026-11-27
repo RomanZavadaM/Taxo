@@ -1,3 +1,20 @@
+## 27.11.2026 — 10.25-r4 event briefing + explicit conducted fact / Current Test
+
+- Додано «За подією…» з mandatory reason, exact program revision, frozen employees і cumulative shared-registry selection.
+- Event session не закриває regular planned session.
+- Optional prepared DOCX означає максимум `prepared`.
+- «Зафіксувати проведення…» вимагає factual date + paper evidence note; факт не переписується мовчки.
+- Read-only history/audit показує reason, program revision, people, timestamps, evidence і prepared DOCX/SHA-256.
+- Full backup/restore зберігає event/evidence/output; реальна база власника не використовувалась.
+- Prep START 1731/1731 PASS; candidate START #46060419818 — 1732/1732 PASS.
+- Candidate PR #670: Windows #46060419824, Win7 #46060419944, macOS #46060419876 — SUCCESS; Defender/integrity PASS.
+- Exact source `ed3b79a96659aa011f60fa7912092fbc15157cdb`.
+- Exact-source CI: START #46061028041, Windows #46061028147, Win7 #46061028060, macOS #46061028199 — SUCCESS.
+- Trigger PR #671 merged `f1f4724910ffc1935a7f08bc4e9e27fff3224ad6`; trigger Win7 #46061090608 attempt 1 failed only on Defender signature-update timeout `0x80072ee2`, rerun attempt 2 SUCCESS.
+- Publisher #46062424737 SUCCESS → [v10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4), 8 canonical assets, prerelease=true.
+- Stable/Latest remains v10.24-r9.
+- Next: 10.25-r5 full synthetic Instructions end-to-end acceptance.
+
 ## 27.11.2026 — 10.25-r3 програми / працівники / prepared DOCX / Current Test
 
 - Додано `briefing_planning_ui.py`: створення програми, нова immutable revision, read-only історія редакцій.
