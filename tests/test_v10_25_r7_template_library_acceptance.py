@@ -17,6 +17,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 import briefing_preparation
+import briefing_planning_ui
 import company_template_store
 import paper_documents
 import template_library_service
@@ -105,6 +106,27 @@ class TemplateLibraryAcceptanceR7Test(unittest.TestCase):
         self.assertIn("find_workspace_company_copy", source)
         self.assertIn("open_company_template_editor", source)
         self.assertIn("open_company_template_draft_form", source)
+
+    def test_new_program_suggests_configured_company_signer(self):
+        class Connection:
+            def execute(self, _sql):
+                return self
+
+            def fetchone(self):
+                return ("Директор", "Іваненко Іван Іванович")
+
+            def close(self):
+                pass
+
+        class Core:
+            @staticmethod
+            def db():
+                return Connection()
+
+        self.assertEqual(
+            briefing_planning_ui._default_approved_by(Core()),
+            "Директор Іваненко Іван Іванович",
+        )
 
     def test_preparation_keeps_position_and_human_revision(self):
         prepared = briefing_preparation.prepare_list(
