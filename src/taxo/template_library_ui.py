@@ -99,7 +99,7 @@ def open_template_library(parent, services):
     ttk.Label(footer, textvariable=count).grid(row=0, column=0, sticky="w")
     refresh_button = ttk.Button(footer, text="Оновити")
     refresh_button.grid(row=0, column=1, padx=(4, 8))
-    copy_button = ttk.Button(footer, text="Власна копія / редагувати")
+    copy_button = ttk.Button(footer, text="Створити власну копію")
     copy_button.grid(row=0, column=3, padx=(4, 8))
     fill_button = ttk.Button(
         footer, text="Заповнити поля / підготувати", state="disabled"
