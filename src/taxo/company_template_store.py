@@ -194,6 +194,23 @@ def list_company_templates(workspace_root: Path) -> Tuple[CompanyTemplateSummary
     return tuple(rows)
 
 
+
+def find_company_template_by_source(
+    workspace_root: Path,
+    template_id: str,
+    revision_id: str,
+):
+    """Return the one company copy based on an exact library revision, if any."""
+    matches = tuple(
+        item for item in list_company_templates(Path(workspace_root))
+        if item.based_on_template_id == str(template_id)
+        and item.based_on_revision_id == str(revision_id)
+    )
+    if len(matches) > 1:
+        raise ValueError("Знайдено кілька власних копій однієї початкової редакції")
+    return matches[0] if matches else None
+
+
 def create_company_copy(
     workspace_root: Path,
     app_version: str,
