@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8개 파일, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. 차량 문서 보존 및 backup/restore 보호 기능이 이제 Stable에 포함됩니다.
 
 
-**Current Test:** [Taxo 10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5), 8개 파일, exact source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`. 교육/브리핑 라인 r1–r4의 전체 synthetic end-to-end 검증입니다. 정확한 프로그램 리비전, 계획/이벤트 세션, DOCX 링크와 SHA-256, 명시적 conducted 근거, overdue 제어, 전체 backup/restore를 확인합니다. Stable은 10.24-r9로 유지됩니다.
+**Current Test:** [Taxo 10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6), 8개 파일, exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`. 수동 검수에서 확인된 교육/브리핑 흐름을 개선했습니다: TemplateLibrary/CompanyTemplates의 실제 프로그램 기반, 더 명확한 프로그램 라인과 분기별 주제, 이벤트별 추가 내용, 승인 블록과 정확한 프로그램 리비전을 포함한 DOCX입니다. Stable은 10.24-r9로 유지됩니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
