@@ -86,6 +86,26 @@ def _write_briefing_library(workspace):
 
 
 class BriefingOwnerAcceptanceR6Test(unittest.TestCase):
+    def test_candidate_identity_and_stable_boundary(self):
+        self.assertEqual(
+            (ROOT / "VERSION.txt").read_text("utf-8"),
+            "Version: 10.25-r6\n",
+        )
+        self.assertIn(
+            'APP_VERSION = "10.25-r6"',
+            (ROOT / "main.py").read_text("utf-8"),
+        )
+        start = (ROOT / "START.bat").read_text("utf-8", errors="replace")
+        self.assertIn("Taxo 10.25-r6 - START", start)
+        self.assertEqual(
+            (ROOT / ".release" / "full-current").read_text("utf-8"),
+            "10.25-r6\n",
+        )
+        self.assertEqual(
+            (ROOT / ".release" / "stable-current").read_text("utf-8"),
+            "10.24-r9\n",
+        )
+
     def test_program_lines_are_human_readable(self):
         self.assertEqual(
             sources.program_line("БДР", "Періодичний (повторний)"),
