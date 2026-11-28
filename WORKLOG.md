@@ -1874,3 +1874,15 @@
 - Release trigger #679 merged `64d664b67f84ebfb5676d45b79c37bd155191687`; publisher #46128959017 SUCCESS.
 - [v10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6) — Test prerelease, 8 canonical assets, exact target `f4950ddb7efcada08f8fe73a5bc9470776163462`. Stable/Latest remains v10.24-r9.
 - Real owner workspace was not opened. Issue #237 remains OPEN until repeated manual owner UI acceptance of r6.
+
+
+## 28.11.2026 — 10.25-r7 library/briefing UX published
+
+- Owner acceptance r6 виявив практичні UX-проблеми: повторне «Створити власну копію» давало червону помилку для вже наявної копії; вкладка полів не пояснювала, де їх заповнювати; бібліотека показувала технічні типи; prepared DOCX потребував A4/людської редакції/зручнішого листа підписів.
+- PR #683 реалізував r7: existing-copy open path; прямий «Заповнити поля / підготувати»; людські document-kind labels; збереження старих видимих дій; signer suggestion для нової програми; A4; ПІБ + посада у листі підписів; людська `rN` редакція на новому планувальному шляху.
+- Candidate exact head `8498b91f794a402d13ef2b6c2f855e5694003730`: START #46149046990 — 1749 tests PASS; Windows #46149046880; Win7 #46149046913; macOS #46149046865 — SUCCESS; Defender/integrity PASS.
+- PR #683 merged exact issued source `76f2f7c8868154374457dc7c094a2c25ed2547d2`.
+- Exact-source CI: START #46149545768 — 1749 tests PASS; Windows #46149545770; Win7 #46149545728; macOS #46149545741 — SUCCESS; Defender/integrity PASS.
+- Release trigger #684 merged `d5ee59f84fbc3d1d28e835978ca3eff87ee9555a`; publisher #46150624080 SUCCESS.
+- [v10.25-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r7) — Test prerelease, 8 canonical assets, exact target `76f2f7c8868154374457dc7c094a2c25ed2547d2`. Stable/Latest remains v10.24-r9.
+- Issue #237 remains OPEN until manual owner UI acceptance of r7. Unified document storage is explicitly not started.

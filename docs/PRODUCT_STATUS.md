@@ -1,10 +1,10 @@
 # Taxo — стан продукту
 
-**Актуально:** 28.11.2026 після публікації 10.25-r6 Test.
+**Актуально:** 28.11.2026 після публікації 10.25-r7 Test.
 
 - **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease=false.
-- **Current Test:** [10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6), exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`, 8 files, prerelease=true; real TemplateLibrary/CompanyTemplates program bases + briefing lines/quarter topics + event addendum + approval-quality DOCX.
-- **r6 exact-source CI:** START #46127933006; Windows #46127933023; Win7 #46127933027; macOS #46127932975 — SUCCESS. Publisher #46128959017 SUCCESS.
+- **Current Test:** [10.25-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r7), exact source `76f2f7c8868154374457dc7c094a2c25ed2547d2`, 8 files, prerelease=true; existing-copy open path + direct fill/prepare workflow + human template kinds + signer suggestion + A4 briefing DOCX/signature sheet.
+- **r7 exact-source CI:** START #46149545768 — 1749 tests PASS; Windows #46149545770; Win7 #46149545728; macOS #46149545741 — SUCCESS; Defender/integrity PASS. Publisher #46150624080 SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
 **У Stable/Latest 10.24-r9** виправлено давню слабкість документів ТЗ, що існувала від 10.2-r1: запис у БД міг лишитися без фізичного файла, а початковий source path не зберігався. Нові/замінені копії є Taxo-owned файлами у `Data/VehicleDocuments` із source path, size та SHA-256. UI показує реальну наявність/втрату/пошкодження; selected backup перевіряє bytes, може забрати доступний legacy external/source файл у staging archive, restore повторно перевіряє копії, а архівування запису не видаляє файл. Publisher #46004721962 — SUCCESS; exact release target `e3770aa72b0744eee192979a2e569651bac4f257`.

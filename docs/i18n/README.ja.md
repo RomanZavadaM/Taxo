@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)、8 ファイル、exact source `e3770aa72b0744eee192979a2e569651bac4f257`。車両文書の保存と backup/restore 保護は現在の Stable に含まれます。
 
 
-**Current Test:** [Taxo 10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6)、8 ファイル、exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`。手動 UI 受入れで見つかった問題を修正しました。実際の TemplateLibrary/会社テンプレートをプログラムの基礎として利用し、編集可能な四半期テーマを含む指導ライン、イベント固有の追記、正確なプログラム版を示す DOCX の「承認」ヘッダーを追加しています。Stable は 10.24-r9 のままです。
+**Current Test:** [Taxo 10.25-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r7)、8 ファイル、exact source `76f2f7c8868154374457dc7c094a2c25ed2547d2`。既存の会社用コピーはエラーではなく開かれるようになり、ライブラリには直接「入力／準備」へ進む操作と分かりやすい文書種別を追加しました。新しいプログラムでは会社設定の承認者を候補として表示でき、指導 DOCX は A4、署名表は内部番号ではなく役職を表示します。Stable は 10.24-r9 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
