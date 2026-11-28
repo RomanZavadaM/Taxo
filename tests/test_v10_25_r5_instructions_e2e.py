@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.25-r5 prep: one synthetic end-to-end acceptance of Instructions r1-r4."""
+"""10.25-r6 prep: one synthetic end-to-end acceptance of Instructions r1-r4."""
 from __future__ import annotations
 
 import hashlib
@@ -20,10 +20,10 @@ import workspace
 class InstructionsEndToEndR5PrepTests(unittest.TestCase):
     def test_candidate_identity_and_stable_marker(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r5\n")
-        self.assertIn('APP_VERSION = "10.25-r5"', (root / "main.py").read_text("utf-8"))
-        self.assertIn("Taxo 10.25-r5 - START", (root / "START.bat").read_text("utf-8"))
-        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r5\n")
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r6\n")
+        self.assertIn('APP_VERSION = "10.25-r6"', (root / "main.py").read_text("utf-8"))
+        self.assertIn("Taxo 10.25-r6 - START", (root / "START.bat").read_text("utf-8"))
+        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r6\n")
         self.assertEqual((root / ".release" / "stable-current").read_text("utf-8"), "10.24-r9\n")
 
     def setUp(self):
@@ -223,11 +223,11 @@ class InstructionsEndToEndR5PrepTests(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             Path(self.temp.name) / "instructions-r5-full.zip",
-            app_version="10.25-r5",
+            app_version="10.25-r6",
         )
         manifest = workspace.validate_workspace_backup_archive(archive)
         self.assertEqual(manifest["application"], "Taxo")
-        self.assertEqual(manifest["app_version"], "10.25-r5")
+        self.assertEqual(manifest["app_version"], "10.25-r6")
         self.assertGreaterEqual(int(manifest["format"]), 1)
 
         restored = Path(self.temp.name) / "restored"
