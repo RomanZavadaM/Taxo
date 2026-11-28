@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.25-r6 prep: planned briefing -> exact PaperDocuments DOCX link."""
+"""10.25-r7 prep: planned briefing -> exact PaperDocuments DOCX link."""
 from __future__ import annotations
 
 import hashlib
@@ -19,19 +19,19 @@ class BriefingPreparedOutputR3PrepTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         self.assertEqual(
             (root / "VERSION.txt").read_text("utf-8"),
-            "Version: 10.25-r6\n",
+            "Version: 10.25-r7\n",
         )
         self.assertIn(
-            'APP_VERSION = "10.25-r6"',
+            'APP_VERSION = "10.25-r7"',
             (root / "main.py").read_text("utf-8"),
         )
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.25-r6 - START", start)
+        self.assertIn("Taxo 10.25-r7 - START", start)
         self.assertIn("briefing_prepared_output.py", start)
         self.assertIn("briefing_planning_ui.py", start)
         self.assertEqual(
             (root / ".release" / "full-current").read_text("utf-8"),
-            "10.25-r6\n",
+            "10.25-r7\n",
         )
         self.assertEqual(
             (root / ".release" / "stable-current").read_text("utf-8"),
@@ -145,7 +145,7 @@ class BriefingPreparedOutputR3PrepTests(unittest.TestCase):
         archive = workspace.create_workspace_backup_archive(
             self.root,
             Path(self.temp.name) / "briefing-r3-backup.zip",
-            app_version="10.25-r6",
+            app_version="10.25-r7",
         )
         restored = Path(self.temp.name) / "restored"
         workspace.restore_workspace_backup_archive(archive, restored)

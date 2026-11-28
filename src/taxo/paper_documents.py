@@ -26,6 +26,8 @@ TRAINING_SECTIONS = (
 def _doc():
     doc = Document()
     section = doc.sections[0]
+    section.page_width = Cm(21.0)
+    section.page_height = Cm(29.7)
     section.top_margin = Cm(1.6)
     section.bottom_margin = Cm(1.6)
     section.left_margin = Cm(2)
@@ -74,6 +76,14 @@ def _table(doc, headers, rows):
     return table
 
 
+def _briefing_revision(prepared):
+    """Return a human revision label while keeping exact source data elsewhere."""
+    value = str(prepared.get("program_revision") or "").strip()
+    if value:
+        return value
+    return str(prepared.get("template_id") or "").strip()
+
+
 def build_briefing_docx(prepared):
     """Program followed by an unsigned, printable attendance/signature sheet."""
     doc = _doc()
@@ -83,8 +93,9 @@ def build_briefing_docx(prepared):
     _line(doc, "Вид:", prepared["kind"])
     _line(doc, "Дата:", prepared["day"].strftime("%d.%m.%Y"))
     _line(doc, "Тема:", prepared["topic"])
-    if prepared.get("template_id"):
-        _line(doc, "Редакція програми:", prepared.get("template_id"))
+    revision = _briefing_revision(prepared)
+    if revision:
+        _line(doc, "Редакція програми:", revision)
     if prepared.get("source_note"):
         _line(doc, "Підстава / нормативний орієнтир:", prepared.get("source_note"))
     if prepared.get("reason"):
@@ -100,17 +111,24 @@ def build_briefing_docx(prepared):
     _line(doc, "Напрям / вид:", "%s / %s" % (prepared["direction"], prepared["kind"]))
     _line(doc, "Тема:", prepared["topic"])
     _line(doc, "Дата:", prepared["day"].strftime("%d.%m.%Y"))
-    if prepared.get("template_id"):
-        _line(doc, "Редакція програми:", prepared.get("template_id"))
+    if revision:
+        _line(doc, "Редакція програми:", revision)
     rows = prepared.get("people_records") or ()
     if rows:
-        people = [(r.get("name", ""), r.get("personnel_no", "")) for r in rows]
+        people = [
+            (r.get("name", ""), r.get("position", ""))
+            for r in rows
+        ]
     else:
         people = [(name, "") for name in prepared["people"]]
-    _table(doc,
-           ("№", "Прізвище, ім'я", "Таб. №", "Підпис працівника", "Підпис інструктора"),
-           ((i, name, number, "________________", "________________")
-            for i, (name, number) in enumerate(people, 1)))
+    _table(
+        doc,
+        ("№", "Прізвище, ім'я", "Посада", "Підпис працівника", "Підпис інструктора"),
+        (
+            (i, name, position, "________________", "________________")
+            for i, (name, position) in enumerate(people, 1)
+        ),
+    )
     doc.add_paragraph("Інструктаж провів(ла): _________________________  Підпис: __________")
     doc.add_paragraph(NOTICE)
     return doc

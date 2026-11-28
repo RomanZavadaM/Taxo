@@ -11,7 +11,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 
-from company_template_store import create_company_copy, list_company_templates
+from company_template_store import (
+    create_company_copy,
+    find_company_template_by_source,
+    list_company_templates,
+)
 from template_library_reader import (
     LibrarySnapshot,
     default_library_root,
@@ -27,6 +31,18 @@ CATEGORY_LABELS = {
     "acts": "Акти",
     "forms": "Форми та плани",
 }
+DOCUMENT_KIND_LABELS = {
+    "order": "Наказ",
+    "briefing": "Інструктаж",
+    "instruction": "Інструкція",
+    "instruction_program": "Навчальна програма",
+    "notice": "Пам'ятка",
+    "plan": "План",
+    "regulation": "Положення",
+    "form": "Форма",
+    "act": "Акт",
+}
+
 STATUS_LABELS = {
     "NOT_INSTALLED": "Бібліотеку шаблонів не встановлено.",
     "AVAILABLE": "Бібліотеку прочитано. Початкові шаблони доступні для перегляду та створення власної копії.",
@@ -69,7 +85,7 @@ def view_from_snapshot(snapshot: LibrarySnapshot) -> LibraryView:
             category_id=entry.category_id,
             category=CATEGORY_LABELS.get(entry.category_id, entry.category_id),
             title=entry.title,
-            kind=entry.document_kind,
+            kind=DOCUMENT_KIND_LABELS.get(entry.document_kind, entry.document_kind),
         )
         for entry in snapshot.templates
     )
@@ -98,6 +114,17 @@ def inspect_workspace_library(workspace_root: Path, app_version: str) -> Library
 def company_template_count(workspace_root: Path) -> int:
     """Return the number of integrity-checked user-owned template copies."""
     return len(list_company_templates(Path(workspace_root)))
+
+
+def find_workspace_company_copy(
+    workspace_root: Path,
+    template_id: str,
+    revision_id: str,
+):
+    """Return an existing user-owned copy for one exact library revision."""
+    return find_company_template_by_source(
+        Path(workspace_root), template_id, revision_id
+    )
 
 
 def create_workspace_company_copy(

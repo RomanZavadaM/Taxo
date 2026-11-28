@@ -56,6 +56,7 @@ def prepare_list(
     people_records=None,
     program_text="",
     template_id="",
+    program_revision="",
     source_note="",
     approved_by="",
 ):
@@ -95,6 +96,7 @@ def prepare_list(
             "id": employee_id,
             "name": str(record.get("name") or record.get("label") or "").strip(),
             "personnel_no": str(record.get("personnel_no") or "").strip(),
+            "position": str(record.get("position") or "").strip(),
         })
 
     return {
@@ -105,6 +107,7 @@ def prepare_list(
         "reason": reason,
         "program_text": str(program_text or "").strip(),
         "template_id": str(template_id or "").strip(),
+        "program_revision": str(program_revision or "").strip(),
         "source_note": str(source_note or "").strip(),
         "approved_by": str(approved_by or "").strip(),
         "people": names,
@@ -133,7 +136,8 @@ def write_preparation_csv(path, prepared):
         writer.writerow(["Дата", prepared["day"].strftime("%d.%m.%Y")])
         writer.writerow(["Тема / програма", prepared["topic"]])
         writer.writerow(["Підстава", prepared["reason"]])
-        writer.writerow(["Шаблон", prepared.get("template_id", "")])
+        writer.writerow(["Редакція програми", prepared.get("program_revision", "")])
+        writer.writerow(["Джерело шаблону", prepared.get("template_id", "")])
         writer.writerow(["Нормативний орієнтир", prepared.get("source_note", "")])
         writer.writerow(["Зміст програми", prepared.get("program_text", "")])
         writer.writerow([])

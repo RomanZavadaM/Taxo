@@ -15,10 +15,12 @@ from tkinter import ttk, messagebox
 
 from template_library_service import (
     LibraryView, company_template_count, create_workspace_company_copy,
-    inspect_workspace_library,
+    find_workspace_company_copy, inspect_workspace_library,
 )
 from template_library_preview_ui import open_template_preview
 from company_template_list_ui import open_company_templates
+from company_template_editor_ui import open_company_template_editor
+from company_template_draft_form_ui import open_company_template_draft_form
 
 # Avoid a new thread per click on a slow or disconnected network workspace.
 _READER_SLOT = threading.BoundedSemaphore(1)
@@ -99,11 +101,15 @@ def open_template_library(parent, services):
     refresh_button.grid(row=0, column=1, padx=(4, 8))
     copy_button = ttk.Button(footer, text="Створити власну копію")
     copy_button.grid(row=0, column=3, padx=(4, 8))
+    fill_button = ttk.Button(
+        footer, text="Заповнити поля / підготувати", state="disabled"
+    )
+    fill_button.grid(row=0, column=4, padx=(4, 8))
     ttk.Button(
         footer, text="Власні шаблони",
         command=lambda: open_company_templates(win, services),
-    ).grid(row=0, column=4, padx=(4, 8))
-    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=5)
+    ).grid(row=0, column=5, padx=(4, 8))
+    ttk.Button(footer, text="Закрити", command=lambda: close()).grid(row=0, column=6)
 
     results = queue.Queue()
     copy_results = queue.Queue()
@@ -195,9 +201,9 @@ def open_template_library(parent, services):
 
     def show_result(view):
         state["view"] = view
-        copy_button.configure(
-            state="normal" if view.status == "AVAILABLE" else "disabled"
-        )
+        button_state = "normal" if view.status == "AVAILABLE" else "disabled"
+        copy_button.configure(state=button_state)
+        fill_button.configure(state=button_state)
         status.set(view.summary)
         details.set(("%s · версія: %s" % (view.detail, view.package_version))
                     if view.package_version else view.detail)
@@ -223,26 +229,36 @@ def open_template_library(parent, services):
             pass
         try:
             while True:
-                ok, result = copy_results.get_nowait()
+                ok, mode, result, next_action = copy_results.get_nowait()
                 state["copy_busy"] = False
                 copy_button.configure(state="normal")
+                fill_button.configure(state="normal")
                 if ok:
-                    status.set("Власну копію створено.")
-                    details.set(
-                        "Власну копію створено: %s · власних копій: %d" % (
-                            result.title,
-                            company_template_count(services.workspace.root),
+                    if mode == "created":
+                        status.set("Власну копію створено.")
+                        details.set(
+                            "Створено: %s · власних копій: %d" % (
+                                result.title,
+                                company_template_count(services.workspace.root),
+                            )
                         )
-                    )
-                    messagebox.showinfo(
-                        "Бібліотека шаблонів",
-                        "Власну копію створено у CompanyTemplates. "
-                        "Початковий шаблон не змінено. "
-                        "Для редагування відкрийте «Власні шаблони».",
-                        parent=win,
-                    )
+                    else:
+                        status.set("Власна копія вже існує — відкриваю її.")
+                        details.set(
+                            "%s · власна редакція r%d" % (
+                                result.title, result.edit_revision
+                            )
+                        )
+                    if next_action == "fill":
+                        open_company_template_draft_form(
+                            win, services, result.company_template_id
+                        )
+                    else:
+                        open_company_template_editor(
+                            win, services, result.company_template_id
+                        )
                 else:
-                    status.set("Не вдалося створити власну копію.")
+                    status.set("Не вдалося відкрити власну копію.")
                     messagebox.showerror(
                         "Бібліотека шаблонів", str(result), parent=win
                     )
@@ -251,8 +267,8 @@ def open_template_library(parent, services):
         if not state["closed"]:
             state["poll"] = win.after(100, poll)
 
-    def create_selected_copy():
-        """Create one user-owned copy without mutating the installed package."""
+    def ensure_selected_copy(next_action="edit"):
+        """Open an existing user copy or create it, then continue the workflow."""
         view = state["view"]
         if (
             state["closed"] or state["copy_busy"]
@@ -277,20 +293,33 @@ def open_template_library(parent, services):
             return
         state["copy_busy"] = True
         copy_button.configure(state="disabled")
-        status.set("Створюю власну копію…")
+        fill_button.configure(state="disabled")
+        status.set(
+            "Перевіряю власну копію…"
+            if next_action == "edit"
+            else "Готую шаблон до заповнення…"
+        )
 
         def worker():
             with _WRITER_SLOT:
                 try:
-                    result = create_workspace_company_copy(
+                    result = find_workspace_company_copy(
                         services.workspace.root,
-                        services.app_version,
                         selected_row.template_id,
                         selected_row.revision_id,
                     )
-                    copy_results.put((True, result))
+                    mode = "existing"
+                    if result is None:
+                        result = create_workspace_company_copy(
+                            services.workspace.root,
+                            services.app_version,
+                            selected_row.template_id,
+                            selected_row.revision_id,
+                        )
+                        mode = "created"
+                    copy_results.put((True, mode, result, next_action))
                 except Exception as exc:
-                    copy_results.put((False, str(exc)))
+                    copy_results.put((False, "error", str(exc), next_action))
 
         threading.Thread(
             target=worker,
@@ -298,7 +327,8 @@ def open_template_library(parent, services):
             daemon=True,
         ).start()
 
-    copy_button.configure(command=create_selected_copy)
+    copy_button.configure(command=lambda: ensure_selected_copy("edit"))
+    fill_button.configure(command=lambda: ensure_selected_copy("fill"))
 
     def refresh():
         if state["closed"] or state["busy"]:

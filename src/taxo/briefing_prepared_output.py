@@ -323,6 +323,7 @@ def _prepared_payload(workspace_root: Path, session):
         template_id="%s:r%d" % (
             program.program_id, program.revision
         ),
+        program_revision="r%d" % program.revision,
         source_note=program.source_note,
         approved_by=program.approved_by,
     )

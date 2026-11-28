@@ -31,6 +31,25 @@ def _iso_to_ui(value):
     return date.fromisoformat(clean).strftime("%d.%m.%Y")
 
 
+def _default_approved_by(core):
+    """Suggest the configured company signer without asserting approval."""
+    try:
+        con = core.db()
+        try:
+            row = con.execute(
+                "SELECT signer_position, signer_name FROM company WHERE id=1"
+            ).fetchone()
+        finally:
+            con.close()
+    except Exception:
+        return ""
+    if not row:
+        return ""
+    position = str(row[0] or "").strip()
+    name = str(row[1] or "").strip()
+    return " ".join(part for part in (position, name) if part)
+
+
 class EmployeeSelectionModel:
     """Search never clears accumulated identity-based selection."""
 
@@ -250,7 +269,7 @@ def open_program_editor(
         value=_iso_to_ui(current.valid_until) if current else ""
     )
     approved_var = core.tk.StringVar(
-        value=current.approved_by if current else ""
+        value=current.approved_by if current else _default_approved_by(core)
     )
     source_var = core.tk.StringVar(
         value=current.source_note if current else ""
