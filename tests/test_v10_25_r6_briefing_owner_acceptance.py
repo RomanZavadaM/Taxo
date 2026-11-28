@@ -2,7 +2,9 @@
 """10.25-r6 owner-acceptance fixes for briefing text, lines and paper form."""
 from __future__ import annotations
 
+import hashlib
 import inspect
+import json
 import sys
 import tempfile
 import unittest
@@ -17,8 +19,70 @@ if str(SRC) not in sys.path:
 import briefing_event_ui
 import briefing_preparation
 import briefing_program_sources as sources
+import company_template_store
 import paper_documents
 import safety_templates
+
+
+
+def _write_briefing_library(workspace):
+    root = Path(workspace) / "TemplateLibrary"
+    path = "catalog/briefings/synthetic-briefing.json"
+    target = root / path
+    target.parent.mkdir(parents=True)
+    template = {
+        "format": "taxo.template.v1",
+        "template_id": "briefings.synthetic-test",
+        "title": "Синтетична програма інструктажу",
+        "document_kind": "briefing",
+        "scenario": "briefing-program",
+        "language": "uk",
+        "status": "proposed",
+        "source_refs": [],
+        "variables": [],
+        "blocks": [
+            {
+                "id": "heading",
+                "type": "heading",
+                "level": 2,
+                "text": "Основні питання",
+            },
+            {
+                "id": "body",
+                "type": "numbered_list",
+                "items": [
+                    "Перше питання синтетичного інструктажу.",
+                    "Друге питання синтетичного інструктажу.",
+                ],
+            },
+        ],
+    }
+    raw = json.dumps(template, ensure_ascii=False).encode("utf-8")
+    target.write_bytes(raw)
+    manifest = {
+        "format": "taxo.template-catalog.v1",
+        "package_id": "taxo.templates.synthetic-briefing",
+        "package_version": "1.0.0",
+        "publisher": "Synthetic fixture",
+        "minimum_taxo_version": "10.18-r5",
+        "language": "uk",
+        "items": [{
+            "template_id": "briefings.synthetic-test",
+            "revision_id": "v1",
+            "category_id": "briefings",
+            "path": path,
+        }],
+        "files": [{
+            "path": path,
+            "size_bytes": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+        }],
+    }
+    (root / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return root
 
 
 class BriefingOwnerAcceptanceR6Test(unittest.TestCase):
@@ -66,6 +130,49 @@ class BriefingOwnerAcceptanceR6Test(unittest.TestCase):
         self.assertTrue(any(row.origin == "Taxo" for row in rows))
         self.assertTrue(any("I квартал" in row.topic for row in rows))
         self.assertIsInstance(notes, tuple)
+
+    def test_verified_library_and_company_copy_feed_program_basis(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp)
+            _write_briefing_library(workspace)
+
+            rows, notes = sources.source_options(
+                workspace,
+                "10.25-r6",
+                "БДР",
+                "Періодичний (повторний)",
+            )
+            library = [
+                row for row in rows
+                if row.source_id == "library:briefings.synthetic-test:v1"
+            ]
+            self.assertEqual(len(library), 1)
+            self.assertEqual(library[0].origin, "Бібліотека")
+            self.assertIn(
+                "Перше питання синтетичного інструктажу.",
+                library[0].program,
+            )
+            self.assertEqual(notes, ())
+
+            company_template_store.create_company_copy(
+                workspace,
+                "10.25-r6",
+                "briefings.synthetic-test",
+                "v1",
+            )
+            copied, notes = sources.source_options(
+                workspace,
+                "10.25-r6",
+                "БДР",
+                "Періодичний (повторний)",
+            )
+            own = [row for row in copied if row.origin == "Власний"]
+            self.assertEqual(len(own), 1)
+            self.assertIn(
+                "Перше питання синтетичного інструктажу.",
+                own[0].program,
+            )
+            self.assertEqual(notes, ())
 
     def test_prepared_payload_keeps_approval_text(self):
         prepared = briefing_preparation.prepare_list(
