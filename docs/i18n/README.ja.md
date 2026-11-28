@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)、8 ファイル、exact source `e3770aa72b0744eee192979a2e569651bac4f257`。車両文書の保存と backup/restore 保護は現在の Stable に含まれます。
 
 
-**Current Test:** [Taxo 10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5)、8 ファイル、exact source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`。指導・教育ライン r1–r4 の完全な synthetic end-to-end 受入れです。正確なプログラム版、計画/イベント記録、DOCX リンクと SHA-256、明示的な conducted 記録、期限超過管理、完全 backup/restore を確認します。Stable は 10.24-r9 のままです。
+**Current Test:** [Taxo 10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6)、8 ファイル、exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`。手動受入れで見つかった指導・教育フローを改善しました。TemplateLibrary/CompanyTemplates から実際のプログラム基礎を取り込み、分かりやすいプログラム系統と四半期テーマ、イベント固有の追記、承認欄と正確なプログラム版を含む DOCX を提供します。Stable は 10.24-r9 のままです。
 
 データベースと文書は別の作業フォルダーに保存し、更新前にバックアップしてください。[利用者ガイド（ウクライナ語）](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 
