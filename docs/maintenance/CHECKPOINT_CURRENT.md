@@ -1,6 +1,6 @@
 # Поточна контрольна точка Taxo
 
-**27.11.2026 — Stable/Latest 10.24-r9; Current Test 10.25-r5.**
+**28.11.2026 — Stable/Latest 10.24-r9; Current Test 10.25-r6.**
 
 ## Stable
 - [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9)
@@ -8,7 +8,12 @@
 - 8 assets; prerelease=false; GitHub Latest.
 
 ## Current Test
-- [v10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5)
+- [v10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6)
+  - exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`;
+  - 8 canonical assets, prerelease=true;
+  - owner-acceptance corrections: library/company template basis, program lines/quarter themes, event addendum, approval-ready DOCX;
+  - exact-source START/Windows/Win7/macOS SUCCESS; Defender/integrity PASS.
+- Previous Test: [v10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5)
 - exact source: `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`
 - 8 assets; prerelease=true.
 - candidate START #46064508828 — 1735/1735 PASS.
