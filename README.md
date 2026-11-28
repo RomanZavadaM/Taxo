@@ -55,13 +55,21 @@
 
 **10.24-r8 опублікована як Current Test; Stable/Latest лишається 10.24-r3.** Бізнес-правила наказів, схема БД і формати документів не змінювалися. r8 перевіряє, що після повного закриття й повторного відкриття UI наказ знову читається з SQLite без втрати номера, дати, теми, стану, ролі/примітки учасника, frozen snapshot та sequence. Перехід «Чернетка» → «Діє в Taxo» не повинен змінювати participant data. r7-контроль add/edit/remove, live preview, DOCX/PDF і backup/restore лишається чинним.
 
-## Current Test 10.25-r5 — повне віртуальне приймання Інструктажів
+## Current Test 10.25-r6 — виправлення ручного приймання Інструктажів
+
+**10.25-r6 опублікована як окремий Test; Stable/Latest лишається 10.24-r9.** Реальна Бібліотека шаблонів і придатні власні копії тепер є джерелами «Основи програми»; програми згруповані у планові/початкові/цільові/подієві лінії; для повторних БДР та ОП є редаговані робочі теми I–IV кварталу; позаплановий захід має окремий допис конкретного випадку; DOCX має «ЗАТВЕРДЖЕНО», approved_by, місце для підпису/дати та exact program revision.
+
+Candidate START: **1743 tests PASS**; exact-source START/Windows/Win7/macOS — SUCCESS; Defender/integrity PASS. Exact source: `f4950ddb7efcada08f8fe73a5bc9470776163462`. Publisher #46128959017 — SUCCESS. Реальна база власника не використовувалась.
+
+**Потрібне повторне ручне UI-приймання власником.** До нього Issue #237 не закривається і єдине сховище документів не починається як новий великий блок.
+
+## Previous Test 10.25-r5 — повне віртуальне приймання Інструктажів
 
 **10.25-r5 опублікована як окремий Test; Stable/Latest лишається 10.24-r9.** Це фінальний контрольний випуск лінії 10.25 без нових бізнес-правил: program revision → regular plan → frozen працівники → exact DOCX/link/SHA-256 → reopen → event → explicit manual conducted fact → regular overdue, але не conducted → full backup/restore → повна рівність даних і файлів → повторне планування після restore без дублів.
 
 Candidate START: **1735/1735 PASS**; exact-source START/Windows/Win7/macOS — SUCCESS; Defender/integrity PASS. Exact source: `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`. Реальна база власника не використовувалась.
 
-**Після r5 потрібне ручне UI-приймання власником.** До нього Issue #237 не закривається і перехід до наступного великого блоку не фіксується як завершений.
+**r5 під час ручного приймання виявив проблеми з підключенням Бібліотеки шаблонів, організацією тем і якістю паперового DOCX; вони виправлені у r6.**
 
 ## Previous Test 10.25-r4 — «За подією» та ручний факт проведення
 
@@ -100,7 +108,7 @@ Virtual acceptance: candidate START **1718/1718 PASS**, 4/4 r1 scenarios; exact-
 - **macOS Stable:** [Apple Silicon](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_macOS_arm64_Portable.zip) · [Intel](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_macOS_x86_64_Portable.zip)
 - **Stable START/SHA256:** [START ZIP](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/Taxo_v10_24_candidate_r9_START.zip) · [SHA256](https://github.com/RomanZavadaM/Taxo/releases/download/v10.24-r9/SHA256SUMS_v10_24_r9.txt)
 
-**Current Test: [Taxo 10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5)** — exact source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`, 8 файлів, prerelease.
+**Current Test: [Taxo 10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6)** — exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`, 8 файлів, prerelease.
 
 ## Початок роботи та дані
 

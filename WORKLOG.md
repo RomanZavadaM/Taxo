@@ -1859,3 +1859,18 @@
 - Перший Win7 trigger check на PR-head мав старий non-reproducible catalog-reader timing failure; rerun того самого незміненого head пройшов regression/build/Defender/integrity, а post-merge Win7 #45220619879 також SUCCESS.
 - Межі r7: correspondence r1–r6 не змінено; automatic e-mail/mailbox sync, external integrations, OCR/AI APPLY і physical attachment purge не входять.
 
+
+## 28.11.2026 — 10.25-r6 manual-acceptance fixes published
+
+- Owner manual acceptance of 10.25-r5 exposed three connected UX gaps: the briefing editor did not actually consume the real TemplateLibrary, program text organization was too manual, and prepared DOCX lacked a proper approval-quality header.
+- r6 connects verified TemplateLibrary categories «Інструктажі» / «Навчальні програми» and eligible CompanyTemplates to «Основа програми»; unrelated orders/acts are filtered out.
+- Program list is grouped into planned annual cycle / initial-introductory / target-before-work / event lines. Editable working I–IV quarter topics were added for repeated BDR and labour-safety briefings without claiming automatic legal periodicity.
+- Event briefing keeps the immutable base program and adds a separate concrete-case/problem addendum.
+- Prepared briefing DOCX now carries «ЗАТВЕРДЖЕНО», approved_by, signature/date placeholders, exact program revision and an event-specific section. Prepared still never means conducted or paper-signed.
+- One old r2 UI test had become date-sensitive on 28.11.2026 because its synthetic 27.11.2026 session correctly became overdue. The historical test date was frozen; product overdue logic was not weakened.
+- Prep exact SHA `639329d8aff54020b2b1bf09be709edd13beeeaa`: START #46126867841; Windows #46126867911; Win7 #46126867844; macOS #46126867862 — SUCCESS.
+- Candidate #678: START #46127530499 = 1743 tests PASS; Windows #46127530498; Win7 #46127530508; macOS #46127530503 — SUCCESS.
+- Exact issued source `f4950ddb7efcada08f8fe73a5bc9470776163462`: START #46127933006; Windows #46127933023; Win7 #46127933027; macOS #46127932975 — SUCCESS; Defender/integrity PASS.
+- Release trigger #679 merged `64d664b67f84ebfb5676d45b79c37bd155191687`; publisher #46128959017 SUCCESS.
+- [v10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6) — Test prerelease, 8 canonical assets, exact target `f4950ddb7efcada08f8fe73a5bc9470776163462`. Stable/Latest remains v10.24-r9.
+- Real owner workspace was not opened. Issue #237 remains OPEN until repeated manual owner UI acceptance of r6.

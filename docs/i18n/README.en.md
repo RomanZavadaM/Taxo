@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 assets, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. The vehicle-document persistence and backup/restore protections described here are now the stable release.
 
 
-**Current Test:** [Taxo 10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5), 8 assets, exact source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`. It is the full synthetic end-to-end acceptance of the Instructions line r1–r4: exact program revisions, planned/event sessions, prepared DOCX links and SHA-256, explicit conducted evidence, overdue control, and full backup/restore. Stable remains 10.24-r9.
+**Current Test:** [Taxo 10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6), 8 assets, exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`. It fixes the manual UI acceptance gaps: real TemplateLibrary/company-template program bases, clearer briefing lines with editable quarterly working topics, a separate event-specific addendum, and a DOCX approval header with exact program revision. Stable remains 10.24-r9.
 
 ## Data and documentation
 
