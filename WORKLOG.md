@@ -1,3 +1,20 @@
+## 28.11.2026 — 10.25-r6 owner-acceptance corrections / Current Test
+
+- Manual owner acceptance of v10.25-r5 found practical UX/document gaps: library template did not feed the 10.25 program editor, planned themes needed a coherent line/cycle, event briefing needed a reusable base + specific-case addendum, and generated DOCX lacked a normal approval header.
+- Added real TemplateLibrary + eligible CompanyTemplates sources for «Основа програми»; non-briefing company templates are filtered out.
+- Added human program lines and editable I–IV quarter working bases for repeat BDR/OSH programs. This remains an enterprise working calendar, not automatic statutory periodicity.
+- «За подією…» now separates mandatory event reason from free-form concrete case/additional questions.
+- Generated briefing DOCX now carries «ЗАТВЕРДЖЕНО», approved_by, signature/date placeholders, exact program revision and event-specific section. prepared != conducted remains unchanged.
+- First prep gate correctly caught two issues: a visible-action label regression («Підставити») and a historical date-sensitive test whose 27.11.2026 plan became overdue on 28.11.2026. The action label was restored; only the historical fixture date was frozen, real overdue logic was not weakened.
+- Prep exact SHA `639329d8aff54020b2b1bf09be709edd13beeeaa`: START #46126867841, Windows #46126867911, Win7 #46126867844, macOS #46126867862 — SUCCESS; Defender/integrity PASS.
+- Candidate #678 exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`; candidate START #46127530499, Windows #46127530498, Win7 #46127530508, macOS #46127530503 — SUCCESS.
+- Exact-source START #46127933006, Windows #46127933023, Win7 #46127933027, macOS #46127932975 — SUCCESS; Defender/integrity PASS.
+- Trigger #679 merged `64d664b67f84ebfb5676d45b79c37bd155191687`; publisher #46128959017 SUCCESS.
+- [v10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6) — 8 canonical assets, prerelease=true, exact target `f4950ddb7efcada08f8fe73a5bc9470776163462`. Stable/Latest remains v10.24-r9.
+- Recovery after an input-stream failure created duplicate trigger PR #680 after #679 had already published r6; no second release was created.
+- Real owner workspace was not opened or modified by automated tests.
+- Next: repeat manual owner UI acceptance of r6. Issue #237 remains open.
+
 ## 27.11.2026 — 10.25-r5 full Instructions acceptance / Current Test
 
 - Фінальний stage 10.25 не додає нових бізнес-правил; одним synthetic workspace зв'язує r1–r4.
