@@ -81,12 +81,7 @@ def _briefing_revision(prepared):
     value = str(prepared.get("program_revision") or "").strip()
     if value:
         return value
-    source = str(prepared.get("template_id") or "").strip()
-    if ":" in source:
-        tail = source.rsplit(":", 1)[-1].strip()
-        if tail.lower().startswith("r") and tail[1:].isdigit():
-            return tail
-    return source
+    return str(prepared.get("template_id") or "").strip()
 
 
 def build_briefing_docx(prepared):
