@@ -3,7 +3,7 @@
 Головний і нормативний опис продукту — [український README](../../README.md).
 
 - **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, prerelease=false.
-- **Current Test:** [10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5), 8 files, exact source `70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3`, prerelease=true; full synthetic Instructions r1–r4 acceptance + backup/restore.
+- **Current Test:** [10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6), 8 files, exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`, prerelease=true; виправлення ручного приймання Інструктажів: реальна основа з TemplateLibrary/CompanyTemplates, лінії/квартальні теми, event-допис і DOCX «ЗАТВЕРДЖЕНО».
 - Українська документація залишається джерелом повних інструкцій і технічного стану.
 
 ## Переклади
