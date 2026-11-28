@@ -57,6 +57,7 @@ def prepare_list(
     program_text="",
     template_id="",
     source_note="",
+    approved_by="",
 ):
     direction = str(direction or "").strip()
     if direction not in BRIEFING_KINDS:
@@ -105,6 +106,7 @@ def prepare_list(
         "program_text": str(program_text or "").strip(),
         "template_id": str(template_id or "").strip(),
         "source_note": str(source_note or "").strip(),
+        "approved_by": str(approved_by or "").strip(),
         "people": names,
         "people_records": tuple(records),
     }
