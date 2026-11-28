@@ -36,7 +36,7 @@ def open_company_templates(parent, services):
     body.rowconfigure(2, weight=1)
 
     ttk.Label(
-        body, text="Власні шаблони",
+        body, text="Власні шаблони — редагування і підготовка",
         font=("TkDefaultFont", 13, "bold"),
     ).grid(row=0, column=0, sticky="w")
 
@@ -75,7 +75,7 @@ def open_company_templates(parent, services):
     edit_button = ttk.Button(footer, text="Редагувати", state="disabled")
     edit_button.grid(row=0, column=2, padx=(4, 8))
     draft_button = ttk.Button(
-        footer, text="Підготувати чернетку", state="disabled"
+        footer, text="Заповнити поля / підготувати документ", state="disabled"
     )
     draft_button.grid(row=0, column=3, padx=(4, 8))
     ttk.Button(
@@ -132,7 +132,11 @@ def open_company_templates(parent, services):
         enabled = "normal" if tree.selection() else "disabled"
         edit_button.configure(state=enabled)
         draft_button.configure(state=enabled)
-        status.set("Власних шаблонів: %d" % len(rows))
+        status.set(
+            "Власних шаблонів: %d. «Редагувати» змінює текст шаблону; "
+            "«Заповнити поля / підготувати документ» підставляє дані підприємства "
+            "і працівників у вибраний шаблон." % len(rows)
+        )
 
     def poll():
         if state["closed"]:
