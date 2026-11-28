@@ -115,9 +115,15 @@ def _latest_programs(workspace_root):
         current = latest.get(row.program_id)
         if current is None or row.revision > current.revision:
             latest[row.program_id] = row
+    line_order = {
+        label: index for index, label in enumerate(program_sources.LINE_ALL)
+    }
     return tuple(sorted(
         latest.values(),
         key=lambda row: (
+            line_order.get(
+                program_sources.program_line(row.direction, row.kind), 99
+            ),
             row.direction.casefold(),
             row.kind.casefold(),
             row.title.casefold(),
