@@ -48,6 +48,20 @@ def _line(doc, label, value=""):
     doc.add_paragraph("%s %s" % (label, str(value or "").strip()))
 
 
+def _approval_block(doc, approved_by=""):
+    paragraph = doc.add_paragraph()
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    run = paragraph.add_run("ЗАТВЕРДЖЕНО\n")
+    run.bold = True
+    run.font.size = Pt(11)
+    value = str(approved_by or "").strip()
+    paragraph.add_run(
+        (value + "\n") if value else "______________________________\n"
+    )
+    paragraph.add_run("підпис ____________________\n")
+    paragraph.add_run("«___» ______________ 20___ р.")
+
+
 def _table(doc, headers, rows):
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = "Table Grid"
@@ -63,14 +77,21 @@ def _table(doc, headers, rows):
 def build_briefing_docx(prepared):
     """Program followed by an unsigned, printable attendance/signature sheet."""
     doc = _doc()
+    _approval_block(doc, prepared.get("approved_by"))
     _title(doc, "ПРОГРАМА ІНСТРУКТАЖУ")
     _line(doc, "Напрям:", prepared["direction"])
     _line(doc, "Вид:", prepared["kind"])
     _line(doc, "Дата:", prepared["day"].strftime("%d.%m.%Y"))
     _line(doc, "Тема:", prepared["topic"])
+    if prepared.get("template_id"):
+        _line(doc, "Редакція програми:", prepared.get("template_id"))
+    if prepared.get("source_note"):
+        _line(doc, "Підстава / нормативний орієнтир:", prepared.get("source_note"))
     if prepared.get("reason"):
-        _line(doc, "Підстава:", prepared["reason"])
-    _line(doc, "Нормативний орієнтир:", prepared.get("source_note"))
+        doc.add_heading("Конкретний випадок / підстава", level=2)
+        for paragraph in str(prepared["reason"]).splitlines():
+            if paragraph.strip():
+                doc.add_paragraph(paragraph)
     doc.add_heading("Зміст інструктажу", level=2)
     for paragraph in (prepared.get("program_text") or "").splitlines():
         doc.add_paragraph(paragraph or " ")
@@ -79,6 +100,8 @@ def build_briefing_docx(prepared):
     _line(doc, "Напрям / вид:", "%s / %s" % (prepared["direction"], prepared["kind"]))
     _line(doc, "Тема:", prepared["topic"])
     _line(doc, "Дата:", prepared["day"].strftime("%d.%m.%Y"))
+    if prepared.get("template_id"):
+        _line(doc, "Редакція програми:", prepared.get("template_id"))
     rows = prepared.get("people_records") or ()
     if rows:
         people = [(r.get("name", ""), r.get("personnel_no", "")) for r in rows]
