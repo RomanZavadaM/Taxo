@@ -71,11 +71,13 @@ def _library_sources(workspace_root: Path, app_version: str):
     rows = []
     view = inspect_workspace_library(Path(workspace_root), str(app_version))
     if view.status != "AVAILABLE":
-        return rows, (view.summary,)
+        return rows, (view.summary,), frozenset()
     root = default_library_root(Path(workspace_root))
+    eligible_pairs = set()
     for item in view.rows:
         if item.category_id not in ("briefings", "training-programs"):
             continue
+        eligible_pairs.add((item.template_id, item.revision_id))
         preview = load_template_preview(
             root,
             str(app_version),
@@ -102,10 +104,10 @@ def _library_sources(workspace_root: Path, app_version: str):
             program=program,
             source_note="; ".join(note_parts),
         ))
-    return rows, ()
+    return rows, (), frozenset(eligible_pairs)
 
 
-def _company_sources(workspace_root: Path):
+def _company_sources(workspace_root: Path, eligible_pairs=frozenset()):
     rows = []
     for summary in list_company_templates(Path(workspace_root)):
         if not summary.enabled:
@@ -113,6 +115,25 @@ def _company_sources(workspace_root: Path):
         document = load_company_template(
             Path(workspace_root), summary.company_template_id
         )
+        template_kind = str(
+            document.template.get("document_kind") or ""
+        ).casefold()
+        template_id = str(summary.based_on_template_id or "").casefold()
+        pair = (
+            summary.based_on_template_id,
+            summary.based_on_revision_id,
+        )
+        looks_like_briefing = (
+            pair in eligible_pairs
+            or any(token in template_kind for token in (
+                "brief", "training", "інструктаж"
+            ))
+            or template_id.startswith((
+                "briefing", "briefings.", "training", "safety.brief"
+            ))
+        )
+        if not looks_like_briefing:
+            continue
         program = str(_render(document.template) or "").strip()
         if not program:
             continue
@@ -145,13 +166,16 @@ def source_options(
     rows = list(_built_in_sources(direction, kind))
     messages = []
     try:
-        extra, notes = _library_sources(workspace_root, app_version)
+        extra, notes, eligible_pairs = _library_sources(
+            workspace_root, app_version
+        )
         rows.extend(extra)
         messages.extend(note for note in notes if note)
     except Exception as exc:
+        eligible_pairs = frozenset()
         messages.append("Бібліотека шаблонів недоступна: %s" % exc)
     try:
-        rows.extend(_company_sources(workspace_root))
+        rows.extend(_company_sources(workspace_root, eligible_pairs))
     except Exception as exc:
         messages.append("Власні шаблони недоступні: %s" % exc)
 
