@@ -100,7 +100,7 @@ class TemplateLibraryAcceptanceR7Test(unittest.TestCase):
 
     def test_library_ui_has_direct_edit_and_fill_workflow(self):
         source = inspect.getsource(template_library_ui.open_template_library)
-        self.assertIn("Власна копія / редагувати", source)
+        self.assertIn("Створити власну копію", source)
         self.assertIn("Заповнити поля / підготувати", source)
         self.assertIn("find_workspace_company_copy", source)
         self.assertIn("open_company_template_editor", source)
