@@ -1,10 +1,10 @@
 # Taxo — стан продукту
 
-**Актуально:** 27.11.2026 після публікації 10.25-r3 Test.
+**Актуально:** 28.11.2026 після публікації 10.25-r6 Test.
 
 - **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 файлів, prerelease=false.
-- **Current Test:** [10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3), exact source `0c76b38b3aa3970245f430bee2bde7b5c062c5dd`, 8 files, prerelease=true; immutable program revisions + cumulative employee selection + exact prepared DOCX link/SHA-256.
-- **r3 exact-source CI:** START #46052986259; Windows #46052986192; Win7 #46052986213 attempt 2; macOS #46052986186 — SUCCESS. Publisher #46054871091 SUCCESS.
+- **Current Test:** [10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6), exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`, 8 files, prerelease=true; real TemplateLibrary/CompanyTemplates program bases + briefing lines/quarter topics + event addendum + approval-quality DOCX.
+- **r6 exact-source CI:** START #46127933006; Windows #46127933023; Win7 #46127933027; macOS #46127932975 — SUCCESS. Publisher #46128959017 SUCCESS.
 - Підтверджені версії та точні перевірки — у [поточному стані](../PROJECT_STATE.md).
 
 **У Stable/Latest 10.24-r9** виправлено давню слабкість документів ТЗ, що існувала від 10.2-r1: запис у БД міг лишитися без фізичного файла, а початковий source path не зберігався. Нові/замінені копії є Taxo-owned файлами у `Data/VehicleDocuments` із source path, size та SHA-256. UI показує реальну наявність/втрату/пошкодження; selected backup перевіряє bytes, може забрати доступний legacy external/source файл у staging archive, restore повторно перевіряє копії, а архівування запису не видаляє файл. Publisher #46004721962 — SUCCESS; exact release target `e3770aa72b0744eee192979a2e569651bac4f257`.
@@ -42,7 +42,7 @@
 
 ## Подальша робота
 
-10.25-r5 опублікована як Current Test після повного virtual/synthetic acceptance усієї лінії Інструктажів r1–r4. Реальна база власника не використовувалась. Автоматичне приймання підтверджує persisted state, live routes, DOCX links/SHA-256 і full backup/restore, але не підміняє ручне користування UI.
+10.25-r6 опублікована як Current Test після виправлень ручного приймання r5. Реальна TemplateLibrary/CompanyTemplates тепер підключена як основа програми; додано зрозумілі лінії/квартальні робочі теми, event addendum і нормальний блок «ЗАТВЕРДЖЕНО» у DOCX. Реальна база власника не використовувалась.
 
 **Issue #237 лишається відкритою до ручного owner UI acceptance.** Лише після нього вирішувати, чи закривати Інструктажі й переходити до наступного великого блоку — єдиного сховища документів.
 
