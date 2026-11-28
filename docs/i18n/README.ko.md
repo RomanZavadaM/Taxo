@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest:** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8개 파일, exact source `e3770aa72b0744eee192979a2e569651bac4f257`. 차량 문서 보존 및 backup/restore 보호 기능이 이제 Stable에 포함됩니다.
 
 
-**Current Test:** [Taxo 10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6), 8개 파일, exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`. 수동 UI 검수에서 확인된 문제를 수정했습니다. 실제 TemplateLibrary/회사 템플릿을 프로그램 기반으로 사용하고, 편집 가능한 분기별 주제를 포함한 교육 라인, 이벤트별 추가 내용, 정확한 프로그램 리비전이 포함된 DOCX 승인 헤더를 제공합니다. Stable은 10.24-r9로 유지됩니다.
+**Current Test:** [Taxo 10.25-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r7), 8개 파일, exact source `76f2f7c8868154374457dc7c094a2c25ed2547d2`. 기존 회사용 복사본이 있으면 오류 대신 해당 복사본을 열고, 라이브러리에서 바로 입력/준비로 이동할 수 있으며 문서 유형도 사람이 읽기 쉬운 이름으로 표시됩니다. 새 프로그램은 회사에 설정된 승인자를 제안할 수 있고, 교육 DOCX는 A4이며 서명표에는 내부 번호 대신 직책을 표시합니다. Stable은 10.24-r9로 유지됩니다.
 
 데이터베이스와 문서는 별도 작업 폴더에 보관하고 업데이트 전에 백업하세요. [사용 설명서(우크라이나어)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

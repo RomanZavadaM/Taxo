@@ -4,7 +4,7 @@
 
 **Stable / Latest:** [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) — 27.11.2026, 8 файлів, exact source `e3770aa72b0744eee192979a2e569651bac4f257`, vehicle-document persistence + verified backup/restore.
 
-**Current Test:** [10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6) — real TemplateLibrary/CompanyTemplates program bases, briefing lines + editable I–IV quarter working topics, event-specific addendum, DOCX «ЗАТВЕРДЖЕНО» + exact program revision; exact source `f4950ddb7efcada08f8fe73a5bc9470776163462`, 8 files, prerelease=true.
+**Current Test:** [10.25-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r7) — existing-copy open path, direct fill/prepare workflow, human template kinds, company-signer suggestion, A4 briefing DOCX and position-based signature sheet; exact source `76f2f7c8868154374457dc7c094a2c25ed2547d2`, 8 files, prerelease=true.
 
 **Попередня Stable:** [10.24-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r3).
 
@@ -19,7 +19,7 @@
 - [Адміністрування й резервні копії](guides/ADMIN_GUIDE.md).
 - [Типові проблеми](guides/TROUBLESHOOTING.md).
 
-## Актуально для Stable 10.24-r9 / Test 10.25-r6
+## Актуально для Stable 10.24-r9 / Test 10.25-r7
 
 Taxo допомагає створювати, редагувати, переглядати й друкувати накази. Паперовий оригінал лишається первинним контролем; позначка паперового підпису не є КЕП і не блокує виправлення робочого запису Taxo.
 

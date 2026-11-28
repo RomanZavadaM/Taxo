@@ -19,7 +19,7 @@ Windows 10/11 x64 · Windows 7 SP1 x64 · macOS Intel / Apple Silicon · [START 
 **Stable / Latest :** [Taxo 10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), 8 fichiers, source exacte `e3770aa72b0744eee192979a2e569651bac4f257`. Les protections des documents véhicule et de sauvegarde/restauration font désormais partie de la version stable.
 
 
-**Current Test :** [Taxo 10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6), 8 fichiers, source exacte `f4950ddb7efcada08f8fe73a5bc9470776163462`. Cette version corrige les écarts relevés lors de l’acceptation manuelle de l’interface : vraies bases issues de TemplateLibrary/des modèles de l’entreprise, lignes d’instruction plus claires avec thèmes trimestriels modifiables, ajout spécifique à l’événement et en-tête d’approbation DOCX avec révision exacte. Stable reste 10.24-r9.
+**Current Test :** [Taxo 10.25-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r7), 8 fichiers, source exacte `76f2f7c8868154374457dc7c094a2c25ed2547d2`. Une copie d’entreprise déjà existante s’ouvre désormais au lieu de produire une erreur ; la bibliothèque propose une action directe de remplissage/préparation et des types de documents lisibles ; un nouveau programme peut proposer le signataire configuré de l’entreprise ; le DOCX d’instruction est en A4 et la feuille de signatures affiche le poste plutôt que le numéro interne. Stable reste 10.24-r9.
 
 Conservez les bases et documents dans un dossier de travail séparé et sauvegardez-le avant mise à jour. [Guide utilisateur (ukrainien)](../guides/USER_MANUAL.md) · [Quick Start](../guides/QUICK_START.md)
 

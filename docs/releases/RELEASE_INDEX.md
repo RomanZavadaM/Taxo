@@ -1,12 +1,12 @@
 # Випуски Taxo
 
-**Стан:** 28.11.2026: Stable/Latest 10.24-r9; Current Test 10.25-r6.
+**Стан:** 28.11.2026: Stable/Latest 10.24-r9; Current Test 10.25-r7.
 
 | Лінія | Версія | Призначення |
 |---|---|---|
 | Стабільна / Latest | [10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9) | 8 canonical assets; vehicle-document Taxo-owned copy + source path/size/SHA-256; selected backup/restore validation incl. archived records. Exact source e3770aa72b0744eee192979a2e569651bac4f257; promotion PR #651 merged 3dfefa67ad9385ac18c8ee182c0a99a5a5a0effa; publisher #46014386874 SUCCESS; prerelease=false; GitHub Latest. |
-| Поточна тестова | [10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6) | 8 canonical assets; manual-acceptance fixes: verified TemplateLibrary/CompanyTemplates → program basis, briefing lines and editable I–IV quarter working topics, event-specific addendum, DOCX approval header + exact program revision. Exact source f4950ddb7efcada08f8fe73a5bc9470776163462; candidate START #46127530499 1743 tests PASS; exact-source START #46127933006, Windows #46127933023, Win7 #46127933027, macOS #46127932975 SUCCESS; publisher #46128959017 SUCCESS; prerelease=true. |
-| Попередня тестова | [10.25-r5](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r5) | 8 canonical assets; full synthetic Instructions r1–r4 acceptance; exact source 70bc3c6bf88f6edfd9f1ae1865c1efb3249ec2f3; prerelease=true. |
+| Поточна тестова | [10.25-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r7) | 8 canonical assets; existing-copy open path, direct fill/prepare workflow, human template kinds, signer suggestion, A4 briefing DOCX and position-based signature sheet. Exact source 76f2f7c8868154374457dc7c094a2c25ed2547d2; candidate START #46149046990 1749 tests PASS; exact-source START #46149545768, Windows #46149545770, Win7 #46149545728, macOS #46149545741 SUCCESS; publisher #46150624080 SUCCESS; prerelease=true. |
+| Попередня тестова | [10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6) | 8 canonical assets; manual-acceptance fixes for program bases/lines/event addendum/DOCX; exact source f4950ddb7efcada08f8fe73a5bc9470776163462; prerelease=true. |
 | Попередня тестова | [10.25-r4](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r4) | Event briefing + explicit manual conducted fact; exact source ed3b79a96659aa011f60fa7912092fbc15157cdb; prerelease=true. |
 | Попередня тестова | [10.25-r3](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r3) | 8 canonical assets; immutable program revisions + cumulative employee selection + exact prepared DOCX link/SHA-256; exact source 0c76b38b3aa3970245f430bee2bde7b5c062c5dd; prerelease=true. |
 | Попередня тестова | [10.25-r2](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r2) | quarter briefing view + direction filter + exact program revision + derived statuses + idempotent explicit plan + strict small-window live route. Exact source f013e244ad42c9d5c101b5c5eacf4f55738fadbd; prerelease=true. |

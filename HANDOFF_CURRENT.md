@@ -1,50 +1,47 @@
 # HANDOFF_CURRENT — Taxo
 
-**28.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r6.**
+**28.11.2026 — Stable/Latest = 10.24-r9; Current Test = 10.25-r7.**
 
 - **Stable/Latest:** [v10.24-r9](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.24-r9), exact source `e3770aa72b0744eee192979a2e569651bac4f257`, 8 canonical assets, prerelease=false, GitHub Latest.
-- **Current Test:** [v10.25-r6](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r6), exact issued source `f4950ddb7efcada08f8fe73a5bc9470776163462`, 8 canonical assets, prerelease=true.
-- Current main after release trigger: `64d664b67f84ebfb5676d45b79c37bd155191687`.
+- **Current Test:** [v10.25-r7](https://github.com/RomanZavadaM/Taxo/releases/tag/v10.25-r7), exact issued source `76f2f7c8868154374457dc7c094a2c25ed2547d2`, 8 canonical assets, prerelease=true.
+- Release-trigger main: `d5ee59f84fbc3d1d28e835978ca3eff87ee9555a` before this recovery checkpoint.
 
-## 10.25-r6 — завершено
+## 10.25-r7 — завершено
 
-r6 — виправлення за ручним owner acceptance r5, без зміни Stable:
+r7 виправляє проблеми, знайдені власником під час ручного приймання r6:
 
-1. «Основа програми» реально підключена до перевіреної `TemplateLibrary` для категорій «Інструктажі» / «Навчальні програми».
-2. Придатні власні копії `CompanyTemplates` теж доступні як основа; накази/акти не підмішуються.
-3. Програми згруповано у зрозумілі лінії: планові / річний цикл; початкові / вступні; цільові / перед роботою; позапланові / за подією.
-4. Для повторних БДР та ОП додано редаговані робочі теми I–IV кварталу. Вони не встановлюють законодавчу періодичність автоматично.
-5. «За подією…» має окремий допис конкретного випадку / проблеми / питань до базової програми.
-6. DOCX має блок «ЗАТВЕРДЖЕНО», approved_by з exact program revision, місце для підпису/дати, точну редакцію програми та окремий блок події.
-7. Prepared як і раніше не означає conducted або paper-signed.
-8. Старий date-sensitive r2 test зафіксовано на його історичній контрольній даті; реальна overdue-логіка не послаблена.
-9. Реальна база власника не відкривалась.
+1. «Створити власну копію» більше не завершується помилкою, якщо копія цієї редакції вже існує: Taxo знаходить її та відкриває.
+2. У Бібліотеці є прямий шлях «Заповнити поля / підготувати»; вкладка «Поля для заповнення» пояснює, де виконувати заповнення.
+3. Технічні типи `order` / `instruction_program` / `notice` показуються людськими українськими назвами.
+4. Старі звичні дії «Створити власну копію» і «Підготувати чернетку» збережені.
+5. Для нової програми «Затвердив» пропонується з `signer_position + signer_name` картки підприємства; користувач може змінити значення, старі immutable редакції не переписуються.
+6. Prepared DOCX явно A4; у листі ознайомлення друкуються ПІБ + посада, а внутрішній/табельний номер не виставляється на папір.
+7. Новий планувальний шлях показує людську редакцію програми `rN`, при цьому exact ID лишається у структурованих даних/legacy-сумісності.
+8. Prepared як і раніше не означає conducted або paper-signed. Реальна база власника автоматичними тестами не відкривалась.
 
-## Приймання r6
+## Перевірка і публікація r7
 
-- Prep exact SHA `639329d8aff54020b2b1bf09be709edd13beeeaa`: START #46126867841; Windows #46126867911; Win7 #46126867844; macOS #46126867862 — SUCCESS; Defender/integrity PASS.
-- Candidate exact SHA `cc71527e48be1463780be0b4aab8f0af8e38843c`: START #46127530499 — **1743 tests PASS**; Windows #46127530498; Win7 #46127530508; macOS #46127530503 — SUCCESS.
-- Exact issued source `f4950ddb7efcada08f8fe73a5bc9470776163462`: START #46127933006; Windows #46127933023; Win7 #46127933027; macOS #46127932975 — SUCCESS; Defender/integrity PASS.
-- Release trigger #679 merged `64d664b67f84ebfb5676d45b79c37bd155191687`.
-- Publisher #46128959017 — SUCCESS.
-- Release `v10.25-r6`: 8 canonical assets, prerelease=true, draft=false, exact target `f4950ddb7efcada08f8fe73a5bc9470776163462`.
+- Candidate exact head `8498b91f794a402d13ef2b6c2f855e5694003730`: START #46149046990 — **1749 tests PASS**; Windows #46149046880; Win7 #46149046913; macOS #46149046865 — SUCCESS; Defender/integrity PASS.
+- Exact issued source `76f2f7c8868154374457dc7c094a2c25ed2547d2`: START #46149545768 — **1749 tests PASS**; Windows #46149545770; Win7 #46149545728; macOS #46149545741 — SUCCESS; Defender/integrity PASS.
+- Product PR #683 merged as `76f2f7c8868154374457dc7c094a2c25ed2547d2`.
+- Release trigger #684 merged as `d5ee59f84fbc3d1d28e835978ca3eff87ee9555a`.
+- Publisher #46150624080 — SUCCESS.
+- Release `v10.25-r7`: 8 canonical assets, prerelease=true, draft=false, exact target `76f2f7c8868154374457dc7c094a2c25ed2547d2`.
 - Stable/Latest лишається `v10.24-r9`.
 
 ## Що далі
 
-**Issue #237 НЕ закривати до повторного ручного owner UI acceptance r6.**
+**Issue #237 НЕ закривати до ручного owner UI acceptance r7.**
 
 Під час приймання насамперед перевірити:
-- «Програми / план / друк…» → «Основа програми»;
-- реальний шаблон із Бібліотеки → «Підставити» → текст нової редакції;
-- власну копію шаблону;
-- щоб накази/акти не з'являлися як основи інструктажу;
-- лінії програм і квартальні теми I–IV;
-- створення/редагування нової immutable редакції;
-- «За подією…» → базова програма + конкретний допис випадку;
-- prepared DOCX: «ЗАТВЕРДЖЕНО», затверджувач, підпис/дата, exact revision, конкретний випадок;
-- попередні r5 дії: люди, квартал/БДР/ОП, prepared/conducted, history, X/Закрити/Скасувати, мале вікно, reopen.
+- Бібліотека → «Створити власну копію» для шаблону, копія якого вже існує: має відкритися існуюча копія без червоної помилки;
+- «Заповнити поля / підготувати» → зрозуміла форма заповнення;
+- вкладка «Поля для заповнення» → зрозуміле пояснення наступної дії;
+- людські назви типів у Бібліотеці;
+- нова програма → автоматична пропозиція затверджувача з картки підприємства, з можливістю редагування;
+- prepared DOCX → A4, «ЗАТВЕРДЖЕНО», людська редакція `rN`, ПІБ + посада у листі підписів, без внутрішнього номера;
+- попередні r6/r5 сценарії: бібліотечна основа, квартали БДР/ОП, люди, prepared/conducted, event addendum, history, reopen, X/Закрити/Скасувати, мале вікно.
 
-Лише після owner acceptance вирішувати, чи закривати #237 і переходити до наступного великого блоку — **єдиного сховища документів**.
+**Єдине сховище документів поки НЕ починати.** Лише після owner acceptance вирішувати, чи закривати #237 і переходити до наступного великого блоку.
 
 Recovery: `START_HERE.md → HANDOFF_CURRENT.md → PROJECT_STATE.md → private profile/taxo → live GitHub`.
