@@ -7,10 +7,10 @@ from pathlib import Path
 
 import briefing_planner as planner
 import briefing_prepared_output as prepared_output
+import briefing_program_sources as program_sources
 from briefing_preparation import BRIEFING_KINDS
 import entity_choices
 import safety_instruction_document_service as instruction_documents
-import safety_templates
 from workspace import load_workspace_root
 
 
@@ -100,8 +100,12 @@ class EmployeeSelectionModel:
 
 
 def _program_caption(row):
-    return "%s — %s / %s — r%d" % (
-        row.title, row.direction, row.kind, row.revision
+    return "[%s] %s — %s / %s — r%d" % (
+        program_sources.program_line(row.direction, row.kind),
+        row.title,
+        row.direction,
+        row.kind,
+        row.revision,
     )
 
 
@@ -276,7 +280,7 @@ def open_program_editor(
         row=2, column=1, sticky="ew", pady=3
     )
 
-    core.ttk.Label(body, text="Заготовка").grid(
+    core.ttk.Label(body, text="Основа програми").grid(
         row=3, column=0, sticky="w", padx=(0, 8), pady=3
     )
     template_row = core.ttk.Frame(body)
@@ -287,9 +291,19 @@ def open_program_editor(
     )
     template_box.grid(row=0, column=0, sticky="ew")
     apply_template_button = core.ttk.Button(
-        template_row, text="Підставити", command=lambda: apply_template()
+        template_row,
+        text="Підставити основу",
+        command=lambda: apply_template(),
     )
     apply_template_button.grid(row=0, column=1, padx=(6, 0))
+    source_status_var = core.tk.StringVar(value="")
+    core.ttk.Label(
+        template_row,
+        textvariable=source_status_var,
+        style="Muted.TLabel",
+        wraplength=760,
+        justify="left",
+    ).grid(row=1, column=0, columnspan=2, sticky="ew", pady=(3, 0))
 
     dates = core.ttk.Frame(body)
     dates.grid(row=4, column=0, columnspan=2, sticky="ew", pady=3)
@@ -348,14 +362,28 @@ def open_program_editor(
     template_rows = []
 
     def refresh_templates(_event=None):
-        template_rows[:] = list(
-            safety_templates.templates_for(
-                direction_var.get(), kind_var.get()
+        try:
+            rows, notes = program_sources.source_options(
+                workspace_root,
+                getattr(core, "APP_VERSION", "10.25-r5"),
+                direction_var.get(),
+                kind_var.get(),
             )
-        )
-        titles = [row["title"] for row in template_rows]
-        template_box.configure(values=titles)
-        template_var.set(titles[0] if titles else "")
+            template_rows[:] = list(rows)
+        except Exception as exc:
+            template_rows[:] = []
+            notes = ("Не вдалося прочитати основи програм: %s" % exc,)
+        captions = [row.caption for row in template_rows]
+        template_box.configure(values=captions)
+        template_var.set(captions[0] if captions else "")
+        if notes:
+            source_status_var.set(" · ".join(notes))
+        else:
+            source_status_var.set(
+                "Доступно основ: %d. Вибрана основа копіюється у цю "
+                "редакцію програми; подальші зміни бібліотеки її не перепишуть."
+                % len(captions)
+            )
 
     def direction_changed(_event=None):
         values = BRIEFING_KINDS[direction_var.get()]
@@ -364,18 +392,23 @@ def open_program_editor(
         refresh_templates()
 
     def apply_template():
-        title = template_var.get()
+        caption = template_var.get()
         row = next(
-            (item for item in template_rows if item["title"] == title),
+            (item for item in template_rows if item.caption == caption),
             None,
         )
         if row is None:
             return
         if not title_var.get().strip():
-            title_var.set(row["topic"])
-        source_var.set(row["source_note"])
+            title_var.set(row.topic)
+        source_var.set(row.source_note)
         program_text.delete("1.0", "end")
-        program_text.insert("1.0", row["program"])
+        program_text.insert("1.0", row.program)
+        source_status_var.set(
+            "Підставлено: %s. Текст нижче можна доповнити під конкретне "
+            "підприємство до збереження нової редакції."
+            % row.caption
+        )
 
     direction_box.bind("<<ComboboxSelected>>", direction_changed)
     kind_box.bind("<<ComboboxSelected>>", refresh_templates)
@@ -466,7 +499,7 @@ def open_planning_preparation(
     body.rowconfigure(2, weight=1)
 
     program_frame = core.ttk.LabelFrame(
-        body, text="Програма", padding=7
+        body, text="Програма — згруповано за лініями", padding=7
     )
     program_frame.grid(row=0, column=0, sticky="ew", pady=(0, 7))
     program_frame.columnconfigure(0, weight=1)
