@@ -298,7 +298,7 @@ def open_program_editor(
     template_box.grid(row=0, column=0, sticky="ew")
     apply_template_button = core.ttk.Button(
         template_row,
-        text="Підставити основу",
+        text="Підставити",
         command=lambda: apply_template(),
     )
     apply_template_button.grid(row=0, column=1, padx=(6, 0))
