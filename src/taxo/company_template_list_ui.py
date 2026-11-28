@@ -75,7 +75,7 @@ def open_company_templates(parent, services):
     edit_button = ttk.Button(footer, text="Редагувати", state="disabled")
     edit_button.grid(row=0, column=2, padx=(4, 8))
     draft_button = ttk.Button(
-        footer, text="Заповнити поля / підготувати документ", state="disabled"
+        footer, text="Підготувати чернетку", state="disabled"
     )
     draft_button.grid(row=0, column=3, padx=(4, 8))
     ttk.Button(
