@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""10.25-r5 prep: quarter briefing view over the r1 planning store."""
+"""10.25-r6 prep: quarter briefing view over the r1 planning store."""
 from __future__ import annotations
 
 import tempfile
@@ -23,12 +23,12 @@ from runtime_reachability import (
 class BriefingQuarterViewR2PrepTests(unittest.TestCase):
     def test_candidate_identity_and_package_guard(self):
         root = Path(__file__).resolve().parents[1]
-        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r5\n")
-        self.assertIn('APP_VERSION = "10.25-r5"', (root / "main.py").read_text("utf-8"))
+        self.assertEqual((root / "VERSION.txt").read_text("utf-8"), "Version: 10.25-r6\n")
+        self.assertIn('APP_VERSION = "10.25-r6"', (root / "main.py").read_text("utf-8"))
         start = (root / "START.bat").read_text("utf-8")
-        self.assertIn("Taxo 10.25-r5 - START", start)
+        self.assertIn("Taxo 10.25-r6 - START", start)
         self.assertIn("briefing_quarter_view.py", start)
-        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r5\n")
+        self.assertEqual((root / ".release" / "full-current").read_text("utf-8"), "10.25-r6\n")
         self.assertEqual((root / ".release" / "stable-current").read_text("utf-8"), "10.24-r9\n")
 
     def setUp(self):
@@ -259,12 +259,19 @@ class BriefingQuarterViewLiveR2Tests(unittest.TestCase):
 
     @runtime_routes("operations.instructions_quarter")
     def test_quarter_button_is_reachable_in_small_window_and_opens_live_view(self):
+        real_status_at = planner.status_at
         with mock.patch.object(
             brief, "load_workspace_root", return_value=self.workspace
         ), mock.patch.object(
             brief.ops, "list_employee_choices", return_value=[]
         ), mock.patch.object(
             brief, "quarter_for", return_value=(2026, 4)
+        ), mock.patch.object(
+            planner,
+            "status_at",
+            side_effect=lambda session, as_of=None: real_status_at(
+                session, date(2026, 11, 27)
+            ),
         ):
             tab = brief.install_instruction_tab(
                 SimpleNamespace(), self.core, self.book

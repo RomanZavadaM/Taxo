@@ -147,11 +147,28 @@ def open_event_dialog(
     core.ttk.Entry(
         top, textvariable=reason_var
     ).grid(row=2, column=1, columnspan=3, sticky="ew", pady=3)
+    core.ttk.Label(
+        top, text="Конкретний випадок / що додатково розглянути"
+    ).grid(row=3, column=0, sticky="nw", padx=(0, 6), pady=3)
+    details_text = core.tk.Text(top, height=4, wrap="word")
+    details_text.grid(
+        row=3, column=1, columnspan=3, sticky="ew", pady=3
+    )
+    core.ttk.Label(
+        top,
+        text=(
+            "Основа береться з вибраної програми. Тут достатньо дописати "
+            "конкретну проблему, обставини та питання саме цього випадку."
+        ),
+        style="Muted.TLabel",
+        wraplength=760,
+        justify="left",
+    ).grid(row=4, column=1, columnspan=3, sticky="ew", pady=(0, 3))
     core.ttk.Label(top, text="Пошук працівників").grid(
-        row=3, column=0, sticky="w", padx=(0, 6), pady=3
+        row=5, column=0, sticky="w", padx=(0, 6), pady=3
     )
     search_entry = core.ttk.Entry(top, textvariable=search_var)
-    search_entry.grid(row=3, column=1, columnspan=3, sticky="ew", pady=3)
+    search_entry.grid(row=5, column=1, columnspan=3, sticky="ew", pady=3)
 
     people_frame = core.ttk.LabelFrame(
         body,
@@ -273,13 +290,20 @@ def open_event_dialog(
             )
             return None
         try:
+            base_reason = reason_var.get().strip()
+            if not base_reason:
+                raise ValueError("Вкажіть підставу події")
+            details = details_text.get("1.0", "end-1c").strip()
+            reason = base_reason
+            if details:
+                reason += "\n\nКонкретний випадок / додатково розглянути:\n" + details
             scheduled_for = _ui_to_iso(day_var.get(), "Дата події")
             session = create_event(
                 workspace_root,
                 program_id=program.program_id,
                 program_revision=program.revision,
                 scheduled_for=scheduled_for,
-                reason=reason_var.get(),
+                reason=reason,
                 participants=people,
             )
         except Exception as exc:
@@ -326,6 +350,7 @@ def open_event_dialog(
 
     win._taxo_event_program_combo = program_box
     win._taxo_event_reason_var = reason_var
+    win._taxo_event_details_text = details_text
     win._taxo_event_day_var = day_var
     win._taxo_event_search_entry = search_entry
     win._taxo_event_available_people = available
