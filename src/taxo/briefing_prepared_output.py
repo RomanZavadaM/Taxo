@@ -324,6 +324,7 @@ def _prepared_payload(workspace_root: Path, session):
             program.program_id, program.revision
         ),
         source_note=program.source_note,
+        approved_by=program.approved_by,
     )
 
 
